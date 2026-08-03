@@ -1,0 +1,64 @@
+using Rustaveli.Pdf.Exceptions;
+
+namespace Rustaveli.Pdf.UnitTests;
+
+public class CompositionGuardTests
+{
+    [Fact]
+    public void EmptyRefusesToDiscardExistingContent()
+    {
+        // Empty declares that nothing was placed here. Letting it blank a filled container would destroy a
+        // subtree with no diagnostic — exactly what the attach guard exists to prevent.
+        Container container = new Container();
+        container.Text("already here");
+
+        Assert.Throws<DocumentComposeException>(() => container.Empty());
+    }
+
+    [Fact]
+    public void EmptyIsFineOnAnUntouchedContainer()
+    {
+        Container container = new Container();
+
+        container.Empty();
+
+        Assert.Null(container.Child);
+    }
+
+    [Fact]
+    public void CornerRadiusRejectsASingleSidedBorder()
+    {
+        // The element cannot round a corner where two thicknesses meet, so it would have ignored the radius.
+        Assert.Throws<InvalidOperationException>(() =>
+            LayoutHarness.Build(container => container.BorderLeft(2).CornerRadius(8)));
+    }
+
+    [Fact]
+    public void CornerRadiusRejectsAZeroWidthBorder()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            LayoutHarness.Build(container => container.Border(0).CornerRadius(8)));
+    }
+
+    [Fact]
+    public void CornerRadiusAcceptsAUniformBorder()
+    {
+        Element root = LayoutHarness.Build(container => container
+            .Border(2).CornerRadius(8)
+            .Element(inner => inner.Child = new FixedElement(40, 20, Colors.White)));
+
+        Assert.Single(LayoutHarness.Draw(root, new Size(200, 200)).Operations.OfType<RoundedRectangleOperation>());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void LinkTargetsMustBeMeaningful(string? target)
+    {
+        // An empty target draws no annotation, so the region would look linked in the source and do nothing.
+        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Hyperlink(target!)));
+        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Section(target!)));
+        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.SectionLink(target!)));
+    }
+}

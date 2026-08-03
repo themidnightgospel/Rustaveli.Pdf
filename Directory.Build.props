@@ -1,0 +1,43 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <!--
+    Package identity, shared by everything that ships. Harmless on the test and sample projects, which set
+    IsPackable to false.
+  -->
+  <PropertyGroup>
+    <!-- Deliberately pre-1.0: the layout engine is settled but the public vocabulary is not. -->
+    <Version>0.1.0-alpha</Version>
+    <Authors>Rustaveli.Pdf contributors</Authors>
+    <PackageTags>pdf;document;report;invoice;generation;layout;skiasharp</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- Ship symbols so a stack trace from a consumer's process is readable. -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Referenced for exactly two rules — SA1402 (one type per file) and SA1649 (file name matches the type) —
+      which plain .editorconfig cannot express. Every other StyleCop rule is switched off in .editorconfig; this
+      repository is not adopting StyleCop's house style. PrivateAssets keeps it out of the shipped packages.
+    -->
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <!-- The licence itself travels as a PackageLicenseExpression, which nuget.org can read; only the README
+         needs packing as a file. -->
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+</Project>

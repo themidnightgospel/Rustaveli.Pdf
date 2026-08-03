@@ -1,0 +1,54 @@
+namespace Rustaveli.Pdf.UnitTests;
+
+public class EnsureSpaceRegressionTests
+{
+    [Fact]
+    public void SurvivesAParentThatDrawsWithTheHeightItMeasured()
+    {
+        // A header measures against the whole page body and then draws with the band height it settled on.
+        // Re-deriving the headroom decision from that smaller box would refuse content the parent had already
+        // committed to, and the early return would drop it with no diagnostic.
+        Document document = Document.Create(container => container.Page(page =>
+        {
+            page.Size = new Size(300, 400);
+            page.Header().EnsureSpace(100).Element(inner => inner.Child = new FixedElement(50, 20, Colors.Red));
+            page.Content().Element(inner => inner.Child = new FixedElement(50, 20, Colors.Blue));
+        }));
+
+        RecordingCanvas canvas = LayoutHarness.Render(document);
+
+        Assert.Contains(canvas.Page(1).Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+    }
+
+    [Fact]
+    public void SurvivesBeingDrawnInsideARow()
+    {
+        RowElement row = new RowElement();
+        row.Items.Add(new RowItem { Sizing = RowItemSizing.Relative, Child = new FixedElement(40, 20, Colors.Blue) });
+        row.Items.Add(new RowItem
+        {
+            Sizing = RowItemSizing.Relative,
+            Child = new EnsureSpaceElement { MinHeight = 100, Child = new FixedElement(40, 20, Colors.Red) }
+        });
+
+        RecordedPage page = LayoutHarness.Draw(row, new Size(300, 400));
+
+        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+    }
+
+    [Fact]
+    public void APageThatDrewNothingDoesNotVoidTheGuarantee()
+    {
+        // Only content that actually occupied space counts as started. Otherwise a page rendering nothing would
+        // permanently disarm the headroom guarantee for every page after it.
+        EnsureSpaceElement element = new EnsureSpaceElement
+        {
+            MinHeight = 80,
+            Child = new ShowIfElement { Condition = false, Child = new FixedElement(10, 10) }
+        };
+
+        LayoutHarness.Draw(element, new Size(200, 100));
+
+        Assert.True(LayoutHarness.Measure(element, new Size(200, 40)).IsWrap);
+    }
+}

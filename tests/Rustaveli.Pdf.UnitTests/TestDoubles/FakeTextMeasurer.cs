@@ -1,0 +1,38 @@
+using Rustaveli.Pdf.Text;
+
+namespace Rustaveli.Pdf.UnitTests.TestDoubles;
+
+/// <summary>
+/// A text measurer with fixed, arithmetic metrics.
+/// </summary>
+/// <remarks>
+/// Layout assertions have to be exact, and real font metrics differ between machines and font versions. Every
+/// character here is half the font size wide and every line exactly the font size tall, which makes expected
+/// values calculable by hand: ten characters at size 10 measure 50 points.
+/// </remarks>
+public sealed class FakeTextMeasurer : ITextMeasurer
+{
+    public const float CharacterWidthRatio = 0.5f;
+    public const float AscentRatio = 0.8f;
+    public const float DescentRatio = 0.2f;
+
+    public FontMetrics GetMetrics(TextStyle style) => new(
+        Ascent: style.EffectiveFontSize * AscentRatio,
+        Descent: style.EffectiveFontSize * DescentRatio,
+        LineGap: 0f);
+
+    public float MeasureWidth(string text, TextStyle style) =>
+        string.IsNullOrEmpty(text) ? 0f : text.Length * CharacterWidth(style);
+
+    public int MeasureCharactersFitting(string text, TextStyle style, float maxWidth)
+    {
+        if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+            return 0;
+
+        int fitting = (int)Math.Floor(maxWidth / CharacterWidth(style));
+
+        return Math.Clamp(fitting, 0, text.Length);
+    }
+
+    private static float CharacterWidth(TextStyle style) => style.EffectiveFontSize * CharacterWidthRatio;
+}

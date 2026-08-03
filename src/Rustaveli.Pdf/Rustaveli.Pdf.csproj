@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>Rustaveli.Pdf</RootNamespace>
+    <AssemblyName>Rustaveli.Pdf</AssemblyName>
+    <PackageId>Rustaveli.Pdf</PackageId>
+    <Description>A free, open source, fluent PDF generation library for .NET.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!--
+      Annotated on the core library too, not only the rendering backend. Under the default partial trim mode an
+      unannotated assembly is kept whole, so leaving this off would preserve the entire element tree and fluent
+      API — by far the larger of the two assemblies — and would also exclude it from trim analysis.
+    -->
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <!--
+      Ship the XML documentation. Without this the library's doc comments reach nobody: consumers get no
+      IntelliSense at all. CS1591 is suppressed because the obvious members — Padding, Bold, AlignLeft — carry
+      their meaning in the name, and requiring a comment on each would bury the ones that say something.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rustaveli.Pdf.UnitTests" />
+    <InternalsVisibleTo Include="Rustaveli.Pdf.IntegrationTests" />
+  </ItemGroup>
+
+</Project>
