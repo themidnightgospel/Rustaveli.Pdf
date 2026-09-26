@@ -192,6 +192,25 @@ public class PdfByteWriterTests
     }
 
     [Fact]
+    public void KeepsTheEmptyNameFromAbsorbingTheNextToken()
+    {
+        PdfName empty = new PdfName(string.Empty);
+        PdfArray array = new PdfArray { empty, new PdfReference(21), empty, 2.5, empty, true, empty, empty, empty, new PdfName("A") };
+        PdfDictionary dictionary = new PdfDictionary { [empty] = 5 };
+
+        string written = Latin1.Written(writer =>
+        {
+            writer.WriteArray(array);
+            writer.WriteDictionary(dictionary);
+        });
+
+        Assert.Equal("[/ 21 0 R/ 2.5/ true////A]<</ 5>>", written);
+        Assert.Equal(
+            new List<object?> { new ParsedName(string.Empty), new ParsedReference(21, 0), new ParsedName(string.Empty), 2.5, new ParsedName(string.Empty), true, new ParsedName(string.Empty), new ParsedName(string.Empty), new ParsedName(string.Empty), new ParsedName("A") },
+            PdfSyntaxParser.ParseSingle(Latin1.Bytes(written.Substring(0, written.IndexOf(']') + 1))));
+    }
+
+    [Fact]
     public void WritesDictionaryEntriesWithoutTheBrackets()
     {
         PdfDictionary dictionary = new PdfDictionary { [new PdfName("A")] = 1, [new PdfName("B")] = new PdfArray { 2 } };

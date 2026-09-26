@@ -278,6 +278,7 @@ public class PdfDocumentWriterTests
             Assert.NotEqual(half, mixed);
             Assert.NotEqual(mixed, document.GetOpacityState(0.25, 0.5));
             Assert.Equal(mixed, document.GetOpacityState(0.5, 0.25));
+            document.EndPage(document.BeginPage(10, 10));
         });
 
         Dictionary<string, object?> state = reader.Dictionary(new ParsedReference(mixed.ObjectNumber, 0));
@@ -367,11 +368,14 @@ public class PdfDocumentWriterTests
     }
 
     [Fact]
-    public void WritesADocumentWithoutPages()
+    public void RefusesToFinishWithoutPages()
     {
-        PdfFileReader reader = Write(_ => { });
+        using MemoryStream output = new MemoryStream();
+        using PdfDocumentWriter document = new PdfDocumentWriter(output);
+        document.Info.Title = "Empty";
 
-        Assert.Empty(reader.Pages());
+        Assert.Throws<InvalidOperationException>(() => document.Finish());
+        Assert.DoesNotContain("Catalog", Latin1.Text(output.ToArray()), StringComparison.Ordinal);
     }
 
     [Fact]

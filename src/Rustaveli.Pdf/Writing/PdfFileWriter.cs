@@ -99,6 +99,10 @@ internal sealed class PdfFileWriter : IDisposable
     {
         CheckUnwritten(reference);
 
+        // "4 0 obj 2 0 R endobj" is not an object but an alias, and strict readers such as qpdf reject it.
+        if (value.Kind == PdfValueKind.Reference)
+            throw new ArgumentException("An indirect object cannot consist of a reference; refer to the target directly.", nameof(value));
+
         if (_objectStream != null)
         {
             int index = _objectStream.Add(reference.ObjectNumber, value);

@@ -80,17 +80,13 @@ public class PdfPageTreeTests
     }
 
     [Fact]
-    public void WritesAnEmptyRootForADocumentWithoutPages()
+    public void RefusesToWriteATreeWithoutPages()
     {
-        PdfFileReader reader = Build(0, out int treeCount);
+        using PdfFileWriter writer = new PdfFileWriter(new MemoryStream());
+        PdfPageTree tree = new PdfPageTree(writer);
 
-        Dictionary<string, object?> root = reader.Dictionary(reader.Catalog()["Pages"]);
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => tree.Write());
 
-        Assert.Equal(0, treeCount);
-        Assert.Empty(reader.Pages());
-        Assert.Equal(new ParsedName("Pages"), root["Type"]);
-        Assert.Empty((List<object?>)root["Kids"]!);
-        Assert.Equal(0L, root["Count"]);
-        Assert.False(root.ContainsKey("Parent"));
+        Assert.Equal("A document needs at least one page.", exception.Message);
     }
 }

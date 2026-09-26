@@ -281,7 +281,16 @@ internal sealed class PdfByteWriter : IDisposable
                 $"Arrays and dictionaries nest more than {MaxNestingDepth} deep; the object graph probably contains itself.");
     }
 
-    private int SeparatorLength() => _length > 0 && PdfCharacters.IsRegular(_buffer[_length - 1]) ? 1 : 0;
+    // A trailing solidus is the empty name, written as "/" alone: a delimiter, yet it would absorb a following
+    // regular token into the name just as a regular character would.
+    private int SeparatorLength()
+    {
+        if (_length == 0)
+            return 0;
+
+        byte last = _buffer[_length - 1];
+        return PdfCharacters.IsRegular(last) || last == (byte)'/' ? 1 : 0;
+    }
 
     private void Separate()
     {

@@ -538,6 +538,21 @@ public class PdfFileWriterTests
         Assert.True(output.CanWrite);
     }
 
+    [Theory]
+    [InlineData(nameof(PdfCrossReferenceFormat.Table))]
+    [InlineData(nameof(PdfCrossReferenceFormat.Stream))]
+    public void RefusesAnObjectThatIsOnlyAReference(string formatName)
+    {
+        using PdfFileWriter writer = new PdfFileWriter(new MemoryStream(), Options(Format(formatName)));
+        PdfReference target = writer.Write(new PdfArray());
+        PdfReference alias = writer.Reserve();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => writer.Write(alias, target));
+
+        Assert.Equal("value", exception.ParamName);
+        writer.Write(alias, new PdfArray { target });
+    }
+
     [Fact]
     public void RefusesToWriteAnObjectTwice()
     {

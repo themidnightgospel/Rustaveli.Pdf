@@ -39,15 +39,9 @@ internal sealed class PdfPageTree(PdfFileWriter writer)
     /// <summary>Writes every node of the tree and returns the root, which the catalog names as <c>/Pages</c>.</summary>
     public PdfReference Write()
     {
+        // An empty page tree is well-formed syntax, but qpdf reports it as an error and viewers refuse to open it.
         if (_leaves.Count == 0)
-        {
-            return writer.Write(new PdfDictionary
-            {
-                [PdfNames.Type] = PdfNames.Pages,
-                [PdfNames.Kids] = new PdfArray(),
-                [PdfNames.Count] = 0,
-            });
-        }
+            throw new InvalidOperationException("A document needs at least one page.");
 
         List<Node> level = _leaves;
         while (level.Count > 1)
