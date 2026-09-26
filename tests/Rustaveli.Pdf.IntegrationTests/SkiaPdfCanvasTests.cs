@@ -29,7 +29,7 @@ public class SkiaPdfCanvasTests
 
     private static readonly Ink Brick = Ink.Rgb(200, 40, 40);
     private static readonly Ink Ocean = Ink.Rgb(10, 120, 230);
-    private static readonly TextStyle Style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
+    private static readonly TypeStyle Style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
     private const string MathBoldA = "\U0001D400";
@@ -38,21 +38,21 @@ public class SkiaPdfCanvasTests
     {
         ["Save"] = canvas => canvas.Save(),
         ["Restore"] = canvas => canvas.Restore(),
-        ["Translate"] = canvas => canvas.Translate(new Position(5, 5)),
+        ["Translate"] = canvas => canvas.Translate(new Offset(5, 5)),
         ["Scale"] = canvas => canvas.Scale(2, 2),
         ["Rotate"] = canvas => canvas.Rotate(90),
-        ["ClipRectangle"] = canvas => canvas.ClipRectangle(new Size(10, 10)),
-        ["DrawRectangle"] = canvas => canvas.DrawRectangle(Position.Zero, new Size(10, 10), Brick),
-        ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Position.Zero, new Size(10, 10), 2, Brick),
-        ["DrawLine"] = canvas => canvas.DrawLine(Position.Zero, new Position(10, 0), 1, Brick),
-        ["DrawText"] = canvas => canvas.DrawText("Text", new Position(10, 30), Style),
+        ["ClipRectangle"] = canvas => canvas.ClipRectangle(new Extent(10, 10)),
+        ["DrawRectangle"] = canvas => canvas.DrawRectangle(Offset.Zero, new Extent(10, 10), Brick),
+        ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), 2, Brick),
+        ["DrawLine"] = canvas => canvas.DrawLine(Offset.Zero, new Offset(10, 0), 1, Brick),
+        ["DrawText"] = canvas => canvas.DrawText("Text", new Offset(10, 30), Style),
         ["DrawImage"] = canvas =>
         {
             using SkiaImage image = SkiaImage.FromBytes(TestImages.Png(4, 2));
-            canvas.DrawImage(image, new Size(10, 5));
+            canvas.DrawImage(image, new Extent(10, 5));
         },
-        ["DrawExternalLink"] = canvas => canvas.DrawExternalLink("https://example.com", new Size(10, 10)),
-        ["DrawInternalLink"] = canvas => canvas.DrawInternalLink("target", new Size(10, 10)),
+        ["DrawExternalLink"] = canvas => canvas.DrawExternalLink("https://example.com", new Extent(10, 10)),
+        ["DrawInternalLink"] = canvas => canvas.DrawInternalLink("target", new Extent(10, 10)),
         ["DrawDestination"] = canvas => canvas.DrawDestination("target")
     };
 
@@ -77,7 +77,7 @@ public class SkiaPdfCanvasTests
     private static PdfDocument Render(Action<SkiaPdfCanvas> draw) =>
         PdfDocument.Open(RenderDocument(canvas =>
         {
-            canvas.BeginPage(new Size(PageSide, PageSide));
+            canvas.BeginPage(new Extent(PageSide, PageSide));
             draw(canvas);
             canvas.EndPage();
         }));
@@ -111,12 +111,12 @@ public class SkiaPdfCanvasTests
     {
         byte[] pdf = RenderDocument(canvas =>
         {
-            canvas.BeginPage(new Size(300, 150));
-            canvas.DrawText("First", new Position(10, 50), Style);
+            canvas.BeginPage(new Extent(300, 150));
+            canvas.DrawText("First", new Offset(10, 50), Style);
             canvas.EndPage();
 
-            canvas.BeginPage(new Size(120, 400));
-            canvas.DrawText("Second", new Position(10, 50), Style);
+            canvas.BeginPage(new Extent(120, 400));
+            canvas.DrawText("Second", new Offset(10, 50), Style);
             canvas.EndPage();
         });
 
@@ -161,11 +161,11 @@ public class SkiaPdfCanvasTests
     {
         byte[] pdf = RenderDocument(canvas =>
         {
-            canvas.BeginPage(new Size(PageSide, PageSide));
-            canvas.DrawText("Drawn", new Position(10, 50), Style);
+            canvas.BeginPage(new Extent(PageSide, PageSide));
+            canvas.DrawText("Drawn", new Offset(10, 50), Style);
             canvas.EndPage();
 
-            Assert.Throws<InvalidOperationException>(() => canvas.DrawText("Late", new Position(10, 90), Style));
+            Assert.Throws<InvalidOperationException>(() => canvas.DrawText("Late", new Offset(10, 90), Style));
         });
 
         using PdfDocument parsed = PdfDocument.Open(pdf);
@@ -180,7 +180,7 @@ public class SkiaPdfCanvasTests
     public void DrawRectangleFillsTheAreaInTheColourGiven()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Position(20, 30), new Size(50, 40), Brick));
+            canvas.DrawRectangle(new Offset(20, 30), new Extent(50, 40), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -194,7 +194,7 @@ public class SkiaPdfCanvasTests
     public void APartiallyTransparentRectangleIsStillDrawn()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Position(20, 30), new Size(50, 40), Brick.WithOpacity(1 / 255f)));
+            canvas.DrawRectangle(new Offset(20, 30), new Extent(50, 40), Brick.WithOpacity(1 / 255f)));
 
         Assert.Single(parsed.GetPage(1).Paths);
     }
@@ -209,7 +209,7 @@ public class SkiaPdfCanvasTests
     {
         // A negative extent is not merely empty: Skia would normalise it and paint the mirror-image rectangle.
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Position(100, 100), new Size(width, height), Brick.WithOpacity(alpha / 255f)));
+            canvas.DrawRectangle(new Offset(100, 100), new Extent(width, height), Brick.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -218,7 +218,7 @@ public class SkiaPdfCanvasTests
     public void DrawRoundedRectangleFillsAShapeWithCurvedCorners()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Position(20, 30), new Size(60, 40), 10, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -236,7 +236,7 @@ public class SkiaPdfCanvasTests
     public void AnOversizedRadiusIsClampedToHalfTheShorterSide()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Position(20, 30), new Size(60, 40), 500, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 500, Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -253,7 +253,7 @@ public class SkiaPdfCanvasTests
     public void APositiveStrokeWidthOutlinesTheRoundedRectangleInstead()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Position(20, 30), new Size(60, 40), 10, Ocean, strokeWidth: 3));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Ocean, strokeWidth: 3));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -269,7 +269,7 @@ public class SkiaPdfCanvasTests
     public void AStrokeWidthOfZeroOrLessFillsTheRoundedRectangle(float strokeWidth)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Position(20, 30), new Size(60, 40), 10, Brick, strokeWidth));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Brick, strokeWidth));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -283,7 +283,7 @@ public class SkiaPdfCanvasTests
     public void ARadiusOfZeroOrLessDrawsSquareCorners(float radius)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Position(20, 30), new Size(60, 40), radius, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), radius, Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -300,7 +300,7 @@ public class SkiaPdfCanvasTests
     public void DrawRoundedRectangleDrawsNothingThatCouldNotBeSeen(float width, float height, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Position(100, 100), new Size(width, height), 5, Brick.WithOpacity(alpha / 255f)));
+            canvas.DrawRoundedRectangle(new Offset(100, 100), new Extent(width, height), 5, Brick.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -311,7 +311,7 @@ public class SkiaPdfCanvasTests
     public void DrawLineStrokesBetweenThePointsAtTheThicknessGiven()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawLine(new Position(10, 20), new Position(110, 20), 2.5f, Ocean));
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 2.5f, Ocean));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -330,7 +330,7 @@ public class SkiaPdfCanvasTests
     {
         // A zero stroke width is Skia's hairline, which would still paint a one-device-pixel line.
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawLine(new Position(10, 20), new Position(110, 20), thickness, Ocean.WithOpacity(alpha / 255f)));
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), thickness, Ocean.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -341,7 +341,7 @@ public class SkiaPdfCanvasTests
     public void DrawTextStartsOnTheBaselineAtThePositionGiven()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawText("Baseline", new Position(40, 120), Style.ColorOf(Brick)));
+            canvas.DrawText("Baseline", new Offset(40, 120), Style.ColorOf(Brick)));
 
         Page page = parsed.GetPage(1);
         Letter first = page.Letters[0];
@@ -360,7 +360,7 @@ public class SkiaPdfCanvasTests
     public void DrawTextDrawsNothingThatCouldNotBeSeen(string? text, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawText(text!, new Position(40, 120), Style.ColorOf(Brick.WithOpacity(alpha / 255f))));
+            canvas.DrawText(text!, new Offset(40, 120), Style.ColorOf(Brick.WithOpacity(alpha / 255f))));
 
         Assert.Empty(parsed.GetPage(1).Letters);
     }
@@ -370,7 +370,7 @@ public class SkiaPdfCanvasTests
     {
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText("Hello世界", new Position(40, 120), Style));
+        using PdfDocument parsed = Render(canvas => canvas.DrawText("Hello世界", new Offset(40, 120), Style));
         Page page = parsed.GetPage(1);
 
         Assert.Equal(40 + measurer.MeasureWidth("Hello", Style), LetterOf(page, "世").StartBaseLine.X, Tolerance);
@@ -380,10 +380,10 @@ public class SkiaPdfCanvasTests
     [Fact]
     public void LetterSpacingSeparatesCharactersButDoesNotIndentTheFirst()
     {
-        TextStyle spaced = Style.LetterSpacingOf(6);
+        TypeStyle spaced = Style.LetterSpacingOf(6);
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText("ABCD", new Position(40, 120), spaced));
+        using PdfDocument parsed = Render(canvas => canvas.DrawText("ABCD", new Offset(40, 120), spaced));
         IReadOnlyList<Letter> letters = parsed.GetPage(1).Letters;
 
         Assert.Equal("ABCD", string.Concat(letters.Select(letter => letter.Value)));
@@ -401,10 +401,10 @@ public class SkiaPdfCanvasTests
     {
         // The pair falls outside Arial, so it is also a separate font run: the gap before "B" proves the spacing
         // count carries on across runs rather than restarting in each.
-        TextStyle spaced = Style.LetterSpacingOf(6);
+        TypeStyle spaced = Style.LetterSpacingOf(6);
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText($"A{MathBoldA}B", new Position(40, 120), spaced));
+        using PdfDocument parsed = Render(canvas => canvas.DrawText($"A{MathBoldA}B", new Offset(40, 120), spaced));
         Page page = parsed.GetPage(1);
 
         // Split halves would each be an unmapped fragment and cost a second gap; whole, the pair is one glyph.
@@ -421,8 +421,8 @@ public class SkiaPdfCanvasTests
 
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Position(30, 40));
-            canvas.DrawImage(image, new Size(120, 60));
+            canvas.Translate(new Offset(30, 40));
+            canvas.DrawImage(image, new Extent(120, 60));
         });
 
         IPdfImage placed = Assert.Single(parsed.GetPage(1).GetImages());
@@ -444,7 +444,7 @@ public class SkiaPdfCanvasTests
     {
         using SkiaImage image = SkiaImage.FromBytes(TestImages.Png(64, 32));
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawImage(image, new Size(width, height)));
+        using PdfDocument parsed = Render(canvas => canvas.DrawImage(image, new Extent(width, height)));
 
         Assert.Empty(parsed.GetPage(1).GetImages());
     }
@@ -454,7 +454,7 @@ public class SkiaPdfCanvasTests
     {
         using PdfDocument parsed = Render(canvas =>
         {
-            ArgumentException error = Assert.Throws<ArgumentException>(() => canvas.DrawImage(new ForeignImage(), new Size(40, 20)));
+            ArgumentException error = Assert.Throws<ArgumentException>(() => canvas.DrawImage(new ForeignImage(), new Extent(40, 20)));
 
             Assert.Equal("image", error.ParamName);
             Assert.Contains(nameof(SkiaImage), error.Message);
@@ -470,8 +470,8 @@ public class SkiaPdfCanvasTests
     {
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Position(20, 30));
-            canvas.DrawExternalLink("https://example.com/report", new Size(80, 15));
+            canvas.Translate(new Offset(20, 30));
+            canvas.DrawExternalLink("https://example.com/report", new Extent(80, 15));
         });
 
         Annotation link = Assert.Single(parsed.GetPage(1).GetAnnotations());
@@ -489,7 +489,7 @@ public class SkiaPdfCanvasTests
     [InlineData("")]
     public void AnExternalLinkWithNoTargetIsNotDrawn(string? url)
     {
-        using PdfDocument parsed = Render(canvas => canvas.DrawExternalLink(url!, new Size(80, 15)));
+        using PdfDocument parsed = Render(canvas => canvas.DrawExternalLink(url!, new Extent(80, 15)));
 
         Assert.Empty(parsed.GetPage(1).GetAnnotations());
     }
@@ -499,13 +499,13 @@ public class SkiaPdfCanvasTests
     {
         byte[] pdf = RenderDocument(canvas =>
         {
-            canvas.BeginPage(new Size(PageSide, PageSide));
-            canvas.Translate(new Position(10, 10));
-            canvas.DrawInternalLink("appendix", new Size(60, 12));
+            canvas.BeginPage(new Extent(PageSide, PageSide));
+            canvas.Translate(new Offset(10, 10));
+            canvas.DrawInternalLink("appendix", new Extent(60, 12));
             canvas.EndPage();
 
-            canvas.BeginPage(new Size(PageSide, PageSide));
-            canvas.Translate(new Position(0, 50));
+            canvas.BeginPage(new Extent(PageSide, PageSide));
+            canvas.Translate(new Offset(0, 50));
             canvas.DrawDestination("appendix");
             canvas.EndPage();
         });
@@ -528,7 +528,7 @@ public class SkiaPdfCanvasTests
     {
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.DrawInternalLink(destination!, new Size(60, 12));
+            canvas.DrawInternalLink(destination!, new Extent(60, 12));
             canvas.DrawDestination("elsewhere");
         });
 
@@ -561,10 +561,10 @@ public class SkiaPdfCanvasTests
         using PdfDocument parsed = Render(canvas =>
         {
             canvas.Save();
-            canvas.Translate(new Position(50, 60));
-            canvas.DrawText("M", new Position(10, 40), Style);
+            canvas.Translate(new Offset(50, 60));
+            canvas.DrawText("M", new Offset(10, 40), Style);
             canvas.Restore();
-            canvas.DrawText("H", new Position(10, 40), Style);
+            canvas.DrawText("H", new Offset(10, 40), Style);
         });
 
         Page page = parsed.GetPage(1);
@@ -581,7 +581,7 @@ public class SkiaPdfCanvasTests
         using PdfDocument parsed = Render(canvas =>
         {
             canvas.Scale(2, 3);
-            canvas.DrawRectangle(new Position(10, 10), new Size(20, 20), Brick);
+            canvas.DrawRectangle(new Offset(10, 10), new Extent(20, 20), Brick);
         });
 
         AssertBounds(Assert.Single(parsed.GetPage(1).Paths).GetBoundingRectangle(), left: 20, top: 30, width: 40, height: 60);
@@ -593,9 +593,9 @@ public class SkiaPdfCanvasTests
         // A bar running right from the origin must end up hanging downwards from it, to the left of the X axis.
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Position(100, 100));
+            canvas.Translate(new Offset(100, 100));
             canvas.Rotate(90);
-            canvas.DrawRectangle(Position.Zero, new Size(40, 10), Brick);
+            canvas.DrawRectangle(Offset.Zero, new Extent(40, 10), Brick);
         });
 
         AssertBounds(Assert.Single(parsed.GetPage(1).Paths).GetBoundingRectangle(), left: 90, top: 100, width: 10, height: 40);
@@ -608,12 +608,12 @@ public class SkiaPdfCanvasTests
         // with the translation.
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Position(100, 100));
+            canvas.Translate(new Offset(100, 100));
 
             // Wide enough for the whole word at this size in the test font, so only the clip's position is tested.
-            canvas.ClipRectangle(new Size(90, 50));
-            canvas.DrawText("Inside", new Position(5, 30), Style);
-            canvas.DrawText("Outside", new Position(-90, -60), Style);
+            canvas.ClipRectangle(new Extent(90, 50));
+            canvas.DrawText("Inside", new Offset(5, 30), Style);
+            canvas.DrawText("Outside", new Offset(-90, -60), Style);
         });
 
         string text = parsed.GetPage(1).Text;
@@ -632,12 +632,12 @@ public class SkiaPdfCanvasTests
         using (SKDocument document = SKDocument.CreatePdf(stream, Metadata()))
         {
             SkiaPdfCanvas canvas = new SkiaPdfCanvas(document, SkiaFontProvider.Shared);
-            canvas.BeginPage(new Size(PageSide, PageSide));
-            canvas.DrawText("Unfinished", new Position(10, 50), Style);
+            canvas.BeginPage(new Extent(PageSide, PageSide));
+            canvas.DrawText("Unfinished", new Offset(10, 50), Style);
 
             canvas.Dispose();
 
-            Assert.Throws<InvalidOperationException>(() => canvas.DrawText("Late", new Position(10, 90), Style));
+            Assert.Throws<InvalidOperationException>(() => canvas.DrawText("Late", new Offset(10, 90), Style));
             document.Close();
         }
 
@@ -656,7 +656,7 @@ public class SkiaPdfCanvasTests
         SKDocument document = SKDocument.CreatePdf(stream, Metadata());
         SkiaPdfCanvas canvas = new SkiaPdfCanvas(document, SkiaFontProvider.Shared);
 
-        canvas.BeginPage(new Size(PageSide, PageSide));
+        canvas.BeginPage(new Extent(PageSide, PageSide));
         canvas.EndPage();
         document.Close();
         document.Dispose();

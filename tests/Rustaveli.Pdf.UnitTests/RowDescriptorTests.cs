@@ -2,14 +2,14 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class RowDescriptorTests
 {
-    private static void Fill(IContainer container, float width = 1) =>
+    private static void Fill(IFrame container, float width = 1) =>
         container.Element(inner => inner.Child = new FixedElement(width, 10));
 
     /// <summary>The left edge of every item's content, across a 200pt row.</summary>
     private static List<float> ItemPositions(Action<RowDescriptor> compose)
     {
-        Element root = LayoutHarness.Build(container => container.Row(compose));
-        RecordedPage page = LayoutHarness.Draw(root, new Size(200, 100));
+        Block root = LayoutHarness.Build(container => container.Row(compose));
+        RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));
 
         return page.Operations.OfType<RectangleOperation>().Select(rectangle => rectangle.Position.X).ToList();
     }

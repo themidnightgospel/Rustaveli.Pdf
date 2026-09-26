@@ -11,5 +11,5 @@ namespace Rustaveli.Pdf.Fluent;
 /// </remarks>
 public interface IComponent
 {
-    void Compose(IContainer container);
+    void Compose(IFrame container);
 }

@@ -5,52 +5,52 @@ public class AspectRatioTests
     [Fact]
     public void DerivesHeightFromWidth()
     {
-        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = AspectRatioOption.FitWidth };
+        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = ProportionFit.FitWidth };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
-        Approximately.Equal(new Size(200, 100), plan.Size);
+        Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
     [Fact]
     public void DerivesWidthFromHeight()
     {
-        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = AspectRatioOption.FitHeight };
+        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = ProportionFit.FitHeight };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 50));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 50));
 
-        Approximately.Equal(new Size(100, 50), plan.Size);
+        Approximately.Equal(new Extent(100, 50), plan.Size);
     }
 
     [Fact]
     public void FallsBackToHeightWhenWidthWouldOverflow()
     {
         // Fitting the 300pt width would need 300pt of height, but only 100 is available.
-        AspectRatioElement element = new AspectRatioElement { Ratio = 1f, Option = AspectRatioOption.FitArea };
+        AspectRatioElement element = new AspectRatioElement { Ratio = 1f, Option = ProportionFit.FitArea };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(300, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(300, 100));
 
-        Approximately.Equal(new Size(100, 100), plan.Size);
+        Approximately.Equal(new Extent(100, 100), plan.Size);
     }
 
     [Fact]
     public void FitAreaKeepsTheFullWidthWhenTheHeightAllowsIt()
     {
-        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = AspectRatioOption.FitArea };
+        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = ProportionFit.FitArea };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
-        Approximately.Equal(new Size(200, 100), plan.Size);
+        Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
     [Fact]
     public void AnUnrecognisedOptionFitsTheWidth()
     {
-        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = (AspectRatioOption)99 };
+        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = (ProportionFit)99 };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
-        Approximately.Equal(new Size(200, 100), plan.Size);
+        Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class AspectRatioTests
     {
         AspectRatioElement element = new AspectRatioElement { Ratio = 0f };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(100, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("greater than zero", plan.WrapReason);
@@ -70,9 +70,9 @@ public class AspectRatioTests
     public void WrapsWhenTheDerivedHeightDoesNotFit(float availableHeight, bool wraps)
     {
         // Fitting the full 200pt width at 2:1 needs exactly 100pt of height.
-        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = AspectRatioOption.FitWidth };
+        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Option = ProportionFit.FitWidth };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, availableHeight));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, availableHeight));
 
         Assert.Equal(wraps, plan.IsWrap);
     }
@@ -82,10 +82,10 @@ public class AspectRatioTests
     {
         AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Child = new FixedElement(20, 10) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
         Assert.True(plan.IsFullRender);
-        Approximately.Equal(new Size(200, 100), plan.Size);
+        Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
     [Fact]
@@ -95,17 +95,17 @@ public class AspectRatioTests
         FixedElement child = new FixedElement(300, 10);
         AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Child = child };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
-        Assert.Equal(LayoutHarness.Measure(child, new Size(200, 100)), plan);
+        Assert.Equal(LayoutHarness.Measure(child, new Extent(200, 100)), plan);
     }
 
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Child = new ScriptedElement(SpacePlan.Empty()) };
+        AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Child = new ScriptedElement(Fit.Empty()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 500)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 500)).IsEmpty);
     }
 
     [Fact]
@@ -114,10 +114,10 @@ public class AspectRatioTests
         // The 200x100 box holds three of the four 30pt units.
         AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
         Assert.True(plan.IsPartialRender);
-        Approximately.Equal(new Size(200, 100), plan.Size);
+        Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
     [Fact]
@@ -125,10 +125,10 @@ public class AspectRatioTests
     {
         AspectRatioElement element = new AspectRatioElement { Ratio = 2f, Child = new PlaceholderElement() };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 500));
         RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
-        Approximately.Equal(new Size(200, 100), block.Size);
+        Approximately.Equal(new Extent(200, 100), block.Size);
     }
 
     [Fact]
@@ -136,6 +136,6 @@ public class AspectRatioTests
     {
         AspectRatioElement element = new AspectRatioElement { Ratio = 2f };
 
-        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 500)).Operations);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 500)).Operations);
     }
 }

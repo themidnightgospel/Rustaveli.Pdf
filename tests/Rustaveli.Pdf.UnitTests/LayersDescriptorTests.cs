@@ -2,36 +2,36 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class LayersDescriptorTests
 {
-    private static readonly Size Space = new Size(200, 200);
+    private static readonly Extent Space = new Extent(200, 200);
 
-    private static void Fill(IContainer container, float width, float height, Ink color) =>
+    private static void Fill(IFrame container, float width, float height, Ink color) =>
         container.Element(inner => inner.Child = new FixedElement(width, height, color));
 
     [Fact]
     public void ThePrimaryLayerSizesTheStack()
     {
-        Element root = LayoutHarness.Build(container => container.Layers(layers =>
+        Block root = LayoutHarness.Build(container => container.Layers(layers =>
         {
             layers.Layer().Placeholder(TestInks.Red);
             Fill(layers.PrimaryLayer(), 50, 20, TestInks.Blue);
         }));
 
-        Approximately.Equal(new Size(50, 20), LayoutHarness.Measure(root, Space).Size);
+        Approximately.Equal(new Extent(50, 20), LayoutHarness.Measure(root, Space).Size);
     }
 
     [Fact]
     public void AnOrdinaryLayerContributesNothingToTheSize()
     {
-        Element root = LayoutHarness.Build(container => container.Layers(layers =>
+        Block root = LayoutHarness.Build(container => container.Layers(layers =>
             Fill(layers.Layer(), 50, 20, TestInks.Blue)));
 
-        Approximately.Equal(Size.Zero, LayoutHarness.Measure(root, Space).Size);
+        Approximately.Equal(Extent.Zero, LayoutHarness.Measure(root, Space).Size);
     }
 
     [Fact]
     public void PaintsLayersInDeclarationOrder()
     {
-        Element root = LayoutHarness.Build(container => container.Layers(layers =>
+        Block root = LayoutHarness.Build(container => container.Layers(layers =>
         {
             layers.Layer().Placeholder(TestInks.Red);
             Fill(layers.PrimaryLayer(), 50, 20, TestInks.Blue);

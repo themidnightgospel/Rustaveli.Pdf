@@ -6,17 +6,17 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// A solid rule spanning the available width.
 /// </summary>
-public sealed class HorizontalLineElement : Element
+public sealed class HorizontalLineElement : Block
 {
     public float Thickness { get; set; } = 1f;
 
     public Ink Color { get; set; } = Ink.Black;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context) =>
-        Thickness > availableSpace.Height + Size.Epsilon
-            ? SpacePlan.Wrap("The available height is smaller than the line thickness.")
-            : SpacePlan.FullRender(new Size(availableSpace.Width, Thickness));
+    public override Fit Measure(Extent availableSpace, PlanContext context) =>
+        Thickness > availableSpace.Height + Extent.Epsilon
+            ? Fit.Wrap("The available height is smaller than the line thickness.")
+            : Fit.FullRender(new Extent(availableSpace.Width, Thickness));
 
-    public override void Draw(Size availableSpace, DrawContext context) =>
-        context.Canvas.DrawRectangle(Position.Zero, new Size(availableSpace.Width, Thickness), Color);
+    public override void Draw(Extent availableSpace, RenderContext context) =>
+        context.Canvas.DrawRectangle(Offset.Zero, new Extent(availableSpace.Width, Thickness), Color);
 }

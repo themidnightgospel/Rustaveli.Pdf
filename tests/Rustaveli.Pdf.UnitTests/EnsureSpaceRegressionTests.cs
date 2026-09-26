@@ -10,7 +10,7 @@ public class EnsureSpaceRegressionTests
         // committed to, and the early return would drop it with no diagnostic.
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(300, 400);
+            page.Size = new Extent(300, 400);
             page.Header().EnsureSpace(100).Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
             page.Content().Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Blue));
         }));
@@ -31,7 +31,7 @@ public class EnsureSpaceRegressionTests
             Child = new EnsureSpaceElement { MinHeight = 100, Child = new FixedElement(40, 20, TestInks.Red) }
         });
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(300, 400));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(300, 400));
 
         Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
@@ -47,8 +47,8 @@ public class EnsureSpaceRegressionTests
             Child = new ShowIfElement { Condition = false, Child = new FixedElement(10, 10) }
         };
 
-        LayoutHarness.Draw(element, new Size(200, 100));
+        LayoutHarness.Draw(element, new Extent(200, 100));
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 40)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 40)).IsWrap);
     }
 }

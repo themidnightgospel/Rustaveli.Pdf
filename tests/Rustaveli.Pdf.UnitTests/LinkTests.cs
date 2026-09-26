@@ -11,7 +11,7 @@ public class LinkTests
         HyperlinkElement element = new HyperlinkElement { Url = "https://example.com", Child = new FixedElement(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
-        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         ExternalLinkOperation link = Assert.Single(page.Operations.OfType<ExternalLinkOperation>());
 
         Assert.Equal("https://example.com", link.Url);
@@ -24,21 +24,21 @@ public class LinkTests
     {
         HyperlinkElement element = new HyperlinkElement { Child = new FixedElement(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations.OfType<ExternalLinkOperation>());
         Assert.Single(page.Operations.OfType<RectangleOperation>());
     }
 
     [Theory]
-    [InlineData(SpacePlanType.Wrap)]
-    [InlineData(SpacePlanType.Empty)]
-    public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(SpacePlanType outcome)
+    [InlineData(FitKind.Wrap)]
+    [InlineData(FitKind.Empty)]
+    public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
         HyperlinkElement element = new HyperlinkElement { Url = "https://example.com", Child = child };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations);
         Assert.Empty(child.DrawnWith);
@@ -50,7 +50,7 @@ public class LinkTests
         InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = new FixedElement(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
-        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
 
         Assert.Equal("intro", link.Destination);
@@ -63,21 +63,21 @@ public class LinkTests
     {
         InternalLinkElement element = new InternalLinkElement { Child = new FixedElement(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations.OfType<InternalLinkOperation>());
         Assert.Single(page.Operations.OfType<RectangleOperation>());
     }
 
     [Theory]
-    [InlineData(SpacePlanType.Wrap)]
-    [InlineData(SpacePlanType.Empty)]
-    public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(SpacePlanType outcome)
+    [InlineData(FitKind.Wrap)]
+    [InlineData(FitKind.Empty)]
+    public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
         InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = child };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations);
         Assert.Empty(child.DrawnWith);
@@ -88,10 +88,10 @@ public class LinkTests
     {
         InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = new FixedElement(50, 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Assert.True(plan.IsFullRender);
-        Approximately.Equal(new Size(50, 20), plan.Size);
+        Approximately.Equal(new Extent(50, 20), plan.Size);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class LinkTests
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 100);
+            page.Size = new Extent(200, 100);
             page.Content().Column(column =>
             {
                 column.Item().SectionLink("appendix").Text("See the appendix");

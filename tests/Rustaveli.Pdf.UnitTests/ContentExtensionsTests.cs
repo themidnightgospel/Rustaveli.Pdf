@@ -4,12 +4,12 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class ContentExtensionsTests
 {
-    private static readonly Size Space = new Size(200, 200);
+    private static readonly Extent Space = new Extent(200, 200);
 
-    private static void Fill(IContainer container, float width, float height, Ink color) =>
+    private static void Fill(IFrame container, float width, float height, Ink color) =>
         container.Element(inner => inner.Child = new FixedElement(width, height, color));
 
-    public static TheoryData<string, Action<IContainer>> CallsWithoutAHandler => new()
+    public static TheoryData<string, Action<IFrame>> CallsWithoutAHandler => new()
     {
         { nameof(ContentExtensions.Text), container => container.Text((Action<TextDescriptor>)null!) },
         { nameof(ContentExtensions.Column), container => container.Column(null!) },
@@ -23,9 +23,9 @@ public class ContentExtensionsTests
 
     [Theory]
     [MemberData(nameof(CallsWithoutAHandler))]
-    public void RefusesAMissingHandlerBeforeAttachingAnything(string method, Action<IContainer> call)
+    public void RefusesAMissingHandlerBeforeAttachingAnything(string method, Action<IFrame> call)
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => call(container));
 
@@ -38,7 +38,7 @@ public class ContentExtensionsTests
     [Fact]
     public void RefusesAMissingImage()
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => container.Image(null!));
 
@@ -49,29 +49,29 @@ public class ContentExtensionsTests
     [Fact]
     public void AnImageFitsTheAvailableWidthByDefault()
     {
-        Element root = LayoutHarness.Build(container => container.Image(new FakeImage(400, 200)));
+        Block root = LayoutHarness.Build(container => container.Image(new FakeImage(400, 200)));
 
         ImageOperation image = Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<ImageOperation>());
 
         // 2:1 across the 200pt width.
-        Approximately.Equal(new Size(200, 100), image.Size);
+        Approximately.Equal(new Extent(200, 100), image.Size);
     }
 
     [Fact]
     public void AnImageHonoursTheRequestedFit()
     {
         // A 1:2 image fitted to the width would need 400pt of height; fitted to the height it needs only 100pt.
-        Element root = LayoutHarness.Build(container => container.Image(new FakeImage(100, 200), ImageFit.Height));
+        Block root = LayoutHarness.Build(container => container.Image(new FakeImage(100, 200), ImageFitting.Height));
 
         ImageOperation image = Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<ImageOperation>());
 
-        Approximately.Equal(new Size(100, 200), image.Size);
+        Approximately.Equal(new Extent(100, 200), image.Size);
     }
 
     [Fact]
     public void RefusesAMissingComponent()
     {
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new Container().Component(null!));
+        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new Frame().Component(null!));
 
         Assert.Equal("component", exception.ParamName);
     }
@@ -79,7 +79,7 @@ public class ContentExtensionsTests
     [Fact]
     public void DecorationFramesTheContentBetweenItsBands()
     {
-        Element root = LayoutHarness.Build(container => container.Decoration(decoration =>
+        Block root = LayoutHarness.Build(container => container.Decoration(decoration =>
         {
             Fill(decoration.Before(), 50, 10, TestInks.Red);
             Fill(decoration.Content(), 50, 20, TestInks.Blue);
@@ -104,7 +104,7 @@ public class ContentExtensionsTests
     [Fact]
     public void ComposesAComponentIntoTheContainer()
     {
-        Element root = LayoutHarness.Build(container => container.Padding(5).Component(new CaptionComponent("Total")));
+        Block root = LayoutHarness.Build(container => container.Padding(5).Component(new CaptionComponent("Total")));
 
         TextOperation text = Assert.Single(LayoutHarness.Draw(root, Space).Texts);
 
@@ -117,7 +117,7 @@ public class ContentExtensionsTests
     [Fact]
     public void ConstructsAndComposesAComponentGivenOnlyItsType()
     {
-        Element root = LayoutHarness.Build(container => container.Component<CaptionComponent>());
+        Block root = LayoutHarness.Build(container => container.Component<CaptionComponent>());
 
         Assert.Equal(CaptionComponent.DefaultCaption, LayoutHarness.Draw(root, Space).Content);
     }
@@ -125,18 +125,18 @@ public class ContentExtensionsTests
     [Fact]
     public void RefusesAComponentComposedTwiceIntoOneSlot()
     {
-        Container container = new Container();
+        Frame container = new Frame();
         container.Component(new CaptionComponent("first"));
 
-        Assert.Throws<DocumentComposeException>(() => container.Component(new CaptionComponent("second")));
+        Assert.Throws<CompositionException>(() => container.Component(new CaptionComponent("second")));
         Assert.Equal("first", LayoutHarness.Draw(container, Space).Content);
     }
 
     [Fact]
     public void ElementHandsTheSameSlotToTheCompositionFunction()
     {
-        Container container = new Container();
-        IContainer? received = null;
+        Frame container = new Frame();
+        IFrame? received = null;
 
         container.Element(inner => received = inner);
 
@@ -146,10 +146,10 @@ public class ContentExtensionsTests
     [Fact]
     public void RefusesToMarkAFilledContainerEmpty()
     {
-        Container container = new Container();
+        Frame container = new Frame();
         container.Text("already here");
 
-        DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() => container.Empty());
+        CompositionException exception = Assert.Throws<CompositionException>(() => container.Empty());
 
         Assert.Contains("already holds TextElement, so it cannot be marked empty", exception.Message);
         Assert.IsType<TextElement>(container.Child);

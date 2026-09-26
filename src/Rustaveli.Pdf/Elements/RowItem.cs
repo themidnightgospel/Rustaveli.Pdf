@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// A single column of a <see cref="RowElement"/>.
 /// </summary>
-public sealed class RowItem : ContainerElement
+public sealed class RowItem : EnclosingBlock
 {
     public RowItemSizing Sizing { get; set; } = RowItemSizing.Relative;
 

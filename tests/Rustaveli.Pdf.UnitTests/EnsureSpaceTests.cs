@@ -7,7 +7,7 @@ public class EnsureSpaceTests
     {
         EnsureSpaceElement element = new EnsureSpaceElement { MinHeight = 80, Child = new FixedElement(10, 10) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 50));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("80", plan.WrapReason);
@@ -18,7 +18,7 @@ public class EnsureSpaceTests
     {
         EnsureSpaceElement element = new EnsureSpaceElement { MinHeight = 40, Child = new FixedElement(10, 10) };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 50)).IsFullRender);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 50)).IsFullRender);
     }
 
     [Fact]
@@ -31,9 +31,9 @@ public class EnsureSpaceTests
             Child = new SplittableElement(unitCount: 6, unitHeight: 20)
         };
 
-        LayoutHarness.Draw(element, new Size(200, 100));
+        LayoutHarness.Draw(element, new Extent(200, 100));
 
-        Assert.False(LayoutHarness.Measure(element, new Size(200, 40)).IsWrap);
+        Assert.False(LayoutHarness.Measure(element, new Extent(200, 40)).IsWrap);
     }
 
     [Fact]
@@ -42,9 +42,9 @@ public class EnsureSpaceTests
         // Drawing nothing must not disarm the guarantee for the pages that follow.
         EnsureSpaceElement element = new EnsureSpaceElement { MinHeight = 50 };
 
-        LayoutHarness.Draw(element, new Size(200, 100));
+        LayoutHarness.Draw(element, new Extent(200, 100));
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 30)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 30)).IsWrap);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class EnsureSpaceTests
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 100);
+            page.Size = new Extent(200, 100);
             page.Content().Column(column =>
             {
                 column.Item().Element(inner => inner.Child = new FixedElement(10, 70, TestInks.Blue));

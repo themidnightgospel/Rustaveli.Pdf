@@ -9,7 +9,7 @@ public class ScaleToFitRegressionTests
         // makes the engine give up on the whole document; passing it through lets it paginate normally.
         ScaleToFitElement element = new ScaleToFitElement { Child = new SplittableElement(unitCount: 50, unitHeight: 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.False(plan.IsWrap);
         Assert.True(plan.IsPartialRender);
@@ -20,7 +20,7 @@ public class ScaleToFitRegressionTests
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 100);
+            page.Size = new Extent(200, 100);
             page.Content().ScaleToFit().Element(inner => inner.Child = new SplittableElement(unitCount: 40, unitHeight: 20));
         }));
 
@@ -34,7 +34,7 @@ public class ScaleToFitRegressionTests
     {
         // "Never shrink" makes this a pass-through, not an unsatisfiable constraint: whatever the child would
         // have reported on its own is what comes back.
-        Size space = new Size(200, 100);
+        Extent space = new Extent(200, 100);
 
         ScaleToFitElement wrapped = new ScaleToFitElement { MinScale = 1f, Child = new FixedElement(120, 50) };
         FixedElement bare = new FixedElement(120, 50);
@@ -51,6 +51,6 @@ public class ScaleToFitRegressionTests
     {
         ScaleToFitElement element = new ScaleToFitElement { MinScale = 0f, Child = new FixedElement(400, 300) };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 100)).IsFullRender);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsFullRender);
     }
 }

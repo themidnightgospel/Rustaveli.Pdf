@@ -6,11 +6,11 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// Shifts its child by a fixed offset without affecting layout, allowing content to overlap its neighbours.
 /// </summary>
-public sealed class TranslateElement : ContainerElement
+public sealed class TranslateElement : EnclosingBlock
 {
-    public Position Offset { get; set; } = Position.Zero;
+    public Offset Offset { get; set; } = Offset.Zero;
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         context.Canvas.Translate(Offset);
         Child?.Draw(availableSpace, context);

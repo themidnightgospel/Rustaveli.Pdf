@@ -19,13 +19,13 @@ public sealed class ListDescriptor(ListElement element)
     public void MarkerWidth(float width) => element.MarkerWidth = width;
 
     /// <summary>Adjusts the style of the markers, leaving the item content untouched.</summary>
-    public void MarkerStyle(Func<TextStyle, TextStyle> refinement) => element.MarkerStyle = refinement;
+    public void MarkerStyle(Func<TypeStyle, TypeStyle> refinement) => element.MarkerStyle = refinement;
 
     /// <summary>Sets the vertical gap between items.</summary>
     public void Spacing(float value) => element.Spacing = value;
 
     /// <summary>Adds an item and returns its container.</summary>
-    public IContainer Item()
+    public IFrame Item()
     {
         ListItem item = new ListItem();
         element.Items.Add(item);

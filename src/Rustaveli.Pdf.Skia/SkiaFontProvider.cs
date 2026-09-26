@@ -5,7 +5,7 @@ using SkiaSharp;
 namespace Rustaveli.Pdf.Skia;
 
 /// <summary>
-/// Resolves <see cref="TextStyle"/> values to Skia typefaces and fonts, caching the results.
+/// Resolves <see cref="TypeStyle"/> values to Skia typefaces and fonts, caching the results.
 /// </summary>
 /// <remarks>
 /// Typeface lookup is comparatively expensive and the layout engine measures the same styles repeatedly, so both
@@ -69,7 +69,7 @@ public sealed class SkiaFontProvider : IDisposable
         }
     }
 
-    public SKFont GetFont(TextStyle style)
+    public SKFont GetFont(TypeStyle style)
     {
         (string Family, int Weight, bool Italic, float Size) key = (style.FontFamily, (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
 
@@ -83,7 +83,7 @@ public sealed class SkiaFontProvider : IDisposable
         return font.Value;
     }
 
-    public SKTypeface GetTypeface(TextStyle style) =>
+    public SKTypeface GetTypeface(TypeStyle style) =>
         GetTypeface(style.FontFamily, (int)style.Weight, style.IsItalic);
 
     private SKTypeface GetTypeface(string family, int weight, bool italic) =>
@@ -141,7 +141,7 @@ public sealed class SkiaFontProvider : IDisposable
     /// Measurement and drawing both go through this, so the two cannot disagree about where a fallback begins —
     /// which is the failure mode that would otherwise put a glyph in one place and its advance in another.
     /// </remarks>
-    internal IReadOnlyList<FontRun> Split(string text, TextStyle style)
+    internal IReadOnlyList<FontRun> Split(string text, TypeStyle style)
     {
         if (string.IsNullOrEmpty(text))
             return [];
@@ -206,7 +206,7 @@ public sealed class SkiaFontProvider : IDisposable
     /// Finds a font able to draw <paramref name="codepoint"/>, preferring the primary, then the configured
     /// fallbacks, then whatever the platform suggests.
     /// </summary>
-    private SKFont ResolveFont(int codepoint, TextStyle style, SKFont primary)
+    private SKFont ResolveFont(int codepoint, TypeStyle style, SKFont primary)
     {
         if (Covers(primary.Typeface, codepoint))
             return primary;
@@ -258,7 +258,7 @@ public sealed class SkiaFontProvider : IDisposable
     }
 
     /// <summary>Builds a sized font over an already-resolved typeface, cached like any other.</summary>
-    private SKFont FontFor(SKTypeface typeface, TextStyle style)
+    private SKFont FontFor(SKTypeface typeface, TypeStyle style)
     {
         (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + "\0fallback", (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
 

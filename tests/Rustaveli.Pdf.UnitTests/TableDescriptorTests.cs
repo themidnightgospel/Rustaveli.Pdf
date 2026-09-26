@@ -6,9 +6,9 @@ public class TableDescriptorTests
 {
     private static TableElement Compose(Action<TableDescriptor> compose)
     {
-        Element root = LayoutHarness.Build(container => container.Table(compose));
+        Block root = LayoutHarness.Build(container => container.Table(compose));
 
-        return Assert.IsType<TableElement>(((Container)root).Child);
+        return Assert.IsType<TableElement>(((Frame)root).Child);
     }
 
     private static void TwoColumns(TableDescriptor table) =>
@@ -40,7 +40,7 @@ public class TableDescriptorTests
     [Fact]
     public void RejectsABodyCellBeyondTheDeclaredColumns()
     {
-        DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() => Compose(table =>
+        CompositionException exception = Assert.Throws<CompositionException>(() => Compose(table =>
         {
             TwoColumns(table);
             table.Cell().Column(3);
@@ -55,7 +55,7 @@ public class TableDescriptorTests
     [Fact]
     public void RejectsAHeaderCellWhoseSpanOverhangsTheColumns()
     {
-        DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() => Compose(table =>
+        CompositionException exception = Assert.Throws<CompositionException>(() => Compose(table =>
         {
             TwoColumns(table);
             table.Header(header => header.Cell().ColumnSpan(3));
@@ -67,7 +67,7 @@ public class TableDescriptorTests
     [Fact]
     public void RejectsAFooterCellWhoseSpanOverhangsTheColumns()
     {
-        DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() => Compose(table =>
+        CompositionException exception = Assert.Throws<CompositionException>(() => Compose(table =>
         {
             TwoColumns(table);
             table.Footer(footer => footer.Cell().Column(2).ColumnSpan(2));
@@ -106,7 +106,7 @@ public class TableDescriptorTests
     [Fact]
     public void ATableWithoutDeclaredColumnsStillRejectsASecondColumn()
     {
-        DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() =>
+        CompositionException exception = Assert.Throws<CompositionException>(() =>
             Compose(descriptor => descriptor.Cell().Column(2)));
 
         Assert.StartsWith("A body cell occupies columns 2 to 2, but the table declares only 1.", exception.Message);

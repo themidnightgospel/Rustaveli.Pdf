@@ -11,10 +11,10 @@ public class TableElementTests
         return element;
     }
 
-    private static void Fill(IContainer container, float width, float height) =>
+    private static void Fill(IFrame container, float width, float height) =>
         container.Element(inner => inner.Child = new FixedElement(width, height));
 
-    private static void Fill(IContainer container, float width, float height, Ink color) =>
+    private static void Fill(IFrame container, float width, float height, Ink color) =>
         container.Element(inner => inner.Child = new FixedElement(width, height, color));
 
     [Fact]
@@ -32,7 +32,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        RecordedPage page = LayoutHarness.Draw(table, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(0f, rectangles[0].Position.X);
@@ -54,7 +54,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        RecordedPage page = LayoutHarness.Draw(table, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(40f, rectangles[1].Position.X);
@@ -75,7 +75,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        RecordedPage page = LayoutHarness.Draw(table, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(30f, rectangles[1].Position.X);
@@ -96,13 +96,13 @@ public class TableElementTests
                 Fill(descriptor.Cell(), 1, 20);
         });
 
-        RecordedPage page = LayoutHarness.Draw(table, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
-        Approximately.Equal(new Position(0, 0), rectangles[0].Position);
-        Approximately.Equal(new Position(100, 0), rectangles[1].Position);
-        Approximately.Equal(new Position(0, 20), rectangles[2].Position);
-        Approximately.Equal(new Position(100, 20), rectangles[3].Position);
+        Approximately.Equal(new Offset(0, 0), rectangles[0].Position);
+        Approximately.Equal(new Offset(100, 0), rectangles[1].Position);
+        Approximately.Equal(new Offset(0, 20), rectangles[2].Position);
+        Approximately.Equal(new Offset(100, 20), rectangles[3].Position);
     }
 
     [Fact]
@@ -122,14 +122,14 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 20);
         });
 
-        RecordedPage page = LayoutHarness.Draw(table, new Size(300, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(300, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // The spanning cell occupies columns one and two, pushing the next cell to column three.
         Approximately.Equal(200f, rectangles[1].Position.X);
 
         // The following cell wraps to the start of the second row.
-        Approximately.Equal(new Position(0, 20), rectangles[2].Position);
+        Approximately.Equal(new Offset(0, 20), rectangles[2].Position);
     }
 
     [Fact]
@@ -151,8 +151,8 @@ public class TableElementTests
         });
 
         // Measure before drawing: drawing consumes the table's rows and a later measurement would report Empty.
-        SpacePlan plan = LayoutHarness.Measure(table, new Size(200, 200));
-        RecordedPage page = LayoutHarness.Draw(table, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(table, new Extent(200, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
 
         Approximately.Equal(200f, plan.Size.Width);
         Assert.NotEmpty(page.Operations);
@@ -173,10 +173,10 @@ public class TableElementTests
             Fill(descriptor.Cell().Row(2).Column(2), 1, 20);
         });
 
-        RecordedPage page = LayoutHarness.Draw(table, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
         RectangleOperation placed = page.Operations.OfType<RectangleOperation>().Last();
 
-        Approximately.Equal(new Position(100, 20), placed.Position);
+        Approximately.Equal(new Offset(100, 20), placed.Position);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 45);
         });
 
-        SpacePlan plan = LayoutHarness.Measure(table, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(table, new Extent(200, 200));
 
         Approximately.Equal(45f, plan.Size.Height);
     }
@@ -213,7 +213,7 @@ public class TableElementTests
         });
 
         // 80pt leaves 60 for the body after the 20pt header, so two rows fit per page.
-        Size space = new Size(200, 80);
+        Extent space = new Extent(200, 80);
 
         RecordedPage firstPage = LayoutHarness.Draw(table, space);
         RecordedPage secondPage = LayoutHarness.Draw(table, space);
@@ -233,7 +233,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 30);
         });
 
-        RecordedPage page = LayoutHarness.Draw(table, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(0f, rectangles[0].Position.Y);
@@ -256,7 +256,7 @@ public class TableElementTests
         });
 
         // 12pt of header plus two 30pt rows fits in 72pt.
-        Size space = new Size(200, 72);
+        Extent space = new Extent(200, 72);
 
         RecordedPage firstPage = LayoutHarness.Draw(table, space);
         RecordedPage secondPage = LayoutHarness.Draw(table, space);
@@ -278,7 +278,7 @@ public class TableElementTests
                 Fill(descriptor.Cell(), 1, 30);
         });
 
-        Size space = new Size(200, 72);
+        Extent space = new Extent(200, 72);
 
         RecordedPage firstPage = LayoutHarness.Draw(table, space);
         RecordedPage secondPage = LayoutHarness.Draw(table, space);
@@ -303,7 +303,7 @@ public class TableElementTests
                 Fill(descriptor.Cell(), 1, 30);
         });
 
-        Size space = new Size(200, 72);
+        Extent space = new Extent(200, 72);
 
         RecordedPage firstPage = LayoutHarness.Draw(table, space);
         RecordedPage secondPage = LayoutHarness.Draw(table, space);
@@ -323,7 +323,7 @@ public class TableElementTests
                 Fill(descriptor.Cell(), 1, 30);
         });
 
-        SpacePlan plan = LayoutHarness.Measure(table, new Size(200, 60));
+        Fit plan = LayoutHarness.Measure(table, new Extent(200, 60));
 
         Assert.True(plan.IsPartialRender);
         Approximately.Equal(60f, plan.Size.Height);
@@ -338,7 +338,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 20);
         });
 
-        Size space = new Size(200, 200);
+        Extent space = new Extent(200, 200);
         LayoutHarness.Draw(table, space);
 
         Assert.True(LayoutHarness.Measure(table, space).IsEmpty);
@@ -362,7 +362,7 @@ public class TableElementTests
         });
 
         // Only the first row would fit, but breaking inside the span is not allowed.
-        SpacePlan plan = LayoutHarness.Measure(table, new Size(200, 40));
+        Fit plan = LayoutHarness.Measure(table, new Extent(200, 40));
 
         Assert.True(plan.IsWrap);
     }
@@ -376,7 +376,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        Assert.True(LayoutHarness.Measure(table, new Size(100, 200)).IsWrap);
+        Assert.True(LayoutHarness.Measure(table, new Extent(100, 200)).IsWrap);
     }
 
     [Fact]
@@ -384,8 +384,8 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor => Fill(descriptor.Cell(), 1, 10));
 
-        Assert.True(LayoutHarness.Measure(table, new Size(200, 200)).IsWrap);
-        Assert.Empty(LayoutHarness.Draw(table, new Size(200, 200)).Operations);
+        Assert.True(LayoutHarness.Measure(table, new Extent(200, 200)).IsWrap);
+        Assert.Empty(LayoutHarness.Draw(table, new Extent(200, 200)).Operations);
     }
 
     [Fact]
@@ -402,7 +402,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        Approximately.Equal(50f, LayoutHarness.Measure(table, new Size(200, 200)).Size.Width);
+        Approximately.Equal(50f, LayoutHarness.Measure(table, new Extent(200, 200)).Size.Width);
     }
 
     [Fact]
@@ -416,7 +416,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        SpacePlan plan = LayoutHarness.Measure(table, new Size(200, 99));
+        Fit plan = LayoutHarness.Measure(table, new Extent(200, 99));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("header and footer", plan.WrapReason);
@@ -433,8 +433,8 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        RecordedPage cramped = LayoutHarness.Draw(table, new Size(200, 99));
-        RecordedPage roomy = LayoutHarness.Draw(table, new Size(200, 200));
+        RecordedPage cramped = LayoutHarness.Draw(table, new Extent(200, 99));
+        RecordedPage roomy = LayoutHarness.Draw(table, new Extent(200, 200));
 
         Assert.Empty(cramped.Operations);
         Assert.Equal(3, roomy.Operations.OfType<RectangleOperation>().Count());
@@ -451,7 +451,7 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 20);
         });
 
-        Size space = new Size(200, 200);
+        Extent space = new Extent(200, 200);
         LayoutHarness.Draw(table, space);
 
         Assert.Empty(LayoutHarness.Draw(table, space).Operations);
@@ -468,9 +468,9 @@ public class TableElementTests
             Fill(descriptor.Cell(), 1, 80, TestInks.Blue);
         });
 
-        LayoutHarness.Draw(table, new Size(200, 50));
-        RecordedPage cramped = LayoutHarness.Draw(table, new Size(200, 50));
-        RecordedPage roomy = LayoutHarness.Draw(table, new Size(200, 100));
+        LayoutHarness.Draw(table, new Extent(200, 50));
+        RecordedPage cramped = LayoutHarness.Draw(table, new Extent(200, 50));
+        RecordedPage roomy = LayoutHarness.Draw(table, new Extent(200, 100));
 
         // No header on a page that takes no rows.
         Assert.Empty(cramped.Operations);
@@ -496,8 +496,8 @@ public class TableElementTests
             Fill(descriptor.Cell().Row(2).Column(2), 1, 30, TestInks.Blue);
         });
 
-        Size space = new Size(200, 200);
-        SpacePlan plan = LayoutHarness.Measure(table, space);
+        Extent space = new Extent(200, 200);
+        Fit plan = LayoutHarness.Measure(table, space);
         RecordedPage page = LayoutHarness.Draw(table, space);
 
         Approximately.Equal(100f, plan.Size.Height);

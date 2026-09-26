@@ -15,9 +15,9 @@ public sealed class ColumnDescriptor(ColumnElement element)
     }
 
     /// <summary>Adds an item to the bottom of the stack and returns its container.</summary>
-    public IContainer Item()
+    public IFrame Item()
     {
-        Container container = new Container();
+        Frame container = new Frame();
         element.Items.Add(container);
         return container;
     }

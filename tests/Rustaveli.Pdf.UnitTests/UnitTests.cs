@@ -27,13 +27,13 @@ public class UnitTests
     }
 
     [Theory]
-    [InlineData(Unit.Point, 2f)]
-    [InlineData(Unit.Millimetre, 5.669291f)]
-    [InlineData(Unit.Centimetre, 56.69291f)]
-    [InlineData(Unit.Metre, 5669.291f)]
-    [InlineData(Unit.Inch, 144f)]
-    [InlineData(Unit.Feet, 1728f)]
-    public void ConvertsTwoOfEachUnitToPoints(Unit unit, float expectedPoints)
+    [InlineData(LengthUnit.Point, 2f)]
+    [InlineData(LengthUnit.Millimetre, 5.669291f)]
+    [InlineData(LengthUnit.Centimetre, 56.69291f)]
+    [InlineData(LengthUnit.Metre, 5669.291f)]
+    [InlineData(LengthUnit.Inch, 144f)]
+    [InlineData(LengthUnit.Feet, 1728f)]
+    public void ConvertsTwoOfEachUnitToPoints(LengthUnit unit, float expectedPoints)
     {
         Approximately.Equal(expectedPoints, 2f.ToPoints(unit));
     }
@@ -41,7 +41,7 @@ public class UnitTests
     [Fact]
     public void RejectsAnUndefinedUnit()
     {
-        Unit undefined = (Unit)99;
+        LengthUnit undefined = (LengthUnit)99;
 
         ArgumentOutOfRangeException exception =
             Assert.Throws<ArgumentOutOfRangeException>(() => 1f.ToPoints(undefined));

@@ -9,14 +9,14 @@ namespace Rustaveli.Pdf.Skia;
 /// <summary>
 /// Writes drawing operations into a PDF using Skia's PDF backend.
 /// </summary>
-public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) : IDocumentCanvas
+public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) : IPageSink
 {
     private SKCanvas? _canvas;
 
     private SKCanvas Canvas => _canvas
         ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
 
-    public void BeginPage(Size size) => _canvas = document.BeginPage(size.Width, size.Height);
+    public void BeginPage(Extent size) => _canvas = document.BeginPage(size.Width, size.Height);
 
     public void EndPage()
     {
@@ -28,15 +28,15 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
 
     public void Restore() => Canvas.Restore();
 
-    public void Translate(Position offset) => Canvas.Translate(offset.X, offset.Y);
+    public void Translate(Offset offset) => Canvas.Translate(offset.X, offset.Y);
 
     public void Scale(float scaleX, float scaleY) => Canvas.Scale(scaleX, scaleY);
 
     public void Rotate(float degrees) => Canvas.RotateDegrees(degrees);
 
-    public void ClipRectangle(Size size) => Canvas.ClipRect(SKRect.Create(0, 0, size.Width, size.Height));
+    public void ClipRectangle(Extent size) => Canvas.ClipRect(SKRect.Create(0, 0, size.Width, size.Height));
 
-    public void DrawRectangle(Position position, Size size, Ink color)
+    public void DrawRectangle(Offset position, Extent size, Ink color)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
@@ -45,7 +45,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), paint);
     }
 
-    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
@@ -65,7 +65,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawRoundRect(rect, radius, radius, paint);
     }
 
-    public void DrawLine(Position from, Position to, float thickness, Ink color)
+    public void DrawLine(Offset from, Offset to, float thickness, Ink color)
     {
         if (color.IsTransparent || thickness <= 0)
             return;
@@ -77,7 +77,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
-    public void DrawText(string text, Position baselineStart, TextStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style)
     {
         if (string.IsNullOrEmpty(text) || style.Color.IsTransparent)
             return;
@@ -120,7 +120,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         }
     }
 
-    public void DrawImage(IImage image, Size size)
+    public void DrawImage(IImage image, Extent size)
     {
         if (image is not SkiaImage skiaImage)
             throw new ArgumentException($"This canvas can only draw images created by {nameof(SkiaImage)}.", nameof(image));
@@ -134,7 +134,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawImage(skiaImage.Image, SKRect.Create(0, 0, size.Width, size.Height), sampling, paint);
     }
 
-    public void DrawExternalLink(string url, Size size)
+    public void DrawExternalLink(string url, Extent size)
     {
         if (string.IsNullOrEmpty(url))
             return;
@@ -142,7 +142,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawUrlAnnotation(SKRect.Create(0, 0, size.Width, size.Height), url);
     }
 
-    public void DrawInternalLink(string destinationName, Size size)
+    public void DrawInternalLink(string destinationName, Extent size)
     {
         if (string.IsNullOrEmpty(destinationName))
             return;

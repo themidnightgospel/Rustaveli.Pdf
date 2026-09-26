@@ -6,48 +6,48 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// Forces its child into a fixed width-to-height ratio.
 /// </summary>
-public sealed class AspectRatioElement : ContainerElement
+public sealed class AspectRatioElement : EnclosingBlock
 {
     /// <summary>Width divided by height. Must be greater than zero.</summary>
     public float Ratio { get; set; } = 1f;
 
-    public AspectRatioOption Option { get; set; } = AspectRatioOption.FitWidth;
+    public ProportionFit Option { get; set; } = ProportionFit.FitWidth;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         if (Ratio <= 0)
-            return SpacePlan.Wrap("The aspect ratio must be greater than zero.");
+            return Fit.Wrap("The aspect ratio must be greater than zero.");
 
-        Size size = ResolveSize(availableSpace);
+        Extent size = ResolveSize(availableSpace);
 
         if (!size.FitsIn(availableSpace))
-            return SpacePlan.Wrap("The available space is too small for the requested aspect ratio.");
+            return Fit.Wrap("The available space is too small for the requested aspect ratio.");
 
-        SpacePlan childPlan = Child?.Measure(size, context) ?? SpacePlan.FullRender(Size.Zero);
+        Fit childPlan = Child?.Measure(size, context) ?? Fit.FullRender(Extent.Zero);
 
         if (childPlan.IsWrap)
             return childPlan;
 
         if (childPlan.IsEmpty)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
-        return childPlan.IsFullRender ? SpacePlan.FullRender(size) : SpacePlan.PartialRender(size);
+        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context) =>
+    public override void Draw(Extent availableSpace, RenderContext context) =>
         Child?.Draw(ResolveSize(availableSpace), context);
 
-    private Size ResolveSize(Size availableSpace)
+    private Extent ResolveSize(Extent availableSpace)
     {
-        Size fromWidth = new Size(availableSpace.Width, availableSpace.Width / Ratio);
-        Size fromHeight = new Size(availableSpace.Height * Ratio, availableSpace.Height);
+        Extent fromWidth = new Extent(availableSpace.Width, availableSpace.Width / Ratio);
+        Extent fromHeight = new Extent(availableSpace.Height * Ratio, availableSpace.Height);
 
         return Option switch
         {
-            AspectRatioOption.FitWidth => fromWidth,
-            AspectRatioOption.FitHeight => fromHeight,
+            ProportionFit.FitWidth => fromWidth,
+            ProportionFit.FitHeight => fromHeight,
             // Pick whichever axis binds first so the result stays inside the offered space.
-            AspectRatioOption.FitArea => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
+            ProportionFit.FitArea => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
             _ => fromWidth
         };
     }

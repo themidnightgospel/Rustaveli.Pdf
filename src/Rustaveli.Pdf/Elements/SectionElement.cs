@@ -10,11 +10,11 @@ namespace Rustaveli.Pdf.Elements;
 /// Registering the page number as a side effect of drawing is what lets a table of contents resolve targets:
 /// the counting pass records where each section landed, and the drawing pass can then reference it.
 /// </remarks>
-public sealed class SectionElement : ContainerElement
+public sealed class SectionElement : EnclosingBlock
 {
     public string Name { get; set; } = string.Empty;
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (!string.IsNullOrEmpty(Name))
         {

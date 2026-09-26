@@ -12,13 +12,13 @@ namespace Rustaveli.Pdf.Documents;
 /// silently wrong output rather than an exception.
 /// Rendering the same instance repeatedly one after another is fine: each pass resets the tree before it starts.
 /// </remarks>
-public sealed class Document : IDocumentContainer
+public sealed class Document : IComposition
 {
-    private readonly List<PageDescriptor> _pages = new List<PageDescriptor>();
+    private readonly List<Section> _pages = new List<Section>();
 
-    public DocumentMetadata Metadata { get; } = new DocumentMetadata();
+    public DocumentInfo Metadata { get; } = new DocumentInfo();
 
-    internal IReadOnlyList<PageDescriptor> Pages => _pages;
+    internal IReadOnlyList<Section> Pages => _pages;
 
     private Document()
     {
@@ -27,7 +27,7 @@ public sealed class Document : IDocumentContainer
     /// <summary>
     /// Builds a document by invoking <paramref name="compose" />, which declares one or more page runs.
     /// </summary>
-    public static Document Create(Action<IDocumentContainer> compose)
+    public static Document Create(Action<IComposition> compose)
     {
         ArgumentNullException.ThrowIfNull(compose, "compose");
         Document document = new Document();
@@ -35,17 +35,17 @@ public sealed class Document : IDocumentContainer
         {
             compose(document);
         }
-        catch (Exception ex) when (!(ex is DocumentComposeException))
+        catch (Exception ex) when (!(ex is CompositionException))
         {
-            throw new DocumentComposeException("The document could not be composed. See the inner exception for details.", ex);
+            throw new CompositionException("The document could not be composed. See the inner exception for details.", ex);
         }
         return document;
     }
 
-    void IDocumentContainer.Page(Action<PageDescriptor> handler)
+    void IComposition.Page(Action<Section> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        PageDescriptor pageDescriptor = new PageDescriptor();
+        Section pageDescriptor = new Section();
         handler(pageDescriptor);
         _pages.Add(pageDescriptor);
     }

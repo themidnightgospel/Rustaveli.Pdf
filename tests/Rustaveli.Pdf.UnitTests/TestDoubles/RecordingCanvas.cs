@@ -3,7 +3,7 @@ using Rustaveli.Pdf.Drawing;
 
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
-public sealed class RecordingCanvas : IDocumentCanvas, ICanvas, IDisposable
+public sealed class RecordingCanvas : IPageSink, ISurface, IDisposable
 {
     private readonly Stack<Matrix3x2> _saved = new Stack<Matrix3x2>();
 
@@ -26,7 +26,7 @@ public sealed class RecordingCanvas : IDocumentCanvas, ICanvas, IDisposable
         return Pages[oneBasedNumber - 1];
     }
 
-    public void BeginPage(Size size)
+    public void BeginPage(Extent size)
     {
         _current = new RecordedPage(size);
         _transform = Matrix3x2.Identity;
@@ -49,7 +49,7 @@ public sealed class RecordingCanvas : IDocumentCanvas, ICanvas, IDisposable
         _transform = _saved.Pop();
     }
 
-    public void Translate(Position offset)
+    public void Translate(Offset offset)
     {
         _transform = Matrix3x2.CreateTranslation(offset.X, offset.Y) * _transform;
     }
@@ -64,60 +64,60 @@ public sealed class RecordingCanvas : IDocumentCanvas, ICanvas, IDisposable
         _transform = Matrix3x2.CreateRotation(degrees * (float)Math.PI / 180f) * _transform;
     }
 
-    public void ClipRectangle(Size size)
+    public void ClipRectangle(Extent size)
     {
     }
 
-    public void DrawRectangle(Position position, Size size, Ink color)
+    public void DrawRectangle(Offset position, Extent size, Ink color)
     {
         Current.Operations.Add(new RectangleOperation(Resolve(position), size, color, ResolveBounds(position, size)));
     }
 
-    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
     {
         Current.Operations.Add(new RoundedRectangleOperation(Resolve(position), size, cornerRadius, color, strokeWidth, ResolveBounds(position, size)));
     }
 
-    public void DrawLine(Position from, Position to, float thickness, Ink color)
+    public void DrawLine(Offset from, Offset to, float thickness, Ink color)
     {
         Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color));
     }
 
-    public void DrawText(string text, Position baselineStart, TextStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style)
     {
         Current.Operations.Add(new TextOperation(Resolve(baselineStart), text, style));
     }
 
-    public void DrawImage(IImage image, Size size)
+    public void DrawImage(IImage image, Extent size)
     {
-        Current.Operations.Add(new ImageOperation(Resolve(Position.Zero), size, ResolveBounds(Position.Zero, size)));
+        Current.Operations.Add(new ImageOperation(Resolve(Offset.Zero), size, ResolveBounds(Offset.Zero, size)));
     }
 
-    public void DrawExternalLink(string url, Size size)
+    public void DrawExternalLink(string url, Extent size)
     {
-        Current.Operations.Add(new ExternalLinkOperation(Resolve(Position.Zero), size, url, ResolveBounds(Position.Zero, size)));
+        Current.Operations.Add(new ExternalLinkOperation(Resolve(Offset.Zero), size, url, ResolveBounds(Offset.Zero, size)));
     }
 
-    public void DrawInternalLink(string destinationName, Size size)
+    public void DrawInternalLink(string destinationName, Extent size)
     {
-        Current.Operations.Add(new InternalLinkOperation(Resolve(Position.Zero), size, destinationName, ResolveBounds(Position.Zero, size)));
+        Current.Operations.Add(new InternalLinkOperation(Resolve(Offset.Zero), size, destinationName, ResolveBounds(Offset.Zero, size)));
     }
 
     public void DrawDestination(string destinationName)
     {
-        Current.Operations.Add(new DestinationOperation(Resolve(Position.Zero), destinationName));
+        Current.Operations.Add(new DestinationOperation(Resolve(Offset.Zero), destinationName));
     }
 
-    private Position Resolve(Position position)
+    private Offset Resolve(Offset position)
     {
         Vector2 vector = Vector2.Transform(new Vector2(position.X, position.Y), _transform);
-        return new Position(vector.X, vector.Y);
+        return new Offset(vector.X, vector.Y);
     }
 
-    private Bounds ResolveBounds(Position position, Size size)
+    private Bounds ResolveBounds(Offset position, Extent size)
     {
-        Position position2 = Resolve(position);
-        Position position3 = Resolve(position + new Position(size.Width, size.Height));
+        Offset position2 = Resolve(position);
+        Offset position3 = Resolve(position + new Offset(size.Width, size.Height));
         return new Bounds(Math.Min(position2.X, position3.X), Math.Min(position2.Y, position3.Y), Math.Max(position2.X, position3.X), Math.Max(position2.Y, position3.Y));
     }
 

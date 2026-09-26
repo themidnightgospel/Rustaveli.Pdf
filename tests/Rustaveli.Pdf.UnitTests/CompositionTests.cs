@@ -7,10 +7,10 @@ public class CompositionTests
     [Fact]
     public void RefusesToReplaceContentAlreadyInTheContainer()
     {
-        Container container = new Container();
+        Frame container = new Frame();
         container.Padding(5);
 
-        DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() =>
+        CompositionException exception = Assert.Throws<CompositionException>(() =>
             container.Background(TestInks.Red));
 
         // Both types are named so the message points at the two pieces of composition that collided.
@@ -31,9 +31,9 @@ public class CompositionTests
     [Fact]
     public void HandsBackTheAttachedElementAsTheNextSlot()
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
-        IContainer next = container.Padding(5);
+        IFrame next = container.Padding(5);
 
         Assert.Same(container.Child, next);
     }

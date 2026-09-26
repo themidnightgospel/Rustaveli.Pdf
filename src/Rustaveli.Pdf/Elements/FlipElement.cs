@@ -9,18 +9,18 @@ namespace Rustaveli.Pdf.Elements;
 /// <remarks>
 /// Layout is unaffected — the mirrored content occupies exactly the same box it would have unmirrored.
 /// </remarks>
-public sealed class FlipElement : ContainerElement
+public sealed class FlipElement : EnclosingBlock
 {
     public bool FlipHorizontal { get; set; }
 
     public bool FlipVertical { get; set; }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
 
-        SpacePlan plan = Child.Measure(availableSpace, context.Layout);
+        Fit plan = Child.Measure(availableSpace, context.Layout);
 
         if (plan.IsWrap || plan.IsEmpty)
             return;
@@ -31,7 +31,7 @@ public sealed class FlipElement : ContainerElement
         // Scaling by -1 reflects through the origin, which would put the content off the far side of it, so
         // translate by the full extent first to bring it back over its own box. The box is the one this element
         // was given (ADR 0012): the child is drawn into it, so it is also the extent to mirror across.
-        Position offset = new Position(
+        Offset offset = new Offset(
             FlipHorizontal ? availableSpace.Width : 0,
             FlipVertical ? availableSpace.Height : 0);
 

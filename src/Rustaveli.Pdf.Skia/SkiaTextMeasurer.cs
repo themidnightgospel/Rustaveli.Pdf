@@ -6,22 +6,22 @@ namespace Rustaveli.Pdf.Skia;
 /// <summary>
 /// Measures text using Skia's font metrics.
 /// </summary>
-public sealed class SkiaTextMeasurer(SkiaFontProvider fonts) : ITextMeasurer
+public sealed class SkiaTextMeasurer(SkiaFontProvider fonts) : ITypeMeasurer
 {
-    public FontMetrics GetMetrics(TextStyle style)
+    public TypeMetrics GetMetrics(TypeStyle style)
     {
         SKFont font = fonts.GetFont(style);
         SKFontMetrics metrics = font.Metrics;
 
         // Skia reports ascent as a negative offset from the baseline; the layout engine expects both distances
         // to be positive magnitudes.
-        return new FontMetrics(
+        return new TypeMetrics(
             Ascent: -metrics.Ascent,
             Descent: metrics.Descent,
             LineGap: Math.Max(0, metrics.Leading));
     }
 
-    public float MeasureWidth(string text, TextStyle style)
+    public float MeasureWidth(string text, TypeStyle style)
     {
         if (string.IsNullOrEmpty(text))
             return 0f;
@@ -54,7 +54,7 @@ public sealed class SkiaTextMeasurer(SkiaFontProvider fonts) : ITextMeasurer
         return count;
     }
 
-    public int MeasureCharactersFitting(string text, TextStyle style, float maxWidth)
+    public int MeasureCharactersFitting(string text, TypeStyle style, float maxWidth)
     {
         if (string.IsNullOrEmpty(text) || maxWidth <= 0)
             return 0;

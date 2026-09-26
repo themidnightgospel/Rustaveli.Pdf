@@ -2,15 +2,15 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class ColumnDescriptorTests
 {
-    private static readonly Size Space = new Size(200, 200);
+    private static readonly Extent Space = new Extent(200, 200);
 
-    private static void Fill(IContainer container, Ink color) =>
+    private static void Fill(IFrame container, Ink color) =>
         container.Element(inner => inner.Child = new FixedElement(10, 20, color));
 
     [Fact]
     public void StacksItemsInDeclarationOrder()
     {
-        Element root = LayoutHarness.Build(container => container.Column(column =>
+        Block root = LayoutHarness.Build(container => container.Column(column =>
         {
             Fill(column.Item(), TestInks.Red);
             Fill(column.Item(), TestInks.Blue);
@@ -26,14 +26,14 @@ public class ColumnDescriptorTests
     [Fact]
     public void SpacingSeparatesConsecutiveItems()
     {
-        Element root = LayoutHarness.Build(container => container.Column(column =>
+        Block root = LayoutHarness.Build(container => container.Column(column =>
         {
             column.Spacing(10);
             Fill(column.Item(), TestInks.Red);
             Fill(column.Item(), TestInks.Blue);
         }));
 
-        SpacePlan plan = LayoutHarness.Measure(root, Space);
+        Fit plan = LayoutHarness.Measure(root, Space);
         List<RectangleOperation> items =
             LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().ToList();
 

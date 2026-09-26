@@ -22,8 +22,8 @@ public class PerformanceReportTests(ITestOutputHelper output)
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
+            page.Size = PaperSizes.A4;
+            page.Margin = Sides.All(30);
 
             page.Content().Table(table =>
             {
@@ -57,8 +57,8 @@ public class PerformanceReportTests(ITestOutputHelper output)
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
+            page.Size = PaperSizes.A4;
+            page.Margin = Sides.All(30);
 
             page.Content().Column(column =>
             {

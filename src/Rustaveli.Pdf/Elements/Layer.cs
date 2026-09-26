@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// One layer of a <see cref="LayersElement"/>.
 /// </summary>
-public sealed class Layer : ContainerElement
+public sealed class Layer : EnclosingBlock
 {
     /// <summary>
     /// Whether this layer determines the size of the stack. Exactly one layer should be primary; the others

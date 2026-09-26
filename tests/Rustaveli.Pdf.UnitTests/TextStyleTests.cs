@@ -2,16 +2,16 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class TextStyleTests
 {
-    private static readonly TextStyle Base = TextStyle.Default;
+    private static readonly TypeStyle Base = TypeStyle.Default;
 
     [Fact]
     public void DefaultIsTwelvePointBlackHelveticaWithNoDecoration()
     {
-        TextStyle style = TextStyle.Default;
+        TypeStyle style = TypeStyle.Default;
 
         Assert.Equal("Helvetica", style.FontFamily);
         Assert.Equal(12f, style.FontSize);
-        Assert.Equal(FontWeight.Normal, style.Weight);
+        Assert.Equal(TypeWeight.Normal, style.Weight);
         Assert.False(style.IsItalic);
         Assert.Equal(TestInks.Black, style.Color);
         Assert.Equal(TestInks.Transparent, style.BackgroundColor);
@@ -19,7 +19,7 @@ public class TextStyleTests
         Assert.False(style.HasStrikethrough);
         Assert.Equal(1f, style.LineHeight);
         Assert.Equal(0f, style.LetterSpacing);
-        Assert.Equal(FontPosition.Normal, style.Position);
+        Assert.Equal(ScriptPosition.Normal, style.Position);
     }
 
     [Fact]
@@ -37,13 +37,13 @@ public class TextStyleTests
     [Fact]
     public void WeightOfChangesOnlyTheWeight()
     {
-        Assert.Equal(Base with { Weight = FontWeight.Light }, Base.WeightOf(FontWeight.Light));
+        Assert.Equal(Base with { Weight = TypeWeight.Light }, Base.WeightOf(TypeWeight.Light));
     }
 
     [Fact]
     public void BoldSetsTheBoldWeight()
     {
-        Assert.Equal(Base with { Weight = FontWeight.Bold }, Base.Bold());
+        Assert.Equal(Base with { Weight = TypeWeight.Bold }, Base.Bold());
     }
 
     [Fact]
@@ -94,26 +94,26 @@ public class TextStyleTests
     [Fact]
     public void SubscriptAndSuperscriptChangeOnlyThePosition()
     {
-        Assert.Equal(Base with { Position = FontPosition.Subscript }, Base.Subscript());
-        Assert.Equal(Base with { Position = FontPosition.Superscript }, Base.Superscript());
+        Assert.Equal(Base with { Position = ScriptPosition.Subscript }, Base.Subscript());
+        Assert.Equal(Base with { Position = ScriptPosition.Superscript }, Base.Superscript());
     }
 
     [Fact]
     public void MutatorsLeaveTheStyleTheyWereCalledOnUntouched()
     {
         // The default is shared by every span in a document, so deriving a variant must never alter it.
-        TextStyle original = TextStyle.Default.FontSizeOf(10);
+        TypeStyle original = TypeStyle.Default.FontSizeOf(10);
 
         original.Bold().Italic().Underline().ColorOf(TestInks.Red).FontSizeOf(30).Superscript();
 
-        Assert.Equal(TextStyle.Default with { FontSize = 10 }, original);
+        Assert.Equal(TypeStyle.Default with { FontSize = 10 }, original);
     }
 
     [Fact]
     public void StylesReachedByDifferentRoutesAreEqual()
     {
-        TextStyle first = Base.Bold().FontSizeOf(14);
-        TextStyle second = Base.FontSizeOf(14).WeightOf(FontWeight.Bold);
+        TypeStyle first = Base.Bold().FontSizeOf(14);
+        TypeStyle second = Base.FontSizeOf(14).WeightOf(TypeWeight.Bold);
 
         Assert.Equal(first, second);
         Assert.Equal(first.GetHashCode(), second.GetHashCode());
@@ -122,7 +122,7 @@ public class TextStyleTests
     [Fact]
     public void NormalTextRendersAtItsNominalSizeOnTheBaseline()
     {
-        TextStyle style = Base.FontSizeOf(20);
+        TypeStyle style = Base.FontSizeOf(20);
 
         Assert.Equal(20f, style.EffectiveFontSize);
         Assert.Equal(0f, style.BaselineOffset);
@@ -131,7 +131,7 @@ public class TextStyleTests
     [Fact]
     public void SubscriptShrinksAndDropsBelowTheBaseline()
     {
-        TextStyle style = Base.FontSizeOf(20).Subscript();
+        TypeStyle style = Base.FontSizeOf(20).Subscript();
 
         Approximately.Equal(11.6f, style.EffectiveFontSize);
         Approximately.Equal(3.2f, style.BaselineOffset);
@@ -140,7 +140,7 @@ public class TextStyleTests
     [Fact]
     public void SuperscriptShrinksAndRisesAboveTheBaseline()
     {
-        TextStyle style = Base.FontSizeOf(20).Superscript();
+        TypeStyle style = Base.FontSizeOf(20).Superscript();
 
         Approximately.Equal(11.6f, style.EffectiveFontSize);
         Approximately.Equal(-6.6f, style.BaselineOffset);

@@ -28,7 +28,7 @@ public class ParagraphIndentTests
             text.Span("Hello");
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         // Five characters of ink at 6pt, pushed right by the 20pt indent.
         Approximately.Equal(50f, plan.Size.Width);
@@ -51,7 +51,7 @@ public class ParagraphIndentTests
         item.Child = text;
         row.Items.Add(item);
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(500, 500));
 
         Assert.Equal("Hello", page.Content);
     }
@@ -68,7 +68,7 @@ public class ParagraphIndentTests
             text.Span("aaaaaaa");
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(48, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(48, 500));
 
         Approximately.Equal(LineHeight, plan.Size.Height);
     }
@@ -83,7 +83,7 @@ public class ParagraphIndentTests
             text.Span("aaaaaaa");
         });
 
-        Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Size(48, 500)).Size.Height);
+        Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(48, 500)).Size.Height);
     }
 
     [Fact]
@@ -95,10 +95,10 @@ public class ParagraphIndentTests
             text.Span("aaaaaaa");
         });
 
-        LayoutContext context = LayoutHarness.Context();
-        context.ContentDirection = ContentDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ContentDirection = ReadingDirection.RightToLeft;
 
-        Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Size(48, 500), context).Size.Height);
+        Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(48, 500), context).Size.Height);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class ParagraphIndentTests
             text.Span("hello world");
         });
 
-        Assert.True(LayoutHarness.Measure(element, new Size(100, 5000)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(100, 5000)).IsWrap);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class ParagraphIndentTests
             text.Span("aa bbbbbbb");
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(42, 900));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(42, 900));
 
         Assert.Equal("aabbbbbbb", page.Content);
     }
@@ -136,7 +136,7 @@ public class ParagraphIndentTests
         // The tokeniser treats a non-breaking space as ink, so the trailing-whitespace trim must agree.
         TextElement element = Text(text => text.Span("   "));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         Approximately.Equal(18f, plan.Size.Width);
     }
@@ -150,7 +150,7 @@ public class ParagraphIndentTests
             text.Hyperlink(" ", "https://example.com");
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
 
         Assert.Single(page.Operations.OfType<ExternalLinkOperation>());
     }
@@ -166,7 +166,7 @@ public class ParagraphIndentTests
             text.Line("B");
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         // Three lines, and a single gap before the paragraph that follows the blank one.
         Approximately.Equal(3 * LineHeight + 8, plan.Size.Height);
@@ -177,7 +177,7 @@ public class ParagraphIndentTests
     {
         TextElement element = Text(text => text.Span("a\rb"));
 
-        Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Size(500, 500)).Size.Height);
+        Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
     }
 
     [Fact]
@@ -185,6 +185,6 @@ public class ParagraphIndentTests
     {
         TextElement element = Text(text => text.Span("a\r\nb"));
 
-        Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Size(500, 500)).Size.Height);
+        Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
     }
 }

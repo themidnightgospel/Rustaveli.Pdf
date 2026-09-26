@@ -6,26 +6,26 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// Reports the full available size on the chosen axes regardless of how little the child needs.
 /// </summary>
-public sealed class ExtendElement : ContainerElement
+public sealed class ExtendElement : EnclosingBlock
 {
     public bool ExtendHorizontal { get; set; }
 
     public bool ExtendVertical { get; set; }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
-        SpacePlan childPlan = Child?.Measure(availableSpace, context) ?? SpacePlan.FullRender(Size.Zero);
+        Fit childPlan = Child?.Measure(availableSpace, context) ?? Fit.FullRender(Extent.Zero);
 
         if (childPlan.IsWrap)
             return childPlan;
 
         if (childPlan.IsEmpty)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
-        Size size = new Size(
+        Extent size = new Extent(
             ExtendHorizontal ? availableSpace.Width : childPlan.Size.Width,
             ExtendVertical ? availableSpace.Height : childPlan.Size.Height);
 
-        return childPlan.IsFullRender ? SpacePlan.FullRender(size) : SpacePlan.PartialRender(size);
+        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
     }
 }

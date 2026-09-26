@@ -31,12 +31,12 @@ public static class SpecimenCatalog
         return data;
     }
 
-    private static Document Page(Action<IContainer> content, Action<PageDescriptor>? configure = null) =>
+    private static Document Page(Action<IFrame> content, Action<Section>? configure = null) =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(40f);
-            page.DefaultTextStyle = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(10f);
+            page.Size = PaperSizes.A4;
+            page.Margin = Sides.All(40f);
+            page.DefaultTextStyle = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(10f);
             configure?.Invoke(page);
             content(page.Content());
         }));
@@ -196,13 +196,13 @@ public static class SpecimenCatalog
         // Each fit mode gets a box it can satisfy: fitting the width needs free height, and fitting the height needs
         // free width. Area and unproportional fit any box.
         column.Item().Text("Width");
-        column.Item().Width(200f).Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Width);
+        column.Item().Width(200f).Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Width);
         column.Item().Text("Height");
-        column.Item().Height(100f).AlignLeft().Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Height);
+        column.Item().Height(100f).AlignLeft().Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Height);
         column.Item().Text("Area");
-        column.Item().Width(300f).Height(120f).Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Area);
+        column.Item().Width(300f).Height(120f).Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Area);
         column.Item().Text("Unproportional");
-        column.Item().Width(300f).Height(120f).Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Unproportional);
+        column.Item().Width(300f).Height(120f).Border(0.5f).BorderColor(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Unproportional);
     }));
 
     private static Document LayersAndDecoration() => Page(content => content.Column(column =>
@@ -235,9 +235,9 @@ public static class SpecimenCatalog
 
     private static Document LongFlow() => Document.Create(container => container.Page(page =>
     {
-        page.Size = PageSizes.A5;
-        page.Margin = Edges.All(30f);
-        page.DefaultTextStyle = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(9f);
+        page.Size = PaperSizes.A5;
+        page.Margin = Sides.All(30f);
+        page.DefaultTextStyle = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(9f);
 
         page.Header().PaddingBottom(6f).Text(text => text.Span("Running head").Bold());
         page.Footer().AlignCenter().Text(text =>

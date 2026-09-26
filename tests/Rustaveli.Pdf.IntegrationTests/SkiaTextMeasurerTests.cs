@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.IntegrationTests;
 public class SkiaTextMeasurerTests
 {
     private static readonly SkiaTextMeasurer Measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
-    private static readonly TextStyle Style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
+    private static readonly TypeStyle Style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
     private const string MathBoldA = "\U0001D400";
@@ -23,7 +23,7 @@ public class SkiaTextMeasurerTests
     /// <param name="text">The text to fit.</param>
     /// <param name="style">The style it is measured in.</param>
     /// <param name="boundaries">Offsets, in UTF-16 code units, at which a character ends.</param>
-    private static void AssertFitsWholeCharacters(string text, TextStyle style, params int[] boundaries)
+    private static void AssertFitsWholeCharacters(string text, TypeStyle style, params int[] boundaries)
     {
         for (int index = 0; index + 1 < boundaries.Length; index++)
         {
@@ -62,7 +62,7 @@ public class SkiaTextMeasurerTests
     [Fact]
     public void MetricsArePositiveDistancesProportionateToTheFontSize()
     {
-        FontMetrics metrics = Measurer.GetMetrics(Style);
+        TypeMetrics metrics = Measurer.GetMetrics(Style);
 
         // Skia reports ascent as a negative offset; a sign slip here inverts every line of text.
         Assert.InRange(metrics.Ascent, 0.6f * 20, 1.2f * 20);
@@ -75,7 +75,7 @@ public class SkiaTextMeasurerTests
     public void MetricsAreTheFontsOwnAsPositiveDistances()
     {
         SKFontMetrics native = SkiaFontProvider.Shared.GetFont(Style).Metrics;
-        FontMetrics metrics = Measurer.GetMetrics(Style);
+        TypeMetrics metrics = Measurer.GetMetrics(Style);
 
         Assert.Equal(-native.Ascent, metrics.Ascent);
         Assert.Equal(native.Descent, metrics.Descent);
@@ -87,8 +87,8 @@ public class SkiaTextMeasurerTests
     [Fact]
     public void MetricsScaleWithTheFontSize()
     {
-        FontMetrics regular = Measurer.GetMetrics(Style);
-        FontMetrics doubled = Measurer.GetMetrics(Style.FontSizeOf(40));
+        TypeMetrics regular = Measurer.GetMetrics(Style);
+        TypeMetrics doubled = Measurer.GetMetrics(Style.FontSizeOf(40));
 
         Assert.Equal(2 * regular.Ascent, doubled.Ascent, 0.02f * doubled.Ascent);
         Assert.Equal(2 * regular.Descent, doubled.Descent, 0.02f * doubled.Descent);
@@ -97,7 +97,7 @@ public class SkiaTextMeasurerTests
     [Fact]
     public void SubscriptAndSuperscriptAreMeasuredAtTheirReducedSize()
     {
-        TextStyle reduced = Style.FontSizeOf(Style.Superscript().EffectiveFontSize);
+        TypeStyle reduced = Style.FontSizeOf(Style.Superscript().EffectiveFontSize);
 
         Assert.True(reduced.FontSize < Style.FontSize, "The premise needs a reduced size to compare against.");
         Assert.Equal(Measurer.GetMetrics(reduced).Ascent, Measurer.GetMetrics(Style.Superscript()).Ascent, 0.01f);

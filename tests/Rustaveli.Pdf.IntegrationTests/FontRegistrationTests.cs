@@ -28,7 +28,7 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
         fonts.Register(stream);
 
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
-        TextStyle style = TextStyle.Default.FontFamilyOf(TestFonts.Sans);
+        TypeStyle style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans);
 
         Assert.Equal(TestFonts.Sans, fonts.GetTypeface(style).FamilyName);
         Assert.True(measurer.GetMetrics(style).Ascent > 0, "A registered font must report a positive ascent.");
@@ -62,8 +62,8 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
 
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
+            page.Size = PaperSizes.A4;
+            page.Margin = Sides.All(30);
             page.Content().Text("Rendered with a registered font");
         }));
 
@@ -77,7 +77,7 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
     public void ReusesTheSameFontInstanceForRepeatedStyles()
     {
         using SkiaFontProvider fonts = new SkiaFontProvider();
-        TextStyle style = TextStyle.Default.FontSizeOf(14);
+        TypeStyle style = TypeStyle.Default.FontSizeOf(14);
 
         // Caching matters: the layout engine measures the same styles many times per document.
         Assert.Same(fonts.GetFont(style), fonts.GetFont(style));
@@ -88,9 +88,9 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
     {
         using SkiaFontProvider fonts = new SkiaFontProvider();
 
-        SKFont regular = fonts.GetFont(TextStyle.Default.FontSizeOf(12));
-        SKFont larger = fonts.GetFont(TextStyle.Default.FontSizeOf(24));
-        SKFont bold = fonts.GetFont(TextStyle.Default.FontSizeOf(12).Bold());
+        SKFont regular = fonts.GetFont(TypeStyle.Default.FontSizeOf(12));
+        SKFont larger = fonts.GetFont(TypeStyle.Default.FontSizeOf(24));
+        SKFont bold = fonts.GetFont(TypeStyle.Default.FontSizeOf(12).Bold());
 
         Assert.NotSame(regular, larger);
         Assert.NotSame(regular, bold);
@@ -102,7 +102,7 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
         using SkiaFontProvider fonts = new SkiaFontProvider();
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
 
-        TextStyle style = TextStyle.Default.FontFamilyOf("A Font That Certainly Does Not Exist");
+        TypeStyle style = TypeStyle.Default.FontFamilyOf("A Font That Certainly Does Not Exist");
 
         // Skia substitutes rather than failing, so text must still measure to something usable.
         Assert.True(measurer.MeasureWidth("Hello", style) > 0);

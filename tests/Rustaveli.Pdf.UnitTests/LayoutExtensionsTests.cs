@@ -8,23 +8,23 @@ namespace Rustaveli.Pdf.UnitTests;
 /// </summary>
 public class LayoutExtensionsTests
 {
-    private static readonly Size Space = new Size(200, 100);
+    private static readonly Extent Space = new Extent(200, 100);
 
-    private static Element Compose(Func<IContainer, IContainer> chain, float width = 50, float height = 20) =>
+    private static Block Compose(Func<IFrame, IFrame> chain, float width = 50, float height = 20) =>
         LayoutHarness.Build(container => chain(container).Element(inner =>
             inner.Child = new FixedElement(width, height, TestInks.Red)));
 
-    private static Size Measure(Element root) => LayoutHarness.Measure(root, Space).Size;
+    private static Extent Measure(Block root) => LayoutHarness.Measure(root, Space).Size;
 
-    private static RectangleOperation Content(Element root) =>
+    private static RectangleOperation Content(Block root) =>
         LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
     // Drawn at exactly the size it measured, as a parent that allots the natural size does (ADR 0012). Transforms
     // mirror and pivot across the box they are given, so this is the box their assertions describe.
-    private static RectangleOperation ContentInItsOwnBox(Element root) =>
+    private static RectangleOperation ContentInItsOwnBox(Block root) =>
         LayoutHarness.Draw(root, Measure(root)).Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
-    private static List<RectangleOperation> Bands(Element root, Ink color) =>
+    private static List<RectangleOperation> Bands(Block root, Ink color) =>
         LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().Where(r => r.Color == color).ToList();
 
     // ---- Padding -------------------------------------------------------------------------------------------
@@ -32,64 +32,64 @@ public class LayoutExtensionsTests
     [Fact]
     public void PaddingInsetsEverySide()
     {
-        Element root = Compose(container => container.Padding(10));
+        Block root = Compose(container => container.Padding(10));
 
-        Approximately.Equal(new Size(70, 40), Measure(root));
-        Approximately.Equal(new Position(10, 10), Content(root).Position);
+        Approximately.Equal(new Extent(70, 40), Measure(root));
+        Approximately.Equal(new Offset(10, 10), Content(root).Position);
     }
 
     [Fact]
     public void PaddingHorizontalInsetsTheLeftAndRight()
     {
-        Element root = Compose(container => container.PaddingHorizontal(10));
+        Block root = Compose(container => container.PaddingHorizontal(10));
 
-        Approximately.Equal(new Size(70, 20), Measure(root));
-        Approximately.Equal(new Position(10, 0), Content(root).Position);
+        Approximately.Equal(new Extent(70, 20), Measure(root));
+        Approximately.Equal(new Offset(10, 0), Content(root).Position);
     }
 
     [Fact]
     public void PaddingVerticalInsetsTheTopAndBottom()
     {
-        Element root = Compose(container => container.PaddingVertical(10));
+        Block root = Compose(container => container.PaddingVertical(10));
 
-        Approximately.Equal(new Size(50, 40), Measure(root));
-        Approximately.Equal(new Position(0, 10), Content(root).Position);
+        Approximately.Equal(new Extent(50, 40), Measure(root));
+        Approximately.Equal(new Offset(0, 10), Content(root).Position);
     }
 
     [Fact]
     public void PaddingLeftInsetsOnlyTheLeft()
     {
-        Element root = Compose(container => container.PaddingLeft(10));
+        Block root = Compose(container => container.PaddingLeft(10));
 
-        Approximately.Equal(new Size(60, 20), Measure(root));
-        Approximately.Equal(new Position(10, 0), Content(root).Position);
+        Approximately.Equal(new Extent(60, 20), Measure(root));
+        Approximately.Equal(new Offset(10, 0), Content(root).Position);
     }
 
     [Fact]
     public void PaddingRightInsetsOnlyTheRight()
     {
-        Element root = Compose(container => container.PaddingRight(10));
+        Block root = Compose(container => container.PaddingRight(10));
 
-        Approximately.Equal(new Size(60, 20), Measure(root));
-        Approximately.Equal(new Position(0, 0), Content(root).Position);
+        Approximately.Equal(new Extent(60, 20), Measure(root));
+        Approximately.Equal(new Offset(0, 0), Content(root).Position);
     }
 
     [Fact]
     public void PaddingTopInsetsOnlyTheTop()
     {
-        Element root = Compose(container => container.PaddingTop(10));
+        Block root = Compose(container => container.PaddingTop(10));
 
-        Approximately.Equal(new Size(50, 30), Measure(root));
-        Approximately.Equal(new Position(0, 10), Content(root).Position);
+        Approximately.Equal(new Extent(50, 30), Measure(root));
+        Approximately.Equal(new Offset(0, 10), Content(root).Position);
     }
 
     [Fact]
     public void PaddingBottomInsetsOnlyTheBottom()
     {
-        Element root = Compose(container => container.PaddingBottom(10));
+        Block root = Compose(container => container.PaddingBottom(10));
 
-        Approximately.Equal(new Size(50, 30), Measure(root));
-        Approximately.Equal(new Position(0, 0), Content(root).Position);
+        Approximately.Equal(new Extent(50, 30), Measure(root));
+        Approximately.Equal(new Offset(0, 0), Content(root).Position);
     }
 
     // ---- Painting ------------------------------------------------------------------------------------------
@@ -101,7 +101,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void BackgroundAcceptsHex()
     {
-        Element root = Compose(container => container.Background("#00FF00"));
+        Block root = Compose(container => container.Background("#00FF00"));
 
         List<RectangleOperation> rectangles =
             LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().ToList();
@@ -117,7 +117,7 @@ public class LayoutExtensionsTests
     {
         RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderLeft(3)), TestInks.Black));
 
-        Approximately.Equal(new Position(0, 0), band.Position);
+        Approximately.Equal(new Offset(0, 0), band.Position);
         Approximately.Equal(3f, band.Size.Width);
         Assert.True(band.Size.Height > band.Size.Width, "A left border is an upright band.");
     }
@@ -137,7 +137,7 @@ public class LayoutExtensionsTests
     {
         RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderTop(3)), TestInks.Black));
 
-        Approximately.Equal(new Position(0, 0), band.Position);
+        Approximately.Equal(new Offset(0, 0), band.Position);
         Approximately.Equal(3f, band.Size.Height);
         Assert.True(band.Size.Width > band.Size.Height, "A top border is a flat band.");
     }
@@ -155,7 +155,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void BorderColorRecoloursTheBorderItFollows()
     {
-        Element root = Compose(container => container.Border(2).BorderColor(TestInks.Blue));
+        Block root = Compose(container => container.Border(2).BorderColor(TestInks.Blue));
 
         Assert.Equal(4, Bands(root, TestInks.Blue).Count);
         Assert.Empty(Bands(root, TestInks.Black));
@@ -164,7 +164,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void BorderColorAcceptsHex()
     {
-        Element root = Compose(container => container.Border(2).BorderColor("#0000FF"));
+        Block root = Compose(container => container.Border(2).BorderColor("#0000FF"));
 
         Assert.Equal(4, Bands(root, Ink.Rgb(0, 0, 255)).Count);
     }
@@ -203,7 +203,7 @@ public class LayoutExtensionsTests
     public void AZeroCornerRadiusIsAcceptedOnAnUnevenBorder()
     {
         // Zero asks for square corners, which every border can draw, so there is nothing to refuse.
-        Element root = Compose(container => container.BorderLeft(2).CornerRadius(0));
+        Block root = Compose(container => container.BorderLeft(2).CornerRadius(0));
 
         RecordedPage page = LayoutHarness.Draw(root, Space);
 
@@ -216,74 +216,74 @@ public class LayoutExtensionsTests
     [Fact]
     public void WidthPinsTheWidth()
     {
-        Approximately.Equal(new Size(80, 20), Measure(Compose(container => container.Width(80))));
+        Approximately.Equal(new Extent(80, 20), Measure(Compose(container => container.Width(80))));
         Assert.True(LayoutHarness.Measure(Compose(container => container.Width(80), width: 120), Space).IsWrap);
     }
 
     [Fact]
     public void MinWidthGrowsNarrowContentButNotWideContent()
     {
-        Approximately.Equal(new Size(80, 20), Measure(Compose(container => container.MinWidth(80))));
-        Approximately.Equal(new Size(120, 20), Measure(Compose(container => container.MinWidth(80), width: 120)));
+        Approximately.Equal(new Extent(80, 20), Measure(Compose(container => container.MinWidth(80))));
+        Approximately.Equal(new Extent(120, 20), Measure(Compose(container => container.MinWidth(80), width: 120)));
     }
 
     [Fact]
     public void MaxWidthCapsTheSpaceOfferedButDoesNotGrowContent()
     {
-        Approximately.Equal(new Size(50, 20), Measure(Compose(container => container.MaxWidth(80))));
+        Approximately.Equal(new Extent(50, 20), Measure(Compose(container => container.MaxWidth(80))));
         Assert.True(LayoutHarness.Measure(Compose(container => container.MaxWidth(80), width: 120), Space).IsWrap);
     }
 
     [Fact]
     public void HeightPinsTheHeight()
     {
-        Approximately.Equal(new Size(50, 40), Measure(Compose(container => container.Height(40))));
+        Approximately.Equal(new Extent(50, 40), Measure(Compose(container => container.Height(40))));
         Assert.True(LayoutHarness.Measure(Compose(container => container.Height(40), height: 60), Space).IsWrap);
     }
 
     [Fact]
     public void MinHeightGrowsShortContentButNotTallContent()
     {
-        Approximately.Equal(new Size(50, 40), Measure(Compose(container => container.MinHeight(40))));
-        Approximately.Equal(new Size(50, 60), Measure(Compose(container => container.MinHeight(40), height: 60)));
+        Approximately.Equal(new Extent(50, 40), Measure(Compose(container => container.MinHeight(40))));
+        Approximately.Equal(new Extent(50, 60), Measure(Compose(container => container.MinHeight(40), height: 60)));
     }
 
     [Fact]
     public void MaxHeightCapsTheSpaceOfferedButDoesNotGrowContent()
     {
-        Approximately.Equal(new Size(50, 20), Measure(Compose(container => container.MaxHeight(40))));
+        Approximately.Equal(new Extent(50, 20), Measure(Compose(container => container.MaxHeight(40))));
         Assert.True(LayoutHarness.Measure(Compose(container => container.MaxHeight(40), height: 60), Space).IsWrap);
     }
 
     [Fact]
     public void ExtendClaimsTheWholeSpace() =>
-        Approximately.Equal(new Size(200, 100), Measure(Compose(container => container.Extend())));
+        Approximately.Equal(new Extent(200, 100), Measure(Compose(container => container.Extend())));
 
     [Fact]
     public void ExtendHorizontalClaimsOnlyTheWidth() =>
-        Approximately.Equal(new Size(200, 20), Measure(Compose(container => container.ExtendHorizontal())));
+        Approximately.Equal(new Extent(200, 20), Measure(Compose(container => container.ExtendHorizontal())));
 
     [Fact]
     public void ExtendVerticalClaimsOnlyTheHeight() =>
-        Approximately.Equal(new Size(50, 100), Measure(Compose(container => container.ExtendVertical())));
+        Approximately.Equal(new Extent(50, 100), Measure(Compose(container => container.ExtendVertical())));
 
     [Fact]
     public void AspectRatioDerivesTheHeightFromTheWidthByDefault() =>
-        Approximately.Equal(new Size(200, 50), Measure(Compose(container => container.AspectRatio(4))));
+        Approximately.Equal(new Extent(200, 50), Measure(Compose(container => container.AspectRatio(4))));
 
     [Fact]
     public void AspectRatioCanDeriveTheWidthFromTheHeight() =>
         Approximately.Equal(
-            new Size(50, 100),
-            Measure(Compose(container => container.AspectRatio(0.5f, AspectRatioOption.FitHeight))));
+            new Extent(50, 100),
+            Measure(Compose(container => container.AspectRatio(0.5f, ProportionFit.FitHeight))));
 
     [Fact]
     public void ScaleToFitShrinksNoFurtherThanTheMinimumScale()
     {
         // A 400pt block needs half scale to fit 200pt. The default floor of a quarter allows that; a floor of
         // three quarters does not, so the block is passed through unscaled and cannot be placed.
-        Element shrinkable = Compose(container => container.ScaleToFit(), width: 400);
-        Element barelyShrinkable = Compose(container => container.ScaleToFit(0.75f), width: 400);
+        Block shrinkable = Compose(container => container.ScaleToFit(), width: 400);
+        Block barelyShrinkable = Compose(container => container.ScaleToFit(0.75f), width: 400);
 
         Assert.True(LayoutHarness.Measure(shrinkable, Space).IsFullRender);
         Assert.True(LayoutHarness.Measure(barelyShrinkable, Space).IsWrap);
@@ -298,8 +298,8 @@ public class LayoutExtensionsTests
     {
         RectangleOperation content = ContentInItsOwnBox(Compose(container => container.FlipHorizontal()));
 
-        Approximately.Equal(new Position(50, 0), content.Position);
-        Approximately.Equal(new Position(0, 0), new Position(content.Bounds.Left, content.Bounds.Top));
+        Approximately.Equal(new Offset(50, 0), content.Position);
+        Approximately.Equal(new Offset(0, 0), new Offset(content.Bounds.Left, content.Bounds.Top));
     }
 
     [Fact]
@@ -307,8 +307,8 @@ public class LayoutExtensionsTests
     {
         RectangleOperation content = ContentInItsOwnBox(Compose(container => container.FlipVertical()));
 
-        Approximately.Equal(new Position(0, 20), content.Position);
-        Approximately.Equal(new Position(0, 0), new Position(content.Bounds.Left, content.Bounds.Top));
+        Approximately.Equal(new Offset(0, 20), content.Position);
+        Approximately.Equal(new Offset(0, 0), new Offset(content.Bounds.Left, content.Bounds.Top));
     }
 
     [Fact]
@@ -316,8 +316,8 @@ public class LayoutExtensionsTests
     {
         RectangleOperation content = ContentInItsOwnBox(Compose(container => container.FlipOver()));
 
-        Approximately.Equal(new Position(50, 20), content.Position);
-        Approximately.Equal(new Position(0, 0), new Position(content.Bounds.Left, content.Bounds.Top));
+        Approximately.Equal(new Offset(50, 20), content.Position);
+        Approximately.Equal(new Offset(0, 0), new Offset(content.Bounds.Left, content.Bounds.Top));
     }
 
     // ---- Alignment -----------------------------------------------------------------------------------------
@@ -325,61 +325,61 @@ public class LayoutExtensionsTests
     [Fact]
     public void AlignLeftClaimsTheWidthAndKeepsContentAtTheLeft()
     {
-        Element root = Compose(container => container.AlignLeft());
+        Block root = Compose(container => container.AlignLeft());
 
-        Approximately.Equal(new Size(200, 20), Measure(root));
-        Approximately.Equal(new Position(0, 0), Content(root).Position);
+        Approximately.Equal(new Extent(200, 20), Measure(root));
+        Approximately.Equal(new Offset(0, 0), Content(root).Position);
     }
 
     [Fact]
     public void AlignCenterCentresHorizontally() =>
-        Approximately.Equal(new Position(75, 0), Content(Compose(container => container.AlignCenter())).Position);
+        Approximately.Equal(new Offset(75, 0), Content(Compose(container => container.AlignCenter())).Position);
 
     [Fact]
     public void AlignRightMovesContentToTheRight() =>
-        Approximately.Equal(new Position(150, 0), Content(Compose(container => container.AlignRight())).Position);
+        Approximately.Equal(new Offset(150, 0), Content(Compose(container => container.AlignRight())).Position);
 
     [Fact]
     public void AlignTopClaimsTheHeightAndKeepsContentAtTheTop()
     {
-        Element root = Compose(container => container.AlignTop());
+        Block root = Compose(container => container.AlignTop());
 
-        Approximately.Equal(new Size(50, 100), Measure(root));
-        Approximately.Equal(new Position(0, 0), Content(root).Position);
+        Approximately.Equal(new Extent(50, 100), Measure(root));
+        Approximately.Equal(new Offset(0, 0), Content(root).Position);
     }
 
     [Fact]
     public void AlignMiddleCentresVertically() =>
-        Approximately.Equal(new Position(0, 40), Content(Compose(container => container.AlignMiddle())).Position);
+        Approximately.Equal(new Offset(0, 40), Content(Compose(container => container.AlignMiddle())).Position);
 
     [Fact]
     public void AlignBottomMovesContentToTheBottom() =>
-        Approximately.Equal(new Position(0, 80), Content(Compose(container => container.AlignBottom())).Position);
+        Approximately.Equal(new Offset(0, 80), Content(Compose(container => container.AlignBottom())).Position);
 
     [Fact]
     public void AHorizontalAlignmentFoldsIntoAPrecedingVerticalOne()
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
-        IContainer vertical = container.AlignBottom();
-        IContainer both = vertical.AlignCenter();
+        IFrame vertical = container.AlignBottom();
+        IFrame both = vertical.AlignCenter();
         both.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Same(vertical, both);
-        Approximately.Equal(new Position(75, 80), Content(container).Position);
+        Approximately.Equal(new Offset(75, 80), Content(container).Position);
     }
 
     [Fact]
     public void ALaterAlignmentOnTheSameAxisReplacesTheEarlierOne()
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
-        IContainer first = container.AlignLeft().AlignTop();
-        IContainer second = first.AlignRight().AlignBottom();
+        IFrame first = container.AlignLeft().AlignTop();
+        IFrame second = first.AlignRight().AlignBottom();
         second.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Same(first, second);
-        Approximately.Equal(new Position(150, 80), Content(container).Position);
+        Approximately.Equal(new Offset(150, 80), Content(container).Position);
     }
 
     [Fact]
@@ -387,12 +387,12 @@ public class LayoutExtensionsTests
     {
         // Folding into a filled aligner would silently move content composed earlier, so the call is treated as
         // new composition in an occupied slot and refused.
-        Container container = new Container();
-        IContainer aligned = container.AlignRight();
+        Frame container = new Frame();
+        IFrame aligned = container.AlignRight();
         aligned.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
-        Assert.Throws<DocumentComposeException>(() => aligned.AlignCenter());
-        Approximately.Equal(new Position(150, 0), Content(container).Position);
+        Assert.Throws<CompositionException>(() => aligned.AlignCenter());
+        Approximately.Equal(new Offset(150, 0), Content(container).Position);
     }
 
     // ---- Transforms ----------------------------------------------------------------------------------------
@@ -400,39 +400,39 @@ public class LayoutExtensionsTests
     [Fact]
     public void TranslateXShiftsTheDrawingButNotTheLayout()
     {
-        Element root = Compose(container => container.TranslateX(15));
+        Block root = Compose(container => container.TranslateX(15));
 
-        Approximately.Equal(new Size(50, 20), Measure(root));
-        Approximately.Equal(new Position(15, 0), Content(root).Position);
+        Approximately.Equal(new Extent(50, 20), Measure(root));
+        Approximately.Equal(new Offset(15, 0), Content(root).Position);
     }
 
     [Fact]
     public void TranslateYShiftsTheDrawingButNotTheLayout()
     {
-        Element root = Compose(container => container.TranslateY(15));
+        Block root = Compose(container => container.TranslateY(15));
 
-        Approximately.Equal(new Size(50, 20), Measure(root));
-        Approximately.Equal(new Position(0, 15), Content(root).Position);
+        Approximately.Equal(new Extent(50, 20), Measure(root));
+        Approximately.Equal(new Offset(0, 15), Content(root).Position);
     }
 
     [Fact]
     public void ScaleResizesBothAxesEqually()
     {
-        Element root = Compose(container => container.Scale(0.5f));
+        Block root = Compose(container => container.Scale(0.5f));
         Bounds bounds = Content(root).Bounds;
 
-        Approximately.Equal(new Size(25, 10), Measure(root));
-        Approximately.Equal(new Size(25, 10), new Size(bounds.Width, bounds.Height));
+        Approximately.Equal(new Extent(25, 10), Measure(root));
+        Approximately.Equal(new Extent(25, 10), new Extent(bounds.Width, bounds.Height));
     }
 
     [Fact]
     public void ScaleResizesEachAxisIndependently()
     {
-        Element root = Compose(container => container.Scale(0.5f, 2f));
+        Block root = Compose(container => container.Scale(0.5f, 2f));
         Bounds bounds = Content(root).Bounds;
 
-        Approximately.Equal(new Size(25, 40), Measure(root));
-        Approximately.Equal(new Size(25, 40), new Size(bounds.Width, bounds.Height));
+        Approximately.Equal(new Extent(25, 40), Measure(root));
+        Approximately.Equal(new Extent(25, 40), new Extent(bounds.Width, bounds.Height));
     }
 
     // Both rotations swap the axes; they differ in which corner the content is drawn from.
@@ -440,23 +440,23 @@ public class LayoutExtensionsTests
     [Fact]
     public void RotateRightTurnsAQuarterClockwise()
     {
-        Element root = Compose(container => container.RotateRight());
+        Block root = Compose(container => container.RotateRight());
         RectangleOperation content = ContentInItsOwnBox(root);
 
-        Approximately.Equal(new Size(20, 50), Measure(root));
-        Approximately.Equal(new Position(20, 0), content.Position);
-        Approximately.Equal(new Size(20, 50), new Size(content.Bounds.Width, content.Bounds.Height));
+        Approximately.Equal(new Extent(20, 50), Measure(root));
+        Approximately.Equal(new Offset(20, 0), content.Position);
+        Approximately.Equal(new Extent(20, 50), new Extent(content.Bounds.Width, content.Bounds.Height));
     }
 
     [Fact]
     public void RotateLeftTurnsAQuarterAnticlockwise()
     {
-        Element root = Compose(container => container.RotateLeft());
+        Block root = Compose(container => container.RotateLeft());
         RectangleOperation content = ContentInItsOwnBox(root);
 
-        Approximately.Equal(new Size(20, 50), Measure(root));
-        Approximately.Equal(new Position(0, 50), content.Position);
-        Approximately.Equal(new Size(20, 50), new Size(content.Bounds.Width, content.Bounds.Height));
+        Approximately.Equal(new Extent(20, 50), Measure(root));
+        Approximately.Equal(new Offset(0, 50), content.Position);
+        Approximately.Equal(new Extent(20, 50), new Extent(content.Bounds.Width, content.Bounds.Height));
     }
 
     // ---- Flow control --------------------------------------------------------------------------------------
@@ -464,25 +464,25 @@ public class LayoutExtensionsTests
     [Fact]
     public void ShowIfTrueKeepsTheContent()
     {
-        Element root = Compose(container => container.ShowIf(true));
+        Block root = Compose(container => container.ShowIf(true));
 
-        Approximately.Equal(new Size(50, 20), Measure(root));
+        Approximately.Equal(new Extent(50, 20), Measure(root));
         Assert.Single(LayoutHarness.Draw(root, Space).Operations);
     }
 
     [Fact]
     public void ShowIfFalseRemovesTheContent()
     {
-        Element root = Compose(container => container.ShowIf(false));
+        Block root = Compose(container => container.ShowIf(false));
 
-        Approximately.Equal(Size.Zero, Measure(root));
+        Approximately.Equal(Extent.Zero, Measure(root));
         Assert.Empty(LayoutHarness.Draw(root, Space).Operations);
     }
 
     [Fact]
     public void ShowOnceDrawsTheContentOnlyTheFirstTime()
     {
-        Element root = Compose(container => container.ShowOnce());
+        Block root = Compose(container => container.ShowOnce());
 
         Assert.Single(LayoutHarness.Draw(root, Space).Operations);
         Assert.Empty(LayoutHarness.Draw(root, Space).Operations);
@@ -493,8 +493,8 @@ public class LayoutExtensionsTests
     [Fact]
     public void LeftToRightRestoresTheUsualDirectionInsideARightToLeftPassage()
     {
-        Element nested = LayoutHarness.Build(container => container.RightToLeft().LeftToRight().Text("Hello"));
-        Element outer = LayoutHarness.Build(container => container.RightToLeft().Text("Hello"));
+        Block nested = LayoutHarness.Build(container => container.RightToLeft().LeftToRight().Text("Hello"));
+        Block outer = LayoutHarness.Build(container => container.RightToLeft().Text("Hello"));
 
         // Right-to-left text hugs the right edge: 200 less five 6pt characters.
         Approximately.Equal(0f, Assert.Single(LayoutHarness.Draw(nested, Space).Texts).Position.X);
@@ -504,7 +504,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void DefaultTextStyleRefusesAMissingRefinement()
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => container.DefaultTextStyle(null!));
 
@@ -517,10 +517,10 @@ public class LayoutExtensionsTests
     [Fact]
     public void UnconstrainedContentOverflowsWhileReportingNoSize()
     {
-        Element root = Compose(container => container.Unconstrained(), width: 300);
+        Block root = Compose(container => container.Unconstrained(), width: 300);
 
-        Approximately.Equal(Size.Zero, Measure(root));
-        Approximately.Equal(new Size(300, 20), Content(root).Size);
+        Approximately.Equal(Extent.Zero, Measure(root));
+        Approximately.Equal(new Extent(300, 20), Content(root).Size);
     }
 
     // ---- Rules and placeholders ----------------------------------------------------------------------------
@@ -533,7 +533,7 @@ public class LayoutExtensionsTests
                 .Operations.OfType<RectangleOperation>());
 
         Assert.Equal(TestInks.Black, rule.Color);
-        Approximately.Equal(new Size(200, 1), rule.Size);
+        Approximately.Equal(new Extent(200, 1), rule.Size);
     }
 
     [Fact]
@@ -544,7 +544,7 @@ public class LayoutExtensionsTests
                 .Operations.OfType<RectangleOperation>());
 
         Assert.Equal((Ink)TestInks.Red, rule.Color);
-        Approximately.Equal(new Size(200, 3), rule.Size);
+        Approximately.Equal(new Extent(200, 3), rule.Size);
     }
 
     [Fact]
@@ -555,7 +555,7 @@ public class LayoutExtensionsTests
                 .Operations.OfType<RectangleOperation>());
 
         Assert.Equal(TestInks.Black, rule.Color);
-        Approximately.Equal(new Size(1, 100), rule.Size);
+        Approximately.Equal(new Extent(1, 100), rule.Size);
     }
 
     [Fact]
@@ -566,7 +566,7 @@ public class LayoutExtensionsTests
                 .Operations.OfType<RectangleOperation>());
 
         Assert.Equal((Ink)TestInks.Red, rule.Color);
-        Approximately.Equal(new Size(3, 100), rule.Size);
+        Approximately.Equal(new Extent(3, 100), rule.Size);
     }
 
     [Fact]
@@ -627,7 +627,7 @@ public class LayoutExtensionsTests
     [InlineData("   ")]
     public void LinkTargetsNameTheArgumentTheyReject(string? target)
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
         Assert.Equal("url", Assert.ThrowsAny<ArgumentException>(() => container.Hyperlink(target!)).ParamName);
         Assert.Equal("name", Assert.ThrowsAny<ArgumentException>(() => container.Section(target!)).ParamName);

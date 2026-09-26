@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.Elements;
 /// paragraph re-wraps it, which changes its height by a step rather than a proportion. Each probe measures the
 /// child at the candidate scale and asks whether the result fits.
 /// </remarks>
-public sealed class ScaleToFitElement : ContainerElement
+public sealed class ScaleToFitElement : EnclosingBlock
 {
     /// <summary>
     /// The smallest scale that will be tried before the content is passed through unscaled.
@@ -32,10 +32,10 @@ public sealed class ScaleToFitElement : ContainerElement
     // finer probing buys nothing visible and every probe costs a full measurement of the subtree.
     private const int ProbeCount = 8;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         if (Child is null)
-            return SpacePlan.FullRender(Size.Zero);
+            return Fit.FullRender(Extent.Zero);
 
         float? scale = ResolveScale(availableSpace, context);
 
@@ -44,17 +44,17 @@ public sealed class ScaleToFitElement : ContainerElement
         if (scale is null)
             return base.Measure(availableSpace, context);
 
-        SpacePlan plan = Child.Measure(Unscale(availableSpace, scale.Value), context);
+        Fit plan = Child.Measure(Unscale(availableSpace, scale.Value), context);
 
         if (plan.IsWrap || plan.IsEmpty)
             return plan;
 
-        Size size = new Size(plan.Size.Width * scale.Value, plan.Size.Height * scale.Value);
+        Extent size = new Extent(plan.Size.Width * scale.Value, plan.Size.Height * scale.Value);
 
-        return SpacePlan.FullRender(size);
+        return Fit.FullRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
@@ -76,13 +76,13 @@ public sealed class ScaleToFitElement : ContainerElement
         context.Canvas.Restore();
     }
 
-    private static Size Unscale(Size availableSpace, float scale) =>
+    private static Extent Unscale(Extent availableSpace, float scale) =>
         new(availableSpace.Width / scale, availableSpace.Height / scale);
 
     /// <summary>
     /// Finds the largest scale at or below 1 whose content fits, or null if even <see cref="MinScale"/> fails.
     /// </summary>
-    private float? ResolveScale(Size availableSpace, LayoutContext context)
+    private float? ResolveScale(Extent availableSpace, PlanContext context)
     {
         // A full-size render needs no search, and it is also the answer whenever shrinking is disallowed.
         if (Fits(availableSpace, 1f, context))
@@ -113,9 +113,9 @@ public sealed class ScaleToFitElement : ContainerElement
         return low;
     }
 
-    private bool Fits(Size availableSpace, float scale, LayoutContext context)
+    private bool Fits(Extent availableSpace, float scale, PlanContext context)
     {
-        SpacePlan plan = Child!.Measure(Unscale(availableSpace, scale), context);
+        Fit plan = Child!.Measure(Unscale(availableSpace, scale), context);
 
         // Only a complete render counts: content that wrapped or split has not been made to fit.
         return plan.IsFullRender || plan.IsEmpty;

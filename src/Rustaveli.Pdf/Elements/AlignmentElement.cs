@@ -10,40 +10,40 @@ namespace Rustaveli.Pdf.Elements;
 /// An axis with no alignment set is left untouched and collapses to the child's own size, so
 /// <c>AlignRight</c> alone stretches horizontally while remaining vertically snug.
 /// </remarks>
-public sealed class AlignmentElement : ContainerElement
+public sealed class AlignmentElement : EnclosingBlock
 {
-    public HorizontalAlignment? Horizontal { get; set; }
+    public HorizontalPlacement? Horizontal { get; set; }
 
-    public VerticalAlignment? Vertical { get; set; }
+    public VerticalPlacement? Vertical { get; set; }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
-        SpacePlan childPlan = Child?.Measure(availableSpace, context) ?? SpacePlan.FullRender(Size.Zero);
+        Fit childPlan = Child?.Measure(availableSpace, context) ?? Fit.FullRender(Extent.Zero);
 
         if (childPlan.IsWrap)
             return childPlan;
 
         if (childPlan.IsEmpty)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
-        Size size = new Size(
+        Extent size = new Extent(
             Horizontal.HasValue ? availableSpace.Width : childPlan.Size.Width,
             Vertical.HasValue ? availableSpace.Height : childPlan.Size.Height);
 
-        return childPlan.IsFullRender ? SpacePlan.FullRender(size) : SpacePlan.PartialRender(size);
+        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
 
-        SpacePlan childPlan = Child.Measure(availableSpace, context.Layout);
+        Fit childPlan = Child.Measure(availableSpace, context.Layout);
 
         if (childPlan.IsWrap || childPlan.IsEmpty)
             return;
 
-        Position offset = new Position(
+        Offset offset = new Offset(
             HorizontalOffset(availableSpace.Width, childPlan.Size.Width),
             VerticalOffset(availableSpace.Height, childPlan.Size.Height));
 
@@ -60,15 +60,15 @@ public sealed class AlignmentElement : ContainerElement
 
     private float HorizontalOffset(float available, float child) => Horizontal switch
     {
-        HorizontalAlignment.Center => (available - child) / 2,
-        HorizontalAlignment.Right => available - child,
+        HorizontalPlacement.Center => (available - child) / 2,
+        HorizontalPlacement.Right => available - child,
         _ => 0f
     };
 
     private float VerticalOffset(float available, float child) => Vertical switch
     {
-        VerticalAlignment.Middle => (available - child) / 2,
-        VerticalAlignment.Bottom => available - child,
+        VerticalPlacement.Middle => (available - child) / 2,
+        VerticalPlacement.Bottom => available - child,
         _ => 0f
     };
 }

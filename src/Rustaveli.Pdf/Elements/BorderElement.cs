@@ -11,9 +11,9 @@ namespace Rustaveli.Pdf.Elements;
 /// The border deliberately consumes no layout space, matching how borders behave in CSS's <c>border-box</c>
 /// model. Combine with padding when the content should be pushed away from the edge.
 /// </remarks>
-public sealed class BorderElement : ContainerElement
+public sealed class BorderElement : EnclosingBlock
 {
-    public Edges Width { get; set; } = Edges.Zero;
+    public Sides Width { get; set; } = Sides.Zero;
 
     public Ink Color { get; set; } = Ink.Black;
 
@@ -27,13 +27,13 @@ public sealed class BorderElement : ContainerElement
     internal bool HasUniformWidth => Width.Left > 0 && IsUniform;
 
     private bool IsUniform =>
-        Math.Abs(Width.Left - Width.Top) < Size.Epsilon
-        && Math.Abs(Width.Top - Width.Right) < Size.Epsilon
-        && Math.Abs(Width.Right - Width.Bottom) < Size.Epsilon;
+        Math.Abs(Width.Left - Width.Top) < Extent.Epsilon
+        && Math.Abs(Width.Top - Width.Right) < Extent.Epsilon
+        && Math.Abs(Width.Right - Width.Bottom) < Extent.Epsilon;
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
-        SpacePlan plan = Measure(availableSpace, context.Layout);
+        Fit plan = Measure(availableSpace, context.Layout);
 
         if (plan.IsWrap || plan.IsEmpty)
             return;
@@ -44,8 +44,8 @@ public sealed class BorderElement : ContainerElement
             return;
 
         // Drawn around the whole box this element occupies (ADR 0012), not around its content's natural extent.
-        Size size = availableSpace;
-        ICanvas canvas = context.Canvas;
+        Extent size = availableSpace;
+        ISurface canvas = context.Canvas;
 
         if (CornerRadius > 0 && HasUniformWidth)
         {
@@ -53,7 +53,7 @@ public sealed class BorderElement : ContainerElement
             // and reduce the radius to match, so that the stroke's *outer* arc lands on the requested radius and
             // coincides with a rounded background of the same value.
             float inset = Width.Left / 2;
-            Size outline = new Size(size.Width - Width.Left, size.Height - Width.Left);
+            Extent outline = new Extent(size.Width - Width.Left, size.Height - Width.Left);
 
             // Degenerate once the border is thicker than the box it surrounds; nothing sensible to draw.
             if (outline.Width <= 0 || outline.Height <= 0)
@@ -64,21 +64,21 @@ public sealed class BorderElement : ContainerElement
                 0,
                 Math.Min(outline.Width, outline.Height) / 2);
 
-            canvas.DrawRoundedRectangle(new Position(inset, inset), outline, radius, Color, Width.Left);
+            canvas.DrawRoundedRectangle(new Offset(inset, inset), outline, radius, Color, Width.Left);
 
             return;
         }
 
         if (Width.Left > 0)
-            canvas.DrawRectangle(Position.Zero, new Size(Width.Left, size.Height), Color);
+            canvas.DrawRectangle(Offset.Zero, new Extent(Width.Left, size.Height), Color);
 
         if (Width.Top > 0)
-            canvas.DrawRectangle(Position.Zero, new Size(size.Width, Width.Top), Color);
+            canvas.DrawRectangle(Offset.Zero, new Extent(size.Width, Width.Top), Color);
 
         if (Width.Right > 0)
-            canvas.DrawRectangle(new Position(size.Width - Width.Right, 0), new Size(Width.Right, size.Height), Color);
+            canvas.DrawRectangle(new Offset(size.Width - Width.Right, 0), new Extent(Width.Right, size.Height), Color);
 
         if (Width.Bottom > 0)
-            canvas.DrawRectangle(new Position(0, size.Height - Width.Bottom), new Size(size.Width, Width.Bottom), Color);
+            canvas.DrawRectangle(new Offset(0, size.Height - Width.Bottom), new Extent(size.Width, Width.Bottom), Color);
     }
 }

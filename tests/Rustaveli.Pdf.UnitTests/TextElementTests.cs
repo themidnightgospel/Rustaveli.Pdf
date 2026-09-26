@@ -21,7 +21,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("Hello"));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         Approximately.Equal(5 * CharacterWidth, plan.Size.Width);
         Approximately.Equal(LineHeight, plan.Size.Height);
@@ -33,7 +33,7 @@ public class TextElementTests
         // Six characters fit in 36pt, so the two words land on separate lines.
         TextElement element = Text(text => text.Span("aaaaaa bbbbbb"));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(36, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(36, 500));
 
         Approximately.Equal(2 * LineHeight, plan.Size.Height);
     }
@@ -43,7 +43,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("a\nb"));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         Approximately.Equal(2 * LineHeight, plan.Size.Height);
     }
@@ -57,7 +57,7 @@ public class TextElementTests
             text.Span("second");
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         Approximately.Equal(2 * LineHeight, plan.Size.Height);
     }
@@ -67,7 +67,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("aaa bbb"));
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(18, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(18, 500));
         List<string> drawn = page.Texts.Select(operation => operation.Text).ToList();
 
         Assert.DoesNotContain(drawn, text => text.Trim().Length == 0);
@@ -79,7 +79,7 @@ public class TextElementTests
         // Twelve characters need 72pt but only 18pt (three characters) is available per line.
         TextElement element = Text(text => text.Span("aaaaaaaaaaaa"));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(18, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(18, 500));
 
         Approximately.Equal(4 * LineHeight, plan.Size.Height);
     }
@@ -90,7 +90,7 @@ public class TextElementTests
         TextElement element = Text(text => text.Span("aaa bbb ccc ddd"));
 
         // Room for two of the four lines.
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(18, 2 * LineHeight));
+        Fit plan = LayoutHarness.Measure(element, new Extent(18, 2 * LineHeight));
 
         Assert.True(plan.IsPartialRender);
         Approximately.Equal(2 * LineHeight, plan.Size.Height);
@@ -100,7 +100,7 @@ public class TextElementTests
     public void ContinuesFromTheLineItStoppedAt()
     {
         TextElement element = Text(text => text.Span("aaa bbb ccc"));
-        Size space = new Size(18, LineHeight);
+        Extent space = new Extent(18, LineHeight);
 
         RecordedPage first = LayoutHarness.Draw(element, space);
         RecordedPage second = LayoutHarness.Draw(element, space);
@@ -116,9 +116,9 @@ public class TextElementTests
         // been drawn would make it point somewhere else entirely, silently losing or repeating lines.
         TextElement element = Text(text => text.Span("aaa bbb ccc"));
 
-        RecordedPage first = LayoutHarness.Draw(element, new Size(18, LineHeight));
-        RecordedPage second = LayoutHarness.Draw(element, new Size(42, LineHeight));
-        RecordedPage third = LayoutHarness.Draw(element, new Size(42, LineHeight));
+        RecordedPage first = LayoutHarness.Draw(element, new Extent(18, LineHeight));
+        RecordedPage second = LayoutHarness.Draw(element, new Extent(42, LineHeight));
+        RecordedPage third = LayoutHarness.Draw(element, new Extent(42, LineHeight));
 
         Assert.Equal("aaa", first.Content);
         Assert.Equal("bbb", second.Content);
@@ -132,7 +132,7 @@ public class TextElementTests
         // produce thousands of pages instead of surfacing the layout mistake.
         TextElement element = Text(text => text.Span("hello world"));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(0, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(0, 500));
 
         Assert.True(plan.IsWrap);
     }
@@ -145,7 +145,7 @@ public class TextElementTests
         TextElement element = Text(text => text.Span("aaa bbb ccc"));
 
         // 60pt fits "aaa bbb " (48pt including the trailing space) but not "ccc".
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(60, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(60, 500));
 
         Approximately.Equal(42f, plan.Size.Width);
     }
@@ -158,7 +158,7 @@ public class TextElementTests
         TextElement breakable = Text(text => text.Span("AAA BBB"));
         TextElement nonBreaking = Text(text => text.Span("AAA\u00A0BBB"));
 
-        Size space = new Size(24, LineHeight);
+        Extent space = new Extent(24, LineHeight);
 
         Assert.Equal("AAA", LayoutHarness.Draw(breakable, space).Content);
         Assert.NotEqual("AAA", LayoutHarness.Draw(nonBreaking, space).Content);
@@ -175,7 +175,7 @@ public class TextElementTests
             text.Line("B");
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         // Three lines of 40pt, not two of 40 and one of the library default.
         Approximately.Equal(120f, plan.Size.Height);
@@ -185,7 +185,7 @@ public class TextElementTests
     public void ReportsEmptyOnceEveryLineIsDrawn()
     {
         TextElement element = Text(text => text.Span("aaa"));
-        Size space = new Size(500, 500);
+        Extent space = new Extent(500, 500);
 
         LayoutHarness.Draw(element, space);
 
@@ -197,21 +197,21 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("aaa"));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 5));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 5));
 
         Assert.True(plan.IsWrap);
     }
 
     [Theory]
-    [InlineData(HorizontalAlignment.Left, 0f)]
-    [InlineData(HorizontalAlignment.Center, 35f)]
-    [InlineData(HorizontalAlignment.Right, 70f)]
-    public void AlignsLinesWithinTheAvailableWidth(HorizontalAlignment alignment, float expectedX)
+    [InlineData(HorizontalPlacement.Left, 0f)]
+    [InlineData(HorizontalPlacement.Center, 35f)]
+    [InlineData(HorizontalPlacement.Right, 70f)]
+    public void AlignsLinesWithinTheAvailableWidth(HorizontalPlacement alignment, float expectedX)
     {
         TextElement element = Text(text => text.Span("Hello"));
         element.Alignment = alignment;
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(100, 100));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100));
         TextOperation operation = Assert.Single(page.Texts);
 
         Approximately.Equal(expectedX, operation.Position.X);
@@ -222,7 +222,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("Hello"));
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         TextOperation operation = Assert.Single(page.Texts);
 
         // Ascent is 80% of the 12pt font size.
@@ -233,9 +233,9 @@ public class TextElementTests
     public void SpansInheritTheContextStyle()
     {
         TextElement element = Text(text => text.Span("Hello"));
-        LayoutContext context = LayoutHarness.Context(defaultStyle: TextStyle.Default.FontSizeOf(20));
+        PlanContext context = LayoutHarness.Context(defaultStyle: TypeStyle.Default.FontSizeOf(20));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500), context);
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500), context);
 
         Approximately.Equal(5 * 10f, plan.Size.Width);
     }
@@ -244,12 +244,12 @@ public class TextElementTests
     public void SpanStyleRefinesRatherThanReplacesTheInheritedStyle()
     {
         TextElement element = Text(text => text.Span("Hello").Bold());
-        LayoutContext context = LayoutHarness.Context(defaultStyle: TextStyle.Default.FontSizeOf(20));
+        PlanContext context = LayoutHarness.Context(defaultStyle: TypeStyle.Default.FontSizeOf(20));
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500), context);
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500), context);
         TextOperation operation = Assert.Single(page.Texts);
 
-        Assert.Equal(FontWeight.Bold, operation.Style.Weight);
+        Assert.Equal(TypeWeight.Bold, operation.Style.Weight);
         Approximately.Equal(20f, operation.Style.FontSize);
     }
 
@@ -262,7 +262,7 @@ public class TextElementTests
             text.Span("Hi");
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         TextOperation operation = Assert.Single(page.Texts);
 
         Approximately.Equal(24f, operation.Style.FontSize);
@@ -277,7 +277,7 @@ public class TextElementTests
             text.Span("BIG").FontSize(36);
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         Approximately.Equal(36f, plan.Size.Height);
     }
@@ -286,9 +286,9 @@ public class TextElementTests
     public void ResolvesTheCurrentPageNumber()
     {
         TextElement element = Text(text => text.CurrentPageNumber());
-        PageContext page = new PageContext { CurrentPage = 7 };
+        Pagination page = new Pagination { CurrentPage = 7 };
 
-        RecordedPage recorded = LayoutHarness.Draw(element, new Size(500, 500), LayoutHarness.Context(page));
+        RecordedPage recorded = LayoutHarness.Draw(element, new Extent(500, 500), LayoutHarness.Context(page));
 
         Assert.Equal("7", recorded.Content);
     }
@@ -298,7 +298,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("Hello").Underline());
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
 
         Assert.Single(page.Operations.OfType<LineOperation>());
     }
@@ -308,7 +308,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("Hello").BackgroundColor(TestInks.Yellow));
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         RectangleOperation highlight = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         Assert.Equal(TestInks.Yellow, highlight.Color);
@@ -319,7 +319,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Hyperlink("click", "https://example.com"));
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         ExternalLinkOperation link = Assert.Single(page.Operations.OfType<ExternalLinkOperation>());
 
         Assert.Equal("https://example.com", link.Url);
@@ -336,8 +336,8 @@ public class TextElementTests
             text.Span("O");
         });
 
-        float normalWidth = LayoutHarness.Measure(normal, new Size(500, 500)).Size.Width;
-        float subscriptWidth = LayoutHarness.Measure(withSubscript, new Size(500, 500)).Size.Width;
+        float normalWidth = LayoutHarness.Measure(normal, new Extent(500, 500)).Size.Width;
+        float subscriptWidth = LayoutHarness.Measure(withSubscript, new Extent(500, 500)).Size.Width;
 
         Assert.True(subscriptWidth < normalWidth, "A subscript digit should be narrower than a full-size one.");
     }
@@ -346,7 +346,7 @@ public class TextElementTests
     public void DrawsNothingOnceEveryLineIsDrawn()
     {
         TextElement element = Text(text => text.Span("aaa"));
-        Size space = new Size(500, 500);
+        Extent space = new Extent(500, 500);
 
         LayoutHarness.Draw(element, space);
 
@@ -360,8 +360,8 @@ public class TextElementTests
         // inherit the two-line wrapping of the narrow attempt.
         TextElement element = Text(text => text.Span("aaa bbb"));
 
-        RecordedPage cramped = LayoutHarness.Draw(element, new Size(18, 5));
-        RecordedPage roomy = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage cramped = LayoutHarness.Draw(element, new Extent(18, 5));
+        RecordedPage roomy = LayoutHarness.Draw(element, new Extent(500, 500));
 
         Assert.Empty(cramped.Operations);
         Assert.Equal("aaa bbb", roomy.Content);
@@ -373,11 +373,11 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("Hello").Underline());
 
-        LineOperation line = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<LineOperation>());
+        LineOperation line = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<LineOperation>());
 
         // Baseline 9.6 plus half the 2.4pt descent; five 6pt characters long.
-        Approximately.Equal(new Position(0, 10.8f), line.Position);
-        Approximately.Equal(new Position(30, 10.8f), line.End);
+        Approximately.Equal(new Offset(0, 10.8f), line.Position);
+        Approximately.Equal(new Offset(30, 10.8f), line.End);
         Approximately.Equal(0.75f, line.Thickness);
         Assert.Equal(TestInks.Black, line.Color);
     }
@@ -387,11 +387,11 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("Hello").Strikethrough().FontColor(TestInks.Red));
 
-        LineOperation line = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<LineOperation>());
+        LineOperation line = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<LineOperation>());
 
         // Baseline 9.6 less 30% of the 9.6pt ascent.
-        Approximately.Equal(new Position(0, 6.72f), line.Position);
-        Approximately.Equal(new Position(30, 6.72f), line.End);
+        Approximately.Equal(new Offset(0, 6.72f), line.Position);
+        Approximately.Equal(new Offset(30, 6.72f), line.End);
         Approximately.Equal(0.75f, line.Thickness);
         Assert.Equal(TestInks.Red, line.Color);
     }
@@ -401,7 +401,7 @@ public class TextElementTests
     {
         TextElement element = Text(text => text.Span("tiny").FontSize(4).Underline().Strikethrough());
 
-        List<LineOperation> lines = LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<LineOperation>().ToList();
+        List<LineOperation> lines = LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<LineOperation>().ToList();
 
         Assert.Equal(2, lines.Count);
         Assert.All(lines, line => Approximately.Equal(0.5f, line.Thickness));
@@ -416,7 +416,7 @@ public class TextElementTests
             text.Hyperlink("here", "https://example.com");
         });
 
-        ExternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<ExternalLinkOperation>());
+        ExternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<ExternalLinkOperation>());
 
         // After three 6pt characters, four characters wide and one 12pt line tall.
         Assert.Equal(new Bounds(18, 0, 42, 12), link.Bounds);
@@ -431,7 +431,7 @@ public class TextElementTests
             text.SectionLink("here", "intro");
         });
 
-        InternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<InternalLinkOperation>());
+        InternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<InternalLinkOperation>());
 
         Assert.Equal("intro", link.Destination);
         Assert.Equal(new Bounds(18, 0, 42, 12), link.Bounds);
@@ -441,12 +441,12 @@ public class TextElementTests
     public void AParagraphOfOnlyEmptySpansStillOccupiesALine()
     {
         TextElement element = new TextElement { DefaultStyleOverride = style => style.FontSizeOf(40) };
-        element.Spans.Add(new Text.TextSpan { Text = string.Empty });
+        element.Spans.Add(new Text.TextRun { Text = string.Empty });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         // As tall as a line of the paragraph's own text would be, but with nothing on it.
         Assert.True(plan.IsFullRender);
-        Approximately.Equal(new Size(0, 40), plan.Size);
+        Approximately.Equal(new Extent(0, 40), plan.Size);
     }
 }

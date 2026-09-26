@@ -19,11 +19,11 @@ namespace Rustaveli.Pdf.IntegrationTests;
 /// </remarks>
 public class PdfOutputTests
 {
-    private static Document SimpleDocument(Action<PageDescriptor> configure) =>
+    private static Document SimpleDocument(Action<Section> configure) =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
+            page.Size = PaperSizes.A4;
+            page.Margin = Sides.All(30);
             configure(page);
         }));
 
@@ -159,13 +159,13 @@ public class PdfOutputTests
         {
             container.Page(page =>
             {
-                page.Size = PageSizes.A4;
+                page.Size = PaperSizes.A4;
                 page.Content().Text("Portrait");
             });
 
             container.Page(page =>
             {
-                page.Size = PageSizes.A4.Landscape();
+                page.Size = PaperSizes.A4.Landscape();
                 page.Content().Text("Landscape");
             });
         });
@@ -181,9 +181,9 @@ public class PdfOutputTests
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(300, 2000);
+            page.Size = new Extent(300, 2000);
             page.IsContinuous = true;
-            page.Margin = Edges.All(10);
+            page.Margin = Sides.All(10);
             page.Content().Text("Receipt");
         }));
 
@@ -293,8 +293,8 @@ public class PdfOutputTests
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(300, 160);
-            page.Margin = Edges.All(10);
+            page.Size = new Extent(300, 160);
+            page.Margin = Sides.All(10);
 
             page.Content().Column(column =>
             {

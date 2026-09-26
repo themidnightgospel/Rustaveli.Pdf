@@ -12,7 +12,7 @@ namespace Rustaveli.Pdf.Elements;
 /// unit. This keeps cell borders and backgrounds coherent, at the cost of leaving whitespace when a very tall
 /// row does not fit.
 /// </remarks>
-public sealed class TableElement : Element
+public sealed class TableElement : Block
 {
     private sealed class TableLayout
     {
@@ -22,7 +22,7 @@ public sealed class TableElement : Element
 
         public required float TotalWidth { get; init; }
 
-        public required ContentDirection Direction { get; init; }
+        public required ReadingDirection Direction { get; init; }
 
         public float[] HeaderHeights { get; set; } = Array.Empty<float>();
 
@@ -44,7 +44,7 @@ public sealed class TableElement : Element
         /// right edge and a spanning cell is offset by its combined width rather than its first column's.
         /// </summary>
         public float ColumnLeft(TableCell cell, float spanWidth) =>
-            Direction == ContentDirection.LeftToRight
+            Direction == ReadingDirection.LeftToRight
                 ? ColumnOffsets[cell.Column - 1]
                 : TotalWidth - ColumnOffsets[cell.Column - 1] - spanWidth;
 
@@ -66,10 +66,10 @@ public sealed class TableElement : Element
 
     private float _cachedWidth = float.NaN;
 
-    private ContentDirection _cachedDirection;
+    private ReadingDirection _cachedDirection;
 
     /// <summary>Overrides the inherited flow direction, reversing column order. Null follows the context.</summary>
-    public ContentDirection? Direction { get; set; }
+    public ReadingDirection? Direction { get; set; }
 
     public List<TableColumn> Columns { get; } = [];
 
@@ -81,7 +81,7 @@ public sealed class TableElement : Element
     /// <summary>Rows repeated at the bottom of every page the table spans.</summary>
     public List<TableCell> FooterCells { get; } = new List<TableCell>();
 
-    public override IEnumerable<Element?> GetChildren()
+    public override IEnumerable<Block?> GetChildren()
     {
         return Cells.Concat(HeaderCells).Concat(FooterCells);
     }
@@ -93,38 +93,38 @@ public sealed class TableElement : Element
         _cachedWidth = float.NaN;
     }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         TableLayout? layout = BuildLayout(availableSpace, context);
 
         if (layout is null)
-            return SpacePlan.Wrap("The table columns do not fit within the available width.");
+            return Fit.Wrap("The table columns do not fit within the available width.");
 
         if (_completedRows >= layout.BodyHeights.Length)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
-        if (layout.BandHeight > availableSpace.Height + Size.Epsilon)
-            return SpacePlan.Wrap("The header and footer rows alone exceed the available height.");
+        if (layout.BandHeight > availableSpace.Height + Extent.Epsilon)
+            return Fit.Wrap("The header and footer rows alone exceed the available height.");
 
         (float takenHeight, int lastRow) = TakeRows(layout, availableSpace.Height);
 
         if (lastRow == _completedRows)
-            return SpacePlan.Wrap("The next table row is taller than the available height.");
+            return Fit.Wrap("The next table row is taller than the available height.");
 
-        Size size = new Size(layout.TotalWidth, layout.BandHeight + takenHeight);
+        Extent size = new Extent(layout.TotalWidth, layout.BandHeight + takenHeight);
 
         return lastRow >= layout.BodyHeights.Length
-            ? SpacePlan.FullRender(size)
-            : SpacePlan.PartialRender(size);
+            ? Fit.FullRender(size)
+            : Fit.PartialRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         TableLayout? layout = BuildLayout(availableSpace, context.Layout);
 
         if (layout is null
             || _completedRows >= layout.BodyHeights.Length
-            || layout.BandHeight > availableSpace.Height + Size.Epsilon)
+            || layout.BandHeight > availableSpace.Height + Extent.Epsilon)
         {
             return;
         }
@@ -192,7 +192,7 @@ public sealed class TableElement : Element
         {
             float candidate = accumulated + layout.BodyHeights[row - 1];
 
-            if (candidate > bodySpace + Size.Epsilon)
+            if (candidate > bodySpace + Extent.Epsilon)
                 break;
 
             accumulated = candidate;
@@ -221,7 +221,7 @@ public sealed class TableElement : Element
         int firstRow,
         int lastRow,
         float bandTop,
-        DrawContext context)
+        RenderContext context)
     {
         foreach (TableCell cell in cells)
         {
@@ -240,8 +240,8 @@ public sealed class TableElement : Element
             for (int row = cell.Row; row <= Math.Min(cell.LastRow, lastRow); row++)
                 cellHeight += rowHeights[row - 1];
 
-            Size cellSpace = new Size(layout.SpanWidth(cell), cellHeight);
-            Position offset = new Position(layout.ColumnLeft(cell, cellSpace.Width), cellTop);
+            Extent cellSpace = new Extent(layout.SpanWidth(cell), cellHeight);
+            Offset offset = new Offset(layout.ColumnLeft(cell, cellSpace.Width), cellTop);
 
             context.Canvas.Translate(offset);
             cell.Draw(cellSpace, context);
@@ -262,12 +262,12 @@ public sealed class TableElement : Element
     /// Without it the cost is quadratic: every page re-measures every cell in the table, and the number of pages
     /// grows with the number of rows.
     /// </remarks>
-    private TableLayout? BuildLayout(Size availableSpace, LayoutContext context)
+    private TableLayout? BuildLayout(Extent availableSpace, PlanContext context)
     {
-        ContentDirection direction = Direction ?? context.ContentDirection;
+        ReadingDirection direction = Direction ?? context.ContentDirection;
 
         if (_cachedLayout is not null
-            && Math.Abs(_cachedWidth - availableSpace.Width) < Size.Epsilon
+            && Math.Abs(_cachedWidth - availableSpace.Width) < Extent.Epsilon
             && _cachedDirection == direction)
         {
             // The bands are deliberately outside the cache — see MeasureBands.
@@ -314,7 +314,7 @@ public sealed class TableElement : Element
     /// Caching band heights alongside the body would freeze page one's answer and the marker would never appear.
     /// The bands are small, so recomputing them costs nothing next to the body.
     /// </remarks>
-    private void MeasureBands(TableLayout layout, LayoutContext context)
+    private void MeasureBands(TableLayout layout, PlanContext context)
     {
         layout.HeaderHeights = MeasureRowHeights(HeaderCells, layout, context);
         layout.FooterHeights = MeasureRowHeights(FooterCells, layout, context);
@@ -348,7 +348,7 @@ public sealed class TableElement : Element
     /// Measures every cell at its natural height, then distributes the height of vertically spanned cells across
     /// the rows they cover.
     /// </summary>
-    private static float[] MeasureRowHeights(List<TableCell> cells, TableLayout layout, LayoutContext context)
+    private static float[] MeasureRowHeights(List<TableCell> cells, TableLayout layout, PlanContext context)
     {
         if (cells.Count == 0)
             return [];
@@ -359,7 +359,7 @@ public sealed class TableElement : Element
         // Unspanned cells set the baseline height of the row they sit in.
         foreach (TableCell cell in cells.Where(cell => cell.RowSpan <= 1))
         {
-            SpacePlan plan = cell.Measure(new Size(layout.SpanWidth(cell), Size.Max.Height), context);
+            Fit plan = cell.Measure(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
             if (!plan.IsWrap)
                 heights[cell.Row - 1] = Math.Max(heights[cell.Row - 1], plan.Size.Height);
@@ -369,7 +369,7 @@ public sealed class TableElement : Element
         // goes on its *last* row: charging an earlier one would push the rows below it down inside the span.
         foreach (TableCell cell in cells.Where(cell => cell.RowSpan > 1))
         {
-            SpacePlan plan = cell.Measure(new Size(layout.SpanWidth(cell), Size.Max.Height), context);
+            Fit plan = cell.Measure(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
             if (plan.IsWrap)
                 continue;
@@ -395,7 +395,7 @@ public sealed class TableElement : Element
 
         float constantWidth = Columns.Where(column => !column.IsRelative).Sum(column => Math.Max(0f, column.Value));
 
-        if (constantWidth > availableWidth + Size.Epsilon)
+        if (constantWidth > availableWidth + Extent.Epsilon)
             return null;
 
         float totalWeight = Columns.Where(column => column.IsRelative).Sum(column => Math.Max(0f, column.Value));

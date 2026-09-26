@@ -10,7 +10,7 @@ namespace Rustaveli.Pdf.Elements;
 /// Setting a minimum and maximum to the same value pins the element to an exact size. A minimum larger than the
 /// space available produces a wrap rather than an overflow, which lets the engine try again on an empty page.
 /// </remarks>
-public sealed class ConstrainedElement : ContainerElement
+public sealed class ConstrainedElement : EnclosingBlock
 {
     public float? MinWidth { get; set; }
 
@@ -20,40 +20,40 @@ public sealed class ConstrainedElement : ContainerElement
 
     public float? MaxHeight { get; set; }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
-        if (MinWidth > availableSpace.Width + Size.Epsilon)
-            return SpacePlan.Wrap($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1}).");
+        if (MinWidth > availableSpace.Width + Extent.Epsilon)
+            return Fit.Wrap($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1}).");
 
-        if (MinHeight > availableSpace.Height + Size.Epsilon)
-            return SpacePlan.Wrap($"The requested minimum height ({MinHeight:F1}) exceeds the available height ({availableSpace.Height:F1}).");
+        if (MinHeight > availableSpace.Height + Extent.Epsilon)
+            return Fit.Wrap($"The requested minimum height ({MinHeight:F1}) exceeds the available height ({availableSpace.Height:F1}).");
 
-        Size innerSpace = new Size(
+        Extent innerSpace = new Extent(
             Math.Min(availableSpace.Width, MaxWidth ?? availableSpace.Width),
             Math.Min(availableSpace.Height, MaxHeight ?? availableSpace.Height));
 
-        SpacePlan childPlan = Child?.Measure(innerSpace, context) ?? SpacePlan.FullRender(Size.Zero);
+        Fit childPlan = Child?.Measure(innerSpace, context) ?? Fit.FullRender(Extent.Zero);
 
         if (childPlan.IsWrap)
             return childPlan;
 
         if (childPlan.IsEmpty)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
         // Grow to the minimum, but never past what the parent offered.
-        Size size = new Size(
+        Extent size = new Extent(
             Math.Min(Math.Max(childPlan.Size.Width, MinWidth ?? 0), availableSpace.Width),
             Math.Min(Math.Max(childPlan.Size.Height, MinHeight ?? 0), availableSpace.Height));
 
-        return childPlan.IsFullRender ? SpacePlan.FullRender(size) : SpacePlan.PartialRender(size);
+        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
 
-        Size innerSpace = new Size(
+        Extent innerSpace = new Extent(
             Math.Min(availableSpace.Width, MaxWidth ?? availableSpace.Width),
             Math.Min(availableSpace.Height, MaxHeight ?? availableSpace.Height));
 

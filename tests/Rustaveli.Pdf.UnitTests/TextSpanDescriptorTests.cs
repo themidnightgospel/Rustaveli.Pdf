@@ -10,15 +10,15 @@ public class TextSpanDescriptorTests
     /// </summary>
     /// <param name="refine">The refinements under test.</param>
     /// <param name="inherited">The surrounding default, so a refinement can be seen overriding it.</param>
-    private static TextStyle StyleOf(
+    private static TypeStyle StyleOf(
         Func<TextSpanDescriptor, TextSpanDescriptor> refine,
-        Func<TextStyle, TextStyle>? inherited = null)
+        Func<TypeStyle, TypeStyle>? inherited = null)
     {
-        Element root = LayoutHarness.Build(container => container
+        Block root = LayoutHarness.Build(container => container
             .DefaultTextStyle(inherited ?? (style => style))
             .Text(text => refine(text.Span("x"))));
 
-        return Assert.Single(LayoutHarness.Draw(root, new Size(200, 200)).Texts).Style;
+        return Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Texts).Style;
     }
 
     [Fact]
@@ -47,11 +47,11 @@ public class TextSpanDescriptorTests
 
     [Fact]
     public void WeightSetsAnyWeight() =>
-        Assert.Equal(FontWeight.Light, StyleOf(span => span.Weight(FontWeight.Light)).Weight);
+        Assert.Equal(TypeWeight.Light, StyleOf(span => span.Weight(TypeWeight.Light)).Weight);
 
     [Fact]
     public void BoldSetsTheBoldWeight() =>
-        Assert.Equal(FontWeight.Bold, StyleOf(span => span.Bold()).Weight);
+        Assert.Equal(TypeWeight.Bold, StyleOf(span => span.Bold()).Weight);
 
     [Fact]
     public void ItalicWithoutAnArgumentSwitchesItalicOn() =>
@@ -95,27 +95,27 @@ public class TextSpanDescriptorTests
 
     [Fact]
     public void SubscriptLowersTheRun() =>
-        Assert.Equal(FontPosition.Subscript, StyleOf(span => span.Subscript()).Position);
+        Assert.Equal(ScriptPosition.Subscript, StyleOf(span => span.Subscript()).Position);
 
     [Fact]
     public void SuperscriptRaisesTheRun() =>
-        Assert.Equal(FontPosition.Superscript, StyleOf(span => span.Superscript()).Position);
+        Assert.Equal(ScriptPosition.Superscript, StyleOf(span => span.Superscript()).Position);
 
     [Fact]
     public void StyleAppliesAnArbitraryTransformation()
     {
-        TextStyle style = StyleOf(span => span.Style(inherited => inherited.FontSizeOf(30).Bold()));
+        TypeStyle style = StyleOf(span => span.Style(inherited => inherited.FontSizeOf(30).Bold()));
 
         Approximately.Equal(30f, style.FontSize);
-        Assert.Equal(FontWeight.Bold, style.Weight);
+        Assert.Equal(TypeWeight.Bold, style.Weight);
     }
 
     [Fact]
     public void ChainedRefinementsAllApply()
     {
-        TextStyle style = StyleOf(span => span.Bold().FontSize(18).Italic());
+        TypeStyle style = StyleOf(span => span.Bold().FontSize(18).Italic());
 
-        Assert.Equal(FontWeight.Bold, style.Weight);
+        Assert.Equal(TypeWeight.Bold, style.Weight);
         Approximately.Equal(18f, style.FontSize);
         Assert.True(style.IsItalic);
     }
@@ -127,24 +127,24 @@ public class TextSpanDescriptorTests
     [Fact]
     public void RefinementsBuildOnTheInheritedStyle()
     {
-        TextStyle style = StyleOf(span => span.Bold(), inherited => inherited.FontFamilyOf("Times"));
+        TypeStyle style = StyleOf(span => span.Bold(), inherited => inherited.FontFamilyOf("Times"));
 
         Assert.Equal("Times", style.FontFamily);
-        Assert.Equal(FontWeight.Bold, style.Weight);
+        Assert.Equal(TypeWeight.Bold, style.Weight);
     }
 
     [Fact]
     public void ARefinementStaysWithItsOwnSpan()
     {
-        Element root = LayoutHarness.Build(container => container.Text(text =>
+        Block root = LayoutHarness.Build(container => container.Text(text =>
         {
             text.Span("a").Bold();
             text.Span("b");
         }));
 
-        List<TextOperation> texts = LayoutHarness.Draw(root, new Size(200, 200)).Texts.ToList();
+        List<TextOperation> texts = LayoutHarness.Draw(root, new Extent(200, 200)).Texts.ToList();
 
-        Assert.Equal(FontWeight.Bold, texts.Single(text => text.Text == "a").Style.Weight);
-        Assert.Equal(FontWeight.Normal, texts.Single(text => text.Text == "b").Style.Weight);
+        Assert.Equal(TypeWeight.Bold, texts.Single(text => text.Text == "a").Style.Weight);
+        Assert.Equal(TypeWeight.Normal, texts.Single(text => text.Text == "b").Style.Weight);
     }
 }

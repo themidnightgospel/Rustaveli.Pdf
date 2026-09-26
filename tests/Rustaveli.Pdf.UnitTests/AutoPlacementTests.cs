@@ -7,7 +7,7 @@ public class AutoPlacementTests
 {
     private static TableElement Compose(int columns, Action<TableDescriptor> cells)
     {
-        Element root = LayoutHarness.Build(container => container.Table(table =>
+        Block root = LayoutHarness.Build(container => container.Table(table =>
         {
             table.ColumnsDefinition(definition =>
             {
@@ -18,7 +18,7 @@ public class AutoPlacementTests
             cells(table);
         }));
 
-        return Assert.IsType<TableElement>(((Container)root).Child);
+        return Assert.IsType<TableElement>(((Frame)root).Child);
     }
 
     private static IEnumerable<(int Row, int Column)> Slots(IEnumerable<TableCell> cells) =>

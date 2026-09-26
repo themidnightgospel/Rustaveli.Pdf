@@ -16,13 +16,13 @@ internal static class Composition
     /// no diagnostic — a component that composes into the same slot twice would simply lose its first
     /// contribution — so the second attempt is refused instead.
     /// </remarks>
-    public static T Attach<T>(IContainer parent, T element) where T : Element
+    public static T Attach<T>(IFrame parent, T element) where T : Block
     {
         ArgumentNullException.ThrowIfNull(parent);
 
         if (parent.Child is not null)
         {
-            throw new DocumentComposeException(
+            throw new CompositionException(
                 $"This container already holds {parent.Child.GetType().Name} and cannot also hold {element.GetType().Name}. " +
                 "A container accepts a single child; use Column, Row or Layers to place more than one piece of content.");
         }

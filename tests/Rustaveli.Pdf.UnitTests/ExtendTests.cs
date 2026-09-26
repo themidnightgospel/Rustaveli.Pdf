@@ -7,9 +7,9 @@ public class ExtendTests
     {
         ExtendElement element = new ExtendElement { ExtendHorizontal = true, Child = new FixedElement(10, 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Approximately.Equal(new Size(200, 20), plan.Size);
+        Approximately.Equal(new Extent(200, 20), plan.Size);
     }
 
     [Fact]
@@ -17,9 +17,9 @@ public class ExtendTests
     {
         ExtendElement element = new ExtendElement { ExtendVertical = true, Child = new FixedElement(10, 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Approximately.Equal(new Size(10, 100), plan.Size);
+        Approximately.Equal(new Extent(10, 100), plan.Size);
     }
 
     [Fact]
@@ -27,9 +27,9 @@ public class ExtendTests
     {
         ExtendElement element = new ExtendElement { ExtendHorizontal = true, ExtendVertical = true, Child = new FixedElement(10, 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Approximately.Equal(new Size(200, 100), plan.Size);
+        Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
     [Fact]
@@ -37,10 +37,10 @@ public class ExtendTests
     {
         ExtendElement element = new ExtendElement { ExtendHorizontal = true };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsFullRender);
-        Approximately.Equal(new Size(200, 0), plan.Size);
+        Approximately.Equal(new Extent(200, 0), plan.Size);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class ExtendTests
     {
         FixedElement child = new FixedElement(300, 20);
         ExtendElement element = new ExtendElement { ExtendHorizontal = true, ExtendVertical = true, Child = child };
-        Size space = new Size(200, 100);
+        Extent space = new Extent(200, 100);
 
         Assert.Equal(LayoutHarness.Measure(child, space), LayoutHarness.Measure(element, space));
     }
@@ -61,10 +61,10 @@ public class ExtendTests
         {
             ExtendHorizontal = true,
             ExtendVertical = true,
-            Child = new ScriptedElement(SpacePlan.Empty())
+            Child = new ScriptedElement(Fit.Empty())
         };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 100)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsEmpty);
     }
 
     [Fact]
@@ -72,9 +72,9 @@ public class ExtendTests
     {
         ExtendElement element = new ExtendElement { ExtendHorizontal = true, Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 70));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 70));
 
         Assert.True(plan.IsPartialRender);
-        Approximately.Equal(new Size(200, 60), plan.Size);
+        Approximately.Equal(new Extent(200, 60), plan.Size);
     }
 }

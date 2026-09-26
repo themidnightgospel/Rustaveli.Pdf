@@ -9,7 +9,7 @@ public class RowTests
         return row;
     }
 
-    private static RowItem Item(RowItemSizing sizing, float value, Element child) =>
+    private static RowItem Item(RowItemSizing sizing, float value, Block child) =>
         new() { Sizing = sizing, Value = value, Child = child };
 
     [Fact]
@@ -19,7 +19,7 @@ public class RowTests
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
             Item(RowItemSizing.Relative, 3, new FixedElement(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(200, 100));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // Weights 1:3 across 200pt place the second item at 50.
@@ -34,7 +34,7 @@ public class RowTests
             Item(RowItemSizing.Constant, 60, new FixedElement(1, 10)),
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(200, 100));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(60f, rectangles[1].Position.X);
@@ -47,7 +47,7 @@ public class RowTests
             Item(RowItemSizing.Auto, 0, new FixedElement(35, 10)),
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(200, 100));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(35f, rectangles[1].Position.X);
@@ -60,7 +60,7 @@ public class RowTests
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(200, 100));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // 200 less 20 of spacing leaves 90 each, so the second item starts at 90 + 20.
@@ -74,7 +74,7 @@ public class RowTests
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 45)));
 
-        SpacePlan plan = LayoutHarness.Measure(row, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(row, new Extent(200, 100));
 
         Approximately.Equal(45f, plan.Size.Height);
         Approximately.Equal(200f, plan.Size.Width);
@@ -86,9 +86,9 @@ public class RowTests
         RowElement row = Row(0,
             Item(RowItemSizing.Constant, 50, new FixedElement(1, 10)),
             Item(RowItemSizing.Constant, 50, new FixedElement(1, 10)));
-        row.Direction = ContentDirection.RightToLeft;
+        row.Direction = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(200, 100));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // The first declared item sits at the right edge.
@@ -105,7 +105,7 @@ public class RowTests
             Item(RowItemSizing.Auto, 0, new SplittableElement(unitCount: 4, unitHeight: 30, width: 40)),
             Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)));
 
-        Size space = new Size(200, 60);
+        Extent space = new Extent(200, 60);
 
         RecordedPage firstPage = LayoutHarness.Draw(row, space);
         RecordedPage secondPage = LayoutHarness.Draw(row, space);
@@ -125,7 +125,7 @@ public class RowTests
             Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)),
             Item(RowItemSizing.Relative, 1, new SplittableElement(unitCount: 6, unitHeight: 30)));
 
-        Size space = new Size(200, 60);
+        Extent space = new Extent(200, 60);
 
         RecordedPage firstPage = LayoutHarness.Draw(row, space);
         RecordedPage secondPage = LayoutHarness.Draw(row, space);
@@ -141,7 +141,7 @@ public class RowTests
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
             Item(RowItemSizing.Relative, 1, new SplittableElement(unitCount: 4, unitHeight: 30)));
 
-        SpacePlan plan = LayoutHarness.Measure(row, new Size(200, 60));
+        Fit plan = LayoutHarness.Measure(row, new Extent(200, 60));
 
         Assert.True(plan.IsPartialRender);
     }
@@ -151,11 +151,11 @@ public class RowTests
     {
         RowElement row = Row(10);
 
-        SpacePlan plan = LayoutHarness.Measure(row, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(row, new Extent(200, 100));
 
         Assert.True(plan.IsFullRender);
-        Approximately.Equal(Size.Zero, plan.Size);
-        Assert.Empty(LayoutHarness.Draw(row, new Size(200, 100)).Operations);
+        Approximately.Equal(Extent.Zero, plan.Size);
+        Assert.Empty(LayoutHarness.Draw(row, new Extent(200, 100)).Operations);
     }
 
     [Theory]
@@ -168,7 +168,7 @@ public class RowTests
             Item(RowItemSizing.Constant, 60, new FixedElement(1, 10)),
             Item(RowItemSizing.Constant, 30, new FixedElement(1, 10)));
 
-        SpacePlan plan = LayoutHarness.Measure(row, new Size(availableWidth, 100));
+        Fit plan = LayoutHarness.Measure(row, new Extent(availableWidth, 100));
 
         Assert.Equal(wraps, plan.IsWrap);
     }
@@ -180,7 +180,7 @@ public class RowTests
             Item(RowItemSizing.Constant, -50, new FixedElement(0, 10, TestInks.Red)),
             Item(RowItemSizing.Relative, 1, new FixedElement(1, 10, TestInks.Blue)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(20, 100));
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(20, 100));
         RectangleOperation relative = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Blue);
 
         Approximately.Equal(0f, relative.Position.X);
@@ -190,15 +190,15 @@ public class RowTests
     public void DrawsEveryItemAtTheRowsHeight()
     {
         // Cell backgrounds and borders only line up if a short item is given the tall item's height.
-        ScriptedElement shortItem = new ScriptedElement(SpacePlan.FullRender(10, 20));
-        ScriptedElement tallItem = new ScriptedElement(SpacePlan.FullRender(10, 45));
+        ScriptedElement shortItem = new ScriptedElement(Fit.FullRender(10, 20));
+        ScriptedElement tallItem = new ScriptedElement(Fit.FullRender(10, 45));
         RowElement row = Row(0, Item(RowItemSizing.Relative, 1, shortItem), Item(RowItemSizing.Relative, 1, tallItem));
 
         // Offered exactly the row's own height, so the answer does not depend on who decides it.
-        LayoutHarness.Draw(row, new Size(200, 45));
+        LayoutHarness.Draw(row, new Extent(200, 45));
 
-        Approximately.Equal(new Size(100, 45), Assert.Single(shortItem.DrawnWith));
-        Approximately.Equal(new Size(100, 45), Assert.Single(tallItem.DrawnWith));
+        Approximately.Equal(new Extent(100, 45), Assert.Single(shortItem.DrawnWith));
+        Approximately.Equal(new Extent(100, 45), Assert.Single(tallItem.DrawnWith));
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public class RowTests
             Item(RowItemSizing.Constant, 30, new FixedElement(30, 20)),
             Item(RowItemSizing.Relative, 1, new FixedElement(10, 10)));
 
-        Size space = new Size(200, 60);
+        Extent space = new Extent(200, 60);
         LayoutHarness.Draw(row, space);
 
         Assert.True(LayoutHarness.Measure(row, space).IsEmpty);
@@ -224,8 +224,8 @@ public class RowTests
             Item(RowItemSizing.Constant, 50, new FixedElement(10, 10, TestInks.Red)),
             Item(RowItemSizing.Relative, 1, new FixedElement(10, 200, TestInks.Blue)));
 
-        RecordedPage cramped = LayoutHarness.Draw(row, new Size(200, 100));
-        RecordedPage roomy = LayoutHarness.Draw(row, new Size(200, 300));
+        RecordedPage cramped = LayoutHarness.Draw(row, new Extent(200, 100));
+        RecordedPage roomy = LayoutHarness.Draw(row, new Extent(200, 300));
 
         Assert.Empty(cramped.Operations);
         Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
@@ -239,6 +239,6 @@ public class RowTests
             Item(RowItemSizing.Auto, 0, new FixedElement(30, 500)),
             Item(RowItemSizing.Relative, 1, new FixedElement(10, 10)));
 
-        Assert.True(LayoutHarness.Measure(row, new Size(200, 100)).IsWrap);
+        Assert.True(LayoutHarness.Measure(row, new Extent(200, 100)).IsWrap);
     }
 }

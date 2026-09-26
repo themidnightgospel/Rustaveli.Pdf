@@ -9,16 +9,16 @@ public class CompositionGuardTests
     {
         // Empty declares that nothing was placed here. Letting it blank a filled container would destroy a
         // subtree with no diagnostic — exactly what the attach guard exists to prevent.
-        Container container = new Container();
+        Frame container = new Frame();
         container.Text("already here");
 
-        Assert.Throws<DocumentComposeException>(() => container.Empty());
+        Assert.Throws<CompositionException>(() => container.Empty());
     }
 
     [Fact]
     public void EmptyIsFineOnAnUntouchedContainer()
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
         container.Empty();
 
@@ -43,11 +43,11 @@ public class CompositionGuardTests
     [Fact]
     public void CornerRadiusAcceptsAUniformBorder()
     {
-        Element root = LayoutHarness.Build(container => container
+        Block root = LayoutHarness.Build(container => container
             .Border(2).CornerRadius(8)
             .Element(inner => inner.Child = new FixedElement(40, 20, TestInks.White)));
 
-        Assert.Single(LayoutHarness.Draw(root, new Size(200, 200)).Operations.OfType<RoundedRectangleOperation>());
+        Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Operations.OfType<RoundedRectangleOperation>());
     }
 
     [Theory]

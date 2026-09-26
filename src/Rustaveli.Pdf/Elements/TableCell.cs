@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// A cell occupying one or more rows and columns of a table.
 /// </summary>
-public sealed class TableCell : ContainerElement
+public sealed class TableCell : EnclosingBlock
 {
     /// <summary>One-based index of the topmost row this cell occupies.</summary>
     public int Row { get; set; } = 1;

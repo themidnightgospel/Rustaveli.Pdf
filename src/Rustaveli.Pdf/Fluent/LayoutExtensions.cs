@@ -16,59 +16,59 @@ namespace Rustaveli.Pdf.Fluent;
 /// </remarks>
 public static class LayoutExtensions
 {
-    private static T Attach<T>(IContainer parent, T element) where T : Element =>
+    private static T Attach<T>(IFrame parent, T element) where T : Block =>
         Composition.Attach(parent, element);
 
     // ---- Padding -------------------------------------------------------------------------------------------
 
-    public static IContainer Padding(this IContainer parent, float value) =>
-        Attach(parent, new PaddingElement { Padding = Edges.All(value) });
+    public static IFrame Padding(this IFrame parent, float value) =>
+        Attach(parent, new PaddingElement { Padding = Sides.All(value) });
 
-    public static IContainer PaddingHorizontal(this IContainer parent, float value) =>
-        Attach(parent, new PaddingElement { Padding = Edges.Symmetric(value, 0) });
+    public static IFrame PaddingHorizontal(this IFrame parent, float value) =>
+        Attach(parent, new PaddingElement { Padding = Sides.Symmetric(value, 0) });
 
-    public static IContainer PaddingVertical(this IContainer parent, float value) =>
-        Attach(parent, new PaddingElement { Padding = Edges.Symmetric(0, value) });
+    public static IFrame PaddingVertical(this IFrame parent, float value) =>
+        Attach(parent, new PaddingElement { Padding = Sides.Symmetric(0, value) });
 
-    public static IContainer PaddingLeft(this IContainer parent, float value) =>
-        Attach(parent, new PaddingElement { Padding = Edges.Zero.WithLeft(value) });
+    public static IFrame PaddingLeft(this IFrame parent, float value) =>
+        Attach(parent, new PaddingElement { Padding = Sides.Zero.WithLeft(value) });
 
-    public static IContainer PaddingRight(this IContainer parent, float value) =>
-        Attach(parent, new PaddingElement { Padding = Edges.Zero.WithRight(value) });
+    public static IFrame PaddingRight(this IFrame parent, float value) =>
+        Attach(parent, new PaddingElement { Padding = Sides.Zero.WithRight(value) });
 
-    public static IContainer PaddingTop(this IContainer parent, float value) =>
-        Attach(parent, new PaddingElement { Padding = Edges.Zero.WithTop(value) });
+    public static IFrame PaddingTop(this IFrame parent, float value) =>
+        Attach(parent, new PaddingElement { Padding = Sides.Zero.WithTop(value) });
 
-    public static IContainer PaddingBottom(this IContainer parent, float value) =>
-        Attach(parent, new PaddingElement { Padding = Edges.Zero.WithBottom(value) });
+    public static IFrame PaddingBottom(this IFrame parent, float value) =>
+        Attach(parent, new PaddingElement { Padding = Sides.Zero.WithBottom(value) });
 
     // ---- Painting ------------------------------------------------------------------------------------------
 
-    public static IContainer Background(this IContainer parent, Ink color) =>
+    public static IFrame Background(this IFrame parent, Ink color) =>
         Attach(parent, new BackgroundElement { Color = color });
 
-    public static IContainer Background(this IContainer parent, string hexColor) =>
+    public static IFrame Background(this IFrame parent, string hexColor) =>
         parent.Background(Ink.Hex(hexColor));
 
-    public static IContainer Border(this IContainer parent, float width) =>
-        Attach(parent, new BorderElement { Width = Edges.All(width) });
+    public static IFrame Border(this IFrame parent, float width) =>
+        Attach(parent, new BorderElement { Width = Sides.All(width) });
 
-    public static IContainer BorderLeft(this IContainer parent, float width) =>
-        Attach(parent, new BorderElement { Width = Edges.Zero.WithLeft(width) });
+    public static IFrame BorderLeft(this IFrame parent, float width) =>
+        Attach(parent, new BorderElement { Width = Sides.Zero.WithLeft(width) });
 
-    public static IContainer BorderRight(this IContainer parent, float width) =>
-        Attach(parent, new BorderElement { Width = Edges.Zero.WithRight(width) });
+    public static IFrame BorderRight(this IFrame parent, float width) =>
+        Attach(parent, new BorderElement { Width = Sides.Zero.WithRight(width) });
 
-    public static IContainer BorderTop(this IContainer parent, float width) =>
-        Attach(parent, new BorderElement { Width = Edges.Zero.WithTop(width) });
+    public static IFrame BorderTop(this IFrame parent, float width) =>
+        Attach(parent, new BorderElement { Width = Sides.Zero.WithTop(width) });
 
-    public static IContainer BorderBottom(this IContainer parent, float width) =>
-        Attach(parent, new BorderElement { Width = Edges.Zero.WithBottom(width) });
+    public static IFrame BorderBottom(this IFrame parent, float width) =>
+        Attach(parent, new BorderElement { Width = Sides.Zero.WithBottom(width) });
 
     /// <summary>
     /// Sets the colour of the nearest enclosing border. Must follow one of the border methods.
     /// </summary>
-    public static IContainer BorderColor(this IContainer parent, Ink color)
+    public static IFrame BorderColor(this IFrame parent, Ink color)
     {
         if (parent is not BorderElement border)
             throw new InvalidOperationException("BorderColor must be applied directly after a Border method.");
@@ -77,26 +77,26 @@ public static class LayoutExtensions
         return border;
     }
 
-    public static IContainer BorderColor(this IContainer parent, string hexColor) =>
+    public static IFrame BorderColor(this IFrame parent, string hexColor) =>
         parent.BorderColor(Ink.Hex(hexColor));
 
     /// <summary>
     /// Rounds the corners of the nearest enclosing background or border. Must follow one of those methods.
     /// </summary>
-    public static IContainer CornerRadius(this IContainer parent, float radius) => parent switch
+    public static IFrame CornerRadius(this IFrame parent, float radius) => parent switch
     {
         BackgroundElement background => Assign(background, radius),
         BorderElement border => Assign(border, radius),
         _ => throw new InvalidOperationException("CornerRadius must be applied directly after a Background or Border method.")
     };
 
-    private static IContainer Assign(BackgroundElement background, float radius)
+    private static IFrame Assign(BackgroundElement background, float radius)
     {
         background.CornerRadius = radius;
         return background;
     }
 
-    private static IContainer Assign(BorderElement border, float radius)
+    private static IFrame Assign(BorderElement border, float radius)
     {
         // A rounded corner has no shape where two different thicknesses meet, so the element ignores the radius
         // unless every side matches. Saying so here beats accepting the call and quietly drawing square corners.
@@ -113,71 +113,71 @@ public static class LayoutExtensions
 
     // ---- Sizing --------------------------------------------------------------------------------------------
 
-    public static IContainer Width(this IContainer parent, float value) =>
+    public static IFrame Width(this IFrame parent, float value) =>
         Attach(parent, new ConstrainedElement { MinWidth = value, MaxWidth = value });
 
-    public static IContainer MinWidth(this IContainer parent, float value) =>
+    public static IFrame MinWidth(this IFrame parent, float value) =>
         Attach(parent, new ConstrainedElement { MinWidth = value });
 
-    public static IContainer MaxWidth(this IContainer parent, float value) =>
+    public static IFrame MaxWidth(this IFrame parent, float value) =>
         Attach(parent, new ConstrainedElement { MaxWidth = value });
 
-    public static IContainer Height(this IContainer parent, float value) =>
+    public static IFrame Height(this IFrame parent, float value) =>
         Attach(parent, new ConstrainedElement { MinHeight = value, MaxHeight = value });
 
-    public static IContainer MinHeight(this IContainer parent, float value) =>
+    public static IFrame MinHeight(this IFrame parent, float value) =>
         Attach(parent, new ConstrainedElement { MinHeight = value });
 
-    public static IContainer MaxHeight(this IContainer parent, float value) =>
+    public static IFrame MaxHeight(this IFrame parent, float value) =>
         Attach(parent, new ConstrainedElement { MaxHeight = value });
 
-    public static IContainer Extend(this IContainer parent) =>
+    public static IFrame Extend(this IFrame parent) =>
         Attach(parent, new ExtendElement { ExtendHorizontal = true, ExtendVertical = true });
 
-    public static IContainer ExtendHorizontal(this IContainer parent) =>
+    public static IFrame ExtendHorizontal(this IFrame parent) =>
         Attach(parent, new ExtendElement { ExtendHorizontal = true });
 
-    public static IContainer ExtendVertical(this IContainer parent) =>
+    public static IFrame ExtendVertical(this IFrame parent) =>
         Attach(parent, new ExtendElement { ExtendVertical = true });
 
-    public static IContainer AspectRatio(this IContainer parent, float ratio, AspectRatioOption option = AspectRatioOption.FitWidth) =>
+    public static IFrame AspectRatio(this IFrame parent, float ratio, ProportionFit option = ProportionFit.FitWidth) =>
         Attach(parent, new AspectRatioElement { Ratio = ratio, Option = option });
 
     /// <summary>Shrinks the content just enough to fit the space available.</summary>
-    public static IContainer ScaleToFit(this IContainer parent, float minScale = 0.25f) =>
+    public static IFrame ScaleToFit(this IFrame parent, float minScale = 0.25f) =>
         Attach(parent, new ScaleToFitElement { MinScale = minScale });
 
     /// <summary>Mirrors the content left to right.</summary>
-    public static IContainer FlipHorizontal(this IContainer parent) =>
+    public static IFrame FlipHorizontal(this IFrame parent) =>
         Attach(parent, new FlipElement { FlipHorizontal = true });
 
     /// <summary>Mirrors the content top to bottom.</summary>
-    public static IContainer FlipVertical(this IContainer parent) =>
+    public static IFrame FlipVertical(this IFrame parent) =>
         Attach(parent, new FlipElement { FlipVertical = true });
 
     /// <summary>Mirrors the content on both axes, equivalent to a half turn.</summary>
-    public static IContainer FlipOver(this IContainer parent) =>
+    public static IFrame FlipOver(this IFrame parent) =>
         Attach(parent, new FlipElement { FlipHorizontal = true, FlipVertical = true });
 
     // ---- Alignment -----------------------------------------------------------------------------------------
 
-    public static IContainer AlignLeft(this IContainer parent) => Align(parent, horizontal: HorizontalAlignment.Left);
+    public static IFrame AlignLeft(this IFrame parent) => Align(parent, horizontal: HorizontalPlacement.Left);
 
-    public static IContainer AlignCenter(this IContainer parent) => Align(parent, horizontal: HorizontalAlignment.Center);
+    public static IFrame AlignCenter(this IFrame parent) => Align(parent, horizontal: HorizontalPlacement.Center);
 
-    public static IContainer AlignRight(this IContainer parent) => Align(parent, horizontal: HorizontalAlignment.Right);
+    public static IFrame AlignRight(this IFrame parent) => Align(parent, horizontal: HorizontalPlacement.Right);
 
-    public static IContainer AlignTop(this IContainer parent) => Align(parent, vertical: VerticalAlignment.Top);
+    public static IFrame AlignTop(this IFrame parent) => Align(parent, vertical: VerticalPlacement.Top);
 
-    public static IContainer AlignMiddle(this IContainer parent) => Align(parent, vertical: VerticalAlignment.Middle);
+    public static IFrame AlignMiddle(this IFrame parent) => Align(parent, vertical: VerticalPlacement.Middle);
 
-    public static IContainer AlignBottom(this IContainer parent) => Align(parent, vertical: VerticalAlignment.Bottom);
+    public static IFrame AlignBottom(this IFrame parent) => Align(parent, vertical: VerticalPlacement.Bottom);
 
     /// <summary>
     /// Reuses an adjacent alignment element when one is already present, so that <c>.AlignRight().AlignMiddle()</c>
     /// aligns on both axes instead of nesting two elements that each claim the full space.
     /// </summary>
-    private static IContainer Align(IContainer parent, HorizontalAlignment? horizontal = null, VerticalAlignment? vertical = null)
+    private static IFrame Align(IFrame parent, HorizontalPlacement? horizontal = null, VerticalPlacement? vertical = null)
     {
         // Only fold into an aligner that is still empty. Once it has content, `.AlignRight()` on the same slot
         // is a second, separate piece of composition and must not quietly replace the first.
@@ -193,56 +193,56 @@ public static class LayoutExtensions
 
     // ---- Transforms ----------------------------------------------------------------------------------------
 
-    public static IContainer TranslateX(this IContainer parent, float value) =>
-        Attach(parent, new TranslateElement { Offset = new Position(value, 0) });
+    public static IFrame TranslateX(this IFrame parent, float value) =>
+        Attach(parent, new TranslateElement { Offset = new Offset(value, 0) });
 
-    public static IContainer TranslateY(this IContainer parent, float value) =>
-        Attach(parent, new TranslateElement { Offset = new Position(0, value) });
+    public static IFrame TranslateY(this IFrame parent, float value) =>
+        Attach(parent, new TranslateElement { Offset = new Offset(0, value) });
 
-    public static IContainer Scale(this IContainer parent, float factor) =>
+    public static IFrame Scale(this IFrame parent, float factor) =>
         Attach(parent, new ScaleElement { ScaleX = factor, ScaleY = factor });
 
-    public static IContainer Scale(this IContainer parent, float scaleX, float scaleY) =>
+    public static IFrame Scale(this IFrame parent, float scaleX, float scaleY) =>
         Attach(parent, new ScaleElement { ScaleX = scaleX, ScaleY = scaleY });
 
     /// <summary>Rotates a quarter turn anticlockwise, swapping the layout axes.</summary>
-    public static IContainer RotateLeft(this IContainer parent) =>
+    public static IFrame RotateLeft(this IFrame parent) =>
         Attach(parent, new RotateElement { QuarterTurns = 3 });
 
     /// <summary>Rotates a quarter turn clockwise, swapping the layout axes.</summary>
-    public static IContainer RotateRight(this IContainer parent) =>
+    public static IFrame RotateRight(this IFrame parent) =>
         Attach(parent, new RotateElement { QuarterTurns = 1 });
 
     // ---- Flow control --------------------------------------------------------------------------------------
 
-    public static IContainer ShowIf(this IContainer parent, bool condition) =>
+    public static IFrame ShowIf(this IFrame parent, bool condition) =>
         Attach(parent, new ShowIfElement { Condition = condition });
 
-    public static IContainer ShowOnce(this IContainer parent) =>
+    public static IFrame ShowOnce(this IFrame parent) =>
         Attach(parent, new ShowOnceElement());
 
-    public static IContainer SkipOnce(this IContainer parent) =>
+    public static IFrame SkipOnce(this IFrame parent) =>
         Attach(parent, new SkipOnceElement());
 
-    public static void PageBreak(this IContainer parent) =>
+    public static void PageBreak(this IFrame parent) =>
         Attach(parent, new PageBreakElement());
 
     // ---- Inherited context ---------------------------------------------------------------------------------
 
     /// <summary>Sets the flow direction for everything nested inside.</summary>
-    public static IContainer ContentFrom(this IContainer parent, ContentDirection direction) =>
+    public static IFrame ContentFrom(this IFrame parent, ReadingDirection direction) =>
         Attach(parent, new DirectionElement { Direction = direction });
 
     /// <summary>Lays out nested content right to left.</summary>
-    public static IContainer RightToLeft(this IContainer parent) =>
-        parent.ContentFrom(ContentDirection.RightToLeft);
+    public static IFrame RightToLeft(this IFrame parent) =>
+        parent.ContentFrom(ReadingDirection.RightToLeft);
 
     /// <summary>Lays out nested content left to right.</summary>
-    public static IContainer LeftToRight(this IContainer parent) =>
-        parent.ContentFrom(ContentDirection.LeftToRight);
+    public static IFrame LeftToRight(this IFrame parent) =>
+        parent.ContentFrom(ReadingDirection.LeftToRight);
 
     /// <summary>Adjusts the style inherited by all text nested inside.</summary>
-    public static IContainer DefaultTextStyle(this IContainer parent, Func<TextStyle, TextStyle> refinement)
+    public static IFrame DefaultTextStyle(this IFrame parent, Func<TypeStyle, TypeStyle> refinement)
     {
         ArgumentNullException.ThrowIfNull(refinement);
         return Attach(parent, new DefaultTextStyleElement { Refinement = refinement });
@@ -253,39 +253,39 @@ public static class LayoutExtensions
     /// <summary>
     /// Lets content exceed the space offered to it while reporting no size to its parent.
     /// </summary>
-    public static IContainer Unconstrained(this IContainer parent) =>
+    public static IFrame Unconstrained(this IFrame parent) =>
         Attach(parent, new UnconstrainedElement());
 
     /// <summary>
     /// Prevents content from being split across pages, moving it whole to the next page instead.
     /// </summary>
-    public static IContainer ShowEntire(this IContainer parent) =>
+    public static IFrame ShowEntire(this IFrame parent) =>
         Attach(parent, new ShowEntireElement());
 
     /// <summary>
     /// Defers the content to the next page unless at least <paramref name="minHeight"/> remains, so a heading
     /// or short block is never stranded at the bottom of a page.
     /// </summary>
-    public static IContainer EnsureSpace(this IContainer parent, float minHeight) =>
+    public static IFrame EnsureSpace(this IFrame parent, float minHeight) =>
         Attach(parent, new EnsureSpaceElement { MinHeight = minHeight });
 
     // ---- Rules and placeholders ----------------------------------------------------------------------------
 
     /// <summary>Draws a horizontal rule across the available width.</summary>
-    public static void LineHorizontal(this IContainer parent, float thickness = 1f, Ink? color = null) =>
+    public static void LineHorizontal(this IFrame parent, float thickness = 1f, Ink? color = null) =>
         Attach(parent, new HorizontalLineElement { Thickness = thickness, Color = color ?? Ink.Black });
 
     /// <summary>Draws a vertical rule down the available height.</summary>
-    public static void LineVertical(this IContainer parent, float thickness = 1f, Ink? color = null) =>
+    public static void LineVertical(this IFrame parent, float thickness = 1f, Ink? color = null) =>
         Attach(parent, new VerticalLineElement { Thickness = thickness, Color = color ?? Ink.Black });
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
-    public static void Placeholder(this IContainer parent, Ink? color = null) =>
+    public static void Placeholder(this IFrame parent, Ink? color = null) =>
         Attach(parent, new PlaceholderElement { Color = color ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
 
     // ---- Links ---------------------------------------------------------------------------------------------
 
-    public static IContainer Hyperlink(this IContainer parent, string url)
+    public static IFrame Hyperlink(this IFrame parent, string url)
     {
         // An empty target makes the element draw no annotation at all, so the region would look linked in the
         // source and do nothing in the file.
@@ -295,7 +295,7 @@ public static class LayoutExtensions
     }
 
     /// <summary>Marks this content as a named destination that <see cref="SectionLink"/> can target.</summary>
-    public static IContainer Section(this IContainer parent, string name)
+    public static IFrame Section(this IFrame parent, string name)
     {
         // An unnamed section registers no destination, so every link and page reference aimed at it would
         // silently resolve to nothing for the life of the document.
@@ -304,7 +304,7 @@ public static class LayoutExtensions
         return Attach(parent, new SectionElement { Name = name });
     }
 
-    public static IContainer SectionLink(this IContainer parent, string sectionName)
+    public static IFrame SectionLink(this IFrame parent, string sectionName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sectionName);
 

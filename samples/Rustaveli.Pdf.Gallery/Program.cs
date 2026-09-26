@@ -11,9 +11,9 @@ Document document = Document.Create(container =>
 {
     container.Page(page =>
     {
-        page.Size = PageSizes.A4;
-        page.Margin = Edges.All(40);
-        page.DefaultTextStyle = TextStyle.Default.FontFamilyOf("Arial").FontSizeOf(10);
+        page.Size = PaperSizes.A4;
+        page.Margin = Sides.All(40);
+        page.DefaultTextStyle = TypeStyle.Default.FontFamilyOf("Arial").FontSizeOf(10);
 
         page.Header().Element(ComposeHeader);
         page.Footer().Element(ComposeFooter);
@@ -44,7 +44,7 @@ document.GeneratePdf(output);
 Console.WriteLine($"Wrote {output}");
 return 0;
 
-static void ComposeHeader(IContainer container) =>
+static void ComposeHeader(IFrame container) =>
     container.BorderBottom(1).BorderColor(Palette.GreyLight).PaddingBottom(8).Row(row =>
     {
         row.RelativeItem().Text(text => text.Span("Rustaveli.Pdf").FontSize(16).Bold());
@@ -54,7 +54,7 @@ static void ComposeHeader(IContainer container) =>
         row.AutoItem().Text(text => text.Span("Feature gallery").FontColor(Palette.GreyDark));
     });
 
-static void ComposeFooter(IContainer container) =>
+static void ComposeFooter(IFrame container) =>
     container.PaddingTop(8).BorderTop(1).BorderColor(Palette.GreyLight).PaddingTop(6).Row(row =>
     {
         row.RelativeItem().Text(text =>
@@ -70,7 +70,7 @@ static void ComposeFooter(IContainer container) =>
         });
     });
 
-static void ComposeSection(IContainer container, string title, Action<IContainer> body) =>
+static void ComposeSection(IFrame container, string title, Action<IFrame> body) =>
     container.Column(column =>
     {
         column.Spacing(6);
@@ -79,7 +79,7 @@ static void ComposeSection(IContainer container, string title, Action<IContainer
         column.Item().Element(body);
     });
 
-static void ComposeTypography(IContainer container) =>
+static void ComposeTypography(IFrame container) =>
     ComposeSection(container, "Typography", body => body.Column(column =>
     {
         column.Spacing(3);
@@ -129,7 +129,7 @@ static void ComposeTypography(IContainer container) =>
         });
     }));
 
-static void ComposeBoxes(IContainer container) =>
+static void ComposeBoxes(IFrame container) =>
     ComposeSection(container, "Boxes, borders and alignment", body => body.Row(row =>
     {
         row.Spacing(10);
@@ -147,7 +147,7 @@ static void ComposeBoxes(IContainer container) =>
         row.ConstantItem(70).Height(70).AspectRatio(1f).Placeholder(Palette.GreyLight);
     }));
 
-static void ComposeLists(IContainer container) =>
+static void ComposeLists(IFrame container) =>
     ComposeSection(container, "Lists, rounded containers and scaling", body => body.Row(row =>
     {
         row.Spacing(14);
@@ -189,7 +189,7 @@ static void ComposeLists(IContainer container) =>
         });
     }));
 
-static void ComposeInvoiceTable(IContainer container) =>
+static void ComposeInvoiceTable(IFrame container) =>
     ComposeSection(container, "Tables", body => body.Table(table =>
     {
         table.ColumnsDefinition(columns =>
@@ -232,7 +232,7 @@ static void ComposeInvoiceTable(IContainer container) =>
         });
     }));
 
-static void ComposeDirection(IContainer container) =>
+static void ComposeDirection(IFrame container) =>
     ComposeSection(container, "Content direction", body => body.Column(column =>
     {
         column.Spacing(6);
@@ -258,7 +258,7 @@ static void ComposeDirection(IContainer container) =>
         });
     }));
 
-static void ComposeLinks(IContainer container) =>
+static void ComposeLinks(IFrame container) =>
     ComposeSection(container, "Links and sections", body => body.Column(column =>
     {
         column.Spacing(4);

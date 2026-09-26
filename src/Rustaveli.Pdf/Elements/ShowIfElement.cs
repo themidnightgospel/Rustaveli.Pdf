@@ -6,14 +6,14 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// Renders its child only if a condition holds, collapsing to nothing otherwise.
 /// </summary>
-public sealed class ShowIfElement : ContainerElement
+public sealed class ShowIfElement : EnclosingBlock
 {
     public bool Condition { get; set; } = true;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context) =>
-        Condition ? base.Measure(availableSpace, context) : SpacePlan.FullRender(Size.Zero);
+    public override Fit Measure(Extent availableSpace, PlanContext context) =>
+        Condition ? base.Measure(availableSpace, context) : Fit.FullRender(Extent.Zero);
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (Condition)
             base.Draw(availableSpace, context);

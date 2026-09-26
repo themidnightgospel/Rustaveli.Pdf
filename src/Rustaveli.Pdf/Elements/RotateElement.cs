@@ -10,7 +10,7 @@ namespace Rustaveli.Pdf.Elements;
 /// Unlike free rotation this participates in layout, which is what makes vertical table headers and side
 /// captions possible.
 /// </remarks>
-public sealed class RotateElement : ContainerElement
+public sealed class RotateElement : EnclosingBlock
 {
     private int _quarterTurns;
 
@@ -23,37 +23,37 @@ public sealed class RotateElement : ContainerElement
 
     private bool SwapsAxes => QuarterTurns is 1 or 3;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
-        Size innerSpace = SwapsAxes
-            ? new Size(availableSpace.Height, availableSpace.Width)
+        Extent innerSpace = SwapsAxes
+            ? new Extent(availableSpace.Height, availableSpace.Width)
             : availableSpace;
 
-        SpacePlan childPlan = Child?.Measure(innerSpace, context) ?? SpacePlan.FullRender(Size.Zero);
+        Fit childPlan = Child?.Measure(innerSpace, context) ?? Fit.FullRender(Extent.Zero);
 
         if (childPlan.IsWrap)
             return childPlan;
 
         if (childPlan.IsEmpty)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
-        Size size = SwapsAxes
-            ? new Size(childPlan.Size.Height, childPlan.Size.Width)
+        Extent size = SwapsAxes
+            ? new Extent(childPlan.Size.Height, childPlan.Size.Width)
             : childPlan.Size;
 
-        return childPlan.IsFullRender ? SpacePlan.FullRender(size) : SpacePlan.PartialRender(size);
+        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
 
-        Size innerSpace = SwapsAxes
-            ? new Size(availableSpace.Height, availableSpace.Width)
+        Extent innerSpace = SwapsAxes
+            ? new Extent(availableSpace.Height, availableSpace.Width)
             : availableSpace;
 
-        SpacePlan childPlan = Child.Measure(innerSpace, context.Layout);
+        Fit childPlan = Child.Measure(innerSpace, context.Layout);
 
         if (childPlan.IsWrap || childPlan.IsEmpty)
             return;
@@ -61,12 +61,12 @@ public sealed class RotateElement : ContainerElement
         // Rotation happens about the origin, so translate the rotated content back into the positive quadrant.
         // The pivot is the box this element was given (ADR 0012), which is what the child is drawn into; pivoting
         // about the child's natural size instead would misplace content that fills or aligns within its box.
-        Position recentre = QuarterTurns switch
+        Offset recentre = QuarterTurns switch
         {
-            1 => new Position(innerSpace.Height, 0),
-            2 => new Position(innerSpace.Width, innerSpace.Height),
-            3 => new Position(0, innerSpace.Width),
-            _ => Position.Zero
+            1 => new Offset(innerSpace.Height, 0),
+            2 => new Offset(innerSpace.Width, innerSpace.Height),
+            3 => new Offset(0, innerSpace.Width),
+            _ => Offset.Zero
         };
 
         context.Canvas.Save();

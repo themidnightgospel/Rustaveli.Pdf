@@ -12,6 +12,6 @@ namespace Rustaveli.Pdf.Documents;
 /// </remarks>
 public static class DocumentRenderer
 {
-    public static void Render(Document document, IDocumentCanvas canvas, ITextMeasurer measurer) =>
-        DocumentGenerator.Render(document, canvas, measurer);
+    public static void Render(Document document, IPageSink canvas, ITypeMeasurer measurer) =>
+        Typesetter.Render(document, canvas, measurer);
 }

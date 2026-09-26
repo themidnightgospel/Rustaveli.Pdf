@@ -16,13 +16,13 @@ public static class Approximately
             $"Expected {expected} but found {actual} (difference {difference}).{(because is null ? "" : " " + because)}");
     }
 
-    public static void Equal(Size expected, Size actual)
+    public static void Equal(Extent expected, Extent actual)
     {
         Equal(expected.Width, actual.Width, "Widths differ.");
         Equal(expected.Height, actual.Height, "Heights differ.");
     }
 
-    public static void Equal(Position expected, Position actual)
+    public static void Equal(Offset expected, Offset actual)
     {
         Equal(expected.X, actual.X, "X coordinates differ.");
         Equal(expected.Y, actual.Y, "Y coordinates differ.");

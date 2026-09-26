@@ -31,7 +31,7 @@ public class ImageEncodingTests
     private static Document DocumentWithImage(byte[] png) =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 200);
+            page.Size = new Extent(200, 200);
             page.Content().Image(SkiaImage.FromBytes(png));
         }));
 

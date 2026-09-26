@@ -12,7 +12,7 @@ namespace Rustaveli.Pdf.Elements;
 /// beside its content. That means pagination, spacing and nesting all behave exactly as they do elsewhere,
 /// rather than being reimplemented here.
 /// </remarks>
-public sealed class ListElement : Element
+public sealed class ListElement : Block
 {
     private readonly ColumnElement _layout = new ColumnElement();
 
@@ -29,9 +29,9 @@ public sealed class ListElement : Element
     public float Spacing { get; set; }
 
     /// <summary>Style applied to the marker. Null inherits from the surrounding text style.</summary>
-    public Func<TextStyle, TextStyle>? MarkerStyle { get; set; }
+    public Func<TypeStyle, TypeStyle>? MarkerStyle { get; set; }
 
-    public override IEnumerable<Element?> GetChildren()
+    public override IEnumerable<Block?> GetChildren()
     {
         yield return _layout;
     }
@@ -58,7 +58,7 @@ public sealed class ListElement : Element
             {
                 DefaultStyleOverride = MarkerStyle
             };
-            textElement.Spans.Add(new TextSpan
+            textElement.Spans.Add(new TextRun
             {
                 Text = listItem.Marker
             });
@@ -92,13 +92,13 @@ public sealed class ListElement : Element
         }
     }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         EnsureBuilt();
         return _layout.Measure(availableSpace, context);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         EnsureBuilt();
         _layout.Draw(availableSpace, context);

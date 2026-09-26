@@ -5,16 +5,16 @@ public class TextSpanTests
     [Fact]
     public void ResolvesToItsLiteralText()
     {
-        TextSpan span = new TextSpan { Text = "hello" };
+        TextRun span = new TextRun { Text = "hello" };
 
-        Assert.Equal("hello", span.Resolve(new PageContext()));
+        Assert.Equal("hello", span.Resolve(new Pagination()));
     }
 
     [Fact]
     public void DynamicTextWinsOverLiteralTextAndSeesThePageBeingDrawn()
     {
-        PageContext page = new PageContext { CurrentPage = 3, TotalPages = 12 };
-        TextSpan span = new TextSpan
+        Pagination page = new Pagination { CurrentPage = 3, TotalPages = 12 };
+        TextRun span = new TextRun
         {
             Text = "ignored",
             DynamicText = context => $"{context.CurrentPage} of {context.TotalPages}",
@@ -26,24 +26,24 @@ public class TextSpanTests
     [Fact]
     public void ResolvesToAnEmptyStringWhenItHasNoContent()
     {
-        Assert.Equal(string.Empty, new TextSpan().Resolve(new PageContext()));
+        Assert.Equal(string.Empty, new TextRun().Resolve(new Pagination()));
     }
 
     [Fact]
     public void InheritsTheSurroundingStyleUnchangedWithoutAnOverride()
     {
-        TextStyle inherited = TextStyle.Default.FontSizeOf(20);
+        TypeStyle inherited = TypeStyle.Default.FontSizeOf(20);
 
-        Assert.Same(inherited, new TextSpan().ResolveStyle(inherited));
+        Assert.Same(inherited, new TextRun().ResolveStyle(inherited));
     }
 
     [Fact]
     public void AppliesItsOverrideOnTopOfTheSurroundingStyle()
     {
-        TextSpan span = new TextSpan { StyleOverride = style => style.Bold() };
+        TextRun span = new TextRun { StyleOverride = style => style.Bold() };
 
-        TextStyle resolved = span.ResolveStyle(TextStyle.Default.FontSizeOf(20));
+        TypeStyle resolved = span.ResolveStyle(TypeStyle.Default.FontSizeOf(20));
 
-        Assert.Equal(TextStyle.Default.FontSizeOf(20).Bold(), resolved);
+        Assert.Equal(TypeStyle.Default.FontSizeOf(20).Bold(), resolved);
     }
 }

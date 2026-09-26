@@ -9,7 +9,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// document the cap on counting passes exists for. <see cref="Passes"/> counts the full resets the engine makes,
 /// one at the start of every pass.
 /// </remarks>
-public sealed class OscillatingElement : Element
+public sealed class OscillatingElement : Block
 {
     private int _pagesDrawn;
 
@@ -21,13 +21,13 @@ public sealed class OscillatingElement : Element
         Passes++;
     }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context) =>
+    public override Fit Measure(Extent availableSpace, PlanContext context) =>
         _pagesDrawn + 1 < PagesNeeded(context.Page)
-            ? SpacePlan.PartialRender(10, 10)
-            : SpacePlan.FullRender(10, 10);
+            ? Fit.PartialRender(10, 10)
+            : Fit.FullRender(10, 10);
 
-    public override void Draw(Size availableSpace, DrawContext context) => _pagesDrawn++;
+    public override void Draw(Extent availableSpace, RenderContext context) => _pagesDrawn++;
 
-    private static int PagesNeeded(PageContext page) =>
+    private static int PagesNeeded(Pagination page) =>
         page.IsDocumentLengthKnown && page.TotalPages == 1 ? 2 : 1;
 }

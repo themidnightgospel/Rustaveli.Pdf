@@ -7,7 +7,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Stands in for genuinely splittable content such as a long paragraph, letting pagination be tested without
 /// depending on text measurement.
 /// </remarks>
-public sealed class SplittableElement(int unitCount, float unitHeight, float width = 10f) : Element
+public sealed class SplittableElement(int unitCount, float unitHeight, float width = 10f) : Block
 {
     private int _rendered;
 
@@ -16,32 +16,32 @@ public sealed class SplittableElement(int unitCount, float unitHeight, float wid
 
     protected override void ResetOwnState() => _rendered = 0;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         if (_rendered >= unitCount)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
         int fitting = FittingUnits(availableSpace.Height);
 
         if (fitting == 0)
-            return SpacePlan.Wrap($"A single unit needs {unitHeight} but only {availableSpace.Height} is available.");
+            return Fit.Wrap($"A single unit needs {unitHeight} but only {availableSpace.Height} is available.");
 
-        Size size = new Size(width, fitting * unitHeight);
+        Extent size = new Extent(width, fitting * unitHeight);
 
         return _rendered + fitting >= unitCount
-            ? SpacePlan.FullRender(size)
-            : SpacePlan.PartialRender(size);
+            ? Fit.FullRender(size)
+            : Fit.PartialRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         int fitting = FittingUnits(availableSpace.Height);
 
         for (int index = 0; index < fitting; index++)
         {
             context.Canvas.DrawRectangle(
-                new Position(0, index * unitHeight),
-                new Size(width, unitHeight),
+                new Offset(0, index * unitHeight),
+                new Extent(width, unitHeight),
                 TestInks.Blue);
         }
 
@@ -50,7 +50,7 @@ public sealed class SplittableElement(int unitCount, float unitHeight, float wid
 
     private int FittingUnits(float availableHeight)
     {
-        int possible = (int)Math.Floor((availableHeight + Size.Epsilon) / unitHeight);
+        int possible = (int)Math.Floor((availableHeight + Extent.Epsilon) / unitHeight);
         return Math.Clamp(possible, 0, Remaining);
     }
 }

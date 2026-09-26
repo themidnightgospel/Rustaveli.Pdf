@@ -27,9 +27,9 @@ public static class RustaveliDocuments
 
     private static Document Build(DocumentKind kind, List<SkiaImage> images) => Document.Create(container => container.Page(page =>
     {
-        page.Size = PageSizes.A4;
-        page.Margin = Edges.All(40f);
-        page.DefaultTextStyle = TextStyle.Default.FontFamilyOf(BenchmarkFonts.Family).FontSizeOf(10f);
+        page.Size = PaperSizes.A4;
+        page.Margin = Sides.All(40f);
+        page.DefaultTextStyle = TypeStyle.Default.FontFamilyOf(BenchmarkFonts.Family).FontSizeOf(10f);
 
         page.Header().PaddingBottom(10f).Text(kind.ToString());
         page.Footer().AlignCenter().Text(text =>
@@ -77,7 +77,7 @@ public static class RustaveliDocuments
                     {
                         SkiaImage image = SkiaImage.FromBytes(BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
                         images.Add(image);
-                        column.Item().Image(image, ImageFit.Width);
+                        column.Item().Image(image, ImageFitting.Width);
                         column.Item().Text($"Figure {index + 1}");
                     }
                 });

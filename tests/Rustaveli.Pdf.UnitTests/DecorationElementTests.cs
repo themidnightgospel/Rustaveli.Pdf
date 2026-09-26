@@ -19,7 +19,7 @@ public class DecorationElementTests
             decoration.After().Element(container => container.Child = new FixedElement(10, 25, TestInks.Green));
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(0f, rectangles.Single(r => r.Color == TestInks.Red).Position.Y);
@@ -37,7 +37,7 @@ public class DecorationElementTests
             decoration.After().Element(container => container.Child = new FixedElement(10, 25));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Approximately.Equal(60f, plan.Size.Height);
     }
@@ -51,7 +51,7 @@ public class DecorationElementTests
             decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 50));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
         Assert.True(plan.IsPartialRender);
     }
@@ -67,7 +67,7 @@ public class DecorationElementTests
             decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
         });
 
-        Size space = new Size(200, 52);
+        Extent space = new Extent(200, 52);
 
         RecordedPage firstPage = LayoutHarness.Draw(element, space);
         RecordedPage secondPage = LayoutHarness.Draw(element, space);
@@ -86,15 +86,15 @@ public class DecorationElementTests
             decoration.After().Element(container => container.Child = new FixedElement(120, 5));
         });
 
-        Approximately.Equal(120f, LayoutHarness.Measure(element, new Size(200, 200)).Size.Width);
+        Approximately.Equal(120f, LayoutHarness.Measure(element, new Extent(200, 200)).Size.Width);
     }
 
     [Fact]
     public void HandsEachPartTheSpaceLeftForIt()
     {
-        ScriptedElement before = new ScriptedElement(SpacePlan.FullRender(10, 15));
-        ScriptedElement content = new ScriptedElement(SpacePlan.FullRender(10, 20));
-        ScriptedElement after = new ScriptedElement(SpacePlan.FullRender(10, 25));
+        ScriptedElement before = new ScriptedElement(Fit.FullRender(10, 15));
+        ScriptedElement content = new ScriptedElement(Fit.FullRender(10, 20));
+        ScriptedElement after = new ScriptedElement(Fit.FullRender(10, 25));
 
         DecorationElement element = Build(decoration =>
         {
@@ -103,12 +103,12 @@ public class DecorationElementTests
             decoration.After().Element(container => container.Child = after);
         });
 
-        LayoutHarness.Draw(element, new Size(200, 100));
+        LayoutHarness.Draw(element, new Extent(200, 100));
 
         // The content is offered everything between the bands, not just the height it reported.
-        Approximately.Equal(new Size(200, 15), Assert.Single(before.DrawnWith));
-        Approximately.Equal(new Size(200, 60), Assert.Single(content.DrawnWith));
-        Approximately.Equal(new Size(200, 25), Assert.Single(after.DrawnWith));
+        Approximately.Equal(new Extent(200, 15), Assert.Single(before.DrawnWith));
+        Approximately.Equal(new Extent(200, 60), Assert.Single(content.DrawnWith));
+        Approximately.Equal(new Extent(200, 25), Assert.Single(after.DrawnWith));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class DecorationElementTests
             decoration.Content().Element(container => container.Child = new FixedElement(10, 10));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("not sufficient", plan.WrapReason);
@@ -136,7 +136,7 @@ public class DecorationElementTests
             decoration.After().Element(container => container.Child = new FixedElement(10, 60));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("not sufficient", plan.WrapReason);
@@ -148,9 +148,9 @@ public class DecorationElementTests
         // A custom element can report more than it was offered. The trailing band must not then be measured
         // against a negative remainder.
         DecorationElement element = Build(decoration =>
-            decoration.Before().Element(container => container.Child = new ScriptedElement(SpacePlan.FullRender(10, 150))));
+            decoration.Before().Element(container => container.Child = new ScriptedElement(Fit.FullRender(10, 150))));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("not sufficient", plan.WrapReason);
@@ -162,10 +162,10 @@ public class DecorationElementTests
         DecorationElement element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 60));
-            decoration.After().Element(container => container.Child = new ScriptedElement(SpacePlan.FullRender(10, 70)));
+            decoration.After().Element(container => container.Child = new ScriptedElement(Fit.FullRender(10, 70)));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("no room", plan.WrapReason);
@@ -180,10 +180,10 @@ public class DecorationElementTests
             decoration.Content().Element(container => container.Child = new FixedElement(10, 200));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         // The content is measured in the 90pt left below the leading band.
-        Assert.Equal(LayoutHarness.Measure(new FixedElement(10, 200), new Size(200, 90)), plan);
+        Assert.Equal(LayoutHarness.Measure(new FixedElement(10, 200), new Extent(200, 90)), plan);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class DecorationElementTests
             decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 1, unitHeight: 10));
         });
 
-        Size space = new Size(200, 100);
+        Extent space = new Extent(200, 100);
         LayoutHarness.Draw(element, space);
 
         Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
@@ -212,13 +212,13 @@ public class DecorationElementTests
             decoration.Content().Element(container => container.Child = new FixedElement(10, 10, TestInks.Blue));
         });
 
-        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 100)).Operations);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
     }
 
     [Fact]
     public void DrawsNothingWhenTheBandsLeaveNoRoomForTheContent()
     {
-        ScriptedElement after = new ScriptedElement(SpacePlan.FullRender(10, 70));
+        ScriptedElement after = new ScriptedElement(Fit.FullRender(10, 70));
 
         DecorationElement element = Build(decoration =>
         {
@@ -226,7 +226,7 @@ public class DecorationElementTests
             decoration.After().Element(container => container.Child = after);
         });
 
-        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 100)).Operations);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
         Assert.Empty(after.DrawnWith);
     }
 
@@ -239,6 +239,6 @@ public class DecorationElementTests
             decoration.Content().Element(container => container.Child = new FixedElement(10, 200, TestInks.Blue));
         });
 
-        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 100)).Operations);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
     }
 }

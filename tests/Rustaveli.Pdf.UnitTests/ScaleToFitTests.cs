@@ -7,9 +7,9 @@ public class ScaleToFitTests
     {
         ScaleToFitElement element = new ScaleToFitElement { Child = new FixedElement(50, 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Approximately.Equal(new Size(50, 20), plan.Size);
+        Approximately.Equal(new Extent(50, 20), plan.Size);
     }
 
     [Fact]
@@ -17,10 +17,10 @@ public class ScaleToFitTests
     {
         ScaleToFitElement element = new ScaleToFitElement { Child = new FixedElement(200, 100) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(100, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
 
         Assert.True(plan.IsFullRender);
-        Assert.True(plan.Size.FitsIn(new Size(100, 100)), $"Scaled content {plan.Size} should fit the offered space.");
+        Assert.True(plan.Size.FitsIn(new Extent(100, 100)), $"Scaled content {plan.Size} should fit the offered space.");
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public class ScaleToFitTests
     {
         ScaleToFitElement element = new ScaleToFitElement { MinScale = 0.9f, Child = new FixedElement(1000, 10) };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(100, 100)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(100, 100)).IsWrap);
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public class ScaleToFitTests
         // "Never shrink" passes the child through, so the answer is the child's own, reason and all.
         FixedElement child = new FixedElement(300, 50);
         ScaleToFitElement element = new ScaleToFitElement { MinScale = minScale, Child = child };
-        Size space = new Size(200, 100);
+        Extent space = new Extent(200, 100);
 
         Assert.Equal(LayoutHarness.Measure(child, space), LayoutHarness.Measure(element, space));
     }
@@ -49,15 +49,15 @@ public class ScaleToFitTests
     {
         ScaleToFitElement element = new ScaleToFitElement { MinScale = float.NaN, Child = new FixedElement(400, 300) };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 100)).IsFullRender);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsFullRender);
     }
 
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        ScaleToFitElement element = new ScaleToFitElement { Child = new ScriptedElement(SpacePlan.Empty()) };
+        ScaleToFitElement element = new ScaleToFitElement { Child = new ScriptedElement(Fit.Empty()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 100)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsEmpty);
     }
 
     [Fact]
@@ -65,10 +65,10 @@ public class ScaleToFitTests
     {
         ScaleToFitElement element = new ScaleToFitElement();
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 100));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsFullRender);
-        Approximately.Equal(Size.Zero, plan.Size);
-        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 100)).Operations);
+        Approximately.Equal(Extent.Zero, plan.Size);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
     }
 }

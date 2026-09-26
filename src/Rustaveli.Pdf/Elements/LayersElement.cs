@@ -10,23 +10,23 @@ namespace Rustaveli.Pdf.Elements;
 /// Layers before the primary one act as a background and those after it as an overlay, which is how watermarks
 /// and underlays are expressed without a separate element for each.
 /// </remarks>
-public sealed class LayersElement : Element
+public sealed class LayersElement : Block
 {
     public List<Layer> Layers { get; } = new List<Layer>();
 
-    public override IEnumerable<Element?> GetChildren()
+    public override IEnumerable<Block?> GetChildren()
     {
         return Layers;
     }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
-        return Layers.FirstOrDefault((Layer layer) => layer.IsPrimary)?.Measure(availableSpace, context) ?? SpacePlan.FullRender(Size.Zero);
+        return Layers.FirstOrDefault((Layer layer) => layer.IsPrimary)?.Measure(availableSpace, context) ?? Fit.FullRender(Extent.Zero);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
-        SpacePlan plan = Measure(availableSpace, context.Layout);
+        Fit plan = Measure(availableSpace, context.Layout);
 
         if (plan.IsWrap || plan.IsEmpty)
             return;

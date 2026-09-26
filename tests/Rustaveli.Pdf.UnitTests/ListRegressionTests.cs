@@ -10,7 +10,7 @@ public class ListRegressionTests
         ListElement list = new ListElement { Marker = ListMarker.Decimal };
         list.Items.Add(new ListItem { Child = new FixedElement(40, 20, TestInks.Red) });
 
-        RecordedPage page = LayoutHarness.Draw(list, new Size(300, 400));
+        RecordedPage page = LayoutHarness.Draw(list, new Extent(300, 400));
 
         Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
@@ -18,16 +18,16 @@ public class ListRegressionTests
     [Fact]
     public void ItemsAddedAfterCompositionAreStillRendered()
     {
-        Element root = LayoutHarness.Build(container => container.List(list =>
+        Block root = LayoutHarness.Build(container => container.List(list =>
         {
             list.Item().Text("alpha");
             list.Item().Text("beta");
         }));
 
-        ListElement element = (ListElement)((Container)root).Child!;
+        ListElement element = (ListElement)((Frame)root).Child!;
         element.Items.Add(new ListItem { Child = new FixedElement(40, 20, TestInks.Red) });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(300, 400));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(300, 400));
 
         Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }

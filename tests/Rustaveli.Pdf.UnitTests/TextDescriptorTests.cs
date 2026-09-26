@@ -6,9 +6,9 @@ namespace Rustaveli.Pdf.UnitTests;
 /// </summary>
 public class TextDescriptorTests
 {
-    private static readonly Size Space = new Size(200, 200);
+    private static readonly Extent Space = new Extent(200, 200);
 
-    private static RecordedPage Draw(Action<TextDescriptor> compose, PageContext? page = null) =>
+    private static RecordedPage Draw(Action<TextDescriptor> compose, Pagination? page = null) =>
         LayoutHarness.Draw(
             LayoutHarness.Build(container => container.Text(compose)),
             Space,
@@ -24,13 +24,13 @@ public class TextDescriptorTests
         Assert.Equal("summary", link.Destination);
 
         // The clickable area covers the run: seven characters wide and one line tall.
-        Approximately.Equal(new Size(42, 12), link.Size);
+        Approximately.Equal(new Extent(42, 12), link.Size);
     }
 
     [Fact]
     public void PageNumberOfSectionShowsWhereTheSectionLanded()
     {
-        PageContext context = new PageContext();
+        Pagination context = new Pagination();
         context.RegisterDestination("summary", 4);
 
         Assert.Equal("4", Draw(text => text.PageNumberOfSection("summary"), context).Content);
@@ -42,17 +42,17 @@ public class TextDescriptorTests
 
     [Fact]
     public void TotalPagesShowsTheDocumentTotal() =>
-        Assert.Equal("9", Draw(text => text.TotalPages(), new PageContext { TotalPages = 9 }).Content);
+        Assert.Equal("9", Draw(text => text.TotalPages(), new Pagination { TotalPages = 9 }).Content);
 
     [Fact]
     public void AlignLeftOverridesTheRightToLeftDefault()
     {
-        Element aligned = LayoutHarness.Build(container => container.RightToLeft().Text(text =>
+        Block aligned = LayoutHarness.Build(container => container.RightToLeft().Text(text =>
         {
             text.AlignLeft();
             text.Span("Hello");
         }));
-        Element unaligned = LayoutHarness.Build(container => container.RightToLeft().Text("Hello"));
+        Block unaligned = LayoutHarness.Build(container => container.RightToLeft().Text("Hello"));
 
         // Right-to-left text hugs the right edge unless told otherwise: 200 less five 6pt characters.
         Approximately.Equal(0f, Assert.Single(LayoutHarness.Draw(aligned, Space).Texts).Position.X);
@@ -83,10 +83,10 @@ public class TextDescriptorTests
             text.Span("a");
         });
 
-        TextStyle style = Assert.Single(page.Texts).Style;
+        TypeStyle style = Assert.Single(page.Texts).Style;
 
         Approximately.Equal(20f, style.FontSize);
-        Assert.Equal(FontWeight.Bold, style.Weight);
+        Assert.Equal(TypeWeight.Bold, style.Weight);
     }
 
     [Fact]
@@ -111,10 +111,10 @@ public class TextDescriptorTests
             text.Span("a").Bold();
         });
 
-        TextStyle style = Assert.Single(page.Texts).Style;
+        TypeStyle style = Assert.Single(page.Texts).Style;
 
         Approximately.Equal(20f, style.FontSize);
-        Assert.Equal(FontWeight.Bold, style.Weight);
+        Assert.Equal(TypeWeight.Bold, style.Weight);
     }
 
     [Fact]

@@ -6,13 +6,13 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// Makes the area occupied by its child clickable, jumping to a named section of the document.
 /// </summary>
-public sealed class InternalLinkElement : ContainerElement
+public sealed class InternalLinkElement : EnclosingBlock
 {
     public string DestinationName { get; set; } = string.Empty;
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
-        SpacePlan plan = Measure(availableSpace, context.Layout);
+        Fit plan = Measure(availableSpace, context.Layout);
 
         if (plan.IsWrap || plan.IsEmpty)
             return;

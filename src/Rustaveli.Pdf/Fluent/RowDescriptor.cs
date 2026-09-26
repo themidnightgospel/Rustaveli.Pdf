@@ -12,15 +12,15 @@ public sealed class RowDescriptor(RowElement element)
     public void Spacing(float value) => element.Spacing = value;
 
     /// <summary>Adds an item that shares leftover width with other relative items, proportional to its weight.</summary>
-    public IContainer RelativeItem(float weight = 1f) => Add(RowItemSizing.Relative, weight);
+    public IFrame RelativeItem(float weight = 1f) => Add(RowItemSizing.Relative, weight);
 
     /// <summary>Adds an item of fixed width.</summary>
-    public IContainer ConstantItem(float width) => Add(RowItemSizing.Constant, width);
+    public IFrame ConstantItem(float width) => Add(RowItemSizing.Constant, width);
 
     /// <summary>Adds an item that takes exactly as much width as its content needs.</summary>
-    public IContainer AutoItem() => Add(RowItemSizing.Auto, 0f);
+    public IFrame AutoItem() => Add(RowItemSizing.Auto, 0f);
 
-    private IContainer Add(RowItemSizing sizing, float value)
+    private IFrame Add(RowItemSizing sizing, float value)
     {
         RowItem item = new RowItem { Sizing = sizing, Value = value };
         element.Items.Add(item);

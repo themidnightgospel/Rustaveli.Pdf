@@ -13,22 +13,22 @@ namespace Rustaveli.Pdf.Elements;
 /// layout resolves, and because dynamic spans can resolve differently per page. Only the count of lines already
 /// committed to earlier pages is retained between passes.
 /// </remarks>
-public sealed class TextElement : Element
+public sealed class TextElement : Block
 {
     private int _completedLines;
     private float _pinnedWidth = float.NaN;
     private List<TextLine>? _pinnedWrapping;
 
-    public List<TextSpan> Spans { get; } = [];
+    public List<Text.TextRun> Spans { get; } = [];
 
     /// <summary>
     /// Overrides how lines are aligned. Null follows the inherited content direction, so right-to-left text
     /// aligns right without being told to.
     /// </summary>
-    public HorizontalAlignment? Alignment { get; set; }
+    public HorizontalPlacement? Alignment { get; set; }
 
     /// <summary>Adjusts the inherited style for every span in this block. Individual spans refine it further.</summary>
-    public Func<TextStyle, TextStyle>? DefaultStyleOverride { get; set; }
+    public Func<TypeStyle, TypeStyle>? DefaultStyleOverride { get; set; }
 
     /// <summary>Horizontal indent applied to the opening line of each paragraph.</summary>
     public float FirstLineIndent { get; set; }
@@ -37,15 +37,15 @@ public sealed class TextElement : Element
     public float ParagraphSpacing { get; set; }
 
     // Inline elements are children of this paragraph, so the engine can reset their state between passes.
-    public override IEnumerable<Element?> GetChildren() => Spans.Select(span => span.InlineElement);
+    public override IEnumerable<Block?> GetChildren() => Spans.Select(span => span.InlineElement);
 
     /// <summary>
     /// Resolves how lines are aligned, falling back to the inherited content direction.
     /// </summary>
-    private HorizontalAlignment ResolveAlignment(LayoutContext context) =>
-        Alignment ?? (context.ContentDirection == ContentDirection.RightToLeft
-            ? HorizontalAlignment.Right
-            : HorizontalAlignment.Left);
+    private HorizontalPlacement ResolveAlignment(PlanContext context) =>
+        Alignment ?? (context.ContentDirection == ReadingDirection.RightToLeft
+            ? HorizontalPlacement.Right
+            : HorizontalPlacement.Left);
 
     /// <summary>
     /// The indent that will actually be drawn on a paragraph's opening line.
@@ -55,8 +55,8 @@ public sealed class TextElement : Element
     /// everywhere, not just at drawing time. Charging the wrap budget for an indent that is never drawn silently
     /// costs a line's worth of room and shows nothing for it.
     /// </remarks>
-    private float EffectiveIndent(LayoutContext context) =>
-        ResolveAlignment(context) == HorizontalAlignment.Left ? Math.Max(0, FirstLineIndent) : 0f;
+    private float EffectiveIndent(PlanContext context) =>
+        ResolveAlignment(context) == HorizontalPlacement.Left ? Math.Max(0, FirstLineIndent) : 0f;
 
     protected override void ResetOwnState()
     {
@@ -65,24 +65,24 @@ public sealed class TextElement : Element
         _pinnedWrapping = null;
     }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         // Without usable width there is no wrapping that could succeed. Reporting a wrap sends the paragraph to
         // a fresh page, where the engine will either find room or raise a layout error naming the cause —
         // either is better than silently emitting one character per line forever.
         if (Spans.Count > 0 && float.IsNaN(_pinnedWidth)
-            && availableSpace.Width - EffectiveIndent(context) <= Size.Epsilon)
+            && availableSpace.Width - EffectiveIndent(context) <= Extent.Epsilon)
         {
-            return SpacePlan.Wrap("There is no width available for text once the first-line indent is applied.");
+            return Fit.Wrap("There is no width available for text once the first-line indent is applied.");
         }
 
         List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context, out string? blocker);
 
         if (blocker is not null)
-            return SpacePlan.Wrap(blocker);
+            return Fit.Wrap(blocker);
 
         if (_completedLines >= lines.Count)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
         (float height, float width, int count) = MeasureLines(lines, availableSpace.Height, EffectiveIndent(context));
 
@@ -91,21 +91,21 @@ public sealed class TextElement : Element
             // An element that expands to fill whatever it is offered claims the paragraph's entire height, and
             // the line's own descender then pushes it past the page. Blaming the text height sends the reader
             // looking at font sizes, so name the real cause.
-            return SpacePlan.Wrap(lines[_completedLines].Runs.Any(run => run.Inline is not null)
+            return Fit.Wrap(lines[_completedLines].Runs.Any(run => run.Inline is not null)
                 ? "A line holding an inline element is taller than the space available. An element that expands "
                   + "to fill the space offered to it, such as AlignMiddle, AlignBottom or Extend, claims the "
                   + "whole page when placed inline — give it an explicit height instead."
                 : "The available height is not sufficient for even a single line of text.");
         }
 
-        Size size = new Size(width, height);
+        Extent size = new Extent(width, height);
 
         return _completedLines + count >= lines.Count
-            ? SpacePlan.FullRender(size)
-            : SpacePlan.PartialRender(size);
+            ? Fit.FullRender(size)
+            : Fit.PartialRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         // A blocker means Measure reported a wrap, so this paragraph should not have been asked to draw here.
         List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Layout, out string? blocker);
@@ -150,7 +150,7 @@ public sealed class TextElement : Element
         {
             float spacing = SpacingBefore(lines[index], index);
 
-            if (height + spacing + lines[index].Height > availableHeight + Size.Epsilon)
+            if (height + spacing + lines[index].Height > availableHeight + Extent.Epsilon)
                 break;
 
             height += spacing + lines[index].Height;
@@ -170,17 +170,17 @@ public sealed class TextElement : Element
     private float SpacingBefore(TextLine line, int index) =>
         line.StartsParagraph && line.Runs.Count > 0 && index > _completedLines ? ParagraphSpacing : 0f;
 
-    private void DrawLine(TextLine line, float availableWidth, float top, DrawContext context)
+    private void DrawLine(TextLine line, float availableWidth, float top, RenderContext context)
     {
-        ICanvas canvas = context.Canvas;
+        ISurface canvas = context.Canvas;
         float baseline = top + line.Ascent;
 
-        HorizontalAlignment alignment = ResolveAlignment(context.Layout);
+        HorizontalPlacement alignment = ResolveAlignment(context.Layout);
 
         float offset = alignment switch
         {
-            HorizontalAlignment.Center => (availableWidth - line.Width) / 2,
-            HorizontalAlignment.Right => availableWidth - line.Width,
+            HorizontalPlacement.Center => (availableWidth - line.Width) / 2,
+            HorizontalPlacement.Right => availableWidth - line.Width,
             _ => 0f
         };
 
@@ -193,8 +193,8 @@ public sealed class TextElement : Element
         {
             if (run.Inline is not null)
             {
-                Size inlineSize = new Size(run.Width, run.Height);
-                Position inlineTop = new Position(x, baseline - run.Height);
+                Extent inlineSize = new Extent(run.Width, run.Height);
+                Offset inlineTop = new Offset(x, baseline - run.Height);
 
                 canvas.Translate(inlineTop);
                 run.Inline.Draw(inlineSize, context);
@@ -211,47 +211,47 @@ public sealed class TextElement : Element
                 continue;
             }
 
-            TextStyle style = run.Style;
-            FontMetrics metrics = context.TextMeasurer.GetMetrics(style);
+            TypeStyle style = run.Style;
+            TypeMetrics metrics = context.TextMeasurer.GetMetrics(style);
             float runTop = baseline - metrics.Ascent + style.BaselineOffset;
-            Size runSize = new Size(run.Width, metrics.Ascent + metrics.Descent);
+            Extent runSize = new Extent(run.Width, metrics.Ascent + metrics.Descent);
 
             if (!style.BackgroundColor.IsTransparent)
-                canvas.DrawRectangle(new Position(x, runTop), runSize, style.BackgroundColor);
+                canvas.DrawRectangle(new Offset(x, runTop), runSize, style.BackgroundColor);
 
-            canvas.DrawText(run.Text, new Position(x, baseline + style.BaselineOffset), style);
+            canvas.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style);
 
             if (style.HasUnderline)
             {
                 float y = baseline + style.BaselineOffset + metrics.Descent * UnderlineDepthRatio;
-                canvas.DrawLine(new Position(x, y), new Position(x + run.Width, y), DecorationThickness(style), style.Color);
+                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Color);
             }
 
             if (style.HasStrikethrough)
             {
                 float y = baseline + style.BaselineOffset - metrics.Ascent * StrikethroughHeightRatio;
-                canvas.DrawLine(new Position(x, y), new Position(x + run.Width, y), DecorationThickness(style), style.Color);
+                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Color);
             }
 
             if (run.Url is not null)
             {
-                canvas.Translate(new Position(x, runTop));
+                canvas.Translate(new Offset(x, runTop));
                 canvas.DrawExternalLink(run.Url, runSize);
-                canvas.Translate(new Position(x, runTop).Reverse());
+                canvas.Translate(new Offset(x, runTop).Reverse());
             }
 
             if (run.Destination is not null)
             {
-                canvas.Translate(new Position(x, runTop));
+                canvas.Translate(new Offset(x, runTop));
                 canvas.DrawInternalLink(run.Destination, runSize);
-                canvas.Translate(new Position(x, runTop).Reverse());
+                canvas.Translate(new Offset(x, runTop).Reverse());
             }
 
             x += run.Width;
         }
     }
 
-    private static float DecorationThickness(TextStyle style) => Math.Max(0.5f, style.EffectiveFontSize / 16f);
+    private static float DecorationThickness(TypeStyle style) => Math.Max(0.5f, style.EffectiveFontSize / 16f);
 
     private const float UnderlineDepthRatio = 0.5f;
     private const float StrikethroughHeightRatio = 0.3f;
@@ -260,7 +260,7 @@ public sealed class TextElement : Element
     /// Breaks the spans into lines that fit <paramref name="maxWidth"/>, splitting on whitespace and falling
     /// back to mid-word breaks for words too long to fit on a line of their own.
     /// </summary>
-    private List<TextLine> BuildLines(float maxWidth, float maxHeight, LayoutContext context, out string? blocker)
+    private List<TextLine> BuildLines(float maxWidth, float maxHeight, PlanContext context, out string? blocker)
     {
         blocker = null;
 
@@ -273,7 +273,7 @@ public sealed class TextElement : Element
 
         List<TextLine> lines = new List<TextLine>();
         TextLine current = new TextLine();
-        TextStyle blockStyle = DefaultStyleOverride?.Invoke(context.DefaultTextStyle) ?? context.DefaultTextStyle;
+        TypeStyle blockStyle = DefaultStyleOverride?.Invoke(context.DefaultTextStyle) ?? context.DefaultTextStyle;
         float indent = EffectiveIndent(context);
 
         // Only reached before anything is drawn: from then on the pinned wrapping above is returned whole, which
@@ -294,7 +294,7 @@ public sealed class TextElement : Element
             current = new TextLine { StartsParagraph = force };
         }
 
-        foreach (TextSpan span in Spans)
+        foreach (Text.TextRun span in Spans)
         {
             if (span.InlineElement is not null)
             {
@@ -304,7 +304,7 @@ public sealed class TextElement : Element
                 // element that fills what it is given — AlignMiddle, Extend — report the full 14400pt and drag
                 // the whole paragraph into a wrap it can never satisfy.
                 float lineBudget = current.StartsParagraph ? Math.Max(0, width - indent) : width;
-                SpacePlan inlinePlan = span.InlineElement.Measure(new Size(lineBudget, maxHeight), context);
+                Fit inlinePlan = span.InlineElement.Measure(new Extent(lineBudget, maxHeight), context);
 
                 if (inlinePlan.IsEmpty)
                     continue;
@@ -320,7 +320,7 @@ public sealed class TextElement : Element
                     return lines;
                 }
 
-                if (current.Runs.Count > 0 && current.Width + inlinePlan.Size.Width > lineBudget + Size.Epsilon)
+                if (current.Runs.Count > 0 && current.Width + inlinePlan.Size.Width > lineBudget + Extent.Epsilon)
                     FlushLine(force: false);
 
                 current.Add(new TextRun(
@@ -340,7 +340,7 @@ public sealed class TextElement : Element
             if (text.Length == 0)
                 continue;
 
-            TextStyle style = span.ResolveStyle(blockStyle);
+            TypeStyle style = span.ResolveStyle(blockStyle);
 
             foreach (string segment in Tokenise(text))
             {
@@ -354,7 +354,7 @@ public sealed class TextElement : Element
                 float segmentWidth = context.TextMeasurer.MeasureWidth(segment, style);
                 float lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
-                if (current.Width + segmentWidth <= lineWidth + Size.Epsilon)
+                if (current.Width + segmentWidth <= lineWidth + Extent.Epsilon)
                 {
                     current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Destination));
                     continue;
@@ -374,7 +374,7 @@ public sealed class TextElement : Element
                 // recomputed. Reusing the opening line's narrower budget would shatter words that do fit.
                 lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
-                if (segmentWidth <= lineWidth + Size.Epsilon)
+                if (segmentWidth <= lineWidth + Extent.Epsilon)
                 {
                     current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Destination));
                     continue;
@@ -402,11 +402,11 @@ public sealed class TextElement : Element
     /// </summary>
     private static void BreakOversizedWord(
         string word,
-        TextSpan span,
-        TextStyle style,
+        Text.TextRun span,
+        TypeStyle style,
         float width,
         float indent,
-        LayoutContext context,
+        PlanContext context,
         TextLine current,
         List<TextLine> lines)
     {
@@ -493,11 +493,11 @@ public sealed class TextElement : Element
     /// </summary>
     private sealed record TextRun(
         string Text,
-        TextStyle Style,
+        TypeStyle Style,
         float Width,
         string? Url,
         string? Destination,
-        Element? Inline = null,
+        Block? Inline = null,
         float Height = 0f);
 
     private sealed class TextLine
@@ -563,7 +563,7 @@ public sealed class TextElement : Element
         /// Used to size a line with no runs. A blank line separating two headings should be as tall as the
         /// surrounding text, not as tall as the library-wide default.
         /// </param>
-        public void Finalise(ITextMeasurer measurer, TextStyle fallbackStyle)
+        public void Finalise(ITypeMeasurer measurer, TypeStyle fallbackStyle)
         {
             // A space that happens to land at the end of a line is not part of the line's ink. Counting it
             // would shift centred text left, leave right-aligned text short of the margin, and overstate the
@@ -582,7 +582,7 @@ public sealed class TextElement : Element
 
             if (Runs.Count == 0)
             {
-                FontMetrics fallback = measurer.GetMetrics(fallbackStyle);
+                TypeMetrics fallback = measurer.GetMetrics(fallbackStyle);
                 Ascent = fallback.Ascent;
                 Descent = fallback.Descent;
                 Height = fallback.LineHeight;
@@ -599,7 +599,7 @@ public sealed class TextElement : Element
                     continue;
                 }
 
-                FontMetrics metrics = measurer.GetMetrics(run.Style);
+                TypeMetrics metrics = measurer.GetMetrics(run.Style);
                 float offset = run.Style.BaselineOffset;
 
                 // A superscript has a negative offset and so extends the line upwards; a subscript downwards.

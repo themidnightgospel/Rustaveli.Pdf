@@ -12,40 +12,40 @@ namespace Rustaveli.Pdf.Elements;
 /// rather than restarting. A child that only partially rendered keeps its own internal position, so the column
 /// deliberately does not advance past it.
 /// </remarks>
-public sealed class ColumnElement : Element
+public sealed class ColumnElement : Block
 {
     private int _completedItems;
 
-    public List<Element> Items { get; } = [];
+    public List<Block> Items { get; } = [];
 
     /// <summary>Vertical gap inserted between consecutive items.</summary>
     public float Spacing { get; set; }
 
-    public override IEnumerable<Element?> GetChildren() => Items;
+    public override IEnumerable<Block?> GetChildren() => Items;
 
     protected override void ResetOwnState() => _completedItems = 0;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         LayoutResult result = Layout(availableSpace, context, static (_, _, _) => { });
 
         return result.ToSpacePlan();
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
-        ICanvas canvas = context.Canvas;
+        ISurface canvas = context.Canvas;
         float offset = 0f;
 
         LayoutResult result = Layout(availableSpace, context.Layout, (item, itemSpace, top) =>
         {
-            Position delta = new Position(0, top - offset);
+            Offset delta = new Offset(0, top - offset);
             canvas.Translate(delta);
             offset = top;
             item.Draw(itemSpace, context);
         });
 
-        canvas.Translate(new Position(0, -offset));
+        canvas.Translate(new Offset(0, -offset));
 
         // Exhausted and wrapped results carry no progress, so leave the cursor where it was.
         if (result.DrewContent)
@@ -56,7 +56,7 @@ public sealed class ColumnElement : Element
     /// Walks the remaining items, accumulating height and invoking <paramref name="onItem"/> for each one that
     /// fits. Measuring and drawing share this so the two passes can never disagree about what fits.
     /// </summary>
-    private LayoutResult Layout(Size availableSpace, LayoutContext context, Action<Element, Size, float> onItem)
+    private LayoutResult Layout(Extent availableSpace, PlanContext context, Action<Block, Extent, float> onItem)
     {
         if (_completedItems >= Items.Count)
             return LayoutResult.Exhausted();
@@ -74,7 +74,7 @@ public sealed class ColumnElement : Element
             float heightLeft = availableSpace.Height - totalHeight;
 
             // Offered less than nothing: there is no box to hand any item, not even one of no height.
-            if (heightLeft < -Size.Epsilon)
+            if (heightLeft < -Extent.Epsilon)
             {
                 pending = true;
                 break;
@@ -84,12 +84,12 @@ public sealed class ColumnElement : Element
             // item that occupies no height needs no gap, though, and still has to be drawn on this page: its side
             // effects (a destination, a "skip once" state change) belong here. Offer it the space without the gap
             // and keep it only if it claims none.
-            bool gapOverflows = heightLeft - spacing < -Size.Epsilon;
+            bool gapOverflows = heightLeft - spacing < -Extent.Epsilon;
 
-            Size itemSpace = new Size(availableSpace.Width, gapOverflows ? Math.Max(0f, heightLeft) : heightLeft - spacing);
-            SpacePlan plan = Items[index].Measure(itemSpace, context);
+            Extent itemSpace = new Extent(availableSpace.Width, gapOverflows ? Math.Max(0f, heightLeft) : heightLeft - spacing);
+            Fit plan = Items[index].Measure(itemSpace, context);
 
-            if (gapOverflows && !plan.IsEmpty && (plan.IsWrap || plan.Size.Height > Size.Epsilon))
+            if (gapOverflows && !plan.IsEmpty && (plan.IsWrap || plan.Size.Height > Extent.Epsilon))
             {
                 pending = true;
                 break;
@@ -115,13 +115,13 @@ public sealed class ColumnElement : Element
             // Only an item that actually occupies space earns a gap before it. Hidden content still has to be
             // drawn — a "skip once" marker advances its state during Draw — but it must leave no visible trace,
             // otherwise toggling a section on and off would shift everything below it.
-            bool occupiesSpace = plan.Size.Height > Size.Epsilon;
+            bool occupiesSpace = plan.Size.Height > Extent.Epsilon;
 
             if (occupiesSpace)
                 totalHeight += spacing;
 
             // The item's final size: the column's full width, and the height it measured (ADR 0012).
-            onItem(Items[index], new Size(availableSpace.Width, plan.Size.Height), totalHeight);
+            onItem(Items[index], new Extent(availableSpace.Width, plan.Size.Height), totalHeight);
 
             totalHeight += plan.Size.Height;
             maxWidth = Math.Max(maxWidth, plan.Size.Width);
@@ -140,26 +140,26 @@ public sealed class ColumnElement : Element
         if (!drewAnything)
             return completed >= Items.Count ? LayoutResult.Exhausted() : LayoutResult.Wrapped("No item fitted in the available space.");
 
-        return new LayoutResult(new Size(maxWidth, totalHeight), completed, pending || completed < Items.Count);
+        return new LayoutResult(new Extent(maxWidth, totalHeight), completed, pending || completed < Items.Count);
     }
 
-    private readonly record struct LayoutResult(Size Size, int CompletedItems, bool HasMore, string? WrapReason = null, bool IsExhausted = false)
+    private readonly record struct LayoutResult(Extent Size, int CompletedItems, bool HasMore, string? WrapReason = null, bool IsExhausted = false)
     {
-        public static LayoutResult Exhausted() => new(Size.Zero, 0, false, null, true);
+        public static LayoutResult Exhausted() => new(Extent.Zero, 0, false, null, true);
 
-        public static LayoutResult Wrapped(string reason) => new(Size.Zero, 0, false, reason);
+        public static LayoutResult Wrapped(string reason) => new(Extent.Zero, 0, false, reason);
 
         public bool DrewContent => !IsExhausted && WrapReason is null;
 
-        public SpacePlan ToSpacePlan()
+        public Fit ToSpacePlan()
         {
             if (IsExhausted)
-                return SpacePlan.Empty();
+                return Fit.Empty();
 
             if (WrapReason is not null)
-                return SpacePlan.Wrap(WrapReason);
+                return Fit.Wrap(WrapReason);
 
-            return HasMore ? SpacePlan.PartialRender(Size) : SpacePlan.FullRender(Size);
+            return HasMore ? Fit.PartialRender(Size) : Fit.FullRender(Size);
         }
     }
 }

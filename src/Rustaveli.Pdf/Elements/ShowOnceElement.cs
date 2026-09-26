@@ -10,7 +10,7 @@ namespace Rustaveli.Pdf.Elements;
 /// Placed inside a header, this produces content that introduces a document once rather than repeating on
 /// every page.
 /// </remarks>
-public sealed class ShowOnceElement : ContainerElement
+public sealed class ShowOnceElement : EnclosingBlock
 {
     private bool _hasRendered;
 
@@ -18,10 +18,10 @@ public sealed class ShowOnceElement : ContainerElement
 
     protected override void ResetOwnState() => _hasRendered = false;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context) =>
-        _hasRendered ? SpacePlan.Empty() : base.Measure(availableSpace, context);
+    public override Fit Measure(Extent availableSpace, PlanContext context) =>
+        _hasRendered ? Fit.Empty() : base.Measure(availableSpace, context);
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (_hasRendered)
             return;

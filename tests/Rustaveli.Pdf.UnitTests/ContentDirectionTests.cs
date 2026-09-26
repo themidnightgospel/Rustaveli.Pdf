@@ -15,10 +15,10 @@ public class ContentDirectionTests
     [Fact]
     public void RowsInheritDirectionFromTheContext()
     {
-        LayoutContext context = LayoutHarness.Context();
-        context.ContentDirection = ContentDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ContentDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(TwoColumnRow(), new Size(200, 100), context);
+        RecordedPage page = LayoutHarness.Draw(TwoColumnRow(), new Extent(200, 100), context);
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(150f, first.Position.X);
@@ -28,12 +28,12 @@ public class ContentDirectionTests
     public void AnExplicitRowDirectionOverridesTheContext()
     {
         RowElement row = TwoColumnRow();
-        row.Direction = ContentDirection.LeftToRight;
+        row.Direction = ReadingDirection.LeftToRight;
 
-        LayoutContext context = LayoutHarness.Context();
-        context.ContentDirection = ContentDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ContentDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(row, new Size(200, 100), context);
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100), context);
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(0f, first.Position.X);
@@ -45,10 +45,10 @@ public class ContentDirectionTests
         TextElement element = new TextElement();
         new TextDescriptor(element).Span("Hello");
 
-        LayoutContext context = LayoutHarness.Context();
-        context.ContentDirection = ContentDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ContentDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(100, 100), context);
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100), context);
         TextOperation text = Assert.Single(page.Texts);
 
         // Five characters at 6pt each leaves 70pt of slack, taken up on the left.
@@ -60,12 +60,12 @@ public class ContentDirectionTests
     {
         TextElement element = new TextElement();
         new TextDescriptor(element).Span("Hello");
-        element.Alignment = HorizontalAlignment.Left;
+        element.Alignment = HorizontalPlacement.Left;
 
-        LayoutContext context = LayoutHarness.Context();
-        context.ContentDirection = ContentDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ContentDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(100, 100), context);
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100), context);
 
         Approximately.Equal(0f, Assert.Single(page.Texts).Position.X);
     }
@@ -73,10 +73,10 @@ public class ContentDirectionTests
     [Fact]
     public void DirectionElementScopesTheChangeToItsSubtree()
     {
-        Element root = LayoutHarness.Build(container => container.RightToLeft().Element(inner =>
+        Block root = LayoutHarness.Build(container => container.RightToLeft().Element(inner =>
             inner.Child = TwoColumnRow()));
 
-        RecordedPage page = LayoutHarness.Draw(root, new Size(200, 100));
+        RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(150f, first.Position.X);
@@ -85,33 +85,33 @@ public class ContentDirectionTests
     [Fact]
     public void DirectionIsRestoredAfterTheSubtree()
     {
-        LayoutContext context = LayoutHarness.Context();
-        Element root = LayoutHarness.Build(container => container.RightToLeft().Element(inner =>
+        PlanContext context = LayoutHarness.Context();
+        Block root = LayoutHarness.Build(container => container.RightToLeft().Element(inner =>
             inner.Child = TwoColumnRow()));
 
-        LayoutHarness.Draw(root, new Size(200, 100), context);
+        LayoutHarness.Draw(root, new Extent(200, 100), context);
 
-        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
     }
 
     [Theory]
-    [InlineData(ContentDirection.LeftToRight, 50f)]
-    [InlineData(ContentDirection.RightToLeft, 30f)]
-    public void DirectionElementAppliesWhileMeasuringToo(ContentDirection direction, float expectedWidth)
+    [InlineData(ReadingDirection.LeftToRight, 50f)]
+    [InlineData(ReadingDirection.RightToLeft, 30f)]
+    public void DirectionElementAppliesWhileMeasuringToo(ReadingDirection direction, float expectedWidth)
     {
         // Only left-aligned text takes a first-line indent, and right-to-left text aligns right, so the same
         // paragraph measures 20pt narrower once the direction reaches it.
-        LayoutContext context = LayoutHarness.Context();
-        Element root = LayoutHarness.Build(container => container.ContentFrom(direction).Text(text =>
+        PlanContext context = LayoutHarness.Context();
+        Block root = LayoutHarness.Build(container => container.ContentFrom(direction).Text(text =>
         {
             text.FirstLineIndent(20);
             text.Span("Hello");
         }));
 
-        SpacePlan plan = LayoutHarness.Measure(root, new Size(200, 100), context);
+        Fit plan = LayoutHarness.Measure(root, new Extent(200, 100), context);
 
         Approximately.Equal(expectedWidth, plan.Size.Width);
-        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
     }
 
     [Fact]
@@ -130,9 +130,9 @@ public class ContentDirectionTests
         descriptor.Cell().Element(container => container.Child = new FixedElement(1, 10, TestInks.Blue));
         descriptor.PlaceAutomaticCells();
 
-        element.Direction = ContentDirection.RightToLeft;
+        element.Direction = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(120, 100));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(120, 100));
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(60f, first.Position.X);

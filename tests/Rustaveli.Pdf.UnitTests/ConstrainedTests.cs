@@ -14,9 +14,9 @@ public class ConstrainedTests
             Child = new FixedElement(10, 10)
         };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Approximately.Equal(new Size(80, 40), plan.Size);
+        Approximately.Equal(new Extent(80, 40), plan.Size);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public class ConstrainedTests
     {
         ConstrainedElement element = new ConstrainedElement { MaxWidth = 40, Child = new FixedElement(60, 10) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Assert.True(plan.IsWrap);
     }
@@ -34,7 +34,7 @@ public class ConstrainedTests
     {
         ConstrainedElement element = new ConstrainedElement { MinHeight = 300, Child = new FixedElement(10, 10) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("minimum height", plan.WrapReason);
@@ -45,7 +45,7 @@ public class ConstrainedTests
     {
         ConstrainedElement element = new ConstrainedElement { MinWidth = 100, MaxWidth = 100, Child = new FixedElement(10, 25) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Approximately.Equal(100f, plan.Size.Width);
         Approximately.Equal(25f, plan.Size.Height);
@@ -56,7 +56,7 @@ public class ConstrainedTests
     {
         ConstrainedElement element = new ConstrainedElement { MinWidth = 250, Child = new FixedElement(10, 10) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Assert.True(plan.IsWrap);
         Assert.Contains("minimum width", plan.WrapReason);
@@ -66,9 +66,9 @@ public class ConstrainedTests
     public void ReportsEmptyForAnExhaustedChildDespiteAMinimum()
     {
         // A minimum describes the content's box; once the content is gone there is no box left to hold open.
-        ConstrainedElement element = new ConstrainedElement { MinWidth = 50, MinHeight = 40, Child = new ScriptedElement(SpacePlan.Empty()) };
+        ConstrainedElement element = new ConstrainedElement { MinWidth = 50, MinHeight = 40, Child = new ScriptedElement(Fit.Empty()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(200, 200)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsEmpty);
     }
 
     [Fact]
@@ -76,10 +76,10 @@ public class ConstrainedTests
     {
         ConstrainedElement element = new ConstrainedElement { MaxHeight = 70, Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Assert.True(plan.IsPartialRender);
-        Approximately.Equal(new Size(10, 60), plan.Size);
+        Approximately.Equal(new Extent(10, 60), plan.Size);
     }
 
     [Fact]
@@ -87,11 +87,11 @@ public class ConstrainedTests
     {
         ConstrainedElement element = new ConstrainedElement { MinWidth = 50, MinHeight = 20 };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
         Assert.True(plan.IsFullRender);
-        Approximately.Equal(new Size(50, 20), plan.Size);
-        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 200)).Operations);
+        Approximately.Equal(new Extent(50, 20), plan.Size);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
 
     [Fact]
@@ -99,8 +99,8 @@ public class ConstrainedTests
     {
         ConstrainedElement element = new ConstrainedElement { MaxWidth = 80, MaxHeight = 30, Child = new PlaceholderElement() };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
-        Approximately.Equal(new Size(80, 30), Assert.Single(page.Operations.OfType<RectangleOperation>()).Size);
+        Approximately.Equal(new Extent(80, 30), Assert.Single(page.Operations.OfType<RectangleOperation>()).Size);
     }
 }

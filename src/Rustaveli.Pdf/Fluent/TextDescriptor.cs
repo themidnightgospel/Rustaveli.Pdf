@@ -13,7 +13,7 @@ public sealed class TextDescriptor(TextElement element)
     /// <summary>Appends a run of text.</summary>
     public TextSpanDescriptor Span(string text)
     {
-        return Add(new TextSpan
+        return Add(new TextRun
         {
             Text = text
         });
@@ -22,7 +22,7 @@ public sealed class TextDescriptor(TextElement element)
     /// <summary>Appends a run of text followed by a line break.</summary>
     public TextSpanDescriptor Line(string text)
     {
-        return Add(new TextSpan
+        return Add(new TextRun
         {
             Text = text + "\n"
         });
@@ -31,7 +31,7 @@ public sealed class TextDescriptor(TextElement element)
     /// <summary>Appends a blank line.</summary>
     public void EmptyLine()
     {
-        Add(new TextSpan
+        Add(new TextRun
         {
             Text = "\n"
         });
@@ -40,9 +40,9 @@ public sealed class TextDescriptor(TextElement element)
     /// <summary>Appends the number of the page this text is drawn on.</summary>
     public TextSpanDescriptor CurrentPageNumber()
     {
-        return Add(new TextSpan
+        return Add(new TextRun
         {
-            DynamicText = (PageContext page) => page.CurrentPage.ToString()
+            DynamicText = (Pagination page) => page.CurrentPage.ToString()
         });
     }
 
@@ -52,25 +52,25 @@ public sealed class TextDescriptor(TextElement element)
     /// </summary>
     public TextSpanDescriptor TotalPages()
     {
-        return Add(new TextSpan
+        return Add(new TextRun
         {
-            DynamicText = (PageContext page) => page.TotalPages.ToString()
+            DynamicText = (Pagination page) => page.TotalPages.ToString()
         });
     }
 
     /// <summary>Appends the page number a named section resolved to, or "?" if it has not been reached yet.</summary>
     public TextSpanDescriptor PageNumberOfSection(string sectionName)
     {
-        return Add(new TextSpan
+        return Add(new TextRun
         {
-            DynamicText = (PageContext page) => page.GetDestinationPage(sectionName)?.ToString() ?? "?"
+            DynamicText = (Pagination page) => page.GetDestinationPage(sectionName)?.ToString() ?? "?"
         });
     }
 
     /// <summary>Appends text that opens an external URL when clicked.</summary>
     public TextSpanDescriptor Hyperlink(string text, string url)
     {
-        return Add(new TextSpan
+        return Add(new TextRun
         {
             Text = text,
             Url = url
@@ -80,7 +80,7 @@ public sealed class TextDescriptor(TextElement element)
     /// <summary>Appends text that jumps to a named section when clicked.</summary>
     public TextSpanDescriptor SectionLink(string text, string sectionName)
     {
-        return Add(new TextSpan
+        return Add(new TextRun
         {
             Text = text,
             Destination = sectionName
@@ -94,14 +94,14 @@ public sealed class TextDescriptor(TextElement element)
     /// The element behaves as one unbreakable word: it rests on the baseline, moves to the next line whole if it
     /// does not fit, and raises the line it lands on to accommodate its height.
     /// </remarks>
-    public void Element(Action<IContainer> handler)
+    public void Element(Action<IFrame> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        Container container = new Container();
+        Frame container = new Frame();
         handler(container);
         if (container.Child != null)
         {
-            element.Spans.Add(new TextSpan
+            element.Spans.Add(new TextRun
             {
                 InlineElement = container
             });
@@ -122,30 +122,30 @@ public sealed class TextDescriptor(TextElement element)
 
     public void AlignLeft()
     {
-        element.Alignment = HorizontalAlignment.Left;
+        element.Alignment = HorizontalPlacement.Left;
     }
 
     public void AlignCenter()
     {
-        element.Alignment = HorizontalAlignment.Center;
+        element.Alignment = HorizontalPlacement.Center;
     }
 
     public void AlignRight()
     {
-        element.Alignment = HorizontalAlignment.Right;
+        element.Alignment = HorizontalPlacement.Right;
     }
 
     /// <summary>Adjusts the style inherited by every span in this paragraph.</summary>
-    public void DefaultTextStyle(Func<TextStyle, TextStyle> refinement)
+    public void DefaultTextStyle(Func<TypeStyle, TypeStyle> refinement)
     {
-        Func<TextStyle, TextStyle>? previous = element.DefaultStyleOverride;
+        Func<TypeStyle, TypeStyle>? previous = element.DefaultStyleOverride;
 
         element.DefaultStyleOverride = previous is null
             ? refinement
             : style => refinement(previous(style));
     }
 
-    private TextSpanDescriptor Add(TextSpan span)
+    private TextSpanDescriptor Add(TextRun span)
     {
         element.Spans.Add(span);
         return new TextSpanDescriptor(span);

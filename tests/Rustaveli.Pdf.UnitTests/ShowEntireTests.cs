@@ -7,7 +7,7 @@ public class ShowEntireTests
     {
         ShowEntireElement element = new ShowEntireElement { Child = new SplittableElement(unitCount: 4, unitHeight: 25) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 50));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
         Assert.True(plan.IsWrap);
     }
@@ -17,7 +17,7 @@ public class ShowEntireTests
     {
         ShowEntireElement element = new ShowEntireElement { Child = new SplittableElement(unitCount: 2, unitHeight: 25) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 50));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
         Assert.True(plan.IsFullRender);
     }
@@ -27,7 +27,7 @@ public class ShowEntireTests
     {
         ShowEntireElement element = new ShowEntireElement { Child = new SplittableElement(unitCount: 4, unitHeight: 25) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 50));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 50));
 
         Assert.Empty(page.Operations);
     }
@@ -37,7 +37,7 @@ public class ShowEntireTests
     {
         Document document = Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 100);
+            page.Size = new Extent(200, 100);
             page.Content().Column(column =>
             {
                 column.Item().Element(inner => inner.Child = new FixedElement(10, 60));

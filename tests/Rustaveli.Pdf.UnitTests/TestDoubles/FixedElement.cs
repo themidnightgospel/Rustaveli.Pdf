@@ -7,26 +7,26 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Layout behaviour is far easier to assert against a shape of known size than against real content, whose
 /// dimensions depend on font metrics and wrapping.
 /// </remarks>
-public sealed class FixedElement(Size size, Ink? color = null) : Element
+public sealed class FixedElement(Extent size, Ink? color = null) : Block
 {
-    public FixedElement(float width, float height) : this(new Size(width, height))
+    public FixedElement(float width, float height) : this(new Extent(width, height))
     {
     }
 
-    public FixedElement(float width, float height, Ink color) : this(new Size(width, height), color)
+    public FixedElement(float width, float height, Ink color) : this(new Extent(width, height), color)
     {
     }
 
     public Ink Color { get; } = color ?? TestInks.Black;
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context) =>
+    public override Fit Measure(Extent availableSpace, PlanContext context) =>
         size.FitsIn(availableSpace)
-            ? SpacePlan.FullRender(size)
-            : SpacePlan.Wrap($"The element requires {size} but only {availableSpace} is available.");
+            ? Fit.FullRender(size)
+            : Fit.Wrap($"The element requires {size} but only {availableSpace} is available.");
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (size.FitsIn(availableSpace))
-            context.Canvas.DrawRectangle(Position.Zero, size, Color);
+            context.Canvas.DrawRectangle(Offset.Zero, size, Color);
     }
 }

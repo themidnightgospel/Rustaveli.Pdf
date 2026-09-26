@@ -5,61 +5,61 @@ public class SpacePlanTests
     [Fact]
     public void WrapCarriesItsReasonAndOccupiesNoSpace()
     {
-        SpacePlan plan = SpacePlan.Wrap("too narrow");
+        Fit plan = Fit.Wrap("too narrow");
 
         Assert.True(plan.IsWrap);
         Assert.Equal("too narrow", plan.WrapReason);
-        Assert.Equal(Size.Zero, plan.Size);
+        Assert.Equal(Extent.Zero, plan.Size);
     }
 
     [Fact]
     public void OnlyRenderingOutcomesCountAsHavingDrawn()
     {
-        Assert.True(SpacePlan.FullRender(new Size(1, 1)).DrewSomething);
-        Assert.True(SpacePlan.PartialRender(new Size(1, 1)).DrewSomething);
-        Assert.False(SpacePlan.Wrap("no").DrewSomething);
-        Assert.False(SpacePlan.Empty().DrewSomething);
+        Assert.True(Fit.FullRender(new Extent(1, 1)).DrewSomething);
+        Assert.True(Fit.PartialRender(new Extent(1, 1)).DrewSomething);
+        Assert.False(Fit.Wrap("no").DrewSomething);
+        Assert.False(Fit.Empty().DrewSomething);
     }
 
     [Fact]
     public void EmptyOccupiesNoSpaceAndGivesNoReason()
     {
-        SpacePlan plan = SpacePlan.Empty();
+        Fit plan = Fit.Empty();
 
-        Assert.Equal(SpacePlanType.Empty, plan.Type);
-        Assert.Equal(Size.Zero, plan.Size);
+        Assert.Equal(FitKind.Empty, plan.Type);
+        Assert.Equal(Extent.Zero, plan.Size);
         Assert.Null(plan.WrapReason);
     }
 
     [Fact]
     public void FullRenderFromDimensionsMatchesFullRenderFromASize()
     {
-        SpacePlan plan = SpacePlan.FullRender(3, 4);
+        Fit plan = Fit.FullRender(3, 4);
 
-        Assert.Equal(SpacePlanType.FullRender, plan.Type);
-        Assert.Equal(new Size(3, 4), plan.Size);
+        Assert.Equal(FitKind.FullRender, plan.Type);
+        Assert.Equal(new Extent(3, 4), plan.Size);
         Assert.Null(plan.WrapReason);
-        Assert.Equal(SpacePlan.FullRender(new Size(3, 4)), plan);
+        Assert.Equal(Fit.FullRender(new Extent(3, 4)), plan);
     }
 
     [Fact]
     public void PartialRenderFromDimensionsMatchesPartialRenderFromASize()
     {
-        SpacePlan plan = SpacePlan.PartialRender(3, 4);
+        Fit plan = Fit.PartialRender(3, 4);
 
-        Assert.Equal(SpacePlanType.PartialRender, plan.Type);
-        Assert.Equal(new Size(3, 4), plan.Size);
+        Assert.Equal(FitKind.PartialRender, plan.Type);
+        Assert.Equal(new Extent(3, 4), plan.Size);
         Assert.Null(plan.WrapReason);
-        Assert.Equal(SpacePlan.PartialRender(new Size(3, 4)), plan);
+        Assert.Equal(Fit.PartialRender(new Extent(3, 4)), plan);
     }
 
     [Fact]
     public void EachOutcomeAnswersYesToExactlyItsOwnQuestion()
     {
-        SpacePlan wrap = SpacePlan.Wrap("no");
-        SpacePlan empty = SpacePlan.Empty();
-        SpacePlan full = SpacePlan.FullRender(1, 1);
-        SpacePlan partial = SpacePlan.PartialRender(1, 1);
+        Fit wrap = Fit.Wrap("no");
+        Fit empty = Fit.Empty();
+        Fit full = Fit.FullRender(1, 1);
+        Fit partial = Fit.PartialRender(1, 1);
 
         Assert.Equal(new[] { true, false, false, false }, Flags(wrap));
         Assert.Equal(new[] { false, true, false, false }, Flags(empty));
@@ -70,13 +70,13 @@ public class SpacePlanTests
     [Fact]
     public void WrapDescribesItselfWithItsReason()
     {
-        Assert.Equal("Wrap (too narrow)", SpacePlan.Wrap("too narrow").ToString());
+        Assert.Equal("Wrap (too narrow)", Fit.Wrap("too narrow").ToString());
     }
 
     [Fact]
     public void EmptyDescribesItselfByName()
     {
-        Assert.Equal("Empty", SpacePlan.Empty().ToString());
+        Assert.Equal("Empty", Fit.Empty().ToString());
     }
 
     [Fact]
@@ -84,9 +84,9 @@ public class SpacePlanTests
     {
         using CultureScope culture = CultureScope.Invariant();
 
-        Assert.Equal("FullRender (Width: 1.500, Height: 2.250)", SpacePlan.FullRender(1.5f, 2.25f).ToString());
-        Assert.Equal("PartialRender (Width: 3.000, Height: 4.000)", SpacePlan.PartialRender(3, 4).ToString());
+        Assert.Equal("FullRender (Width: 1.500, Height: 2.250)", Fit.FullRender(1.5f, 2.25f).ToString());
+        Assert.Equal("PartialRender (Width: 3.000, Height: 4.000)", Fit.PartialRender(3, 4).ToString());
     }
 
-    private static bool[] Flags(SpacePlan plan) => [plan.IsWrap, plan.IsEmpty, plan.IsFullRender, plan.IsPartialRender];
+    private static bool[] Flags(Fit plan) => [plan.IsWrap, plan.IsEmpty, plan.IsFullRender, plan.IsPartialRender];
 }

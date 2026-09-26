@@ -6,17 +6,17 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// Paints a solid colour behind its child, covering exactly the area the child occupies.
 /// </summary>
-public sealed class BackgroundElement : ContainerElement
+public sealed class BackgroundElement : EnclosingBlock
 {
     public Ink Color { get; set; } = Ink.Transparent;
 
     /// <summary>Radius of the corner rounding. Zero draws square corners.</summary>
     public float CornerRadius { get; set; }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         // A parent only draws what it measured as drawable; this guards callers that draw without asking.
-        SpacePlan plan = Measure(availableSpace, context.Layout);
+        Fit plan = Measure(availableSpace, context.Layout);
 
         if (plan.IsWrap || plan.IsEmpty)
             return;
@@ -26,9 +26,9 @@ public sealed class BackgroundElement : ContainerElement
         if (!Color.IsTransparent)
         {
             if (CornerRadius > 0)
-                context.Canvas.DrawRoundedRectangle(Position.Zero, availableSpace, CornerRadius, Color);
+                context.Canvas.DrawRoundedRectangle(Offset.Zero, availableSpace, CornerRadius, Color);
             else
-                context.Canvas.DrawRectangle(Position.Zero, availableSpace, Color);
+                context.Canvas.DrawRectangle(Offset.Zero, availableSpace, Color);
         }
 
         Child?.Draw(availableSpace, context);

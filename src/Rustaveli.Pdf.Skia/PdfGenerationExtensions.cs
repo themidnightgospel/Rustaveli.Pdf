@@ -88,7 +88,7 @@ public static class PdfGenerationExtensions
         sKDocument.Close();
     }
 
-    private static SKDocumentPdfMetadata BuildMetadata(DocumentMetadata metadata, PdfGenerationOptions options)
+    private static SKDocumentPdfMetadata BuildMetadata(DocumentInfo metadata, PdfGenerationOptions options)
     {
         SKDocumentPdfMetadata result = new SKDocumentPdfMetadata
         {

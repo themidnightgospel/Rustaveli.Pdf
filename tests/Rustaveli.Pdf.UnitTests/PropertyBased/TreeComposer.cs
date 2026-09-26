@@ -16,7 +16,7 @@ public sealed class TreeComposer
     /// <summary>Every non-space character composed into the document, in composition order.</summary>
     public string WrittenText => _written.ToString();
 
-    public void Compose(IContainer container, TreeNode node)
+    public void Compose(IFrame container, TreeNode node)
     {
         switch (node.Kind)
         {

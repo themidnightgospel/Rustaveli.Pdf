@@ -20,8 +20,8 @@ public class PdfGenerationExtensionsTests
     private static Document TextDocument(string text = "Generated") =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 200);
-            page.Margin = Edges.All(10);
+            page.Size = new Extent(200, 200);
+            page.Margin = Sides.All(10);
             page.Content().Text(text);
         }));
 
@@ -29,7 +29,7 @@ public class PdfGenerationExtensionsTests
     private static Document FailingDocument() =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 200);
+            page.Size = new Extent(200, 200);
             page.Content().Image(new ForeignImage());
         }));
 
@@ -40,7 +40,7 @@ public class PdfGenerationExtensionsTests
     private static Document ShapeDocument() =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 200);
+            page.Size = new Extent(200, 200);
             page.Content().Height(50).Placeholder(TestInks.Red);
         }));
 
@@ -51,7 +51,7 @@ public class PdfGenerationExtensionsTests
     private static Document PausingDocument(ManualResetEventSlim entered, ManualResetEventSlim release) =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = new Size(200, 200);
+            page.Size = new Extent(200, 200);
             page.Content()
                 .DefaultTextStyle(style =>
                 {
@@ -162,7 +162,7 @@ public class PdfGenerationExtensionsTests
         {
             File.WriteAllText(path, "previous contents");
 
-            DocumentDrawingException error = Assert.Throws<DocumentDrawingException>(() => FailingDocument().GeneratePdf(path));
+            RenderingException error = Assert.Throws<RenderingException>(() => FailingDocument().GeneratePdf(path));
 
             Assert.Equal("image", Assert.IsType<ArgumentException>(error.InnerException).ParamName);
             Assert.Equal("previous contents", File.ReadAllText(path));
@@ -178,7 +178,7 @@ public class PdfGenerationExtensionsTests
     {
         using MemoryStream stream = new MemoryStream();
 
-        DocumentDrawingException error = Assert.Throws<DocumentDrawingException>(() => FailingDocument().GeneratePdf(stream));
+        RenderingException error = Assert.Throws<RenderingException>(() => FailingDocument().GeneratePdf(stream));
 
         Assert.IsType<ArgumentException>(error.InnerException);
         Assert.Equal(0, stream.Length);

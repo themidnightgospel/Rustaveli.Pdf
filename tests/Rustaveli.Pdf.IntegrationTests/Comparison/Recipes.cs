@@ -16,13 +16,13 @@ public static class Recipes
 
     public static byte[] RustaveliTextFlow()
     {
-        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IDocumentContainer container)
+        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IComposition container)
         {
-            container.Page(delegate(Rustaveli.Pdf.Documents.PageDescriptor page)
+            container.Page(delegate(Rustaveli.Pdf.Documents.Section page)
             {
-                page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
-                page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
+                page.Size = new Rustaveli.Pdf.Primitives.Extent(595f, 842f);
+                page.Margin = Sides.All(40f);
+                page.DefaultTextStyle = Rustaveli.Pdf.Text.TypeStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
                 page.Content().Column(delegate(Rustaveli.Pdf.Fluent.ColumnDescriptor column)
                 {
                     column.Spacing(8f);
@@ -58,13 +58,13 @@ public static class Recipes
 
     public static byte[] RustaveliPaginated()
     {
-        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IDocumentContainer container)
+        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IComposition container)
         {
-            container.Page(delegate(Rustaveli.Pdf.Documents.PageDescriptor page)
+            container.Page(delegate(Rustaveli.Pdf.Documents.Section page)
             {
-                page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
-                page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
+                page.Size = new Rustaveli.Pdf.Primitives.Extent(595f, 842f);
+                page.Margin = Sides.All(40f);
+                page.DefaultTextStyle = Rustaveli.Pdf.Text.TypeStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
                 page.Header().Text("Quarterly Statement");
                 page.Footer().Text(delegate(Rustaveli.Pdf.Fluent.TextDescriptor text)
                 {
@@ -116,13 +116,13 @@ public static class Recipes
 
     public static byte[] RustaveliTable()
     {
-        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IDocumentContainer container)
+        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IComposition container)
         {
-            container.Page(delegate(Rustaveli.Pdf.Documents.PageDescriptor page)
+            container.Page(delegate(Rustaveli.Pdf.Documents.Section page)
             {
-                page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
-                page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
+                page.Size = new Rustaveli.Pdf.Primitives.Extent(595f, 842f);
+                page.Margin = Sides.All(40f);
+                page.DefaultTextStyle = Rustaveli.Pdf.Text.TypeStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
                 page.Content().Table(delegate(Rustaveli.Pdf.Fluent.TableDescriptor table)
                 {
                     table.ColumnsDefinition(delegate(Rustaveli.Pdf.Fluent.TableColumnsDefinitionDescriptor columns)

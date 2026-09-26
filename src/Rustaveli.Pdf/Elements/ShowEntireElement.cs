@@ -10,18 +10,18 @@ namespace Rustaveli.Pdf.Elements;
 /// Converts a partial render into a wrap, which sends the content to the next page intact. If it cannot fit on
 /// an empty page either, the engine reports a layout failure rather than silently truncating.
 /// </remarks>
-public sealed class ShowEntireElement : ContainerElement
+public sealed class ShowEntireElement : EnclosingBlock
 {
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
-        SpacePlan childPlan = base.Measure(availableSpace, context);
+        Fit childPlan = base.Measure(availableSpace, context);
 
         return childPlan.IsPartialRender
-            ? SpacePlan.Wrap("The content is kept together and does not fit in the remaining space.")
+            ? Fit.Wrap("The content is kept together and does not fit in the remaining space.")
             : childPlan;
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         // Measure guarantees the parent only draws this when the whole child fits.
         if (Measure(availableSpace, context.Layout).IsWrap)

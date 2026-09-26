@@ -10,11 +10,11 @@ namespace Rustaveli.Pdf.Fluent;
 /// Each call composes another transformation on top of the inherited style rather than replacing it, so
 /// <c>.Bold().FontSize(18)</c> applies both and still inherits the typeface from its surroundings.
 /// </remarks>
-public sealed class TextSpanDescriptor(TextSpan span)
+public sealed class TextSpanDescriptor(TextRun span)
 {
-    private TextSpanDescriptor Refine(Func<TextStyle, TextStyle> refinement)
+    private TextSpanDescriptor Refine(Func<TypeStyle, TypeStyle> refinement)
     {
-        Func<TextStyle, TextStyle>? previous = span.StyleOverride;
+        Func<TypeStyle, TypeStyle>? previous = span.StyleOverride;
 
         span.StyleOverride = previous is null
             ? refinement
@@ -35,7 +35,7 @@ public sealed class TextSpanDescriptor(TextSpan span)
 
     public TextSpanDescriptor BackgroundColor(string hexColor) => BackgroundColor(Ink.Hex(hexColor));
 
-    public TextSpanDescriptor Weight(FontWeight weight) => Refine(style => style.WeightOf(weight));
+    public TextSpanDescriptor Weight(TypeWeight weight) => Refine(style => style.WeightOf(weight));
 
     public TextSpanDescriptor Bold() => Refine(style => style.Bold());
 
@@ -54,5 +54,5 @@ public sealed class TextSpanDescriptor(TextSpan span)
     public TextSpanDescriptor Superscript() => Refine(style => style.Superscript());
 
     /// <summary>Applies an arbitrary style transformation.</summary>
-    public TextSpanDescriptor Style(Func<TextStyle, TextStyle> refinement) => Refine(refinement);
+    public TextSpanDescriptor Style(Func<TypeStyle, TypeStyle> refinement) => Refine(refinement);
 }

@@ -21,7 +21,7 @@ public class ParagraphFormattingTests
             text.Span("second");
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         List<TextOperation> drawn = page.Texts.ToList();
 
         Approximately.Equal(20f, drawn[0].Position.X);
@@ -38,7 +38,7 @@ public class ParagraphFormattingTests
             text.Span("aaa bbb");
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(24, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(24, 500));
         List<TextOperation> drawn = page.Texts.ToList();
 
         Approximately.Equal(20f, drawn[0].Position.X);
@@ -55,7 +55,7 @@ public class ParagraphFormattingTests
             text.Span("second");
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         // Two lines plus a single gap between them.
         Approximately.Equal(2 * LineHeight + 8, plan.Size.Height);
@@ -70,7 +70,7 @@ public class ParagraphFormattingTests
             text.Span("aaa bbb");
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(24, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(24, 500));
 
         Approximately.Equal(2 * LineHeight, plan.Size.Height);
     }

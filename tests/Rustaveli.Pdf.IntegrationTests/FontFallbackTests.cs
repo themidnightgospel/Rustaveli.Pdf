@@ -25,15 +25,15 @@ public class FontFallbackTests
     /// <summary>The 'glyf' table tag: present in fonts with TrueType outlines.</summary>
     private const uint TrueTypeOutlines = ('g' << 24) | ('l' << 16) | ('y' << 8) | 'f';
 
-    private static readonly TextStyle Sans = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
+    private static readonly TypeStyle Sans = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
 
     private static Document Build(string text) => Build(text, Sans);
 
-    private static Document Build(string text, TextStyle style) =>
+    private static Document Build(string text, TypeStyle style) =>
         Document.Create(container => container.Page(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
+            page.Size = PaperSizes.A4;
+            page.Margin = Sides.All(30);
             page.DefaultTextStyle = style;
             page.Content().Text(text);
         }));
@@ -110,7 +110,7 @@ public class FontFallbackTests
     public void MixedScriptTextMeasuresWiderThanItsLatinPartAlone()
     {
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
-        TextStyle style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
+        TypeStyle style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
 
         float latinOnly = measurer.MeasureWidth(Latin, style);
         float mixed = measurer.MeasureWidth($"{Latin}{Cjk}", style);
@@ -124,7 +124,7 @@ public class FontFallbackTests
         // Measurement and drawing must split the string identically; if they disagreed, a fallback glyph would
         // land somewhere other than where its advance was reserved.
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
-        TextStyle style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
+        TypeStyle style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
 
         float whole = measurer.MeasureWidth($"{Latin}{Cjk}", style);
         float parts = measurer.MeasureWidth(Latin, style) + measurer.MeasureWidth(Cjk, style);
@@ -141,7 +141,7 @@ public class FontFallbackTests
         provider.FallbackFamilies.Add("Segoe UI");
 
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(provider);
-        TextStyle style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
+        TypeStyle style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
 
         Assert.True(measurer.MeasureWidth(Cjk, style) > 0);
     }
@@ -150,7 +150,7 @@ public class FontFallbackTests
     public void PurelyLatinTextIsUnaffected()
     {
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
-        TextStyle style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
+        TypeStyle style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
 
         // The fast path must produce exactly what a single-font measurement always did.
         Assert.True(measurer.MeasureWidth(Latin, style) > 0);

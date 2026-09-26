@@ -9,7 +9,7 @@ namespace Rustaveli.Pdf.IntegrationTests;
 /// </summary>
 public class SkiaFontProviderTests
 {
-    private static readonly TextStyle Sans = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(12);
+    private static readonly TypeStyle Sans = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(12);
 
     [Fact]
     public void TheTypefaceFollowsTheStylesWeightAndSlant()

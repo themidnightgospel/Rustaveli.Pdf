@@ -7,9 +7,9 @@ public class FlipTests
     {
         FlipElement element = new FlipElement { FlipHorizontal = true, Child = new FixedElement(50, 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Approximately.Equal(new Size(50, 20), plan.Size);
+        Approximately.Equal(new Extent(50, 20), plan.Size);
     }
 
     [Fact]
@@ -17,7 +17,7 @@ public class FlipTests
     {
         FlipElement element = new FlipElement { FlipHorizontal = true, Child = new FixedElement(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         // Reflected about the box's right edge, the origin lands where the far corner was.
@@ -29,7 +29,7 @@ public class FlipTests
     {
         FlipElement element = new FlipElement { FlipVertical = true, Child = new FixedElement(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         Approximately.Equal(20f, drawn.Position.Y);
@@ -40,18 +40,18 @@ public class FlipTests
     {
         FlipElement element = new FlipElement { FlipHorizontal = true, FlipVertical = true };
 
-        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 200)).Operations);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
 
     [Theory]
-    [InlineData(SpacePlanType.Wrap)]
-    [InlineData(SpacePlanType.Empty)]
-    public void DoesNotAskAChildWithNothingToShowToDraw(SpacePlanType outcome)
+    [InlineData(FitKind.Wrap)]
+    [InlineData(FitKind.Empty)]
+    public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
         FlipElement element = new FlipElement { FlipHorizontal = true, Child = child };
 
-        LayoutHarness.Draw(element, new Size(200, 200));
+        LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(child.DrawnWith);
     }

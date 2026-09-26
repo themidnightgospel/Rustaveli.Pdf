@@ -5,10 +5,10 @@ public class LayoutContextTests
     [Fact]
     public void ExposesTheServicesItWasCreatedWith()
     {
-        ITextMeasurer measurer = new FakeTextMeasurer();
-        PageContext page = new PageContext();
+        ITypeMeasurer measurer = new FakeTextMeasurer();
+        Pagination page = new Pagination();
 
-        LayoutContext context = new LayoutContext(measurer, page);
+        PlanContext context = new PlanContext(measurer, page);
 
         Assert.Same(measurer, context.TextMeasurer);
         Assert.Same(page, context.Page);
@@ -17,99 +17,99 @@ public class LayoutContextTests
     [Fact]
     public void StartsWithTheDefaultStyleFlowingLeftToRight()
     {
-        LayoutContext context = LayoutHarness.Context();
+        PlanContext context = LayoutHarness.Context();
 
-        Assert.Same(TextStyle.Default, context.DefaultTextStyle);
-        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+        Assert.Same(TypeStyle.Default, context.DefaultTextStyle);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
     }
 
     [Fact]
     public void AnActionRunsWithTheRequestedDirectionInForce()
     {
-        LayoutContext context = LayoutHarness.Context();
-        ContentDirection observed = ContentDirection.LeftToRight;
+        PlanContext context = LayoutHarness.Context();
+        ReadingDirection observed = ReadingDirection.LeftToRight;
 
-        context.WithDirection(ContentDirection.RightToLeft, () => { observed = context.ContentDirection; });
+        context.WithDirection(ReadingDirection.RightToLeft, () => { observed = context.ContentDirection; });
 
-        Assert.Equal(ContentDirection.RightToLeft, observed);
-        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.RightToLeft, observed);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
     }
 
     [Fact]
     public void AnActionRestoresThePreviousDirectionRatherThanTheDefault()
     {
-        LayoutContext context = LayoutHarness.Context();
-        context.ContentDirection = ContentDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ContentDirection = ReadingDirection.RightToLeft;
 
-        context.WithDirection(ContentDirection.LeftToRight, () => { });
+        context.WithDirection(ReadingDirection.LeftToRight, () => { });
 
-        Assert.Equal(ContentDirection.RightToLeft, context.ContentDirection);
+        Assert.Equal(ReadingDirection.RightToLeft, context.ContentDirection);
     }
 
     [Fact]
     public void AnActionThatThrowsStillRestoresTheDirection()
     {
-        LayoutContext context = LayoutHarness.Context();
+        PlanContext context = LayoutHarness.Context();
         InvalidOperationException failure = new InvalidOperationException("boom");
 
         InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() =>
-            context.WithDirection(ContentDirection.RightToLeft, () => { throw failure; }));
+            context.WithDirection(ReadingDirection.RightToLeft, () => { throw failure; }));
 
         Assert.Same(failure, thrown);
-        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
     }
 
     [Fact]
     public void AFunctionRunsWithTheRequestedDirectionAndReturnsItsResult()
     {
-        LayoutContext context = LayoutHarness.Context();
+        PlanContext context = LayoutHarness.Context();
 
-        ContentDirection observed = context.WithDirection(ContentDirection.RightToLeft, () => context.ContentDirection);
+        ReadingDirection observed = context.WithDirection(ReadingDirection.RightToLeft, () => context.ContentDirection);
 
-        Assert.Equal(ContentDirection.RightToLeft, observed);
-        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.RightToLeft, observed);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
     }
 
     [Fact]
     public void AFunctionRestoresThePreviousDirectionRatherThanTheDefault()
     {
-        LayoutContext context = LayoutHarness.Context();
-        context.ContentDirection = ContentDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ContentDirection = ReadingDirection.RightToLeft;
 
-        int result = context.WithDirection(ContentDirection.LeftToRight, () => 42);
+        int result = context.WithDirection(ReadingDirection.LeftToRight, () => 42);
 
         Assert.Equal(42, result);
-        Assert.Equal(ContentDirection.RightToLeft, context.ContentDirection);
+        Assert.Equal(ReadingDirection.RightToLeft, context.ContentDirection);
     }
 
     [Fact]
     public void AFunctionThatThrowsStillRestoresTheDirection()
     {
-        LayoutContext context = LayoutHarness.Context();
+        PlanContext context = LayoutHarness.Context();
         InvalidOperationException failure = new InvalidOperationException("boom");
 
         InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() =>
-            context.WithDirection<int>(ContentDirection.RightToLeft, () => throw failure));
+            context.WithDirection<int>(ReadingDirection.RightToLeft, () => throw failure));
 
         Assert.Same(failure, thrown);
-        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
     }
 
     [Fact]
     public void NestedOverridesUnwindOneLevelAtATime()
     {
-        LayoutContext context = LayoutHarness.Context();
-        List<ContentDirection> seen = [];
+        PlanContext context = LayoutHarness.Context();
+        List<ReadingDirection> seen = [];
 
-        context.WithDirection(ContentDirection.RightToLeft, () =>
+        context.WithDirection(ReadingDirection.RightToLeft, () =>
         {
-            context.WithDirection(ContentDirection.LeftToRight, () => { seen.Add(context.ContentDirection); });
+            context.WithDirection(ReadingDirection.LeftToRight, () => { seen.Add(context.ContentDirection); });
             seen.Add(context.ContentDirection);
         });
         seen.Add(context.ContentDirection);
 
         Assert.Equal(
-            new[] { ContentDirection.LeftToRight, ContentDirection.RightToLeft, ContentDirection.LeftToRight },
+            new[] { ReadingDirection.LeftToRight, ReadingDirection.RightToLeft, ReadingDirection.LeftToRight },
             seen);
     }
 }

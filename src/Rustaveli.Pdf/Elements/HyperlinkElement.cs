@@ -6,13 +6,13 @@ namespace Rustaveli.Pdf.Elements;
 /// <summary>
 /// Makes the area occupied by its child clickable, opening an external URL.
 /// </summary>
-public sealed class HyperlinkElement : ContainerElement
+public sealed class HyperlinkElement : EnclosingBlock
 {
     public string Url { get; set; } = string.Empty;
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
-        SpacePlan plan = Measure(availableSpace, context.Layout);
+        Fit plan = Measure(availableSpace, context.Layout);
 
         if (plan.IsWrap || plan.IsEmpty)
             return;

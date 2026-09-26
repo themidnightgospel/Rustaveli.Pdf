@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.Elements;
 /// and on the next page the items that already finished report themselves empty while the unfinished ones
 /// continue — which is what keeps multi-column content aligned across a page break.
 /// </remarks>
-public sealed class RowElement : Element
+public sealed class RowElement : Block
 {
     private bool[]? _completed;
 
@@ -25,9 +25,9 @@ public sealed class RowElement : Element
     public float Spacing { get; set; }
 
     /// <summary>Overrides the inherited flow direction. Null follows the surrounding context.</summary>
-    public ContentDirection? Direction { get; set; }
+    public ReadingDirection? Direction { get; set; }
 
-    public override IEnumerable<Element?> GetChildren() => Items;
+    public override IEnumerable<Block?> GetChildren() => Items;
 
     protected override void ResetOwnState()
     {
@@ -45,10 +45,10 @@ public sealed class RowElement : Element
         return _completed;
     }
 
-    public override SpacePlan Measure(Size availableSpace, LayoutContext context)
+    public override Fit Measure(Extent availableSpace, PlanContext context)
     {
         if (Items.Count == 0)
-            return SpacePlan.FullRender(Size.Zero);
+            return Fit.FullRender(Extent.Zero);
 
         // Constant columns cannot shrink, so a row whose fixed widths already overflow can never be laid out
         // here however much vertical room arrives. Wrapping sends it to a fresh page, where the engine's
@@ -56,9 +56,9 @@ public sealed class RowElement : Element
         float fixedWidth = Items.Where(item => item.Sizing == RowItemSizing.Constant).Sum(item => Math.Max(0f, item.Value))
             + (Spacing * Math.Max(0, Items.Count - 1));
 
-        if (fixedWidth > availableSpace.Width + Size.Epsilon)
+        if (fixedWidth > availableSpace.Width + Extent.Epsilon)
         {
-            return SpacePlan.Wrap(
+            return Fit.Wrap(
                 $"The row's fixed columns need {fixedWidth:F1} points but only {availableSpace.Width:F1} is available.");
         }
 
@@ -74,7 +74,7 @@ public sealed class RowElement : Element
             if (completed[index])
                 continue;
 
-            SpacePlan plan = Items[index].Measure(new Size(widths[index], availableSpace.Height), context);
+            Fit plan = Items[index].Measure(new Extent(widths[index], availableSpace.Height), context);
 
             if (plan.IsWrap)
                 return plan;
@@ -88,20 +88,20 @@ public sealed class RowElement : Element
         }
 
         if (!anyContent)
-            return SpacePlan.Empty();
+            return Fit.Empty();
 
-        Size size = new Size(availableSpace.Width, maxHeight);
+        Extent size = new Extent(availableSpace.Width, maxHeight);
 
-        return anyPartial ? SpacePlan.PartialRender(size) : SpacePlan.FullRender(size);
+        return anyPartial ? Fit.PartialRender(size) : Fit.FullRender(size);
     }
 
-    public override void Draw(Size availableSpace, DrawContext context)
+    public override void Draw(Extent availableSpace, RenderContext context)
     {
         if (Items.Count == 0)
             return;
 
         float[] widths = ResolveWidths(availableSpace, context.Layout);
-        SpacePlan plan = Measure(availableSpace, context.Layout);
+        Fit plan = Measure(availableSpace, context.Layout);
 
         if (plan.IsWrap || plan.IsEmpty)
             return;
@@ -110,24 +110,24 @@ public sealed class RowElement : Element
         // regardless of how much content each one holds.
         float rowHeight = plan.Size.Height;
         float offset = 0f;
-        ContentDirection direction = Direction ?? context.Layout.ContentDirection;
+        ReadingDirection direction = Direction ?? context.Layout.ContentDirection;
         bool[] completed = Completion();
 
         for (int index = 0; index < Items.Count; index++)
         {
             if (!completed[index])
             {
-                SpacePlan itemPlan = Items[index].Measure(new Size(widths[index], availableSpace.Height), context.Layout);
+                Fit itemPlan = Items[index].Measure(new Extent(widths[index], availableSpace.Height), context.Layout);
 
                 if (!itemPlan.IsWrap && !itemPlan.IsEmpty)
                 {
-                    float position = direction == ContentDirection.LeftToRight
+                    float position = direction == ReadingDirection.LeftToRight
                         ? offset
                         : availableSpace.Width - offset - widths[index];
 
-                    context.Canvas.Translate(new Position(position, 0f));
-                    Items[index].Draw(new Size(widths[index], rowHeight), context);
-                    context.Canvas.Translate(new Position(-position, 0f));
+                    context.Canvas.Translate(new Offset(position, 0f));
+                    Items[index].Draw(new Extent(widths[index], rowHeight), context);
+                    context.Canvas.Translate(new Offset(-position, 0f));
                 }
 
                 if (itemPlan.IsFullRender || itemPlan.IsEmpty)
@@ -144,13 +144,13 @@ public sealed class RowElement : Element
     /// Splits the available width across items: constants first, then measured auto items, and whatever
     /// survives is shared among the relative items by weight.
     /// </summary>
-    private float[] ResolveWidths(Size availableSpace, LayoutContext context)
+    private float[] ResolveWidths(Extent availableSpace, PlanContext context)
     {
         // Sizing an auto column means measuring its content, and both Measure and Draw need the widths on every
         // page. The result depends only on the offered width, so it is cached rather than recomputed.
         if (_cachedWidths is not null
             && _cachedWidths.Length == Items.Count
-            && Math.Abs(_cachedAvailableWidth - availableSpace.Width) < Size.Epsilon)
+            && Math.Abs(_cachedAvailableWidth - availableSpace.Width) < Extent.Epsilon)
         {
             return _cachedWidths;
         }
@@ -174,8 +174,8 @@ public sealed class RowElement : Element
             if (Items[index].Sizing != RowItemSizing.Auto)
                 continue;
 
-            Size offered = new Size(Math.Max(0f, available - consumed), availableSpace.Height);
-            SpacePlan plan = Items[index].Measure(offered, context);
+            Extent offered = new Extent(Math.Max(0f, available - consumed), availableSpace.Height);
+            Fit plan = Items[index].Measure(offered, context);
 
             widths[index] = plan.IsWrap ? 0f : Math.Min(plan.Size.Width, offered.Width);
             consumed += widths[index];

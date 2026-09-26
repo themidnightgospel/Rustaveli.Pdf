@@ -11,5 +11,5 @@ public sealed class CaptionComponent(string caption) : IComponent
     {
     }
 
-    public void Compose(IContainer container) => container.Text(caption);
+    public void Compose(IFrame container) => container.Text(caption);
 }

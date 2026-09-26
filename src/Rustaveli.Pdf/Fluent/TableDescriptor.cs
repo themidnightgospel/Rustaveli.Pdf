@@ -66,7 +66,7 @@ public sealed class TableDescriptor(TableElement element)
             {
                 continue;
             }
-            throw new DocumentComposeException($"A {band} cell occupies columns {cell.Column} to {cell.LastColumn}, but the table declares only {columnCount}. Add more columns, or reduce the cell's column or span.");
+            throw new CompositionException($"A {band} cell occupies columns {cell.Column} to {cell.LastColumn}, but the table declares only {columnCount}. Add more columns, or reduce the cell's column or span.");
         }
     }
 }
