@@ -16,7 +16,8 @@ namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 /// <param name="Value">The value written; for kinds 2 and 3, small values pick an edge case instead.</param>
 public readonly record struct FontMutation(int Region, int Selector, int Kind, int Value)
 {
-    private static readonly uint[] EdgeValues = [0, 1, 0x7F, 0x80, 0xFF, 0x7FFF, 0x8000, 0xFFFF, 0x7FFFFFFF, 0xFFFFFFFF];
+    private static readonly uint[] EdgeValues =
+        [0, 1, 0x7F, 0x80, 0xFF, 0x7FFF, 0x8000, 0xFFFF, 0x7FFFFFFF, 0xFFFFFFFF];
 
     public void ApplyTo(byte[] font, IReadOnlyList<(int Offset, int Length)> tables)
     {

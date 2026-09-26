@@ -15,11 +15,6 @@ internal sealed class FontFormatException : FormatException
     {
     }
 
-    public FontFormatException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
-
     /// <summary>The data ends before a structure it declares.</summary>
     internal static FontFormatException Truncated() =>
         new FontFormatException("The font data ends before a structure it declares.");

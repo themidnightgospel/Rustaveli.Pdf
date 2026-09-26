@@ -158,7 +158,7 @@ internal sealed class FontCatalog
     }
 
     /// <summary>Requests compared as matching compares them: family names without regard to case or padding.</summary>
-    private sealed class FamilyIgnoringCase : IEqualityComparer<FontRequest>
+    internal sealed class FamilyIgnoringCase : IEqualityComparer<FontRequest>
     {
         public static readonly FamilyIgnoringCase Instance = new FamilyIgnoringCase();
 

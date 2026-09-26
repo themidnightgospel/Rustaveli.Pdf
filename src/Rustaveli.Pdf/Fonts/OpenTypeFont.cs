@@ -52,10 +52,7 @@ internal sealed class OpenTypeFont
         Head = new HeadTable(Table(TableTag.Head).Span);
         HorizontalHeader = new HorizontalHeaderTable(Table(TableTag.Hhea).Span);
         GlyphCount = new MaximumProfileTable(Table(TableTag.Maxp).Span).NumGlyphs;
-        Outlines = Tables.Contains(TableTag.Glyf) ? OutlineFormat.TrueType
-            : Tables.Contains(TableTag.Cff) ? OutlineFormat.Cff
-            : Tables.Contains(TableTag.Cff2) ? OutlineFormat.Cff2
-            : OutlineFormat.None;
+        Outlines = Tables.Outlines;
 
         // PublicationOnly: no lock, and a failure is not cached — every access to a malformed table reports it.
         const LazyThreadSafetyMode Mode = LazyThreadSafetyMode.PublicationOnly;

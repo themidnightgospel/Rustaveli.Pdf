@@ -30,6 +30,15 @@ internal sealed class TableDirectory
     public IReadOnlyList<TableRecord> Records => _records;
 
     /// <summary>
+    /// The outline format, from the tables present rather than the sfnt version, which some fonts get wrong.
+    /// </summary>
+    public OutlineFormat Outlines =>
+        Contains(TableTag.Glyf) ? OutlineFormat.TrueType
+        : Contains(TableTag.Cff) ? OutlineFormat.Cff
+        : Contains(TableTag.Cff2) ? OutlineFormat.Cff2
+        : OutlineFormat.None;
+
+    /// <summary>
     /// Reads the directory of the face starting at <paramref name="faceOffset"/>.
     /// </summary>
     /// <param name="file">The whole file: table offsets are relative to its start, even inside a collection.</param>

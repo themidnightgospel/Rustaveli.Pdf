@@ -12,12 +12,6 @@ internal sealed class FontDataWriter
 
     public int Length { get; private set; }
 
-    public void UInt8(byte value)
-    {
-        Reserve(1);
-        _buffer[Length++] = value;
-    }
-
     public void UInt16(int value)
     {
         Reserve(2);

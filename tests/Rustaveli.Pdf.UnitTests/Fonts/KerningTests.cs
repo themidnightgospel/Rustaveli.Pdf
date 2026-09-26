@@ -89,6 +89,19 @@ public class KerningTests
     }
 
     [Fact]
+    public void IgnoresSubtablesWithoutPairsAndCountsBeyondTheTable()
+    {
+        byte[] table = SyntheticTables.KernWindows((0x0001, []), (0x0001, [(1, 2, -12)]));
+
+        // Claim five subtables where there are two; reading stops at the end of the table.
+        BigEndian.WriteUInt16(table, 2, 5);
+        LegacyKerningTable kern = new LegacyKerningTable(table);
+
+        Assert.True(kern.HasPairs);
+        Assert.Equal(-12, kern.GetAdjustment(1, 2));
+    }
+
+    [Fact]
     public void RejectsAnUnknownKernVersion()
     {
         Assert.Throws<FontFormatException>(() => new LegacyKerningTable(new byte[] { 0, 2, 0, 0, 0, 0 }));

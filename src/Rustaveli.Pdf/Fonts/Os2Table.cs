@@ -19,7 +19,6 @@ internal sealed class Os2Table
     private const int Version2End = 96;
 
     private const ushort ItalicBit = 1 << 0;
-    private const ushort BoldBit = 1 << 5;
     private const ushort UseTypoMetricsBit = 1 << 7;
     private const ushort ObliqueBit = 1 << 9;
 
@@ -80,8 +79,6 @@ internal sealed class Os2Table
     public ushort FsSelection { get; }
 
     public bool IsItalic => (FsSelection & ItalicBit) != 0;
-
-    public bool IsBold => (FsSelection & BoldBit) != 0;
 
     public bool IsOblique => (FsSelection & ObliqueBit) != 0;
 

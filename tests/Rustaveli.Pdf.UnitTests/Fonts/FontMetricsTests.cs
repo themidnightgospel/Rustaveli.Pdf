@@ -210,6 +210,33 @@ public class FontMetricsTests
     }
 
     [Fact]
+    public void KnowsEveryCharacterOfTheStandardLatinSet()
+    {
+        // The characters outside Latin-1 that the standard, Mac Roman, WinAnsi and PDFDoc encodings add.
+        int[] extras =
+        [
+            0x0131, 0x0141, 0x0142, 0x0152, 0x0153, 0x0160, 0x0161, 0x0178, 0x017D, 0x017E, 0x0192, 0x02C6, 0x02C7,
+            0x02D8, 0x02D9, 0x02DA, 0x02DB, 0x02DC, 0x02DD, 0x2013, 0x2014, 0x2018, 0x2019, 0x201A, 0x201C, 0x201D,
+            0x201E, 0x2020, 0x2021, 0x2022, 0x2026, 0x2030, 0x2039, 0x203A, 0x2044, 0x20AC, 0x2122, 0x2212, 0xFB01,
+            0xFB02
+        ];
+        (int, int)[] mappings = [.. extras.Select(code => (code, 1)), (0x20, 1), (0xFF, 2)];
+
+        foreach (int outsider in new[] { 0x0100, 0x0400, 0x2015, 0xFB03 })
+        {
+            OpenTypeFont latin = SyntheticFont.Minimal()
+                .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4(mappings))))
+                .Load();
+            OpenTypeFont beyond = SyntheticFont.Minimal()
+                .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4([.. mappings, (outsider, 2)]))))
+                .Load();
+
+            Assert.Equal(FontFlags.Nonsymbolic, latin.Descriptor.Flags);
+            Assert.Equal(FontFlags.Symbolic, beyond.Descriptor.Flags);
+        }
+    }
+
+    [Fact]
     public void MeasuresCapAndXHeightFromGlyphsWhenOs2LacksThem()
     {
         (byte[] glyf, byte[] loca) = SyntheticTables.GlyphData(

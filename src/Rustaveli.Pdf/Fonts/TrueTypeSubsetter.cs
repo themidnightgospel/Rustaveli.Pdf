@@ -209,7 +209,7 @@ internal static class TrueTypeSubsetter
 
     private static byte[] WriteHead(OpenTypeFont font, OutlineData outlines, bool longLoca)
     {
-        byte[] head = CopyTable(font, TableTag.Head, HeadTable.Size);
+        byte[] head = CopyTable(font, TableTag.Head);
         GlyphBounds box = outlines.Bounds;
 
         BigEndian.WriteUInt16(head, HeadTable.BoundingBoxOffset, (ushort)box.XMin);
@@ -227,7 +227,7 @@ internal static class TrueTypeSubsetter
     /// </summary>
     private static byte[] WriteHorizontalHeader(OpenTypeFont font, OutlineData outlines)
     {
-        byte[] hhea = CopyTable(font, TableTag.Hhea, HorizontalHeaderTable.Size);
+        byte[] hhea = CopyTable(font, TableTag.Hhea);
         int minLeft = 0;
         int minRight = 0;
         int maxExtent = 0;
@@ -275,7 +275,7 @@ internal static class TrueTypeSubsetter
 
     private static byte[] WriteMaximumProfile(OpenTypeFont font, int glyphCount)
     {
-        byte[] maxp = CopyTable(font, TableTag.Maxp, MaximumProfileTable.NumGlyphsOffset + 2);
+        byte[] maxp = CopyTable(font, TableTag.Maxp);
 
         // The remaining fields of a version 1.0 table are maxima over all glyphs, which a subset can only lower,
         // so the original values stay valid bounds.
@@ -308,13 +308,13 @@ internal static class TrueTypeSubsetter
         return CharacterMapWriter.Write(kept, font.CharacterMap.Encoding == CharacterEncoding.Symbol);
     }
 
-    private static byte[] CopyTable(OpenTypeFont font, uint tag, int minimumLength)
+    /// <summary>
+    /// A copy of one of the tables every loaded font has, to patch: loading already checked that each is present and
+    /// long enough for the fields rewritten here.
+    /// </summary>
+    private static byte[] CopyTable(OpenTypeFont font, uint tag)
     {
         font.TryGetTable(tag, out ReadOnlyMemory<byte> data);
-
-        if (data.Length < minimumLength)
-            throw FontFormatException.Truncated();
-
         return data.ToArray();
     }
 

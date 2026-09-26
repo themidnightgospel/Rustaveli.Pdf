@@ -125,6 +125,8 @@ public class CompactFontTableTests
     [Theory]
     [InlineData(new byte[] { 2, 0, 4, 1 })]
     [InlineData(new byte[] { 1, 0, 4, 1, 0, 0 })]
+    [InlineData(new byte[] { 1, 0, 4, 1, 0, 0, 0, 0 })]
+    [InlineData(new byte[] { 1, 0, 4, 1, 0, 1, 1, 1, 2, 65, 0, 0 })]
     public void RejectsVersionsAndEmptyFontSets(byte[] data)
     {
         Assert.Throws<FontFormatException>(() => new CompactFontTable(data));

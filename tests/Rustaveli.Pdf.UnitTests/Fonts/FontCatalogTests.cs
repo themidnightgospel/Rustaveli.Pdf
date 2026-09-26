@@ -143,7 +143,7 @@ public class FontCatalogTests
 
         Assert.Equal(TestFonts.PathOf(TestFonts.GeorgianFile), face.FilePath);
         Assert.Same(face, catalog.FindFace(new FontRequest("Noto Sans Georgian")));
-        Assert.True(face.Covers('ა'));
+        Assert.True(face.Covers('\u10D0'));
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class FontCatalogTests
     {
         FontCatalog catalog = new FontCatalog(new SystemFontIndex([TestFonts.Directory]));
 
-        FontFaceInfo? georgian = catalog.FindFallbackFace('ა', new FontRequest("Noto Sans"));
+        FontFaceInfo? georgian = catalog.FindFallbackFace('\u10D0', new FontRequest("Noto Sans"));
 
         Assert.Equal("NotoSansGeorgian-Regular", georgian?.Names.PostScriptName);
 
@@ -170,8 +170,8 @@ public class FontCatalogTests
         Assert.False(georgian!.IsLoaded);
 
         // The next letter of the same block is found in the same face.
-        Assert.Same(georgian, catalog.FindFallbackFace('ვ', new FontRequest("Noto Sans")));
-        Assert.Equal(225, catalog.FindFallback('ვ', new FontRequest("Noto Sans"))!.GlyphCount);
+        Assert.Same(georgian, catalog.FindFallbackFace('\u10D5', new FontRequest("Noto Sans")));
+        Assert.Equal(225, catalog.FindFallback('\u10D5', new FontRequest("Noto Sans"))!.GlyphCount);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class FontCatalogTests
         string[] fallbacks = ["No Such Family", "Noto Sans Georgian", "Specimen Sans"];
 
         FontFaceInfo? latin = catalog.FindFallbackFace('A', new FontRequest("x"), fallbacks);
-        FontFaceInfo? georgian = catalog.FindFallbackFace('ა', new FontRequest("x"), fallbacks);
+        FontFaceInfo? georgian = catalog.FindFallbackFace('\u10D0', new FontRequest("x"), fallbacks);
 
         Assert.Equal("SpecimenSans-Regular", latin?.Names.PostScriptName);
         Assert.Equal("NotoSansGeorgian-Regular", georgian?.Names.PostScriptName);
@@ -205,7 +205,7 @@ public class FontCatalogTests
         FontCatalog catalog = Catalog();
         catalog.RegisterFile(TestFonts.PathOf(TestFonts.GeorgianFile));
 
-        FontFaceInfo? face = catalog.FindFallbackFace('ა', new FontRequest("Noto Sans"));
+        FontFaceInfo? face = catalog.FindFallbackFace('\u10D0', new FontRequest("Noto Sans"));
 
         Assert.True(face?.IsRegistered);
     }
@@ -230,6 +230,60 @@ public class FontCatalogTests
         Assert.Equal(OutlineFormat.None, catalog.RegisteredFaces[0].Outlines);
         Assert.Null(catalog.FindFallbackFace('A', new FontRequest("x"), ["Bitmap"]));
         Assert.NotNull(catalog.FindFace(new FontRequest("Bitmap")));
+    }
+
+    [Fact]
+    public void LooksBeyondTheFaceKnownForABlockWhenItLacksTheCharacter()
+    {
+        FontCatalog catalog = new FontCatalog(new SystemFontIndex([TestFonts.Directory]));
+        FontRequest request = new FontRequest("Noto Sans");
+
+        Assert.NotNull(catalog.FindFallbackFace('\u10D0', request));
+
+        // U+1080, a Myanmar letter, shares the Georgian letters' block but no committed font has it.
+        Assert.Null(catalog.FindFallbackFace('\u1080', request));
+    }
+
+    [Fact]
+    public void ReadsCoverageFromTheFontOnceItsFileIsInMemory()
+    {
+        FontFaceInfo[] faces = new SystemFontIndex([TestFonts.Directory]).Faces
+            .Where(face => face.FilePath == TestFonts.PathOf(TestFonts.CollectionFile))
+            .ToArray();
+
+        faces[0].Load();
+
+        // The italic face shares the file, now in memory: its coverage comes from parsing it there.
+        Assert.False(faces[2].IsLoaded);
+        Assert.True(faces[2].Covers('A'));
+        Assert.True(faces[2].IsLoaded);
+    }
+
+    [Fact]
+    public void NamesARegisteredFaceByItsOrigin()
+    {
+        FontFaceInfo face = FontCatalog.WithoutSystemFonts().Register(SyntheticFont.Named("Custom").Build())[0];
+
+        Assert.Equal("Custom Regular (registered#0)", face.ToString());
+    }
+
+    [Theory]
+    [InlineData("Noto Sans", 400, 0, 5, true)]
+    [InlineData(" noto SANS ", 400, 0, 5, true)]
+    [InlineData("Noto Serif", 400, 0, 5, false)]
+    [InlineData("Noto Sans", 700, 0, 5, false)]
+    [InlineData("Noto Sans", 400, 1, 5, false)]
+    [InlineData("Noto Sans", 400, 0, 3, false)]
+    public void ComparesRequestsIgnoringCaseAndPadding(string family, int weight, int slant, int width, bool equal)
+    {
+        FontRequest reference = new FontRequest("Noto Sans");
+        FontRequest other = new FontRequest(family, weight, (FontSlant)slant, width);
+        FontCatalog.FamilyIgnoringCase comparer = FontCatalog.FamilyIgnoringCase.Instance;
+
+        Assert.Equal(equal, comparer.Equals(reference, other));
+
+        if (equal)
+            Assert.Equal(comparer.GetHashCode(reference), comparer.GetHashCode(other));
     }
 
     [Fact]

@@ -95,9 +95,11 @@ internal sealed class FontFaceInfo
     {
         try
         {
-            return _source.IsLoaded || _source.Path is null
+            // Once the file is in memory — always so for a font registered from bytes, which has no path — parsing
+            // the face costs less than reading its character map from disk again.
+            return _source.IsLoaded
                 ? Load().CharacterMap
-                : FontFileScanner.ReadCharacterMap(_source.Path, FaceIndex);
+                : FontFileScanner.ReadCharacterMap(_source.Path!, FaceIndex);
         }
         catch (Exception exception) when (
             exception is FontFormatException or IOException or UnauthorizedAccessException)

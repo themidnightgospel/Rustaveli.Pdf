@@ -20,9 +20,10 @@ public class FontFuzzTests
     /// <summary>Far longer than any real use of a font takes, so exceeding it means a loop that does not end.</summary>
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
 
-    private const string Text = "Hello, World! AVATAR To P. Åéავ\U0001D400";
+    private const string Text = "Hello, World! AVATAR To P. \u00C5\u00E9\u10D0\u10D5\uE000\uE003\uF041\U0001D400";
 
-    private static readonly int[] Codepoints = [-1, 0, 0x20, 'A', 0xC5, 0x10D0, 0xE000, 0xF041, 0xFFFF, 0x1D400, 0x10FFFF];
+    private static readonly int[] Codepoints =
+        [-1, 0, 0x20, 'A', 0xC5, 0x10D0, 0xE000, 0xF041, 0xFFFF, 0x1D400, 0x10FFFF];
 
     private static readonly string[] SeedFiles =
     [
@@ -96,7 +97,7 @@ public class FontFuzzTests
             iter: Iterations / 5);
     }
 
-    /// <summary>Runs the action, allowing only a <see cref="FontFormatException"/> and bounded time and memory.</summary>
+    /// <summary>Runs the action, allowing only <see cref="FontFormatException"/>, in bounded time and memory.</summary>
     private static void Survive(Func<long> action, int inputLength)
     {
         Task<long> run = Task.Run(() =>

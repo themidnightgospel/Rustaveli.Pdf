@@ -27,6 +27,16 @@ public class CharacterMapTests
     }
 
     [Fact]
+    public void LooksUpNothingOutsideAFormat0Range()
+    {
+        CharacterMapSubtable subtable = CharacterMapSubtable.Read(SyntheticTables.Format0(('A', 5)), 0)!;
+
+        Assert.Equal(5, subtable.Lookup('A'));
+        Assert.Equal(0, subtable.Lookup(-1));
+        Assert.Equal(0, subtable.Lookup(256));
+    }
+
+    [Fact]
     public void ReadsFormat4DeltaAndGlyphArraySegments()
     {
         CharacterMap map = Map((3, 1, SyntheticTables.Format4Segments(

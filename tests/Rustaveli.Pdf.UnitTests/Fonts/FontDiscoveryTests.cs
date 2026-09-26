@@ -167,6 +167,17 @@ public class FontDiscoveryTests
     }
 
     [Fact]
+    public void ReportsAFileThatShrinksWhileBeingRead()
+    {
+        // Claims twice the bytes it holds, as a file truncated between measuring and reading would.
+        using ShrinkingStream stream = new ShrinkingStream(new byte[100]);
+
+        Assert.Equal(40, FontFileScanner.ReadAt(stream, 10, 40).Length);
+        Assert.Throws<FontFormatException>(() => FontFileScanner.ReadAt(stream, 90, 50));
+        Assert.Throws<FontFormatException>(() => FontFileScanner.ReadAt(stream, 150, 60));
+    }
+
+    [Fact]
     public void SharesOneReadOfACollectionBetweenItsFaces()
     {
         FontFaceInfo[] faces = new SystemFontIndex([TestFonts.Directory]).Faces

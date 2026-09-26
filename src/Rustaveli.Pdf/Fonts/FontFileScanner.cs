@@ -35,7 +35,7 @@ internal static class FontFileScanner
                 index,
                 name is null ? FontNames.None : NameTable.Read(name),
                 FaceStyle.From(style, head),
-                OutlinesOf(directory),
+                directory.Outlines,
                 registered: false));
         }
 
@@ -56,12 +56,6 @@ internal static class FontFileScanner
 
         return new CharacterMap(cmap, new MaximumProfileTable(maxp).NumGlyphs);
     }
-
-    private static OutlineFormat OutlinesOf(TableDirectory directory) =>
-        directory.Contains(TableTag.Glyf) ? OutlineFormat.TrueType
-        : directory.Contains(TableTag.Cff) ? OutlineFormat.Cff
-        : directory.Contains(TableTag.Cff2) ? OutlineFormat.Cff2
-        : OutlineFormat.None;
 
     private static FileStream Open(string path) =>
         new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1, FileOptions.RandomAccess);
@@ -90,11 +84,14 @@ internal static class FontFileScanner
     private static byte[]? ReadTable(FileStream stream, TableDirectory directory, uint tag) =>
         directory.TryGet(tag, out TableRecord record) ? ReadAt(stream, record.Offset, record.Length) : null;
 
-    /// <summary>Reads exactly <paramref name="count"/> bytes, which the file must hold.</summary>
-    private static byte[] ReadAt(FileStream stream, long offset, long count)
+    /// <summary>Reads exactly <paramref name="count"/> bytes at <paramref name="offset"/>, which must exist.</summary>
+    /// <remarks>
+    /// The length is checked against the file before anything is allocated, so a forged table length cannot ask for
+    /// more memory than the file has; a file that shrinks while being read is reported the same way.
+    /// </remarks>
+    internal static byte[] ReadAt(Stream stream, long offset, long count)
     {
-        // Checked against the file before allocating, so a forged length cannot ask for more memory than the file.
-        if (offset < 0 || count < 0 || offset + count > stream.Length)
+        if (offset + count > stream.Length)
             throw FontFormatException.Truncated();
 
         byte[] buffer = new byte[count];

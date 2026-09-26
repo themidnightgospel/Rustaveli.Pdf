@@ -76,10 +76,9 @@ internal sealed class SystemFontIndex
         {
             if (face.IsEmbeddable && face.Covers(codepoint))
             {
-                _blocks.AddOrUpdate(
-                    block,
-                    [face],
-                    (_, faces) => Array.IndexOf(faces, face) >= 0 ? faces : [.. faces, face]);
+                // Only threads racing on the same miss can list a face twice, which costs one repeated coverage
+                // check and nothing else; a face already listed that covered this code point would have been found.
+                _blocks.AddOrUpdate(block, [face], (_, faces) => [.. faces, face]);
                 return face;
             }
         }

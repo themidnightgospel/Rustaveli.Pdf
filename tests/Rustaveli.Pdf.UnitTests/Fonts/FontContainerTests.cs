@@ -30,6 +30,14 @@ public class FontContainerTests
     }
 
     [Fact]
+    public void TellsACollectionFromTooLittleDataToSay()
+    {
+        Assert.True(FontContainer.IsCollection(TestFonts.Bytes(TestFonts.CollectionFile)));
+        Assert.False(FontContainer.IsCollection(TestFonts.Bytes(TestFonts.GeorgianFile)));
+        Assert.False(FontContainer.IsCollection([(byte)'t', (byte)'t']));
+    }
+
+    [Fact]
     public void CountsOneFaceInAPlainFontFile()
     {
         Assert.Equal(1, FontContainer.CountFaces(TestFonts.Bytes(TestFonts.RegularFile)));

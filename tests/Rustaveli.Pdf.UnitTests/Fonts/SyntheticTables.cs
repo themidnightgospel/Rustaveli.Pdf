@@ -214,7 +214,7 @@ internal static class SyntheticTables
         return table.ToArray();
     }
 
-    /// <summary>A minimal simple glyph: a header with its bounding box and a few bytes standing in for an outline.</summary>
+    /// <summary>A minimal simple glyph: a header with its bounding box, and a few bytes for an outline.</summary>
     public static byte[] SimpleGlyph(int xMin, int yMin, int xMax, int yMax) =>
         new FontBytes().I16(1).I16(xMin).I16(yMin).I16(xMax).I16(yMax).U16(0).U16(0).U8(1).U8(0).ToArray();
 
