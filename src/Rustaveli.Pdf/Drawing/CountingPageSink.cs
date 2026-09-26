@@ -50,7 +50,7 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
-    public void DrawLine(Offset from, Offset to, float thickness, Ink color)
+    public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
     {
     }
 

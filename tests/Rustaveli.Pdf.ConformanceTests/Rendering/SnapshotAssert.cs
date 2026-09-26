@@ -67,6 +67,11 @@ internal static class SnapshotAssert
             Save(diff, diffPath);
             Assert.Fail($"'{name}' differs from its approved snapshot in {changed} pixels ({share:P2}). Received: {written}  Diff: {diffPath}");
         }
+
+        // A page that matches has nothing to approve: an image left from an earlier failure would otherwise be
+        // promoted over the approved one by the next approval run, unseen.
+        File.Delete(Path.Combine(RepositoryPaths.ReceivedSnapshots, $"{name}.received.png"));
+        File.Delete(Path.Combine(RepositoryPaths.ReceivedSnapshots, $"{name}.diff.png"));
     }
 
     private static string WriteReceived(string name, SKBitmap received)

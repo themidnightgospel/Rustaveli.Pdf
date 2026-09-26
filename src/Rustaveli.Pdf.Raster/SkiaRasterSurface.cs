@@ -95,7 +95,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         Canvas.DrawRoundRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), radius, radius, paint);
     }
 
-    public void DrawLine(Offset from, Offset to, float thickness, Ink color)
+    public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
     {
         if (color.IsTransparent || thickness <= 0)
             return;
@@ -104,7 +104,40 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         paint.Style = SKPaintStyle.Stroke;
         paint.StrokeWidth = thickness;
 
-        Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
+        switch (style)
+        {
+            case StrokeStyle.Double:
+                Offset shift = StrokeGeometry.DoubleOffset(from, to, thickness);
+                Canvas.DrawLine(from.X + shift.X, from.Y + shift.Y, to.X + shift.X, to.Y + shift.Y, paint);
+                Canvas.DrawLine(from.X - shift.X, from.Y - shift.Y, to.X - shift.X, to.Y - shift.Y, paint);
+                return;
+
+            case StrokeStyle.Dotted:
+                // Skia draws no cap on a dash of no length, so the dot is a sliver just long enough to take one.
+                paint.StrokeCap = SKStrokeCap.Round;
+                paint.PathEffect = SKPathEffect.CreateDash([thickness / 1000, thickness * 2], 0);
+                break;
+
+            case StrokeStyle.Dashed:
+                paint.PathEffect = SKPathEffect.CreateDash([thickness * 3, thickness * 2], 0);
+                break;
+
+            case StrokeStyle.Wavy:
+                using (SKPathBuilder builder = new SKPathBuilder())
+                {
+                    builder.MoveTo(from.X, from.Y);
+                    foreach (CubicSegment segment in StrokeGeometry.Wave(from, to, thickness))
+                        builder.CubicTo(segment.Control1.X, segment.Control1.Y, segment.Control2.X, segment.Control2.Y, segment.End.X, segment.End.Y);
+
+                    using SKPath wave = builder.Detach();
+                    Canvas.DrawPath(wave, paint);
+                }
+
+                return;
+        }
+
+        using (paint.PathEffect)
+            Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
     public void DrawText(string text, Offset baselineStart, TypeStyle style)

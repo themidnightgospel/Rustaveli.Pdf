@@ -20,6 +20,55 @@ public class TypeStyleTests
         Assert.Equal(1f, style.Leading);
         Assert.Equal(0f, style.Tracking);
         Assert.Equal(ScriptPosition.Normal, style.Script);
+        Assert.False(style.HasOverline);
+        Assert.Equal(StrokeStyle.Solid, style.StrokeStyle);
+        Assert.Null(style.StrokeInk);
+        Assert.Null(style.StrokeWeight);
+    }
+
+    [Fact]
+    public void OverlineChangesOnlyTheOverline()
+    {
+        Assert.Equal(Base with { HasOverline = true }, Base.Overline());
+        Assert.Equal(Base, Base.Overline().Overline(false));
+    }
+
+    [Fact]
+    public void WithStrokeStyleChangesOnlyTheStrokeStyle()
+    {
+        Assert.Equal(Base with { StrokeStyle = StrokeStyle.Wavy }, Base.WithStrokeStyle(StrokeStyle.Wavy));
+    }
+
+    [Fact]
+    public void WithStrokeInkChangesOnlyTheStrokeInk()
+    {
+        Assert.Equal(Base with { StrokeInk = TestInks.Red }, Base.WithStrokeInk(TestInks.Red));
+    }
+
+    [Fact]
+    public void WithStrokeWeightChangesOnlyTheStrokeWeight()
+    {
+        Assert.Equal(Base with { StrokeWeight = 0.25f }, Base.WithStrokeWeight(0.25f));
+    }
+
+    [Fact]
+    public void AStrokeWeightOfZeroIsAllowed()
+    {
+        Assert.Equal(0f, Base.WithStrokeWeight(0f).StrokeWeight);
+    }
+
+    [Fact]
+    public void AStrokeWeightCannotBeNegative()
+    {
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => Base.WithStrokeWeight(-0.1f));
+
+        Assert.Equal("weight", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithWordSpacingChangesOnlyTheWordSpacing()
+    {
+        Assert.Equal(Base with { WordSpacing = 3f }, Base.WithWordSpacing(3f));
     }
 
     [Fact]

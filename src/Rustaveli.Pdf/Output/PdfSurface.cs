@@ -163,14 +163,61 @@ internal sealed class PdfSurface : IPageSink
             Content.Fill();
     }
 
-    public void DrawLine(Offset from, Offset to, float thickness, Ink color)
+    public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
     {
         if (color.IsTransparent || thickness <= 0)
             return;
 
         SetStroke(color);
-        SetLineWidth(thickness);
+        ContentStreamBuilder content = Content;
 
+        switch (style)
+        {
+            case StrokeStyle.Double:
+                Offset shift = StrokeGeometry.DoubleOffset(from, to, thickness);
+                SetLineWidth(thickness);
+                StrokeSegment(from + shift, to + shift);
+                StrokeSegment(from + shift.Reverse(), to + shift.Reverse());
+                break;
+
+            case StrokeStyle.Dotted or StrokeStyle.Dashed:
+                // Caps and dashes are graphics state that nothing else sets, so they are scoped to this line.
+                Save();
+                SetLineWidth(thickness);
+
+                if (style == StrokeStyle.Dotted)
+                {
+                    // A dash of no length with a round cap is a dot as wide as the stroke.
+                    content.SetLineCap(PdfLineCap.Round);
+                    content.SetDashPattern([0, thickness * 2], 0);
+                }
+                else
+                {
+                    content.SetDashPattern([thickness * 3, thickness * 2], 0);
+                }
+
+                StrokeSegment(from, to);
+                Restore();
+                break;
+
+            case StrokeStyle.Wavy:
+                SetLineWidth(thickness);
+                content.MoveTo(from.X, from.Y);
+                foreach (CubicSegment segment in StrokeGeometry.Wave(from, to, thickness))
+                    content.CurveTo(segment.Control1.X, segment.Control1.Y, segment.Control2.X, segment.Control2.Y, segment.End.X, segment.End.Y);
+
+                content.Stroke();
+                break;
+
+            default:
+                SetLineWidth(thickness);
+                StrokeSegment(from, to);
+                break;
+        }
+    }
+
+    private void StrokeSegment(Offset from, Offset to)
+    {
         ContentStreamBuilder content = Content;
         content.MoveTo(from.X, from.Y);
         content.LineTo(to.X, to.Y);

@@ -39,7 +39,12 @@ internal interface ISurface
     /// <param name="strokeWidth">Zero or less fills the shape; a positive value strokes an outline of that width.</param>
     void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f);
 
-    void DrawLine(Offset from, Offset to, float thickness, Ink color);
+    /// <summary>
+    /// Strokes a line from <paramref name="from"/> to <paramref name="to"/>. A double line is two strokes a third of
+    /// <paramref name="thickness"/> each, with a gap between them; dots and dashes are sized from the thickness; a wave
+    /// swings a thickness either side of the line.
+    /// </summary>
+    void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid);
 
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
     void DrawText(string text, Offset baselineStart, TypeStyle style);

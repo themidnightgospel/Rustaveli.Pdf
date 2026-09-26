@@ -86,6 +86,32 @@ public class RunComposerTests
             StyleOf(span => span.StrikeThrough(value), style => style.StrikeThrough(!value)).HasStrikeThrough);
 
     [Fact]
+    public void OverlineWithoutAnArgumentSwitchesOverlineOn() =>
+        Assert.True(StyleOf(span => span.Overline()).HasOverline);
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OverlineOverridesTheInheritedSetting(bool value) =>
+        Assert.Equal(value, StyleOf(span => span.Overline(value), style => style.Overline(!value)).HasOverline);
+
+    [Fact]
+    public void StrokeStyleSetsHowStrokesAreDrawn() =>
+        Assert.Equal(StrokeStyle.Dashed, StyleOf(span => span.StrokeStyle(StrokeStyle.Dashed)).StrokeStyle);
+
+    [Fact]
+    public void StrokeInkSetsTheStrokeColour() =>
+        Assert.Equal((Ink)TestInks.Red, StyleOf(span => span.StrokeInk(TestInks.Red)).StrokeInk);
+
+    [Fact]
+    public void StrokeInkAcceptsHex() =>
+        Assert.Equal(Ink.Rgb(0x33, 0x66, 0x99), StyleOf(span => span.StrokeInk("#336699")).StrokeInk);
+
+    [Fact]
+    public void StrokeWeightSetsTheStrokeThickness() =>
+        Assert.Equal(1.5f, StyleOf(span => span.StrokeWeight(1.5f)).StrokeWeight);
+
+    [Fact]
     public void LeadingSetsTheMultiplier() =>
         Approximately.Equal(1.5f, StyleOf(span => span.Leading(1.5f)).Leading);
 

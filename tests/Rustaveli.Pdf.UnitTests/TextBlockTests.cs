@@ -16,6 +16,16 @@ public class TextBlockTests
         return element;
     }
 
+    /// <summary>Draws a paragraph and returns its underlines, strike-throughs and overlines.</summary>
+    /// <param name="element">The paragraph.</param>
+    /// <param name="fontPlacesStrokes">Whether the font says where its strokes go and how thick they are.</param>
+    private static List<LineOperation> Strokes(TextBlock element, bool fontPlacesStrokes)
+    {
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(fontPlacesStrokes), new Pagination());
+
+        return LayoutHarness.Draw(element, new Extent(500, 500), context).Operations.OfType<LineOperation>().ToList();
+    }
+
     [Fact]
     public void MeasuresASingleLineFromCharacterCount()
     {
@@ -396,15 +406,120 @@ public class TextBlockTests
         Assert.Equal(TestInks.Red, line.Ink);
     }
 
-    [Fact]
-    public void DecorationLinesAreNeverThinnerThanHalfAPoint()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DecorationLinesAreNeverThinnerThanHalfAPoint(bool fontPlacesStrokes)
     {
-        TextBlock element = Text(text => text.Run("tiny").PointSize(4).Underline().StrikeThrough());
+        TextBlock element = Text(text => text.Run("tiny").PointSize(4).Underline().StrikeThrough().Overline());
 
-        List<LineOperation> lines = LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<LineOperation>().ToList();
+        List<LineOperation> lines = Strokes(element, fontPlacesStrokes);
 
-        Assert.Equal(2, lines.Count);
+        Assert.Equal(3, lines.Count);
         Assert.All(lines, line => Approximately.Equal(0.5f, line.Thickness));
+    }
+
+    [Fact]
+    public void PlacesTheUnderlineWhereTheFontSays()
+    {
+        TextBlock element = Text(text => text.Run("Hello").Underline());
+
+        LineOperation line = Assert.Single(Strokes(element, fontPlacesStrokes: true));
+
+        // Baseline 9.6 plus the font's 1.8pt underline offset, as thick as the font draws it.
+        Approximately.Equal(new Offset(0, 11.4f), line.Position);
+        Approximately.Equal(new Offset(30, 11.4f), line.End);
+        Approximately.Equal(0.6f, line.Thickness);
+    }
+
+    [Fact]
+    public void PlacesTheStrikethroughWhereTheFontSays()
+    {
+        TextBlock element = Text(text => text.Run("Hello").StrikeThrough());
+
+        LineOperation line = Assert.Single(Strokes(element, fontPlacesStrokes: true));
+
+        // Baseline 9.6 less the font's 3pt strike-through height.
+        Approximately.Equal(new Offset(0, 6.6f), line.Position);
+        Approximately.Equal(new Offset(30, 6.6f), line.End);
+        Approximately.Equal(0.72f, line.Thickness);
+    }
+
+    [Theory]
+    [InlineData(false, 0.75f)]
+    [InlineData(true, 0.6f)]
+    public void DrawsTheOverlineJustInsideTheTopOfTheAscent(bool fontPlacesStrokes, float weight)
+    {
+        TextBlock element = Text(text => text.Run("Hello").Overline());
+
+        LineOperation line = Assert.Single(Strokes(element, fontPlacesStrokes));
+
+        // The 9.6pt ascent reaches the top of the line; the stroke lies within it, as thick as an underline.
+        Approximately.Equal(new Offset(0, weight / 2), line.Position);
+        Approximately.Equal(new Offset(30, weight / 2), line.End);
+        Approximately.Equal(weight, line.Thickness);
+    }
+
+    [Fact]
+    public void StrokesFollowARaisedBaseline()
+    {
+        TextBlock element = Text(text => text.Run("x").Superscript().Underline().Overline());
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
+        float baseline = Assert.Single(page.Texts).Position.Y;
+        List<LineOperation> lines = page.Operations.OfType<LineOperation>().ToList();
+        TypeMetrics metrics = LayoutHarness.Measurer.GetMetrics(TypeStyle.Default.Superscript());
+
+        Approximately.Equal(baseline + (metrics.Descent / 2), lines[0].Position.Y);
+        Approximately.Equal(baseline - metrics.Ascent + (lines[1].Thickness / 2), lines[1].Position.Y);
+    }
+
+    [Fact]
+    public void AStrokeInkColoursTheStrokesButNotTheType()
+    {
+        TextBlock element = Text(text => text.Run("Hello").Ink(TestInks.Red).StrokeInk(TestInks.Blue).Underline().Overline());
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
+
+        Assert.All(page.Operations.OfType<LineOperation>(), line => Assert.Equal(TestInks.Blue, line.Ink));
+        Assert.Equal(TestInks.Red, Assert.Single(page.Texts).Style.Ink);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AStrokeWeightOverridesTheFontAndTheHalfPointFloor(bool fontPlacesStrokes)
+    {
+        TextBlock element = Text(text => text.Run("Hello").StrokeWeight(0.25f).Underline().StrikeThrough().Overline());
+
+        List<LineOperation> lines = Strokes(element, fontPlacesStrokes);
+
+        Assert.Equal(3, lines.Count);
+        Assert.All(lines, line => Approximately.Equal(0.25f, line.Thickness));
+    }
+
+    [Theory]
+    [InlineData(StrokeStyle.Solid)]
+    [InlineData(StrokeStyle.Double)]
+    [InlineData(StrokeStyle.Dotted)]
+    [InlineData(StrokeStyle.Dashed)]
+    [InlineData(StrokeStyle.Wavy)]
+    public void EveryStrokeOfARunIsDrawnInItsStrokeStyle(StrokeStyle style)
+    {
+        TextBlock element = Text(text => text.Run("Hello").StrokeStyle(style).Underline().StrikeThrough().Overline());
+
+        List<LineOperation> lines = Strokes(element, fontPlacesStrokes: false);
+
+        Assert.Equal(3, lines.Count);
+        Assert.All(lines, line => Assert.Equal(style, line.Style));
+    }
+
+    [Fact]
+    public void AStrokeStyleAloneDrawsNothing()
+    {
+        TextBlock element = Text(text => text.Run("Hello").StrokeStyle(StrokeStyle.Wavy).StrokeInk(TestInks.Blue));
+
+        Assert.Empty(Strokes(element, fontPlacesStrokes: false));
     }
 
     [Fact]

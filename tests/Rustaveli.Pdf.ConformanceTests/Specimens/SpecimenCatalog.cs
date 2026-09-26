@@ -15,7 +15,8 @@ public static class SpecimenCatalog
         new Specimen("images", Images),
         new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
-        new Specimen("long-flow", LongFlow)
+        new Specimen("long-flow", LongFlow),
+        new Specimen("text-strokes", TextStrokes)
     ];
 
     public static TheoryData<Specimen> Cases()
@@ -35,6 +36,38 @@ public static class SpecimenCatalog
             configure?.Invoke(section);
             content(section.Body());
         }));
+
+    /// <summary>Every stroke style under, through and over type, in the font's own weight and in others.</summary>
+    private static Document TextStrokes() => Page(content => content.Stack(stack =>
+    {
+        stack.SpaceBetween(12f);
+
+        foreach (StrokeStyle style in new[] { StrokeStyle.Solid, StrokeStyle.Double, StrokeStyle.Dotted, StrokeStyle.Dashed, StrokeStyle.Wavy })
+        {
+            stack.Add().Text(text =>
+            {
+                text.DefaultType(type => type.WithPointSize(16f).WithStrokeStyle(style));
+                text.Run(style + ": ");
+                text.Run("underlined").Underline();
+                text.Run(", ");
+                text.Run("struck").StrikeThrough();
+                text.Run(", ");
+                text.Run("overlined").Overline();
+                text.Run(" and ");
+                text.Run("all three").Underline().StrikeThrough().Overline().StrokeInk(TestInks.Red);
+            });
+        }
+
+        stack.Add().Text(text =>
+        {
+            text.DefaultType(type => type.WithPointSize(16f));
+            text.Run("Heavy").Underline().StrokeWeight(2f).StrokeInk(TestInks.Teal);
+            text.Run(", hairline").Underline().StrokeWeight(0.25f);
+            text.Run(", misspelt").Underline().StrokeStyle(StrokeStyle.Wavy).StrokeInk(TestInks.Red);
+            text.Run(" and ");
+            text.Run("raised").Superscript().Underline().Overline();
+        });
+    }));
 
     private static Document Gallery() => Page(content => content.Stack(stack =>
     {

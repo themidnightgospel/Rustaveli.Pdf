@@ -17,7 +17,22 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         LineMetrics lines = font.LineMetrics;
         float size = style.EffectivePointSize;
 
-        return new TypeMetrics(font.ToPoints(lines.Ascent, size), font.ToPoints(lines.Descent, size), font.ToPoints(lines.LineGap, size));
+        // The tables give the top of each stroke; the lines are drawn along their centres.
+        PostTable? post = font.Post;
+        Os2Table? os2 = font.Os2;
+        float underlineWeight = post is null ? 0f : font.ToPoints(post.UnderlineThickness, size);
+        float underlineOffset = post is null ? 0f : -font.ToPoints(post.UnderlinePosition, size) + (underlineWeight / 2);
+        float strikeWeight = os2 is null ? 0f : font.ToPoints(os2.StrikeoutSize, size);
+        float strikeHeight = os2 is null ? 0f : font.ToPoints(os2.StrikeoutPosition, size) - (strikeWeight / 2);
+
+        return new TypeMetrics(
+            font.ToPoints(lines.Ascent, size),
+            font.ToPoints(lines.Descent, size),
+            font.ToPoints(lines.LineGap, size),
+            Math.Max(0f, underlineOffset),
+            Math.Max(0f, underlineWeight),
+            Math.Max(0f, strikeHeight),
+            Math.Max(0f, strikeWeight));
     }
 
     public float MeasureWidth(string text, TypeStyle style)

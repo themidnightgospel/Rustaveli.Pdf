@@ -23,7 +23,8 @@ public class VocabularyOverlapTests
         "MinWidth", "Placeholder", "Portrait", "Scale", "Section", "Stack", "Table", "Width",
 
         // Typography.
-        "Bold", "Italic", "Line", "Style", "Subscript", "Superscript", "Text", "Underline", "Weight", "WordSpacing",
+        "Bold", "Italic", "Line", "Overline", "Style", "Subscript", "Superscript", "Text", "Underline", "Weight",
+        "WordSpacing",
     };
 
     private static readonly HashSet<string> SharedTypesAllowed = new HashSet<string>(StringComparer.Ordinal)

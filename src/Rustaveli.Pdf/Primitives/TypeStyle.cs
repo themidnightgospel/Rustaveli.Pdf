@@ -27,6 +27,17 @@ public sealed record TypeStyle
 
     public bool HasStrikeThrough { get; init; }
 
+    public bool HasOverline { get; init; }
+
+    /// <summary>How underlines, strike-throughs and overlines are drawn.</summary>
+    public StrokeStyle StrokeStyle { get; init; } = StrokeStyle.Solid;
+
+    /// <summary>The ink of underlines, strike-throughs and overlines; the text's own ink when not set.</summary>
+    public Ink? StrokeInk { get; init; }
+
+    /// <summary>The weight of underlines, strike-throughs and overlines, in points; the font's own when not set.</summary>
+    public float? StrokeWeight { get; init; }
+
     /// <summary>Multiplier applied to the font's natural line height.</summary>
     public float Leading { get; init; } = 1f;
 
@@ -129,6 +140,40 @@ public sealed record TypeStyle
         return this with
         {
             HasStrikeThrough = value
+        };
+    }
+
+    public TypeStyle Overline(bool value = true)
+    {
+        return this with
+        {
+            HasOverline = value
+        };
+    }
+
+    public TypeStyle WithStrokeStyle(StrokeStyle style)
+    {
+        return this with
+        {
+            StrokeStyle = style
+        };
+    }
+
+    public TypeStyle WithStrokeInk(Ink ink)
+    {
+        return this with
+        {
+            StrokeInk = ink
+        };
+    }
+
+    public TypeStyle WithStrokeWeight(float weight)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(weight);
+
+        return this with
+        {
+            StrokeWeight = weight
         };
     }
 

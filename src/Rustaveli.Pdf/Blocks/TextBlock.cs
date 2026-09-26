@@ -220,17 +220,8 @@ internal sealed class TextBlock : Block
 
             surface.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style);
 
-            if (style.HasUnderline)
-            {
-                float y = baseline + style.BaselineOffset + metrics.Descent * UnderlineDepthRatio;
-                surface.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
-            }
-
-            if (style.HasStrikeThrough)
-            {
-                float y = baseline + style.BaselineOffset - metrics.Ascent * StrikethroughHeightRatio;
-                surface.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
-            }
+            if (style.HasUnderline || style.HasStrikeThrough || style.HasOverline)
+                DrawStrokes(surface, style, metrics, x, run.Width, baseline + style.BaselineOffset);
 
             if (run.Url is not null)
             {
@@ -250,7 +241,42 @@ internal sealed class TextBlock : Block
         }
     }
 
-    private static float DecorationThickness(TypeStyle style) => Math.Max(0.5f, style.EffectivePointSize / 16f);
+    /// <summary>
+    /// Draws a run's underline, strike-through and overline where the font places them and as thick as it draws
+    /// them, unless the style says otherwise; a font silent on either falls back to proportions of the type.
+    /// </summary>
+    private static void DrawStrokes(ISurface surface, TypeStyle style, TypeMetrics metrics, float x, float width, float baseline)
+    {
+        Ink ink = style.StrokeInk ?? style.Ink;
+        Offset Start(float y) => new Offset(x, y);
+        Offset End(float y) => new Offset(x + width, y);
+
+        if (style.HasUnderline)
+        {
+            float offset = metrics.UnderlineOffset > 0 ? metrics.UnderlineOffset : metrics.Descent * UnderlineDepthRatio;
+            float weight = Weight(style, metrics.UnderlineWeight);
+            surface.DrawLine(Start(baseline + offset), End(baseline + offset), weight, ink, style.StrokeStyle);
+        }
+
+        if (style.HasStrikeThrough)
+        {
+            float height = metrics.StrikeHeight > 0 ? metrics.StrikeHeight : metrics.Ascent * StrikethroughHeightRatio;
+            float weight = Weight(style, metrics.StrikeWeight);
+            surface.DrawLine(Start(baseline - height), End(baseline - height), weight, ink, style.StrokeStyle);
+        }
+
+        if (style.HasOverline)
+        {
+            // Along the top of the ascent, drawn within it rather than above the line.
+            float weight = Weight(style, metrics.UnderlineWeight);
+            float y = baseline - metrics.Ascent + (weight / 2);
+            surface.DrawLine(Start(y), End(y), weight, ink, style.StrokeStyle);
+        }
+    }
+
+    /// <summary>The style's own stroke weight, else the font's, never thinner than half a point.</summary>
+    private static float Weight(TypeStyle style, float fontWeight) =>
+        style.StrokeWeight ?? Math.Max(0.5f, fontWeight > 0 ? fontWeight : style.EffectivePointSize / 16f);
 
     private const float UnderlineDepthRatio = 0.5f;
     private const float StrikethroughHeightRatio = 0.3f;

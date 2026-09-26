@@ -48,6 +48,20 @@ public sealed class RunComposer
 
     public RunComposer StrikeThrough(bool value = true) => Refine(style => style.StrikeThrough(value));
 
+    /// <summary>Draws a line above the run.</summary>
+    public RunComposer Overline(bool value = true) => Refine(style => style.Overline(value));
+
+    /// <summary>How the run's underline, strike-through and overline are drawn: solid, double, dotted, dashed or wavy.</summary>
+    public RunComposer StrokeStyle(StrokeStyle style) => Refine(current => current.WithStrokeStyle(style));
+
+    /// <summary>The ink of the run's underline, strike-through and overline, in place of the text's own.</summary>
+    public RunComposer StrokeInk(Ink ink) => Refine(style => style.WithStrokeInk(ink));
+
+    public RunComposer StrokeInk(string hex) => StrokeInk(Rustaveli.Pdf.Ink.Hex(hex));
+
+    /// <summary>The weight of the run's underline, strike-through and overline, in points, in place of the font's own.</summary>
+    public RunComposer StrokeWeight(float weight) => Refine(style => style.WithStrokeWeight(weight));
+
     public RunComposer Leading(float multiplier) => Refine(style => style.WithLeading(multiplier));
 
     public RunComposer Tracking(float spacing) => Refine(style => style.WithTracking(spacing));
