@@ -7,8 +7,8 @@ namespace Rustaveli.Pdf.Images;
 /// <remarks>
 /// PDF viewers ignore EXIF, so an image is embedded exactly as stored and the layout applies the transform. For
 /// the four values that include a quarter turn, the upright image is
-/// <see cref="Rustaveli.Pdf.Drawing.IImage.PixelHeight"/> wide and
-/// <see cref="Rustaveli.Pdf.Drawing.IImage.PixelWidth"/> tall.
+/// <see cref="IImage.PixelHeight"/> wide and
+/// <see cref="IImage.PixelWidth"/> tall.
 /// </remarks>
 internal enum ExifOrientation
 {

@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Images;
 
 namespace Rustaveli.Pdf.UnitTests.Images;
