@@ -5,7 +5,7 @@ public class ConstrainedTests
     [Fact]
     public void PinsSizeWhenMinimumAndMaximumMatch()
     {
-        ConstrainedElement element = new ConstrainedElement
+        ConstraintBlock element = new ConstraintBlock
         {
             MinWidth = 80,
             MaxWidth = 80,
@@ -22,7 +22,7 @@ public class ConstrainedTests
     [Fact]
     public void CapsTheSpaceOfferedToTheChild()
     {
-        ConstrainedElement element = new ConstrainedElement { MaxWidth = 40, Child = new FixedElement(60, 10) };
+        ConstraintBlock element = new ConstraintBlock { MaxWidth = 40, Child = new FixedElement(60, 10) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -32,7 +32,7 @@ public class ConstrainedTests
     [Fact]
     public void WrapsWhenTheMinimumExceedsTheAvailableSpace()
     {
-        ConstrainedElement element = new ConstrainedElement { MinHeight = 300, Child = new FixedElement(10, 10) };
+        ConstraintBlock element = new ConstraintBlock { MinHeight = 300, Child = new FixedElement(10, 10) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -43,7 +43,7 @@ public class ConstrainedTests
     [Fact]
     public void LeavesAnUnconstrainedAxisAtTheChildSize()
     {
-        ConstrainedElement element = new ConstrainedElement { MinWidth = 100, MaxWidth = 100, Child = new FixedElement(10, 25) };
+        ConstraintBlock element = new ConstraintBlock { MinWidth = 100, MaxWidth = 100, Child = new FixedElement(10, 25) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -54,7 +54,7 @@ public class ConstrainedTests
     [Fact]
     public void WrapsWhenTheMinimumWidthExceedsTheAvailableWidth()
     {
-        ConstrainedElement element = new ConstrainedElement { MinWidth = 250, Child = new FixedElement(10, 10) };
+        ConstraintBlock element = new ConstraintBlock { MinWidth = 250, Child = new FixedElement(10, 10) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -66,7 +66,7 @@ public class ConstrainedTests
     public void ReportsEmptyForAnExhaustedChildDespiteAMinimum()
     {
         // A minimum describes the content's box; once the content is gone there is no box left to hold open.
-        ConstrainedElement element = new ConstrainedElement { MinWidth = 50, MinHeight = 40, Child = new ScriptedElement(Fit.Empty()) };
+        ConstraintBlock element = new ConstraintBlock { MinWidth = 50, MinHeight = 40, Child = new ScriptedElement(Fit.Empty()) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsEmpty);
     }
@@ -74,7 +74,7 @@ public class ConstrainedTests
     [Fact]
     public void KeepsAPartialChildPartial()
     {
-        ConstrainedElement element = new ConstrainedElement { MaxHeight = 70, Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
+        ConstraintBlock element = new ConstraintBlock { MaxHeight = 70, Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -85,7 +85,7 @@ public class ConstrainedTests
     [Fact]
     public void WithoutContentOccupiesItsMinimum()
     {
-        ConstrainedElement element = new ConstrainedElement { MinWidth = 50, MinHeight = 20 };
+        ConstraintBlock element = new ConstraintBlock { MinWidth = 50, MinHeight = 20 };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -97,7 +97,7 @@ public class ConstrainedTests
     [Fact]
     public void DrawsTheChildWithinTheMaximum()
     {
-        ConstrainedElement element = new ConstrainedElement { MaxWidth = 80, MaxHeight = 30, Child = new PlaceholderElement() };
+        ConstraintBlock element = new ConstraintBlock { MaxWidth = 80, MaxHeight = 30, Child = new PlaceholderBlock() };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 

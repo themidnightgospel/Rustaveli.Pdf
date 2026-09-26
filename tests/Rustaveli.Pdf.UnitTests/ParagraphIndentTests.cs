@@ -10,9 +10,9 @@ public class ParagraphIndentTests
 {
     private const float LineHeight = 12f;
 
-    private static TextElement Text(Action<TextDescriptor> compose)
+    private static TextBlock Text(Action<TextDescriptor> compose)
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         compose(new TextDescriptor(element));
         return element;
     }
@@ -22,7 +22,7 @@ public class ParagraphIndentTests
     {
         // The parent sizes boxes from this number. Reporting ink-only width while drawing at an offset makes
         // the content overflow whatever box the parent derived.
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
             text.Span("Hello");
@@ -39,10 +39,10 @@ public class ParagraphIndentTests
     {
         // An Auto row item derives its width from the measured width. If that width excluded the indent, the
         // text would be re-wrapped into a box narrower than it needs and collapse to one character per line.
-        RowElement row = new RowElement();
-        RowItem item = new RowItem { Sizing = RowItemSizing.Auto };
+        ColumnsBlock row = new ColumnsBlock();
+        ColumnSlot item = new ColumnSlot { Sizing = ColumnSizing.Auto };
 
-        TextElement text = Text(descriptor =>
+        TextBlock text = Text(descriptor =>
         {
             descriptor.FirstLineIndent(20);
             descriptor.Span("Hello");
@@ -61,7 +61,7 @@ public class ParagraphIndentTests
     {
         // The indent is only drawn for left-aligned text, so it must not be deducted from the wrap budget for
         // any other alignment — otherwise it silently costs a line's worth of room and shows nothing for it.
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
             text.AlignCenter();
@@ -76,7 +76,7 @@ public class ParagraphIndentTests
     [Fact]
     public void RightAlignedTextIsNotNarrowedEither()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
             text.AlignRight();
@@ -89,7 +89,7 @@ public class ParagraphIndentTests
     [Fact]
     public void RightToLeftTextIsNotNarrowedEither()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
             text.Span("aaaaaaa");
@@ -105,7 +105,7 @@ public class ParagraphIndentTests
     public void AnIndentWiderThanTheBoxWrapsRatherThanStackingCharacters()
     {
         // The zero-width guard exists to stop exactly this. An indent that consumes the whole box must trip it.
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(100);
             text.Span("hello world");
@@ -119,7 +119,7 @@ public class ParagraphIndentTests
     {
         // Only a paragraph's opening line is indented, so a word that fits the full width must not be broken
         // just because the opening line was narrower.
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
             text.Span("aa bbbbbbb");
@@ -134,7 +134,7 @@ public class ParagraphIndentTests
     public void NonBreakingSpacesSurviveTrailingTrim()
     {
         // The tokeniser treats a non-breaking space as ink, so the trailing-whitespace trim must agree.
-        TextElement element = Text(text => text.Span("   "));
+        TextBlock element = Text(text => text.Span("   "));
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
@@ -144,7 +144,7 @@ public class ParagraphIndentTests
     [Fact]
     public void ALinkOnAWhitespaceRunIsNotDiscarded()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("Fig.");
             text.Hyperlink(" ", "https://example.com");
@@ -158,7 +158,7 @@ public class ParagraphIndentTests
     [Fact]
     public void ABlankLineDoesNotEarnParagraphSpacing()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.ParagraphSpacing(8);
             text.Line("A");
@@ -175,7 +175,7 @@ public class ParagraphIndentTests
     [Fact]
     public void ABareCarriageReturnBreaksTheLine()
     {
-        TextElement element = Text(text => text.Span("a\rb"));
+        TextBlock element = Text(text => text.Span("a\rb"));
 
         Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
     }
@@ -183,7 +183,7 @@ public class ParagraphIndentTests
     [Fact]
     public void CarriageReturnAndNewlineTogetherBreakOnlyOnce()
     {
-        TextElement element = Text(text => text.Span("a\r\nb"));
+        TextBlock element = Text(text => text.Span("a\r\nb"));
 
         Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
     }

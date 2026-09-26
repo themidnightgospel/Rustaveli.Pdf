@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds the contents of a vertical stack.
 /// </summary>
-public sealed class ColumnDescriptor(ColumnElement element)
+public sealed class ColumnDescriptor(StackBlock element)
 {
     /// <summary>Sets the gap inserted between consecutive items.</summary>
     public void Spacing(float value)

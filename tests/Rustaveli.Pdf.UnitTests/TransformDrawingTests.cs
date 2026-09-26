@@ -16,7 +16,7 @@ public class TransformDrawingTests
     [Fact]
     public void ScaleToFitShrinksOversizedContentToTheWidthOfItsBox()
     {
-        ScaleToFitElement element = new ScaleToFitElement { Child = new FixedElement(200, 100) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new FixedElement(200, 100) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(100, 100)));
 
@@ -31,7 +31,7 @@ public class TransformDrawingTests
     [Fact]
     public void ScaleToFitLeavesContentThatAlreadyFitsAtFullSize()
     {
-        ScaleToFitElement element = new ScaleToFitElement { Child = new FixedElement(40, 20) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new FixedElement(40, 20) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(100, 100)));
 
@@ -42,7 +42,7 @@ public class TransformDrawingTests
     [Fact]
     public void AHorizontalFlipMirrorsContentAcrossItsOwnBox()
     {
-        FlipElement element = new FlipElement { FlipHorizontal = true, Child = new FixedElement(50, 20) };
+        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = new FixedElement(50, 20) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(50, 20)));
 
@@ -56,7 +56,7 @@ public class TransformDrawingTests
     [Fact]
     public void AVerticalFlipMirrorsContentAcrossItsOwnBox()
     {
-        FlipElement element = new FlipElement { FlipVertical = true, Child = new FixedElement(50, 20) };
+        MirrorBlock element = new MirrorBlock { FlipVertical = true, Child = new FixedElement(50, 20) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(50, 20)));
 
@@ -67,7 +67,7 @@ public class TransformDrawingTests
     [Fact]
     public void ScalingHalvesTheContentItDraws()
     {
-        ScaleElement element = new ScaleElement { ScaleX = 0.5f, ScaleY = 0.5f, Child = new FixedElement(40, 20) };
+        ScaleBlock element = new ScaleBlock { ScaleX = 0.5f, ScaleY = 0.5f, Child = new FixedElement(40, 20) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(100, 100)));
 
@@ -78,7 +78,7 @@ public class TransformDrawingTests
     [Fact]
     public void ScalingEachAxisIndependently()
     {
-        ScaleElement element = new ScaleElement { ScaleX = 2f, ScaleY = 0.5f, Child = new FixedElement(40, 20) };
+        ScaleBlock element = new ScaleBlock { ScaleX = 2f, ScaleY = 0.5f, Child = new FixedElement(40, 20) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(200, 200)));
 
@@ -94,7 +94,7 @@ public class TransformDrawingTests
     {
         // Regression: a negative factor reflected the content through the origin, so it was painted entirely
         // outside the box Measure reported — over the previous sibling, or off the page altogether.
-        ScaleElement element = new ScaleElement { ScaleX = scaleX, ScaleY = scaleY, Child = new FixedElement(50, 20) };
+        ScaleBlock element = new ScaleBlock { ScaleX = scaleX, ScaleY = scaleY, Child = new FixedElement(50, 20) };
         Extent reported = LayoutHarness.Measure(element, new Extent(200, 200)).Size;
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, reported));
@@ -111,7 +111,7 @@ public class TransformDrawingTests
     [InlineData(3)]
     public void AQuarterTurnSwapsTheContentsExtent(int quarterTurns)
     {
-        RotateElement element = new RotateElement { QuarterTurns = quarterTurns, Child = new FixedElement(100, 10) };
+        TurnBlock element = new TurnBlock { QuarterTurns = quarterTurns, Child = new FixedElement(100, 10) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(200, 200)));
 
@@ -125,7 +125,7 @@ public class TransformDrawingTests
     [InlineData(3)]
     public void AQuarterTurnStaysOverItsOwnBox(int quarterTurns)
     {
-        RotateElement element = new RotateElement { QuarterTurns = quarterTurns, Child = new FixedElement(100, 10) };
+        TurnBlock element = new TurnBlock { QuarterTurns = quarterTurns, Child = new FixedElement(100, 10) };
 
         // Offered exactly the turned content's size, so its box is the same however it is decided.
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(10, 100)));
@@ -139,7 +139,7 @@ public class TransformDrawingTests
     [Fact]
     public void NoTurnDrawsTheContentAsItIs()
     {
-        RotateElement element = new RotateElement { QuarterTurns = 4, Child = new FixedElement(100, 10) };
+        TurnBlock element = new TurnBlock { QuarterTurns = 4, Child = new FixedElement(100, 10) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(200, 200)));
 
@@ -149,7 +149,7 @@ public class TransformDrawingTests
     [Fact]
     public void AHalfTurnKeepsTheExtentAndStaysOverItsOwnBox()
     {
-        RotateElement element = new RotateElement { QuarterTurns = 2, Child = new FixedElement(100, 10) };
+        TurnBlock element = new TurnBlock { QuarterTurns = 2, Child = new FixedElement(100, 10) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(100, 10)));
 

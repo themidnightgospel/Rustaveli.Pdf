@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf.Primitives;
 
 /// <summary>
-/// Which dimensions an <see cref="Elements.AspectRatioElement"/> is permitted to occupy.
+/// Which dimensions a <see cref="Elements.ProportionBlock"/> is permitted to occupy.
 /// </summary>
 public enum ProportionFit
 {

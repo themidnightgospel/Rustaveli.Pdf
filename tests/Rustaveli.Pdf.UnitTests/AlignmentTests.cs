@@ -8,7 +8,7 @@ public class AlignmentTests
     [InlineData(HorizontalPlacement.Right, 150f)]
     public void PositionsTheChildHorizontally(HorizontalPlacement alignment, float expectedX)
     {
-        AlignmentElement element = new AlignmentElement { Horizontal = alignment, Child = new FixedElement(50, 20) };
+        PlacementBlock element = new PlacementBlock { Horizontal = alignment, Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 100));
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -22,7 +22,7 @@ public class AlignmentTests
     [InlineData(VerticalPlacement.Bottom, 80f)]
     public void PositionsTheChildVertically(VerticalPlacement alignment, float expectedY)
     {
-        AlignmentElement element = new AlignmentElement { Vertical = alignment, Child = new FixedElement(50, 20) };
+        PlacementBlock element = new PlacementBlock { Vertical = alignment, Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 100));
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -33,7 +33,7 @@ public class AlignmentTests
     [Fact]
     public void ClaimsTheFullSpaceOnlyOnAlignedAxes()
     {
-        AlignmentElement element = new AlignmentElement { Horizontal = HorizontalPlacement.Center, Child = new FixedElement(50, 20) };
+        PlacementBlock element = new PlacementBlock { Horizontal = HorizontalPlacement.Center, Child = new FixedElement(50, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -45,7 +45,7 @@ public class AlignmentTests
     public void PassesTheChildsWrapThroughUnchanged()
     {
         FixedElement child = new FixedElement(300, 20);
-        AlignmentElement element = new AlignmentElement { Horizontal = HorizontalPlacement.Center, Child = child };
+        PlacementBlock element = new PlacementBlock { Horizontal = HorizontalPlacement.Center, Child = child };
         Extent space = new Extent(200, 100);
 
         Fit plan = LayoutHarness.Measure(element, space);
@@ -57,7 +57,7 @@ public class AlignmentTests
     public void ReportsEmptyForAnExhaustedChildEvenOnAlignedAxes()
     {
         // Claiming the full space for a child with nothing left would leave a blank block on every later page.
-        AlignmentElement element = new AlignmentElement
+        PlacementBlock element = new PlacementBlock
         {
             Horizontal = HorizontalPlacement.Center,
             Vertical = VerticalPlacement.Middle,
@@ -70,7 +70,7 @@ public class AlignmentTests
     [Fact]
     public void KeepsAPartialChildPartialAtTheAlignedSize()
     {
-        AlignmentElement element = new AlignmentElement
+        PlacementBlock element = new PlacementBlock
         {
             Horizontal = HorizontalPlacement.Right,
             Child = new SplittableElement(unitCount: 4, unitHeight: 30, width: 40)
@@ -88,7 +88,7 @@ public class AlignmentTests
     public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        AlignmentElement element = new AlignmentElement { Horizontal = HorizontalPlacement.Center, Child = child };
+        PlacementBlock element = new PlacementBlock { Horizontal = HorizontalPlacement.Center, Child = child };
 
         LayoutHarness.Draw(element, new Extent(200, 100));
 

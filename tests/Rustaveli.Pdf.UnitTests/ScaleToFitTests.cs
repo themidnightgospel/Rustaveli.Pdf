@@ -5,7 +5,7 @@ public class ScaleToFitTests
     [Fact]
     public void LeavesContentAloneWhenItAlreadyFits()
     {
-        ScaleToFitElement element = new ScaleToFitElement { Child = new FixedElement(50, 20) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new FixedElement(50, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -15,7 +15,7 @@ public class ScaleToFitTests
     [Fact]
     public void ShrinksOversizedContentIntoTheSpace()
     {
-        ScaleToFitElement element = new ScaleToFitElement { Child = new FixedElement(200, 100) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new FixedElement(200, 100) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
 
@@ -26,7 +26,7 @@ public class ScaleToFitTests
     [Fact]
     public void WrapsWhenEvenTheSmallestScaleWouldNotFit()
     {
-        ScaleToFitElement element = new ScaleToFitElement { MinScale = 0.9f, Child = new FixedElement(1000, 10) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = 0.9f, Child = new FixedElement(1000, 10) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(100, 100)).IsWrap);
     }
@@ -38,7 +38,7 @@ public class ScaleToFitTests
     {
         // "Never shrink" passes the child through, so the answer is the child's own, reason and all.
         FixedElement child = new FixedElement(300, 50);
-        ScaleToFitElement element = new ScaleToFitElement { MinScale = minScale, Child = child };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = minScale, Child = child };
         Extent space = new Extent(200, 100);
 
         Assert.Equal(LayoutHarness.Measure(child, space), LayoutHarness.Measure(element, space));
@@ -47,7 +47,7 @@ public class ScaleToFitTests
     [Fact]
     public void AnUndefinedMinimumScaleMeansNoLowerBound()
     {
-        ScaleToFitElement element = new ScaleToFitElement { MinScale = float.NaN, Child = new FixedElement(400, 300) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = float.NaN, Child = new FixedElement(400, 300) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsFullRender);
     }
@@ -55,7 +55,7 @@ public class ScaleToFitTests
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        ScaleToFitElement element = new ScaleToFitElement { Child = new ScriptedElement(Fit.Empty()) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new ScriptedElement(Fit.Empty()) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsEmpty);
     }
@@ -63,7 +63,7 @@ public class ScaleToFitTests
     [Fact]
     public void WithoutContentOccupiesNothing()
     {
-        ScaleToFitElement element = new ScaleToFitElement();
+        ShrinkToFitBlock element = new ShrinkToFitBlock();
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 

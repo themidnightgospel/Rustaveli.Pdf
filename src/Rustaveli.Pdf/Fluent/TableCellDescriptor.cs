@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Positions a single table cell and exposes it as a container for content.
 /// </summary>
-public sealed class TableCellDescriptor(TableCell cell) : IFrame
+public sealed class TableCellDescriptor(CellBlock cell) : IFrame
 {
     Block? IFrame.Child
     {

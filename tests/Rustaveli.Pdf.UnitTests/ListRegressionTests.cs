@@ -7,8 +7,8 @@ public class ListRegressionTests
     {
         // Every member needed to build a list is public, so a list assembled without the fluent helper must not
         // silently render nothing.
-        ListElement list = new ListElement { Marker = ListMarker.Decimal };
-        list.Items.Add(new ListItem { Child = new FixedElement(40, 20, TestInks.Red) });
+        ListBlock list = new ListBlock { Marker = ListNumbering.Decimal };
+        list.Items.Add(new ListEntry { Child = new FixedElement(40, 20, TestInks.Red) });
 
         RecordedPage page = LayoutHarness.Draw(list, new Extent(300, 400));
 
@@ -24,8 +24,8 @@ public class ListRegressionTests
             list.Item().Text("beta");
         }));
 
-        ListElement element = (ListElement)((Frame)root).Child!;
-        element.Items.Add(new ListItem { Child = new FixedElement(40, 20, TestInks.Red) });
+        ListBlock element = (ListBlock)((Frame)root).Child!;
+        element.Items.Add(new ListEntry { Child = new FixedElement(40, 20, TestInks.Red) });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(300, 400));
 

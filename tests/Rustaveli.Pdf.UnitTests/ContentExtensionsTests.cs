@@ -152,7 +152,7 @@ public class ContentExtensionsTests
         CompositionException exception = Assert.Throws<CompositionException>(() => container.Empty());
 
         Assert.Contains("already holds TextElement, so it cannot be marked empty", exception.Message);
-        Assert.IsType<TextElement>(container.Child);
+        Assert.IsType<TextBlock>(container.Child);
     }
 
     [Fact]

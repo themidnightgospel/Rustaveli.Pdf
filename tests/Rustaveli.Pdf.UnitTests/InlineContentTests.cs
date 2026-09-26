@@ -12,9 +12,9 @@ public class InlineContentTests
 {
     private const float LineHeight = 12f;
 
-    private static TextElement Text(Action<TextDescriptor> compose)
+    private static TextBlock Text(Action<TextDescriptor> compose)
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         compose(new TextDescriptor(element));
         return element;
     }
@@ -22,7 +22,7 @@ public class InlineContentTests
     [Fact]
     public void AnInlineElementIsDrawnAmongTheWords()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("before");
             text.Element(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
@@ -39,7 +39,7 @@ public class InlineContentTests
     [Fact]
     public void TextAfterAnInlineElementContinuesPastIt()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("ab");
             text.Element(inline => inline.Child = new FixedElement(20, 10));
@@ -56,7 +56,7 @@ public class InlineContentTests
     [Fact]
     public void ItsWidthCountsTowardsTheLine()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("ab");
             text.Element(inline => inline.Child = new FixedElement(20, 10));
@@ -70,7 +70,7 @@ public class InlineContentTests
     [Fact]
     public void ATallElementRaisesTheLineItLandsOn()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("ab");
             text.Element(inline => inline.Child = new FixedElement(20, 40));
@@ -86,7 +86,7 @@ public class InlineContentTests
     [Fact]
     public void AShortElementLeavesTheLineHeightAlone()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("ab");
             text.Element(inline => inline.Child = new FixedElement(20, 4));
@@ -98,7 +98,7 @@ public class InlineContentTests
     [Fact]
     public void ItRestsOnTheBaseline()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("ab");
             text.Element(inline => inline.Child = new FixedElement(20, 6, TestInks.Red));
@@ -114,7 +114,7 @@ public class InlineContentTests
     [Fact]
     public void ItMovesToTheNextLineWholeRatherThanBeingSplit()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Span("aaaa");
             text.Element(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
@@ -131,7 +131,7 @@ public class InlineContentTests
     [Fact]
     public void AnInlineElementCanCarryALink()
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         Frame container = new Frame();
         container.Child = new FixedElement(20, 10);
         element.Spans.Add(new Text.TextRun { InlineElement = container, Url = "https://example.com" });
@@ -146,7 +146,7 @@ public class InlineContentTests
     {
         // The paragraph must expose them as children, or their pagination state would survive a new pass.
         SplittableElement splittable = new SplittableElement(unitCount: 2, unitHeight: 10);
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         Frame container = new Frame { Child = splittable };
         element.Spans.Add(new Text.TextRun { InlineElement = container });
 
@@ -161,7 +161,7 @@ public class InlineContentTests
     [Fact]
     public void APlainParagraphIsUnaffected()
     {
-        TextElement element = Text(text => text.Span("hello"));
+        TextBlock element = Text(text => text.Span("hello"));
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
@@ -252,7 +252,7 @@ public class InlineContentTests
     {
         // Measure has reported a wrap. Drawing the lines completed before the blocker would split the paragraph
         // across two pages and then repeat those lines on the next.
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Line("aaa");
             text.Element(inline => inline.Child = new FixedElement(200, 20));
@@ -264,7 +264,7 @@ public class InlineContentTests
     [Fact]
     public void AnInlineElementCanLinkToASection()
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         element.Spans.Add(new Text.TextRun { Text = "ab" });
         element.Spans.Add(new Text.TextRun { InlineElement = new Frame { Child = new FixedElement(20, 10) }, Destination = "intro" });
 
@@ -281,11 +281,11 @@ public class InlineContentTests
     {
         // Only a paragraph's opening line is indented, so an element landing on a later line may use the whole
         // width. The placeholder takes whatever width it is offered, which makes the budget visible.
-        TextElement element = new TextElement { FirstLineIndent = 20 };
+        TextBlock element = new TextBlock { FirstLineIndent = 20 };
         element.Spans.Add(new Text.TextRun { Text = "aaaa bbbb" });
         element.Spans.Add(new Text.TextRun
         {
-            InlineElement = new Frame { Child = new ConstrainedElement { MaxHeight = 10, Child = new PlaceholderElement() } }
+            InlineElement = new Frame { Child = new ConstraintBlock { MaxHeight = 10, Child = new PlaceholderBlock() } }
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(60, 500));

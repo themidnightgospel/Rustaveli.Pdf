@@ -4,9 +4,9 @@ public class ParagraphFormattingTests
 {
     private const float LineHeight = 12f;
 
-    private static TextElement Text(Action<TextDescriptor> compose)
+    private static TextBlock Text(Action<TextDescriptor> compose)
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         compose(new TextDescriptor(element));
         return element;
     }
@@ -14,7 +14,7 @@ public class ParagraphFormattingTests
     [Fact]
     public void IndentsTheOpeningLineOfEachParagraph()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
             text.Line("first");
@@ -32,7 +32,7 @@ public class ParagraphFormattingTests
     public void DoesNotIndentWrappedContinuationLines()
     {
         // Only the opening line of a paragraph is indented; lines produced by wrapping are not.
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
             text.Span("aaa bbb");
@@ -48,7 +48,7 @@ public class ParagraphFormattingTests
     [Fact]
     public void AddsSpacingBetweenParagraphsButNotBeforeTheFirst()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.ParagraphSpacing(8);
             text.Line("first");
@@ -64,7 +64,7 @@ public class ParagraphFormattingTests
     [Fact]
     public void WrappedLinesDoNotEarnParagraphSpacing()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.ParagraphSpacing(8);
             text.Span("aaa bbb");

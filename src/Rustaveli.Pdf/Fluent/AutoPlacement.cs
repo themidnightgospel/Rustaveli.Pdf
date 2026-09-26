@@ -8,17 +8,17 @@ namespace Rustaveli.Pdf.Fluent;
 /// </summary>
 internal static class AutoPlacement
 {
-    public static void Apply(List<TableCell> cells, int columnCount)
+    public static void Apply(List<CellBlock> cells, int columnCount)
     {
         HashSet<(int Row, int Column)> occupied = new HashSet<(int Row, int Column)>();
 
         // Fully pinned cells claim their slots first, so everything placed afterwards can avoid them.
-        foreach (TableCell? cell in cells.Where(cell => cell is { HasExplicitRow: true, HasExplicitColumn: true }))
+        foreach (CellBlock? cell in cells.Where(cell => cell is { HasExplicitRow: true, HasExplicitColumn: true }))
             Occupy(occupied, cell);
 
         // A cell that pins only one axis still needs the other resolved. Treating it as fully placed would
         // leave the unpinned axis at its default of 1, silently stacking such cells on top of one another.
-        foreach (TableCell? cell in cells.Where(cell => cell.HasExplicitRow && !cell.HasExplicitColumn))
+        foreach (CellBlock? cell in cells.Where(cell => cell.HasExplicitRow && !cell.HasExplicitColumn))
         {
             int span = Math.Min(Math.Max(1, cell.ColumnSpan), columnCount);
             int candidate = 1;
@@ -30,7 +30,7 @@ internal static class AutoPlacement
             Occupy(occupied, cell);
         }
 
-        foreach (TableCell? cell in cells.Where(cell => cell.HasExplicitColumn && !cell.HasExplicitRow))
+        foreach (CellBlock? cell in cells.Where(cell => cell.HasExplicitColumn && !cell.HasExplicitRow))
         {
             int candidate = 1;
 
@@ -44,7 +44,7 @@ internal static class AutoPlacement
         int row = 1;
         int column = 1;
 
-        foreach (TableCell? cell in cells.Where(cell => !cell.HasExplicitRow && !cell.HasExplicitColumn))
+        foreach (CellBlock? cell in cells.Where(cell => !cell.HasExplicitRow && !cell.HasExplicitColumn))
         {
             int span = Math.Min(Math.Max(1, cell.ColumnSpan), columnCount);
 
@@ -85,7 +85,7 @@ internal static class AutoPlacement
         return true;
     }
 
-    private static void Occupy(HashSet<(int Row, int Column)> occupied, TableCell cell)
+    private static void Occupy(HashSet<(int Row, int Column)> occupied, CellBlock cell)
     {
         for (int row = cell.Row; row <= cell.LastRow; row++)
         for (int column = cell.Column; column <= cell.LastColumn; column++)

@@ -5,7 +5,7 @@ public class UnconstrainedTests
     [Fact]
     public void ReportsNoSizeToItsParent()
     {
-        UnconstrainedElement element = new UnconstrainedElement { Child = new FixedElement(500, 500) };
+        UnboundedBlock element = new UnboundedBlock { Child = new FixedElement(500, 500) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
@@ -16,7 +16,7 @@ public class UnconstrainedTests
     [Fact]
     public void DrawsContentLargerThanTheSpaceOffered()
     {
-        UnconstrainedElement element = new UnconstrainedElement { Child = new FixedElement(500, 500) };
+        UnboundedBlock element = new UnboundedBlock { Child = new FixedElement(500, 500) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 50));
         RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -27,7 +27,7 @@ public class UnconstrainedTests
     [Fact]
     public void WithoutContentOccupiesNothing()
     {
-        UnconstrainedElement element = new UnconstrainedElement();
+        UnboundedBlock element = new UnboundedBlock();
 
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
@@ -39,7 +39,7 @@ public class UnconstrainedTests
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        UnconstrainedElement element = new UnconstrainedElement { Child = new ScriptedElement(Fit.Empty()) };
+        UnboundedBlock element = new UnboundedBlock { Child = new ScriptedElement(Fit.Empty()) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(50, 50)).IsEmpty);
     }
@@ -49,7 +49,7 @@ public class UnconstrainedTests
     {
         // Unbounded space still stops at the largest page PDF allows; content beyond it must be reported.
         FixedElement child = new FixedElement(20_000, 10);
-        UnconstrainedElement element = new UnconstrainedElement { Child = child };
+        UnboundedBlock element = new UnboundedBlock { Child = child };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
@@ -60,7 +60,7 @@ public class UnconstrainedTests
     public void RefusesContentThatWouldSplitEvenOnTheLargestPage()
     {
         // 20,000pt of units against a 14,400pt ceiling: the remainder would have nowhere to go.
-        UnconstrainedElement element = new UnconstrainedElement { Child = new SplittableElement(unitCount: 1_000, unitHeight: 20) };
+        UnboundedBlock element = new UnboundedBlock { Child = new SplittableElement(unitCount: 1_000, unitHeight: 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
@@ -74,7 +74,7 @@ public class UnconstrainedTests
     public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        UnconstrainedElement element = new UnconstrainedElement { Child = child };
+        UnboundedBlock element = new UnboundedBlock { Child = child };
 
         LayoutHarness.Draw(element, new Extent(50, 50));
 
@@ -85,7 +85,7 @@ public class UnconstrainedTests
     public void DrawsTheChildIntoTheSizeItMeasuredUnbounded()
     {
         ScriptedElement child = new ScriptedElement(Fit.FullRender(300, 120));
-        UnconstrainedElement element = new UnconstrainedElement { Child = child };
+        UnboundedBlock element = new UnboundedBlock { Child = child };
 
         LayoutHarness.Draw(element, new Extent(50, 50));
 

@@ -46,7 +46,7 @@ public class CornerRadiusTests
     public void BorderWithUnevenWidthsKeepsSquareCorners()
     {
         // A rounded corner has no meaningful shape where two different thicknesses meet.
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = new Sides(1, 4, 1, 1),
             CornerRadius = 5,

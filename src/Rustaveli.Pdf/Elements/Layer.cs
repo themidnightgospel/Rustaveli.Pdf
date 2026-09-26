@@ -3,7 +3,7 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Elements;
 
 /// <summary>
-/// One layer of a <see cref="LayersElement"/>.
+/// One layer of a <see cref="LayersBlock"/>.
 /// </summary>
 public sealed class Layer : EnclosingBlock
 {

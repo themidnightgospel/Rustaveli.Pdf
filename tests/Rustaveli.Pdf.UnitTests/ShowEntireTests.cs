@@ -5,7 +5,7 @@ public class ShowEntireTests
     [Fact]
     public void ConvertsAPartialRenderIntoAWrap()
     {
-        ShowEntireElement element = new ShowEntireElement { Child = new SplittableElement(unitCount: 4, unitHeight: 25) };
+        KeepTogetherBlock element = new KeepTogetherBlock { Child = new SplittableElement(unitCount: 4, unitHeight: 25) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
@@ -15,7 +15,7 @@ public class ShowEntireTests
     [Fact]
     public void LeavesContentThatFitsAlone()
     {
-        ShowEntireElement element = new ShowEntireElement { Child = new SplittableElement(unitCount: 2, unitHeight: 25) };
+        KeepTogetherBlock element = new KeepTogetherBlock { Child = new SplittableElement(unitCount: 2, unitHeight: 25) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
@@ -25,7 +25,7 @@ public class ShowEntireTests
     [Fact]
     public void DrawsNothingWhenItWouldHaveToSplit()
     {
-        ShowEntireElement element = new ShowEntireElement { Child = new SplittableElement(unitCount: 4, unitHeight: 25) };
+        KeepTogetherBlock element = new KeepTogetherBlock { Child = new SplittableElement(unitCount: 4, unitHeight: 25) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 50));
 

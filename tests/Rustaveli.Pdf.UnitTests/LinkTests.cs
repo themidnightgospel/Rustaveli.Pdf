@@ -8,7 +8,7 @@ public class LinkTests
     [Fact]
     public void AHyperlinkCoversExactlyItsContent()
     {
-        HyperlinkElement element = new HyperlinkElement { Url = "https://example.com", Child = new FixedElement(50, 20) };
+        LinkBlock element = new LinkBlock { Url = "https://example.com", Child = new FixedElement(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
         RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
@@ -22,7 +22,7 @@ public class LinkTests
     [Fact]
     public void AHyperlinkWithoutAUrlDrawsOnlyItsContent()
     {
-        HyperlinkElement element = new HyperlinkElement { Child = new FixedElement(50, 20) };
+        LinkBlock element = new LinkBlock { Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -36,7 +36,7 @@ public class LinkTests
     public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        HyperlinkElement element = new HyperlinkElement { Url = "https://example.com", Child = child };
+        LinkBlock element = new LinkBlock { Url = "https://example.com", Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -47,7 +47,7 @@ public class LinkTests
     [Fact]
     public void ASectionLinkCoversExactlyItsContent()
     {
-        InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = new FixedElement(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { DestinationName = "intro", Child = new FixedElement(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
         RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
@@ -61,7 +61,7 @@ public class LinkTests
     [Fact]
     public void ASectionLinkWithoutADestinationDrawsOnlyItsContent()
     {
-        InternalLinkElement element = new InternalLinkElement { Child = new FixedElement(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -75,7 +75,7 @@ public class LinkTests
     public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = child };
+        CrossReferenceBlock element = new CrossReferenceBlock { DestinationName = "intro", Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -86,7 +86,7 @@ public class LinkTests
     [Fact]
     public void ASectionLinkDoesNotChangeTheLayout()
     {
-        InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = new FixedElement(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { DestinationName = "intro", Child = new FixedElement(50, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 

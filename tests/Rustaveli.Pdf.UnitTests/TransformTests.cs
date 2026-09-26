@@ -5,7 +5,7 @@ public class TransformTests
     [Fact]
     public void ScaleMultipliesTheReportedSize()
     {
-        ScaleElement element = new ScaleElement { ScaleX = 2f, ScaleY = 3f, Child = new FixedElement(10, 10) };
+        ScaleBlock element = new ScaleBlock { ScaleX = 2f, ScaleY = 3f, Child = new FixedElement(10, 10) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
@@ -15,7 +15,7 @@ public class TransformTests
     [Fact]
     public void QuarterTurnSwapsTheMeasurementAxes()
     {
-        RotateElement element = new RotateElement { QuarterTurns = 1, Child = new FixedElement(100, 10) };
+        TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = new FixedElement(100, 10) };
 
         // The child is 100 wide, which only fits if the rotation lets it use the 200pt vertical axis.
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 200));
@@ -26,7 +26,7 @@ public class TransformTests
     [Fact]
     public void NormalisesTurnsIntoASingleRevolution()
     {
-        RotateElement element = new RotateElement { QuarterTurns = 5 };
+        TurnBlock element = new TurnBlock { QuarterTurns = 5 };
 
         Assert.Equal(1, element.QuarterTurns);
     }
@@ -34,7 +34,7 @@ public class TransformTests
     [Fact]
     public void NormalisesNegativeTurns()
     {
-        RotateElement element = new RotateElement { QuarterTurns = -1 };
+        TurnBlock element = new TurnBlock { QuarterTurns = -1 };
 
         Assert.Equal(3, element.QuarterTurns);
     }
@@ -42,7 +42,7 @@ public class TransformTests
     [Fact]
     public void TranslateDoesNotAffectLayout()
     {
-        TranslateElement element = new TranslateElement { Offset = new Offset(25, 25), Child = new FixedElement(10, 10) };
+        ShiftBlock element = new ShiftBlock { Offset = new Offset(25, 25), Child = new FixedElement(10, 10) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -52,7 +52,7 @@ public class TransformTests
     [Fact]
     public void TranslateShiftsDrawnContent()
     {
-        TranslateElement element = new TranslateElement { Offset = new Offset(25, 15), Child = new FixedElement(10, 10) };
+        ShiftBlock element = new ShiftBlock { Offset = new Offset(25, 15), Child = new FixedElement(10, 10) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -63,7 +63,7 @@ public class TransformTests
     [Fact]
     public void TranslateWithoutContentDrawsNothing()
     {
-        TranslateElement element = new TranslateElement { Offset = new Offset(25, 15) };
+        ShiftBlock element = new ShiftBlock { Offset = new Offset(25, 15) };
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
@@ -73,7 +73,7 @@ public class TransformTests
     [InlineData(1f, 0f)]
     public void AZeroScaleWraps(float scaleX, float scaleY)
     {
-        ScaleElement element = new ScaleElement { ScaleX = scaleX, ScaleY = scaleY, Child = new FixedElement(10, 10) };
+        ScaleBlock element = new ScaleBlock { ScaleX = scaleX, ScaleY = scaleY, Child = new FixedElement(10, 10) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsWrap);
     }
@@ -83,7 +83,7 @@ public class TransformTests
     [InlineData(1f, 0f)]
     public void AZeroScaleDrawsNothing(float scaleX, float scaleY)
     {
-        ScaleElement element = new ScaleElement { ScaleX = scaleX, ScaleY = scaleY, Child = new PlaceholderElement() };
+        ScaleBlock element = new ScaleBlock { ScaleX = scaleX, ScaleY = scaleY, Child = new PlaceholderBlock() };
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
@@ -92,7 +92,7 @@ public class TransformTests
     public void ScaleOffersTheChildTheSpaceItWillOccupyOnceScaled()
     {
         // At half size the child can be twice as large as the space before it stops fitting.
-        ScaleElement element = new ScaleElement { ScaleX = 0.5f, ScaleY = 0.25f, Child = new PlaceholderElement() };
+        ScaleBlock element = new ScaleBlock { ScaleX = 0.5f, ScaleY = 0.25f, Child = new PlaceholderBlock() };
 
         Bounds bounds = LayoutHarness.Draw(element, new Extent(100, 100)).Operations.OfType<RectangleOperation>().Single().Bounds;
 
@@ -103,7 +103,7 @@ public class TransformTests
     [Fact]
     public void ScaleWithoutContentOccupiesNothing()
     {
-        ScaleElement element = new ScaleElement { ScaleX = 2f, ScaleY = 2f };
+        ScaleBlock element = new ScaleBlock { ScaleX = 2f, ScaleY = 2f };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -117,7 +117,7 @@ public class TransformTests
     {
         // Doubling halves the room the child has: 100pt of its own coordinates.
         FixedElement child = new FixedElement(150, 10);
-        ScaleElement element = new ScaleElement { ScaleX = 2f, ScaleY = 2f, Child = child };
+        ScaleBlock element = new ScaleBlock { ScaleX = 2f, ScaleY = 2f, Child = child };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -127,7 +127,7 @@ public class TransformTests
     [Fact]
     public void ScaleReportsEmptyForAnExhaustedChild()
     {
-        ScaleElement element = new ScaleElement { ScaleX = 2f, ScaleY = 2f, Child = new ScriptedElement(Fit.Empty()) };
+        ScaleBlock element = new ScaleBlock { ScaleX = 2f, ScaleY = 2f, Child = new ScriptedElement(Fit.Empty()) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsEmpty);
     }
@@ -136,7 +136,7 @@ public class TransformTests
     public void ScaleKeepsAPartialChildPartialAtTheScaledSize()
     {
         // Halved, 100pt of height holds 200pt of the child: six of its ten 30pt units.
-        ScaleElement element = new ScaleElement { ScaleX = 0.5f, ScaleY = 0.5f, Child = new SplittableElement(unitCount: 10, unitHeight: 30) };
+        ScaleBlock element = new ScaleBlock { ScaleX = 0.5f, ScaleY = 0.5f, Child = new SplittableElement(unitCount: 10, unitHeight: 30) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -147,7 +147,7 @@ public class TransformTests
     [Fact]
     public void ANegativeScaleReportsAPositiveSize()
     {
-        ScaleElement element = new ScaleElement { ScaleX = -2f, ScaleY = 1f, Child = new FixedElement(10, 10) };
+        ScaleBlock element = new ScaleBlock { ScaleX = -2f, ScaleY = 1f, Child = new FixedElement(10, 10) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -157,7 +157,7 @@ public class TransformTests
     [Fact]
     public void AHalfTurnKeepsTheMeasurementAxes()
     {
-        RotateElement element = new RotateElement { QuarterTurns = 2, Child = new FixedElement(100, 10) };
+        TurnBlock element = new TurnBlock { QuarterTurns = 2, Child = new FixedElement(100, 10) };
 
         Approximately.Equal(new Extent(100, 10), LayoutHarness.Measure(element, new Extent(200, 200)).Size);
         Assert.True(LayoutHarness.Measure(element, new Extent(50, 200)).IsWrap);
@@ -166,7 +166,7 @@ public class TransformTests
     [Fact]
     public void RotateWithoutContentOccupiesNothing()
     {
-        RotateElement element = new RotateElement { QuarterTurns = 1 };
+        TurnBlock element = new TurnBlock { QuarterTurns = 1 };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -180,7 +180,7 @@ public class TransformTests
     {
         // A quarter turn offers the child the page's height as its width.
         FixedElement child = new FixedElement(300, 10);
-        RotateElement element = new RotateElement { QuarterTurns = 1, Child = child };
+        TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = child };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 200));
 
@@ -190,7 +190,7 @@ public class TransformTests
     [Fact]
     public void RotateReportsEmptyForAnExhaustedChild()
     {
-        RotateElement element = new RotateElement { QuarterTurns = 1, Child = new ScriptedElement(Fit.Empty()) };
+        TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = new ScriptedElement(Fit.Empty()) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsEmpty);
     }
@@ -199,7 +199,7 @@ public class TransformTests
     public void RotateKeepsAPartialChildPartialWithItsAxesSwapped()
     {
         // Turned, the child's 70pt of height is the page's 70pt of width: two of its four 30pt units.
-        RotateElement element = new RotateElement { QuarterTurns = 1, Child = new SplittableElement(unitCount: 4, unitHeight: 30, width: 20) };
+        TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = new SplittableElement(unitCount: 4, unitHeight: 30, width: 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(70, 200));
 
@@ -213,7 +213,7 @@ public class TransformTests
     public void RotateDoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        RotateElement element = new RotateElement { QuarterTurns = 1, Child = child };
+        TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = child };
 
         LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -226,7 +226,7 @@ public class TransformTests
     public void AQuarterTurnDrawsTheChildWithItsAxesSwapped(int quarterTurns)
     {
         ScriptedElement child = new ScriptedElement(Fit.FullRender(100, 10));
-        RotateElement element = new RotateElement { QuarterTurns = quarterTurns, Child = child };
+        TurnBlock element = new TurnBlock { QuarterTurns = quarterTurns, Child = child };
 
         LayoutHarness.Draw(element, new Extent(50, 200));
 

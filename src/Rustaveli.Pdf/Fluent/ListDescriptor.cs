@@ -7,13 +7,13 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds the contents of a list.
 /// </summary>
-public sealed class ListDescriptor(ListElement element)
+public sealed class ListDescriptor(ListBlock element)
 {
     /// <summary>Marks items with a bullet. This is the default.</summary>
-    public void Unordered() => element.Marker = ListMarker.Bullet;
+    public void Unordered() => element.Marker = ListNumbering.Bullet;
 
     /// <summary>Numbers the items, using arabic numerals unless another style is given.</summary>
-    public void Ordered(ListMarker marker = ListMarker.Decimal) => element.Marker = marker;
+    public void Ordered(ListNumbering marker = ListNumbering.Decimal) => element.Marker = marker;
 
     /// <summary>Sets the width of the gutter the markers sit in.</summary>
     public void MarkerWidth(float width) => element.MarkerWidth = width;
@@ -27,7 +27,7 @@ public sealed class ListDescriptor(ListElement element)
     /// <summary>Adds an item and returns its container.</summary>
     public IFrame Item()
     {
-        ListItem item = new ListItem();
+        ListEntry item = new ListEntry();
         element.Items.Add(item);
         return item;
     }

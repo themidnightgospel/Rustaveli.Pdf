@@ -2,9 +2,9 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class ColumnTests
 {
-    private static ColumnElement Column(float spacing, params Block[] items)
+    private static StackBlock Column(float spacing, params Block[] items)
     {
-        ColumnElement column = new ColumnElement { Spacing = spacing };
+        StackBlock column = new StackBlock { Spacing = spacing };
         column.Items.AddRange(items);
         return column;
     }
@@ -12,7 +12,7 @@ public class ColumnTests
     [Fact]
     public void SumsItemHeightsAndTakesTheWidestItem()
     {
-        ColumnElement column = Column(0, new FixedElement(50, 20), new FixedElement(80, 30));
+        StackBlock column = Column(0, new FixedElement(50, 20), new FixedElement(80, 30));
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 200));
 
@@ -22,7 +22,7 @@ public class ColumnTests
     [Fact]
     public void InsertsSpacingBetweenItemsButNotAroundThem()
     {
-        ColumnElement column = Column(10, new FixedElement(10, 20), new FixedElement(10, 20), new FixedElement(10, 20));
+        StackBlock column = Column(10, new FixedElement(10, 20), new FixedElement(10, 20), new FixedElement(10, 20));
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 200));
 
@@ -33,7 +33,7 @@ public class ColumnTests
     [Fact]
     public void StacksItemsTopToBottom()
     {
-        ColumnElement column = Column(5, new FixedElement(10, 20), new FixedElement(10, 30));
+        StackBlock column = Column(5, new FixedElement(10, 20), new FixedElement(10, 30));
 
         RecordedPage page = LayoutHarness.Draw(column, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
@@ -45,7 +45,7 @@ public class ColumnTests
     [Fact]
     public void ReportsPartialRenderWhenAnItemIsLeftOver()
     {
-        ColumnElement column = Column(0, new FixedElement(10, 60), new FixedElement(10, 60));
+        StackBlock column = Column(0, new FixedElement(10, 60), new FixedElement(10, 60));
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
 
@@ -56,7 +56,7 @@ public class ColumnTests
     [Fact]
     public void ResumesAfterTheItemsAlreadyDrawn()
     {
-        ColumnElement column = Column(0, new FixedElement(10, 60), new FixedElement(10, 60));
+        StackBlock column = Column(0, new FixedElement(10, 60), new FixedElement(10, 60));
         Extent space = new Extent(200, 100);
 
         LayoutHarness.Draw(column, space);
@@ -72,7 +72,7 @@ public class ColumnTests
     [Fact]
     public void WrapsWhenEvenTheFirstItemDoesNotFit()
     {
-        ColumnElement column = Column(0, new FixedElement(10, 500));
+        StackBlock column = Column(0, new FixedElement(10, 500));
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
 
@@ -82,7 +82,7 @@ public class ColumnTests
     [Fact]
     public void ReportsEmptyOnceEveryItemIsDrawn()
     {
-        ColumnElement column = Column(0, new FixedElement(10, 20));
+        StackBlock column = Column(0, new FixedElement(10, 20));
         Extent space = new Extent(200, 200);
 
         LayoutHarness.Draw(column, space);
@@ -94,7 +94,7 @@ public class ColumnTests
     public void CarriesASplittableItemAcrossTheBoundary()
     {
         SplittableElement splittable = new SplittableElement(unitCount: 4, unitHeight: 25);
-        ColumnElement column = Column(0, splittable);
+        StackBlock column = Column(0, splittable);
         Extent space = new Extent(200, 50);
 
         Fit plan = LayoutHarness.Measure(column, space);
@@ -109,7 +109,7 @@ public class ColumnTests
     public void ReportsTheFirstItemsOwnReasonWhenItCannotFit()
     {
         FixedElement item = new FixedElement(10, 500);
-        ColumnElement column = Column(0, item);
+        StackBlock column = Column(0, item);
         Extent space = new Extent(200, 100);
 
         Assert.Equal(LayoutHarness.Measure(item, space).WrapReason, LayoutHarness.Measure(column, space).WrapReason);
@@ -118,7 +118,7 @@ public class ColumnTests
     [Fact]
     public void ReportsEmptyWhenEveryRemainingItemIsExhausted()
     {
-        ColumnElement column = Column(10, new ScriptedElement(Fit.Empty()), new ScriptedElement(Fit.Empty()));
+        StackBlock column = Column(10, new ScriptedElement(Fit.Empty()), new ScriptedElement(Fit.Empty()));
 
         Assert.True(LayoutHarness.Measure(column, new Extent(200, 200)).IsEmpty);
     }
@@ -127,7 +127,7 @@ public class ColumnTests
     public void WrapsWhenOfferedNegativeHeight()
     {
         // A placeholder would happily claim a negative box; the column must refuse to hand one out.
-        ColumnElement column = Column(0, new PlaceholderElement());
+        StackBlock column = Column(0, new PlaceholderBlock());
 
         Assert.True(LayoutHarness.Measure(column, new Extent(200, -5)).IsWrap);
     }
@@ -135,7 +135,7 @@ public class ColumnTests
     [Fact]
     public void StopsBeforeAnItemThatTheSpacingWouldPushPastTheBottom()
     {
-        ColumnElement column = Column(10, new FixedElement(10, 95), new PlaceholderElement());
+        StackBlock column = Column(10, new FixedElement(10, 95), new PlaceholderBlock());
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
 
@@ -146,7 +146,7 @@ public class ColumnTests
     [Fact]
     public void DrawingAnExhaustedColumnDoesNotRewindIt()
     {
-        ColumnElement column = Column(0, new FixedElement(10, 20));
+        StackBlock column = Column(0, new FixedElement(10, 20));
         Extent space = new Extent(200, 200);
 
         LayoutHarness.Draw(column, space);
@@ -159,7 +159,7 @@ public class ColumnTests
     [Fact]
     public void AnAttemptWhereTheNextItemCannotFitKeepsTheColumnsPlace()
     {
-        ColumnElement column = Column(0, new FixedElement(10, 10, TestInks.Red), new FixedElement(10, 50, TestInks.Blue));
+        StackBlock column = Column(0, new FixedElement(10, 10, TestInks.Red), new FixedElement(10, 50, TestInks.Blue));
 
         LayoutHarness.Draw(column, new Extent(200, 20));
         RecordedPage cramped = LayoutHarness.Draw(column, new Extent(200, 5));

@@ -235,7 +235,7 @@ public class PdfOutputTests
 
             column.Item().List(list =>
             {
-                list.Ordered(ListMarker.UpperRoman);
+                list.Ordered(ListNumbering.UpperRoman);
                 list.Item().Text("Roman one");
             });
         }));

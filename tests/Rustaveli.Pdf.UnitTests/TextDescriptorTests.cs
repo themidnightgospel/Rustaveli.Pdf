@@ -120,7 +120,7 @@ public class TextDescriptorTests
     [Fact]
     public void ElementRefusesAMissingHandler()
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
 
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
             new TextDescriptor(element).Element(null!));

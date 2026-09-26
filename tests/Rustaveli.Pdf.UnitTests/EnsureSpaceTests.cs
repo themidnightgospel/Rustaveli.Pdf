@@ -5,7 +5,7 @@ public class EnsureSpaceTests
     [Fact]
     public void DefersWhenTooLittleRoomRemains()
     {
-        EnsureSpaceElement element = new EnsureSpaceElement { MinHeight = 80, Child = new FixedElement(10, 10) };
+        RequireSpaceBlock element = new RequireSpaceBlock { MinHeight = 80, Child = new FixedElement(10, 10) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
@@ -16,7 +16,7 @@ public class EnsureSpaceTests
     [Fact]
     public void ProceedsWhenEnoughRoomRemains()
     {
-        EnsureSpaceElement element = new EnsureSpaceElement { MinHeight = 40, Child = new FixedElement(10, 10) };
+        RequireSpaceBlock element = new RequireSpaceBlock { MinHeight = 40, Child = new FixedElement(10, 10) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 50)).IsFullRender);
     }
@@ -25,7 +25,7 @@ public class EnsureSpaceTests
     public void StopsDemandingHeadroomOnceTheContentHasStarted()
     {
         // The requirement is about where content begins, not about every page it continues onto.
-        EnsureSpaceElement element = new EnsureSpaceElement
+        RequireSpaceBlock element = new RequireSpaceBlock
         {
             MinHeight = 80,
             Child = new SplittableElement(unitCount: 6, unitHeight: 20)
@@ -40,7 +40,7 @@ public class EnsureSpaceTests
     public void AGuardWithoutContentNeverCountsAsStarted()
     {
         // Drawing nothing must not disarm the guarantee for the pages that follow.
-        EnsureSpaceElement element = new EnsureSpaceElement { MinHeight = 50 };
+        RequireSpaceBlock element = new RequireSpaceBlock { MinHeight = 50 };
 
         LayoutHarness.Draw(element, new Extent(200, 100));
 

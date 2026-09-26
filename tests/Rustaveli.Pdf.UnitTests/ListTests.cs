@@ -38,11 +38,11 @@ public class ListTests
     }
 
     [Theory]
-    [InlineData(ListMarker.LowerLetter, "a.")]
-    [InlineData(ListMarker.UpperLetter, "A.")]
-    [InlineData(ListMarker.LowerRoman, "i.")]
-    [InlineData(ListMarker.UpperRoman, "I.")]
-    public void SupportsAlternativeOrderedStyles(ListMarker marker, string expectedFirstMarker)
+    [InlineData(ListNumbering.LowerLetter, "a.")]
+    [InlineData(ListNumbering.UpperLetter, "A.")]
+    [InlineData(ListNumbering.LowerRoman, "i.")]
+    [InlineData(ListNumbering.UpperRoman, "I.")]
+    public void SupportsAlternativeOrderedStyles(ListNumbering marker, string expectedFirstMarker)
     {
         Block root = BuildList(list =>
         {
@@ -83,7 +83,7 @@ public class ListTests
     {
         Block root = BuildList(list =>
         {
-            list.Ordered(ListMarker.UpperRoman);
+            list.Ordered(ListNumbering.UpperRoman);
 
             for (int index = 0; index < 9; index++)
                 list.Item().Text("item");
@@ -100,7 +100,7 @@ public class ListTests
     {
         Block root = BuildList(list =>
         {
-            list.Ordered(ListMarker.UpperLetter);
+            list.Ordered(ListNumbering.UpperLetter);
 
             for (int index = 0; index < 27; index++)
                 list.Item().Text("item");

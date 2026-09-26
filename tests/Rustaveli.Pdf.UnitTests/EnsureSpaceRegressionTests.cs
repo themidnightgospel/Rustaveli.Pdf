@@ -23,12 +23,12 @@ public class EnsureSpaceRegressionTests
     [Fact]
     public void SurvivesBeingDrawnInsideARow()
     {
-        RowElement row = new RowElement();
-        row.Items.Add(new RowItem { Sizing = RowItemSizing.Relative, Child = new FixedElement(40, 20, TestInks.Blue) });
-        row.Items.Add(new RowItem
+        ColumnsBlock row = new ColumnsBlock();
+        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Relative, Child = new FixedElement(40, 20, TestInks.Blue) });
+        row.Items.Add(new ColumnSlot
         {
-            Sizing = RowItemSizing.Relative,
-            Child = new EnsureSpaceElement { MinHeight = 100, Child = new FixedElement(40, 20, TestInks.Red) }
+            Sizing = ColumnSizing.Relative,
+            Child = new RequireSpaceBlock { MinHeight = 100, Child = new FixedElement(40, 20, TestInks.Red) }
         });
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(300, 400));
@@ -41,10 +41,10 @@ public class EnsureSpaceRegressionTests
     {
         // Only content that actually occupied space counts as started. Otherwise a page rendering nothing would
         // permanently disarm the headroom guarantee for every page after it.
-        EnsureSpaceElement element = new EnsureSpaceElement
+        RequireSpaceBlock element = new RequireSpaceBlock
         {
             MinHeight = 80,
-            Child = new ShowIfElement { Condition = false, Child = new FixedElement(10, 10) }
+            Child = new WhenBlock { Condition = false, Child = new FixedElement(10, 10) }
         };
 
         LayoutHarness.Draw(element, new Extent(200, 100));

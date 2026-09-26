@@ -21,7 +21,7 @@ public class AutoPlacementTests
         return Assert.IsType<TableElement>(((Frame)root).Child);
     }
 
-    private static IEnumerable<(int Row, int Column)> Slots(IEnumerable<TableCell> cells) =>
+    private static IEnumerable<(int Row, int Column)> Slots(IEnumerable<CellBlock> cells) =>
         cells.Select(cell => (cell.Row, cell.Column));
 
     private static IEnumerable<(int Row, int Column)> Place(int columns, Action<TableDescriptor> cells) =>

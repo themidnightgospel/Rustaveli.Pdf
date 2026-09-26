@@ -2,9 +2,9 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class DecorationElementTests
 {
-    private static DecorationElement Build(Action<DecorationDescriptor> compose)
+    private static BandsBlock Build(Action<DecorationDescriptor> compose)
     {
-        DecorationElement element = new DecorationElement();
+        BandsBlock element = new BandsBlock();
         compose(new DecorationDescriptor(element));
         return element;
     }
@@ -12,7 +12,7 @@ public class DecorationElementTests
     [Fact]
     public void StacksTheBandsAroundTheContent()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 15, TestInks.Red));
             decoration.Content().Element(container => container.Child = new FixedElement(10, 20, TestInks.Blue));
@@ -30,7 +30,7 @@ public class DecorationElementTests
     [Fact]
     public void SumsBandAndContentHeights()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 15));
             decoration.Content().Element(container => container.Child = new FixedElement(10, 20));
@@ -45,7 +45,7 @@ public class DecorationElementTests
     [Fact]
     public void ReportsPartialRenderWhileContentRemains()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 10));
             decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
@@ -61,7 +61,7 @@ public class DecorationElementTests
     {
         // The bands accompany the content wherever it breaks, so their text must be redrawn in full each page
         // rather than being consumed on the first.
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Text("Continued");
             decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
@@ -79,7 +79,7 @@ public class DecorationElementTests
     [Fact]
     public void TakesTheWidthOfItsWidestPart()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(80, 10));
             decoration.Content().Element(container => container.Child = new FixedElement(50, 20));
@@ -96,7 +96,7 @@ public class DecorationElementTests
         ScriptedElement content = new ScriptedElement(Fit.FullRender(10, 20));
         ScriptedElement after = new ScriptedElement(Fit.FullRender(10, 25));
 
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = before);
             decoration.Content().Element(container => container.Child = content);
@@ -114,7 +114,7 @@ public class DecorationElementTests
     [Fact]
     public void WrapsWhenTheLeadingBandDoesNotFit()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 150));
             decoration.Content().Element(container => container.Child = new FixedElement(10, 10));
@@ -129,7 +129,7 @@ public class DecorationElementTests
     [Fact]
     public void WrapsWhenTheTrailingBandDoesNotFitBelowTheLeadingOne()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 60));
             decoration.Content().Element(container => container.Child = new FixedElement(10, 1));
@@ -147,7 +147,7 @@ public class DecorationElementTests
     {
         // A custom element can report more than it was offered. The trailing band must not then be measured
         // against a negative remainder.
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
             decoration.Before().Element(container => container.Child = new ScriptedElement(Fit.FullRender(10, 150))));
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
@@ -159,7 +159,7 @@ public class DecorationElementTests
     [Fact]
     public void WrapsWhenTheBandsLeaveNoRoomForTheContent()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 60));
             decoration.After().Element(container => container.Child = new ScriptedElement(Fit.FullRender(10, 70)));
@@ -174,7 +174,7 @@ public class DecorationElementTests
     [Fact]
     public void PassesTheContentsWrapThroughUnchanged()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 10));
             decoration.Content().Element(container => container.Child = new FixedElement(10, 200));
@@ -190,7 +190,7 @@ public class DecorationElementTests
     public void ReportsEmptyOnceTheContentIsExhausted()
     {
         // The bands exist to accompany content; on their own they must not claim another page.
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 10));
             decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 1, unitHeight: 10));
@@ -206,7 +206,7 @@ public class DecorationElementTests
     [Fact]
     public void DrawsNothingWhenTheBandsDoNotFit()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 150, TestInks.Red));
             decoration.Content().Element(container => container.Child = new FixedElement(10, 10, TestInks.Blue));
@@ -220,7 +220,7 @@ public class DecorationElementTests
     {
         ScriptedElement after = new ScriptedElement(Fit.FullRender(10, 70));
 
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 60, TestInks.Red));
             decoration.After().Element(container => container.Child = after);
@@ -233,7 +233,7 @@ public class DecorationElementTests
     [Fact]
     public void DoesNotDrawTheBandsWhenTheContentDoesNotFit()
     {
-        DecorationElement element = Build(decoration =>
+        BandsBlock element = Build(decoration =>
         {
             decoration.Before().Element(container => container.Child = new FixedElement(10, 10, TestInks.Red));
             decoration.Content().Element(container => container.Child = new FixedElement(10, 200, TestInks.Blue));

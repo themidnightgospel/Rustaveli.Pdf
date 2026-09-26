@@ -2,12 +2,12 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class ContentDirectionTests
 {
-    private static RowElement TwoColumnRow()
+    private static ColumnsBlock TwoColumnRow()
     {
-        RowElement row = new RowElement();
+        ColumnsBlock row = new ColumnsBlock();
 
-        row.Items.Add(new RowItem { Sizing = RowItemSizing.Constant, Value = 50, Child = new FixedElement(1, 10, TestInks.Red) });
-        row.Items.Add(new RowItem { Sizing = RowItemSizing.Constant, Value = 50, Child = new FixedElement(1, 10, TestInks.Blue) });
+        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Constant, Value = 50, Child = new FixedElement(1, 10, TestInks.Red) });
+        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Constant, Value = 50, Child = new FixedElement(1, 10, TestInks.Blue) });
 
         return row;
     }
@@ -27,7 +27,7 @@ public class ContentDirectionTests
     [Fact]
     public void AnExplicitRowDirectionOverridesTheContext()
     {
-        RowElement row = TwoColumnRow();
+        ColumnsBlock row = TwoColumnRow();
         row.Direction = ReadingDirection.LeftToRight;
 
         PlanContext context = LayoutHarness.Context();
@@ -42,7 +42,7 @@ public class ContentDirectionTests
     [Fact]
     public void TextAlignsToTheTrailingEdgeWhenRightToLeft()
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         new TextDescriptor(element).Span("Hello");
 
         PlanContext context = LayoutHarness.Context();
@@ -58,7 +58,7 @@ public class ContentDirectionTests
     [Fact]
     public void ExplicitTextAlignmentBeatsTheDirection()
     {
-        TextElement element = new TextElement();
+        TextBlock element = new TextBlock();
         new TextDescriptor(element).Span("Hello");
         element.Alignment = HorizontalPlacement.Left;
 

@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.UnitTests;
 /// </summary>
 public class ImageElementTests
 {
-    private static ImageElement Image(ImageFitting fit) => new() { Image = new FakeImage(200, 100), Fit = fit };
+    private static ImageBlock Image(ImageFitting fit) => new() { Image = new FakeImage(200, 100), Fit = fit };
 
     [Theory]
     [InlineData(ImageFitting.Width, 100f, 300f, 100f, 50f)]
@@ -64,7 +64,7 @@ public class ImageElementTests
     [Fact]
     public void TreatsAnImageWithNoHeightAsSquare()
     {
-        ImageElement element = new ImageElement { Image = new FakeImage(50, 0), Fit = ImageFitting.Width };
+        ImageBlock element = new ImageBlock { Image = new FakeImage(50, 0), Fit = ImageFitting.Width };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 300));
 
@@ -74,7 +74,7 @@ public class ImageElementTests
     [Fact]
     public void WithoutAnImageOccupiesNothing()
     {
-        ImageElement element = new ImageElement();
+        ImageBlock element = new ImageBlock();
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 300));
 

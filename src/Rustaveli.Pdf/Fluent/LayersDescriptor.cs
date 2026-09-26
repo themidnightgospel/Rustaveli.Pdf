@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds a stack of overlapping layers.
 /// </summary>
-public sealed class LayersDescriptor(LayersElement element)
+public sealed class LayersDescriptor(LayersBlock element)
 {
     /// <summary>Adds a layer that does not influence the size of the stack.</summary>
     public IFrame Layer() => Add(isPrimary: false);

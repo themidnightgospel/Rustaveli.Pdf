@@ -5,7 +5,7 @@ public class PaddingTests
     [Fact]
     public void AddsPaddingToTheChildSize()
     {
-        PaddingElement element = new PaddingElement
+        InsetBlock element = new InsetBlock
         {
             Padding = Sides.All(10),
             Child = new FixedElement(50, 20)
@@ -20,7 +20,7 @@ public class PaddingTests
     public void ShrinksTheSpaceOfferedToTheChild()
     {
         // The child needs 100 wide; padding leaves only 80, so it cannot fit.
-        PaddingElement element = new PaddingElement
+        InsetBlock element = new InsetBlock
         {
             Padding = Sides.All(10),
             Child = new FixedElement(100, 20)
@@ -34,7 +34,7 @@ public class PaddingTests
     [Fact]
     public void OffsetsTheChildByTheLeadingEdges()
     {
-        PaddingElement element = new PaddingElement
+        InsetBlock element = new InsetBlock
         {
             Padding = new Sides(10, 20, 0, 0),
             Child = new FixedElement(50, 20)
@@ -49,7 +49,7 @@ public class PaddingTests
     [Fact]
     public void WrapsWhenPaddingAloneExceedsTheSpace()
     {
-        PaddingElement element = new PaddingElement { Padding = Sides.All(60), Child = new FixedElement(1, 1) };
+        InsetBlock element = new InsetBlock { Padding = Sides.All(60), Child = new FixedElement(1, 1) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
 
@@ -62,7 +62,7 @@ public class PaddingTests
         // A child reporting Empty has nothing left for a continuation page; the padding must vanish with it,
         // otherwise every later page would carry a phantom band of whitespace.
         SplittableElement splittable = new SplittableElement(unitCount: 1, unitHeight: 10);
-        PaddingElement element = new PaddingElement { Padding = Sides.All(10), Child = splittable };
+        InsetBlock element = new InsetBlock { Padding = Sides.All(10), Child = splittable };
         Extent space = new Extent(200, 200);
 
         LayoutHarness.Draw(element, space);
@@ -74,7 +74,7 @@ public class PaddingTests
     public void KeepsAPartialChildPartial()
     {
         // 90pt less 20pt of padding leaves room for two of the four 30pt units.
-        PaddingElement element = new PaddingElement { Padding = Sides.All(10), Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
+        InsetBlock element = new InsetBlock { Padding = Sides.All(10), Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 90));
 
@@ -85,7 +85,7 @@ public class PaddingTests
     [Fact]
     public void WithoutContentOccupiesJustThePadding()
     {
-        PaddingElement element = new PaddingElement { Padding = new Sides(10, 5, 20, 15) };
+        InsetBlock element = new InsetBlock { Padding = new Sides(10, 5, 20, 15) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -97,7 +97,7 @@ public class PaddingTests
     [Fact]
     public void DrawsTheChildIntoTheInsetSpace()
     {
-        PaddingElement element = new PaddingElement { Padding = new Sides(10, 5, 20, 15), Child = new PlaceholderElement() };
+        InsetBlock element = new InsetBlock { Padding = new Sides(10, 5, 20, 15), Child = new PlaceholderBlock() };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 100));
         RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -108,7 +108,7 @@ public class PaddingTests
     [Fact]
     public void DrawsNothingWhenPaddingAloneExceedsTheSpace()
     {
-        PaddingElement element = new PaddingElement { Padding = Sides.All(60), Child = new PlaceholderElement() };
+        InsetBlock element = new InsetBlock { Padding = Sides.All(60), Child = new PlaceholderBlock() };
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(100, 100)).Operations);
     }

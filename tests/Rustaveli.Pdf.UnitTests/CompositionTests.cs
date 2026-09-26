@@ -16,7 +16,7 @@ public class CompositionTests
         // Both types are named so the message points at the two pieces of composition that collided.
         Assert.Contains("already holds PaddingElement and cannot also hold BackgroundElement", exception.Message);
         Assert.Contains("use Column, Row or Layers", exception.Message);
-        Assert.IsType<PaddingElement>(container.Child);
+        Assert.IsType<InsetBlock>(container.Child);
     }
 
     [Fact]

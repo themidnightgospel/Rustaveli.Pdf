@@ -36,7 +36,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void PlaceholderClaimsTheSpaceOfferedToIt()
     {
-        Fit plan = LayoutHarness.Measure(new PlaceholderElement(), new Extent(80, 40));
+        Fit plan = LayoutHarness.Measure(new PlaceholderBlock(), new Extent(80, 40));
 
         Assert.True(plan.IsFullRender);
         Approximately.Equal(new Extent(80, 40), plan.Size);
@@ -47,7 +47,7 @@ public class RuleAndPlaceholderTests
     [InlineData(4.9f, true)]
     public void HorizontalRuleWrapsWhenThickerThanTheSpace(float availableHeight, bool wraps)
     {
-        HorizontalLineElement element = new HorizontalLineElement { Thickness = 5 };
+        RuleBlock element = new RuleBlock { Thickness = 5 };
 
         Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(200, availableHeight)).IsWrap);
     }
@@ -55,7 +55,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void HorizontalRuleIsPaintedAcrossTheWidthInItsColour()
     {
-        HorizontalLineElement element = new HorizontalLineElement { Thickness = 3, Color = TestInks.Red };
+        RuleBlock element = new RuleBlock { Thickness = 3, Color = TestInks.Red };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
@@ -68,7 +68,7 @@ public class RuleAndPlaceholderTests
     [InlineData(4.9f, true)]
     public void VerticalRuleWrapsWhenThickerThanTheSpace(float availableWidth, bool wraps)
     {
-        VerticalLineElement element = new VerticalLineElement { Thickness = 5 };
+        VerticalRuleBlock element = new VerticalRuleBlock { Thickness = 5 };
 
         Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(availableWidth, 100)).IsWrap);
     }
@@ -76,7 +76,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void VerticalRuleIsPaintedDownTheHeightInItsColour()
     {
-        VerticalLineElement element = new VerticalLineElement { Thickness = 2, Color = TestInks.Blue };
+        VerticalRuleBlock element = new VerticalRuleBlock { Thickness = 2, Color = TestInks.Blue };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 

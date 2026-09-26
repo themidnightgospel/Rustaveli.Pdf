@@ -17,7 +17,7 @@ public sealed class TableDescriptor(TableElement element)
     /// <summary>Adds a body cell. Without an explicit position it is placed in the next free slot.</summary>
     public TableCellDescriptor Cell()
     {
-        TableCell tableCell = new TableCell();
+        CellBlock tableCell = new CellBlock();
         element.Cells.Add(tableCell);
         return new TableCellDescriptor(tableCell);
     }
@@ -58,9 +58,9 @@ public sealed class TableDescriptor(TableElement element)
     /// Left unchecked these surface much later as an <see cref="System.IndexOutOfRangeException" /> from deep inside
     /// the layout engine, which says nothing about the cell that caused it.
     /// </remarks>
-    private static void Validate(List<TableCell> cells, int columnCount, string band)
+    private static void Validate(List<CellBlock> cells, int columnCount, string band)
     {
-        foreach (TableCell cell in cells)
+        foreach (CellBlock cell in cells)
         {
             if (cell.LastColumn <= columnCount)
             {

@@ -85,7 +85,7 @@ public class TableDescriptorTests
             descriptor.Cell().Column(1).ColumnSpan(2);
         });
 
-        TableCell cell = Assert.Single(table.Cells);
+        CellBlock cell = Assert.Single(table.Cells);
 
         Assert.Equal(1, cell.Column);
         Assert.Equal(2, cell.ColumnSpan);

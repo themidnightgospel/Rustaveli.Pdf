@@ -7,8 +7,8 @@ public class FlipRegressionTests
     {
         // The child is mirrored about the box it is actually drawn into. Mirroring about a smaller reported size
         // while drawing into a larger one throws self-aligning content off the page.
-        FlipElement element = new FlipElement { FlipHorizontal = true };
-        TextElement text = new TextElement { Alignment = HorizontalPlacement.Right };
+        MirrorBlock element = new MirrorBlock { FlipHorizontal = true };
+        TextBlock text = new TextBlock { Alignment = HorizontalPlacement.Right };
         text.Spans.Add(new Text.TextRun { Text = "hello" });
         element.Child = text;
 
@@ -21,8 +21,8 @@ public class FlipRegressionTests
     [Fact]
     public void MirroredRightToLeftTextStaysInsideItsBox()
     {
-        FlipElement element = new FlipElement { FlipHorizontal = true };
-        TextElement text = new TextElement();
+        MirrorBlock element = new MirrorBlock { FlipHorizontal = true };
+        TextBlock text = new TextBlock();
         text.Spans.Add(new Text.TextRun { Text = "hello" });
         element.Child = text;
 

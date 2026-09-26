@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds a paragraph out of styled spans.
 /// </summary>
-public sealed class TextDescriptor(TextElement element)
+public sealed class TextDescriptor(TextBlock element)
 {
     /// <summary>Appends a run of text.</summary>
     public TextSpanDescriptor Span(string text)

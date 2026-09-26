@@ -15,7 +15,7 @@ public static class ContentExtensions
     public static void Text(this IFrame parent, Action<TextDescriptor> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        TextElement element = Composition.Attach(parent, new TextElement());
+        TextBlock element = Composition.Attach(parent, new TextBlock());
         handler(new TextDescriptor(element));
     }
 
@@ -29,7 +29,7 @@ public static class ContentExtensions
     public static void Image(this IFrame parent, IImage image, ImageFitting fit = ImageFitting.Width)
     {
         ArgumentNullException.ThrowIfNull(image, "image");
-        Composition.Attach(parent, new ImageElement
+        Composition.Attach(parent, new ImageBlock
         {
             Image = image,
             Fit = fit
@@ -40,7 +40,7 @@ public static class ContentExtensions
     public static void Column(this IFrame parent, Action<ColumnDescriptor> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        ColumnElement element = Composition.Attach(parent, new ColumnElement());
+        StackBlock element = Composition.Attach(parent, new StackBlock());
         handler(new ColumnDescriptor(element));
     }
 
@@ -48,7 +48,7 @@ public static class ContentExtensions
     public static void Row(this IFrame parent, Action<RowDescriptor> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        RowElement element = Composition.Attach(parent, new RowElement());
+        ColumnsBlock element = Composition.Attach(parent, new ColumnsBlock());
         handler(new RowDescriptor(element));
     }
 
@@ -66,7 +66,7 @@ public static class ContentExtensions
     public static void List(this IFrame parent, Action<ListDescriptor> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        ListElement listElement = Composition.Attach(parent, new ListElement());
+        ListBlock listElement = Composition.Attach(parent, new ListBlock());
         handler(new ListDescriptor(listElement));
         listElement.Build();
     }
@@ -75,7 +75,7 @@ public static class ContentExtensions
     public static void Layers(this IFrame parent, Action<LayersDescriptor> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        LayersElement element = Composition.Attach(parent, new LayersElement());
+        LayersBlock element = Composition.Attach(parent, new LayersBlock());
         handler(new LayersDescriptor(element));
     }
 
@@ -83,7 +83,7 @@ public static class ContentExtensions
     public static void Decoration(this IFrame parent, Action<DecorationDescriptor> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        DecorationElement element = Composition.Attach(parent, new DecorationElement());
+        BandsBlock element = Composition.Attach(parent, new BandsBlock());
         handler(new DecorationDescriptor(element));
     }
 

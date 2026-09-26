@@ -2,22 +2,22 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class RowTests
 {
-    private static RowElement Row(float spacing, params RowItem[] items)
+    private static ColumnsBlock Row(float spacing, params ColumnSlot[] items)
     {
-        RowElement row = new RowElement { Spacing = spacing };
+        ColumnsBlock row = new ColumnsBlock { Spacing = spacing };
         row.Items.AddRange(items);
         return row;
     }
 
-    private static RowItem Item(RowItemSizing sizing, float value, Block child) =>
+    private static ColumnSlot Item(ColumnSizing sizing, float value, Block child) =>
         new() { Sizing = sizing, Value = value, Child = child };
 
     [Fact]
     public void SplitsWidthBetweenRelativeItemsByWeight()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
-            Item(RowItemSizing.Relative, 3, new FixedElement(1, 10)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10)),
+            Item(ColumnSizing.Relative, 3, new FixedElement(1, 10)));
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
@@ -30,9 +30,9 @@ public class RowTests
     [Fact]
     public void GivesConstantItemsTheirExactWidth()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Constant, 60, new FixedElement(1, 10)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Constant, 60, new FixedElement(1, 10)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10)));
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
@@ -43,9 +43,9 @@ public class RowTests
     [Fact]
     public void SizesAutoItemsToTheirContent()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Auto, 0, new FixedElement(35, 10)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Auto, 0, new FixedElement(35, 10)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10)));
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
@@ -56,9 +56,9 @@ public class RowTests
     [Fact]
     public void SubtractsSpacingBeforeDistributingWidth()
     {
-        RowElement row = Row(20,
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)));
+        ColumnsBlock row = Row(20,
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10)));
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
@@ -70,9 +70,9 @@ public class RowTests
     [Fact]
     public void TakesTheHeightOfItsTallestItem()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 45)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 45)));
 
         Fit plan = LayoutHarness.Measure(row, new Extent(200, 100));
 
@@ -83,9 +83,9 @@ public class RowTests
     [Fact]
     public void PlacesItemsFromTheRightWhenDirectionIsReversed()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Constant, 50, new FixedElement(1, 10)),
-            Item(RowItemSizing.Constant, 50, new FixedElement(1, 10)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Constant, 50, new FixedElement(1, 10)),
+            Item(ColumnSizing.Constant, 50, new FixedElement(1, 10)));
         row.Direction = ReadingDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
@@ -101,9 +101,9 @@ public class RowTests
     {
         // An Auto item is sized from what its content measures. A stateful child reports only what it has left,
         // so recomputing on page two would collapse the column and shift every column beside it.
-        RowElement row = Row(0,
-            Item(RowItemSizing.Auto, 0, new SplittableElement(unitCount: 4, unitHeight: 30, width: 40)),
-            Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Auto, 0, new SplittableElement(unitCount: 4, unitHeight: 30, width: 40)),
+            Item(ColumnSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)));
 
         Extent space = new Extent(200, 60);
 
@@ -121,9 +121,9 @@ public class RowTests
     public void DoesNotRedrawFinishedItemsOnLaterPages()
     {
         // A stateless leaf has no way to report itself finished, so the row has to remember for it.
-        RowElement row = Row(0,
-            Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)),
-            Item(RowItemSizing.Relative, 1, new SplittableElement(unitCount: 6, unitHeight: 30)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)),
+            Item(ColumnSizing.Relative, 1, new SplittableElement(unitCount: 6, unitHeight: 30)));
 
         Extent space = new Extent(200, 60);
 
@@ -137,9 +137,9 @@ public class RowTests
     [Fact]
     public void ReportsPartialRenderWhenAnyItemHasContentLeft()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10)),
-            Item(RowItemSizing.Relative, 1, new SplittableElement(unitCount: 4, unitHeight: 30)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10)),
+            Item(ColumnSizing.Relative, 1, new SplittableElement(unitCount: 4, unitHeight: 30)));
 
         Fit plan = LayoutHarness.Measure(row, new Extent(200, 60));
 
@@ -149,7 +149,7 @@ public class RowTests
     [Fact]
     public void AnEmptyRowOccupiesNothing()
     {
-        RowElement row = Row(10);
+        ColumnsBlock row = Row(10);
 
         Fit plan = LayoutHarness.Measure(row, new Extent(200, 100));
 
@@ -164,9 +164,9 @@ public class RowTests
     public void WrapsWhenItsFixedColumnsAndSpacingCannotFit(float availableWidth, bool wraps)
     {
         // 60 + 30 of constant columns plus one 10pt gap need exactly 100pt.
-        RowElement row = Row(10,
-            Item(RowItemSizing.Constant, 60, new FixedElement(1, 10)),
-            Item(RowItemSizing.Constant, 30, new FixedElement(1, 10)));
+        ColumnsBlock row = Row(10,
+            Item(ColumnSizing.Constant, 60, new FixedElement(1, 10)),
+            Item(ColumnSizing.Constant, 30, new FixedElement(1, 10)));
 
         Fit plan = LayoutHarness.Measure(row, new Extent(availableWidth, 100));
 
@@ -176,9 +176,9 @@ public class RowTests
     [Fact]
     public void TreatsANegativeConstantWidthAsZero()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Constant, -50, new FixedElement(0, 10, TestInks.Red)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10, TestInks.Blue)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Constant, -50, new FixedElement(0, 10, TestInks.Red)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(1, 10, TestInks.Blue)));
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(20, 100));
         RectangleOperation relative = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Blue);
@@ -192,7 +192,7 @@ public class RowTests
         // Cell backgrounds and borders only line up if a short item is given the tall item's height.
         ScriptedElement shortItem = new ScriptedElement(Fit.FullRender(10, 20));
         ScriptedElement tallItem = new ScriptedElement(Fit.FullRender(10, 45));
-        RowElement row = Row(0, Item(RowItemSizing.Relative, 1, shortItem), Item(RowItemSizing.Relative, 1, tallItem));
+        ColumnsBlock row = Row(0, Item(ColumnSizing.Relative, 1, shortItem), Item(ColumnSizing.Relative, 1, tallItem));
 
         // Offered exactly the row's own height, so the answer does not depend on who decides it.
         LayoutHarness.Draw(row, new Extent(200, 45));
@@ -204,9 +204,9 @@ public class RowTests
     [Fact]
     public void ReportsEmptyOnceEveryItemHasFinished()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Constant, 30, new FixedElement(30, 20)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(10, 10)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Constant, 30, new FixedElement(30, 20)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(10, 10)));
 
         Extent space = new Extent(200, 60);
         LayoutHarness.Draw(row, space);
@@ -220,9 +220,9 @@ public class RowTests
     {
         // Nothing is drawn on the cramped page, so nothing may be marked finished either — otherwise the red
         // item would be skipped on the page where the row finally fits.
-        RowElement row = Row(0,
-            Item(RowItemSizing.Constant, 50, new FixedElement(10, 10, TestInks.Red)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(10, 200, TestInks.Blue)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Constant, 50, new FixedElement(10, 10, TestInks.Red)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(10, 200, TestInks.Blue)));
 
         RecordedPage cramped = LayoutHarness.Draw(row, new Extent(200, 100));
         RecordedPage roomy = LayoutHarness.Draw(row, new Extent(200, 300));
@@ -235,9 +235,9 @@ public class RowTests
     [Fact]
     public void AnAutoItemThatCannotFitMakesTheRowWrap()
     {
-        RowElement row = Row(0,
-            Item(RowItemSizing.Auto, 0, new FixedElement(30, 500)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(10, 10)));
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Auto, 0, new FixedElement(30, 500)),
+            Item(ColumnSizing.Relative, 1, new FixedElement(10, 10)));
 
         Assert.True(LayoutHarness.Measure(row, new Extent(200, 100)).IsWrap);
     }

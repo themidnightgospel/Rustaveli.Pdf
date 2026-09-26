@@ -7,7 +7,7 @@ public class LayersTests
     {
         // A watermark accompanies its content onto every page. Its text tracks how much of itself it has drawn,
         // so without a per-page reset it would be consumed on page one and trail off mid-word on page two.
-        LayersElement element = new LayersElement();
+        LayersBlock element = new LayersBlock();
 
         Layer primary = new Layer { IsPrimary = true, Child = new SplittableElement(unitCount: 4, unitHeight: 20, width: 200) };
         Layer overlay = new Layer();
@@ -28,10 +28,10 @@ public class LayersTests
     [Fact]
     public void TakesItsSizeFromThePrimaryLayerAndPaintsInDeclarationOrder()
     {
-        LayersElement element = new LayersElement();
-        element.Layers.Add(new Layer { Child = new PlaceholderElement { Color = TestInks.Red } });
+        LayersBlock element = new LayersBlock();
+        element.Layers.Add(new Layer { Child = new PlaceholderBlock { Color = TestInks.Red } });
         element.Layers.Add(new Layer { IsPrimary = true, Child = new FixedElement(50, 20, TestInks.Black) });
-        element.Layers.Add(new Layer { Child = new PlaceholderElement { Color = TestInks.Blue } });
+        element.Layers.Add(new Layer { Child = new PlaceholderBlock { Color = TestInks.Blue } });
 
         Extent space = new Extent(200, 200);
         Fit plan = LayoutHarness.Measure(element, space);
@@ -48,7 +48,7 @@ public class LayersTests
     [Fact]
     public void WithoutAPrimaryLayerOccupiesNothing()
     {
-        LayersElement element = new LayersElement();
+        LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { Child = new FixedElement(50, 20) });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
@@ -64,10 +64,10 @@ public class LayersTests
     {
         // A watermark without its page content would be a page of watermark alone.
         ScriptedElement content = ScriptedElement.WithNothingToDraw(outcome);
-        LayersElement element = new LayersElement();
-        element.Layers.Add(new Layer { Child = new PlaceholderElement() });
+        LayersBlock element = new LayersBlock();
+        element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
         element.Layers.Add(new Layer { IsPrimary = true, Child = content });
-        element.Layers.Add(new Layer { Child = new PlaceholderElement() });
+        element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -80,9 +80,9 @@ public class LayersTests
     {
         // Only the decorating layers repeat; the content itself must not restart on every page.
         SplittableElement content = new SplittableElement(unitCount: 4, unitHeight: 20);
-        LayersElement element = new LayersElement();
+        LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { IsPrimary = true, Child = content });
-        element.Layers.Add(new Layer { Child = new PlaceholderElement() });
+        element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
 
         Extent space = new Extent(200, 40);
         LayoutHarness.Draw(element, space);
@@ -96,7 +96,7 @@ public class LayersTests
     public void AFullResetRewindsThePrimaryLayer()
     {
         SplittableElement content = new SplittableElement(unitCount: 4, unitHeight: 20);
-        LayersElement element = new LayersElement();
+        LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { IsPrimary = true, Child = content });
 
         LayoutHarness.Draw(element, new Extent(200, 40));

@@ -12,14 +12,14 @@ namespace Rustaveli.Pdf.Elements;
 /// </remarks>
 internal static class ListMarkers
 {
-    public static string Format(ListMarker marker, int oneBasedIndex) => marker switch
+    public static string Format(ListNumbering marker, int oneBasedIndex) => marker switch
     {
-        ListMarker.Bullet => "•",
-        ListMarker.Decimal => $"{oneBasedIndex}.",
-        ListMarker.LowerLetter => $"{Alphabetic(oneBasedIndex).ToLowerInvariant()}.",
-        ListMarker.UpperLetter => $"{Alphabetic(oneBasedIndex)}.",
-        ListMarker.LowerRoman => $"{Roman(oneBasedIndex).ToLowerInvariant()}.",
-        ListMarker.UpperRoman => $"{Roman(oneBasedIndex)}.",
+        ListNumbering.Bullet => "•",
+        ListNumbering.Decimal => $"{oneBasedIndex}.",
+        ListNumbering.LowerLetter => $"{Alphabetic(oneBasedIndex).ToLowerInvariant()}.",
+        ListNumbering.UpperLetter => $"{Alphabetic(oneBasedIndex)}.",
+        ListNumbering.LowerRoman => $"{Roman(oneBasedIndex).ToLowerInvariant()}.",
+        ListNumbering.UpperRoman => $"{Roman(oneBasedIndex)}.",
         _ => "•"
     };
 

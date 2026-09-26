@@ -6,23 +6,23 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds the contents of a horizontal stack.
 /// </summary>
-public sealed class RowDescriptor(RowElement element)
+public sealed class RowDescriptor(ColumnsBlock element)
 {
     /// <summary>Sets the gap inserted between consecutive items.</summary>
     public void Spacing(float value) => element.Spacing = value;
 
     /// <summary>Adds an item that shares leftover width with other relative items, proportional to its weight.</summary>
-    public IFrame RelativeItem(float weight = 1f) => Add(RowItemSizing.Relative, weight);
+    public IFrame RelativeItem(float weight = 1f) => Add(ColumnSizing.Relative, weight);
 
     /// <summary>Adds an item of fixed width.</summary>
-    public IFrame ConstantItem(float width) => Add(RowItemSizing.Constant, width);
+    public IFrame ConstantItem(float width) => Add(ColumnSizing.Constant, width);
 
     /// <summary>Adds an item that takes exactly as much width as its content needs.</summary>
-    public IFrame AutoItem() => Add(RowItemSizing.Auto, 0f);
+    public IFrame AutoItem() => Add(ColumnSizing.Auto, 0f);
 
-    private IFrame Add(RowItemSizing sizing, float value)
+    private IFrame Add(ColumnSizing sizing, float value)
     {
-        RowItem item = new RowItem { Sizing = sizing, Value = value };
+        ColumnSlot item = new ColumnSlot { Sizing = sizing, Value = value };
         element.Items.Add(item);
         return item;
     }

@@ -5,7 +5,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundFillsTheBoxItIsGivenRatherThanItsContent()
     {
-        BackgroundElement element = new BackgroundElement { Color = TestInks.Red, Child = new FixedElement(50, 20) };
+        FillBlock element = new FillBlock { Color = TestInks.Red, Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
         RectangleOperation background = page.Operations.OfType<RectangleOperation>().First();
@@ -18,7 +18,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundDoesNotConsumeLayoutSpace()
     {
-        BackgroundElement element = new BackgroundElement { Color = TestInks.Red, Child = new FixedElement(50, 20) };
+        FillBlock element = new FillBlock { Color = TestInks.Red, Child = new FixedElement(50, 20) };
 
         Approximately.Equal(new Extent(50, 20), LayoutHarness.Measure(element, new Extent(200, 200)).Size);
     }
@@ -26,7 +26,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BorderDrawsOneBandPerRequestedSide()
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
             Color = TestInks.Black,
@@ -42,7 +42,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BorderIsInsetWithinTheBoxItIsGiven()
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.Zero.WithRight(3),
             Color = TestInks.Black,
@@ -62,7 +62,7 @@ public class BorderAndBackgroundTests
     public void BackgroundPaintsNothingBehindAChildWithNothingToShow(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        BackgroundElement element = new BackgroundElement { Color = TestInks.Red, Child = child };
+        FillBlock element = new FillBlock { Color = TestInks.Red, Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -73,7 +73,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundWithoutContentPaintsOnlyItsOwnFill()
     {
-        BackgroundElement element = new BackgroundElement { Color = TestInks.Red };
+        FillBlock element = new FillBlock { Color = TestInks.Red };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
         RectangleOperation fill = Assert.IsType<RectangleOperation>(Assert.Single(page.Operations));
@@ -85,7 +85,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BorderPlacesEachSideAlongItsOwnEdge()
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = new Sides(1, 2, 3, 4),
             Color = TestInks.Black,
@@ -106,7 +106,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BorderIsDrawnOverTheContent()
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
             Color = TestInks.Black,
@@ -121,7 +121,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void TransparentBorderDrawsOnlyTheContent()
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
             Color = TestInks.Transparent,
@@ -140,7 +140,7 @@ public class BorderAndBackgroundTests
     public void BorderDrawsNothingAroundAChildWithNothingToShow(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        BorderElement element = new BorderElement { Width = Sides.All(2), Color = TestInks.Black, Child = child };
+        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Color = TestInks.Black, Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -151,7 +151,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BorderWithoutContentDrawsOnlyItsOwnSides()
     {
-        BorderElement element = new BorderElement { Width = Sides.All(2), Color = TestInks.Black };
+        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Color = TestInks.Black };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -164,7 +164,7 @@ public class BorderAndBackgroundTests
     {
         // Inset by half the 2pt stroke, with the radius reduced to match, so the outer edge of the stroke lands
         // on the requested 4pt radius.
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
             CornerRadius = 4,
@@ -185,7 +185,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void RoundedBorderRadiusIsCappedAtHalfTheShorterSide()
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
             CornerRadius = 50,
@@ -205,7 +205,7 @@ public class BorderAndBackgroundTests
     [InlineData(1f, 1f, 1f, 4f)]
     public void RoundedCornersNeedEverySideTheSameWidth(float left, float top, float right, float bottom)
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = new Sides(left, top, right, bottom),
             CornerRadius = 5,
@@ -222,7 +222,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void ABorderWithNoWidthDrawsNothingEvenWhenRounded()
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.Zero,
             CornerRadius = 5,
@@ -241,7 +241,7 @@ public class BorderAndBackgroundTests
     [InlineData(30f, 40f)]
     public void RoundedBorderAtLeastAsThickAsItsBoxIsNotDrawn(float width, float height)
     {
-        BorderElement element = new BorderElement
+        StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(30),
             CornerRadius = 5,

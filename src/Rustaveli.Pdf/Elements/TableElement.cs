@@ -43,13 +43,13 @@ public sealed class TableElement : Block
         /// The left edge of a cell. Right-to-left tables mirror the whole grid, so column one sits against the
         /// right edge and a spanning cell is offset by its combined width rather than its first column's.
         /// </summary>
-        public float ColumnLeft(TableCell cell, float spanWidth) =>
+        public float ColumnLeft(CellBlock cell, float spanWidth) =>
             Direction == ReadingDirection.LeftToRight
                 ? ColumnOffsets[cell.Column - 1]
                 : TotalWidth - ColumnOffsets[cell.Column - 1] - spanWidth;
 
         /// <summary>The combined width of every column a cell spans, clamped to the columns that exist.</summary>
-        public float SpanWidth(TableCell cell)
+        public float SpanWidth(CellBlock cell)
         {
             float width = 0f;
 
@@ -71,15 +71,15 @@ public sealed class TableElement : Block
     /// <summary>Overrides the inherited flow direction, reversing column order. Null follows the context.</summary>
     public ReadingDirection? Direction { get; set; }
 
-    public List<TableColumn> Columns { get; } = [];
+    public List<TableColumnSpec> Columns { get; } = [];
 
-    public List<TableCell> Cells { get; } = new List<TableCell>();
+    public List<CellBlock> Cells { get; } = new List<CellBlock>();
 
     /// <summary>Rows repeated at the top of every page the table spans.</summary>
-    public List<TableCell> HeaderCells { get; } = new List<TableCell>();
+    public List<CellBlock> HeaderCells { get; } = new List<CellBlock>();
 
     /// <summary>Rows repeated at the bottom of every page the table spans.</summary>
-    public List<TableCell> FooterCells { get; } = new List<TableCell>();
+    public List<CellBlock> FooterCells { get; } = new List<CellBlock>();
 
     public override IEnumerable<Block?> GetChildren()
     {
@@ -163,11 +163,11 @@ public sealed class TableElement : Block
     /// </remarks>
     private void ResetRepeatingBands()
     {
-        foreach (TableCell headerCell in HeaderCells)
+        foreach (CellBlock headerCell in HeaderCells)
         {
             headerCell.ResetState(includeDocumentProgress: false);
         }
-        foreach (TableCell footerCell in FooterCells)
+        foreach (CellBlock footerCell in FooterCells)
         {
             footerCell.ResetState(includeDocumentProgress: false);
         }
@@ -215,7 +215,7 @@ public sealed class TableElement : Block
     }
 
     private void DrawBand(
-        List<TableCell> cells,
+        List<CellBlock> cells,
         float[] rowHeights,
         TableLayout layout,
         int firstRow,
@@ -223,7 +223,7 @@ public sealed class TableElement : Block
         float bandTop,
         RenderContext context)
     {
-        foreach (TableCell cell in cells)
+        foreach (CellBlock cell in cells)
         {
             if (cell.Row < firstRow || cell.Row > lastRow)
                 continue;
@@ -324,7 +324,7 @@ public sealed class TableElement : Block
     /// For each row, the last row it is bound to by a vertical span. Rows may only be separated where this
     /// equals the row itself.
     /// </summary>
-    private static int[] BuildGroupBoundaries(List<TableCell> cells, int rowCount)
+    private static int[] BuildGroupBoundaries(List<CellBlock> cells, int rowCount)
     {
         int[] groupEnd = new int[rowCount];
 
@@ -332,7 +332,7 @@ public sealed class TableElement : Block
         for (int row = 1; row <= rowCount; row++)
             groupEnd[row - 1] = row;
 
-        foreach (TableCell cell in cells)
+        foreach (CellBlock cell in cells)
         {
             if (cell.RowSpan <= 1)
                 continue;
@@ -348,7 +348,7 @@ public sealed class TableElement : Block
     /// Measures every cell at its natural height, then distributes the height of vertically spanned cells across
     /// the rows they cover.
     /// </summary>
-    private static float[] MeasureRowHeights(List<TableCell> cells, TableLayout layout, PlanContext context)
+    private static float[] MeasureRowHeights(List<CellBlock> cells, TableLayout layout, PlanContext context)
     {
         if (cells.Count == 0)
             return [];
@@ -357,7 +357,7 @@ public sealed class TableElement : Block
         float[] heights = new float[rowCount];
 
         // Unspanned cells set the baseline height of the row they sit in.
-        foreach (TableCell cell in cells.Where(cell => cell.RowSpan <= 1))
+        foreach (CellBlock cell in cells.Where(cell => cell.RowSpan <= 1))
         {
             Fit plan = cell.Measure(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
@@ -367,7 +367,7 @@ public sealed class TableElement : Block
 
         // A spanned cell only forces growth when the rows it covers cannot already hold it, and the shortfall
         // goes on its *last* row: charging an earlier one would push the rows below it down inside the span.
-        foreach (TableCell cell in cells.Where(cell => cell.RowSpan > 1))
+        foreach (CellBlock cell in cells.Where(cell => cell.RowSpan > 1))
         {
             Fit plan = cell.Measure(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
@@ -404,7 +404,7 @@ public sealed class TableElement : Block
 
         for (int index = 0; index < Columns.Count; index++)
         {
-            TableColumn column = Columns[index];
+            TableColumnSpec column = Columns[index];
 
             widths[index] = column.IsRelative
                 ? (totalWeight > 0f ? leftover * Math.Max(0f, column.Value) / totalWeight : 0f)

@@ -7,7 +7,7 @@ public class ScaleToFitRegressionTests
     {
         // Content that can only ever render in instalments cannot be made to fit at any scale. Reporting Wrap
         // makes the engine give up on the whole document; passing it through lets it paginate normally.
-        ScaleToFitElement element = new ScaleToFitElement { Child = new SplittableElement(unitCount: 50, unitHeight: 20) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new SplittableElement(unitCount: 50, unitHeight: 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -36,7 +36,7 @@ public class ScaleToFitRegressionTests
         // have reported on its own is what comes back.
         Extent space = new Extent(200, 100);
 
-        ScaleToFitElement wrapped = new ScaleToFitElement { MinScale = 1f, Child = new FixedElement(120, 50) };
+        ShrinkToFitBlock wrapped = new ShrinkToFitBlock { MinScale = 1f, Child = new FixedElement(120, 50) };
         FixedElement bare = new FixedElement(120, 50);
 
         Approximately.Equal(
@@ -49,7 +49,7 @@ public class ScaleToFitRegressionTests
     [Fact]
     public void AMinimumScaleOfZeroMeansNoLowerBound()
     {
-        ScaleToFitElement element = new ScaleToFitElement { MinScale = 0f, Child = new FixedElement(400, 300) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = 0f, Child = new FixedElement(400, 300) };
 
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsFullRender);
     }

@@ -5,7 +5,7 @@ public class TableCellDescriptorTests
     [Fact]
     public void RejectsARowBeforeTheFirst()
     {
-        TableCell cell = new TableCell();
+        CellBlock cell = new CellBlock();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             new TableCellDescriptor(cell).Row(0));
@@ -17,7 +17,7 @@ public class TableCellDescriptorTests
     [Fact]
     public void RejectsAColumnBeforeTheFirst()
     {
-        TableCell cell = new TableCell();
+        CellBlock cell = new CellBlock();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             new TableCellDescriptor(cell).Column(0));
@@ -29,7 +29,7 @@ public class TableCellDescriptorTests
     [Fact]
     public void AcceptsTheFirstRowAndColumnAsExplicitPositions()
     {
-        TableCell cell = new TableCell();
+        CellBlock cell = new CellBlock();
 
         new TableCellDescriptor(cell).Row(1).Column(1);
 
@@ -42,7 +42,7 @@ public class TableCellDescriptorTests
     [InlineData(-3)]
     public void TreatsASpanBelowOneAsASingleSlot(int span)
     {
-        TableCell cell = new TableCell();
+        CellBlock cell = new CellBlock();
 
         new TableCellDescriptor(cell).RowSpan(span).ColumnSpan(span);
 
@@ -53,7 +53,7 @@ public class TableCellDescriptorTests
     [Fact]
     public void KeepsASpanOfSeveralSlots()
     {
-        TableCell cell = new TableCell();
+        CellBlock cell = new CellBlock();
 
         new TableCellDescriptor(cell).RowSpan(3).ColumnSpan(2);
 

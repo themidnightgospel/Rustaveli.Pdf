@@ -143,7 +143,7 @@ public class TableElementTests
                 columns.RelativeColumn();
             });
 
-            descriptor.Cell().ColumnSpan(2).Element(inner => inner.Child = new ExtendElement
+            descriptor.Cell().ColumnSpan(2).Element(inner => inner.Child = new ExpandBlock
             {
                 ExtendHorizontal = true,
                 Child = new FixedElement(1, 10)
