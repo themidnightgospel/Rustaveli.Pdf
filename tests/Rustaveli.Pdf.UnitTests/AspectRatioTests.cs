@@ -58,7 +58,10 @@ public class AspectRatioTests
     {
         AspectRatioElement element = new AspectRatioElement { Ratio = 0f };
 
-        Assert.True(LayoutHarness.Measure(element, new Size(100, 100)).IsWrap);
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(100, 100));
+
+        Assert.True(plan.IsWrap);
+        Assert.Contains("greater than zero", plan.WrapReason);
     }
 
     [Theory]

@@ -199,6 +199,42 @@ public class BorderAndBackgroundTests
     }
 
     [Theory]
+    [InlineData(4f, 1f, 1f, 1f)]
+    [InlineData(1f, 1f, 4f, 1f)]
+    [InlineData(1f, 1f, 1f, 4f)]
+    public void RoundedCornersNeedEverySideTheSameWidth(float left, float top, float right, float bottom)
+    {
+        BorderElement element = new BorderElement
+        {
+            Width = new Edges(left, top, right, bottom),
+            CornerRadius = 5,
+            Color = Colors.Black,
+            Child = new FixedElement(50, 20, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+
+        Assert.Empty(page.Operations.OfType<RoundedRectangleOperation>());
+        Assert.Equal(4, page.Operations.OfType<RectangleOperation>().Count(operation => operation.Color == Colors.Black));
+    }
+
+    [Fact]
+    public void ABorderWithNoWidthDrawsNothingEvenWhenRounded()
+    {
+        BorderElement element = new BorderElement
+        {
+            Width = Edges.Zero,
+            CornerRadius = 5,
+            Color = Colors.Black,
+            Child = new FixedElement(50, 20, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+
+        Assert.Equal(Colors.White, Assert.IsType<RectangleOperation>(Assert.Single(page.Operations)).Color);
+    }
+
+    [Theory]
     [InlineData(40f, 20f)]
     [InlineData(20f, 40f)]
     [InlineData(30f, 40f)]
