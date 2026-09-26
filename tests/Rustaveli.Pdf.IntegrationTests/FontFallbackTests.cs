@@ -22,6 +22,9 @@ public class FontFallbackTests
     private const string Cjk = "世界";
     private const string Georgian = "გამარჯობა";
 
+    /// <summary>The 'glyf' table tag: present in fonts with TrueType outlines.</summary>
+    private const uint TrueTypeOutlines = ('g' << 24) | ('l' << 16) | ('y' << 8) | 'f';
+
     private static readonly TextStyle Sans = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(16);
 
     private static Document Build(string text) => Build(text, Sans);
@@ -71,7 +74,10 @@ public class FontFallbackTests
                 // Typefaces from the font manager are shared across the process, so none is disposed here.
                 SKTypeface? typeface = SKFontManager.Default.MatchFamily(candidate);
 
-                if (typeface is null || typeface.FamilyName == platformChoice || typeface.FamilyName == primary.FamilyName)
+                // Only faces with TrueType outlines: Skia embeds those under their own name, where others (CFF-based
+                // CJK faces, for one) become anonymous Type3 fonts that cannot be told apart by name afterwards.
+                if (typeface is null || typeface.FamilyName == platformChoice || typeface.FamilyName == primary.FamilyName
+                    || !typeface.GetTableTags().Contains(TrueTypeOutlines))
                     continue;
 
                 using SKFont probe = new SKFont(typeface);
