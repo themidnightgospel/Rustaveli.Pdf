@@ -1,6 +1,7 @@
-using Rustaveli.Pdf.Skia;
-using SkiaSharp;
+using Rustaveli.Pdf.Output;
+using Rustaveli.Pdf.Text;
 using UglyToad.PdfPig;
+using PdfDocumentWriter = Rustaveli.Pdf.Writing.PdfDocumentWriter;
 using UglyToad.PdfPig.Actions;
 using UglyToad.PdfPig.Annotations;
 using UglyToad.PdfPig.Content;
@@ -12,15 +13,15 @@ using UglyToad.PdfPig.Tokens;
 namespace Rustaveli.Pdf.IntegrationTests;
 
 /// <summary>
-/// Drives the Skia canvas directly and reads the file back with an independent parser.
+/// Drives the PDF surface directly and reads the file back with an independent parser.
 /// </summary>
 /// <remarks>
-/// Document-level tests reach the canvas only through what the layout engine happens to emit, which never
-/// includes an empty link, a zero-width rule or a clip. The canvas is public, so those inputs are part of its
-/// contract all the same. PDF puts the origin at the bottom-left with Y upwards, so every expected vertical
-/// position here is the page height minus the canvas coordinate.
+/// Document-level tests reach the surface only through what the layout engine happens to emit, which never
+/// includes an empty link, a zero-width rule or a clip. Those inputs are part of its contract all the same. PDF puts
+/// the origin at the bottom-left with Y upwards, so every expected vertical position here is the page height minus
+/// the surface coordinate.
 /// </remarks>
-public class SkiaPdfSurfaceTests
+public class PdfSurfaceTests
 {
     private const float PageSide = 200f;
     private const double Tolerance = 0.5;
@@ -32,7 +33,7 @@ public class SkiaPdfSurfaceTests
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
     private const string MathBoldA = "\U0001D400";
 
-    private static readonly Dictionary<string, Action<SkiaPdfSurface>> Operations = new Dictionary<string, Action<SkiaPdfSurface>>
+    private static readonly Dictionary<string, Action<PdfSurface>> Operations = new Dictionary<string, Action<PdfSurface>>
     {
         ["Save"] = canvas => canvas.Save(),
         ["Restore"] = canvas => canvas.Restore(),
@@ -46,7 +47,7 @@ public class SkiaPdfSurfaceTests
         ["DrawText"] = canvas => canvas.DrawText("Text", new Offset(10, 30), Style),
         ["DrawImage"] = canvas =>
         {
-            using SkiaImage image = SkiaImage.FromBytes(TestImages.Png(4, 2));
+            RasterImage image = RasterImage.FromBytes(TestImages.Png(4, 2));
             canvas.DrawImage(image, new Extent(10, 5));
         },
         ["DrawExternalLink"] = canvas => canvas.DrawExternalLink("https://example.com", new Extent(10, 10)),
@@ -54,25 +55,23 @@ public class SkiaPdfSurfaceTests
         ["DrawDestination"] = canvas => canvas.DrawDestination("target")
     };
 
-    private static SKDocumentPdfMetadata Metadata() => new SKDocumentPdfMetadata { RasterDpi = 72, EncodingQuality = 101 };
-
     /// <summary>Runs <paramref name="script"/>, which opens and closes its own pages, and returns the file.</summary>
-    private static byte[] RenderDocument(Action<SkiaPdfSurface> script)
+    private static byte[] RenderDocument(Action<PdfSurface> script)
     {
         using MemoryStream stream = new MemoryStream();
 
-        using (SKDocument document = SKDocument.CreatePdf(stream, Metadata()))
+        using (PdfDocumentWriter writer = new PdfDocumentWriter(stream))
         {
-            using SkiaPdfSurface canvas = new SkiaPdfSurface(document, SkiaFontProvider.Shared);
-            script(canvas);
-            document.Close();
+            using PdfSurface surface = new PdfSurface(writer, TypefaceLibrary.Shared.Shaper);
+            script(surface);
+            surface.Finish();
         }
 
         return stream.ToArray();
     }
 
     /// <summary>Draws a single square page.</summary>
-    private static PdfDocument Render(Action<SkiaPdfSurface> draw) =>
+    private static PdfDocument Render(Action<PdfSurface> draw) =>
         PdfDocument.Open(RenderDocument(canvas =>
         {
             canvas.BeginPage(new Extent(PageSide, PageSide));
@@ -151,6 +150,10 @@ public class SkiaPdfSurfaceTests
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Operations[operation](canvas));
 
             Assert.Contains("BeginPage", error.Message);
+
+            // A document needs a page to be complete.
+            canvas.BeginPage(new Extent(PageSide, PageSide));
+            canvas.EndPage();
         });
     }
 
@@ -366,7 +369,7 @@ public class SkiaPdfSurfaceTests
     [Fact]
     public void RunsInFallbackFontsFollowOnWithoutAGap()
     {
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
         using PdfDocument parsed = Render(canvas => canvas.DrawText("Hello世界", new Offset(40, 120), Style));
         Page page = parsed.GetPage(1);
@@ -379,7 +382,7 @@ public class SkiaPdfSurfaceTests
     public void TrackingSeparatesCharactersButDoesNotIndentTheFirst()
     {
         TypeStyle spaced = Style.WithTracking(6);
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
         using PdfDocument parsed = Render(canvas => canvas.DrawText("ABCD", new Offset(40, 120), spaced));
         IReadOnlyList<Letter> letters = parsed.GetPage(1).Letters;
@@ -400,7 +403,7 @@ public class SkiaPdfSurfaceTests
         // The pair falls outside Arial, so it is also a separate font run: the gap before "B" proves the spacing
         // count carries on across runs rather than restarting in each.
         TypeStyle spaced = Style.WithTracking(6);
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
         using PdfDocument parsed = Render(canvas => canvas.DrawText($"A{MathBoldA}B", new Offset(40, 120), spaced));
         Page page = parsed.GetPage(1);
@@ -415,7 +418,7 @@ public class SkiaPdfSurfaceTests
     [Fact]
     public void DrawImagePlacesTheImageAtTheOriginAtTheSizeGiven()
     {
-        using SkiaImage image = SkiaImage.FromBytes(TestImages.Png(64, 32));
+        RasterImage image = RasterImage.FromBytes(TestImages.Png(64, 32));
 
         using PdfDocument parsed = Render(canvas =>
         {
@@ -440,7 +443,7 @@ public class SkiaPdfSurfaceTests
     [InlineData(120, -60)]
     public void DrawImageDrawsNothingIntoAnEmptyArea(float width, float height)
     {
-        using SkiaImage image = SkiaImage.FromBytes(TestImages.Png(64, 32));
+        RasterImage image = RasterImage.FromBytes(TestImages.Png(64, 32));
 
         using PdfDocument parsed = Render(canvas => canvas.DrawImage(image, new Extent(width, height)));
 
@@ -455,7 +458,7 @@ public class SkiaPdfSurfaceTests
             ArgumentException error = Assert.Throws<ArgumentException>(() => canvas.DrawImage(new ForeignImage(), new Extent(40, 20)));
 
             Assert.Equal("image", error.ParamName);
-            Assert.Contains(nameof(SkiaImage), error.Message);
+            Assert.Contains(nameof(RasterImage), error.Message);
         });
 
         Assert.Empty(parsed.GetPage(1).GetImages());
@@ -538,7 +541,8 @@ public class SkiaPdfSurfaceTests
     {
         using PdfDocument parsed = Render(canvas => canvas.DrawDestination("chapter-one"));
 
-        Assert.True(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("Dests")));
+        // Where it points is checked through a link that resolves it, in AnInternalLinkJumpsToWhereItsDestinationWasDrawn.
+        Assert.True(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("Names")));
     }
 
     [Theory]
@@ -548,7 +552,7 @@ public class SkiaPdfSurfaceTests
     {
         using PdfDocument parsed = Render(canvas => canvas.DrawDestination(name!));
 
-        Assert.False(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("Dests")));
+        Assert.False(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("Names")));
     }
 
     // ---- Transforms --------------------------------------------------------------------------------------------
@@ -602,22 +606,22 @@ public class SkiaPdfSurfaceTests
     [Fact]
     public void ClipRectangleConfinesDrawingToAnAreaAtTheCurrentOrigin()
     {
-        // The second word lies inside a clip anchored at the page corner, so it only disappears if the clip moved
-        // with the translation.
+        // Clipped content stays in the file, hidden, so the clip itself is what is checked: a rectangle at the
+        // current origin, set as the clip and not painted, after the translation that moved it. Rendering it is
+        // the conformance suite's job.
         using PdfDocument parsed = Render(canvas =>
         {
             canvas.Translate(new Offset(100, 100));
-
-            // Wide enough for the whole word at this size in the test font, so only the clip's position is tested.
             canvas.ClipRectangle(new Extent(90, 50));
             canvas.DrawText("Inside", new Offset(5, 30), Style);
-            canvas.DrawText("Outside", new Offset(-90, -60), Style);
         });
 
-        string text = parsed.GetPage(1).Text;
+        string content = System.Text.Encoding.ASCII.GetString(parsed.GetPage(1).Operations
+            .Select(operation => { using MemoryStream buffer = new MemoryStream(); operation.Write(buffer); return buffer.ToArray(); })
+            .SelectMany(bytes => bytes.Append((byte)'\n'))
+            .ToArray());
 
-        Assert.Contains("Inside", text);
-        Assert.DoesNotContain("Outside", text);
+        Assert.Matches(@"1 0 0 1 100 100 cm\s+0 0 90 50 re\s+W\s+n", content);
     }
 
     // ---- Disposal ----------------------------------------------------------------------------------------------
@@ -627,16 +631,16 @@ public class SkiaPdfSurfaceTests
     {
         using MemoryStream stream = new MemoryStream();
 
-        using (SKDocument document = SKDocument.CreatePdf(stream, Metadata()))
+        using (PdfDocumentWriter writer = new PdfDocumentWriter(stream))
         {
-            SkiaPdfSurface canvas = new SkiaPdfSurface(document, SkiaFontProvider.Shared);
-            canvas.BeginPage(new Extent(PageSide, PageSide));
-            canvas.DrawText("Unfinished", new Offset(10, 50), Style);
+            PdfSurface surface = new PdfSurface(writer, TypefaceLibrary.Shared.Shaper);
+            surface.BeginPage(new Extent(PageSide, PageSide));
+            surface.DrawText("Unfinished", new Offset(10, 50), Style);
 
-            canvas.Dispose();
+            surface.Dispose();
 
-            Assert.Throws<InvalidOperationException>(() => canvas.DrawText("Late", new Offset(10, 90), Style));
-            document.Close();
+            Assert.Throws<InvalidOperationException>(() => surface.DrawText("Late", new Offset(10, 90), Style));
+            surface.Finish();
         }
 
         using PdfDocument parsed = PdfDocument.Open(stream.ToArray());
@@ -646,23 +650,35 @@ public class SkiaPdfSurfaceTests
     }
 
     [Fact]
-    public void DisposeDoesNotTouchADocumentWithNoPageOpen()
+    public void DisposeLeavesAWriterWithNoPageOpenAlone()
     {
-        // The canvas only borrows the document. Once the owner has released it, any call into it is an access
-        // violation that takes the process down rather than an exception, so the canvas must leave it alone.
         using MemoryStream stream = new MemoryStream();
-        SKDocument document = SKDocument.CreatePdf(stream, Metadata());
-        SkiaPdfSurface canvas = new SkiaPdfSurface(document, SkiaFontProvider.Shared);
 
-        canvas.BeginPage(new Extent(PageSide, PageSide));
-        canvas.EndPage();
-        document.Close();
-        document.Dispose();
+        using (PdfDocumentWriter writer = new PdfDocumentWriter(stream))
+        {
+            PdfSurface surface = new PdfSurface(writer, TypefaceLibrary.Shared.Shaper);
+            surface.BeginPage(new Extent(PageSide, PageSide));
+            surface.EndPage();
 
-        canvas.Dispose();
-        canvas.Dispose();
+            surface.Dispose();
+            surface.Dispose();
+            surface.Finish();
+        }
 
         using PdfDocument parsed = PdfDocument.Open(stream.ToArray());
         Assert.Equal(1, parsed.NumberOfPages);
+    }
+
+    [Fact]
+    public void BeginningAPageWhileOneIsOpenIsRefused()
+    {
+        RenderDocument(surface =>
+        {
+            surface.BeginPage(new Extent(PageSide, PageSide));
+
+            Assert.Throws<InvalidOperationException>(() => surface.BeginPage(new Extent(PageSide, PageSide)));
+
+            surface.EndPage();
+        });
     }
 }

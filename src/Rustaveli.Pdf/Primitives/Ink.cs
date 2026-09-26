@@ -61,6 +61,12 @@ public readonly struct Ink : IEquatable<Ink>
     /// <summary>For a spot ink, the tint its plate prints at, from 0 to 1; otherwise 1.</summary>
     public float SpotTint { get; }
 
+    /// <summary>
+    /// The components as stored, in <see cref="FallbackModel"/>: an RGB or CMYK colour's own, or a spot ink's
+    /// fallback at full strength — what a separation colour space's tint transform reaches at a tint of 1.
+    /// </summary>
+    internal (float First, float Second, float Third, float Fourth) Components => (_first, _second, _third, _fourth);
+
     public static Ink Rgb(byte red, byte green, byte blue) =>
         new Ink(InkModel.Rgb, red / 255f, green / 255f, blue / 255f, 0, 1, null, InkModel.Rgb, 1);
 

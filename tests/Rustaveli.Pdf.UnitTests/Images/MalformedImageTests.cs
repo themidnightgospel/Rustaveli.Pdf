@@ -25,7 +25,7 @@ public class MalformedImageTests
     {
         try
         {
-            RasterImage.FromBytes(data).Encode();
+            RasterImage.Load(data).Encode();
             return true;
         }
         catch (ImageFormatException)

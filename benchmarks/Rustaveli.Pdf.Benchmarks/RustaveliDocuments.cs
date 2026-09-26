@@ -6,20 +6,10 @@ public static class RustaveliDocuments
     public static byte[] Generate(DocumentKind kind)
     {
         BenchmarkFonts.EnsureRegistered();
-
-        List<SkiaImage> images = new List<SkiaImage>();
-        try
-        {
-            return Build(kind, images).ExportPdf();
-        }
-        finally
-        {
-            foreach (SkiaImage image in images)
-                image.Dispose();
-        }
+        return Build(kind).ExportPdf();
     }
 
-    private static Document Build(DocumentKind kind, List<SkiaImage> images) => Document.Compose(composition => composition.Section(section =>
+    private static Document Build(DocumentKind kind) => Document.Compose(composition => composition.Section(section =>
     {
         section.Trim = PaperSizes.A4;
         section.Margins = Sides.All(40f);
@@ -69,8 +59,7 @@ public static class RustaveliDocuments
                     stack.SpaceBetween(8f);
                     for (int index = 0; index < 40; index++)
                     {
-                        SkiaImage image = SkiaImage.FromBytes(BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
-                        images.Add(image);
+                        RasterImage image = RasterImage.FromBytes(BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
                         stack.Add().Image(image, ImageFitting.FitWidth);
                         stack.Add().Text($"Figure {index + 1}");
                     }

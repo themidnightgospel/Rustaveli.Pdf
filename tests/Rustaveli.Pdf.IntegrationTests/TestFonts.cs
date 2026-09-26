@@ -21,28 +21,25 @@ public static class TestFonts
 
     public static string PathOf(string fileName) => Path.Combine(AppContext.BaseDirectory, "fonts", fileName);
 
-    /// <summary>A provider of its own, with the test family registered, for tests that must not share state.</summary>
-    public static SkiaFontProvider NewProvider()
+    /// <summary>A library of its own, with the test family registered, for tests that must not share state.</summary>
+    public static TypefaceLibrary NewLibrary(bool includeInstalled = true)
     {
-        SkiaFontProvider provider = new SkiaFontProvider();
-        RegisterInto(provider);
-        return provider;
+        TypefaceLibrary library = new TypefaceLibrary(includeInstalled);
+        RegisterInto(library);
+        return library;
     }
 
-    public static void RegisterInto(SkiaFontProvider provider)
+    public static void RegisterInto(TypefaceLibrary library)
     {
         foreach (string file in SansFiles)
-        {
-            using FileStream stream = File.OpenRead(PathOf(file));
-            provider.Register(stream);
-        }
+            library.RegisterFile(PathOf(file));
     }
 
     [ModuleInitializer]
-    internal static void RegisterWithSharedProviders()
+    internal static void RegisterWithSharedLibraries()
     {
         QuestPDF.Settings.License = LicenseType.Community;
-        RegisterInto(SkiaFontProvider.Shared);
+        RegisterInto(TypefaceLibrary.Shared);
 
         foreach (string file in SansFiles)
         {

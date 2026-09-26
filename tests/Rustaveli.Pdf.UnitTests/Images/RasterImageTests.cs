@@ -110,17 +110,37 @@ public class RasterImageTests
     [Fact]
     public void RejectsDataInNoRecognisedFormat()
     {
-        ImageFormatException error = Assert.Throws<ImageFormatException>(() => RasterImage.FromBytes("certainly not an image"u8.ToArray()));
+        ArgumentException error = Assert.Throws<ArgumentException>(() => RasterImage.FromBytes("certainly not an image"u8.ToArray()));
 
-        Assert.IsNotType<UnsupportedImageFormatException>(error);
+        Assert.Equal("data", error.ParamName);
+        Assert.IsType<ImageFormatException>(error.InnerException);
         Assert.Contains("not in a recognised image format", error.Message);
     }
 
     [Fact]
     public void RejectsEmptyData()
     {
-        Assert.Throws<ImageFormatException>(() => RasterImage.FromBytes([]));
-        Assert.Throws<ImageFormatException>(() => RasterImage.FromStream(new MemoryStream()));
+        Assert.IsType<ImageFormatException>(Assert.Throws<ArgumentException>(() => RasterImage.FromBytes([])).InnerException);
+        Assert.IsType<ImageFormatException>(Assert.Throws<ArgumentException>(() => RasterImage.FromStream(new MemoryStream())).InnerException);
+    }
+
+    [Fact]
+    public void AFileThatIsNotAnImageNamesThePath()
+    {
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, "certainly not an image");
+
+            ArgumentException error = Assert.Throws<ArgumentException>(() => RasterImage.FromFile(path));
+
+            Assert.Equal("path", error.ParamName);
+            Assert.IsType<ImageFormatException>(error.InnerException);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Theory]
@@ -134,10 +154,12 @@ public class RasterImageTests
     {
         byte[] data = header.Select(character => (byte)character).ToArray();
 
-        UnsupportedImageFormatException error = Assert.Throws<UnsupportedImageFormatException>(() => RasterImage.FromBytes(data));
+        ArgumentException wrapper = Assert.Throws<ArgumentException>(() => RasterImage.FromBytes(data));
+        UnsupportedImageFormatException error = Assert.IsType<UnsupportedImageFormatException>(wrapper.InnerException);
 
         Assert.Equal((ImageFormat)format, error.Format);
         Assert.Contains($"{(ImageFormat)format} images cannot be embedded", error.Message);
+        Assert.Contains($"{(ImageFormat)format} images cannot be embedded", wrapper.Message);
     }
 
     [Fact]

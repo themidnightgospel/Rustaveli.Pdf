@@ -97,8 +97,9 @@ public class SkiaDecodeComparisonTests
 
         RasterImage image = RasterImage.FromBytes(file);
 
-        Assert.Equal(width, image.PixelWidth);
-        Assert.Equal(height, image.PixelHeight);
+        // Skia reports the pixels as stored; the public size is upright, with any quarter turn applied.
+        Assert.Equal(width, image.StoredWidth);
+        Assert.Equal(height, image.StoredHeight);
         Assert.Equal(file, image.Encode().Data.ToArray());
     }
 }

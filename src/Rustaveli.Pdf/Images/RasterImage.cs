@@ -1,8 +1,10 @@
-namespace Rustaveli.Pdf.Images;
+using Rustaveli.Pdf.Images;
+
+namespace Rustaveli.Pdf;
 
 /// <summary>
-/// An encoded JPEG or PNG image, loaded and validated but not decoded: its size, orientation and colour metadata
-/// are known at once, and its PDF encoding is produced the first time it is asked for.
+/// A JPEG or PNG image, to place with <see cref="FrameContent.Image(IFrame, IImage, ImageFitting)"/>. Loading
+/// validates it without decoding it; a JPEG, and most PNGs, are embedded exactly as they were encoded.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -16,7 +18,7 @@ namespace Rustaveli.Pdf.Images;
 /// which <see cref="RasterImage"/> instance a caller happened to load.
 /// </para>
 /// </remarks>
-internal sealed class RasterImage : IImage
+public sealed class RasterImage : IImage
 {
     private readonly byte[] _source;
     private readonly Lazy<EncodedImage> _encoded;
@@ -31,60 +33,85 @@ internal sealed class RasterImage : IImage
     {
         _source = source;
         Format = format;
-        PixelWidth = width;
-        PixelHeight = height;
+        StoredWidth = width;
+        StoredHeight = height;
         Metadata = metadata;
         ContentHash = ImageContentHash.Of(source);
         _encoded = new Lazy<EncodedImage>(encode, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    public ImageFormat Format { get; }
+    /// <summary>The width in pixels, the right way up: an EXIF orientation that turns the image is applied.</summary>
+    public int PixelWidth => IsTurned ? StoredHeight : StoredWidth;
 
-    public int PixelWidth { get; }
+    /// <summary>The height in pixels, the right way up.</summary>
+    public int PixelHeight => IsTurned ? StoredWidth : StoredHeight;
 
-    public int PixelHeight { get; }
+    internal ImageFormat Format { get; }
+
+    /// <summary>The width as the pixels are stored, before any EXIF orientation.</summary>
+    internal int StoredWidth { get; }
+
+    /// <summary>The height as the pixels are stored, before any EXIF orientation.</summary>
+    internal int StoredHeight { get; }
 
     /// <summary>Orientation, ICC profile and colour information found beside the pixels.</summary>
-    public ImageMetadata Metadata { get; }
+    internal ImageMetadata Metadata { get; }
 
     /// <summary>The EXIF orientation the layout applies when placing the image.</summary>
-    public ExifOrientation Orientation => Metadata.Orientation;
+    internal ExifOrientation Orientation => Metadata.Orientation;
 
     /// <summary>The bytes the image was loaded from, unchanged.</summary>
-    public ReadOnlyMemory<byte> Source => _source;
+    internal ReadOnlyMemory<byte> Source => _source;
 
     /// <summary>A fingerprint of <see cref="Source"/>.</summary>
-    public ImageContentHash ContentHash { get; }
+    internal ImageContentHash ContentHash { get; }
+
+    /// <summary>True when the orientation turns the image a quarter, so its upright width is its stored height.</summary>
+    private bool IsTurned => Orientation is >= ExifOrientation.Transpose and <= ExifOrientation.Rotate270;
 
     /// <summary>
     /// Loads an image from <paramref name="data"/>. The array is copied, so the caller may reuse it afterwards.
     /// </summary>
-    /// <exception cref="ImageFormatException">The data is not a well-formed JPEG or PNG within the limits.</exception>
-    /// <exception cref="UnsupportedImageFormatException">
-    /// The data is in a format, or uses a feature, that cannot be embedded.
+    /// <exception cref="ArgumentException">
+    /// The data is not a well-formed JPEG or PNG, or uses a feature — such as a GIF or a lossless JPEG — that cannot
+    /// be embedded. The inner exception says which.
     /// </exception>
     public static RasterImage FromBytes(byte[] data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        return Load((byte[])data.Clone());
+        return Loading(() => Load((byte[])data.Clone()), nameof(data));
     }
 
     /// <summary>
     /// Loads an image from the rest of <paramref name="stream"/>, which need not be seekable. The stream is read to
     /// its end but not disposed.
     /// </summary>
+    /// <exception cref="ArgumentException">The stream does not hold a JPEG or PNG that can be embedded.</exception>
     public static RasterImage FromStream(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        return Load(ImageSourceReader.ReadAll(stream));
+        return Loading(() => Load(ImageSourceReader.ReadAll(stream)), nameof(stream));
     }
 
     /// <summary>Loads an image from the file at <paramref name="path"/>.</summary>
+    /// <exception cref="ArgumentException">The file is not a JPEG or PNG that can be embedded.</exception>
     public static RasterImage FromFile(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
         using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Load(ImageSourceReader.ReadAll(file));
+        return Loading(() => Load(ImageSourceReader.ReadAll(file)), nameof(path));
+    }
+
+    private static RasterImage Loading(Func<RasterImage> load, string parameter)
+    {
+        try
+        {
+            return load();
+        }
+        catch (ImageFormatException exception)
+        {
+            throw new ArgumentException("This is not an image that can be embedded: " + exception.Message, parameter, exception);
+        }
     }
 
     /// <summary>Loads an image from an array the caller hands over and will not modify.</summary>
@@ -128,13 +155,13 @@ internal sealed class RasterImage : IImage
     /// interlacing, that is when the pixels are decoded — and cached.
     /// </summary>
     /// <exception cref="ImageFormatException">The compressed image data turned out to be corrupt.</exception>
-    public EncodedImage Encode() => _encoded.Value;
+    internal EncodedImage Encode() => _encoded.Value;
 
     /// <summary>
     /// True if <paramref name="other"/> was loaded from exactly the same bytes. Meant to confirm a match found by
     /// <see cref="ContentHash"/>: the comparison stops at the first difference, and at once for different lengths.
     /// </summary>
-    public bool HasSameContent(RasterImage other)
+    internal bool HasSameContent(RasterImage other)
     {
         ArgumentNullException.ThrowIfNull(other);
         return _source.AsSpan().SequenceEqual(other._source);

@@ -1,5 +1,5 @@
-using Rustaveli.Pdf.Skia;
-using SkiaSharp;
+using Rustaveli.Pdf.Fonts;
+using Rustaveli.Pdf.Text;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 
@@ -18,20 +18,19 @@ public class FontFallbackTests
     private const string Cjk = "世界";
     private const string Georgian = "გამარჯობა";
 
-    /// <summary>The 'glyf' table tag: present in fonts with TrueType outlines.</summary>
-    private const uint TrueTypeOutlines = ('g' << 24) | ('l' << 16) | ('y' << 8) | 'f';
-
     private static readonly TypeStyle Sans = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
+
+    private static OpenTypeMeasurer Measurer(TypefaceLibrary library) => new OpenTypeMeasurer(library.Shaper);
 
     private static Document Build(string text) => Build(text, Sans);
 
     private static Document Build(string text, TypeStyle style) =>
-        Document.Compose(container => container.Section(page =>
+        Document.Compose(composition => composition.Section(section =>
         {
-            page.Trim = PaperSizes.A4;
-            page.Margins = Sides.All(30);
-            page.DefaultType = style;
-            page.Body().Text(text);
+            section.Trim = PaperSizes.A4;
+            section.Margins = Sides.All(30);
+            section.DefaultType = style;
+            section.Body().Text(text);
         }));
 
     /// <summary>The embedded font a character was drawn with, without the subset tag.</summary>
@@ -45,45 +44,34 @@ public class FontFallbackTests
     }
 
     /// <summary>
-    /// Finds a character <paramref name="primary"/> lacks, together with an installed family that has it but is
-    /// not the one platform matching would pick — the pair a test needs to tell an explicit fallback apart from
-    /// the platform's own choice. Several scripts are tried so that some pair exists on any host with fonts.
+    /// Finds a character the test family lacks, together with an installed family that has it but is not the one
+    /// the library would pick by itself — the pair a test needs to tell an explicit fallback apart from the
+    /// automatic choice. Several scripts are tried so that some pair exists on any host with fonts.
     /// </summary>
-    private static bool TryFindAlternativeFallback(SKTypeface primary, out string character, out string family)
+    private static bool TryFindAlternativeFallback(out string character, out string family)
     {
         int[] codepoints = [0x4E16, 0x2605, 0x10D0, 0x0E01, 0x0905];
-        string[] families = SKFontManager.Default.FontFamilies.OrderBy(name => name, StringComparer.Ordinal).ToArray();
-
-        using SKFont primaryProbe = new SKFont(primary);
+        TypeShaper shaper = TypefaceLibrary.Shared.Shaper;
+        OpenTypeFont primary = shaper.Resolve(Sans);
 
         foreach (int codepoint in codepoints)
         {
-            if (primaryProbe.ContainsGlyph(codepoint))
+            if (primary.HasGlyph(codepoint))
                 continue;
 
-            string? platformChoice = SKFontManager.Default
-                .MatchCharacter(primary.FamilyName, 400, (int)SKFontStyleWidth.Normal, SKFontStyleSlant.Upright, null, codepoint)
-                ?.FamilyName;
+            string automatic = shaper.FaceFor(primary, new FontRequest(TestFonts.Sans), codepoint).Names.PreferredFamily;
 
-            foreach (string candidate in families)
+            FontFaceInfo? alternative = SystemFontIndex.Current.Faces
+                .Where(face => face.IsEmbeddable && face.Style.Slant == FontSlant.Upright)
+                .Where(face => face.Names.PreferredFamily != automatic && face.Names.PreferredFamily != TestFonts.Sans)
+                .OrderBy(face => face.Names.PreferredFamily, StringComparer.Ordinal)
+                .FirstOrDefault(face => face.Covers(codepoint));
+
+            if (alternative is not null)
             {
-                // Typefaces from the font manager are shared across the process, so none is disposed here.
-                SKTypeface? typeface = SKFontManager.Default.MatchFamily(candidate);
-
-                // Only faces with TrueType outlines: Skia embeds those under their own name, where others (CFF-based
-                // CJK faces, for one) become anonymous Type3 fonts that cannot be told apart by name afterwards.
-                if (typeface is null || typeface.FamilyName == platformChoice || typeface.FamilyName == primary.FamilyName
-                    || !typeface.GetTableTags().Contains(TrueTypeOutlines))
-                    continue;
-
-                using SKFont probe = new SKFont(typeface);
-
-                if (probe.ContainsGlyph(codepoint))
-                {
-                    character = char.ConvertFromUtf32(codepoint);
-                    family = typeface.FamilyName;
-                    return true;
-                }
+                character = char.ConvertFromUtf32(codepoint);
+                family = alternative.Names.PreferredFamily;
+                return true;
             }
         }
 
@@ -105,11 +93,10 @@ public class FontFallbackTests
     [Fact]
     public void MixedScriptTextMeasuresWiderThanItsLatinPartAlone()
     {
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
-        TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
+        OpenTypeMeasurer measurer = Measurer(TypefaceLibrary.Shared);
 
-        float latinOnly = measurer.MeasureWidth(Latin, style);
-        float mixed = measurer.MeasureWidth($"{Latin}{Cjk}", style);
+        float latinOnly = measurer.MeasureWidth(Latin, Sans);
+        float mixed = measurer.MeasureWidth($"{Latin}{Cjk}", Sans);
 
         Assert.True(mixed > latinOnly, $"Mixed-script text measured {mixed} against {latinOnly} for the Latin part alone.");
     }
@@ -118,60 +105,44 @@ public class FontFallbackTests
     public void MeasuredWidthMatchesWhatIsDrawn()
     {
         // Measurement and drawing must split the string identically; if they disagreed, a fallback glyph would
-        // land somewhere other than where its advance was reserved.
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
-        TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
+        // land somewhere other than where its advance was reserved. Kerning never crosses faces, so the parts sum.
+        OpenTypeMeasurer measurer = Measurer(TypefaceLibrary.Shared);
 
-        float whole = measurer.MeasureWidth($"{Latin}{Cjk}", style);
-        float parts = measurer.MeasureWidth(Latin, style) + measurer.MeasureWidth(Cjk, style);
+        float whole = measurer.MeasureWidth($"{Latin}{Cjk}", Sans);
+        float parts = measurer.MeasureWidth(Latin, Sans) + measurer.MeasureWidth(Cjk, Sans);
 
-        Assert.InRange(whole, parts - 0.5f, parts + 0.5f);
-    }
-
-    [Fact]
-    public void AnExplicitFallbackFamilyIsPreferredOverPlatformMatching()
-    {
-        // Naming the fallback is what makes output reproducible; left to the platform the substitute differs
-        // between machines.
-        using SkiaFontProvider provider = TestFonts.NewProvider();
-        provider.FallbackFamilies.Add("Segoe UI");
-
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(provider);
-        TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
-
-        Assert.True(measurer.MeasureWidth(Cjk, style) > 0);
+        Assert.Equal(parts, whole, 0.01f);
     }
 
     [Fact]
     public void PurelyLatinTextIsUnaffected()
     {
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
-        TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
+        OpenTypeMeasurer measurer = Measurer(TypefaceLibrary.Shared);
+        OpenTypeFont primary = TypefaceLibrary.Shared.Shaper.Resolve(Sans);
 
-        // The fast path must produce exactly what a single-font measurement always did.
-        Assert.True(measurer.MeasureWidth(Latin, style) > 0);
-        Assert.Equal(measurer.MeasureWidth(Latin, style), measurer.MeasureWidth(Latin, style));
+        // Latin the test family covers is set in it alone, and measures as the font itself measures it.
+        Assert.Equal(primary.MeasureWidth(Latin.AsSpan(), Sans.PointSize), measurer.MeasureWidth(Latin, Sans), 0.001f);
     }
 
     [Fact]
-    public void AnExplicitFallbackFamilyDrawsWhatThePrimaryFontLacks()
+    public void AnExplicitFallbackIsPreferredOverTheAutomaticChoice()
     {
         Assert.True(
-            TryFindAlternativeFallback(SkiaFontProvider.Shared.GetTypeface(Sans), out string character, out string family),
-            "No installed family covers a character Arial lacks other than the platform's own pick; the rendering suite requires system fonts.");
+            TryFindAlternativeFallback(out string character, out string family),
+            "No installed family covers a character Noto Sans lacks other than the automatic pick; the rendering suite requires system fonts.");
 
-        using SkiaFontProvider fonts = TestFonts.NewProvider();
-        fonts.FallbackFamilies.Add(family);
+        TypefaceLibrary library = TestFonts.NewLibrary();
+        library.Fallbacks = [family];
 
         string drawnDirectly = FontOf(Build(character, Sans.WithTypeface(family)).ExportPdf(), character);
-        string drawnAsFallback = FontOf(Build($"A{character}").ExportPdf(new PdfExportOptions { Fonts = fonts }), character);
-        string platformChoice = FontOf(Build($"A{character}").ExportPdf(), character);
+        string drawnAsFallback = FontOf(Build($"A{character}").ExportPdf(new PdfExportOptions { Typefaces = library }), character);
+        string automatic = FontOf(Build($"A{character}").ExportPdf(), character);
 
         Assert.Equal(drawnDirectly, drawnAsFallback);
 
-        // Left to the shared provider, which names no fallbacks, the platform picks another face. That is what
-        // shows the match above came from the explicit fallback, and from the provider supplied in the options.
-        Assert.NotEqual(drawnDirectly, platformChoice);
+        // Left to the shared library, which names no fallbacks, another face is chosen. That is what shows the
+        // match above came from the explicit fallback, and from the library the options supplied.
+        Assert.NotEqual(drawnDirectly, automatic);
     }
 
     [Fact]
@@ -179,16 +150,16 @@ public class FontFallbackTests
     {
         // The face found for the CJK characters has no Georgian, so the Georgian lookup must look past the
         // fallback already discovered for this style instead of settling for it.
-        using SkiaFontProvider fonts = TestFonts.NewProvider();
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
+        TypefaceLibrary library = TestFonts.NewLibrary();
+        OpenTypeMeasurer measurer = Measurer(library);
 
         float whole = measurer.MeasureWidth(Cjk + Georgian, Sans);
         float parts = measurer.MeasureWidth(Cjk, Sans) + measurer.MeasureWidth(Georgian, Sans);
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"{Cjk} {Georgian}").ExportPdf(new PdfExportOptions { Fonts = fonts }));
+        using PdfDocument parsed = PdfDocument.Open(Build($"{Cjk} {Georgian}").ExportPdf(new PdfExportOptions { Typefaces = library }));
         string text = parsed.GetPage(1).Text;
 
-        Assert.Equal(parts, whole, 0.5f);
+        Assert.Equal(parts, whole, 0.01f);
         Assert.Contains(Cjk, text);
         Assert.Contains(Georgian, text);
     }
@@ -196,9 +167,9 @@ public class FontFallbackTests
     [Fact]
     public void ItalicTextFallsBackToo()
     {
-        using SkiaFontProvider fonts = TestFonts.NewProvider();
+        TypefaceLibrary library = TestFonts.NewLibrary();
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"{Latin} {Cjk}", Sans.Italic()).ExportPdf(new PdfExportOptions { Fonts = fonts }));
+        using PdfDocument parsed = PdfDocument.Open(Build($"{Latin} {Cjk}", Sans.Italic()).ExportPdf(new PdfExportOptions { Typefaces = library }));
         string text = parsed.GetPage(1).Text;
 
         Assert.Contains(Latin, text);
@@ -211,13 +182,13 @@ public class FontFallbackTests
         // U+0378 is unassigned, so no face anywhere has it. The run must carry on rather than fail, and it must
         // still be measured with whatever it is drawn with.
         const string Unassigned = "͸";
-        using SkiaFontProvider fonts = TestFonts.NewProvider();
-        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
+        TypefaceLibrary library = TestFonts.NewLibrary();
+        OpenTypeMeasurer measurer = Measurer(library);
 
         float whole = measurer.MeasureWidth($"A{Unassigned}B", Sans);
         float parts = measurer.MeasureWidth("A", Sans) + measurer.MeasureWidth(Unassigned, Sans) + measurer.MeasureWidth("B", Sans);
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"A{Unassigned}B").ExportPdf(new PdfExportOptions { Fonts = fonts }));
+        using PdfDocument parsed = PdfDocument.Open(Build($"A{Unassigned}B").ExportPdf(new PdfExportOptions { Typefaces = library }));
         IReadOnlyList<Letter> letters = parsed.GetPage(1).Letters;
 
         Assert.Equal(parts, whole, 0.01f);

@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Skia;
 using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
@@ -6,11 +5,11 @@ namespace Rustaveli.Pdf.IntegrationTests;
 
 /// <summary>
 /// Measurement against real fonts, asserted through relations that hold for any sensible face rather than
-/// through widths that would pin one machine's copy of Arial.
+/// through widths that would pin one machine's copy of Arial, and checked against Skia reading the same file.
 /// </summary>
-public class SkiaTypeMeasurerTests
+public class OpenTypeMeasurerTests
 {
-    private static readonly SkiaTypeMeasurer Measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
+    private static readonly OpenTypeMeasurer Measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
     private static readonly TypeStyle Style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
@@ -74,7 +73,10 @@ public class SkiaTypeMeasurerTests
     [Fact]
     public void MetricsAreTheFontsOwnAsPositiveDistances()
     {
-        SKFontMetrics native = SkiaFontProvider.Shared.GetFont(Style).Metrics;
+        // An independent reading of the same file: Skia's, unhinted, at the same size.
+        using SKTypeface typeface = SKTypeface.FromFile(TestFonts.PathOf("NotoSans-Regular.ttf"));
+        using SKFont font = new SKFont(typeface, Style.PointSize) { Hinting = SKFontHinting.None, LinearMetrics = true };
+        SKFontMetrics native = font.Metrics;
         TypeMetrics metrics = Measurer.GetMetrics(Style);
 
         Assert.Equal(-native.Ascent, metrics.Ascent);

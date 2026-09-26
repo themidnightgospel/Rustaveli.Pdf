@@ -34,7 +34,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `DocumentInfo` | class | Title, author, subject, keywords, creator, producer, dates. Named for the PDF *document information dictionary*. | PDF | `DocumentMetadata` |
 | `Document.Info` | property | The document's `DocumentInfo`. | PDF | `Document.Metadata` |
 | `ExportPdf()` | method | Writes the document as PDF, to bytes, a stream or a file. *Export* is what InDesign calls it. | InDesign | `GeneratePdf` |
-| `PdfExportOptions` | class | Options for export. | InDesign | `PdfGenerationOptions` |
+| `PdfExportOptions` | class | Options for export: the `Typefaces` to set text in, and whether to `Compress` streams. | InDesign | `PdfGenerationOptions` |
 
 ## Frames and composing into them
 
@@ -125,7 +125,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `CrossReference(string anchor)` | method | Makes the frame a link to an anchor. | print | `SectionLink` |
 | `Placeholder(Ink?)` | method | A box standing in for content not there yet. | print | `Placeholder` |
 | `Image(IImage, ImageFitting)` | method | Places an image. | plain | `Image` |
-| `IImage` | interface | A decoded image. | plain | `IImage` |
+| `IImage` | interface | An image a frame can place, with its size in pixels the right way up. | plain | `IImage` |
+| `RasterImage` | class | A JPEG or PNG, loaded with `FromBytes`, `FromStream` or `FromFile` and embedded as it was encoded wherever PDF allows. *Raster*, as prepress distinguishes pixel images from vector art. | print | `Image` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |
 
 ## Text
@@ -180,16 +181,17 @@ The Material Design palette (`Colors.Red.Lighten3` and friends) is removed: user
 | `Lengths` | class | Conversions such as `20.Millimetres()`. | plain | `UnitExtensions` |
 | `ReadingDirection` | enum | `LeftToRight`, `RightToLeft`. | print | `ContentDirection` |
 
-## Output through Skia
+## Typefaces and export
 
-The `Rustaveli.Pdf.Skia` package renders through SkiaSharp until the managed PDF writer replaces it
-([ADR 0001](adr/0001-managed-pdf-writer.md)); its public types live in the same namespace.
+PDF is written in managed code ([ADR 0001](adr/0001-managed-pdf-writer.md)): fonts are subset to the glyphs a
+document uses, and images are embedded as they were encoded wherever PDF can carry them.
 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
-| `PdfExport` | class | The `ExportPdf` methods. | InDesign | `PdfGenerationExtensions` |
-| `SkiaFontProvider` | class | Finds and registers the typefaces Skia sets type in. | plain | `SkiaFontProvider` |
-| `SkiaImage` | class | An image decoded by Skia, for `Image(IImage, ImageFitting)`. | plain | `SkiaImage` |
+| `TypefaceLibrary` | class | The typefaces documents are set in: those registered with it, then those installed. `Shared` serves any export given no library of its own. | print ("type library") | `FontManager`, `SkiaFontProvider` |
+| `TypefaceLibrary.Register(...)` / `RegisterFile(string)` | method | Adds every face in a font file. A registered typeface shadows an installed one of the same name. | plain | `FontManager.RegisterFont` |
+| `TypefaceLibrary.Fallbacks` | property | Typefaces tried in order for a character a run's own typeface lacks. | plain | `FallbackFamilies` |
+| `PdfExport` | class | The `ExportPdf` methods, to bytes, a stream or a file. | InDesign | `PdfGenerationExtensions` |
 
 ## Failures
 

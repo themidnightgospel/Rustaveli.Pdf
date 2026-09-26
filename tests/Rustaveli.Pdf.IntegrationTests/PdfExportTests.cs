@@ -1,4 +1,3 @@
-using System.Xml.Linq;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Tokens;
@@ -169,14 +168,16 @@ public class PdfExportTests
     }
 
     [Fact]
-    public void AFailedRenderWritesNothingToTheStream()
+    public void AFailedRenderFailsTheCallAndLeavesTheStreamOpen()
     {
+        // Pages stream out as they finish, so a stream may hold part of a document; the caller learns of the
+        // failure and still owns the stream.
         using MemoryStream stream = new MemoryStream();
 
         RenderingException error = Assert.Throws<RenderingException>(() => FailingDocument().ExportPdf(stream));
 
         Assert.IsType<ArgumentException>(error.InnerException);
-        Assert.Equal(0, stream.Length);
+        Assert.True(stream.CanWrite);
     }
 
     [Fact]
@@ -213,21 +214,6 @@ public class PdfExportTests
     }
 
     [Fact]
-    public void PdfAEmbedsTheConformanceClaim()
-    {
-        using PdfDocument parsed = PdfDocument.Open(TextDocument().ExportPdf(new PdfExportOptions { PdfA = true }));
-
-        Assert.True(parsed.TryGetXmpMetadata(out XmpMetadata? xmp), "PDF/A requires XMP metadata.");
-
-        XDocument metadata = xmp!.GetXDocument();
-        XNamespace pdfaid = "http://www.aiim.org/pdfa/ns/id/";
-
-        Assert.Equal("2", metadata.Descendants(pdfaid + "part").Single().Value);
-        Assert.Equal("B", metadata.Descendants(pdfaid + "conformance").Single().Value);
-        Assert.True(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("OutputIntents")));
-    }
-
-    [Fact]
     public void ByDefaultNoConformanceIsClaimed()
     {
         using PdfDocument parsed = PdfDocument.Open(TextDocument().ExportPdf());
@@ -246,39 +232,9 @@ public class PdfExportTests
     }
 
     [Fact]
-    public async Task RendersQueueBehindOneAnotherByDefault()
+    public async Task ExportsRunAlongsideOneAnother()
     {
-        using ManualResetEventSlim entered = new ManualResetEventSlim();
-        using ManualResetEventSlim release = new ManualResetEventSlim();
-
-        Task<byte[]> holder = Task.Run(() => PausingDocument(entered, release).ExportPdf());
-        Task<byte[]>? queued = null;
-
-        try
-        {
-            Assert.True(entered.Wait(Timeout), "The first render never reached its layout.");
-
-            queued = Task.Run(() => ShapeDocument().ExportPdf());
-
-            // Nothing but the gate holds the second render back, so it must still be waiting.
-            Task first = await Task.WhenAny(queued, Task.Delay(TimeSpan.FromMilliseconds(500)));
-            Assert.False(first == queued, "A second render ran while the first held the gate.");
-        }
-        finally
-        {
-            release.Set();
-        }
-
-        using PdfDocument held = PdfDocument.Open(await Within(Timeout, holder, "The first render did not finish once released."));
-        using PdfDocument waited = PdfDocument.Open(await Within(Timeout, queued!, "The queued render did not run once the gate was free."));
-
-        Assert.Equal(1, held.NumberOfPages);
-        Assert.Equal(1, waited.NumberOfPages);
-    }
-
-    [Fact]
-    public async Task AllowingConcurrentRenderingSkipsTheQueue()
-    {
+        // Each export has its own writer and shares only the typefaces, so nothing makes one wait for another.
         using ManualResetEventSlim entered = new ManualResetEventSlim();
         using ManualResetEventSlim release = new ManualResetEventSlim();
 
@@ -287,21 +243,22 @@ public class PdfExportTests
 
         try
         {
-            Assert.True(entered.Wait(Timeout), "The first render never reached its layout.");
+            Assert.True(entered.Wait(Timeout), "The first export never reached its layout.");
 
             concurrent = await Within(
                 Timeout,
-                Task.Run(() => ShapeDocument().ExportPdf(new PdfExportOptions { AllowConcurrentRendering = true })),
-                "A render that opted out of the gate still waited for it.");
+                Task.Run(() => ShapeDocument().ExportPdf()),
+                "A second export waited for the first.");
         }
         finally
         {
             release.Set();
         }
 
-        await Within(Timeout, holder, "The first render did not finish once released.");
-
+        using PdfDocument held = PdfDocument.Open(await Within(Timeout, holder, "The first export did not finish once released."));
         using PdfDocument parsed = PdfDocument.Open(concurrent);
+
+        Assert.Equal(1, held.NumberOfPages);
         Assert.Equal(1, parsed.NumberOfPages);
     }
 
