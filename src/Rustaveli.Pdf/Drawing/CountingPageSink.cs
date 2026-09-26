@@ -1,6 +1,3 @@
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Text;
-
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
@@ -11,7 +8,7 @@ namespace Rustaveli.Pdf.Drawing;
 /// resolve content such as "page 2 of 7". Running the identical layout against a canvas that draws nothing keeps
 /// the two passes consistent without emitting output twice.
 /// </remarks>
-public sealed class CountingPageSink : IPageSink
+internal sealed class CountingPageSink : IPageSink
 {
     public int PageCount { get; private set; }
 

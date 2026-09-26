@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// How an image is scaled into the space allocated to it.

@@ -1,7 +1,8 @@
-using Rustaveli.Pdf.Documents;
+using Rustaveli.Pdf.Layout;
+using Rustaveli.Pdf.Skia;
 using SkiaSharp;
 
-namespace Rustaveli.Pdf.Skia;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Renders composed documents to PDF.
@@ -14,7 +15,7 @@ public static class PdfExport
     /// <remarks>
     /// Skia's PDF backend does not tolerate concurrent document generation: two renders running at once produce
     /// files whose embedded font encodings disagree with their text operators, so the text extracts as garbage.
-    /// This was reproduced with a separate <see cref="Skia.SkiaFontProvider" />, document and output stream per
+    /// This was reproduced with a separate <see cref="SkiaFontProvider" />, document and output stream per
     /// thread, which leaves Skia's own process-wide font and glyph caches as the only shared state — so it
     /// cannot be fixed from this side of the binding.
     ///

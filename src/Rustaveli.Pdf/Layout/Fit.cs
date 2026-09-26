@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Primitives;
 
 namespace Rustaveli.Pdf.Layout;
 
@@ -11,7 +10,7 @@ namespace Rustaveli.Pdf.Layout;
 /// that returns <see cref="FitKind.Defer" /> on a page that is already empty cannot ever fit, which is how
 /// the engine detects a non-terminating layout instead of looping forever.
 /// </remarks>
-public readonly record struct Fit
+internal readonly record struct Fit
 {
     public FitKind Kind { get; }
 

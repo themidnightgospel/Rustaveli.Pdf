@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Exceptions;
 
 namespace Rustaveli.Pdf.UnitTests;
 
@@ -7,7 +6,7 @@ public class FrameContentTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static void Fill(IFrame container, float width, float height, Ink color) =>
-        container.Compose(inner => inner.Child = new FixedBlock(width, height, color));
+        container.Compose(inner => inner.Slot().Child = new FixedBlock(width, height, color));
 
     public static TheoryData<string, Action<IFrame>> CallsWithoutAHandler => new()
     {
@@ -32,7 +31,7 @@ public class FrameContentTests
         Assert.Equal("handler", exception.ParamName);
 
         // Rejecting after attaching would leave a half-built element occupying the slot.
-        Assert.True(container.Child is null, $"{method} attached an element before rejecting its handler.");
+        Assert.True(container.Slot().Child is null, $"{method} attached an element before rejecting its handler.");
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class FrameContentTests
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => container.Image(null!));
 
         Assert.Equal("image", exception.ParamName);
-        Assert.Null(container.Child);
+        Assert.Null(container.Slot().Child);
     }
 
     [Fact]
@@ -152,7 +151,7 @@ public class FrameContentTests
         CompositionException exception = Assert.Throws<CompositionException>(() => container.Blank());
 
         Assert.Contains("This frame already holds TextBlock, so it cannot be left blank", exception.Message);
-        Assert.IsType<TextBlock>(container.Child);
+        Assert.IsType<TextBlock>(container.Slot().Child);
     }
 
     [Fact]

@@ -1,8 +1,4 @@
 using System.Diagnostics;
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
 using UglyToad.PdfPig;
 using Xunit.Abstractions;
 

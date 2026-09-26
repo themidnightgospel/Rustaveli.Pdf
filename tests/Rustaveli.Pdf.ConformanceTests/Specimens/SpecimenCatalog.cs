@@ -1,9 +1,3 @@
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Layout;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
-using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.ConformanceTests.Specimens;

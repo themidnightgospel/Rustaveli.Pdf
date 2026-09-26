@@ -64,7 +64,7 @@ public class ListTests
             list.Numbered();
 
             for (int index = 0; index < 6; index++)
-                list.Add().Compose(inner => inner.Child = new FixedBlock(10, 30));
+                list.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 30));
         });
 
         Extent space = new Extent(200, 60);
@@ -118,7 +118,7 @@ public class ListTests
         Block root = BuildList(list =>
         {
             list.MarkerIndent(30);
-            list.Add().Compose(inner => inner.Child = new FixedBlock(10, 10, TestInks.Red));
+            list.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 10, TestInks.Red));
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));

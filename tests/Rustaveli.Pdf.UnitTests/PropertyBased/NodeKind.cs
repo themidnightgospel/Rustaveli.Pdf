@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 
 /// <summary>The kinds of element a generated layout tree is built from.</summary>
-public enum NodeKind
+internal enum NodeKind
 {
     Text,
     Box,

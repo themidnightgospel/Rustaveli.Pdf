@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Exceptions;
 
 namespace Rustaveli.Pdf.UnitTests;
 

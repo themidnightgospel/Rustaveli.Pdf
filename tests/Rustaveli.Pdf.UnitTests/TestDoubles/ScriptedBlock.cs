@@ -9,16 +9,22 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Recording the call is what makes the parent's own guard observable. Reporting a fixed plan also stands in for
 /// a custom element that overstates its size, which the built-in containers must tolerate.
 /// </remarks>
-public sealed class ScriptedBlock(Fit plan) : Block
+internal sealed class ScriptedBlock(Fit plan) : Block
 {
     /// <summary>The space offered on each call to <see cref="Render"/>, in order.</summary>
     public List<Extent> DrawnWith { get; } = [];
 
     /// <summary>
-    /// A child with nothing to show here: one that does not fit (<see cref="FitKind.Defer"/>) or one that has\n    /// already finished (<see cref="FitKind.Nothing"/>).
+    /// A child with nothing to show here: one that does not fit (<see cref="FitKind.Defer"/>) or one that has
+    /// already finished (<see cref="FitKind.Nothing"/>), named by its <see cref="FitKind"/> so that public theories
+    /// can pass it without exposing the engine's type.
     /// </summary>
-    public static ScriptedBlock WithNothingToDraw(FitKind outcome) =>
-        new(outcome == FitKind.Defer ? Fit.Defer("The scripted element does not fit.") : Fit.Nothing());
+    public static ScriptedBlock WithNothingToDraw(string outcome) => outcome switch
+    {
+        nameof(FitKind.Defer) => new(Fit.Defer("The scripted block does not fit.")),
+        nameof(FitKind.Nothing) => new(Fit.Nothing()),
+        _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, "Expected Defer or Nothing."),
+    };
 
     public override Fit Plan(Extent availableSpace, PlanContext context) => plan;
 

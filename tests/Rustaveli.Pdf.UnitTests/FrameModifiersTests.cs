@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Exceptions;
 
 namespace Rustaveli.Pdf.UnitTests;
 
@@ -12,7 +11,7 @@ public class FrameModifiersTests
 
     private static Block Compose(Func<IFrame, IFrame> chain, float width = 50, float height = 20) =>
         LayoutHarness.Build(container => chain(container).Compose(inner =>
-            inner.Child = new FixedBlock(width, height, TestInks.Red)));
+            inner.Slot().Child = new FixedBlock(width, height, TestInks.Red)));
 
     private static Extent Measure(Block root) => LayoutHarness.Measure(root, Space).Size;
 
@@ -363,7 +362,7 @@ public class FrameModifiersTests
 
         IFrame vertical = container.FlushBottom();
         IFrame both = vertical.Centered();
-        both.Compose(inner => inner.Child = new FixedBlock(50, 20, TestInks.Red));
+        both.Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.Red));
 
         Assert.Same(vertical, both);
         Approximately.Equal(new Offset(75, 80), Content(container).Position);
@@ -376,7 +375,7 @@ public class FrameModifiersTests
 
         IFrame first = container.FlushLeft().FlushTop();
         IFrame second = first.FlushRight().FlushBottom();
-        second.Compose(inner => inner.Child = new FixedBlock(50, 20, TestInks.Red));
+        second.Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.Red));
 
         Assert.Same(first, second);
         Approximately.Equal(new Offset(150, 80), Content(container).Position);
@@ -389,7 +388,7 @@ public class FrameModifiersTests
         // new composition in an occupied slot and refused.
         Frame container = new Frame();
         IFrame aligned = container.FlushRight();
-        aligned.Compose(inner => inner.Child = new FixedBlock(50, 20, TestInks.Red));
+        aligned.Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.Red));
 
         Assert.Throws<CompositionException>(() => aligned.Centered());
         Approximately.Equal(new Offset(150, 0), Content(container).Position);
@@ -509,7 +508,7 @@ public class FrameModifiersTests
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => container.DefaultType(null!));
 
         Assert.Equal("refinement", exception.ParamName);
-        Assert.Null(container.Child);
+        Assert.Null(container.Slot().Child);
     }
 
     // ---- Sizing escapes ------------------------------------------------------------------------------------
@@ -634,6 +633,6 @@ public class FrameModifiersTests
         Assert.Equal(
             "sectionName",
             Assert.ThrowsAny<ArgumentException>(() => container.CrossReference(target!)).ParamName);
-        Assert.Null(container.Child);
+        Assert.Null(container.Slot().Child);
     }
 }

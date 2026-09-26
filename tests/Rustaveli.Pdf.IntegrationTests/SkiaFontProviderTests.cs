@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Skia;
-using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.IntegrationTests;

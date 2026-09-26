@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Skia;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Options controlling PDF output.

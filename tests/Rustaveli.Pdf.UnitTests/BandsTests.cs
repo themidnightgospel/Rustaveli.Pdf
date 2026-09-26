@@ -14,9 +14,9 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 15, TestInks.Red));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(10, 20, TestInks.Blue));
-            decoration.Foot().Compose(container => container.Child = new FixedBlock(10, 25, TestInks.Green));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 15, TestInks.Red));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 20, TestInks.Blue));
+            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(10, 25, TestInks.Green));
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
@@ -32,9 +32,9 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 15));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(10, 20));
-            decoration.Foot().Compose(container => container.Child = new FixedBlock(10, 25));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 15));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 20));
+            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(10, 25));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
@@ -47,8 +47,8 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 10));
-            decoration.Body().Compose(container => container.Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
+            decoration.Body().Compose(container => container.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
@@ -64,7 +64,7 @@ public class BandsTests
         BandsBlock element = Build(decoration =>
         {
             decoration.Head().Text("Continued");
-            decoration.Body().Compose(container => container.Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
+            decoration.Body().Compose(container => container.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
         });
 
         Extent space = new Extent(200, 52);
@@ -81,9 +81,9 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(80, 10));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(50, 20));
-            decoration.Foot().Compose(container => container.Child = new FixedBlock(120, 5));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(80, 10));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(50, 20));
+            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(120, 5));
         });
 
         Approximately.Equal(120f, LayoutHarness.Measure(element, new Extent(200, 200)).Size.Width);
@@ -98,9 +98,9 @@ public class BandsTests
 
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = before);
-            decoration.Body().Compose(container => container.Child = content);
-            decoration.Foot().Compose(container => container.Child = after);
+            decoration.Head().Compose(container => container.Slot().Child = before);
+            decoration.Body().Compose(container => container.Slot().Child = content);
+            decoration.Foot().Compose(container => container.Slot().Child = after);
         });
 
         LayoutHarness.Draw(element, new Extent(200, 100));
@@ -116,8 +116,8 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 150));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(10, 10));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 150));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
@@ -131,9 +131,9 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 60));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(10, 1));
-            decoration.Foot().Compose(container => container.Child = new FixedBlock(10, 60));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 60));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 1));
+            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(10, 60));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
@@ -148,7 +148,7 @@ public class BandsTests
         // A custom element can report more than it was offered. The trailing band must not then be measured
         // against a negative remainder.
         BandsBlock element = Build(decoration =>
-            decoration.Head().Compose(container => container.Child = new ScriptedBlock(Fit.Complete(10, 150))));
+            decoration.Head().Compose(container => container.Slot().Child = new ScriptedBlock(Fit.Complete(10, 150))));
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -161,8 +161,8 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 60));
-            decoration.Foot().Compose(container => container.Child = new ScriptedBlock(Fit.Complete(10, 70)));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 60));
+            decoration.Foot().Compose(container => container.Slot().Child = new ScriptedBlock(Fit.Complete(10, 70)));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
@@ -176,8 +176,8 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 10));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(10, 200));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 200));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
@@ -192,8 +192,8 @@ public class BandsTests
         // The bands exist to accompany content; on their own they must not claim another page.
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 10));
-            decoration.Body().Compose(container => container.Child = new SplittableBlock(unitCount: 1, unitHeight: 10));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
+            decoration.Body().Compose(container => container.Slot().Child = new SplittableBlock(unitCount: 1, unitHeight: 10));
         });
 
         Extent space = new Extent(200, 100);
@@ -208,8 +208,8 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 150, TestInks.Red));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(10, 10, TestInks.Blue));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 150, TestInks.Red));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 10, TestInks.Blue));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
@@ -222,8 +222,8 @@ public class BandsTests
 
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 60, TestInks.Red));
-            decoration.Foot().Compose(container => container.Child = after);
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 60, TestInks.Red));
+            decoration.Foot().Compose(container => container.Slot().Child = after);
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
@@ -235,8 +235,8 @@ public class BandsTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Head().Compose(container => container.Child = new FixedBlock(10, 10, TestInks.Red));
-            decoration.Body().Compose(container => container.Child = new FixedBlock(10, 200, TestInks.Blue));
+            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10, TestInks.Red));
+            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 200, TestInks.Blue));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);

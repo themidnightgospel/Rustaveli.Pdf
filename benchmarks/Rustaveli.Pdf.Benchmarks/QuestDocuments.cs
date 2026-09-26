@@ -26,7 +26,8 @@ public static class QuestDocuments
         }
     }
 
-    private static Document Build(DocumentKind kind, List<Image> images) => Document.Create(container => container.Page(page =>
+    // Qualified: inside Rustaveli.Pdf.Benchmarks, a bare Document is this library's own.
+    private static QuestPDF.Fluent.Document Build(DocumentKind kind, List<Image> images) => QuestPDF.Fluent.Document.Create(container => container.Page(page =>
     {
         page.Size(PageSizes.A4);
         page.Margin(40f);

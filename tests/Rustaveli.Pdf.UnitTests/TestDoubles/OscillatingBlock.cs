@@ -9,7 +9,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// document the cap on counting passes exists for. <see cref="Passes"/> counts the full resets the engine makes,
 /// one at the start of every pass.
 /// </remarks>
-public sealed class OscillatingBlock : Block
+internal sealed class OscillatingBlock : Block
 {
     private int _pagesDrawn;
 

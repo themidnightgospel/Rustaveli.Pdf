@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// <summary>
 /// Drives elements and documents through the layout engine with deterministic services attached.
 /// </summary>
-public static class LayoutHarness
+internal static class LayoutHarness
 {
     public static ITypeMeasurer Measurer { get; } = new FakeTypeMeasurer();
 

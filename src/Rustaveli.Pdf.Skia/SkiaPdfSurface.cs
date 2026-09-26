@@ -1,15 +1,12 @@
 using Rustaveli.Pdf.Drawing;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Text;
 using SkiaSharp;
-using Ink = Rustaveli.Pdf.Primitives.Ink;
 
 namespace Rustaveli.Pdf.Skia;
 
 /// <summary>
 /// Writes drawing operations into a PDF using Skia's PDF backend.
 /// </summary>
-public sealed class SkiaPdfSurface(SKDocument document, SkiaFontProvider fonts) : IPageSink
+internal sealed class SkiaPdfSurface(SKDocument document, SkiaFontProvider fonts) : IPageSink
 {
     private SKCanvas? _canvas;
 

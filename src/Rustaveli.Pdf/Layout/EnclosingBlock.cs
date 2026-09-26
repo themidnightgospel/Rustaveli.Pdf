@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Primitives;
 
 namespace Rustaveli.Pdf.Layout;
 
@@ -6,7 +5,7 @@ namespace Rustaveli.Pdf.Layout;
 /// An element wrapping exactly one child. Measuring and drawing delegate straight through, so derived types
 /// only override the behaviour they actually change.
 /// </summary>
-public abstract class EnclosingBlock : Block, IFrame
+internal abstract class EnclosingBlock : Block, IFrameSlot
 {
     public Block? Child { get; set; }
 

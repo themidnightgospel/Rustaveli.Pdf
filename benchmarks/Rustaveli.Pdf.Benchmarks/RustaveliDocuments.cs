@@ -1,9 +1,3 @@
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
-using Rustaveli.Pdf.Text;
-
 namespace Rustaveli.Pdf.Benchmarks;
 
 /// <summary>The benchmark documents, built with this library. Mirrors <see cref="QuestDocuments" /> element for element.</summary>

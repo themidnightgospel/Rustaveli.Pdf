@@ -1,6 +1,3 @@
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Text;
-
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
@@ -12,7 +9,7 @@ namespace Rustaveli.Pdf.Drawing;
 /// this interface and never references a concrete graphics library, which is what allows the same document tree
 /// to be rendered to a PDF, captured for tests, or measured without producing output.
 /// </remarks>
-public interface ISurface
+internal interface ISurface
 {
     /// <summary>Pushes the current transform and clip onto a stack.</summary>
     void Save();

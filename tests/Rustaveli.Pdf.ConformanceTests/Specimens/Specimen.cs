@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Documents;
 
 namespace Rustaveli.Pdf.ConformanceTests.Specimens;
 

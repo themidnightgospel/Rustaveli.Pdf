@@ -3,7 +3,7 @@ using Rustaveli.Pdf.Drawing;
 
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
-public sealed class RecordingSurface : IPageSink, ISurface, IDisposable
+internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
 {
     private readonly Stack<Matrix3x2> _saved = new Stack<Matrix3x2>();
 

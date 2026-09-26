@@ -1,7 +1,8 @@
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Which dimensions a <see cref="Elements.ProportionBlock"/> is permitted to occupy.
+/// Which dimension a frame held to a proportion is fitted to: see
+/// <see cref="FrameModifiers.Proportion(IFrame, float, ProportionFit)"/>.
 /// </summary>
 public enum ProportionFit
 {

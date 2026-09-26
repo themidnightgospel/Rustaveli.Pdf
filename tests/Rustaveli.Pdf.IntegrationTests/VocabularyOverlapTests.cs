@@ -27,7 +27,7 @@ public class VocabularyOverlapTests(ITestOutputHelper output)
     [Fact]
     public void ReportSharedVocabulary()
     {
-        Assembly ours = typeof(Pdf.Documents.Document).Assembly;
+        Assembly ours = typeof(Document).Assembly;
         Assembly theirs = typeof(QuestPDF.Fluent.Document).Assembly;
 
         HashSet<string> ourMethods = PublicMethodNames(ours);

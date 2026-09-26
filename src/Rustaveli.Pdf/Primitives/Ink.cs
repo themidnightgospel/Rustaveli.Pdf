@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// A colour as print thinks of it: an RGB colour, a CMYK process colour, or a named spot ink with a process-colour

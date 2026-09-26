@@ -13,7 +13,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// true bounding box. That is exact for the quarter turns the library supports.
 /// </para>
 /// </remarks>
-public readonly record struct Bounds(float Left, float Top, float Right, float Bottom)
+internal readonly record struct Bounds(float Left, float Top, float Right, float Bottom)
 {
     public float Width => Right - Left;
 

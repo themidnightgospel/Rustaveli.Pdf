@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 public static class Lengths
 {

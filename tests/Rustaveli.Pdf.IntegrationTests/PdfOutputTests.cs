@@ -1,8 +1,3 @@
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Elements;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Annotations;
 using UglyToad.PdfPig.Content;

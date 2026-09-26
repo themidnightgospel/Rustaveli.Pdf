@@ -7,7 +7,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Layout behaviour is far easier to assert against a shape of known size than against real content, whose
 /// dimensions depend on font metrics and wrapping.
 /// </remarks>
-public sealed class FixedBlock(Extent size, Ink? color = null) : Block
+internal sealed class FixedBlock(Extent size, Ink? color = null) : Block
 {
     public FixedBlock(float width, float height) : this(new Extent(width, height))
     {

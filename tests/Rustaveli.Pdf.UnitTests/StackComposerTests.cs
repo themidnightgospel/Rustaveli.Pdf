@@ -5,7 +5,7 @@ public class StackComposerTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static void Fill(IFrame container, Ink color) =>
-        container.Compose(inner => inner.Child = new FixedBlock(10, 20, color));
+        container.Compose(inner => inner.Slot().Child = new FixedBlock(10, 20, color));
 
     [Fact]
     public void StacksItemsInDeclarationOrder()

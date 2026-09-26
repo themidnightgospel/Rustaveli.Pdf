@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Primitives;
 
 namespace Rustaveli.Pdf.Layout;
 
@@ -10,7 +9,7 @@ namespace Rustaveli.Pdf.Layout;
 /// promised for the same available space. The pagination engine measures first to decide what fits on the current
 /// page, so an element that draws more than it measured will overflow silently.
 /// </remarks>
-public abstract class Block
+internal abstract class Block
 {
     /// <summary>
     /// True for elements whose state describes progress through the document as a whole rather than through a

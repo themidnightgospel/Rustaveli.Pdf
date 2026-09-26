@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Standard page dimensions in PDF points, portrait unless stated otherwise.

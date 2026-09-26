@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Exceptions;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Thrown when an element fails while drawing.

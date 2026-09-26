@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Exceptions;
 
 namespace Rustaveli.Pdf.UnitTests;
 
@@ -16,7 +15,7 @@ public class CompositionTests
         // Both types are named so the message points at the two pieces of composition that collided.
         Assert.Contains("This frame already holds InsetBlock and cannot also hold FillBlock", exception.Message);
         Assert.Contains("use Stack, Columns or Layered", exception.Message);
-        Assert.IsType<InsetBlock>(container.Child);
+        Assert.IsType<InsetBlock>(container.Slot().Child);
     }
 
     [Fact]
@@ -35,6 +34,6 @@ public class CompositionTests
 
         IFrame next = container.Inset(5);
 
-        Assert.Same(container.Child, next);
+        Assert.Same(container.Slot().Child, next);
     }
 }

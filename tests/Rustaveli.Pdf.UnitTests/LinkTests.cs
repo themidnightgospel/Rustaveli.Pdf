@@ -31,9 +31,9 @@ public class LinkTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         LinkBlock element = new LinkBlock { Url = "https://example.com", Child = child };
@@ -70,9 +70,9 @@ public class LinkTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         CrossReferenceBlock element = new CrossReferenceBlock { DestinationName = "intro", Child = child };

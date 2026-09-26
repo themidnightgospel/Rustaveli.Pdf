@@ -83,9 +83,9 @@ public class PlacementTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void DoesNotAskAChildWithNothingToShowToDraw(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         PlacementBlock element = new PlacementBlock { Horizontal = HorizontalPlacement.Center, Child = child };
@@ -100,7 +100,7 @@ public class PlacementTests
     {
         // Chaining must not nest two aligners, or the inner one would receive an already-collapsed box.
         Block root = LayoutHarness.Build(container => container.FlushRight().Middle().Compose(inner =>
-            inner.Child = new FixedBlock(50, 20)));
+            inner.Slot().Child = new FixedBlock(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());

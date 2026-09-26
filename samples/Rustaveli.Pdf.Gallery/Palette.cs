@@ -1,4 +1,4 @@
-using Rustaveli.Pdf.Primitives;
+using Rustaveli.Pdf;
 
 /// <summary>The gallery's colours. A document brings its own; these happen to be Material Design shades.</summary>
 internal static class Palette

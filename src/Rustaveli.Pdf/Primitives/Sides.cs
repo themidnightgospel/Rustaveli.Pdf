@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Per-side lengths in PDF points, used for padding and border widths.

@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Exceptions;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Thrown when a document tree imposes constraints that no page size could satisfy.

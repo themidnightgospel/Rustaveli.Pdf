@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.Text;
 /// of whatever the surrounding context supplies, so a page-level default reaches every span without each one
 /// having to restate it.
 /// </remarks>
-public sealed class TextRun
+internal sealed class TextRun
 {
     /// <summary>Literal content. Ignored when <see cref="DynamicText"/> is set.</summary>
     public string? Text { get; set; }

@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Exceptions;
 
 namespace Rustaveli.Pdf.UnitTests;
 
@@ -22,7 +21,23 @@ public class CompositionGuardTests
 
         container.Blank();
 
-        Assert.Null(container.Child);
+        Assert.Null(container.Slot().Child);
+    }
+
+    [Fact]
+    public void RefusesContentForAFrameTheLibraryDidNotMake()
+    {
+        // IFrame is public so frames can be passed around; one implemented elsewhere has nowhere to hold content.
+        CompositionException exception = Assert.Throws<CompositionException>(() => new ForeignFrame().Text("words"));
+
+        Assert.Contains(nameof(ForeignFrame), exception.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(ISnippet), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RefusesToBlankAFrameTheLibraryDidNotMake()
+    {
+        Assert.Throws<CompositionException>(() => new ForeignFrame().Blank());
     }
 
     [Fact]
@@ -45,7 +60,7 @@ public class CompositionGuardTests
     {
         Block root = LayoutHarness.Build(container => container
             .Stroke(2).RoundCorners(8)
-            .Compose(inner => inner.Child = new FixedBlock(40, 20, TestInks.White)));
+            .Compose(inner => inner.Slot().Child = new FixedBlock(40, 20, TestInks.White)));
 
         Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Operations.OfType<RoundedRectangleOperation>());
     }
@@ -60,5 +75,9 @@ public class CompositionGuardTests
         Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Link(target!)));
         Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Anchor(target!)));
         Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.CrossReference(target!)));
+    }
+
+    private sealed class ForeignFrame : IFrame
+    {
     }
 }

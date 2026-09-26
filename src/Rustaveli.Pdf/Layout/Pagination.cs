@@ -9,7 +9,7 @@ namespace Rustaveli.Pdf.Layout;
 /// <see cref="IsDocumentLengthKnown"/> false purely to count pages, then a second pass that draws for real.
 /// Elements that depend on the total must read it through this type rather than caching it.
 /// </remarks>
-public sealed class Pagination
+internal sealed class Pagination
 {
     /// <summary>The one-based number of the page being laid out.</summary>
     public int CurrentPage { get; internal set; } = 1;

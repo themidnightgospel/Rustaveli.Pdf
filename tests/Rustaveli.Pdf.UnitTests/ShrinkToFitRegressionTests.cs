@@ -21,7 +21,7 @@ public class ShrinkToFitRegressionTests
         Document document = Document.Compose(container => container.Section(page =>
         {
             page.Trim = new Extent(200, 100);
-            page.Body().ShrinkToFit().Compose(inner => inner.Child = new SplittableBlock(unitCount: 40, unitHeight: 20));
+            page.Body().ShrinkToFit().Compose(inner => inner.Slot().Child = new SplittableBlock(unitCount: 40, unitHeight: 20));
         }));
 
         RecordingSurface canvas = LayoutHarness.Render(document);

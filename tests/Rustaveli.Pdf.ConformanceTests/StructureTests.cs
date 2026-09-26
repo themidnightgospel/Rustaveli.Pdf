@@ -1,6 +1,5 @@
 using Rustaveli.Pdf.ConformanceTests.Specimens;
 using Rustaveli.Pdf.ConformanceTests.Validation;
-using Rustaveli.Pdf.Skia;
 
 namespace Rustaveli.Pdf.ConformanceTests;
 

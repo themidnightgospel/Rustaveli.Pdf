@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Exceptions;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Thrown when composing the document tree fails.

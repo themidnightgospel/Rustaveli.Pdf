@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 /// <summary>How an <see cref="Ink" /> is specified.</summary>
 public enum InkModel

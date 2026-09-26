@@ -5,7 +5,7 @@ public class LayersComposerTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static void Fill(IFrame container, float width, float height, Ink color) =>
-        container.Compose(inner => inner.Child = new FixedBlock(width, height, color));
+        container.Compose(inner => inner.Slot().Child = new FixedBlock(width, height, color));
 
     [Fact]
     public void ThePrimaryLayerSizesTheStack()

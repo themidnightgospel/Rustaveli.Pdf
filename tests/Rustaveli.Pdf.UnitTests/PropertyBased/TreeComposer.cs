@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 /// Turns a generated tree into a real document through the public fluent API, and records every character of text
 /// it wrote so a render can be checked for lost or duplicated content.
 /// </summary>
-public sealed class TreeComposer
+internal sealed class TreeComposer
 {
     private const string Alphabet = "abcdefghijklmnopqrstuvwxyz";
 

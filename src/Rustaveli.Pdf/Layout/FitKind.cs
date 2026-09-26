@@ -1,6 +1,6 @@
 namespace Rustaveli.Pdf.Layout;
 
-public enum FitKind
+internal enum FitKind
 {
     /// <summary>The element has nothing left to draw and occupies no space.</summary>
     Nothing,

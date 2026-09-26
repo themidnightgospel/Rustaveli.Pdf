@@ -1,4 +1,4 @@
-namespace Rustaveli.Pdf.Primitives;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// The direction in which sibling content flows. Mirrors horizontal layout when set to <see cref="RightToLeft"/>.

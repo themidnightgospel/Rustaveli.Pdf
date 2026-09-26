@@ -58,9 +58,9 @@ public class LayersTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void DrawsNoLayerWhenThePrimaryHasNothingToShow(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void DrawsNoLayerWhenThePrimaryHasNothingToShow(string outcome)
     {
         // A watermark without its page content would be a page of watermark alone.
         ScriptedBlock content = ScriptedBlock.WithNothingToDraw(outcome);

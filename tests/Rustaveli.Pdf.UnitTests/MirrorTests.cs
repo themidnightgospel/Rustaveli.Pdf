@@ -44,9 +44,9 @@ public class MirrorTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void DoesNotAskAChildWithNothingToShowToDraw(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = child };

@@ -11,8 +11,8 @@ public class RequireSpaceRegressionTests
         Document document = Document.Compose(container => container.Section(page =>
         {
             page.Trim = new Extent(300, 400);
-            page.RunningHead().RequireSpace(100).Compose(inner => inner.Child = new FixedBlock(50, 20, TestInks.Red));
-            page.Body().Compose(inner => inner.Child = new FixedBlock(50, 20, TestInks.Blue));
+            page.RunningHead().RequireSpace(100).Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.Red));
+            page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.Blue));
         }));
 
         RecordingSurface canvas = LayoutHarness.Render(document);

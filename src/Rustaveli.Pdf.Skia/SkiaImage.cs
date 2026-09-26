@@ -1,7 +1,6 @@
-using Rustaveli.Pdf.Drawing;
 using SkiaSharp;
 
-namespace Rustaveli.Pdf.Skia;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// A raster image decoded by Skia.

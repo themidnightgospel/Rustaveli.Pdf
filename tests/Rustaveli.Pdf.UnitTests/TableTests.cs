@@ -12,10 +12,10 @@ public class TableTests
     }
 
     private static void Fill(IFrame container, float width, float height) =>
-        container.Compose(inner => inner.Child = new FixedBlock(width, height));
+        container.Compose(inner => inner.Slot().Child = new FixedBlock(width, height));
 
     private static void Fill(IFrame container, float width, float height, Ink color) =>
-        container.Compose(inner => inner.Child = new FixedBlock(width, height, color));
+        container.Compose(inner => inner.Slot().Child = new FixedBlock(width, height, color));
 
     [Fact]
     public void SplitsWidthEvenlyBetweenEqualRelativeColumns()
@@ -143,7 +143,7 @@ public class TableTests
                 columns.Share();
             });
 
-            descriptor.Cell().SpanColumns(2).Compose(inner => inner.Child = new ExpandBlock
+            descriptor.Cell().SpanColumns(2).Compose(inner => inner.Slot().Child = new ExpandBlock
             {
                 ExtendHorizontal = true,
                 Child = new FixedBlock(1, 10)

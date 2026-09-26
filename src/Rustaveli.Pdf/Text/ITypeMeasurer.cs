@@ -7,7 +7,7 @@ namespace Rustaveli.Pdf.Text;
 /// Kept deliberately narrow so the layout engine stays independent of the rendering backend: an implementation
 /// may be backed by a native text shaper or by a pure-managed font parser without the engine noticing.
 /// </remarks>
-public interface ITypeMeasurer
+internal interface ITypeMeasurer
 {
     TypeMetrics GetMetrics(TypeStyle style);
 

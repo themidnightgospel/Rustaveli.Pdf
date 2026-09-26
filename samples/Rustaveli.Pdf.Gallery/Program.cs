@@ -1,9 +1,4 @@
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Layout;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
-using Rustaveli.Pdf.Text;
+using Rustaveli.Pdf;
 
 string output = args.Length > 0 ? args[0] : "gallery.pdf";
 

@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// <summary>
 /// Float comparisons with a tolerance, since layout accumulates rounding across nested transforms.
 /// </summary>
-public static class Approximately
+internal static class Approximately
 {
     public const float Tolerance = 0.01f;
 

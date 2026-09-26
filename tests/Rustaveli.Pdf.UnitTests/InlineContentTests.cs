@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Exceptions;
 
 namespace Rustaveli.Pdf.UnitTests;
 
@@ -25,7 +24,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("before");
-            text.Inline(inline => inline.Child = new FixedBlock(20, 10, TestInks.Red));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10, TestInks.Red));
             text.Run("after");
         });
 
@@ -42,7 +41,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedBlock(20, 10));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10));
             text.Run("cd");
         });
 
@@ -59,7 +58,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedBlock(20, 10));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -73,7 +72,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedBlock(20, 40));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 40));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -89,7 +88,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedBlock(20, 4));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 4));
         });
 
         Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
@@ -101,7 +100,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedBlock(20, 6, TestInks.Red));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 6, TestInks.Red));
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
@@ -117,7 +116,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("aaaa");
-            text.Inline(inline => inline.Child = new FixedBlock(20, 10, TestInks.Red));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10, TestInks.Red));
         });
 
         // 24pt of text plus a 20pt element exceeds 30pt, so the element wraps.
@@ -133,7 +132,7 @@ public class InlineContentTests
     {
         TextBlock element = new TextBlock();
         Frame container = new Frame();
-        container.Child = new FixedBlock(20, 10);
+        container.Slot().Child = new FixedBlock(20, 10);
         element.Spans.Add(new Text.TextRun { InlineElement = container, Url = "https://example.com" });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
@@ -241,7 +240,7 @@ public class InlineContentTests
             });
         }));
 
-        OversetException exception = Assert.Throws<Pdf.Exceptions.OversetException>(() => LayoutHarness.Render(document));
+        OversetException exception = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Contains("inline", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("AlignMiddle", exception.Message, StringComparison.Ordinal);
@@ -255,7 +254,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Line("aaa");
-            text.Inline(inline => inline.Child = new FixedBlock(200, 20));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(200, 20));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(100, 200)).Operations);

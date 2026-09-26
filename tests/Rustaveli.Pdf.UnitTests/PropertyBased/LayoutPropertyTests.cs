@@ -1,5 +1,5 @@
 using CsCheck;
-using Size = Rustaveli.Pdf.Primitives.Extent;
+using Size = Rustaveli.Pdf.Extent;
 
 namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 

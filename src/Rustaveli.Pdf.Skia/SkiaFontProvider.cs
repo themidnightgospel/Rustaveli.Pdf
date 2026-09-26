@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using Rustaveli.Pdf.Text;
+using Rustaveli.Pdf.Skia;
 using SkiaSharp;
 
-namespace Rustaveli.Pdf.Skia;
+namespace Rustaveli.Pdf;
 
 /// <summary>
 /// Resolves <see cref="TypeStyle"/> values to Skia typefaces and fonts, caching the results.

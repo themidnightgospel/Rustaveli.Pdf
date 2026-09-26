@@ -44,8 +44,8 @@ public class ListComposerTests
         Block root = BuildList(list =>
         {
             list.SpaceBetween(10);
-            list.Add().Compose(inner => inner.Child = new FixedBlock(10, 20, TestInks.Red));
-            list.Add().Compose(inner => inner.Child = new FixedBlock(10, 20, TestInks.Red));
+            list.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 20, TestInks.Red));
+            list.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 20, TestInks.Red));
         });
 
         Fit plan = LayoutHarness.Measure(root, Space);

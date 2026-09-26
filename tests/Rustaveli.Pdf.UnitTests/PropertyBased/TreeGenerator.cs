@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 /// Random layout trees. Sizes are bounded so every generated tree fits a page somehow — a box never taller than a
 /// page, rows never narrower than a word — which makes "the document renders" a property rather than a coin toss.
 /// </summary>
-public static class TreeGenerator
+internal static class TreeGenerator
 {
     // Computed rather than stored: static initialisers run in declaration order, and this one depends on those below.
     public static Gen<TreeNode> Tree => Node(depth: 3, wide: true);

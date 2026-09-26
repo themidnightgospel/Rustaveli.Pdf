@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// inside the element tree. Placed in a slot drawn on every page, this reveals each pass the engine made and the
 /// page numbers it quoted while making it.
 /// </remarks>
-public sealed class PaginationRecorder : Block
+internal sealed class PaginationRecorder : Block
 {
     public List<(int CurrentPage, int TotalPages, bool IsDocumentLengthKnown)> Draws { get; } = [];
 

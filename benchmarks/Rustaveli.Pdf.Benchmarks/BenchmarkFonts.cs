@@ -1,6 +1,5 @@
 using QuestPDF.Drawing;
 using QuestPDF.Infrastructure;
-using Rustaveli.Pdf.Skia;
 
 namespace Rustaveli.Pdf.Benchmarks;
 

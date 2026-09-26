@@ -1,8 +1,4 @@
 using System.Text;
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.IntegrationTests;

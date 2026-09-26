@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Primitives;
 using Rustaveli.Pdf.Text;
 
 namespace Rustaveli.Pdf.Layout;
@@ -6,7 +5,7 @@ namespace Rustaveli.Pdf.Layout;
 /// <summary>
 /// Services and state available to an element while it is being measured.
 /// </summary>
-public sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
+internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
 {
     public ITypeMeasurer TextMeasurer { get; } = textMeasurer;
 

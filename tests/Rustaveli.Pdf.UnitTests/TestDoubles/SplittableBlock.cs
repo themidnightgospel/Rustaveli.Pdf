@@ -7,7 +7,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Stands in for genuinely splittable content such as a long paragraph, letting pagination be tested without
 /// depending on text measurement.
 /// </remarks>
-public sealed class SplittableBlock(int unitCount, float unitHeight, float width = 10f) : Block
+internal sealed class SplittableBlock(int unitCount, float unitHeight, float width = 10f) : Block
 {
     private int _rendered;
 

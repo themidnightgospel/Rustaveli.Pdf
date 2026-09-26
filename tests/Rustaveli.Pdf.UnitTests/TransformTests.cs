@@ -208,9 +208,9 @@ public class TransformTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void RotateDoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void RotateDoesNotAskAChildWithNothingToShowToDraw(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = child };

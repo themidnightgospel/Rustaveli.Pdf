@@ -7,7 +7,7 @@ public class RoundCornersTests
     {
         Block root = LayoutHarness.Build(container => container
             .Fill(TestInks.Red).RoundCorners(6)
-            .Compose(inner => inner.Child = new FixedBlock(50, 20)));
+            .Compose(inner => inner.Slot().Child = new FixedBlock(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
         RoundedRectangleOperation rounded = Assert.Single(page.Operations.OfType<RoundedRectangleOperation>());
@@ -21,7 +21,7 @@ public class RoundCornersTests
     {
         Block root = LayoutHarness.Build(container => container
             .Fill(TestInks.Red)
-            .Compose(inner => inner.Child = new FixedBlock(50, 20)));
+            .Compose(inner => inner.Slot().Child = new FixedBlock(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
 
@@ -34,7 +34,7 @@ public class RoundCornersTests
     {
         Block root = LayoutHarness.Build(container => container
             .Stroke(2).RoundCorners(4)
-            .Compose(inner => inner.Child = new FixedBlock(50, 20, TestInks.White)));
+            .Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.White)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
         RoundedRectangleOperation rounded = Assert.Single(page.Operations.OfType<RoundedRectangleOperation>());

@@ -40,8 +40,8 @@ public class KeepTogetherTests
             page.Trim = new Extent(200, 100);
             page.Body().Stack(column =>
             {
-                column.Add().Compose(inner => inner.Child = new FixedBlock(10, 60));
-                column.Add().KeepTogether().Compose(inner => inner.Child = new FixedBlock(10, 60));
+                column.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 60));
+                column.Add().KeepTogether().Compose(inner => inner.Slot().Child = new FixedBlock(10, 60));
             });
         }));
 

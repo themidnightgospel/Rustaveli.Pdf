@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// character here is half the font size wide and every line exactly the font size tall, which makes expected
 /// values calculable by hand: ten characters at size 10 measure 50 points.
 /// </remarks>
-public sealed class FakeTypeMeasurer : ITypeMeasurer
+internal sealed class FakeTypeMeasurer : ITypeMeasurer
 {
     public const float CharacterWidthRatio = 0.5f;
     public const float AscentRatio = 0.8f;

@@ -55,8 +55,8 @@ public class RequireSpaceTests
             page.Trim = new Extent(200, 100);
             page.Body().Stack(column =>
             {
-                column.Add().Compose(inner => inner.Child = new FixedBlock(10, 70, TestInks.Blue));
-                column.Add().RequireSpace(50).Compose(inner => inner.Child = new FixedBlock(10, 10, TestInks.Red));
+                column.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 70, TestInks.Blue));
+                column.Add().RequireSpace(50).Compose(inner => inner.Slot().Child = new FixedBlock(10, 10, TestInks.Red));
             });
         }));
 

@@ -57,9 +57,9 @@ public class StrokeAndFillTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void BackgroundPaintsNothingBehindAChildWithNothingToShow(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void BackgroundPaintsNothingBehindAChildWithNothingToShow(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         FillBlock element = new FillBlock { Ink = TestInks.Red, Child = child };
@@ -135,9 +135,9 @@ public class StrokeAndFillTests
     }
 
     [Theory]
-    [InlineData(FitKind.Defer)]
-    [InlineData(FitKind.Nothing)]
-    public void BorderDrawsNothingAroundAChildWithNothingToShow(FitKind outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void BorderDrawsNothingAroundAChildWithNothingToShow(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Ink = TestInks.Black, Child = child };

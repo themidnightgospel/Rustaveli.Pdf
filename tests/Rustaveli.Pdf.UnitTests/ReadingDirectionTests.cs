@@ -74,7 +74,7 @@ public class ReadingDirectionTests
     public void DirectionElementScopesTheChangeToItsSubtree()
     {
         Block root = LayoutHarness.Build(container => container.RightToLeft().Compose(inner =>
-            inner.Child = TwoColumnRow()));
+            inner.Slot().Child = TwoColumnRow()));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
@@ -87,7 +87,7 @@ public class ReadingDirectionTests
     {
         PlanContext context = LayoutHarness.Context();
         Block root = LayoutHarness.Build(container => container.RightToLeft().Compose(inner =>
-            inner.Child = TwoColumnRow()));
+            inner.Slot().Child = TwoColumnRow()));
 
         LayoutHarness.Draw(root, new Extent(200, 100), context);
 
@@ -126,8 +126,8 @@ public class ReadingDirectionTests
             columns.Fixed(60);
         });
 
-        descriptor.Cell().Compose(container => container.Child = new FixedBlock(1, 10, TestInks.Red));
-        descriptor.Cell().Compose(container => container.Child = new FixedBlock(1, 10, TestInks.Blue));
+        descriptor.Cell().Compose(container => container.Slot().Child = new FixedBlock(1, 10, TestInks.Red));
+        descriptor.Cell().Compose(container => container.Slot().Child = new FixedBlock(1, 10, TestInks.Blue));
         descriptor.PlaceAutomaticCells();
 
         element.Direction = ReadingDirection.RightToLeft;

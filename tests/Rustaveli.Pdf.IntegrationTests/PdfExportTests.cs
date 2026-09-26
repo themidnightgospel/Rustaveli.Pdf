@@ -1,9 +1,4 @@
 using System.Xml.Linq;
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Exceptions;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Tokens;

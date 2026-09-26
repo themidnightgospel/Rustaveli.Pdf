@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Skia;
 /// <summary>
 /// Measures text using Skia's font metrics.
 /// </summary>
-public sealed class SkiaTypeMeasurer(SkiaFontProvider fonts) : ITypeMeasurer
+internal sealed class SkiaTypeMeasurer(SkiaFontProvider fonts) : ITypeMeasurer
 {
     public TypeMetrics GetMetrics(TypeStyle style)
     {
