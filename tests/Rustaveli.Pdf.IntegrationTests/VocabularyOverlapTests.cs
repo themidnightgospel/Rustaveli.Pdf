@@ -14,16 +14,15 @@ namespace Rustaveli.Pdf.IntegrationTests;
 public class VocabularyOverlapTests(ITestOutputHelper output)
 {
     private static HashSet<string> PublicMethodNames(Assembly assembly) =>
-        assembly.GetExportedTypes()
-            .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            .Where(method => !method.IsSpecialName)
-            .Select(method => method.Name)
-            .ToHashSet(StringComparer.Ordinal);
+        new HashSet<string>(
+            assembly.GetExportedTypes()
+                .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+                .Where(method => !method.IsSpecialName)
+                .Select(method => method.Name),
+            StringComparer.Ordinal);
 
     private static HashSet<string> PublicTypeNames(Assembly assembly) =>
-        assembly.GetExportedTypes()
-            .Select(type => type.Name)
-            .ToHashSet(StringComparer.Ordinal);
+        new HashSet<string>(assembly.GetExportedTypes().Select(type => type.Name), StringComparer.Ordinal);
 
     [Fact]
     public void ReportSharedVocabulary()
