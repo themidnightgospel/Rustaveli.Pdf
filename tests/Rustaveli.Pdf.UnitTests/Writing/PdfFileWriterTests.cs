@@ -18,7 +18,10 @@ public class PdfFileWriterTests
 
     private static PdfDictionary CatalogDictionary() => new PdfDictionary { [Type] = Catalog };
 
-    private static byte[] Write(PdfWriterOptions options, Func<PdfFileWriter, PdfReference> build, Func<PdfFileWriter, PdfReference?>? info = null)
+    private static byte[] Write(
+        PdfWriterOptions options,
+        Func<PdfFileWriter, PdfReference> build,
+        Func<PdfFileWriter, PdfReference?>? info = null)
     {
         using MemoryStream output = new MemoryStream();
         using (PdfFileWriter writer = new PdfFileWriter(output, options))
@@ -124,7 +127,9 @@ public class PdfFileWriterTests
 
         PdfFileReader reader = new PdfFileReader(file);
         Assert.Equal(format == PdfCrossReferenceFormat.Stream, reader.HasCrossReferenceStream);
-        Assert.Equal(new List<object?> { 1L, 2.5, new ParsedName("X"), new ParsedReference(late.ObjectNumber, 0) }, reader.GetObject(array.ObjectNumber));
+        Assert.Equal(
+            new List<object?> { 1L, 2.5, new ParsedName("X"), new ParsedReference(late.ObjectNumber, 0) },
+            reader.GetObject(array.ObjectNumber));
         Assert.Equal(Latin1.Bytes("hello (world)"), reader.GetObject(text.ObjectNumber));
         Assert.Equal(new ParsedReference(array.ObjectNumber, 0), reader.Dictionary(new ParsedReference(late.ObjectNumber, 0))["Back"]);
 
@@ -168,8 +173,9 @@ public class PdfFileWriterTests
         }
 
         int value = 0;
-        foreach (KeyValuePair<int, (int Type, long Field2, int Field3)> entry in reader.Entries.Where(entry => entry.Value.Type == 2).OrderBy(entry => entry.Key).Take(249))
-            Assert.Equal(new List<object?> { (long)value++ }, reader.GetObject(entry.Key));
+        IEnumerable<int> packed = reader.Entries.Where(entry => entry.Value.Type == 2).Select(entry => entry.Key);
+        foreach (int number in packed.OrderBy(number => number).Take(249))
+            Assert.Equal(new List<object?> { (long)value++ }, reader.GetObject(number));
     }
 
     [Fact]
@@ -251,7 +257,8 @@ public class PdfFileWriterTests
 
         byte[] file = Write(Options(PdfCrossReferenceFormat.Table), writer =>
         {
-            stream = writer.WriteStream(new PdfDictionary { [new PdfName("Filter")] = new PdfName("DCTDecode") }, data, PdfStreamCompression.None);
+            PdfDictionary dictionary = new PdfDictionary { [new PdfName("Filter")] = new PdfName("DCTDecode") };
+            stream = writer.WriteStream(dictionary, data, PdfStreamCompression.None);
             return writer.Write(CatalogDictionary());
         });
 
@@ -447,7 +454,9 @@ public class PdfFileWriterTests
     public void GivesDifferentContentADifferentId()
     {
         byte[] first = Write(Options(PdfCrossReferenceFormat.Table), writer => writer.Write(CatalogDictionary()));
-        byte[] second = Write(Options(PdfCrossReferenceFormat.Table), writer => writer.Write(new PdfDictionary { [Type] = Catalog, [new PdfName("X")] = 1 }));
+        byte[] second = Write(
+            Options(PdfCrossReferenceFormat.Table),
+            writer => writer.Write(new PdfDictionary { [Type] = Catalog, [new PdfName("X")] = 1 }));
 
         Assert.NotEqual(new PdfFileReader(first).Trailer["ID"], new PdfFileReader(second).Trailer["ID"]);
     }

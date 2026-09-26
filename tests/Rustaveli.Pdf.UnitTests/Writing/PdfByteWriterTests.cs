@@ -167,7 +167,8 @@ public class PdfByteWriterTests
         string written = Latin1.Written(writer => writer.WriteDictionary(dictionary));
 
         Assert.Equal(
-            "<</Type/Page/Kids[1 0 R 22 0 R]/Count 2/Box[0 -0.5 595.25 842]/Flags[true false null/N 7]/Text(a)/After 1/Inner<</A<62>>>>>",
+            "<</Type/Page/Kids[1 0 R 22 0 R]/Count 2/Box[0 -0.5 595.25 842]/Flags[true false null/N 7]"
+            + "/Text(a)/After 1/Inner<</A<62>>>>>",
             written);
     }
 
@@ -195,6 +196,7 @@ public class PdfByteWriterTests
     public void KeepsTheEmptyNameFromAbsorbingTheNextToken()
     {
         PdfName empty = new PdfName(string.Empty);
+        ParsedName parsedEmpty = new ParsedName(string.Empty);
         PdfArray array = new PdfArray { empty, new PdfReference(21), empty, 2.5, empty, true, empty, empty, empty, new PdfName("A") };
         PdfDictionary dictionary = new PdfDictionary { [empty] = 5 };
 
@@ -206,7 +208,11 @@ public class PdfByteWriterTests
 
         Assert.Equal("[/ 21 0 R/ 2.5/ true////A]<</ 5>>", written);
         Assert.Equal(
-            new List<object?> { new ParsedName(string.Empty), new ParsedReference(21, 0), new ParsedName(string.Empty), 2.5, new ParsedName(string.Empty), true, new ParsedName(string.Empty), new ParsedName(string.Empty), new ParsedName(string.Empty), new ParsedName("A") },
+            new List<object?>
+            {
+                parsedEmpty, new ParsedReference(21, 0), parsedEmpty, 2.5, parsedEmpty, true,
+                parsedEmpty, parsedEmpty, parsedEmpty, new ParsedName("A"),
+            },
             PdfSyntaxParser.ParseSingle(Latin1.Bytes(written.Substring(0, written.IndexOf(']') + 1))));
     }
 

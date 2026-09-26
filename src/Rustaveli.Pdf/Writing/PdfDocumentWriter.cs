@@ -21,8 +21,12 @@ internal sealed class PdfDocumentWriter : IDisposable
 {
     private readonly PdfPageTree _pages;
     private readonly HashSet<PdfPage> _openPages = new HashSet<PdfPage>();
-    private readonly Dictionary<string, PdfArray> _destinations = new Dictionary<string, PdfArray>(StringComparer.Ordinal);
-    private readonly Dictionary<(long Fill, long Stroke), PdfReference> _opacityStates = new Dictionary<(long, long), PdfReference>();
+    private readonly Dictionary<string, PdfArray> _destinations =
+        new Dictionary<string, PdfArray>(StringComparer.Ordinal);
+
+    private readonly Dictionary<(long Fill, long Stroke), PdfReference> _opacityStates =
+        new Dictionary<(long, long), PdfReference>();
+
     private bool _finished;
 
     public PdfDocumentWriter(Stream output, PdfWriterOptions? options = null)
@@ -65,7 +69,15 @@ internal sealed class PdfDocumentWriter : IDisposable
             throw new InvalidOperationException("The page is not open in this document.");
 
         page.Content.EnsureComplete();
-        CheckNotOwned(page.Entries, "page", PdfNames.Type, PdfNames.Parent, PdfNames.MediaBox, PdfNames.Resources, PdfNames.Contents, PdfNames.Annots);
+        CheckNotOwned(
+            page.Entries,
+            "page",
+            PdfNames.Type,
+            PdfNames.Parent,
+            PdfNames.MediaBox,
+            PdfNames.Resources,
+            PdfNames.Contents,
+            PdfNames.Annots);
 
         PdfDictionary dictionary = new PdfDictionary(6 + page.Entries.Count)
         {

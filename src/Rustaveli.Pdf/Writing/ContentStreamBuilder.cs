@@ -116,7 +116,10 @@ internal sealed class ContentStreamBuilder : IDisposable
         foreach (double length in dashes)
         {
             if (!(length >= 0))
-                throw new ArgumentOutOfRangeException(nameof(dashes), length, "Dash and gap lengths cannot be negative.");
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(dashes), length, "Dash and gap lengths cannot be negative.");
+            }
 
             anyNonZero |= length > 0;
         }
@@ -158,7 +161,9 @@ internal sealed class ContentStreamBuilder : IDisposable
         Operator("l"u8);
     }
 
-    /// <summary><c>c</c>: a cubic Bézier curve through two control points to (<paramref name="x3"/>, <paramref name="y3"/>).</summary>
+    /// <summary>
+    /// <c>c</c>: a cubic Bézier curve through two control points to (<paramref name="x3"/>, <paramref name="y3"/>).
+    /// </summary>
     public void CurveTo(double x1, double y1, double x2, double y2, double x3, double y3)
     {
         Numbers(x1, y1, x2, y2, x3, y3);
@@ -192,7 +197,9 @@ internal sealed class ContentStreamBuilder : IDisposable
     /// <summary><c>n</c>: ends the path without painting it, typically after a clip.</summary>
     public void EndPath() => Operator("n"u8);
 
-    /// <summary><c>W</c>: intersects the clip with the path (non-zero winding), effective after the next painting operator.</summary>
+    /// <summary>
+    /// <c>W</c>: intersects the clip with the path (non-zero winding), effective after the next painting operator.
+    /// </summary>
     public void Clip() => Operator("W"u8);
 
     /// <summary><c>W*</c>: as <see cref="Clip"/>, with the even-odd rule.</summary>
@@ -242,14 +249,18 @@ internal sealed class ContentStreamBuilder : IDisposable
         Operator("K"u8);
     }
 
-    /// <summary><c>cs</c>: selects a colour space by resource name, or a device space such as <c>/DeviceRGB</c>.</summary>
+    /// <summary>
+    /// <c>cs</c>: selects a colour space by resource name, or a device space such as <c>/DeviceRGB</c>.
+    /// </summary>
     public void SetFillColorSpace(PdfName colorSpace)
     {
         WriteName(colorSpace);
         Operator("cs"u8);
     }
 
-    /// <summary><c>CS</c>: selects a colour space by resource name, or a device space such as <c>/DeviceRGB</c>.</summary>
+    /// <summary>
+    /// <c>CS</c>: selects a colour space by resource name, or a device space such as <c>/DeviceRGB</c>.
+    /// </summary>
     public void SetStrokeColorSpace(PdfName colorSpace)
     {
         WriteName(colorSpace);
@@ -295,7 +306,9 @@ internal sealed class ContentStreamBuilder : IDisposable
 
     // XObjects.
 
-    /// <summary><c>Do</c>: paints an image or form XObject, by resource name, into the unit square of the current matrix.</summary>
+    /// <summary>
+    /// <c>Do</c>: paints an image or form XObject, by resource name, into the unit square of the current matrix.
+    /// </summary>
     public void PaintXObject(PdfName name)
     {
         WriteName(name);
@@ -510,13 +523,19 @@ internal sealed class ContentStreamBuilder : IDisposable
     private void RequireText(string operatorName)
     {
         if (!InTextObject)
-            throw new InvalidOperationException($"{operatorName} is only valid inside a text object; call BeginText first.");
+        {
+            throw new InvalidOperationException(
+                $"{operatorName} is only valid inside a text object; call BeginText first.");
+        }
     }
 
     private void RequireOutsideText(string operatorName)
     {
         if (InTextObject)
-            throw new InvalidOperationException($"{operatorName} is not allowed inside a text object; call EndText first.");
+        {
+            throw new InvalidOperationException(
+                $"{operatorName} is not allowed inside a text object; call EndText first.");
+        }
     }
 
     private void RequireTextArray()

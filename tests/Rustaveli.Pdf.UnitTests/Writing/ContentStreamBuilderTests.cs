@@ -128,7 +128,8 @@ public class ContentStreamBuilderTests
     {
         using ContentStreamBuilder content = new ContentStreamBuilder();
 
-        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => content.SetDashPattern(new[] { 2, length }, 0));
+        ArgumentOutOfRangeException exception =
+            Assert.Throws<ArgumentOutOfRangeException>(() => content.SetDashPattern(new[] { 2, length }, 0));
 
         Assert.Equal("dashes", exception.ParamName);
         Assert.Equal(0, content.Length);

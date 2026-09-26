@@ -41,7 +41,9 @@ internal sealed class PdfByteWriter : IDisposable
     public static PdfStringForm CompactForm(ReadOnlySpan<byte> bytes) =>
         LiteralLength(bytes) <= 2 + (2 * bytes.Length) ? PdfStringForm.Literal : PdfStringForm.Hex;
 
-    /// <summary>The length of <paramref name="bytes"/> written as a literal string, parentheses and escapes included.</summary>
+    /// <summary>
+    /// The length of <paramref name="bytes"/> written as a literal string, parentheses and escapes included.
+    /// </summary>
     public static int LiteralLength(ReadOnlySpan<byte> bytes)
     {
         int length = 2;
@@ -53,7 +55,9 @@ internal sealed class PdfByteWriter : IDisposable
 
     public void Clear() => _length = 0;
 
-    /// <summary>A span of at least <paramref name="sizeHint"/> bytes at the end of the buffer; see <see cref="Advance"/>.</summary>
+    /// <summary>
+    /// A span of at least <paramref name="sizeHint"/> bytes at the end of the buffer; see <see cref="Advance"/>.
+    /// </summary>
     public Span<byte> GetSpan(int sizeHint)
     {
         EnsureCapacity(sizeHint);
@@ -277,8 +281,11 @@ internal sealed class PdfByteWriter : IDisposable
     private static void CheckDepth(int depth)
     {
         if (depth >= MaxNestingDepth)
+        {
             throw new InvalidOperationException(
-                $"Arrays and dictionaries nest more than {MaxNestingDepth} deep; the object graph probably contains itself.");
+                $"Arrays and dictionaries nest more than {MaxNestingDepth} deep; "
+                + "the object graph probably contains itself.");
+        }
     }
 
     // A trailing solidus is the empty name, written as "/" alone: a delimiter, yet it would absorb a following

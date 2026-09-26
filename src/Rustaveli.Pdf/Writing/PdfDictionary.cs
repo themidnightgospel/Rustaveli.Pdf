@@ -29,7 +29,9 @@ internal sealed class PdfDictionary : IReadOnlyCollection<KeyValuePair<PdfName, 
     /// <summary>Gets an entry, or sets one — replacing the value in place if the key is already present.</summary>
     public PdfValue this[PdfName key]
     {
-        get => TryGetValue(key, out PdfValue value) ? value : throw new KeyNotFoundException($"The dictionary has no {key} entry.");
+        get => TryGetValue(key, out PdfValue value)
+            ? value
+            : throw new KeyNotFoundException($"The dictionary has no {key} entry.");
         set
         {
             int index = IndexOf(key);
@@ -40,7 +42,9 @@ internal sealed class PdfDictionary : IReadOnlyCollection<KeyValuePair<PdfName, 
         }
     }
 
-    /// <summary>Adds an entry; throws if the key is already present, since a repeated key is a malformed dictionary.</summary>
+    /// <summary>
+    /// Adds an entry; throws if the key is already present, since a repeated key is a malformed dictionary.
+    /// </summary>
     public void Add(PdfName key, PdfValue value)
     {
         if (IndexOf(key) >= 0)

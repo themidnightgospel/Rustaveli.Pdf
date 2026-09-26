@@ -40,8 +40,9 @@ internal sealed class PdfString
             bytes[index] = (byte)code;
         }
 
-        // "þÿ" encodes to FE FF, which every reader takes for a UTF-16 byte order mark, and "ï»¿" to the UTF-8 mark
-        // PDF 2.0 readers honour. Text that happens to begin that way has to be written as UTF-16 to read back as itself.
+        // "þÿ" encodes to FE FF, which every reader takes for a UTF-16 byte order mark, and "ï»¿" to the UTF-8
+        // mark PDF 2.0 readers honour. Text that happens to begin that way has to be written as UTF-16 to read back
+        // as itself.
         ReadOnlySpan<byte> encoded = bytes;
         if (encoded.StartsWith(Utf16ByteOrderMark) || encoded.StartsWith(Utf8ByteOrderMark))
             return FromUtf16(text);

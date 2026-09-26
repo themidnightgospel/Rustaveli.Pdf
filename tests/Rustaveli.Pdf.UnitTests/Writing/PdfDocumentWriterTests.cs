@@ -304,7 +304,8 @@ public class PdfDocumentWriterTests
         }
         else
         {
-            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => document.GetOpacityState(fill, stroke));
+            ArgumentOutOfRangeException exception =
+                Assert.Throws<ArgumentOutOfRangeException>(() => document.GetOpacityState(fill, stroke));
             Assert.Equal(rejected, exception.ParamName);
         }
     }

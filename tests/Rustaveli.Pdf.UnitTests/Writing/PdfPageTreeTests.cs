@@ -9,7 +9,8 @@ public class PdfPageTreeTests
     private static PdfFileReader Build(int pageCount, out int treeCount)
     {
         using MemoryStream output = new MemoryStream();
-        using (PdfFileWriter writer = new PdfFileWriter(output, new PdfWriterOptions { CrossReferenceFormat = PdfCrossReferenceFormat.Table }))
+        PdfWriterOptions options = new PdfWriterOptions { CrossReferenceFormat = PdfCrossReferenceFormat.Table };
+        using (PdfFileWriter writer = new PdfFileWriter(output, options))
         {
             PdfPageTree tree = new PdfPageTree(writer);
             for (int index = 0; index < pageCount; index++)
@@ -55,8 +56,10 @@ public class PdfPageTreeTests
         PdfFileReader reader = Build(PdfPageTree.MaxKids + 1, out _);
         List<(int Number, int Depth)> pages = reader.Pages();
 
-        Dictionary<string, object?> firstLeaf = reader.Dictionary(reader.Dictionary(new ParsedReference(pages[0].Number, 0))["Parent"]);
-        Dictionary<string, object?> lastLeaf = reader.Dictionary(reader.Dictionary(new ParsedReference(pages[^1].Number, 0))["Parent"]);
+        Dictionary<string, object?> firstPage = reader.Dictionary(new ParsedReference(pages[0].Number, 0));
+        Dictionary<string, object?> lastPage = reader.Dictionary(new ParsedReference(pages[^1].Number, 0));
+        Dictionary<string, object?> firstLeaf = reader.Dictionary(firstPage["Parent"]);
+        Dictionary<string, object?> lastLeaf = reader.Dictionary(lastPage["Parent"]);
 
         Assert.Equal(PdfPageTree.MaxKids, ((List<object?>)firstLeaf["Kids"]!).Count);
         Assert.Equal((long)PdfPageTree.MaxKids, firstLeaf["Count"]);

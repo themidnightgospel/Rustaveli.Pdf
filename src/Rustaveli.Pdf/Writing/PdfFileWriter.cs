@@ -71,7 +71,9 @@ internal sealed class PdfFileWriter : IDisposable
         _compressionLevel = options.CompressionLevel;
         _fixedId = options.DocumentId?.ToArray();
         _hash = _fixedId == null ? IncrementalHash.CreateHash(HashAlgorithmName.SHA256) : null;
-        _objectStream = options.CrossReferenceFormat == PdfCrossReferenceFormat.Stream ? new ObjectStreamBuilder() : null;
+        _objectStream = options.CrossReferenceFormat == PdfCrossReferenceFormat.Stream
+            ? new ObjectStreamBuilder()
+            : null;
 
         // The comment's four bytes above 127 tell transfer tools the file is binary (ISO 32000-1, 7.5.2).
         _pending.Write("%PDF-1.7\n%"u8);
@@ -101,7 +103,10 @@ internal sealed class PdfFileWriter : IDisposable
 
         // "4 0 obj 2 0 R endobj" is not an object but an alias, and strict readers such as qpdf reject it.
         if (value.Kind == PdfValueKind.Reference)
-            throw new ArgumentException("An indirect object cannot consist of a reference; refer to the target directly.", nameof(value));
+        {
+            throw new ArgumentException(
+                "An indirect object cannot consist of a reference; refer to the target directly.", nameof(value));
+        }
 
         if (_objectStream != null)
         {
@@ -109,7 +114,8 @@ internal sealed class PdfFileWriter : IDisposable
             if (index == 0)
                 _objectStreamReference = Reserve();
 
-            _entries[reference.ObjectNumber] = CrossReferenceEntry.InObjectStream(_objectStreamReference.ObjectNumber, index);
+            _entries[reference.ObjectNumber] =
+                CrossReferenceEntry.InObjectStream(_objectStreamReference.ObjectNumber, index);
 
             if (_objectStream.Count == ObjectsPerStream)
                 WriteObjectStream();
@@ -138,7 +144,10 @@ internal sealed class PdfFileWriter : IDisposable
     /// <c>/Filter</c> when it compresses; <paramref name="dictionary"/> is not modified.
     /// </summary>
     public void WriteStream(
-        PdfReference reference, PdfDictionary dictionary, ReadOnlySpan<byte> data, PdfStreamCompression compression = PdfStreamCompression.Auto)
+        PdfReference reference,
+        PdfDictionary dictionary,
+        ReadOnlySpan<byte> data,
+        PdfStreamCompression compression = PdfStreamCompression.Auto)
     {
         ArgumentNullException.ThrowIfNull(dictionary);
         CheckUnwritten(reference);
@@ -146,8 +155,11 @@ internal sealed class PdfFileWriter : IDisposable
             throw new ArgumentException("The writer sets /Length itself.", nameof(dictionary));
 
         if (compression == PdfStreamCompression.Auto && dictionary.ContainsKey(PdfNames.Filter))
+        {
             throw new ArgumentException(
-                "A stream that already names a filter must be written with PdfStreamCompression.None.", nameof(dictionary));
+                "A stream that already names a filter must be written with PdfStreamCompression.None.",
+                nameof(dictionary));
+        }
 
         bool compress = compression == PdfStreamCompression.Auto && ShouldCompress(data.Length);
         if (compress)
@@ -192,7 +204,9 @@ internal sealed class PdfFileWriter : IDisposable
         _finished = true;
     }
 
-    /// <summary>Releases the writer's buffers. Does not finish the file, and does not close the output stream.</summary>
+    /// <summary>
+    /// Releases the writer's buffers. Does not finish the file, and does not close the output stream.
+    /// </summary>
     public void Dispose()
     {
         _pending.Dispose();
@@ -230,7 +244,8 @@ internal sealed class PdfFileWriter : IDisposable
 
     private bool ShouldCompress(int length) => CompressionEnabled && length >= MinimumCompressibleLength;
 
-    private void WriteStreamObject(PdfReference reference, PdfDictionary dictionary, ReadOnlySpan<byte> body, bool deflated)
+    private void WriteStreamObject(
+        PdfReference reference, PdfDictionary dictionary, ReadOnlySpan<byte> body, bool deflated)
     {
         long offset = BeginObject(reference);
         _pending.Write("<<"u8);
@@ -412,7 +427,10 @@ internal sealed class PdfFileWriter : IDisposable
     {
         ThrowIfFinished();
         if (reference.ObjectNumber < 1 || reference.ObjectNumber >= _entries.Count)
-            throw new ArgumentException($"Object {reference.ObjectNumber} was not reserved by this writer.", nameof(reference));
+        {
+            throw new ArgumentException(
+                $"Object {reference.ObjectNumber} was not reserved by this writer.", nameof(reference));
+        }
     }
 
     private void ThrowIfFinished()

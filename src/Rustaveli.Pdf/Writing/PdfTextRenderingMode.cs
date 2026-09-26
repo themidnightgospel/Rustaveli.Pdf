@@ -1,6 +1,8 @@
 namespace Rustaveli.Pdf.Writing;
 
-/// <summary>Whether glyphs are filled, stroked, added to the clip, or not painted at all (ISO 32000-1, 9.3.6).</summary>
+/// <summary>
+/// Whether glyphs are filled, stroked, added to the clip, or not painted at all (ISO 32000-1, 9.3.6).
+/// </summary>
 internal enum PdfTextRenderingMode
 {
     Fill = 0,

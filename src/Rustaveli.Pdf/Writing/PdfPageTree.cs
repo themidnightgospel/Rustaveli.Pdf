@@ -23,7 +23,9 @@ internal sealed class PdfPageTree(PdfFileWriter writer)
 
     public int Count { get; private set; }
 
-    /// <summary>Appends <paramref name="page"/> as the next page and returns the node to name as its <c>/Parent</c>.</summary>
+    /// <summary>
+    /// Appends <paramref name="page"/> as the next page and returns the node to name as its <c>/Parent</c>.
+    /// </summary>
     public PdfReference Add(PdfReference page)
     {
         if (Count % MaxKids == 0)

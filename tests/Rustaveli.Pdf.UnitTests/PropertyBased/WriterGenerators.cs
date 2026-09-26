@@ -37,7 +37,8 @@ internal static class WriterGenerators
             Gen.Long[-1_000_000_000_000, 1_000_000_000_000].Select(value => (PdfValue)value),
             Real.Select(value => (PdfValue)value),
             Text(12).Select(value => (PdfValue)new PdfName(value)),
-            Gen.Select(Gen.Byte.Array[0, 40], Gen.Bool, (bytes, hex) => (PdfValue)new PdfString(bytes, hex ? PdfStringForm.Hex : PdfStringForm.Literal)),
+            Gen.Select(Gen.Byte.Array[0, 40], Gen.Bool, (bytes, hex) =>
+                (PdfValue)new PdfString(bytes, hex ? PdfStringForm.Hex : PdfStringForm.Literal)),
             Text(20).Select(value => (PdfValue)PdfString.FromText(value)),
             Gen.Int[1, 100_000].Select(number => (PdfValue)new PdfReference(number)));
 

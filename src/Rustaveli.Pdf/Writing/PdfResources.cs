@@ -29,7 +29,9 @@ internal sealed class PdfResources
     /// <summary>The name for an extended graphics state, such as the document's shared opacity states.</summary>
     public PdfName GetExtGStateName(PdfReference graphicsState) => _graphicsStates.NameFor(graphicsState);
 
-    /// <summary>The name for a colour space written as its own object — a separation for a spot colour, say.</summary>
+    /// <summary>
+    /// The name for a colour space written as its own object — a separation for a spot colour, say.
+    /// </summary>
     public PdfName GetColorSpaceName(PdfReference colorSpace) => _colorSpaces.NameFor(colorSpace);
 
     /// <summary>The <c>/Resources</c> dictionary, with a sub-dictionary for each category in use.</summary>

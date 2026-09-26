@@ -16,7 +16,9 @@ internal readonly struct CrossReferenceEntry
     /// <summary>The head of the free list, entry zero of every cross-reference section.</summary>
     public static CrossReferenceEntry FreeHead => new CrossReferenceEntry(0, 0, 65535);
 
-    /// <summary>0 for free (or not yet written), 1 for an object at a byte offset, 2 for one inside an object stream.</summary>
+    /// <summary>
+    /// 0 for free (or not yet written), 1 for an object at a byte offset, 2 for one inside an object stream.
+    /// </summary>
     public byte Type { get; }
 
     /// <summary>The byte offset, or the object number of the containing object stream.</summary>

@@ -15,12 +15,17 @@ internal static class PdfNumbers
     /// </summary>
     public const double MaxRealMagnitude = 1e15;
 
-    /// <summary>Room enough for any number this class writes: a sign, sixteen digits, a point and the decimals.</summary>
+    /// <summary>
+    /// Room enough for any number this class writes: a sign, sixteen digits, a point and the decimals.
+    /// </summary>
     public const int MaxLength = 24;
 
     private static readonly long[] PowersOfTen = [1, 10, 100, 1_000, 10_000, 100_000];
 
-    /// <summary>Writes <paramref name="value"/> in decimal. <paramref name="destination"/> must hold <see cref="MaxLength"/> bytes.</summary>
+    /// <summary>
+    /// Writes <paramref name="value"/> in decimal. <paramref name="destination"/> must hold <see cref="MaxLength"/>
+    /// bytes.
+    /// </summary>
     public static int WriteInteger(long value, Span<byte> destination)
     {
         _ = Utf8Formatter.TryFormat(value, destination, out int written);
@@ -42,11 +47,17 @@ internal static class PdfNumbers
     public static int WriteReal(double value, Span<byte> destination)
     {
         if (double.IsNaN(value) || double.IsInfinity(value))
-            throw new ArgumentOutOfRangeException(nameof(value), value, "PDF has no representation for NaN or infinity.");
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value), value, "PDF has no representation for NaN or infinity.");
+        }
 
         double magnitude = Math.Abs(value);
         if (magnitude >= MaxRealMagnitude)
-            throw new ArgumentOutOfRangeException(nameof(value), value, "PDF output is limited to reals below 10^15 in magnitude.");
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value), value, "PDF output is limited to reals below 10^15 in magnitude.");
+        }
 
         int decimals = DecimalsFor(magnitude);
         long scaled = (long)Math.Round(magnitude * PowersOfTen[decimals], MidpointRounding.AwayFromZero);
@@ -73,7 +84,8 @@ internal static class PdfNumbers
         if (decimals > 0)
         {
             destination[length++] = (byte)'.';
-            _ = Utf8Formatter.TryFormat(scaled % divisor, destination.Slice(length), out written, new StandardFormat('D', (byte)decimals));
+            StandardFormat padded = new StandardFormat('D', (byte)decimals);
+            _ = Utf8Formatter.TryFormat(scaled % divisor, destination.Slice(length), out written, padded);
             length += written;
         }
 

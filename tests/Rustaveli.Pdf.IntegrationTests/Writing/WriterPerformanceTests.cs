@@ -73,9 +73,10 @@ public class WriterPerformanceTests(ITestOutputHelper output)
         byte[] pdf = Write(format, PageCount);
         stopwatch.Stop();
 
+        double pagesPerSecond = PageCount / stopwatch.Elapsed.TotalSeconds;
         output.WriteLine(
-            $"{format}: {PageCount} pages in {stopwatch.ElapsedMilliseconds} ms " +
-            $"({PageCount / stopwatch.Elapsed.TotalSeconds:F0} pages/s), {pdf.Length / 1024} KiB, {pdf.Length / PageCount} bytes/page");
+            $"{format}: {PageCount} pages in {stopwatch.ElapsedMilliseconds} ms ({pagesPerSecond:F0} pages/s), "
+            + $"{pdf.Length / 1024} KiB, {pdf.Length / PageCount} bytes/page");
 
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"Writing {PageCount} pages took {stopwatch.Elapsed}.");
         using PdfDocument document = PdfDocument.Open(pdf);

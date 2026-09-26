@@ -2,7 +2,9 @@ using System.Text;
 
 namespace Rustaveli.Pdf.Writing;
 
-/// <summary>A PDF name object, such as <c>/Type</c>. Immutable, and equal to any other name with the same value.</summary>
+/// <summary>
+/// A PDF name object, such as <c>/Type</c>. Immutable, and equal to any other name with the same value.
+/// </summary>
 /// <remarks>
 /// The serialised form, escapes included, is computed once at construction. Names recur constantly — every
 /// dictionary key is one — so paying for encoding on each write would repeat the same work thousands of times.
@@ -11,7 +13,9 @@ internal sealed class PdfName : IEquatable<PdfName>
 {
     private readonly byte[] _encoded;
 
-    /// <summary>Creates a name from its value, without the leading solidus. Non-ASCII text is stored as UTF-8.</summary>
+    /// <summary>
+    /// Creates a name from its value, without the leading solidus. Non-ASCII text is stored as UTF-8.
+    /// </summary>
     public PdfName(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -24,10 +28,13 @@ internal sealed class PdfName : IEquatable<PdfName>
 
     public string Value { get; }
 
-    /// <summary>The name as it appears in a file: the solidus, then each byte either as itself or as <c>#xx</c>.</summary>
+    /// <summary>
+    /// The name as it appears in a file: the solidus, then each byte either as itself or as <c>#xx</c>.
+    /// </summary>
     public ReadOnlySpan<byte> Encoded => _encoded;
 
-    public bool Equals(PdfName? other) => other is not null && string.Equals(Value, other.Value, StringComparison.Ordinal);
+    public bool Equals(PdfName? other) =>
+        other is not null && string.Equals(Value, other.Value, StringComparison.Ordinal);
 
     public override bool Equals(object? obj) => Equals(obj as PdfName);
 

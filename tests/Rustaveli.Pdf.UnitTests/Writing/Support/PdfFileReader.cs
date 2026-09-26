@@ -76,7 +76,10 @@ internal sealed class PdfFileReader
                 if (index == field3)
                 {
                     if (containedNumber != number)
-                        throw new FormatException($"Index {field3} of object stream {field2} holds object {containedNumber}, not {number}.");
+                    {
+                        throw new FormatException(
+                            $"Index {field3} of object stream {field2} holds object {containedNumber}, not {number}.");
+                    }
 
                     return new PdfSyntaxParser(content, checked((int)(first + containedOffset))).ReadObject();
                 }
@@ -152,7 +155,10 @@ internal sealed class PdfFileReader
     {
         Dictionary<string, object?> node = Dictionary(reference);
         if (parent == null ? node.ContainsKey("Parent") : !Equals(node["Parent"], parent))
-            throw new FormatException($"Object {reference.ObjectNumber} does not name {parent?.ToString() ?? "no parent"} as its parent.");
+        {
+            throw new FormatException(
+                $"Object {reference.ObjectNumber} does not name {parent?.ToString() ?? "no parent"} as its parent.");
+        }
 
         string type = ((ParsedName)node["Type"]!).Value;
         if (type == "Page")
@@ -169,12 +175,16 @@ internal sealed class PdfFileReader
             count += WalkPages((ParsedReference)kid!, reference, depth + 1, pages);
 
         if ((long)node["Count"]! != count)
-            throw new FormatException($"Page tree node {reference.ObjectNumber} has /Count {node["Count"]} but {count} pages beneath it.");
+        {
+            throw new FormatException(
+                $"Page tree node {reference.ObjectNumber} has /Count {node["Count"]} but {count} pages beneath it.");
+        }
 
         return count;
     }
 
-    private (byte[] First, byte[] Last) WalkNames(Dictionary<string, object?> node, int depth, List<(byte[] Key, object? Value, int Depth)> entries)
+    private (byte[] First, byte[] Last) WalkNames(
+        Dictionary<string, object?> node, int depth, List<(byte[] Key, object? Value, int Depth)> entries)
     {
         int start = entries.Count;
         if (node.TryGetValue("Names", out object? names))
