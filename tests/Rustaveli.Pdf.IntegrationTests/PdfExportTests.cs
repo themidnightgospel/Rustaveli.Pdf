@@ -181,6 +181,16 @@ public class PdfExportTests
     }
 
     [Fact]
+    public void AStreamThatCannotBeWrittenIsRefusedBeforeAnythingIsSet()
+    {
+        using MemoryStream readOnly = new MemoryStream(new byte[16], writable: false);
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => TextDocument().ExportPdf(readOnly));
+
+        Assert.Equal("stream", error.ParamName);
+    }
+
+    [Fact]
     public void RendersIntoAStreamThatCannotSeek()
     {
         // Regression: Skia asked the stream for its Position from native code. A stream that cannot answer — a

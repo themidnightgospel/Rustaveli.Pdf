@@ -215,9 +215,12 @@ internal sealed class EmbeddedFont
     /// The face's PostScript name, which is what <c>/BaseFont</c> must carry, reduced to the characters a
     /// PostScript name may hold. A face without one is named from its full name.
     /// </summary>
-    internal static string PostScriptName(OpenTypeFont face)
+    internal static string PostScriptName(OpenTypeFont face) => PostScriptName(face.Names.PostScriptName, face.Names.FullName);
+
+    /// <inheritdoc cref="PostScriptName(OpenTypeFont)"/>
+    internal static string PostScriptName(string postScriptName, string fullName)
     {
-        string source = string.IsNullOrWhiteSpace(face.Names.PostScriptName) ? face.Names.FullName : face.Names.PostScriptName;
+        string source = string.IsNullOrWhiteSpace(postScriptName) ? fullName : postScriptName;
         StringBuilder name = new StringBuilder(source.Length);
 
         foreach (char character in source)

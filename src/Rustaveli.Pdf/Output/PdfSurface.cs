@@ -98,9 +98,18 @@ internal sealed class PdfSurface : IPageSink
         _state = _saved.Pop();
     }
 
-    public void Translate(Offset offset) => Concatenate(new Transform(1, 0, 0, 1, offset.X, offset.Y));
+    // Blocks translate by their offsets whether or not those are zero; writing the identity would only add bytes.
+    public void Translate(Offset offset)
+    {
+        if (offset.X != 0 || offset.Y != 0)
+            Concatenate(new Transform(1, 0, 0, 1, offset.X, offset.Y));
+    }
 
-    public void Scale(float scaleX, float scaleY) => Concatenate(new Transform(scaleX, 0, 0, scaleY, 0, 0));
+    public void Scale(float scaleX, float scaleY)
+    {
+        if (scaleX != 1 || scaleY != 1)
+            Concatenate(new Transform(scaleX, 0, 0, scaleY, 0, 0));
+    }
 
     public void Rotate(float degrees)
     {
@@ -372,11 +381,9 @@ internal sealed class PdfSurface : IPageSink
         pending += 2;
     }
 
+    /// <summary>Shows the codes buffered so far. Every caller has buffered at least one glyph since the last flush.</summary>
     private void Flush(ContentStreamBuilder content, ref int pending)
     {
-        if (pending == 0)
-            return;
-
         content.AppendText(_codes.AsSpan(0, pending));
         pending = 0;
     }

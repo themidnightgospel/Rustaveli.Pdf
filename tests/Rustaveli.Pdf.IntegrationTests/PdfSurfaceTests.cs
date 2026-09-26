@@ -670,6 +670,33 @@ public class PdfSurfaceTests
     }
 
     [Fact]
+    public void DisposeSwallowsAFailureToEndAPageItWasUnwindingFrom()
+    {
+        // A page left with its graphics state still saved cannot be ended cleanly; Dispose runs while an earlier
+        // failure unwinds, and must not replace that failure with its own.
+        using MemoryStream stream = new MemoryStream();
+        using PdfDocumentWriter writer = new PdfDocumentWriter(stream);
+        PdfSurface surface = new PdfSurface(writer, TypefaceLibrary.Shared.Shaper);
+        surface.BeginPage(new Extent(PageSide, PageSide));
+        surface.Save();
+
+        surface.Dispose();
+
+        Assert.Throws<InvalidOperationException>(() => surface.DrawText("Late", new Offset(10, 90), Style));
+    }
+
+    [Fact]
+    public void ALongRunIsSetWhole()
+    {
+        // Longer than the surface's first buffer of glyph codes, with no kerning pair to break it up.
+        string text = new string('l', 300);
+
+        using PdfDocument parsed = Render(canvas => canvas.DrawText(text, new Offset(4, 50), Style.WithPointSize(2)));
+
+        Assert.Equal(text, parsed.GetPage(1).Text);
+    }
+
+    [Fact]
     public void BeginningAPageWhileOneIsOpenIsRefused()
     {
         RenderDocument(surface =>

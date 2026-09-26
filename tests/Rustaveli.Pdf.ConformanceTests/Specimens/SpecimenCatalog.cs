@@ -13,6 +13,7 @@ public static class SpecimenCatalog
         new Specimen("gallery", Gallery),
         new Specimen("transforms", Transforms),
         new Specimen("images", Images),
+        new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
         new Specimen("long-flow", LongFlow)
     ];
@@ -179,6 +180,37 @@ public static class SpecimenCatalog
         stack.Add().Width(160f).Height(24f).ShrinkToFit().Text("Scaled down until this whole sentence fits the box it was given.");
 
         stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
+    }));
+
+    /// <summary>
+    /// One image per way an image reaches the page: a JPEG as it is, turned by its EXIF orientation, in CMYK, in
+    /// grey, with an ICC profile; a PNG with a palette, an alpha channel, a colour key, sixteen bits and a profile.
+    /// </summary>
+    private static Document ImageSources() => Page(content => content.Table(table =>
+    {
+        string[] fixtures =
+        [
+            "jpeg-baseline.jpg", "jpeg-exif-orientation6.jpg", "jpeg-cmyk-adobe.jpg", "jpeg-gray.jpg", "jpeg-icc.jpg",
+            "basn3p08.png", "basn6a08.png", "tbrn2c08.png", "basi0g16.png", "png-iccp.png",
+        ];
+
+        table.Columns(columns =>
+        {
+            for (int column = 0; column < 5; column++)
+                columns.Share();
+        });
+
+        foreach (string fixture in fixtures)
+        {
+            table.Cell().Inset(4f).Stack(stack =>
+            {
+                stack.SpaceBetween(4f);
+                stack.Add().Height(80f).Fill(TestInks.GreyLighten4).Image(
+                    RasterImage.FromFile(Path.Combine(AppContext.BaseDirectory, "assets", "images", fixture)),
+                    ImageFitting.Proportionally);
+                stack.Add().Text(text => text.Run(fixture).PointSize(7f));
+            });
+        }
     }));
 
     private static Document Images() => Page(content => content.Stack(stack =>

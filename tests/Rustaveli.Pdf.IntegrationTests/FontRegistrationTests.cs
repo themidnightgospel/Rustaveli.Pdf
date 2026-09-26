@@ -121,6 +121,42 @@ public class FontRegistrationTests
         Assert.Equal(TestFonts.Sans, library.Shaper.Resolve(style).Names.PreferredFamily);
     }
 
+    [Theory]
+    [InlineData("Helvetica")]
+    [InlineData("Times New Roman")]
+    [InlineData("serif")]
+    [InlineData("Georgia")]
+    [InlineData("Courier")]
+    [InlineData("Fira Mono")]
+    [InlineData("Consolas")]
+    public void EveryKindOfTypefaceFindsASubstituteOrAnyRegisteredFace(string typeface)
+    {
+        // Sans, serif and monospaced requests each try their own kind of substitute; with only the test family
+        // registered, none exists, and the registered face sets the text.
+        TypefaceLibrary library = TestFonts.NewLibrary(includeInstalled: false);
+
+        Assert.Equal(TestFonts.Sans, library.Shaper.Resolve(TypeStyle.Default.WithTypeface(typeface)).Names.PreferredFamily);
+    }
+
+    [Fact]
+    public void AFallbackFoundOnceServesTheCharactersThatFollow()
+    {
+        // The fallback found for the first CJK character is tried first for the next, before searching again.
+        TypefaceLibrary library = TestFonts.NewLibrary();
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(library.Shaper);
+        TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+        OpenTypeFont primary = library.Shaper.Resolve(style);
+        FontRequest request = new FontRequest(TestFonts.Sans);
+
+        OpenTypeFont first = library.Shaper.FaceFor(primary, request, '世');
+        OpenTypeFont second = library.Shaper.FaceFor(primary, request, '界');
+
+        Assert.NotSame(primary, first);
+        Assert.Same(first, second);
+        Assert.Same(first, library.Shaper.FaceFor(primary, request, '世'));
+        Assert.True(measurer.MeasureWidth("世界", style) > 0);
+    }
+
     [Fact]
     public void AnUnknownTypefaceIsSubstitutedFromTheInstalledOnes()
     {
@@ -142,6 +178,20 @@ public class FontRegistrationTests
         CompositionException cause = Assert.IsType<CompositionException>(error as CompositionException ?? error.InnerException);
         Assert.Contains("Helvetica", cause.Message);
         Assert.Contains("TypefaceLibrary.Register", cause.Message);
+    }
+
+    [Fact]
+    public void FallbacksAreACopyOfTheListGiven()
+    {
+        TypefaceLibrary library = new TypefaceLibrary(includeInstalled: false);
+        List<string> fallbacks = ["Noto Sans CJK", "Noto Sans Georgian"];
+        TypeShaper before = library.Shaper;
+
+        library.Fallbacks = fallbacks;
+        fallbacks.Add("Changed afterwards");
+
+        Assert.Equal(["Noto Sans CJK", "Noto Sans Georgian"], library.Fallbacks);
+        Assert.NotSame(before, library.Shaper);
     }
 
     [Fact]
