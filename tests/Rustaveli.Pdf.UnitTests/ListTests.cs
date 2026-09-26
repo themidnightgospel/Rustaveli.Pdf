@@ -10,8 +10,8 @@ public class ListTests
     {
         Block root = BuildList(list =>
         {
-            list.Item().Text("alpha");
-            list.Item().Text("beta");
+            list.Add().Text("alpha");
+            list.Add().Text("beta");
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
@@ -25,10 +25,10 @@ public class ListTests
     {
         Block root = BuildList(list =>
         {
-            list.Ordered();
-            list.Item().Text("alpha");
-            list.Item().Text("beta");
-            list.Item().Text("gamma");
+            list.Numbered();
+            list.Add().Text("alpha");
+            list.Add().Text("beta");
+            list.Add().Text("gamma");
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
@@ -38,16 +38,16 @@ public class ListTests
     }
 
     [Theory]
-    [InlineData(ListNumbering.LowerLetter, "a.")]
-    [InlineData(ListNumbering.UpperLetter, "A.")]
+    [InlineData(ListNumbering.LowerAlpha, "a.")]
+    [InlineData(ListNumbering.UpperAlpha, "A.")]
     [InlineData(ListNumbering.LowerRoman, "i.")]
     [InlineData(ListNumbering.UpperRoman, "I.")]
     public void SupportsAlternativeOrderedStyles(ListNumbering marker, string expectedFirstMarker)
     {
         Block root = BuildList(list =>
         {
-            list.Ordered(marker);
-            list.Item().Text("only");
+            list.Numbered(marker);
+            list.Add().Text("only");
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
@@ -61,10 +61,10 @@ public class ListTests
         // Markers are resolved from position at compose time, so a break cannot restart the count.
         Block root = BuildList(list =>
         {
-            list.Ordered();
+            list.Numbered();
 
             for (int index = 0; index < 6; index++)
-                list.Item().Element(inner => inner.Child = new FixedElement(10, 30));
+                list.Add().Compose(inner => inner.Child = new FixedElement(10, 30));
         });
 
         Extent space = new Extent(200, 60);
@@ -83,10 +83,10 @@ public class ListTests
     {
         Block root = BuildList(list =>
         {
-            list.Ordered(ListNumbering.UpperRoman);
+            list.Numbered(ListNumbering.UpperRoman);
 
             for (int index = 0; index < 9; index++)
-                list.Item().Text("item");
+                list.Add().Text("item");
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 500));
@@ -100,10 +100,10 @@ public class ListTests
     {
         Block root = BuildList(list =>
         {
-            list.Ordered(ListNumbering.UpperLetter);
+            list.Numbered(ListNumbering.UpperAlpha);
 
             for (int index = 0; index < 27; index++)
-                list.Item().Text("item");
+                list.Add().Text("item");
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 900));
@@ -117,8 +117,8 @@ public class ListTests
     {
         Block root = BuildList(list =>
         {
-            list.MarkerWidth(30);
-            list.Item().Element(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
+            list.MarkerIndent(30);
+            list.Add().Compose(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));

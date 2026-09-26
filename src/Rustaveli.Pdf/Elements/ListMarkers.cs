@@ -15,9 +15,9 @@ internal static class ListMarkers
     public static string Format(ListNumbering marker, int oneBasedIndex) => marker switch
     {
         ListNumbering.Bullet => "•",
-        ListNumbering.Decimal => $"{oneBasedIndex}.",
-        ListNumbering.LowerLetter => $"{Alphabetic(oneBasedIndex).ToLowerInvariant()}.",
-        ListNumbering.UpperLetter => $"{Alphabetic(oneBasedIndex)}.",
+        ListNumbering.Arabic => $"{oneBasedIndex}.",
+        ListNumbering.LowerAlpha => $"{Alphabetic(oneBasedIndex).ToLowerInvariant()}.",
+        ListNumbering.UpperAlpha => $"{Alphabetic(oneBasedIndex)}.",
         ListNumbering.LowerRoman => $"{Roman(oneBasedIndex).ToLowerInvariant()}.",
         ListNumbering.UpperRoman => $"{Roman(oneBasedIndex)}.",
         _ => "•"

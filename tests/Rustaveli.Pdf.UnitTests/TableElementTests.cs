@@ -12,20 +12,20 @@ public class TableElementTests
     }
 
     private static void Fill(IFrame container, float width, float height) =>
-        container.Element(inner => inner.Child = new FixedElement(width, height));
+        container.Compose(inner => inner.Child = new FixedElement(width, height));
 
     private static void Fill(IFrame container, float width, float height, Ink color) =>
-        container.Element(inner => inner.Child = new FixedElement(width, height, color));
+        container.Compose(inner => inner.Child = new FixedElement(width, height, color));
 
     [Fact]
     public void SplitsWidthEvenlyBetweenEqualRelativeColumns()
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
             });
 
             Fill(descriptor.Cell(), 1, 10);
@@ -44,10 +44,10 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn(1);
-                columns.RelativeColumn(4);
+                columns.Share(1);
+                columns.Share(4);
             });
 
             Fill(descriptor.Cell(), 1, 10);
@@ -65,10 +65,10 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.ConstantColumn(30);
-                columns.RelativeColumn();
+                columns.Fixed(30);
+                columns.Share();
             });
 
             Fill(descriptor.Cell(), 1, 10);
@@ -86,10 +86,10 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
             });
 
             for (int index = 0; index < 4; index++)
@@ -110,14 +110,14 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
+                columns.Share();
             });
 
-            Fill(descriptor.Cell().ColumnSpan(2), 1, 20);
+            Fill(descriptor.Cell().SpanColumns(2), 1, 20);
             Fill(descriptor.Cell(), 1, 20);
             Fill(descriptor.Cell(), 1, 20);
         });
@@ -137,13 +137,13 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
             });
 
-            descriptor.Cell().ColumnSpan(2).Element(inner => inner.Child = new ExpandBlock
+            descriptor.Cell().SpanColumns(2).Compose(inner => inner.Child = new ExpandBlock
             {
                 ExtendHorizontal = true,
                 Child = new FixedElement(1, 10)
@@ -163,14 +163,14 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
             });
 
-            Fill(descriptor.Cell().Row(1).Column(1), 1, 20);
-            Fill(descriptor.Cell().Row(2).Column(2), 1, 20);
+            Fill(descriptor.Cell().AtRow(1).AtColumn(1), 1, 20);
+            Fill(descriptor.Cell().AtRow(2).AtColumn(2), 1, 20);
         });
 
         RecordedPage page = LayoutHarness.Draw(table, new Extent(200, 200));
@@ -184,10 +184,10 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
             });
 
             Fill(descriptor.Cell(), 1, 10);
@@ -204,9 +204,9 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Columns(columns => columns.Share());
 
-            descriptor.Header(header => Fill(header.Cell(), 1, 20));
+            descriptor.HeaderRows(header => Fill(header.Cell(), 1, 20));
 
             for (int index = 0; index < 4; index++)
                 Fill(descriptor.Cell(), 1, 30);
@@ -227,9 +227,9 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Columns(columns => columns.Share());
 
-            descriptor.Header(header => Fill(header.Cell(), 1, 25));
+            descriptor.HeaderRows(header => Fill(header.Cell(), 1, 25));
             Fill(descriptor.Cell(), 1, 30);
         });
 
@@ -247,9 +247,9 @@ public class TableElementTests
         // many of its lines it has drawn, so without a per-page reset the band renders once and then vanishes.
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Columns(columns => columns.Share());
 
-            descriptor.Header(header => header.Cell().Text("Code"));
+            descriptor.HeaderRows(header => header.Cell().Text("Code"));
 
             for (int index = 0; index < 4; index++)
                 Fill(descriptor.Cell(), 1, 30);
@@ -270,9 +270,9 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Columns(columns => columns.Share());
 
-            descriptor.Footer(footer => footer.Cell().Text("Total"));
+            descriptor.FooterRows(footer => footer.Cell().Text("Total"));
 
             for (int index = 0; index < 4; index++)
                 Fill(descriptor.Cell(), 1, 30);
@@ -295,9 +295,9 @@ public class TableElementTests
         // marker would never appear at all.
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Columns(columns => columns.Share());
 
-            descriptor.Header(header => header.Cell().SkipFirst().Text("continued"));
+            descriptor.HeaderRows(header => header.Cell().SkipFirst().Text("continued"));
 
             for (int index = 0; index < 4; index++)
                 Fill(descriptor.Cell(), 1, 30);
@@ -317,7 +317,7 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Columns(columns => columns.Share());
 
             for (int index = 0; index < 4; index++)
                 Fill(descriptor.Cell(), 1, 30);
@@ -325,7 +325,7 @@ public class TableElementTests
 
         Fit plan = LayoutHarness.Measure(table, new Extent(200, 60));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(60f, plan.Size.Height);
     }
 
@@ -334,14 +334,14 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Columns(columns => columns.Share());
             Fill(descriptor.Cell(), 1, 20);
         });
 
         Extent space = new Extent(200, 200);
         LayoutHarness.Draw(table, space);
 
-        Assert.True(LayoutHarness.Measure(table, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(table, space).IsNothing);
     }
 
     [Fact]
@@ -349,22 +349,22 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
             });
 
             // A cell spanning both rows forbids a break between them.
-            Fill(descriptor.Cell().Row(1).Column(1).RowSpan(2), 1, 60);
-            Fill(descriptor.Cell().Row(1).Column(2), 1, 30);
-            Fill(descriptor.Cell().Row(2).Column(2), 1, 30);
+            Fill(descriptor.Cell().AtRow(1).AtColumn(1).SpanRows(2), 1, 60);
+            Fill(descriptor.Cell().AtRow(1).AtColumn(2), 1, 30);
+            Fill(descriptor.Cell().AtRow(2).AtColumn(2), 1, 30);
         });
 
         // Only the first row would fit, but breaking inside the span is not allowed.
         Fit plan = LayoutHarness.Measure(table, new Extent(200, 40));
 
-        Assert.True(plan.IsWrap);
+        Assert.True(plan.IsDeferred);
     }
 
     [Fact]
@@ -372,11 +372,11 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.ConstantColumn(300));
+            descriptor.Columns(columns => columns.Fixed(300));
             Fill(descriptor.Cell(), 1, 10);
         });
 
-        Assert.True(LayoutHarness.Measure(table, new Extent(100, 200)).IsWrap);
+        Assert.True(LayoutHarness.Measure(table, new Extent(100, 200)).IsDeferred);
     }
 
     [Fact]
@@ -384,7 +384,7 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor => Fill(descriptor.Cell(), 1, 10));
 
-        Assert.True(LayoutHarness.Measure(table, new Extent(200, 200)).IsWrap);
+        Assert.True(LayoutHarness.Measure(table, new Extent(200, 200)).IsDeferred);
         Assert.Empty(LayoutHarness.Draw(table, new Extent(200, 200)).Operations);
     }
 
@@ -393,10 +393,10 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.ConstantColumn(50);
-                columns.RelativeColumn(0);
+                columns.Fixed(50);
+                columns.Share(0);
             });
 
             Fill(descriptor.Cell(), 1, 10);
@@ -410,16 +410,16 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
-            descriptor.Header(header => Fill(header.Cell(), 1, 50));
-            descriptor.Footer(footer => Fill(footer.Cell(), 1, 50));
+            descriptor.Columns(columns => columns.Share());
+            descriptor.HeaderRows(header => Fill(header.Cell(), 1, 50));
+            descriptor.FooterRows(footer => Fill(footer.Cell(), 1, 50));
             Fill(descriptor.Cell(), 1, 10);
         });
 
         Fit plan = LayoutHarness.Measure(table, new Extent(200, 99));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("header and footer", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("header and footer", plan.DeferReason);
     }
 
     [Fact]
@@ -427,9 +427,9 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
-            descriptor.Header(header => Fill(header.Cell(), 1, 50));
-            descriptor.Footer(footer => Fill(footer.Cell(), 1, 50));
+            descriptor.Columns(columns => columns.Share());
+            descriptor.HeaderRows(header => Fill(header.Cell(), 1, 50));
+            descriptor.FooterRows(footer => Fill(footer.Cell(), 1, 50));
             Fill(descriptor.Cell(), 1, 10);
         });
 
@@ -446,8 +446,8 @@ public class TableElementTests
         // The header repeats alongside rows, never on its own.
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
-            descriptor.Header(header => Fill(header.Cell(), 1, 10));
+            descriptor.Columns(columns => columns.Share());
+            descriptor.HeaderRows(header => Fill(header.Cell(), 1, 10));
             Fill(descriptor.Cell(), 1, 20);
         });
 
@@ -462,8 +462,8 @@ public class TableElementTests
     {
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
-            descriptor.Header(header => Fill(header.Cell(), 1, 10, TestInks.Red));
+            descriptor.Columns(columns => columns.Share());
+            descriptor.HeaderRows(header => Fill(header.Cell(), 1, 10, TestInks.Red));
             Fill(descriptor.Cell(), 1, 30);
             Fill(descriptor.Cell(), 1, 80, TestInks.Blue);
         });
@@ -485,15 +485,15 @@ public class TableElementTests
         // Charging the shortfall to the first row would push the second row down inside the span.
         TableElement table = BuildTable(descriptor =>
         {
-            descriptor.ColumnsDefinition(columns =>
+            descriptor.Columns(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.Share();
+                columns.Share();
             });
 
-            Fill(descriptor.Cell().Row(1).Column(1).RowSpan(2), 1, 100);
-            Fill(descriptor.Cell().Row(1).Column(2), 1, 30);
-            Fill(descriptor.Cell().Row(2).Column(2), 1, 30, TestInks.Blue);
+            Fill(descriptor.Cell().AtRow(1).AtColumn(1).SpanRows(2), 1, 100);
+            Fill(descriptor.Cell().AtRow(1).AtColumn(2), 1, 30);
+            Fill(descriptor.Cell().AtRow(2).AtColumn(2), 1, 30, TestInks.Blue);
         });
 
         Extent space = new Extent(200, 200);

@@ -19,23 +19,23 @@ public sealed class LayersBlock : Block
         return Layers;
     }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
-        return Layers.FirstOrDefault((Layer layer) => layer.IsPrimary)?.Measure(availableSpace, context) ?? Fit.FullRender(Extent.Zero);
+        return Layers.FirstOrDefault((Layer layer) => layer.IsPrimary)?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Measure(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Layout);
 
-        if (plan.IsWrap || plan.IsEmpty)
+        if (plan.IsDeferred || plan.IsNothing)
             return;
 
         // Every layer shares the whole box the stack occupies (ADR 0012). The primary layer decides how big that
         // box is when nothing else does, but a secondary layer aligned to the bottom must reach the bottom of the
         // box, not of the primary layer's content.
         foreach (Layer layer in Layers)
-            layer.Draw(availableSpace, context);
+            layer.Render(availableSpace, context);
 
         foreach (Layer layer in Layers.Where(layer => !layer.IsPrimary))
             layer.ResetState(includeDocumentProgress: false);

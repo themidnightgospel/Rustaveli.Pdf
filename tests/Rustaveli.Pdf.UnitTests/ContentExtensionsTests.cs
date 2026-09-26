@@ -7,18 +7,18 @@ public class ContentExtensionsTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static void Fill(IFrame container, float width, float height, Ink color) =>
-        container.Element(inner => inner.Child = new FixedElement(width, height, color));
+        container.Compose(inner => inner.Child = new FixedElement(width, height, color));
 
     public static TheoryData<string, Action<IFrame>> CallsWithoutAHandler => new()
     {
         { nameof(FrameContent.Text), container => container.Text((Action<TextComposer>)null!) },
-        { nameof(FrameContent.Column), container => container.Column(null!) },
-        { nameof(FrameContent.Row), container => container.Row(null!) },
+        { nameof(FrameContent.Stack), container => container.Stack(null!) },
+        { nameof(FrameContent.Columns), container => container.Columns(null!) },
         { nameof(FrameContent.Table), container => container.Table(null!) },
         { nameof(FrameContent.List), container => container.List(null!) },
-        { nameof(FrameContent.Layers), container => container.Layers(null!) },
-        { nameof(FrameContent.Decoration), container => container.Decoration(null!) },
-        { nameof(FrameContent.Element), container => container.Element(null!) },
+        { nameof(FrameContent.Layered), container => container.Layered(null!) },
+        { nameof(FrameContent.Banded), container => container.Banded(null!) },
+        { nameof(FrameContent.Compose), container => container.Compose(null!) },
     };
 
     [Theory]
@@ -61,7 +61,7 @@ public class ContentExtensionsTests
     public void AnImageHonoursTheRequestedFit()
     {
         // A 1:2 image fitted to the width would need 400pt of height; fitted to the height it needs only 100pt.
-        Block root = LayoutHarness.Build(container => container.Image(new FakeImage(100, 200), ImageFitting.Height));
+        Block root = LayoutHarness.Build(container => container.Image(new FakeImage(100, 200), ImageFitting.FitHeight));
 
         ImageOperation image = Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<ImageOperation>());
 
@@ -71,7 +71,7 @@ public class ContentExtensionsTests
     [Fact]
     public void RefusesAMissingComponent()
     {
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new Frame().Component(null!));
+        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new Frame().Snippet(null!));
 
         Assert.Equal("component", exception.ParamName);
     }
@@ -79,11 +79,11 @@ public class ContentExtensionsTests
     [Fact]
     public void DecorationFramesTheContentBetweenItsBands()
     {
-        Block root = LayoutHarness.Build(container => container.Decoration(decoration =>
+        Block root = LayoutHarness.Build(container => container.Banded(decoration =>
         {
-            Fill(decoration.Before(), 50, 10, TestInks.Red);
-            Fill(decoration.Content(), 50, 20, TestInks.Blue);
-            Fill(decoration.After(), 50, 5, TestInks.Green);
+            Fill(decoration.Head(), 50, 10, TestInks.Red);
+            Fill(decoration.Body(), 50, 20, TestInks.Blue);
+            Fill(decoration.Foot(), 50, 5, TestInks.Green);
         }));
 
         List<RectangleOperation> rectangles =
@@ -104,7 +104,7 @@ public class ContentExtensionsTests
     [Fact]
     public void ComposesAComponentIntoTheContainer()
     {
-        Block root = LayoutHarness.Build(container => container.Inset(5).Component(new CaptionComponent("Total")));
+        Block root = LayoutHarness.Build(container => container.Inset(5).Snippet(new CaptionComponent("Total")));
 
         TextOperation text = Assert.Single(LayoutHarness.Draw(root, Space).Texts);
 
@@ -117,7 +117,7 @@ public class ContentExtensionsTests
     [Fact]
     public void ConstructsAndComposesAComponentGivenOnlyItsType()
     {
-        Block root = LayoutHarness.Build(container => container.Component<CaptionComponent>());
+        Block root = LayoutHarness.Build(container => container.Snippet<CaptionComponent>());
 
         Assert.Equal(CaptionComponent.DefaultCaption, LayoutHarness.Draw(root, Space).Content);
     }
@@ -126,9 +126,9 @@ public class ContentExtensionsTests
     public void RefusesAComponentComposedTwiceIntoOneSlot()
     {
         Frame container = new Frame();
-        container.Component(new CaptionComponent("first"));
+        container.Snippet(new CaptionComponent("first"));
 
-        Assert.Throws<CompositionException>(() => container.Component(new CaptionComponent("second")));
+        Assert.Throws<CompositionException>(() => container.Snippet(new CaptionComponent("second")));
         Assert.Equal("first", LayoutHarness.Draw(container, Space).Content);
     }
 
@@ -138,7 +138,7 @@ public class ContentExtensionsTests
         Frame container = new Frame();
         IFrame? received = null;
 
-        container.Element(inner => received = inner);
+        container.Compose(inner => received = inner);
 
         Assert.Same(container, received);
     }
@@ -149,7 +149,7 @@ public class ContentExtensionsTests
         Frame container = new Frame();
         container.Text("already here");
 
-        CompositionException exception = Assert.Throws<CompositionException>(() => container.Empty());
+        CompositionException exception = Assert.Throws<CompositionException>(() => container.Blank());
 
         Assert.Contains("This frame already holds TextBlock, so it cannot be left blank", exception.Message);
         Assert.IsType<TextBlock>(container.Child);
@@ -158,7 +158,7 @@ public class ContentExtensionsTests
     [Fact]
     public void RefusesToMarkAMissingContainerEmpty()
     {
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => FrameContent.Empty(null!));
+        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => FrameContent.Blank(null!));
 
         Assert.Equal("parent", exception.ParamName);
     }

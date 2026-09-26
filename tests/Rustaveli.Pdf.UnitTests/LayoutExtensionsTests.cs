@@ -11,7 +11,7 @@ public class LayoutExtensionsTests
     private static readonly Extent Space = new Extent(200, 100);
 
     private static Block Compose(Func<IFrame, IFrame> chain, float width = 50, float height = 20) =>
-        LayoutHarness.Build(container => chain(container).Element(inner =>
+        LayoutHarness.Build(container => chain(container).Compose(inner =>
             inner.Child = new FixedElement(width, height, TestInks.Red)));
 
     private static Extent Measure(Block root) => LayoutHarness.Measure(root, Space).Size;
@@ -217,7 +217,7 @@ public class LayoutExtensionsTests
     public void WidthPinsTheWidth()
     {
         Approximately.Equal(new Extent(80, 20), Measure(Compose(container => container.Width(80))));
-        Assert.True(LayoutHarness.Measure(Compose(container => container.Width(80), width: 120), Space).IsWrap);
+        Assert.True(LayoutHarness.Measure(Compose(container => container.Width(80), width: 120), Space).IsDeferred);
     }
 
     [Fact]
@@ -231,14 +231,14 @@ public class LayoutExtensionsTests
     public void MaxWidthCapsTheSpaceOfferedButDoesNotGrowContent()
     {
         Approximately.Equal(new Extent(50, 20), Measure(Compose(container => container.MaxWidth(80))));
-        Assert.True(LayoutHarness.Measure(Compose(container => container.MaxWidth(80), width: 120), Space).IsWrap);
+        Assert.True(LayoutHarness.Measure(Compose(container => container.MaxWidth(80), width: 120), Space).IsDeferred);
     }
 
     [Fact]
     public void HeightPinsTheHeight()
     {
         Approximately.Equal(new Extent(50, 40), Measure(Compose(container => container.Height(40))));
-        Assert.True(LayoutHarness.Measure(Compose(container => container.Height(40), height: 60), Space).IsWrap);
+        Assert.True(LayoutHarness.Measure(Compose(container => container.Height(40), height: 60), Space).IsDeferred);
     }
 
     [Fact]
@@ -252,7 +252,7 @@ public class LayoutExtensionsTests
     public void MaxHeightCapsTheSpaceOfferedButDoesNotGrowContent()
     {
         Approximately.Equal(new Extent(50, 20), Measure(Compose(container => container.MaxHeight(40))));
-        Assert.True(LayoutHarness.Measure(Compose(container => container.MaxHeight(40), height: 60), Space).IsWrap);
+        Assert.True(LayoutHarness.Measure(Compose(container => container.MaxHeight(40), height: 60), Space).IsDeferred);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public class LayoutExtensionsTests
     public void AspectRatioCanDeriveTheWidthFromTheHeight() =>
         Approximately.Equal(
             new Extent(50, 100),
-            Measure(Compose(container => container.Proportion(0.5f, ProportionFit.FitHeight))));
+            Measure(Compose(container => container.Proportion(0.5f, ProportionFit.Height))));
 
     [Fact]
     public void ScaleToFitShrinksNoFurtherThanTheMinimumScale()
@@ -285,8 +285,8 @@ public class LayoutExtensionsTests
         Block shrinkable = Compose(container => container.ShrinkToFit(), width: 400);
         Block barelyShrinkable = Compose(container => container.ShrinkToFit(0.75f), width: 400);
 
-        Assert.True(LayoutHarness.Measure(shrinkable, Space).IsFullRender);
-        Assert.True(LayoutHarness.Measure(barelyShrinkable, Space).IsWrap);
+        Assert.True(LayoutHarness.Measure(shrinkable, Space).IsComplete);
+        Assert.True(LayoutHarness.Measure(barelyShrinkable, Space).IsDeferred);
     }
 
     // ---- Flipping ------------------------------------------------------------------------------------------
@@ -363,7 +363,7 @@ public class LayoutExtensionsTests
 
         IFrame vertical = container.FlushBottom();
         IFrame both = vertical.Centered();
-        both.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
+        both.Compose(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Same(vertical, both);
         Approximately.Equal(new Offset(75, 80), Content(container).Position);
@@ -376,7 +376,7 @@ public class LayoutExtensionsTests
 
         IFrame first = container.FlushLeft().FlushTop();
         IFrame second = first.FlushRight().FlushBottom();
-        second.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
+        second.Compose(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Same(first, second);
         Approximately.Equal(new Offset(150, 80), Content(container).Position);
@@ -389,7 +389,7 @@ public class LayoutExtensionsTests
         // new composition in an occupied slot and refused.
         Frame container = new Frame();
         IFrame aligned = container.FlushRight();
-        aligned.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
+        aligned.Compose(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Throws<CompositionException>(() => aligned.Centered());
         Approximately.Equal(new Offset(150, 0), Content(container).Position);

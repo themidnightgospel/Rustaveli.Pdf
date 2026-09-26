@@ -6,25 +6,25 @@ public class InheritedStyleTests
     public void DefaultTextStyleReachesNestedText()
     {
         Block root = LayoutHarness.Build(container =>
-            container.DefaultType(style => style.FontSizeOf(24)).Text("Hi"));
+            container.DefaultType(style => style.WithPointSize(24)).Text("Hi"));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(500, 500));
 
-        Approximately.Equal(24f, Assert.Single(page.Texts).Style.FontSize);
+        Approximately.Equal(24f, Assert.Single(page.Texts).Style.PointSize);
     }
 
     [Fact]
     public void NestedDefaultsCompose()
     {
         Block root = LayoutHarness.Build(container => container
-            .DefaultType(style => style.FontSizeOf(24))
+            .DefaultType(style => style.WithPointSize(24))
             .DefaultType(style => style.Bold())
             .Text("Hi"));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(500, 500));
         TypeStyle style = Assert.Single(page.Texts).Style;
 
-        Approximately.Equal(24f, style.FontSize);
+        Approximately.Equal(24f, style.PointSize);
         Assert.Equal(TypeWeight.Bold, style.Weight);
     }
 
@@ -33,11 +33,11 @@ public class InheritedStyleTests
     {
         PlanContext context = LayoutHarness.Context();
         Block root = LayoutHarness.Build(container =>
-            container.DefaultType(style => style.FontSizeOf(24)).Text("Hi"));
+            container.DefaultType(style => style.WithPointSize(24)).Text("Hi"));
 
         LayoutHarness.Draw(root, new Extent(500, 500), context);
 
-        Approximately.Equal(TypeStyle.Default.FontSize, context.DefaultTextStyle.FontSize);
+        Approximately.Equal(TypeStyle.Default.PointSize, context.DefaultTextStyle.PointSize);
     }
 
     [Fact]
@@ -46,12 +46,12 @@ public class InheritedStyleTests
         // Measuring at one size and drawing at another would reserve the wrong amount of room for the text.
         PlanContext context = LayoutHarness.Context();
         Block root = LayoutHarness.Build(container =>
-            container.DefaultType(style => style.FontSizeOf(24)).Text("Hi"));
+            container.DefaultType(style => style.WithPointSize(24)).Text("Hi"));
 
         Fit plan = LayoutHarness.Measure(root, new Extent(500, 500), context);
 
         // Two characters at 12pt each, on a 24pt line.
         Approximately.Equal(new Extent(24, 24), plan.Size);
-        Approximately.Equal(TypeStyle.Default.FontSize, context.DefaultTextStyle.FontSize);
+        Approximately.Equal(TypeStyle.Default.PointSize, context.DefaultTextStyle.PointSize);
     }
 }

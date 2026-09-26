@@ -15,8 +15,8 @@ public sealed class FakeTextMeasurer : ITypeMeasurer
     public const float DescentRatio = 0.2f;
 
     public TypeMetrics GetMetrics(TypeStyle style) => new(
-        Ascent: style.EffectiveFontSize * AscentRatio,
-        Descent: style.EffectiveFontSize * DescentRatio,
+        Ascent: style.EffectivePointSize * AscentRatio,
+        Descent: style.EffectivePointSize * DescentRatio,
         LineGap: 0f);
 
     public float MeasureWidth(string text, TypeStyle style) =>
@@ -32,5 +32,5 @@ public sealed class FakeTextMeasurer : ITypeMeasurer
         return Math.Clamp(fitting, 0, text.Length);
     }
 
-    private static float CharacterWidth(TypeStyle style) => style.EffectiveFontSize * CharacterWidthRatio;
+    private static float CharacterWidth(TypeStyle style) => style.EffectivePointSize * CharacterWidthRatio;
 }

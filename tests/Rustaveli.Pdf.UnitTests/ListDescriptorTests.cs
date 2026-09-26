@@ -12,9 +12,9 @@ public class ListDescriptorTests
     {
         Block root = BuildList(list =>
         {
-            list.Ordered();
-            list.Unordered();
-            list.Item().Text("alpha");
+            list.Numbered();
+            list.Bulleted();
+            list.Add().Text("alpha");
         });
 
         string content = LayoutHarness.Draw(root, Space).Content;
@@ -28,14 +28,14 @@ public class ListDescriptorTests
     {
         Block root = BuildList(list =>
         {
-            list.MarkerStyle(style => style.FontSizeOf(20));
-            list.Item().Text("alpha");
+            list.MarkerType(style => style.WithPointSize(20));
+            list.Add().Text("alpha");
         });
 
         List<TextOperation> texts = LayoutHarness.Draw(root, Space).Texts.ToList();
 
-        Approximately.Equal(20f, texts.Single(text => text.Text == "•").Style.FontSize);
-        Approximately.Equal(TypeStyle.Default.FontSize, texts.Single(text => text.Text == "alpha").Style.FontSize);
+        Approximately.Equal(20f, texts.Single(text => text.Text == "•").Style.PointSize);
+        Approximately.Equal(TypeStyle.Default.PointSize, texts.Single(text => text.Text == "alpha").Style.PointSize);
     }
 
     [Fact]
@@ -43,9 +43,9 @@ public class ListDescriptorTests
     {
         Block root = BuildList(list =>
         {
-            list.Spacing(10);
-            list.Item().Element(inner => inner.Child = new FixedElement(10, 20, TestInks.Red));
-            list.Item().Element(inner => inner.Child = new FixedElement(10, 20, TestInks.Red));
+            list.SpaceBetween(10);
+            list.Add().Compose(inner => inner.Child = new FixedElement(10, 20, TestInks.Red));
+            list.Add().Compose(inner => inner.Child = new FixedElement(10, 20, TestInks.Red));
         });
 
         Fit plan = LayoutHarness.Measure(root, Space);

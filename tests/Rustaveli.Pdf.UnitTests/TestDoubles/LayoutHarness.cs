@@ -26,7 +26,7 @@ public static class LayoutHarness
     }
 
     public static Fit Measure(Block element, Extent availableSpace, PlanContext? context = null) =>
-        element.Measure(availableSpace, context ?? Context());
+        element.Plan(availableSpace, context ?? Context());
 
     public static Fit Measure(Action<IFrame> compose, Extent availableSpace) =>
         Measure(Build(compose), availableSpace);
@@ -38,7 +38,7 @@ public static class LayoutHarness
         PlanContext layout = context ?? Context();
 
         canvas.BeginPage(availableSpace);
-        element.Draw(availableSpace, new RenderContext(canvas, layout));
+        element.Render(availableSpace, new RenderContext(canvas, layout));
 
         // Drawing must leave the canvas exactly as it found it. An element that translates without translating
         // back, or saves without restoring, shifts every sibling drawn after it — invisible to a test that draws

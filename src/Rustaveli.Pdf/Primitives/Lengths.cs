@@ -13,7 +13,7 @@ public static class Lengths
         LengthUnit.Centimetre => value * 10 / MillimetresPerInch * PointsPerInch,
         LengthUnit.Metre => value * 1000 / MillimetresPerInch * PointsPerInch,
         LengthUnit.Inch => value * PointsPerInch,
-        LengthUnit.Feet => value * 12 * PointsPerInch,
+        LengthUnit.Foot => value * 12 * PointsPerInch,
         _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, "Unsupported unit.")
     };
 

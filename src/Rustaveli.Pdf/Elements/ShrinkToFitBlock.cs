@@ -32,29 +32,29 @@ public sealed class ShrinkToFitBlock : EnclosingBlock
     // finer probing buys nothing visible and every probe costs a full measurement of the subtree.
     private const int ProbeCount = 8;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (Child is null)
-            return Fit.FullRender(Extent.Zero);
+            return Fit.Complete(Extent.Zero);
 
         float? scale = ResolveScale(availableSpace, context);
 
         // Content that can only ever render in instalments cannot be made to fit at any scale. Refusing it would
         // abort the whole document, so it is passed through instead and paginates as it would have unscaled.
         if (scale is null)
-            return base.Measure(availableSpace, context);
+            return base.Plan(availableSpace, context);
 
-        Fit plan = Child.Measure(Unscale(availableSpace, scale.Value), context);
+        Fit plan = Child.Plan(Unscale(availableSpace, scale.Value), context);
 
-        if (plan.IsWrap || plan.IsEmpty)
+        if (plan.IsDeferred || plan.IsNothing)
             return plan;
 
         Extent size = new Extent(plan.Size.Width * scale.Value, plan.Size.Height * scale.Value);
 
-        return Fit.FullRender(size);
+        return Fit.Complete(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
@@ -64,14 +64,14 @@ public sealed class ShrinkToFitBlock : EnclosingBlock
         // Matches Measure: content that could not be made to fit is drawn unscaled and left to paginate.
         if (scale is null)
         {
-            base.Draw(availableSpace, context);
+            base.Render(availableSpace, context);
             return;
         }
 
         context.Canvas.Save();
         context.Canvas.Scale(scale.Value, scale.Value);
 
-        Child.Draw(Unscale(availableSpace, scale.Value), context);
+        Child.Render(Unscale(availableSpace, scale.Value), context);
 
         context.Canvas.Restore();
     }
@@ -115,9 +115,9 @@ public sealed class ShrinkToFitBlock : EnclosingBlock
 
     private bool Fits(Extent availableSpace, float scale, PlanContext context)
     {
-        Fit plan = Child!.Measure(Unscale(availableSpace, scale), context);
+        Fit plan = Child!.Plan(Unscale(availableSpace, scale), context);
 
         // Only a complete render counts: content that wrapped or split has not been made to fit.
-        return plan.IsFullRender || plan.IsEmpty;
+        return plan.IsComplete || plan.IsNothing;
     }
 }

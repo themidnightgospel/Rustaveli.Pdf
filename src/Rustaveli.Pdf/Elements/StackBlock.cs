@@ -25,14 +25,14 @@ public sealed class StackBlock : Block
 
     protected override void ResetOwnState() => _completedItems = 0;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         LayoutResult result = Layout(availableSpace, context, static (_, _, _) => { });
 
         return result.ToSpacePlan();
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         ISurface canvas = context.Canvas;
         float offset = 0f;
@@ -42,7 +42,7 @@ public sealed class StackBlock : Block
             Offset delta = new Offset(0, top - offset);
             canvas.Translate(delta);
             offset = top;
-            item.Draw(itemSpace, context);
+            item.Render(itemSpace, context);
         });
 
         canvas.Translate(new Offset(0, -offset));
@@ -87,26 +87,26 @@ public sealed class StackBlock : Block
             bool gapOverflows = heightLeft - spacing < -Extent.Epsilon;
 
             Extent itemSpace = new Extent(availableSpace.Width, gapOverflows ? Math.Max(0f, heightLeft) : heightLeft - spacing);
-            Fit plan = Items[index].Measure(itemSpace, context);
+            Fit plan = Items[index].Plan(itemSpace, context);
 
-            if (gapOverflows && !plan.IsEmpty && (plan.IsWrap || plan.Size.Height > Extent.Epsilon))
+            if (gapOverflows && !plan.IsNothing && (plan.IsDeferred || plan.Size.Height > Extent.Epsilon))
             {
                 pending = true;
                 break;
             }
 
-            if (plan.IsEmpty)
+            if (plan.IsNothing)
             {
                 completed = index + 1;
                 continue;
             }
 
-            if (plan.IsWrap)
+            if (plan.IsDeferred)
             {
                 // Nothing rendered yet means even a fresh page would look identical; report the wrap upwards so
                 // the engine can distinguish "needs a new page" from "can never fit".
                 if (!drewAnything)
-                    return LayoutResult.Wrapped(plan.WrapReason ?? "An item did not fit in the available space.");
+                    return LayoutResult.Wrapped(plan.DeferReason ?? "An item did not fit in the available space.");
 
                 pending = true;
                 break;
@@ -128,7 +128,7 @@ public sealed class StackBlock : Block
             drewAnything = true;
             hasVisibleContent |= occupiesSpace;
 
-            if (plan.IsPartialRender)
+            if (plan.IsPartial)
             {
                 pending = true;
                 break;
@@ -154,12 +154,12 @@ public sealed class StackBlock : Block
         public Fit ToSpacePlan()
         {
             if (IsExhausted)
-                return Fit.Empty();
+                return Fit.Nothing();
 
             if (WrapReason is not null)
-                return Fit.Wrap(WrapReason);
+                return Fit.Defer(WrapReason);
 
-            return HasMore ? Fit.PartialRender(Size) : Fit.FullRender(Size);
+            return HasMore ? Fit.Partial(Size) : Fit.Complete(Size);
         }
     }
 }

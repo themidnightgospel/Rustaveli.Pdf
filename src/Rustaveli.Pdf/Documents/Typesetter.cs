@@ -72,8 +72,8 @@ internal static class Typesetter
 
         foreach (Section descriptor in document.Pages)
         {
-            layout.DefaultTextStyle = descriptor.DefaultTextStyle;
-            layout.ContentDirection = descriptor.Direction;
+            layout.DefaultTextStyle = descriptor.DefaultType;
+            layout.ContentDirection = descriptor.ReadingDirection;
 
             int renderedInRun = 0;
 
@@ -107,28 +107,28 @@ internal static class Typesetter
     {
         // Headers and footers repeat in full, so clear the pagination state they accumulated on the previous
         // page while leaving document-wide counters such as "show once" intact.
-        descriptor.HeaderSlot.ResetState(includeDocumentProgress: false);
-        descriptor.FooterSlot.ResetState(includeDocumentProgress: false);
-        descriptor.BackgroundSlot.ResetState(includeDocumentProgress: false);
-        descriptor.ForegroundSlot.ResetState(includeDocumentProgress: false);
+        descriptor.RunningHeadSlot.ResetState(includeDocumentProgress: false);
+        descriptor.RunningFootSlot.ResetState(includeDocumentProgress: false);
+        descriptor.UnderlaySlot.ResetState(includeDocumentProgress: false);
+        descriptor.OverlaySlot.ResetState(includeDocumentProgress: false);
 
-        if (descriptor.Size.Width <= 0 || descriptor.Size.Height <= 0)
+        if (descriptor.Trim.Width <= 0 || descriptor.Trim.Height <= 0)
             throw new OversetException(
-                $"The page size {descriptor.Size} is not drawable. Both dimensions must be greater than zero.");
+                $"The page size {descriptor.Trim} is not drawable. Both dimensions must be greater than zero.");
 
-        float contentWidth = descriptor.Size.Width - descriptor.Margin.Horizontal;
+        float contentWidth = descriptor.Trim.Width - descriptor.Margins.Horizontal;
 
         if (contentWidth <= 0)
             throw new OversetException(
-                $"The horizontal margins ({descriptor.Margin.Horizontal:F1}) leave no room on a page {descriptor.Size.Width:F1} points wide.");
+                $"The horizontal margins ({descriptor.Margins.Horizontal:F1}) leave no room on a page {descriptor.Trim.Width:F1} points wide.");
 
-        float availableHeight = descriptor.IsContinuous
-            ? MaxPageHeight - descriptor.Margin.Vertical
-            : descriptor.Size.Height - descriptor.Margin.Vertical;
+        float availableHeight = descriptor.Continuous
+            ? MaxPageHeight - descriptor.Margins.Vertical
+            : descriptor.Trim.Height - descriptor.Margins.Vertical;
 
         if (availableHeight <= 0)
             throw new OversetException(
-                $"The vertical margins ({descriptor.Margin.Vertical:F1}) leave no room on a page {descriptor.Size.Height:F1} points tall.");
+                $"The vertical margins ({descriptor.Margins.Vertical:F1}) leave no room on a page {descriptor.Trim.Height:F1} points tall.");
 
         Bands bands = MeasureBands(descriptor, new Extent(contentWidth, availableHeight), layout);
         float contentHeight = availableHeight - bands.HeaderHeight - bands.FooterHeight;
@@ -140,18 +140,18 @@ internal static class Typesetter
                 $"The header ({bands.HeaderHeight:F1}) and footer ({bands.FooterHeight:F1}) together exceed the {availableHeight:F1} points available for content.");
 
         Extent contentSpace = new Extent(contentWidth, contentHeight);
-        Fit contentPlan = descriptor.ContentSlot.Measure(contentSpace, layout);
+        Fit contentPlan = descriptor.BodySlot.Plan(contentSpace, layout);
 
-        if (contentPlan.IsWrap)
+        if (contentPlan.IsDeferred)
             throw new OversetException(
                 "The page content cannot be drawn even on an empty page, so no additional page would help. " +
-                $"Available space: {contentSpace}. Reason: {contentPlan.WrapReason}");
+                $"Available space: {contentSpace}. Reason: {contentPlan.DeferReason}");
 
-        Extent pageSize = descriptor.IsContinuous
+        Extent pageSize = descriptor.Continuous
             ? new Extent(
-                descriptor.Size.Width,
-                Math.Min(MaxPageHeight, descriptor.Margin.Vertical + bands.HeaderHeight + contentPlan.Size.Height + bands.FooterHeight))
-            : descriptor.Size;
+                descriptor.Trim.Width,
+                Math.Min(MaxPageHeight, descriptor.Margins.Vertical + bands.HeaderHeight + contentPlan.Size.Height + bands.FooterHeight))
+            : descriptor.Trim;
 
         try
         {
@@ -166,7 +166,7 @@ internal static class Typesetter
                 exception);
         }
 
-        return contentPlan.IsPartialRender;
+        return contentPlan.IsPartial;
     }
 
     private static void DrawPage(
@@ -178,24 +178,24 @@ internal static class Typesetter
         Bands bands)
     {
         ISurface canvas = context.Canvas;
-        Sides margin = descriptor.Margin;
+        Sides margin = descriptor.Margins;
 
         pageCanvas.BeginPage(pageSize);
 
-        if (!descriptor.BackgroundColor.IsTransparent)
-            canvas.DrawRectangle(Offset.Zero, pageSize, descriptor.BackgroundColor);
+        if (!descriptor.Paper.IsTransparent)
+            canvas.DrawRectangle(Offset.Zero, pageSize, descriptor.Paper);
 
         // Background and foreground deliberately ignore margins so watermarks can bleed to the page edge.
-        descriptor.BackgroundSlot.Draw(pageSize, context);
+        descriptor.UnderlaySlot.Render(pageSize, context);
 
         Offset origin = new Offset(margin.Left, margin.Top);
         canvas.Translate(origin);
 
         if (bands.HeaderHeight > 0)
-            descriptor.HeaderSlot.Draw(new Extent(contentSpace.Width, bands.HeaderHeight), context);
+            descriptor.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeaderHeight), context);
 
         canvas.Translate(new Offset(0, bands.HeaderHeight));
-        descriptor.ContentSlot.Draw(contentSpace, context);
+        descriptor.BodySlot.Render(contentSpace, context);
         canvas.Translate(new Offset(0, -bands.HeaderHeight));
 
         if (bands.FooterHeight > 0)
@@ -203,24 +203,24 @@ internal static class Typesetter
             // The footer sits against the bottom margin rather than immediately after the content.
             float footerTop = pageSize.Height - margin.Vertical - bands.FooterHeight;
             canvas.Translate(new Offset(0, footerTop));
-            descriptor.FooterSlot.Draw(new Extent(contentSpace.Width, bands.FooterHeight), context);
+            descriptor.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FooterHeight), context);
             canvas.Translate(new Offset(0, -footerTop));
         }
 
         canvas.Translate(origin.Reverse());
 
-        descriptor.ForegroundSlot.Draw(pageSize, context);
+        descriptor.OverlaySlot.Render(pageSize, context);
 
         pageCanvas.EndPage();
     }
 
     private static Bands MeasureBands(Section descriptor, Extent available, PlanContext layout)
     {
-        Fit headerPlan = descriptor.HeaderSlot.Measure(available, layout);
+        Fit headerPlan = descriptor.RunningHeadSlot.Plan(available, layout);
 
-        if (headerPlan.IsWrap)
+        if (headerPlan.IsDeferred)
             throw new OversetException(
-                $"The page header does not fit in {available}. Reason: {headerPlan.WrapReason}");
+                $"The page header does not fit in {available}. Reason: {headerPlan.DeferReason}");
 
         Extent remaining = new Extent(available.Width, available.Height - headerPlan.Size.Height);
 
@@ -235,11 +235,11 @@ internal static class Typesetter
                 "This usually means it contains an element that expands to fill the space offered to it, such as AlignMiddle, " +
                 "AlignBottom or Extend. Give the header an explicit Height, or remove the expanding element.");
 
-        Fit footerPlan = descriptor.FooterSlot.Measure(remaining, layout);
+        Fit footerPlan = descriptor.RunningFootSlot.Plan(remaining, layout);
 
-        if (footerPlan.IsWrap)
+        if (footerPlan.IsDeferred)
             throw new OversetException(
-                $"The page footer does not fit in {remaining}. Reason: {footerPlan.WrapReason}");
+                $"The page footer does not fit in {remaining}. Reason: {footerPlan.DeferReason}");
 
         return new Bands(headerPlan.Size.Height, footerPlan.Size.Height);
     }

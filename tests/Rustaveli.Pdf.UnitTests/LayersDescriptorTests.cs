@@ -5,15 +5,15 @@ public class LayersDescriptorTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static void Fill(IFrame container, float width, float height, Ink color) =>
-        container.Element(inner => inner.Child = new FixedElement(width, height, color));
+        container.Compose(inner => inner.Child = new FixedElement(width, height, color));
 
     [Fact]
     public void ThePrimaryLayerSizesTheStack()
     {
-        Block root = LayoutHarness.Build(container => container.Layers(layers =>
+        Block root = LayoutHarness.Build(container => container.Layered(layers =>
         {
             layers.Layer().Placeholder(TestInks.Red);
-            Fill(layers.PrimaryLayer(), 50, 20, TestInks.Blue);
+            Fill(layers.BaseLayer(), 50, 20, TestInks.Blue);
         }));
 
         Approximately.Equal(new Extent(50, 20), LayoutHarness.Measure(root, Space).Size);
@@ -22,7 +22,7 @@ public class LayersDescriptorTests
     [Fact]
     public void AnOrdinaryLayerContributesNothingToTheSize()
     {
-        Block root = LayoutHarness.Build(container => container.Layers(layers =>
+        Block root = LayoutHarness.Build(container => container.Layered(layers =>
             Fill(layers.Layer(), 50, 20, TestInks.Blue)));
 
         Approximately.Equal(Extent.Zero, LayoutHarness.Measure(root, Space).Size);
@@ -31,10 +31,10 @@ public class LayersDescriptorTests
     [Fact]
     public void PaintsLayersInDeclarationOrder()
     {
-        Block root = LayoutHarness.Build(container => container.Layers(layers =>
+        Block root = LayoutHarness.Build(container => container.Layered(layers =>
         {
             layers.Layer().Placeholder(TestInks.Red);
-            Fill(layers.PrimaryLayer(), 50, 20, TestInks.Blue);
+            Fill(layers.BaseLayer(), 50, 20, TestInks.Blue);
             layers.Layer().Placeholder(TestInks.Green);
         }));
 

@@ -10,10 +10,10 @@ public sealed class ShiftBlock : EnclosingBlock
 {
     public Offset Offset { get; set; } = Offset.Zero;
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         context.Canvas.Translate(Offset);
-        Child?.Draw(availableSpace, context);
+        Child?.Render(availableSpace, context);
         context.Canvas.Translate(Offset.Reverse());
     }
 }

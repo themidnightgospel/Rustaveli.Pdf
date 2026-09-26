@@ -11,31 +11,31 @@ public sealed class ProportionBlock : EnclosingBlock
     /// <summary>Width divided by height. Must be greater than zero.</summary>
     public float Ratio { get; set; } = 1f;
 
-    public ProportionFit Option { get; set; } = ProportionFit.FitWidth;
+    public ProportionFit Option { get; set; } = ProportionFit.Width;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (Ratio <= 0)
-            return Fit.Wrap("The aspect ratio must be greater than zero.");
+            return Fit.Defer("The aspect ratio must be greater than zero.");
 
         Extent size = ResolveSize(availableSpace);
 
         if (!size.FitsIn(availableSpace))
-            return Fit.Wrap("The available space is too small for the requested aspect ratio.");
+            return Fit.Defer("The available space is too small for the requested aspect ratio.");
 
-        Fit childPlan = Child?.Measure(size, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(size, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
-        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context) =>
-        Child?.Draw(ResolveSize(availableSpace), context);
+    public override void Render(Extent availableSpace, RenderContext context) =>
+        Child?.Render(ResolveSize(availableSpace), context);
 
     private Extent ResolveSize(Extent availableSpace)
     {
@@ -44,10 +44,10 @@ public sealed class ProportionBlock : EnclosingBlock
 
         return Option switch
         {
-            ProportionFit.FitWidth => fromWidth,
-            ProportionFit.FitHeight => fromHeight,
+            ProportionFit.Width => fromWidth,
+            ProportionFit.Height => fromHeight,
             // Pick whichever axis binds first so the result stays inside the offered space.
-            ProportionFit.FitArea => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
+            ProportionFit.Area => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
             _ => fromWidth
         };
     }

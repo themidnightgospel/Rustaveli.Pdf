@@ -12,20 +12,20 @@ public sealed class ExpandBlock : EnclosingBlock
 
     public bool ExtendVertical { get; set; }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
-        Fit childPlan = Child?.Measure(availableSpace, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
         Extent size = new Extent(
             ExtendHorizontal ? availableSpace.Width : childPlan.Size.Width,
             ExtendVertical ? availableSpace.Height : childPlan.Size.Height);
 
-        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 }

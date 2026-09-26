@@ -92,15 +92,15 @@ public sealed class ListBlock : Block
         }
     }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         EnsureBuilt();
-        return _layout.Measure(availableSpace, context);
+        return _layout.Plan(availableSpace, context);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         EnsureBuilt();
-        _layout.Draw(availableSpace, context);
+        _layout.Render(availableSpace, context);
     }
 }

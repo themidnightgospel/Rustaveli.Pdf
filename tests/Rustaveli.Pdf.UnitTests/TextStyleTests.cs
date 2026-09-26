@@ -9,35 +9,35 @@ public class TextStyleTests
     {
         TypeStyle style = TypeStyle.Default;
 
-        Assert.Equal("Helvetica", style.FontFamily);
-        Assert.Equal(12f, style.FontSize);
+        Assert.Equal("Helvetica", style.Typeface);
+        Assert.Equal(12f, style.PointSize);
         Assert.Equal(TypeWeight.Normal, style.Weight);
         Assert.False(style.IsItalic);
-        Assert.Equal(TestInks.Black, style.Color);
-        Assert.Equal(TestInks.Transparent, style.BackgroundColor);
+        Assert.Equal(TestInks.Black, style.Ink);
+        Assert.Equal(TestInks.Transparent, style.Highlight);
         Assert.False(style.HasUnderline);
-        Assert.False(style.HasStrikethrough);
-        Assert.Equal(1f, style.LineHeight);
-        Assert.Equal(0f, style.LetterSpacing);
-        Assert.Equal(ScriptPosition.Normal, style.Position);
+        Assert.False(style.HasStrikeThrough);
+        Assert.Equal(1f, style.Leading);
+        Assert.Equal(0f, style.Tracking);
+        Assert.Equal(ScriptPosition.Normal, style.Script);
     }
 
     [Fact]
     public void FontFamilyOfChangesOnlyTheFamily()
     {
-        Assert.Equal(Base with { FontFamily = "Georgia" }, Base.FontFamilyOf("Georgia"));
+        Assert.Equal(Base with { Typeface = "Georgia" }, Base.WithTypeface("Georgia"));
     }
 
     [Fact]
     public void FontSizeOfChangesOnlyTheSize()
     {
-        Assert.Equal(Base with { FontSize = 20 }, Base.FontSizeOf(20));
+        Assert.Equal(Base with { PointSize = 20 }, Base.WithPointSize(20));
     }
 
     [Fact]
     public void WeightOfChangesOnlyTheWeight()
     {
-        Assert.Equal(Base with { Weight = TypeWeight.Light }, Base.WeightOf(TypeWeight.Light));
+        Assert.Equal(Base with { Weight = TypeWeight.Light }, Base.WithWeight(TypeWeight.Light));
     }
 
     [Fact]
@@ -56,13 +56,13 @@ public class TextStyleTests
     [Fact]
     public void ColorOfChangesOnlyTheTextColour()
     {
-        Assert.Equal(Base with { Color = TestInks.Red }, Base.ColorOf(TestInks.Red));
+        Assert.Equal(Base with { Ink = TestInks.Red }, Base.WithInk(TestInks.Red));
     }
 
     [Fact]
     public void BackgroundColorOfChangesOnlyTheHighlight()
     {
-        Assert.Equal(Base with { BackgroundColor = TestInks.Yellow }, Base.BackgroundColorOf(TestInks.Yellow));
+        Assert.Equal(Base with { Highlight = TestInks.Yellow }, Base.WithHighlight(TestInks.Yellow));
     }
 
     [Fact]
@@ -75,45 +75,45 @@ public class TextStyleTests
     [Fact]
     public void StrikethroughTurnsStrikingOnByDefaultAndCanTurnItOffAgain()
     {
-        Assert.Equal(Base with { HasStrikethrough = true }, Base.Strikethrough());
-        Assert.Equal(Base, Base.Strikethrough().Strikethrough(false));
+        Assert.Equal(Base with { HasStrikeThrough = true }, Base.StrikeThrough());
+        Assert.Equal(Base, Base.StrikeThrough().StrikeThrough(false));
     }
 
     [Fact]
     public void LineHeightOfChangesOnlyTheLineHeight()
     {
-        Assert.Equal(Base with { LineHeight = 1.5f }, Base.LineHeightOf(1.5f));
+        Assert.Equal(Base with { Leading = 1.5f }, Base.WithLeading(1.5f));
     }
 
     [Fact]
     public void LetterSpacingOfChangesOnlyTheLetterSpacing()
     {
-        Assert.Equal(Base with { LetterSpacing = 2f }, Base.LetterSpacingOf(2f));
+        Assert.Equal(Base with { Tracking = 2f }, Base.WithTracking(2f));
     }
 
     [Fact]
     public void SubscriptAndSuperscriptChangeOnlyThePosition()
     {
-        Assert.Equal(Base with { Position = ScriptPosition.Subscript }, Base.Subscript());
-        Assert.Equal(Base with { Position = ScriptPosition.Superscript }, Base.Superscript());
+        Assert.Equal(Base with { Script = ScriptPosition.Subscript }, Base.Subscript());
+        Assert.Equal(Base with { Script = ScriptPosition.Superscript }, Base.Superscript());
     }
 
     [Fact]
     public void MutatorsLeaveTheStyleTheyWereCalledOnUntouched()
     {
         // The default is shared by every span in a document, so deriving a variant must never alter it.
-        TypeStyle original = TypeStyle.Default.FontSizeOf(10);
+        TypeStyle original = TypeStyle.Default.WithPointSize(10);
 
-        original.Bold().Italic().Underline().ColorOf(TestInks.Red).FontSizeOf(30).Superscript();
+        original.Bold().Italic().Underline().WithInk(TestInks.Red).WithPointSize(30).Superscript();
 
-        Assert.Equal(TypeStyle.Default with { FontSize = 10 }, original);
+        Assert.Equal(TypeStyle.Default with { PointSize = 10 }, original);
     }
 
     [Fact]
     public void StylesReachedByDifferentRoutesAreEqual()
     {
-        TypeStyle first = Base.Bold().FontSizeOf(14);
-        TypeStyle second = Base.FontSizeOf(14).WeightOf(TypeWeight.Bold);
+        TypeStyle first = Base.Bold().WithPointSize(14);
+        TypeStyle second = Base.WithPointSize(14).WithWeight(TypeWeight.Bold);
 
         Assert.Equal(first, second);
         Assert.Equal(first.GetHashCode(), second.GetHashCode());
@@ -122,27 +122,27 @@ public class TextStyleTests
     [Fact]
     public void NormalTextRendersAtItsNominalSizeOnTheBaseline()
     {
-        TypeStyle style = Base.FontSizeOf(20);
+        TypeStyle style = Base.WithPointSize(20);
 
-        Assert.Equal(20f, style.EffectiveFontSize);
+        Assert.Equal(20f, style.EffectivePointSize);
         Assert.Equal(0f, style.BaselineOffset);
     }
 
     [Fact]
     public void SubscriptShrinksAndDropsBelowTheBaseline()
     {
-        TypeStyle style = Base.FontSizeOf(20).Subscript();
+        TypeStyle style = Base.WithPointSize(20).Subscript();
 
-        Approximately.Equal(11.6f, style.EffectiveFontSize);
+        Approximately.Equal(11.6f, style.EffectivePointSize);
         Approximately.Equal(3.2f, style.BaselineOffset);
     }
 
     [Fact]
     public void SuperscriptShrinksAndRisesAboveTheBaseline()
     {
-        TypeStyle style = Base.FontSizeOf(20).Superscript();
+        TypeStyle style = Base.WithPointSize(20).Superscript();
 
-        Approximately.Equal(11.6f, style.EffectiveFontSize);
+        Approximately.Equal(11.6f, style.EffectivePointSize);
         Approximately.Equal(-6.6f, style.BaselineOffset);
     }
 
@@ -151,7 +151,7 @@ public class TextStyleTests
     {
         // The shift is measured against the surrounding text, not the shrunken glyphs: 40pt text drops its
         // subscript by 6.4 points, not by the 3.7 that 16% of the reduced size would give.
-        Approximately.Equal(6.4f, Base.FontSizeOf(40).Subscript().BaselineOffset);
-        Approximately.Equal(-13.2f, Base.FontSizeOf(40).Superscript().BaselineOffset);
+        Approximately.Equal(6.4f, Base.WithPointSize(40).Subscript().BaselineOffset);
+        Approximately.Equal(-13.2f, Base.WithPointSize(40).Superscript().BaselineOffset);
     }
 }

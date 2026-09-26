@@ -23,28 +23,28 @@ public sealed class TurnBlock : EnclosingBlock
 
     private bool SwapsAxes => QuarterTurns is 1 or 3;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         Extent innerSpace = SwapsAxes
             ? new Extent(availableSpace.Height, availableSpace.Width)
             : availableSpace;
 
-        Fit childPlan = Child?.Measure(innerSpace, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
         Extent size = SwapsAxes
             ? new Extent(childPlan.Size.Height, childPlan.Size.Width)
             : childPlan.Size;
 
-        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
@@ -53,9 +53,9 @@ public sealed class TurnBlock : EnclosingBlock
             ? new Extent(availableSpace.Height, availableSpace.Width)
             : availableSpace;
 
-        Fit childPlan = Child.Measure(innerSpace, context.Layout);
+        Fit childPlan = Child.Plan(innerSpace, context.Layout);
 
-        if (childPlan.IsWrap || childPlan.IsEmpty)
+        if (childPlan.IsDeferred || childPlan.IsNothing)
             return;
 
         // Rotation happens about the origin, so translate the rotated content back into the positive quadrant.
@@ -72,7 +72,7 @@ public sealed class TurnBlock : EnclosingBlock
         context.Canvas.Save();
         context.Canvas.Translate(recentre);
         context.Canvas.Rotate(QuarterTurns * 90f);
-        Child.Draw(innerSpace, context);
+        Child.Render(innerSpace, context);
         context.Canvas.Restore();
     }
 }

@@ -29,7 +29,7 @@ public class SkiaPdfCanvasTests
 
     private static readonly Ink Brick = Ink.Rgb(200, 40, 40);
     private static readonly Ink Ocean = Ink.Rgb(10, 120, 230);
-    private static readonly TypeStyle Style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
+    private static readonly TypeStyle Style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
     private const string MathBoldA = "\U0001D400";
@@ -341,7 +341,7 @@ public class SkiaPdfCanvasTests
     public void DrawTextStartsOnTheBaselineAtThePositionGiven()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawText("Baseline", new Offset(40, 120), Style.ColorOf(Brick)));
+            canvas.DrawText("Baseline", new Offset(40, 120), Style.WithInk(Brick)));
 
         Page page = parsed.GetPage(1);
         Letter first = page.Letters[0];
@@ -360,7 +360,7 @@ public class SkiaPdfCanvasTests
     public void DrawTextDrawsNothingThatCouldNotBeSeen(string? text, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawText(text!, new Offset(40, 120), Style.ColorOf(Brick.WithOpacity(alpha / 255f))));
+            canvas.DrawText(text!, new Offset(40, 120), Style.WithInk(Brick.WithOpacity(alpha / 255f))));
 
         Assert.Empty(parsed.GetPage(1).Letters);
     }
@@ -380,7 +380,7 @@ public class SkiaPdfCanvasTests
     [Fact]
     public void LetterSpacingSeparatesCharactersButDoesNotIndentTheFirst()
     {
-        TypeStyle spaced = Style.LetterSpacingOf(6);
+        TypeStyle spaced = Style.WithTracking(6);
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
 
         using PdfDocument parsed = Render(canvas => canvas.DrawText("ABCD", new Offset(40, 120), spaced));
@@ -401,7 +401,7 @@ public class SkiaPdfCanvasTests
     {
         // The pair falls outside Arial, so it is also a separate font run: the gap before "B" proves the spacing
         // count carries on across runs rather than restarting in each.
-        TypeStyle spaced = Style.LetterSpacingOf(6);
+        TypeStyle spaced = Style.WithTracking(6);
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
 
         using PdfDocument parsed = Render(canvas => canvas.DrawText($"A{MathBoldA}B", new Offset(40, 120), spaced));

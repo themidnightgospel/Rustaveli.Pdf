@@ -15,7 +15,7 @@ public sealed class StrokeBlock : EnclosingBlock
 {
     public Sides Width { get; set; } = Sides.Zero;
 
-    public Ink Color { get; set; } = Ink.Black;
+    public Ink Ink { get; set; } = Ink.Black;
 
     /// <summary>
     /// Radius of the corner rounding. Only honoured when every side has the same width, since a rounded corner
@@ -31,16 +31,16 @@ public sealed class StrokeBlock : EnclosingBlock
         && Math.Abs(Width.Top - Width.Right) < Extent.Epsilon
         && Math.Abs(Width.Right - Width.Bottom) < Extent.Epsilon;
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Measure(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Layout);
 
-        if (plan.IsWrap || plan.IsEmpty)
+        if (plan.IsDeferred || plan.IsNothing)
             return;
 
-        Child?.Draw(availableSpace, context);
+        Child?.Render(availableSpace, context);
 
-        if (Color.IsTransparent)
+        if (Ink.IsTransparent)
             return;
 
         // Drawn around the whole box this element occupies (ADR 0012), not around its content's natural extent.
@@ -64,21 +64,21 @@ public sealed class StrokeBlock : EnclosingBlock
                 0,
                 Math.Min(outline.Width, outline.Height) / 2);
 
-            canvas.DrawRoundedRectangle(new Offset(inset, inset), outline, radius, Color, Width.Left);
+            canvas.DrawRoundedRectangle(new Offset(inset, inset), outline, radius, Ink, Width.Left);
 
             return;
         }
 
         if (Width.Left > 0)
-            canvas.DrawRectangle(Offset.Zero, new Extent(Width.Left, size.Height), Color);
+            canvas.DrawRectangle(Offset.Zero, new Extent(Width.Left, size.Height), Ink);
 
         if (Width.Top > 0)
-            canvas.DrawRectangle(Offset.Zero, new Extent(size.Width, Width.Top), Color);
+            canvas.DrawRectangle(Offset.Zero, new Extent(size.Width, Width.Top), Ink);
 
         if (Width.Right > 0)
-            canvas.DrawRectangle(new Offset(size.Width - Width.Right, 0), new Extent(Width.Right, size.Height), Color);
+            canvas.DrawRectangle(new Offset(size.Width - Width.Right, 0), new Extent(Width.Right, size.Height), Ink);
 
         if (Width.Bottom > 0)
-            canvas.DrawRectangle(new Offset(0, size.Height - Width.Bottom), new Extent(size.Width, Width.Bottom), Color);
+            canvas.DrawRectangle(new Offset(0, size.Height - Width.Bottom), new Extent(size.Width, Width.Bottom), Ink);
     }
 }

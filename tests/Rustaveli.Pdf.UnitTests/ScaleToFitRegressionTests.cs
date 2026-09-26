@@ -11,17 +11,17 @@ public class ScaleToFitRegressionTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.False(plan.IsWrap);
-        Assert.True(plan.IsPartialRender);
+        Assert.False(plan.IsDeferred);
+        Assert.True(plan.IsPartial);
     }
 
     [Fact]
     public void LongDocumentContentStillPaginates()
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Content().ShrinkToFit().Element(inner => inner.Child = new SplittableElement(unitCount: 40, unitHeight: 20));
+            page.Trim = new Extent(200, 100);
+            page.Body().ShrinkToFit().Compose(inner => inner.Child = new SplittableElement(unitCount: 40, unitHeight: 20));
         }));
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
@@ -43,7 +43,7 @@ public class ScaleToFitRegressionTests
             LayoutHarness.Measure(bare, space).Size,
             LayoutHarness.Measure(wrapped, space).Size);
 
-        Assert.True(LayoutHarness.Measure(wrapped, space).IsFullRender);
+        Assert.True(LayoutHarness.Measure(wrapped, space).IsComplete);
     }
 
     [Fact]
@@ -51,6 +51,6 @@ public class ScaleToFitRegressionTests
     {
         ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = 0f, Child = new FixedElement(400, 300) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsFullRender);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsComplete);
     }
 }

@@ -26,35 +26,35 @@ public sealed class BandsBlock : Block
         yield return After;
     }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context);
 
         if (bands is null)
-            return Fit.Wrap("The available space is not sufficient for the decoration bands.");
+            return Fit.Defer("The available space is not sufficient for the decoration bands.");
 
         (Extent beforeSize, Extent afterSize) = bands.Value;
         float contentHeight = availableSpace.Height - beforeSize.Height - afterSize.Height;
 
         if (contentHeight < -Extent.Epsilon)
-            return Fit.Wrap("The decoration bands leave no room for the content.");
+            return Fit.Defer("The decoration bands leave no room for the content.");
 
-        Fit contentPlan = Content.Measure(new Extent(availableSpace.Width, contentHeight), context);
+        Fit contentPlan = Content.Plan(new Extent(availableSpace.Width, contentHeight), context);
 
-        if (contentPlan.IsWrap)
+        if (contentPlan.IsDeferred)
             return contentPlan;
 
-        if (contentPlan.IsEmpty)
-            return Fit.Empty();
+        if (contentPlan.IsNothing)
+            return Fit.Nothing();
 
         Extent size = new Extent(
             Math.Max(contentPlan.Size.Width, Math.Max(beforeSize.Width, afterSize.Width)),
             beforeSize.Height + contentPlan.Size.Height + afterSize.Height);
 
-        return contentPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return contentPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context.Layout);
 
@@ -67,22 +67,22 @@ public sealed class BandsBlock : Block
         if (contentHeight < -Extent.Epsilon)
             return;
 
-        Fit contentPlan = Content.Measure(new Extent(availableSpace.Width, contentHeight), context.Layout);
+        Fit contentPlan = Content.Plan(new Extent(availableSpace.Width, contentHeight), context.Layout);
 
-        if (contentPlan.IsWrap || contentPlan.IsEmpty)
+        if (contentPlan.IsDeferred || contentPlan.IsNothing)
             return;
 
         ISurface canvas = context.Canvas;
 
-        Before.Draw(new Extent(availableSpace.Width, beforeSize.Height), context);
+        Before.Render(new Extent(availableSpace.Width, beforeSize.Height), context);
 
         canvas.Translate(new Offset(0, beforeSize.Height));
-        Content.Draw(new Extent(availableSpace.Width, contentHeight), context);
+        Content.Render(new Extent(availableSpace.Width, contentHeight), context);
         canvas.Translate(new Offset(0, -beforeSize.Height));
 
         float afterTop = beforeSize.Height + contentPlan.Size.Height;
         canvas.Translate(new Offset(0, afterTop));
-        After.Draw(new Extent(availableSpace.Width, afterSize.Height), context);
+        After.Render(new Extent(availableSpace.Width, afterSize.Height), context);
         canvas.Translate(new Offset(0, -afterTop));
 
         // The bands repeat on every page, but their content tracks how much of itself it has drawn and would
@@ -93,9 +93,9 @@ public sealed class BandsBlock : Block
 
     private (Extent Before, Extent After)? MeasureBands(Extent availableSpace, PlanContext context)
     {
-        Fit beforePlan = Before.Measure(availableSpace, context);
+        Fit beforePlan = Before.Plan(availableSpace, context);
 
-        if (beforePlan.IsWrap)
+        if (beforePlan.IsDeferred)
             return null;
 
         Extent remaining = new Extent(availableSpace.Width, availableSpace.Height - beforePlan.Size.Height);
@@ -103,9 +103,9 @@ public sealed class BandsBlock : Block
         if (remaining.IsNegative)
             return null;
 
-        Fit afterPlan = After.Measure(remaining, context);
+        Fit afterPlan = After.Plan(remaining, context);
 
-        if (afterPlan.IsWrap)
+        if (afterPlan.IsDeferred)
             return null;
 
         return (beforePlan.Size, afterPlan.Size);

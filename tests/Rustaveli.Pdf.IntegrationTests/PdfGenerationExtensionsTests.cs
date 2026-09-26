@@ -18,19 +18,19 @@ public class PdfGenerationExtensionsTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
     private static Document TextDocument(string text = "Generated") =>
-        Document.Create(container => container.Page(page =>
+        Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Margin = Sides.All(10);
-            page.Content().Text(text);
+            page.Trim = new Extent(200, 200);
+            page.Margins = Sides.All(10);
+            page.Body().Text(text);
         }));
 
     /// <summary>A document whose drawing fails part-way through its only page.</summary>
     private static Document FailingDocument() =>
-        Document.Create(container => container.Page(page =>
+        Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Content().Image(new ForeignImage());
+            page.Trim = new Extent(200, 200);
+            page.Body().Image(new ForeignImage());
         }));
 
     /// <summary>
@@ -38,10 +38,10 @@ public class PdfGenerationExtensionsTests
     /// state, which is the hazard the render gate exists to prevent.
     /// </summary>
     private static Document ShapeDocument() =>
-        Document.Create(container => container.Page(page =>
+        Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Content().Height(50).Placeholder(TestInks.Red);
+            page.Trim = new Extent(200, 200);
+            page.Body().Height(50).Placeholder(TestInks.Red);
         }));
 
     /// <summary>
@@ -49,10 +49,10 @@ public class PdfGenerationExtensionsTests
     /// pausing its render at a point where any gate it passed through is held.
     /// </summary>
     private static Document PausingDocument(ManualResetEventSlim entered, ManualResetEventSlim release) =>
-        Document.Create(container => container.Page(page =>
+        Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Content()
+            page.Trim = new Extent(200, 200);
+            page.Body()
                 .DefaultType(style =>
                 {
                     entered.Set();
@@ -73,16 +73,16 @@ public class PdfGenerationExtensionsTests
         Document? missing = null;
         string path = TempPath();
 
-        Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.GeneratePdf()).ParamName);
-        Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.GeneratePdf(new MemoryStream())).ParamName);
-        Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.GeneratePdf(path)).ParamName);
+        Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.ExportPdf()).ParamName);
+        Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.ExportPdf(new MemoryStream())).ParamName);
+        Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.ExportPdf(path)).ParamName);
         Assert.False(File.Exists(path));
     }
 
     [Fact]
     public void TheStreamOverloadRejectsAMissingStream()
     {
-        ArgumentNullException error = Assert.Throws<ArgumentNullException>(() => TextDocument().GeneratePdf((Stream)null!));
+        ArgumentNullException error = Assert.Throws<ArgumentNullException>(() => TextDocument().ExportPdf((Stream)null!));
 
         Assert.Equal("stream", error.ParamName);
     }
@@ -90,7 +90,7 @@ public class PdfGenerationExtensionsTests
     [Fact]
     public void ThePathOverloadRejectsAMissingPath()
     {
-        ArgumentNullException error = Assert.Throws<ArgumentNullException>(() => TextDocument().GeneratePdf((string)null!));
+        ArgumentNullException error = Assert.Throws<ArgumentNullException>(() => TextDocument().ExportPdf((string)null!));
 
         Assert.Equal("path", error.ParamName);
     }
@@ -99,14 +99,14 @@ public class PdfGenerationExtensionsTests
     public void EveryOverloadProducesTheSameFile()
     {
         Document document = TextDocument();
-        byte[] expected = document.GeneratePdf();
+        byte[] expected = document.ExportPdf();
         string path = TempPath();
 
         try
         {
             using MemoryStream stream = new MemoryStream();
-            document.GeneratePdf(stream);
-            document.GeneratePdf(path);
+            document.ExportPdf(stream);
+            document.ExportPdf(path);
 
             Assert.Equal(expected, stream.ToArray());
             Assert.Equal(expected, File.ReadAllBytes(path));
@@ -124,11 +124,11 @@ public class PdfGenerationExtensionsTests
     public void GeneratingToAStreamAppendsAtItsCurrentPosition()
     {
         Document document = TextDocument();
-        byte[] expected = document.GeneratePdf();
+        byte[] expected = document.ExportPdf();
         using MemoryStream stream = new MemoryStream();
         stream.Write([1, 2, 3], 0, 3);
 
-        document.GeneratePdf(stream);
+        document.ExportPdf(stream);
 
         Assert.Equal(new byte[] { 1, 2, 3 }.Concat(expected), stream.ToArray());
     }
@@ -143,9 +143,9 @@ public class PdfGenerationExtensionsTests
         {
             File.WriteAllBytes(path, new byte[1_000_000]);
 
-            document.GeneratePdf(path);
+            document.ExportPdf(path);
 
-            Assert.Equal(document.GeneratePdf(), File.ReadAllBytes(path));
+            Assert.Equal(document.ExportPdf(), File.ReadAllBytes(path));
         }
         finally
         {
@@ -162,7 +162,7 @@ public class PdfGenerationExtensionsTests
         {
             File.WriteAllText(path, "previous contents");
 
-            RenderingException error = Assert.Throws<RenderingException>(() => FailingDocument().GeneratePdf(path));
+            RenderingException error = Assert.Throws<RenderingException>(() => FailingDocument().ExportPdf(path));
 
             Assert.Equal("image", Assert.IsType<ArgumentException>(error.InnerException).ParamName);
             Assert.Equal("previous contents", File.ReadAllText(path));
@@ -178,7 +178,7 @@ public class PdfGenerationExtensionsTests
     {
         using MemoryStream stream = new MemoryStream();
 
-        RenderingException error = Assert.Throws<RenderingException>(() => FailingDocument().GeneratePdf(stream));
+        RenderingException error = Assert.Throws<RenderingException>(() => FailingDocument().ExportPdf(stream));
 
         Assert.IsType<ArgumentException>(error.InnerException);
         Assert.Equal(0, stream.Length);
@@ -193,9 +193,9 @@ public class PdfGenerationExtensionsTests
         Document document = TextDocument();
         using MemoryStream received = new MemoryStream();
 
-        document.GeneratePdf(new ForwardOnlyStream(received));
+        document.ExportPdf(new ForwardOnlyStream(received));
 
-        Assert.Equal(document.GeneratePdf(), received.ToArray());
+        Assert.Equal(document.ExportPdf(), received.ToArray());
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class PdfGenerationExtensionsTests
         // Regression: the same native-callback path turned a stream that throws on Write into a hung process.
         using MemoryStream full = new MemoryStream(new byte[64]);
 
-        Assert.Throws<NotSupportedException>(() => TextDocument().GeneratePdf(full));
+        Assert.Throws<NotSupportedException>(() => TextDocument().ExportPdf(full));
     }
 
     // ---- Options -----------------------------------------------------------------------------------------------
@@ -214,13 +214,13 @@ public class PdfGenerationExtensionsTests
     {
         Document document = TextDocument();
 
-        Assert.Equal(document.GeneratePdf(new PdfExportOptions()), document.GeneratePdf());
+        Assert.Equal(document.ExportPdf(new PdfExportOptions()), document.ExportPdf());
     }
 
     [Fact]
     public void PdfAEmbedsTheConformanceClaim()
     {
-        using PdfDocument parsed = PdfDocument.Open(TextDocument().GeneratePdf(new PdfExportOptions { PdfA = true }));
+        using PdfDocument parsed = PdfDocument.Open(TextDocument().ExportPdf(new PdfExportOptions { PdfA = true }));
 
         Assert.True(parsed.TryGetXmpMetadata(out XmpMetadata? xmp), "PDF/A requires XMP metadata.");
 
@@ -235,7 +235,7 @@ public class PdfGenerationExtensionsTests
     [Fact]
     public void ByDefaultNoConformanceIsClaimed()
     {
-        using PdfDocument parsed = PdfDocument.Open(TextDocument().GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(TextDocument().ExportPdf());
 
         Assert.False(parsed.TryGetXmpMetadata(out _));
         Assert.False(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("OutputIntents")));
@@ -256,14 +256,14 @@ public class PdfGenerationExtensionsTests
         using ManualResetEventSlim entered = new ManualResetEventSlim();
         using ManualResetEventSlim release = new ManualResetEventSlim();
 
-        Task<byte[]> holder = Task.Run(() => PausingDocument(entered, release).GeneratePdf());
+        Task<byte[]> holder = Task.Run(() => PausingDocument(entered, release).ExportPdf());
         Task<byte[]>? queued = null;
 
         try
         {
             Assert.True(entered.Wait(Timeout), "The first render never reached its layout.");
 
-            queued = Task.Run(() => ShapeDocument().GeneratePdf());
+            queued = Task.Run(() => ShapeDocument().ExportPdf());
 
             // Nothing but the gate holds the second render back, so it must still be waiting.
             Task first = await Task.WhenAny(queued, Task.Delay(TimeSpan.FromMilliseconds(500)));
@@ -287,7 +287,7 @@ public class PdfGenerationExtensionsTests
         using ManualResetEventSlim entered = new ManualResetEventSlim();
         using ManualResetEventSlim release = new ManualResetEventSlim();
 
-        Task<byte[]> holder = Task.Run(() => PausingDocument(entered, release).GeneratePdf());
+        Task<byte[]> holder = Task.Run(() => PausingDocument(entered, release).ExportPdf());
         byte[] concurrent;
 
         try
@@ -296,7 +296,7 @@ public class PdfGenerationExtensionsTests
 
             concurrent = await Within(
                 Timeout,
-                Task.Run(() => ShapeDocument().GeneratePdf(new PdfExportOptions { AllowConcurrentRendering = true })),
+                Task.Run(() => ShapeDocument().ExportPdf(new PdfExportOptions { AllowConcurrentRendering = true })),
                 "A render that opted out of the gate still waited for it.");
         }
         finally
@@ -316,14 +316,14 @@ public class PdfGenerationExtensionsTests
     public void WritesEveryDescriptiveField()
     {
         Document document = TextDocument();
-        document.Metadata.Title = "Quarterly Statement";
-        document.Metadata.Author = "Accounts";
-        document.Metadata.Subject = "Balances for the quarter";
-        document.Metadata.Keywords = "statement, quarter";
-        document.Metadata.Creator = "Ledger";
-        document.Metadata.Producer = "Ledger PDF";
+        document.Info.Title = "Quarterly Statement";
+        document.Info.Author = "Accounts";
+        document.Info.Subject = "Balances for the quarter";
+        document.Info.Keywords = "statement, quarter";
+        document.Info.Creator = "Ledger";
+        document.Info.Producer = "Ledger PDF";
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         DocumentInformation information = parsed.Information;
 
         Assert.Equal("Quarterly Statement", information.Title);
@@ -337,7 +337,7 @@ public class PdfGenerationExtensionsTests
     [Fact]
     public void NamesThisLibraryAsProducerUnlessToldOtherwise()
     {
-        using PdfDocument parsed = PdfDocument.Open(TextDocument().GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(TextDocument().ExportPdf());
 
         Assert.Equal("Rustaveli.Pdf", parsed.Information.Producer);
     }
@@ -346,9 +346,9 @@ public class PdfGenerationExtensionsTests
     public void OmitsFieldsThatWereNotSet()
     {
         Document document = TextDocument();
-        document.Metadata.Producer = null;
+        document.Info.Producer = null;
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         DocumentInformation information = parsed.Information;
 
         Assert.Null(information.Title);
@@ -378,10 +378,10 @@ public class PdfGenerationExtensionsTests
         double tolerance = Math.Abs(localOffset.Minutes);
 
         Document document = TextDocument();
-        document.Metadata.CreationDate = created;
-        document.Metadata.ModificationDate = modified;
+        document.Info.CreationDate = created;
+        document.Info.ModificationDate = modified;
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         DateTimeOffset? writtenCreated = parsed.Information.GetCreatedDateTimeOffset();
         DateTimeOffset? writtenModified = parsed.Information.GetModifiedDateTimeOffset();
 

@@ -10,5 +10,5 @@ public enum LengthUnit
     Centimetre,
     Metre,
     Inch,
-    Feet
+    Foot
 }

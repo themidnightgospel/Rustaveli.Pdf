@@ -29,10 +29,10 @@ public class ImageEncodingTests
     }
 
     private static Document DocumentWithImage(byte[] png) =>
-        Document.Create(container => container.Page(page =>
+        Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Content().Image(SkiaImage.FromBytes(png));
+            page.Trim = new Extent(200, 200);
+            page.Body().Image(SkiaImage.FromBytes(png));
         }));
 
     [Fact]
@@ -42,7 +42,7 @@ public class ImageEncodingTests
         // a valid JPEG quality rather than an unset marker. Every opaque non-JPEG image was re-encoded at the
         // worst quality the format allows — catastrophic for the logos, charts and barcodes that dominate the
         // library's use cases, and invisible to any structural PDF checker.
-        byte[] pdf = DocumentWithImage(FlatColourPng()).GeneratePdf();
+        byte[] pdf = DocumentWithImage(FlatColourPng()).ExportPdf();
 
         Assert.DoesNotContain("/DCTDecode", Encoding.Latin1.GetString(pdf), StringComparison.Ordinal);
     }
@@ -52,7 +52,7 @@ public class ImageEncodingTests
     {
         // The lossless default must be a choice the caller can reverse, not a hard-coded policy.
         byte[] pdf = DocumentWithImage(FlatColourPng())
-            .GeneratePdf(new PdfExportOptions { EncodingQuality = 40 });
+            .ExportPdf(new PdfExportOptions { EncodingQuality = 40 });
 
         Assert.Contains("/DCTDecode", Encoding.Latin1.GetString(pdf), StringComparison.Ordinal);
     }

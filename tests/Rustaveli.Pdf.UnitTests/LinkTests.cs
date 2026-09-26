@@ -31,8 +31,8 @@ public class LinkTests
     }
 
     [Theory]
-    [InlineData(FitKind.Wrap)]
-    [InlineData(FitKind.Empty)]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
     public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
@@ -70,8 +70,8 @@ public class LinkTests
     }
 
     [Theory]
-    [InlineData(FitKind.Wrap)]
-    [InlineData(FitKind.Empty)]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
     public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
@@ -90,21 +90,21 @@ public class LinkTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(50, 20), plan.Size);
     }
 
     [Fact]
     public void ASectionLinkReachesItsSectionAcrossPages()
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Content().Column(column =>
+            page.Trim = new Extent(200, 100);
+            page.Body().Stack(column =>
             {
-                column.Item().CrossReference("appendix").Text("See the appendix");
-                column.Item().NewPage();
-                column.Item().Anchor("appendix").Text("Appendix");
+                column.Add().CrossReference("appendix").Text("See the appendix");
+                column.Add().NewPage();
+                column.Add().Anchor("appendix").Text("Appendix");
             });
         }));
 

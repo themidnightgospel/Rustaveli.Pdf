@@ -32,7 +32,7 @@ public class UnitTests
     [InlineData(LengthUnit.Centimetre, 56.69291f)]
     [InlineData(LengthUnit.Metre, 5669.291f)]
     [InlineData(LengthUnit.Inch, 144f)]
-    [InlineData(LengthUnit.Feet, 1728f)]
+    [InlineData(LengthUnit.Foot, 1728f)]
     public void ConvertsTwoOfEachUnitToPoints(LengthUnit unit, float expectedPoints)
     {
         Approximately.Equal(expectedPoints, 2f.ToPoints(unit));

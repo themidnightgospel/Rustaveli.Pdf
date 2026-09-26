@@ -26,7 +26,7 @@ public class ConstrainedTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsWrap);
+        Assert.True(plan.IsDeferred);
     }
 
     [Fact]
@@ -36,8 +36,8 @@ public class ConstrainedTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("minimum height", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("minimum height", plan.DeferReason);
     }
 
     [Fact]
@@ -58,17 +58,17 @@ public class ConstrainedTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("minimum width", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("minimum width", plan.DeferReason);
     }
 
     [Fact]
     public void ReportsEmptyForAnExhaustedChildDespiteAMinimum()
     {
         // A minimum describes the content's box; once the content is gone there is no box left to hold open.
-        ConstraintBlock element = new ConstraintBlock { MinWidth = 50, MinHeight = 40, Child = new ScriptedElement(Fit.Empty()) };
+        ConstraintBlock element = new ConstraintBlock { MinWidth = 50, MinHeight = 40, Child = new ScriptedElement(Fit.Nothing()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsNothing);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class ConstrainedTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(10, 60), plan.Size);
     }
 
@@ -89,7 +89,7 @@ public class ConstrainedTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(50, 20), plan.Size);
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }

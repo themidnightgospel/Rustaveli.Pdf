@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.Fluent;
 public sealed class TextComposer(TextBlock element)
 {
     /// <summary>Appends a run of text.</summary>
-    public RunComposer Span(string text)
+    public RunComposer Run(string text)
     {
         return Add(new TextRun
         {
@@ -29,7 +29,7 @@ public sealed class TextComposer(TextBlock element)
     }
 
     /// <summary>Appends a blank line.</summary>
-    public void EmptyLine()
+    public void BlankLine()
     {
         Add(new TextRun
         {
@@ -38,7 +38,7 @@ public sealed class TextComposer(TextBlock element)
     }
 
     /// <summary>Appends the number of the page this text is drawn on.</summary>
-    public RunComposer CurrentPageNumber()
+    public RunComposer Folio()
     {
         return Add(new TextRun
         {
@@ -50,7 +50,7 @@ public sealed class TextComposer(TextBlock element)
     /// Appends the total number of pages in the document. Resolves to a provisional value during the counting
     /// pass and to the true total when the document is drawn.
     /// </summary>
-    public RunComposer TotalPages()
+    public RunComposer PageCount()
     {
         return Add(new TextRun
         {
@@ -59,7 +59,7 @@ public sealed class TextComposer(TextBlock element)
     }
 
     /// <summary>Appends the page number a named section resolved to, or "?" if it has not been reached yet.</summary>
-    public RunComposer PageNumberOfSection(string sectionName)
+    public RunComposer FolioOf(string sectionName)
     {
         return Add(new TextRun
         {
@@ -94,7 +94,7 @@ public sealed class TextComposer(TextBlock element)
     /// The element behaves as one unbreakable word: it rests on the baseline, moves to the next line whole if it
     /// does not fit, and raises the line it lands on to accommodate its height.
     /// </remarks>
-    public void Element(Action<IFrame> handler)
+    public void Inline(Action<IFrame> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         Frame container = new Frame();
@@ -115,7 +115,7 @@ public sealed class TextComposer(TextBlock element)
     }
 
     /// <summary>Inserts a vertical gap before every paragraph after the first.</summary>
-    public void ParagraphSpacing(float spacing)
+    public void SpaceBetweenParagraphs(float spacing)
     {
         element.ParagraphSpacing = spacing;
     }

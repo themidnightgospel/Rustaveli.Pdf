@@ -39,7 +39,7 @@ public class ExtendTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(200, 0), plan.Size);
     }
 
@@ -61,10 +61,10 @@ public class ExtendTests
         {
             ExtendHorizontal = true,
             ExtendVertical = true,
-            Child = new ScriptedElement(Fit.Empty())
+            Child = new ScriptedElement(Fit.Nothing())
         };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsNothing);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class ExtendTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 70));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(200, 60), plan.Size);
     }
 }

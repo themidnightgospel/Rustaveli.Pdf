@@ -11,16 +11,16 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </remarks>
 public sealed class ScriptedElement(Fit plan) : Block
 {
-    /// <summary>The space offered on each call to <see cref="Draw"/>, in order.</summary>
+    /// <summary>The space offered on each call to <see cref="Render"/>, in order.</summary>
     public List<Extent> DrawnWith { get; } = [];
 
     /// <summary>
-    /// A child with nothing to show here: one that does not fit (<see cref="FitKind.Wrap"/>) or one that has\n    /// already finished (<see cref="FitKind.Empty"/>).
+    /// A child with nothing to show here: one that does not fit (<see cref="FitKind.Defer"/>) or one that has\n    /// already finished (<see cref="FitKind.Nothing"/>).
     /// </summary>
     public static ScriptedElement WithNothingToDraw(FitKind outcome) =>
-        new(outcome == FitKind.Wrap ? Fit.Wrap("The scripted element does not fit.") : Fit.Empty());
+        new(outcome == FitKind.Defer ? Fit.Defer("The scripted element does not fit.") : Fit.Nothing());
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) => plan;
+    public override Fit Plan(Extent availableSpace, PlanContext context) => plan;
 
-    public override void Draw(Extent availableSpace, RenderContext context) => DrawnWith.Add(availableSpace);
+    public override void Render(Extent availableSpace, RenderContext context) => DrawnWith.Add(availableSpace);
 }

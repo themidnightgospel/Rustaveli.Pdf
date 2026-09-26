@@ -18,15 +18,15 @@ public sealed class OnceBlock : EnclosingBlock
 
     protected override void ResetOwnState() => _hasRendered = false;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        _hasRendered ? Fit.Empty() : base.Measure(availableSpace, context);
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        _hasRendered ? Fit.Nothing() : base.Plan(availableSpace, context);
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (_hasRendered)
             return;
 
-        base.Draw(availableSpace, context);
+        base.Render(availableSpace, context);
         _hasRendered = true;
     }
 }

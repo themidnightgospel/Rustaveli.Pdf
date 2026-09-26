@@ -45,7 +45,7 @@ public static class FrameModifiers
     // ---- Painting ------------------------------------------------------------------------------------------
 
     public static IFrame Fill(this IFrame parent, Ink color) =>
-        Attach(parent, new FillBlock { Color = color });
+        Attach(parent, new FillBlock { Ink = color });
 
     public static IFrame Fill(this IFrame parent, string hexColor) =>
         parent.Fill(Ink.Hex(hexColor));
@@ -73,7 +73,7 @@ public static class FrameModifiers
         if (parent is not StrokeBlock border)
             throw new InvalidOperationException("BorderColor must be applied directly after a Border method.");
 
-        border.Color = color;
+        border.Ink = color;
         return border;
     }
 
@@ -140,7 +140,7 @@ public static class FrameModifiers
     public static IFrame ExpandVertically(this IFrame parent) =>
         Attach(parent, new ExpandBlock { ExtendVertical = true });
 
-    public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit option = ProportionFit.FitWidth) =>
+    public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit option = ProportionFit.Width) =>
         Attach(parent, new ProportionBlock { Ratio = ratio, Option = option });
 
     /// <summary>Shrinks the content just enough to fit the space available.</summary>
@@ -273,15 +273,15 @@ public static class FrameModifiers
 
     /// <summary>Draws a horizontal rule across the available width.</summary>
     public static void Rule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
-        Attach(parent, new RuleBlock { Thickness = thickness, Color = color ?? Ink.Black });
+        Attach(parent, new RuleBlock { Thickness = thickness, Ink = color ?? Ink.Black });
 
     /// <summary>Draws a vertical rule down the available height.</summary>
     public static void VerticalRule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
-        Attach(parent, new VerticalRuleBlock { Thickness = thickness, Color = color ?? Ink.Black });
+        Attach(parent, new VerticalRuleBlock { Thickness = thickness, Ink = color ?? Ink.Black });
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
     public static void Placeholder(this IFrame parent, Ink? color = null) =>
-        Attach(parent, new PlaceholderBlock { Color = color ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+        Attach(parent, new PlaceholderBlock { Ink = color ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
 
     // ---- Links ---------------------------------------------------------------------------------------------
 

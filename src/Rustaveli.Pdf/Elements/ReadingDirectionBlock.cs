@@ -14,9 +14,9 @@ public sealed class ReadingDirectionBlock : EnclosingBlock
 {
     public ReadingDirection Direction { get; set; } = ReadingDirection.LeftToRight;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        context.WithDirection(Direction, () => base.Measure(availableSpace, context));
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        context.WithDirection(Direction, () => base.Plan(availableSpace, context));
 
-    public override void Draw(Extent availableSpace, RenderContext context) =>
-        context.Layout.WithDirection(Direction, () => base.Draw(availableSpace, context));
+    public override void Render(Extent availableSpace, RenderContext context) =>
+        context.Layout.WithDirection(Direction, () => base.Render(availableSpace, context));
 }

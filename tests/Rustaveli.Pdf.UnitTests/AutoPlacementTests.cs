@@ -9,10 +9,10 @@ public class AutoPlacementTests
     {
         Block root = LayoutHarness.Build(container => container.Table(table =>
         {
-            table.ColumnsDefinition(definition =>
+            table.Columns(definition =>
             {
                 for (int index = 0; index < columns; index++)
-                    definition.RelativeColumn();
+                    definition.Share();
             });
 
             cells(table);
@@ -32,7 +32,7 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Row(1).Column(1);
+            table.Cell().AtRow(1).AtColumn(1);
             table.Cell();
             table.Cell();
         });
@@ -45,7 +45,7 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Row(1).Column(2);
+            table.Cell().AtRow(1).AtColumn(2);
             table.Cell();
             table.Cell();
         });
@@ -60,7 +60,7 @@ public class AutoPlacementTests
         {
             table.Cell();
             table.Cell();
-            table.Cell().ColumnSpan(2);
+            table.Cell().SpanColumns(2);
         });
 
         // Column three is free, but a two-column span starting there would run past the grid.
@@ -72,8 +72,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(4, table =>
         {
-            table.Cell().Row(1).Column(2);
-            table.Cell().ColumnSpan(2);
+            table.Cell().AtRow(1).AtColumn(2);
+            table.Cell().SpanColumns(2);
             table.Cell();
         });
 
@@ -87,7 +87,7 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().RowSpan(2);
+            table.Cell().SpanRows(2);
             table.Cell();
             table.Cell();
         });
@@ -100,8 +100,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(3, table =>
         {
-            table.Cell().Row(1).Column(1);
-            table.Cell().Row(1);
+            table.Cell().AtRow(1).AtColumn(1);
+            table.Cell().AtRow(1);
         });
 
         Assert.Equal(new[] { (1, 1), (1, 2) }, slots);
@@ -112,8 +112,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Row(2);
-            table.Cell().Row(2);
+            table.Cell().AtRow(2);
+            table.Cell().AtRow(2);
         });
 
         Assert.Equal(new[] { (2, 1), (2, 2) }, slots);
@@ -124,8 +124,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(4, table =>
         {
-            table.Cell().Row(1).Column(2);
-            table.Cell().Row(1).ColumnSpan(2);
+            table.Cell().AtRow(1).AtColumn(2);
+            table.Cell().AtRow(1).SpanColumns(2);
         });
 
         // Column one is free but too narrow on its own, and column two is taken.
@@ -137,8 +137,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Row(2).Column(1);
-            table.Cell().Row(1).RowSpan(2);
+            table.Cell().AtRow(2).AtColumn(1);
+            table.Cell().AtRow(1).SpanRows(2);
         });
 
         Assert.Equal(new[] { (2, 1), (1, 2) }, slots);
@@ -149,10 +149,10 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(3, table =>
         {
-            table.Cell().Row(1).Column(1);
-            table.Cell().Row(1).Column(2);
-            table.Cell().Row(1).Column(3);
-            table.Cell().Row(1).ColumnSpan(2);
+            table.Cell().AtRow(1).AtColumn(1);
+            table.Cell().AtRow(1).AtColumn(2);
+            table.Cell().AtRow(1).AtColumn(3);
+            table.Cell().AtRow(1).SpanColumns(2);
         });
 
         // No slot is free, so the cell settles on the last column its span still fits from rather than being
@@ -165,8 +165,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Row(1).Column(2);
-            table.Cell().Column(2);
+            table.Cell().AtRow(1).AtColumn(2);
+            table.Cell().AtColumn(2);
         });
 
         Assert.Equal(new[] { (1, 2), (2, 2) }, slots);
@@ -177,7 +177,7 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Column(2);
+            table.Cell().AtColumn(2);
             table.Cell();
         });
 
@@ -189,8 +189,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Column(1);
-            table.Cell().Row(1);
+            table.Cell().AtColumn(1);
+            table.Cell().AtRow(1);
         });
 
         // Row-only cells are resolved first, so the column-only cell declared before it still gives way.
@@ -202,8 +202,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
-            table.Cell().Row(1).Column(2);
-            table.Cell().Column(1).ColumnSpan(2);
+            table.Cell().AtRow(1).AtColumn(2);
+            table.Cell().AtColumn(1).SpanColumns(2);
         });
 
         Assert.Equal(new[] { (1, 2), (2, 1) }, slots);
@@ -214,8 +214,8 @@ public class AutoPlacementTests
     {
         IEnumerable<(int Row, int Column)> slots = Place(1, table =>
         {
-            table.Cell().Row(2).Column(1);
-            table.Cell().Column(1).RowSpan(2);
+            table.Cell().AtRow(2).AtColumn(1);
+            table.Cell().AtColumn(1).SpanRows(2);
         });
 
         // Rows one and three are free, but a two-row span starting at either would cross row two.
@@ -228,9 +228,9 @@ public class AutoPlacementTests
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
             table.Cell();
-            table.Cell().Row(1);
-            table.Cell().Column(1);
-            table.Cell().Row(2).Column(2);
+            table.Cell().AtRow(1);
+            table.Cell().AtColumn(1);
+            table.Cell().AtRow(2).AtColumn(2);
             table.Cell();
         });
 
@@ -242,7 +242,7 @@ public class AutoPlacementTests
     {
         TableElement table = Compose(2, descriptor =>
         {
-            descriptor.Header(header =>
+            descriptor.HeaderRows(header =>
             {
                 header.Cell();
                 header.Cell();
@@ -252,7 +252,7 @@ public class AutoPlacementTests
             descriptor.Cell();
             descriptor.Cell();
 
-            descriptor.Footer(footer =>
+            descriptor.FooterRows(footer =>
             {
                 footer.Cell();
                 footer.Cell();

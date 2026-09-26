@@ -16,31 +16,31 @@ public sealed class PlacementBlock : EnclosingBlock
 
     public VerticalPlacement? Vertical { get; set; }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
-        Fit childPlan = Child?.Measure(availableSpace, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
         Extent size = new Extent(
             Horizontal.HasValue ? availableSpace.Width : childPlan.Size.Width,
             Vertical.HasValue ? availableSpace.Height : childPlan.Size.Height);
 
-        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
 
-        Fit childPlan = Child.Measure(availableSpace, context.Layout);
+        Fit childPlan = Child.Plan(availableSpace, context.Layout);
 
-        if (childPlan.IsWrap || childPlan.IsEmpty)
+        if (childPlan.IsDeferred || childPlan.IsNothing)
             return;
 
         Offset offset = new Offset(
@@ -53,7 +53,7 @@ public sealed class PlacementBlock : EnclosingBlock
         // instead, content that positions itself — right-aligned or right-to-left text — would be offset a second
         // time, off the far edge. Text re-wrapped at its own measured width reproduces the same lines: every line
         // already fits, and none can take a word more than it did in the wider box.
-        Child.Draw(childPlan.Size, context);
+        Child.Render(childPlan.Size, context);
 
         context.Canvas.Translate(offset.Reverse());
     }

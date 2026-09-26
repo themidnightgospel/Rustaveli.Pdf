@@ -23,7 +23,7 @@ public static class PdfExport
     /// </remarks>
     private static readonly object RenderGate = new object();
 
-    public static byte[] GeneratePdf(this Document document, PdfExportOptions? options = null)
+    public static byte[] ExportPdf(this Document document, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document, "document");
         if (options == null)
@@ -54,10 +54,10 @@ public static class PdfExport
     /// anything failed part-way — Skia closes the document as it unwinds, so the result looks complete. Building
     /// the whole file first means a failed render leaves the target untouched.
     /// </remarks>
-    public static void GeneratePdf(this Document document, string path, PdfExportOptions? options = null)
+    public static void ExportPdf(this Document document, string path, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(path, "path");
-        byte[] bytes = document.GeneratePdf(options);
+        byte[] bytes = document.ExportPdf(options);
         File.WriteAllBytes(path, bytes);
     }
 
@@ -71,17 +71,17 @@ public static class PdfExport
     /// the call. Rendering into memory first keeps every such failure an ordinary exception, and means a failed
     /// render writes nothing rather than a truncated document.
     /// </remarks>
-    public static void GeneratePdf(this Document document, Stream stream, PdfExportOptions? options = null)
+    public static void ExportPdf(this Document document, Stream stream, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document, "document");
         ArgumentNullException.ThrowIfNull(stream, "stream");
-        byte[] bytes = document.GeneratePdf(options);
+        byte[] bytes = document.ExportPdf(options);
         stream.Write(bytes, 0, bytes.Length);
     }
 
     private static void RenderTo(Stream stream, Document document, SkiaFontProvider fonts, PdfExportOptions options)
     {
-        SKDocumentPdfMetadata metadata = BuildMetadata(document.Metadata, options);
+        SKDocumentPdfMetadata metadata = BuildMetadata(document.Info, options);
         using SKDocument sKDocument = SKDocument.CreatePdf(stream, metadata) ?? throw new InvalidOperationException("Skia could not create a PDF document for the supplied stream.");
         using SkiaPdfCanvas canvas = new SkiaPdfCanvas(sKDocument, fonts);
         DocumentRenderer.Render(document, canvas, new SkiaTextMeasurer(fonts));

@@ -143,7 +143,7 @@ public class RowTests
 
         Fit plan = LayoutHarness.Measure(row, new Extent(200, 60));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class RowTests
 
         Fit plan = LayoutHarness.Measure(row, new Extent(200, 100));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(Extent.Zero, plan.Size);
         Assert.Empty(LayoutHarness.Draw(row, new Extent(200, 100)).Operations);
     }
@@ -170,7 +170,7 @@ public class RowTests
 
         Fit plan = LayoutHarness.Measure(row, new Extent(availableWidth, 100));
 
-        Assert.Equal(wraps, plan.IsWrap);
+        Assert.Equal(wraps, plan.IsDeferred);
     }
 
     [Fact]
@@ -190,8 +190,8 @@ public class RowTests
     public void DrawsEveryItemAtTheRowsHeight()
     {
         // Cell backgrounds and borders only line up if a short item is given the tall item's height.
-        ScriptedElement shortItem = new ScriptedElement(Fit.FullRender(10, 20));
-        ScriptedElement tallItem = new ScriptedElement(Fit.FullRender(10, 45));
+        ScriptedElement shortItem = new ScriptedElement(Fit.Complete(10, 20));
+        ScriptedElement tallItem = new ScriptedElement(Fit.Complete(10, 45));
         ColumnsBlock row = Row(0, Item(ColumnSizing.Relative, 1, shortItem), Item(ColumnSizing.Relative, 1, tallItem));
 
         // Offered exactly the row's own height, so the answer does not depend on who decides it.
@@ -211,7 +211,7 @@ public class RowTests
         Extent space = new Extent(200, 60);
         LayoutHarness.Draw(row, space);
 
-        Assert.True(LayoutHarness.Measure(row, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(row, space).IsNothing);
         Assert.Empty(LayoutHarness.Draw(row, space).Operations);
     }
 
@@ -239,6 +239,6 @@ public class RowTests
             Item(ColumnSizing.Auto, 0, new FixedElement(30, 500)),
             Item(ColumnSizing.Relative, 1, new FixedElement(10, 10)));
 
-        Assert.True(LayoutHarness.Measure(row, new Extent(200, 100)).IsWrap);
+        Assert.True(LayoutHarness.Measure(row, new Extent(200, 100)).IsDeferred);
     }
 }

@@ -61,10 +61,10 @@ public class AlignmentTests
         {
             Horizontal = HorizontalPlacement.Center,
             Vertical = VerticalPlacement.Middle,
-            Child = new ScriptedElement(Fit.Empty())
+            Child = new ScriptedElement(Fit.Nothing())
         };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsNothing);
     }
 
     [Fact]
@@ -78,13 +78,13 @@ public class AlignmentTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 70));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(200, 60), plan.Size);
     }
 
     [Theory]
-    [InlineData(FitKind.Wrap)]
-    [InlineData(FitKind.Empty)]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
     public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
@@ -99,7 +99,7 @@ public class AlignmentTests
     public void CombinesBothAxesIntoOneElement()
     {
         // Chaining must not nest two aligners, or the inner one would receive an already-collapsed box.
-        Block root = LayoutHarness.Build(container => container.FlushRight().Middle().Element(inner =>
+        Block root = LayoutHarness.Build(container => container.FlushRight().Middle().Compose(inner =>
             inner.Child = new FixedElement(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));

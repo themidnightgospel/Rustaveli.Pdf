@@ -75,7 +75,7 @@ public class TransformTests
     {
         ScaleBlock element = new ScaleBlock { ScaleX = scaleX, ScaleY = scaleY, Child = new FixedElement(10, 10) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsDeferred);
     }
 
     [Theory]
@@ -107,7 +107,7 @@ public class TransformTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(Extent.Zero, plan.Size);
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
@@ -127,9 +127,9 @@ public class TransformTests
     [Fact]
     public void ScaleReportsEmptyForAnExhaustedChild()
     {
-        ScaleBlock element = new ScaleBlock { ScaleX = 2f, ScaleY = 2f, Child = new ScriptedElement(Fit.Empty()) };
+        ScaleBlock element = new ScaleBlock { ScaleX = 2f, ScaleY = 2f, Child = new ScriptedElement(Fit.Nothing()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsNothing);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class TransformTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(5, 90), plan.Size);
     }
 
@@ -160,7 +160,7 @@ public class TransformTests
         TurnBlock element = new TurnBlock { QuarterTurns = 2, Child = new FixedElement(100, 10) };
 
         Approximately.Equal(new Extent(100, 10), LayoutHarness.Measure(element, new Extent(200, 200)).Size);
-        Assert.True(LayoutHarness.Measure(element, new Extent(50, 200)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(50, 200)).IsDeferred);
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public class TransformTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(Extent.Zero, plan.Size);
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
@@ -190,9 +190,9 @@ public class TransformTests
     [Fact]
     public void RotateReportsEmptyForAnExhaustedChild()
     {
-        TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = new ScriptedElement(Fit.Empty()) };
+        TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = new ScriptedElement(Fit.Nothing()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 200)).IsNothing);
     }
 
     [Fact]
@@ -203,13 +203,13 @@ public class TransformTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(70, 200));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(60, 20), plan.Size);
     }
 
     [Theory]
-    [InlineData(FitKind.Wrap)]
-    [InlineData(FitKind.Empty)]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
     public void RotateDoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
@@ -225,7 +225,7 @@ public class TransformTests
     [InlineData(3)]
     public void AQuarterTurnDrawsTheChildWithItsAxesSwapped(int quarterTurns)
     {
-        ScriptedElement child = new ScriptedElement(Fit.FullRender(100, 10));
+        ScriptedElement child = new ScriptedElement(Fit.Complete(100, 10));
         TurnBlock element = new TurnBlock { QuarterTurns = quarterTurns, Child = child };
 
         LayoutHarness.Draw(element, new Extent(50, 200));

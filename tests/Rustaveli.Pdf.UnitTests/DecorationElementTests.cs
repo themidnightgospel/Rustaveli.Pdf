@@ -14,9 +14,9 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 15, TestInks.Red));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 20, TestInks.Blue));
-            decoration.After().Element(container => container.Child = new FixedElement(10, 25, TestInks.Green));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 15, TestInks.Red));
+            decoration.Body().Compose(container => container.Child = new FixedElement(10, 20, TestInks.Blue));
+            decoration.Foot().Compose(container => container.Child = new FixedElement(10, 25, TestInks.Green));
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
@@ -32,9 +32,9 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 15));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 20));
-            decoration.After().Element(container => container.Child = new FixedElement(10, 25));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 15));
+            decoration.Body().Compose(container => container.Child = new FixedElement(10, 20));
+            decoration.Foot().Compose(container => container.Child = new FixedElement(10, 25));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
@@ -47,13 +47,13 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 10));
-            decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 10));
+            decoration.Body().Compose(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
     }
 
     [Fact]
@@ -63,8 +63,8 @@ public class DecorationElementTests
         // rather than being consumed on the first.
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Text("Continued");
-            decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
+            decoration.Head().Text("Continued");
+            decoration.Body().Compose(container => container.Child = new SplittableElement(unitCount: 4, unitHeight: 20));
         });
 
         Extent space = new Extent(200, 52);
@@ -81,9 +81,9 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(80, 10));
-            decoration.Content().Element(container => container.Child = new FixedElement(50, 20));
-            decoration.After().Element(container => container.Child = new FixedElement(120, 5));
+            decoration.Head().Compose(container => container.Child = new FixedElement(80, 10));
+            decoration.Body().Compose(container => container.Child = new FixedElement(50, 20));
+            decoration.Foot().Compose(container => container.Child = new FixedElement(120, 5));
         });
 
         Approximately.Equal(120f, LayoutHarness.Measure(element, new Extent(200, 200)).Size.Width);
@@ -92,15 +92,15 @@ public class DecorationElementTests
     [Fact]
     public void HandsEachPartTheSpaceLeftForIt()
     {
-        ScriptedElement before = new ScriptedElement(Fit.FullRender(10, 15));
-        ScriptedElement content = new ScriptedElement(Fit.FullRender(10, 20));
-        ScriptedElement after = new ScriptedElement(Fit.FullRender(10, 25));
+        ScriptedElement before = new ScriptedElement(Fit.Complete(10, 15));
+        ScriptedElement content = new ScriptedElement(Fit.Complete(10, 20));
+        ScriptedElement after = new ScriptedElement(Fit.Complete(10, 25));
 
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = before);
-            decoration.Content().Element(container => container.Child = content);
-            decoration.After().Element(container => container.Child = after);
+            decoration.Head().Compose(container => container.Child = before);
+            decoration.Body().Compose(container => container.Child = content);
+            decoration.Foot().Compose(container => container.Child = after);
         });
 
         LayoutHarness.Draw(element, new Extent(200, 100));
@@ -116,14 +116,14 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 150));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 10));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 150));
+            decoration.Body().Compose(container => container.Child = new FixedElement(10, 10));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("not sufficient", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("not sufficient", plan.DeferReason);
     }
 
     [Fact]
@@ -131,15 +131,15 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 60));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 1));
-            decoration.After().Element(container => container.Child = new FixedElement(10, 60));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 60));
+            decoration.Body().Compose(container => container.Child = new FixedElement(10, 1));
+            decoration.Foot().Compose(container => container.Child = new FixedElement(10, 60));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("not sufficient", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("not sufficient", plan.DeferReason);
     }
 
     [Fact]
@@ -148,12 +148,12 @@ public class DecorationElementTests
         // A custom element can report more than it was offered. The trailing band must not then be measured
         // against a negative remainder.
         BandsBlock element = Build(decoration =>
-            decoration.Before().Element(container => container.Child = new ScriptedElement(Fit.FullRender(10, 150))));
+            decoration.Head().Compose(container => container.Child = new ScriptedElement(Fit.Complete(10, 150))));
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("not sufficient", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("not sufficient", plan.DeferReason);
     }
 
     [Fact]
@@ -161,14 +161,14 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 60));
-            decoration.After().Element(container => container.Child = new ScriptedElement(Fit.FullRender(10, 70)));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 60));
+            decoration.Foot().Compose(container => container.Child = new ScriptedElement(Fit.Complete(10, 70)));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("no room", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("no room", plan.DeferReason);
     }
 
     [Fact]
@@ -176,8 +176,8 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 10));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 200));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 10));
+            decoration.Body().Compose(container => container.Child = new FixedElement(10, 200));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
@@ -192,14 +192,14 @@ public class DecorationElementTests
         // The bands exist to accompany content; on their own they must not claim another page.
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 10));
-            decoration.Content().Element(container => container.Child = new SplittableElement(unitCount: 1, unitHeight: 10));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 10));
+            decoration.Body().Compose(container => container.Child = new SplittableElement(unitCount: 1, unitHeight: 10));
         });
 
         Extent space = new Extent(200, 100);
         LayoutHarness.Draw(element, space);
 
-        Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, space).IsNothing);
         Assert.Empty(LayoutHarness.Draw(element, space).Operations);
     }
 
@@ -208,8 +208,8 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 150, TestInks.Red));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 10, TestInks.Blue));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 150, TestInks.Red));
+            decoration.Body().Compose(container => container.Child = new FixedElement(10, 10, TestInks.Blue));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
@@ -218,12 +218,12 @@ public class DecorationElementTests
     [Fact]
     public void DrawsNothingWhenTheBandsLeaveNoRoomForTheContent()
     {
-        ScriptedElement after = new ScriptedElement(Fit.FullRender(10, 70));
+        ScriptedElement after = new ScriptedElement(Fit.Complete(10, 70));
 
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 60, TestInks.Red));
-            decoration.After().Element(container => container.Child = after);
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 60, TestInks.Red));
+            decoration.Foot().Compose(container => container.Child = after);
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
@@ -235,8 +235,8 @@ public class DecorationElementTests
     {
         BandsBlock element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 10, TestInks.Red));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 200, TestInks.Blue));
+            decoration.Head().Compose(container => container.Child = new FixedElement(10, 10, TestInks.Red));
+            decoration.Body().Compose(container => container.Child = new FixedElement(10, 200, TestInks.Blue));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);

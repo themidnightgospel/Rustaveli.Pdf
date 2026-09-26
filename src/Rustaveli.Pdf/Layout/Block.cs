@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Layout;
 /// The base unit of a document tree: something that can report how much space it needs and then draw itself.
 /// </summary>
 /// <remarks>
-/// Every element must honour one rule: <see cref="Block.Draw" /> may only consume the space that <see cref="Block.Measure" />
+/// Every element must honour one rule: <see cref="Block.Render" /> may only consume the space that <see cref="Block.Plan" />
 /// promised for the same available space. The pagination engine measures first to decide what fits on the current
 /// page, so an element that draws more than it measured will overflow silently.
 /// </remarks>
@@ -22,13 +22,13 @@ public abstract class Block
     /// Reports what this element would do if given <paramref name="availableSpace" />, without drawing anything.
     /// Must not mutate state, because the engine measures speculatively and may discard the result.
     /// </summary>
-    public abstract Fit Measure(Extent availableSpace, PlanContext context);
+    public abstract Fit Plan(Extent availableSpace, PlanContext context);
 
     /// <summary>
     /// Draws the element and advances any internal position so that a subsequent call continues where this one
     /// left off. Called at most once per page.
     /// </summary>
-    public abstract void Draw(Extent availableSpace, RenderContext context);
+    public abstract void Render(Extent availableSpace, RenderContext context);
 
     /// <summary>Direct children, used for tree traversal. Null entries are skipped by callers.</summary>
     public virtual IEnumerable<Block?> GetChildren()

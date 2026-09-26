@@ -6,14 +6,14 @@ public class ListMarkersTests
 
     [Theory]
     [InlineData(ListNumbering.Bullet, 7, Bullet)]
-    [InlineData(ListNumbering.Decimal, 12, "12.")]
-    [InlineData(ListNumbering.LowerLetter, 1, "a.")]
-    [InlineData(ListNumbering.UpperLetter, 26, "Z.")]
-    [InlineData(ListNumbering.UpperLetter, 27, "AA.")]
-    [InlineData(ListNumbering.UpperLetter, 52, "AZ.")]
-    [InlineData(ListNumbering.UpperLetter, 53, "BA.")]
-    [InlineData(ListNumbering.UpperLetter, 702, "ZZ.")]
-    [InlineData(ListNumbering.LowerLetter, 703, "aaa.")]
+    [InlineData(ListNumbering.Arabic, 12, "12.")]
+    [InlineData(ListNumbering.LowerAlpha, 1, "a.")]
+    [InlineData(ListNumbering.UpperAlpha, 26, "Z.")]
+    [InlineData(ListNumbering.UpperAlpha, 27, "AA.")]
+    [InlineData(ListNumbering.UpperAlpha, 52, "AZ.")]
+    [InlineData(ListNumbering.UpperAlpha, 53, "BA.")]
+    [InlineData(ListNumbering.UpperAlpha, 702, "ZZ.")]
+    [InlineData(ListNumbering.LowerAlpha, 703, "aaa.")]
     [InlineData(ListNumbering.UpperRoman, 1994, "MCMXCIV.")]
     [InlineData(ListNumbering.UpperRoman, 3999, "MMMCMXCIX.")]
     [InlineData(ListNumbering.LowerRoman, 49, "xlix.")]
@@ -39,7 +39,7 @@ public class ListMarkersTests
     [InlineData(-5)]
     public void LettersStartAtAForPositionsBelowOne(int position)
     {
-        Assert.Equal("A.", ListMarkers.Format(ListNumbering.UpperLetter, position));
+        Assert.Equal("A.", ListMarkers.Format(ListNumbering.UpperAlpha, position));
     }
 
     [Fact]

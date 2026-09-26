@@ -18,14 +18,14 @@ public sealed class SkipFirstBlock : EnclosingBlock
 
     protected override void ResetOwnState() => _hasSkipped = false;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        _hasSkipped ? base.Measure(availableSpace, context) : Fit.FullRender(Extent.Zero);
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        _hasSkipped ? base.Plan(availableSpace, context) : Fit.Complete(Extent.Zero);
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (_hasSkipped)
         {
-            base.Draw(availableSpace, context);
+            base.Render(availableSpace, context);
             return;
         }
 

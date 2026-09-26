@@ -12,21 +12,21 @@ namespace Rustaveli.Pdf.Elements;
 /// </remarks>
 public sealed class KeepTogetherBlock : EnclosingBlock
 {
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
-        Fit childPlan = base.Measure(availableSpace, context);
+        Fit childPlan = base.Plan(availableSpace, context);
 
-        return childPlan.IsPartialRender
-            ? Fit.Wrap("The content is kept together and does not fit in the remaining space.")
+        return childPlan.IsPartial
+            ? Fit.Defer("The content is kept together and does not fit in the remaining space.")
             : childPlan;
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         // Measure guarantees the parent only draws this when the whole child fits.
-        if (Measure(availableSpace, context.Layout).IsWrap)
+        if (Plan(availableSpace, context.Layout).IsDeferred)
             return;
 
-        base.Draw(availableSpace, context);
+        base.Render(availableSpace, context);
     }
 }

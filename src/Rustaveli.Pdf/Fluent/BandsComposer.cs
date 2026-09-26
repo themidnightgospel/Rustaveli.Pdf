@@ -9,11 +9,11 @@ namespace Rustaveli.Pdf.Fluent;
 public sealed class BandsComposer(BandsBlock element)
 {
     /// <summary>The band drawn above the content on every page.</summary>
-    public IFrame Before() => element.Before;
+    public IFrame Head() => element.Before;
 
     /// <summary>The flowing content between the bands.</summary>
-    public IFrame Content() => element.Content;
+    public IFrame Body() => element.Content;
 
     /// <summary>The band drawn below the content on every page.</summary>
-    public IFrame After() => element.After;
+    public IFrame Foot() => element.After;
 }

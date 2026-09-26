@@ -12,7 +12,7 @@ public sealed class LayersComposer(LayersBlock element)
     public IFrame Layer() => Add(isPrimary: false);
 
     /// <summary>Adds the layer whose size the whole stack adopts. Declare exactly one.</summary>
-    public IFrame PrimaryLayer() => Add(isPrimary: true);
+    public IFrame BaseLayer() => Add(isPrimary: true);
 
     private IFrame Add(bool isPrimary)
     {

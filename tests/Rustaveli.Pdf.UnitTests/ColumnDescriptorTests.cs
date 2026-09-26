@@ -5,15 +5,15 @@ public class ColumnDescriptorTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static void Fill(IFrame container, Ink color) =>
-        container.Element(inner => inner.Child = new FixedElement(10, 20, color));
+        container.Compose(inner => inner.Child = new FixedElement(10, 20, color));
 
     [Fact]
     public void StacksItemsInDeclarationOrder()
     {
-        Block root = LayoutHarness.Build(container => container.Column(column =>
+        Block root = LayoutHarness.Build(container => container.Stack(column =>
         {
-            Fill(column.Item(), TestInks.Red);
-            Fill(column.Item(), TestInks.Blue);
+            Fill(column.Add(), TestInks.Red);
+            Fill(column.Add(), TestInks.Blue);
         }));
 
         List<RectangleOperation> items =
@@ -26,11 +26,11 @@ public class ColumnDescriptorTests
     [Fact]
     public void SpacingSeparatesConsecutiveItems()
     {
-        Block root = LayoutHarness.Build(container => container.Column(column =>
+        Block root = LayoutHarness.Build(container => container.Stack(column =>
         {
-            column.Spacing(10);
-            Fill(column.Item(), TestInks.Red);
-            Fill(column.Item(), TestInks.Blue);
+            column.SpaceBetween(10);
+            Fill(column.Add(), TestInks.Red);
+            Fill(column.Add(), TestInks.Blue);
         }));
 
         Fit plan = LayoutHarness.Measure(root, Space);

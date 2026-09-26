@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.IntegrationTests;
 public class SkiaTextMeasurerTests
 {
     private static readonly SkiaTextMeasurer Measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
-    private static readonly TypeStyle Style = TypeStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
+    private static readonly TypeStyle Style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
     private const string MathBoldA = "\U0001D400";
@@ -50,9 +50,9 @@ public class SkiaTextMeasurerTests
         // is how the same document came to space its words one way on Windows and another on Linux. Windows keeps
         // advances linear even when hinting, so this can only fail where the platform hints them: the Linux leg.
         const string Text = "Paragraph 1. The quick brown fox jumps over the lazy dog";
-        float reference = Measurer.MeasureWidth(Text, Style.FontSizeOf(100));
+        float reference = Measurer.MeasureWidth(Text, Style.WithPointSize(100));
 
-        float width = Measurer.MeasureWidth(Text, Style.FontSizeOf(size));
+        float width = Measurer.MeasureWidth(Text, Style.WithPointSize(size));
 
         Assert.Equal(reference * size / 100f, width, 0.01f);
     }
@@ -88,7 +88,7 @@ public class SkiaTextMeasurerTests
     public void MetricsScaleWithTheFontSize()
     {
         TypeMetrics regular = Measurer.GetMetrics(Style);
-        TypeMetrics doubled = Measurer.GetMetrics(Style.FontSizeOf(40));
+        TypeMetrics doubled = Measurer.GetMetrics(Style.WithPointSize(40));
 
         Assert.Equal(2 * regular.Ascent, doubled.Ascent, 0.02f * doubled.Ascent);
         Assert.Equal(2 * regular.Descent, doubled.Descent, 0.02f * doubled.Descent);
@@ -97,9 +97,9 @@ public class SkiaTextMeasurerTests
     [Fact]
     public void SubscriptAndSuperscriptAreMeasuredAtTheirReducedSize()
     {
-        TypeStyle reduced = Style.FontSizeOf(Style.Superscript().EffectiveFontSize);
+        TypeStyle reduced = Style.WithPointSize(Style.Superscript().EffectivePointSize);
 
-        Assert.True(reduced.FontSize < Style.FontSize, "The premise needs a reduced size to compare against.");
+        Assert.True(reduced.PointSize < Style.PointSize, "The premise needs a reduced size to compare against.");
         Assert.Equal(Measurer.GetMetrics(reduced).Ascent, Measurer.GetMetrics(Style.Superscript()).Ascent, 0.01f);
         Assert.Equal(Measurer.MeasureWidth("x2", reduced), Measurer.MeasureWidth("x2", Style.Subscript()), 0.01f);
     }
@@ -112,7 +112,7 @@ public class SkiaTextMeasurerTests
     public void EmptyTextHasNoWidth(string? text)
     {
         Assert.Equal(0f, Measurer.MeasureWidth(text!, Style));
-        Assert.Equal(0f, Measurer.MeasureWidth(text!, Style.LetterSpacingOf(5)));
+        Assert.Equal(0f, Measurer.MeasureWidth(text!, Style.WithTracking(5)));
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class SkiaTextMeasurerTests
     {
         float regular = Measurer.MeasureWidth("Proportional", Style);
 
-        Assert.Equal(2 * regular, Measurer.MeasureWidth("Proportional", Style.FontSizeOf(40)), 0.01f * regular);
+        Assert.Equal(2 * regular, Measurer.MeasureWidth("Proportional", Style.WithPointSize(40)), 0.01f * regular);
     }
 
     [Fact]
@@ -135,14 +135,14 @@ public class SkiaTextMeasurerTests
     {
         float plain = Measurer.MeasureWidth("ABCD", Style);
 
-        Assert.Equal(plain + 3 * 5, Measurer.MeasureWidth("ABCD", Style.LetterSpacingOf(5)), 0.001f);
-        Assert.Equal(plain - 3 * 1, Measurer.MeasureWidth("ABCD", Style.LetterSpacingOf(-1)), 0.001f);
+        Assert.Equal(plain + 3 * 5, Measurer.MeasureWidth("ABCD", Style.WithTracking(5)), 0.001f);
+        Assert.Equal(plain - 3 * 1, Measurer.MeasureWidth("ABCD", Style.WithTracking(-1)), 0.001f);
     }
 
     [Fact]
     public void ASingleCharacterTakesNoLetterSpacing()
     {
-        Assert.Equal(Measurer.MeasureWidth("A", Style), Measurer.MeasureWidth("A", Style.LetterSpacingOf(5)));
+        Assert.Equal(Measurer.MeasureWidth("A", Style), Measurer.MeasureWidth("A", Style.WithTracking(5)));
     }
 
     [Fact]
@@ -150,13 +150,13 @@ public class SkiaTextMeasurerTests
     {
         string text = "A" + MathBoldA;
 
-        Assert.Equal(Measurer.MeasureWidth(text, Style) + 5, Measurer.MeasureWidth(text, Style.LetterSpacingOf(5)), 0.001f);
+        Assert.Equal(Measurer.MeasureWidth(text, Style) + 5, Measurer.MeasureWidth(text, Style.WithTracking(5)), 0.001f);
     }
 
     [Fact]
     public void TighteningBeyondTheGlyphsThemselvesMeasuresAsNothing()
     {
-        Assert.Equal(0f, Measurer.MeasureWidth("AB", Style.LetterSpacingOf(-1000)));
+        Assert.Equal(0f, Measurer.MeasureWidth("AB", Style.WithTracking(-1000)));
     }
 
     // ---- Fitting -----------------------------------------------------------------------------------------------
@@ -167,7 +167,7 @@ public class SkiaTextMeasurerTests
     public void NothingFitsInNoSpace(float maxWidth)
     {
         Assert.Equal(0, Measurer.MeasureCharactersFitting("Hello", Style, maxWidth));
-        Assert.Equal(0, Measurer.MeasureCharactersFitting("Hello", Style.LetterSpacingOf(5), maxWidth));
+        Assert.Equal(0, Measurer.MeasureCharactersFitting("Hello", Style.WithTracking(5), maxWidth));
     }
 
     [Theory]
@@ -188,7 +188,7 @@ public class SkiaTextMeasurerTests
     public void FittingLetterSpacedTextCountsTheGapsBetweenCharacters()
     {
         // Spacing wider than any glyph, so a gap counted before the first character would lose a whole one.
-        AssertFitsWholeCharacters("Hello", Style.LetterSpacingOf(30), 0, 1, 2, 3, 4, 5);
+        AssertFitsWholeCharacters("Hello", Style.WithTracking(30), 0, 1, 2, 3, 4, 5);
     }
 
     [Fact]
@@ -203,6 +203,6 @@ public class SkiaTextMeasurerTests
         string text = "A" + MathBoldA + "B";
 
         AssertFitsWholeCharacters(text, Style, 0, 1, 3, 4);
-        AssertFitsWholeCharacters(text, Style.LetterSpacingOf(3), 0, 1, 3, 4);
+        AssertFitsWholeCharacters(text, Style.WithTracking(3), 0, 1, 3, 4);
     }
 }

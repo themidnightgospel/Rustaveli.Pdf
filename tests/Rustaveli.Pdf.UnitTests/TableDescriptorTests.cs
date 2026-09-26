@@ -12,17 +12,17 @@ public class TableDescriptorTests
     }
 
     private static void TwoColumns(TableComposer table) =>
-        table.ColumnsDefinition(columns =>
+        table.Columns(columns =>
         {
-            columns.RelativeColumn();
-            columns.RelativeColumn();
+            columns.Share();
+            columns.Share();
         });
 
     public static TheoryData<string, Action<TableComposer>> CallsWithoutAHandler => new()
     {
-        { nameof(TableComposer.ColumnsDefinition), table => table.ColumnsDefinition(null!) },
-        { nameof(TableComposer.Header), table => table.Header(null!) },
-        { nameof(TableComposer.Footer), table => table.Footer(null!) },
+        { nameof(TableComposer.Columns), table => table.Columns(null!) },
+        { nameof(TableComposer.HeaderRows), table => table.HeaderRows(null!) },
+        { nameof(TableComposer.FooterRows), table => table.FooterRows(null!) },
     };
 
     [Theory]
@@ -43,7 +43,7 @@ public class TableDescriptorTests
         CompositionException exception = Assert.Throws<CompositionException>(() => Compose(table =>
         {
             TwoColumns(table);
-            table.Cell().Column(3);
+            table.Cell().AtColumn(3);
         }));
 
         Assert.Equal(
@@ -58,7 +58,7 @@ public class TableDescriptorTests
         CompositionException exception = Assert.Throws<CompositionException>(() => Compose(table =>
         {
             TwoColumns(table);
-            table.Header(header => header.Cell().ColumnSpan(3));
+            table.HeaderRows(header => header.Cell().SpanColumns(3));
         }));
 
         Assert.StartsWith("A header cell occupies columns 1 to 3, but the table declares only 2.", exception.Message);
@@ -70,7 +70,7 @@ public class TableDescriptorTests
         CompositionException exception = Assert.Throws<CompositionException>(() => Compose(table =>
         {
             TwoColumns(table);
-            table.Footer(footer => footer.Cell().Column(2).ColumnSpan(2));
+            table.FooterRows(footer => footer.Cell().AtColumn(2).SpanColumns(2));
         }));
 
         Assert.StartsWith("A footer cell occupies columns 2 to 3, but the table declares only 2.", exception.Message);
@@ -82,7 +82,7 @@ public class TableDescriptorTests
         TableElement table = Compose(descriptor =>
         {
             TwoColumns(descriptor);
-            descriptor.Cell().Column(1).ColumnSpan(2);
+            descriptor.Cell().AtColumn(1).SpanColumns(2);
         });
 
         CellBlock cell = Assert.Single(table.Cells);
@@ -107,7 +107,7 @@ public class TableDescriptorTests
     public void ATableWithoutDeclaredColumnsStillRejectsASecondColumn()
     {
         CompositionException exception = Assert.Throws<CompositionException>(() =>
-            Compose(descriptor => descriptor.Cell().Column(2)));
+            Compose(descriptor => descriptor.Cell().AtColumn(2)));
 
         Assert.StartsWith("A body cell occupies columns 2 to 2, but the table declares only 1.", exception.Message);
     }

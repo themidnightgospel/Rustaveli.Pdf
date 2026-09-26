@@ -79,10 +79,10 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
 
     public void DrawText(string text, Offset baselineStart, TypeStyle style)
     {
-        if (string.IsNullOrEmpty(text) || style.Color.IsTransparent)
+        if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent)
             return;
 
-        using SKPaint paint = CreatePaint(style.Color);
+        using SKPaint paint = CreatePaint(style.Ink);
 
         // Split the same way the measurer did, so a fallback glyph lands exactly where its advance was reserved.
         IReadOnlyList<FontRun> runs = fonts.Split(text, style);
@@ -92,7 +92,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         foreach (FontRun run in runs)
         {
             // The layout engine has already resolved the origin, so text is always drawn left-aligned from it.
-            if (style.LetterSpacing == 0)
+            if (style.Tracking == 0)
             {
                 Canvas.DrawText(run.Text, x, baselineStart.Y, SKTextAlign.Left, run.Font, paint);
                 x += run.Font.MeasureText(run.Text);
@@ -109,7 +109,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
                 string glyph = run.Text.Substring(position, length);
 
                 if (drawnCharacters > 0)
-                    x += style.LetterSpacing;
+                    x += style.Tracking;
 
                 Canvas.DrawText(glyph, x, baselineStart.Y, SKTextAlign.Left, run.Font, paint);
 

@@ -17,12 +17,12 @@ public class LayoutPropertyTests
     private static (Document Document, string Written) Build(TreeNode tree)
     {
         TreeComposer composer = new TreeComposer();
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = PageSize;
-            page.Margin = Sides.All(20);
-            page.DefaultTextStyle = TypeStyle.Default.FontSizeOf(8);
-            composer.Compose(page.Content(), tree);
+            page.Trim = PageSize;
+            page.Margins = Sides.All(20);
+            page.DefaultType = TypeStyle.Default.WithPointSize(8);
+            composer.Compose(page.Body(), tree);
         }));
 
         return (document, composer.WrittenText);
@@ -99,10 +99,10 @@ public class LayoutPropertyTests
 
             Fit first = LayoutHarness.Measure(root, space);
             Fit second = LayoutHarness.Measure(root, space);
-            RecordedPage drawnAfterMeasuring = LayoutHarness.Draw(root, first.IsWrap || first.IsEmpty ? space : first.Size);
+            RecordedPage drawnAfterMeasuring = LayoutHarness.Draw(root, first.IsDeferred || first.IsNothing ? space : first.Size);
 
             Block fresh = LayoutHarness.Build(container => new TreeComposer().Compose(container, tree));
-            RecordedPage drawnFresh = LayoutHarness.Draw(fresh, first.IsWrap || first.IsEmpty ? space : first.Size);
+            RecordedPage drawnFresh = LayoutHarness.Draw(fresh, first.IsDeferred || first.IsNothing ? space : first.Size);
 
             Assert.Equal(first, second);
             Assert.Equal(drawnFresh.Operations, drawnAfterMeasuring.Operations);

@@ -6,36 +6,36 @@ namespace Rustaveli.Pdf.Layout;
 /// The result of measuring an element against a given amount of space.
 /// </summary>
 /// <remarks>
-/// The four outcomes drive pagination. <see cref="FitKind.Wrap" /> asks the engine to retry on a fresh
-/// page; <see cref="FitKind.PartialRender" /> tells it to draw now and come back for the rest. An element
-/// that returns <see cref="FitKind.Wrap" /> on a page that is already empty cannot ever fit, which is how
+/// The four outcomes drive pagination. <see cref="FitKind.Defer" /> asks the engine to retry on a fresh
+/// page; <see cref="FitKind.Partial" /> tells it to draw now and come back for the rest. An element
+/// that returns <see cref="FitKind.Defer" /> on a page that is already empty cannot ever fit, which is how
 /// the engine detects a non-terminating layout instead of looping forever.
 /// </remarks>
 public readonly record struct Fit
 {
-    public FitKind Type { get; }
+    public FitKind Kind { get; }
 
-    /// <summary>The space the element will occupy. Always <see cref="Extent.Zero" /> for <see cref="FitKind.Wrap" />.</summary>
+    /// <summary>The space the element will occupy. Always <see cref="Extent.Zero" /> for <see cref="FitKind.Defer" />.</summary>
 
     public Extent Size { get; }
 
-    /// <summary>Explains why the element could not be drawn. Populated only for <see cref="FitKind.Wrap" />.</summary>
-    public string? WrapReason { get; }
+    /// <summary>Explains why the element could not be drawn. Populated only for <see cref="FitKind.Defer" />.</summary>
+    public string? DeferReason { get; }
 
-    public bool IsWrap => Type == FitKind.Wrap;
+    public bool IsDeferred => Kind == FitKind.Defer;
 
-    public bool IsEmpty => Type == FitKind.Empty;
+    public bool IsNothing => Kind == FitKind.Nothing;
 
-    public bool IsFullRender => Type == FitKind.FullRender;
+    public bool IsComplete => Kind == FitKind.Complete;
 
-    public bool IsPartialRender => Type == FitKind.PartialRender;
+    public bool IsPartial => Kind == FitKind.Partial;
 
     /// <summary>True when the element produced geometry this pass, whether or not anything remains.</summary>
-    public bool DrewSomething
+    public bool PlacesContent
     {
         get
         {
-            FitKind type = Type;
+            FitKind type = Kind;
             if ((uint)(type - 2) <= 1u)
             {
                 return true;
@@ -46,45 +46,45 @@ public readonly record struct Fit
 
     private Fit(FitKind type, Extent size, string? wrapReason)
     {
-        Type = type;
+        Kind = type;
         Size = size;
-        WrapReason = wrapReason;
+        DeferReason = wrapReason;
     }
 
-    public static Fit Empty()
+    public static Fit Nothing()
     {
-        return new Fit(FitKind.Empty, Extent.Zero, null);
+        return new Fit(FitKind.Nothing, Extent.Zero, null);
     }
 
-    public static Fit Wrap(string reason)
+    public static Fit Defer(string reason)
     {
-        return new Fit(FitKind.Wrap, Extent.Zero, reason);
+        return new Fit(FitKind.Defer, Extent.Zero, reason);
     }
 
-    public static Fit PartialRender(Extent size)
+    public static Fit Partial(Extent size)
     {
-        return new Fit(FitKind.PartialRender, size, null);
+        return new Fit(FitKind.Partial, size, null);
     }
 
-    public static Fit PartialRender(float width, float height)
+    public static Fit Partial(float width, float height)
     {
-        return PartialRender(new Extent(width, height));
+        return Partial(new Extent(width, height));
     }
 
-    public static Fit FullRender(Extent size)
+    public static Fit Complete(Extent size)
     {
-        return new Fit(FitKind.FullRender, size, null);
+        return new Fit(FitKind.Complete, size, null);
     }
 
-    public static Fit FullRender(float width, float height)
+    public static Fit Complete(float width, float height)
     {
-        return FullRender(new Extent(width, height));
+        return Complete(new Extent(width, height));
     }
 
-    public override string ToString() => Type switch
+    public override string ToString() => Kind switch
     {
-        FitKind.Wrap => $"Wrap ({WrapReason})",
-        FitKind.Empty => "Empty",
-        _ => $"{Type} {Size}"
+        FitKind.Defer => $"Defer ({DeferReason})",
+        FitKind.Nothing => "Nothing",
+        _ => $"{Kind} {Size}"
     };
 }

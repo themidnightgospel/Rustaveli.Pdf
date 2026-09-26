@@ -8,55 +8,55 @@ namespace Rustaveli.Pdf.Documents;
 /// Configuration and content slots for one run of pages sharing a size and margin.
 /// </summary>
 /// <remarks>
-/// Header and footer are drawn complete on every page and never paginate. Only <see cref="Content"/> flows,
+/// Header and footer are drawn complete on every page and never paginate. Only <see cref="Body"/> flows,
 /// which is what determines how many pages the run produces. Background and foreground ignore margins and cover
 /// the whole sheet, making them the natural home for watermarks.
 /// </remarks>
 public sealed class Section
 {
-    public Extent Size { get; set; } = PaperSizes.A4;
+    public Extent Trim { get; set; } = PaperSizes.A4;
 
-    public Sides Margin { get; set; } = Sides.All(0);
+    public Sides Margins { get; set; } = Sides.All(0);
 
-    public Ink BackgroundColor { get; set; } = Ink.White;
+    public Ink Paper { get; set; } = Ink.White;
 
-    public ReadingDirection Direction { get; set; } = ReadingDirection.LeftToRight;
+    public ReadingDirection ReadingDirection { get; set; } = ReadingDirection.LeftToRight;
 
     /// <summary>Style inherited by any text that does not override it.</summary>
-    public TypeStyle DefaultTextStyle { get; set; } = TypeStyle.Default;
+    public TypeStyle DefaultType { get; set; } = TypeStyle.Default;
 
     /// <summary>
     /// When set, the page grows vertically to fit its content instead of using a fixed height, capped at the
     /// PDF maximum of 14400 points.
     /// </summary>
-    public bool IsContinuous { get; set; }
+    public bool Continuous { get; set; }
 
-    internal Frame HeaderSlot { get; } = new();
+    internal Frame RunningHeadSlot { get; } = new();
 
-    internal Frame ContentSlot { get; } = new();
+    internal Frame BodySlot { get; } = new();
 
-    internal Frame FooterSlot { get; } = new();
+    internal Frame RunningFootSlot { get; } = new();
 
-    internal Frame BackgroundSlot { get; } = new();
+    internal Frame UnderlaySlot { get; } = new();
 
-    internal Frame ForegroundSlot { get; } = new();
+    internal Frame OverlaySlot { get; } = new();
 
-    public IFrame Header() => HeaderSlot;
+    public IFrame RunningHead() => RunningHeadSlot;
 
-    public IFrame Content() => ContentSlot;
+    public IFrame Body() => BodySlot;
 
-    public IFrame Footer() => FooterSlot;
+    public IFrame RunningFoot() => RunningFootSlot;
 
-    public IFrame Background() => BackgroundSlot;
+    public IFrame Underlay() => UnderlaySlot;
 
-    public IFrame Foreground() => ForegroundSlot;
+    public IFrame Overlay() => OverlaySlot;
 
     internal IEnumerable<Block> Slots()
     {
-        yield return HeaderSlot;
-        yield return ContentSlot;
-        yield return FooterSlot;
-        yield return BackgroundSlot;
-        yield return ForegroundSlot;
+        yield return RunningHeadSlot;
+        yield return BodySlot;
+        yield return RunningFootSlot;
+        yield return UnderlaySlot;
+        yield return OverlaySlot;
     }
 }

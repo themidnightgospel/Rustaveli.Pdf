@@ -3,12 +3,12 @@ namespace Rustaveli.Pdf.UnitTests;
 public class RowDescriptorTests
 {
     private static void Fill(IFrame container, float width = 1) =>
-        container.Element(inner => inner.Child = new FixedElement(width, 10));
+        container.Compose(inner => inner.Child = new FixedElement(width, 10));
 
     /// <summary>The left edge of every item's content, across a 200pt row.</summary>
     private static List<float> ItemPositions(Action<ColumnsComposer> compose)
     {
-        Block root = LayoutHarness.Build(container => container.Row(compose));
+        Block root = LayoutHarness.Build(container => container.Columns(compose));
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));
 
         return page.Operations.OfType<RectangleOperation>().Select(rectangle => rectangle.Position.X).ToList();
@@ -19,8 +19,8 @@ public class RowDescriptorTests
     {
         List<float> positions = ItemPositions(row =>
         {
-            Fill(row.RelativeItem(1));
-            Fill(row.RelativeItem(3));
+            Fill(row.Share(1));
+            Fill(row.Share(3));
         });
 
         // Weights 1:3 across 200pt put the second item at 50.
@@ -33,8 +33,8 @@ public class RowDescriptorTests
     {
         List<float> positions = ItemPositions(row =>
         {
-            Fill(row.RelativeItem());
-            Fill(row.RelativeItem());
+            Fill(row.Share());
+            Fill(row.Share());
         });
 
         Approximately.Equal(100f, positions[1]);
@@ -45,8 +45,8 @@ public class RowDescriptorTests
     {
         List<float> positions = ItemPositions(row =>
         {
-            Fill(row.ConstantItem(60));
-            Fill(row.RelativeItem());
+            Fill(row.Fixed(60));
+            Fill(row.Share());
         });
 
         Approximately.Equal(60f, positions[1]);
@@ -57,8 +57,8 @@ public class RowDescriptorTests
     {
         List<float> positions = ItemPositions(row =>
         {
-            Fill(row.AutoItem(), 35);
-            Fill(row.RelativeItem());
+            Fill(row.Natural(), 35);
+            Fill(row.Share());
         });
 
         Approximately.Equal(35f, positions[1]);
@@ -69,9 +69,9 @@ public class RowDescriptorTests
     {
         List<float> positions = ItemPositions(row =>
         {
-            row.Spacing(20);
-            Fill(row.RelativeItem());
-            Fill(row.RelativeItem());
+            row.Gutter(20);
+            Fill(row.Share());
+            Fill(row.Share());
         });
 
         // 200 less 20 of spacing leaves 90 each, so the second item starts at 90 + 20.

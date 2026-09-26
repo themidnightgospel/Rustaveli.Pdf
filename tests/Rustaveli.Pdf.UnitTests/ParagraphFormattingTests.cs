@@ -18,7 +18,7 @@ public class ParagraphFormattingTests
         {
             text.FirstLineIndent(20);
             text.Line("first");
-            text.Span("second");
+            text.Run("second");
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
@@ -35,7 +35,7 @@ public class ParagraphFormattingTests
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
-            text.Span("aaa bbb");
+            text.Run("aaa bbb");
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(24, 500));
@@ -50,9 +50,9 @@ public class ParagraphFormattingTests
     {
         TextBlock element = Text(text =>
         {
-            text.ParagraphSpacing(8);
+            text.SpaceBetweenParagraphs(8);
             text.Line("first");
-            text.Span("second");
+            text.Run("second");
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -66,8 +66,8 @@ public class ParagraphFormattingTests
     {
         TextBlock element = Text(text =>
         {
-            text.ParagraphSpacing(8);
-            text.Span("aaa bbb");
+            text.SpaceBetweenParagraphs(8);
+            text.Run("aaa bbb");
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(24, 500));

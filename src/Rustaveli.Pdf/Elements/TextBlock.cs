@@ -65,7 +65,7 @@ public sealed class TextBlock : Block
         _pinnedWrapping = null;
     }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         // Without usable width there is no wrapping that could succeed. Reporting a wrap sends the paragraph to
         // a fresh page, where the engine will either find room or raise a layout error naming the cause —
@@ -73,16 +73,16 @@ public sealed class TextBlock : Block
         if (Spans.Count > 0 && float.IsNaN(_pinnedWidth)
             && availableSpace.Width - EffectiveIndent(context) <= Extent.Epsilon)
         {
-            return Fit.Wrap("There is no width available for text once the first-line indent is applied.");
+            return Fit.Defer("There is no width available for text once the first-line indent is applied.");
         }
 
         List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context, out string? blocker);
 
         if (blocker is not null)
-            return Fit.Wrap(blocker);
+            return Fit.Defer(blocker);
 
         if (_completedLines >= lines.Count)
-            return Fit.Empty();
+            return Fit.Nothing();
 
         (float height, float width, int count) = MeasureLines(lines, availableSpace.Height, EffectiveIndent(context));
 
@@ -91,7 +91,7 @@ public sealed class TextBlock : Block
             // An element that expands to fill whatever it is offered claims the paragraph's entire height, and
             // the line's own descender then pushes it past the page. Blaming the text height sends the reader
             // looking at font sizes, so name the real cause.
-            return Fit.Wrap(lines[_completedLines].Runs.Any(run => run.Inline is not null)
+            return Fit.Defer(lines[_completedLines].Runs.Any(run => run.Inline is not null)
                 ? "A line holding an inline element is taller than the space available. An element that expands "
                   + "to fill the space offered to it, such as AlignMiddle, AlignBottom or Extend, claims the "
                   + "whole page when placed inline — give it an explicit height instead."
@@ -101,11 +101,11 @@ public sealed class TextBlock : Block
         Extent size = new Extent(width, height);
 
         return _completedLines + count >= lines.Count
-            ? Fit.FullRender(size)
-            : Fit.PartialRender(size);
+            ? Fit.Complete(size)
+            : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         // A blocker means Measure reported a wrap, so this paragraph should not have been asked to draw here.
         List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Layout, out string? blocker);
@@ -197,7 +197,7 @@ public sealed class TextBlock : Block
                 Offset inlineTop = new Offset(x, baseline - run.Height);
 
                 canvas.Translate(inlineTop);
-                run.Inline.Draw(inlineSize, context);
+                run.Inline.Render(inlineSize, context);
 
                 if (run.Url is not null)
                     canvas.DrawExternalLink(run.Url, inlineSize);
@@ -216,21 +216,21 @@ public sealed class TextBlock : Block
             float runTop = baseline - metrics.Ascent + style.BaselineOffset;
             Extent runSize = new Extent(run.Width, metrics.Ascent + metrics.Descent);
 
-            if (!style.BackgroundColor.IsTransparent)
-                canvas.DrawRectangle(new Offset(x, runTop), runSize, style.BackgroundColor);
+            if (!style.Highlight.IsTransparent)
+                canvas.DrawRectangle(new Offset(x, runTop), runSize, style.Highlight);
 
             canvas.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style);
 
             if (style.HasUnderline)
             {
                 float y = baseline + style.BaselineOffset + metrics.Descent * UnderlineDepthRatio;
-                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Color);
+                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
             }
 
-            if (style.HasStrikethrough)
+            if (style.HasStrikeThrough)
             {
                 float y = baseline + style.BaselineOffset - metrics.Ascent * StrikethroughHeightRatio;
-                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Color);
+                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
             }
 
             if (run.Url is not null)
@@ -251,7 +251,7 @@ public sealed class TextBlock : Block
         }
     }
 
-    private static float DecorationThickness(TypeStyle style) => Math.Max(0.5f, style.EffectiveFontSize / 16f);
+    private static float DecorationThickness(TypeStyle style) => Math.Max(0.5f, style.EffectivePointSize / 16f);
 
     private const float UnderlineDepthRatio = 0.5f;
     private const float StrikethroughHeightRatio = 0.3f;
@@ -304,15 +304,15 @@ public sealed class TextBlock : Block
                 // element that fills what it is given — AlignMiddle, Extend — report the full 14400pt and drag
                 // the whole paragraph into a wrap it can never satisfy.
                 float lineBudget = current.StartsParagraph ? Math.Max(0, width - indent) : width;
-                Fit inlinePlan = span.InlineElement.Measure(new Extent(lineBudget, maxHeight), context);
+                Fit inlinePlan = span.InlineElement.Plan(new Extent(lineBudget, maxHeight), context);
 
-                if (inlinePlan.IsEmpty)
+                if (inlinePlan.IsNothing)
                     continue;
 
                 // Wrap and PartialRender both mean content is left over, and an inline run has no way to carry
                 // a remainder onto the next line. Dropping it here deletes it from the document with no error,
                 // so the paragraph defers as a whole instead and the engine reports it if no page can hold it.
-                if (inlinePlan.IsWrap || inlinePlan.IsPartialRender)
+                if (inlinePlan.IsDeferred || inlinePlan.IsPartial)
                 {
                     blocker = "A paragraph contains an inline element that does not fit the width available to "
                         + "it. Inline elements cannot be split across lines, so it has to fit on one.";
@@ -605,7 +605,7 @@ public sealed class TextBlock : Block
                 // A superscript has a negative offset and so extends the line upwards; a subscript downwards.
                 Ascent = Math.Max(Ascent, metrics.Ascent - Math.Min(0, offset));
                 Descent = Math.Max(Descent, metrics.Descent + Math.Max(0, offset));
-                Height = Math.Max(Height, metrics.LineHeight * run.Style.LineHeight);
+                Height = Math.Max(Height, metrics.LineHeight * run.Style.Leading);
             }
 
             Height = Math.Max(Height, Ascent + Descent);

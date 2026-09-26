@@ -10,7 +10,7 @@ public class UnconstrainedTests
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
         Approximately.Equal(Extent.Zero, plan.Size);
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class UnconstrainedTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(Extent.Zero, plan.Size);
         Assert.Empty(LayoutHarness.Draw(element, new Extent(50, 50)).Operations);
     }
@@ -39,9 +39,9 @@ public class UnconstrainedTests
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        UnboundedBlock element = new UnboundedBlock { Child = new ScriptedElement(Fit.Empty()) };
+        UnboundedBlock element = new UnboundedBlock { Child = new ScriptedElement(Fit.Nothing()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(50, 50)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(50, 50)).IsNothing);
     }
 
     [Fact]
@@ -64,13 +64,13 @@ public class UnconstrainedTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("maximum page size", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("maximum page size", plan.DeferReason);
     }
 
     [Theory]
-    [InlineData(FitKind.Wrap)]
-    [InlineData(FitKind.Empty)]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
     public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
@@ -84,7 +84,7 @@ public class UnconstrainedTests
     [Fact]
     public void DrawsTheChildIntoTheSizeItMeasuredUnbounded()
     {
-        ScriptedElement child = new ScriptedElement(Fit.FullRender(300, 120));
+        ScriptedElement child = new ScriptedElement(Fit.Complete(300, 120));
         UnboundedBlock element = new UnboundedBlock { Child = child };
 
         LayoutHarness.Draw(element, new Extent(50, 50));

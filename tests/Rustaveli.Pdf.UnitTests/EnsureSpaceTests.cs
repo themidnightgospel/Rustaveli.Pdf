@@ -9,8 +9,8 @@ public class EnsureSpaceTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("80", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("80", plan.DeferReason);
     }
 
     [Fact]
@@ -18,7 +18,7 @@ public class EnsureSpaceTests
     {
         RequireSpaceBlock element = new RequireSpaceBlock { MinHeight = 40, Child = new FixedElement(10, 10) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 50)).IsFullRender);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 50)).IsComplete);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class EnsureSpaceTests
 
         LayoutHarness.Draw(element, new Extent(200, 100));
 
-        Assert.False(LayoutHarness.Measure(element, new Extent(200, 40)).IsWrap);
+        Assert.False(LayoutHarness.Measure(element, new Extent(200, 40)).IsDeferred);
     }
 
     [Fact]
@@ -44,19 +44,19 @@ public class EnsureSpaceTests
 
         LayoutHarness.Draw(element, new Extent(200, 100));
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 30)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 30)).IsDeferred);
     }
 
     [Fact]
     public void MovesAHeadingToTheNextPageRatherThanStrandingIt()
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Content().Column(column =>
+            page.Trim = new Extent(200, 100);
+            page.Body().Stack(column =>
             {
-                column.Item().Element(inner => inner.Child = new FixedElement(10, 70, TestInks.Blue));
-                column.Item().RequireSpace(50).Element(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
+                column.Add().Compose(inner => inner.Child = new FixedElement(10, 70, TestInks.Blue));
+                column.Add().RequireSpace(50).Compose(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
             });
         }));
 

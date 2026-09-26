@@ -9,7 +9,7 @@ public class ShowEntireTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
-        Assert.True(plan.IsWrap);
+        Assert.True(plan.IsDeferred);
     }
 
     [Fact]
@@ -19,7 +19,7 @@ public class ShowEntireTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
     }
 
     [Fact]
@@ -35,13 +35,13 @@ public class ShowEntireTests
     [Fact]
     public void MovesContentWholeToTheNextPage()
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Content().Column(column =>
+            page.Trim = new Extent(200, 100);
+            page.Body().Stack(column =>
             {
-                column.Item().Element(inner => inner.Child = new FixedElement(10, 60));
-                column.Item().KeepTogether().Element(inner => inner.Child = new FixedElement(10, 60));
+                column.Add().Compose(inner => inner.Child = new FixedElement(10, 60));
+                column.Add().KeepTogether().Compose(inner => inner.Child = new FixedElement(10, 60));
             });
         }));
 

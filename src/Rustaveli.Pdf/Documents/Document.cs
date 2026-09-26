@@ -16,7 +16,7 @@ public sealed class Document : IComposition
 {
     private readonly List<Section> _pages = new List<Section>();
 
-    public DocumentInfo Metadata { get; } = new DocumentInfo();
+    public DocumentInfo Info { get; } = new DocumentInfo();
 
     internal IReadOnlyList<Section> Pages => _pages;
 
@@ -27,7 +27,7 @@ public sealed class Document : IComposition
     /// <summary>
     /// Builds a document by invoking <paramref name="compose" />, which declares one or more page runs.
     /// </summary>
-    public static Document Create(Action<IComposition> compose)
+    public static Document Compose(Action<IComposition> compose)
     {
         ArgumentNullException.ThrowIfNull(compose, "compose");
         Document document = new Document();
@@ -42,7 +42,7 @@ public sealed class Document : IComposition
         return document;
     }
 
-    void IComposition.Page(Action<Section> handler)
+    void IComposition.Section(Action<Section> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         Section pageDescriptor = new Section();

@@ -19,12 +19,12 @@ public sealed class FixedElement(Extent size, Ink? color = null) : Block
 
     public Ink Color { get; } = color ?? TestInks.Black;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
         size.FitsIn(availableSpace)
-            ? Fit.FullRender(size)
-            : Fit.Wrap($"The element requires {size} but only {availableSpace} is available.");
+            ? Fit.Complete(size)
+            : Fit.Defer($"The element requires {size} but only {availableSpace} is available.");
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (size.FitsIn(availableSpace))
             context.Canvas.DrawRectangle(Offset.Zero, size, Color);

@@ -45,10 +45,10 @@ public sealed class ColumnsBlock : Block
         return _completed;
     }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (Items.Count == 0)
-            return Fit.FullRender(Extent.Zero);
+            return Fit.Complete(Extent.Zero);
 
         // Constant columns cannot shrink, so a row whose fixed widths already overflow can never be laid out
         // here however much vertical room arrives. Wrapping sends it to a fresh page, where the engine's
@@ -58,7 +58,7 @@ public sealed class ColumnsBlock : Block
 
         if (fixedWidth > availableSpace.Width + Extent.Epsilon)
         {
-            return Fit.Wrap(
+            return Fit.Defer(
                 $"The row's fixed columns need {fixedWidth:F1} points but only {availableSpace.Width:F1} is available.");
         }
 
@@ -74,36 +74,36 @@ public sealed class ColumnsBlock : Block
             if (completed[index])
                 continue;
 
-            Fit plan = Items[index].Measure(new Extent(widths[index], availableSpace.Height), context);
+            Fit plan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context);
 
-            if (plan.IsWrap)
+            if (plan.IsDeferred)
                 return plan;
 
-            if (plan.IsEmpty)
+            if (plan.IsNothing)
                 continue;
 
             anyContent = true;
             maxHeight = Math.Max(maxHeight, plan.Size.Height);
-            anyPartial |= plan.IsPartialRender;
+            anyPartial |= plan.IsPartial;
         }
 
         if (!anyContent)
-            return Fit.Empty();
+            return Fit.Nothing();
 
         Extent size = new Extent(availableSpace.Width, maxHeight);
 
-        return anyPartial ? Fit.PartialRender(size) : Fit.FullRender(size);
+        return anyPartial ? Fit.Partial(size) : Fit.Complete(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Items.Count == 0)
             return;
 
         float[] widths = ResolveWidths(availableSpace, context.Layout);
-        Fit plan = Measure(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Layout);
 
-        if (plan.IsWrap || plan.IsEmpty)
+        if (plan.IsDeferred || plan.IsNothing)
             return;
 
         // Every item is drawn against the row's own height so that cell backgrounds and borders line up
@@ -117,20 +117,20 @@ public sealed class ColumnsBlock : Block
         {
             if (!completed[index])
             {
-                Fit itemPlan = Items[index].Measure(new Extent(widths[index], availableSpace.Height), context.Layout);
+                Fit itemPlan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context.Layout);
 
-                if (!itemPlan.IsWrap && !itemPlan.IsEmpty)
+                if (!itemPlan.IsDeferred && !itemPlan.IsNothing)
                 {
                     float position = direction == ReadingDirection.LeftToRight
                         ? offset
                         : availableSpace.Width - offset - widths[index];
 
                     context.Canvas.Translate(new Offset(position, 0f));
-                    Items[index].Draw(new Extent(widths[index], rowHeight), context);
+                    Items[index].Render(new Extent(widths[index], rowHeight), context);
                     context.Canvas.Translate(new Offset(-position, 0f));
                 }
 
-                if (itemPlan.IsFullRender || itemPlan.IsEmpty)
+                if (itemPlan.IsComplete || itemPlan.IsNothing)
                     completed[index] = true;
             }
 
@@ -175,9 +175,9 @@ public sealed class ColumnsBlock : Block
                 continue;
 
             Extent offered = new Extent(Math.Max(0f, available - consumed), availableSpace.Height);
-            Fit plan = Items[index].Measure(offered, context);
+            Fit plan = Items[index].Plan(offered, context);
 
-            widths[index] = plan.IsWrap ? 0f : Math.Min(plan.Size.Width, offered.Width);
+            widths[index] = plan.IsDeferred ? 0f : Math.Min(plan.Size.Width, offered.Width);
             consumed += widths[index];
         }
 

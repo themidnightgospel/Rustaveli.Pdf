@@ -16,24 +16,24 @@ public sealed class SplittableElement(int unitCount, float unitHeight, float wid
 
     protected override void ResetOwnState() => _rendered = 0;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (_rendered >= unitCount)
-            return Fit.Empty();
+            return Fit.Nothing();
 
         int fitting = FittingUnits(availableSpace.Height);
 
         if (fitting == 0)
-            return Fit.Wrap($"A single unit needs {unitHeight} but only {availableSpace.Height} is available.");
+            return Fit.Defer($"A single unit needs {unitHeight} but only {availableSpace.Height} is available.");
 
         Extent size = new Extent(width, fitting * unitHeight);
 
         return _rendered + fitting >= unitCount
-            ? Fit.FullRender(size)
-            : Fit.PartialRender(size);
+            ? Fit.Complete(size)
+            : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         int fitting = FittingUnits(availableSpace.Height);
 

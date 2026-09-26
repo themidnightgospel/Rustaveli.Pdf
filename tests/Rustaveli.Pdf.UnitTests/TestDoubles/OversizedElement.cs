@@ -9,10 +9,10 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </remarks>
 public sealed class OversizedElement(float width, float height) : Block
 {
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        Fit.FullRender(width, height);
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        Fit.Complete(width, height);
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
     }
 }

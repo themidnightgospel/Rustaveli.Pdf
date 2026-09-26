@@ -25,7 +25,7 @@ public class ParagraphIndentTests
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
-            text.Span("Hello");
+            text.Run("Hello");
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -45,7 +45,7 @@ public class ParagraphIndentTests
         TextBlock text = Text(descriptor =>
         {
             descriptor.FirstLineIndent(20);
-            descriptor.Span("Hello");
+            descriptor.Run("Hello");
         });
 
         item.Child = text;
@@ -65,7 +65,7 @@ public class ParagraphIndentTests
         {
             text.FirstLineIndent(20);
             text.Centered();
-            text.Span("aaaaaaa");
+            text.Run("aaaaaaa");
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(48, 500));
@@ -80,7 +80,7 @@ public class ParagraphIndentTests
         {
             text.FirstLineIndent(20);
             text.FlushRight();
-            text.Span("aaaaaaa");
+            text.Run("aaaaaaa");
         });
 
         Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(48, 500)).Size.Height);
@@ -92,7 +92,7 @@ public class ParagraphIndentTests
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
-            text.Span("aaaaaaa");
+            text.Run("aaaaaaa");
         });
 
         PlanContext context = LayoutHarness.Context();
@@ -108,10 +108,10 @@ public class ParagraphIndentTests
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(100);
-            text.Span("hello world");
+            text.Run("hello world");
         });
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(100, 5000)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(100, 5000)).IsDeferred);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class ParagraphIndentTests
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
-            text.Span("aa bbbbbbb");
+            text.Run("aa bbbbbbb");
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(42, 900));
@@ -134,7 +134,7 @@ public class ParagraphIndentTests
     public void NonBreakingSpacesSurviveTrailingTrim()
     {
         // The tokeniser treats a non-breaking space as ink, so the trailing-whitespace trim must agree.
-        TextBlock element = Text(text => text.Span("   "));
+        TextBlock element = Text(text => text.Run("   "));
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
@@ -146,7 +146,7 @@ public class ParagraphIndentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("Fig.");
+            text.Run("Fig.");
             text.Link(" ", "https://example.com");
         });
 
@@ -160,9 +160,9 @@ public class ParagraphIndentTests
     {
         TextBlock element = Text(text =>
         {
-            text.ParagraphSpacing(8);
+            text.SpaceBetweenParagraphs(8);
             text.Line("A");
-            text.EmptyLine();
+            text.BlankLine();
             text.Line("B");
         });
 
@@ -175,7 +175,7 @@ public class ParagraphIndentTests
     [Fact]
     public void ABareCarriageReturnBreaksTheLine()
     {
-        TextBlock element = Text(text => text.Span("a\rb"));
+        TextBlock element = Text(text => text.Run("a\rb"));
 
         Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
     }
@@ -183,7 +183,7 @@ public class ParagraphIndentTests
     [Fact]
     public void CarriageReturnAndNewlineTogetherBreakOnlyOnce()
     {
-        TextBlock element = Text(text => text.Span("a\r\nb"));
+        TextBlock element = Text(text => text.Run("a\r\nb"));
 
         Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
     }

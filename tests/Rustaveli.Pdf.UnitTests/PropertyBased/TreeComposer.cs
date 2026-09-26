@@ -29,29 +29,29 @@ public sealed class TreeComposer
                 break;
 
             case NodeKind.Column:
-                container.Column(column =>
+                container.Stack(column =>
                 {
-                    column.Spacing(node.Amount);
+                    column.SpaceBetween(node.Amount);
                     foreach (TreeNode child in node.Children)
-                        Compose(column.Item(), child);
+                        Compose(column.Add(), child);
                 });
                 break;
 
             case NodeKind.Row:
-                container.Row(row =>
+                container.Columns(row =>
                 {
                     for (int index = 0; index < node.Children.Count; index++)
-                        Compose(node.Sizes[index] == 0 ? row.RelativeItem() : row.ConstantItem(node.Sizes[index]), node.Children[index]);
+                        Compose(node.Sizes[index] == 0 ? row.Share() : row.Fixed(node.Sizes[index]), node.Children[index]);
                 });
                 break;
 
             case NodeKind.Table:
                 container.Table(table =>
                 {
-                    table.ColumnsDefinition(columns =>
+                    table.Columns(columns =>
                     {
                         for (int index = 0; index < node.Sizes[0]; index++)
-                            columns.RelativeColumn();
+                            columns.Share();
                     });
                     foreach (TreeNode cell in node.Children)
                         Compose(table.Cell(), cell);

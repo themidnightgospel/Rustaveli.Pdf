@@ -12,12 +12,12 @@ public sealed class NewPageBlock : Block
 
     protected override void ResetOwnState() => _hasBroken = false;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
         _hasBroken
-            ? Fit.Empty()
+            ? Fit.Nothing()
             // Claiming the full remaining height forces the parent to treat the page as finished, and reporting
             // a partial render guarantees the engine comes back for the remainder on a fresh page.
-            : Fit.PartialRender(new Extent(0, availableSpace.Height));
+            : Fit.Partial(new Extent(0, availableSpace.Height));
 
-    public override void Draw(Extent availableSpace, RenderContext context) => _hasBroken = true;
+    public override void Render(Extent availableSpace, RenderContext context) => _hasBroken = true;
 }

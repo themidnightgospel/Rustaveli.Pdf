@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.Primitives;
 /// </summary>
 public enum ProportionFit
 {
-    FitWidth,
-    FitHeight,
-    FitArea
+    Width,
+    Height,
+    Area
 }

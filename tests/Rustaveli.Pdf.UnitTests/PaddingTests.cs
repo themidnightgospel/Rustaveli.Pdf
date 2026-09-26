@@ -28,7 +28,7 @@ public class PaddingTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 200));
 
-        Assert.True(plan.IsWrap);
+        Assert.True(plan.IsDeferred);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class PaddingTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
 
-        Assert.True(plan.IsWrap);
+        Assert.True(plan.IsDeferred);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class PaddingTests
 
         LayoutHarness.Draw(element, space);
 
-        Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, space).IsNothing);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class PaddingTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 90));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(30, 80), plan.Size);
     }
 
@@ -89,7 +89,7 @@ public class PaddingTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(30, 20), plan.Size);
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }

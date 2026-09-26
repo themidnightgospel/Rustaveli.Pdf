@@ -32,7 +32,7 @@ public class TextSpanTests
     [Fact]
     public void InheritsTheSurroundingStyleUnchangedWithoutAnOverride()
     {
-        TypeStyle inherited = TypeStyle.Default.FontSizeOf(20);
+        TypeStyle inherited = TypeStyle.Default.WithPointSize(20);
 
         Assert.Same(inherited, new TextRun().ResolveStyle(inherited));
     }
@@ -42,8 +42,8 @@ public class TextSpanTests
     {
         TextRun span = new TextRun { StyleOverride = style => style.Bold() };
 
-        TypeStyle resolved = span.ResolveStyle(TypeStyle.Default.FontSizeOf(20));
+        TypeStyle resolved = span.ResolveStyle(TypeStyle.Default.WithPointSize(20));
 
-        Assert.Equal(TypeStyle.Default.FontSizeOf(20).Bold(), resolved);
+        Assert.Equal(TypeStyle.Default.WithPointSize(20).Bold(), resolved);
     }
 }

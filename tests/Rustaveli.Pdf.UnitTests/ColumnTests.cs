@@ -49,7 +49,7 @@ public class ColumnTests
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(60f, plan.Size.Height);
     }
 
@@ -66,7 +66,7 @@ public class ColumnTests
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         Approximately.Equal(0f, rectangle.Position.Y);
-        Assert.True(LayoutHarness.Measure(column, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(column, space).IsNothing);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class ColumnTests
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
 
-        Assert.True(plan.IsWrap);
+        Assert.True(plan.IsDeferred);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class ColumnTests
 
         LayoutHarness.Draw(column, space);
 
-        Assert.True(LayoutHarness.Measure(column, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(column, space).IsNothing);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class ColumnTests
         Extent space = new Extent(200, 50);
 
         Fit plan = LayoutHarness.Measure(column, space);
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
 
         LayoutHarness.Draw(column, space);
 
@@ -112,15 +112,15 @@ public class ColumnTests
         StackBlock column = Column(0, item);
         Extent space = new Extent(200, 100);
 
-        Assert.Equal(LayoutHarness.Measure(item, space).WrapReason, LayoutHarness.Measure(column, space).WrapReason);
+        Assert.Equal(LayoutHarness.Measure(item, space).DeferReason, LayoutHarness.Measure(column, space).DeferReason);
     }
 
     [Fact]
     public void ReportsEmptyWhenEveryRemainingItemIsExhausted()
     {
-        StackBlock column = Column(10, new ScriptedElement(Fit.Empty()), new ScriptedElement(Fit.Empty()));
+        StackBlock column = Column(10, new ScriptedElement(Fit.Nothing()), new ScriptedElement(Fit.Nothing()));
 
-        Assert.True(LayoutHarness.Measure(column, new Extent(200, 200)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(column, new Extent(200, 200)).IsNothing);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class ColumnTests
         // A placeholder would happily claim a negative box; the column must refuse to hand one out.
         StackBlock column = Column(0, new PlaceholderBlock());
 
-        Assert.True(LayoutHarness.Measure(column, new Extent(200, -5)).IsWrap);
+        Assert.True(LayoutHarness.Measure(column, new Extent(200, -5)).IsDeferred);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class ColumnTests
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(10, 95), plan.Size);
     }
 
@@ -153,7 +153,7 @@ public class ColumnTests
         RecordedPage again = LayoutHarness.Draw(column, space);
 
         Assert.Empty(again.Operations);
-        Assert.True(LayoutHarness.Measure(column, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(column, space).IsNothing);
     }
 
     [Fact]

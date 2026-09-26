@@ -24,9 +24,9 @@ public class InlineContentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("before");
-            text.Element(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
-            text.Span("after");
+            text.Run("before");
+            text.Inline(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
+            text.Run("after");
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
@@ -41,9 +41,9 @@ public class InlineContentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 10));
-            text.Span("cd");
+            text.Run("ab");
+            text.Inline(inline => inline.Child = new FixedElement(20, 10));
+            text.Run("cd");
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
@@ -58,8 +58,8 @@ public class InlineContentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 10));
+            text.Run("ab");
+            text.Inline(inline => inline.Child = new FixedElement(20, 10));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -72,8 +72,8 @@ public class InlineContentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 40));
+            text.Run("ab");
+            text.Inline(inline => inline.Child = new FixedElement(20, 40));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -88,8 +88,8 @@ public class InlineContentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 4));
+            text.Run("ab");
+            text.Inline(inline => inline.Child = new FixedElement(20, 4));
         });
 
         Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
@@ -100,8 +100,8 @@ public class InlineContentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 6, TestInks.Red));
+            text.Run("ab");
+            text.Inline(inline => inline.Child = new FixedElement(20, 6, TestInks.Red));
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
@@ -116,8 +116,8 @@ public class InlineContentTests
     {
         TextBlock element = Text(text =>
         {
-            text.Span("aaaa");
-            text.Element(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
+            text.Run("aaaa");
+            text.Inline(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
         });
 
         // 24pt of text plus a 20pt element exceeds 30pt, so the element wraps.
@@ -161,7 +161,7 @@ public class InlineContentTests
     [Fact]
     public void APlainParagraphIsUnaffected()
     {
-        TextBlock element = Text(text => text.Span("hello"));
+        TextBlock element = Text(text => text.Run("hello"));
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
@@ -175,14 +175,14 @@ public class InlineContentTests
         // Regression: Draw re-runs BuildLines on every page and re-measures each inline element. An inline
         // element already consumed on page 1 reports Empty on page 2, so its run is dropped, every later line
         // shifts up by one, and _completedLines — an index into the *old* wrapping — skips a line of text.
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(60, 13);
-            page.Margin = Sides.All(0);
-            page.Content().Text(text =>
+            page.Trim = new Extent(60, 13);
+            page.Margins = Sides.All(0);
+            page.Body().Text(text =>
             {
-                text.Element(inline => inline.Text(nested => nested.Span("IIIIIIIIII")));
-                text.Span("aaaaa bbbbb ccccc");
+                text.Inline(inline => inline.Text(nested => nested.Run("IIIIIIIIII")));
+                text.Run("aaaaa bbbbb ccccc");
             });
         }));
 
@@ -198,11 +198,11 @@ public class InlineContentTests
         // paragraph still claimed FullRender — content lost with nothing to show for it.
         Block element = LayoutHarness.Build(container => container.Text(text =>
         {
-            text.Span("logo:");
-            text.Element(inline => inline.Width(200).Height(20));
+            text.Run("logo:");
+            text.Inline(inline => inline.Width(200).Height(20));
         }));
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(100, 200)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(100, 200)).IsDeferred);
     }
 
     [Fact]
@@ -210,15 +210,15 @@ public class InlineContentTests
     {
         // Regression: inline elements were measured against Size.Max.Height, so a bounded element nested under
         // one that fills its space reported 14400pt and made the paragraph impossible to place at all.
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(300, 200);
-            page.Margin = Sides.All(10);
-            page.Content().Text(text =>
+            page.Trim = new Extent(300, 200);
+            page.Margins = Sides.All(10);
+            page.Body().Text(text =>
             {
-                text.Span("An icon ");
-                text.Element(inline => inline.Width(10).Height(10).Middle());
-                text.Span(" follows.");
+                text.Run("An icon ");
+                text.Inline(inline => inline.Width(10).Height(10).Middle());
+                text.Run(" follows.");
             });
         }));
 
@@ -230,14 +230,14 @@ public class InlineContentTests
     {
         // It cannot be placed — it claims the whole page by definition — but the error used to blame the text
         // height, which sends the reader looking at font sizes instead of at the element.
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(300, 200);
-            page.Margin = Sides.All(10);
-            page.Content().Text(text =>
+            page.Trim = new Extent(300, 200);
+            page.Margins = Sides.All(10);
+            page.Body().Text(text =>
             {
-                text.Span("An icon ");
-                text.Element(inline => inline.Middle().Width(10).Height(10));
+                text.Run("An icon ");
+                text.Inline(inline => inline.Middle().Width(10).Height(10));
             });
         }));
 
@@ -255,7 +255,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Line("aaa");
-            text.Element(inline => inline.Child = new FixedElement(200, 20));
+            text.Inline(inline => inline.Child = new FixedElement(200, 20));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(100, 200)).Operations);

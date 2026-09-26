@@ -11,22 +11,22 @@ public sealed class ImageBlock : Block
 {
     public IImage? Image { get; set; }
 
-    public ImageFitting Fit { get; set; } = ImageFitting.Width;
+    public ImageFitting Fit { get; set; } = ImageFitting.FitWidth;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (Image is null)
-            return Layout.Fit.FullRender(Extent.Zero);
+            return Layout.Fit.Complete(Extent.Zero);
 
         Extent size = ResolveSize(availableSpace);
 
         if (!size.FitsIn(availableSpace))
-            return Layout.Fit.Wrap("The available space is too small for the image at its requested fit.");
+            return Layout.Fit.Defer("The available space is too small for the image at its requested fit.");
 
-        return Layout.Fit.FullRender(size);
+        return Layout.Fit.Complete(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Image is null)
             return;
@@ -50,10 +50,10 @@ public sealed class ImageBlock : Block
 
         return Fit switch
         {
-            ImageFitting.Width => fromWidth,
-            ImageFitting.Height => fromHeight,
-            ImageFitting.Area => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
-            ImageFitting.Unproportional => availableSpace,
+            ImageFitting.FitWidth => fromWidth,
+            ImageFitting.FitHeight => fromHeight,
+            ImageFitting.Proportionally => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
+            ImageFitting.Stretch => availableSpace,
             _ => fromWidth
         };
     }

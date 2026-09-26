@@ -14,7 +14,7 @@ public sealed class AnchorBlock : EnclosingBlock
 {
     public string Name { get; set; } = string.Empty;
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (!string.IsNullOrEmpty(Name))
         {
@@ -22,6 +22,6 @@ public sealed class AnchorBlock : EnclosingBlock
             context.Canvas.DrawDestination(Name);
         }
 
-        base.Draw(availableSpace, context);
+        base.Render(availableSpace, context);
     }
 }

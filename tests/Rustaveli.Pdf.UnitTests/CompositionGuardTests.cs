@@ -12,7 +12,7 @@ public class CompositionGuardTests
         Frame container = new Frame();
         container.Text("already here");
 
-        Assert.Throws<CompositionException>(() => container.Empty());
+        Assert.Throws<CompositionException>(() => container.Blank());
     }
 
     [Fact]
@@ -20,7 +20,7 @@ public class CompositionGuardTests
     {
         Frame container = new Frame();
 
-        container.Empty();
+        container.Blank();
 
         Assert.Null(container.Child);
     }
@@ -45,7 +45,7 @@ public class CompositionGuardTests
     {
         Block root = LayoutHarness.Build(container => container
             .Stroke(2).RoundCorners(8)
-            .Element(inner => inner.Child = new FixedElement(40, 20, TestInks.White)));
+            .Compose(inner => inner.Child = new FixedElement(40, 20, TestInks.White)));
 
         Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Operations.OfType<RoundedRectangleOperation>());
     }

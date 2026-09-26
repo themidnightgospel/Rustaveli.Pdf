@@ -11,13 +11,13 @@ public sealed class DefaultTypeBlock : EnclosingBlock
 {
     public Func<TypeStyle, TypeStyle> Refinement { get; set; } = style => style;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        WithStyle(context, () => base.Measure(availableSpace, context));
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        WithStyle(context, () => base.Plan(availableSpace, context));
 
-    public override void Draw(Extent availableSpace, RenderContext context) =>
+    public override void Render(Extent availableSpace, RenderContext context) =>
         WithStyle(context.Layout, () =>
         {
-            base.Draw(availableSpace, context);
+            base.Render(availableSpace, context);
             return true;
         });
 

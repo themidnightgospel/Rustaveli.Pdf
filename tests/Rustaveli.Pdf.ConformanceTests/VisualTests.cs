@@ -19,7 +19,7 @@ public class VisualTests
     public void MatchesApprovedSnapshots(Specimen specimen)
     {
         TestFonts.EnsureRegistered();
-        byte[] pdf = specimen.Build().GeneratePdf();
+        byte[] pdf = specimen.Build().ExportPdf();
 
         List<SKBitmap> pages = PageRenderer.Render(pdf, DotsPerInch);
         try

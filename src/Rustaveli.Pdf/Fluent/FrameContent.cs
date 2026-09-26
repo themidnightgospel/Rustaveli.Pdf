@@ -22,11 +22,11 @@ public static class FrameContent
     /// <summary>Adds a paragraph consisting of a single unstyled run.</summary>
     public static void Text(this IFrame parent, string text)
     {
-        parent.Text(descriptor => descriptor.Span(text));
+        parent.Text(descriptor => descriptor.Run(text));
     }
 
     /// <summary>Adds an image scaled according to <paramref name="fit" />.</summary>
-    public static void Image(this IFrame parent, IImage image, ImageFitting fit = ImageFitting.Width)
+    public static void Image(this IFrame parent, IImage image, ImageFitting fit = ImageFitting.FitWidth)
     {
         ArgumentNullException.ThrowIfNull(image, "image");
         FrameAttachment.Attach(parent, new ImageBlock
@@ -37,7 +37,7 @@ public static class FrameContent
     }
 
     /// <summary>Stacks content vertically, flowing across pages when it does not fit.</summary>
-    public static void Column(this IFrame parent, Action<StackComposer> handler)
+    public static void Stack(this IFrame parent, Action<StackComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         StackBlock element = FrameAttachment.Attach(parent, new StackBlock());
@@ -45,7 +45,7 @@ public static class FrameContent
     }
 
     /// <summary>Places content side by side.</summary>
-    public static void Row(this IFrame parent, Action<ColumnsComposer> handler)
+    public static void Columns(this IFrame parent, Action<ColumnsComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         ColumnsBlock element = FrameAttachment.Attach(parent, new ColumnsBlock());
@@ -72,7 +72,7 @@ public static class FrameContent
     }
 
     /// <summary>Draws content in overlapping layers.</summary>
-    public static void Layers(this IFrame parent, Action<LayersComposer> handler)
+    public static void Layered(this IFrame parent, Action<LayersComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         LayersBlock element = FrameAttachment.Attach(parent, new LayersBlock());
@@ -80,7 +80,7 @@ public static class FrameContent
     }
 
     /// <summary>Adds flowing content framed by bands that repeat on every page.</summary>
-    public static void Decoration(this IFrame parent, Action<BandsComposer> handler)
+    public static void Banded(this IFrame parent, Action<BandsComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         BandsBlock element = FrameAttachment.Attach(parent, new BandsBlock());
@@ -90,23 +90,23 @@ public static class FrameContent
     /// <summary>
     /// Applies a composition function, letting shared layout be factored into an ordinary method.
     /// </summary>
-    public static void Element(this IFrame parent, Action<IFrame> handler)
+    public static void Compose(this IFrame parent, Action<IFrame> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         handler(parent);
     }
 
     /// <summary>Composes a reusable component into this container.</summary>
-    public static void Component(this IFrame parent, ISnippet component)
+    public static void Snippet(this IFrame parent, ISnippet component)
     {
         ArgumentNullException.ThrowIfNull(component, "component");
         component.Compose(parent);
     }
 
     /// <summary>Composes a reusable component into this container.</summary>
-    public static void Component<T>(this IFrame parent) where T : ISnippet, new()
+    public static void Snippet<T>(this IFrame parent) where T : ISnippet, new()
     {
-        parent.Component(new T());
+        parent.Snippet(new T());
     }
 
     /// <summary>
@@ -116,7 +116,7 @@ public static class FrameContent
     /// Refuses a container that already holds content. Blanking it would discard a whole subtree with no
     /// diagnostic — the very thing <see cref="FrameAttachment.Attach{T}"/> exists to prevent.
     /// </remarks>
-    public static void Empty(this IFrame parent)
+    public static void Blank(this IFrame parent)
     {
         ArgumentNullException.ThrowIfNull(parent, "parent");
         if (parent.Child != null)

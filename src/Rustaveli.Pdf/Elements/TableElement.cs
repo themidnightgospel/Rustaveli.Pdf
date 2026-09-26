@@ -93,32 +93,32 @@ public sealed class TableElement : Block
         _cachedWidth = float.NaN;
     }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         TableLayout? layout = BuildLayout(availableSpace, context);
 
         if (layout is null)
-            return Fit.Wrap("The table columns do not fit within the available width.");
+            return Fit.Defer("The table columns do not fit within the available width.");
 
         if (_completedRows >= layout.BodyHeights.Length)
-            return Fit.Empty();
+            return Fit.Nothing();
 
         if (layout.BandHeight > availableSpace.Height + Extent.Epsilon)
-            return Fit.Wrap("The header and footer rows alone exceed the available height.");
+            return Fit.Defer("The header and footer rows alone exceed the available height.");
 
         (float takenHeight, int lastRow) = TakeRows(layout, availableSpace.Height);
 
         if (lastRow == _completedRows)
-            return Fit.Wrap("The next table row is taller than the available height.");
+            return Fit.Defer("The next table row is taller than the available height.");
 
         Extent size = new Extent(layout.TotalWidth, layout.BandHeight + takenHeight);
 
         return lastRow >= layout.BodyHeights.Length
-            ? Fit.FullRender(size)
-            : Fit.PartialRender(size);
+            ? Fit.Complete(size)
+            : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         TableLayout? layout = BuildLayout(availableSpace, context.Layout);
 
@@ -244,7 +244,7 @@ public sealed class TableElement : Block
             Offset offset = new Offset(layout.ColumnLeft(cell, cellSpace.Width), cellTop);
 
             context.Canvas.Translate(offset);
-            cell.Draw(cellSpace, context);
+            cell.Render(cellSpace, context);
             context.Canvas.Translate(offset.Reverse());
         }
     }
@@ -359,9 +359,9 @@ public sealed class TableElement : Block
         // Unspanned cells set the baseline height of the row they sit in.
         foreach (CellBlock cell in cells.Where(cell => cell.RowSpan <= 1))
         {
-            Fit plan = cell.Measure(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
+            Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
-            if (!plan.IsWrap)
+            if (!plan.IsDeferred)
                 heights[cell.Row - 1] = Math.Max(heights[cell.Row - 1], plan.Size.Height);
         }
 
@@ -369,9 +369,9 @@ public sealed class TableElement : Block
         // goes on its *last* row: charging an earlier one would push the rows below it down inside the span.
         foreach (CellBlock cell in cells.Where(cell => cell.RowSpan > 1))
         {
-            Fit plan = cell.Measure(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
+            Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
-            if (plan.IsWrap)
+            if (plan.IsDeferred)
                 continue;
 
             float spannedHeight = 0f;

@@ -5,7 +5,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundFillsTheBoxItIsGivenRatherThanItsContent()
     {
-        FillBlock element = new FillBlock { Color = TestInks.Red, Child = new FixedElement(50, 20) };
+        FillBlock element = new FillBlock { Ink = TestInks.Red, Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
         RectangleOperation background = page.Operations.OfType<RectangleOperation>().First();
@@ -18,7 +18,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundDoesNotConsumeLayoutSpace()
     {
-        FillBlock element = new FillBlock { Color = TestInks.Red, Child = new FixedElement(50, 20) };
+        FillBlock element = new FillBlock { Ink = TestInks.Red, Child = new FixedElement(50, 20) };
 
         Approximately.Equal(new Extent(50, 20), LayoutHarness.Measure(element, new Extent(200, 200)).Size);
     }
@@ -29,7 +29,7 @@ public class BorderAndBackgroundTests
         StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -45,7 +45,7 @@ public class BorderAndBackgroundTests
         StrokeBlock element = new StrokeBlock
         {
             Width = Sides.Zero.WithRight(3),
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -57,12 +57,12 @@ public class BorderAndBackgroundTests
     }
 
     [Theory]
-    [InlineData(FitKind.Wrap)]
-    [InlineData(FitKind.Empty)]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
     public void BackgroundPaintsNothingBehindAChildWithNothingToShow(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        FillBlock element = new FillBlock { Color = TestInks.Red, Child = child };
+        FillBlock element = new FillBlock { Ink = TestInks.Red, Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -73,7 +73,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundWithoutContentPaintsOnlyItsOwnFill()
     {
-        FillBlock element = new FillBlock { Color = TestInks.Red };
+        FillBlock element = new FillBlock { Ink = TestInks.Red };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
         RectangleOperation fill = Assert.IsType<RectangleOperation>(Assert.Single(page.Operations));
@@ -88,7 +88,7 @@ public class BorderAndBackgroundTests
         StrokeBlock element = new StrokeBlock
         {
             Width = new Sides(1, 2, 3, 4),
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -109,7 +109,7 @@ public class BorderAndBackgroundTests
         StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -124,7 +124,7 @@ public class BorderAndBackgroundTests
         StrokeBlock element = new StrokeBlock
         {
             Width = Sides.All(2),
-            Color = TestInks.Transparent,
+            Ink = TestInks.Transparent,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -135,12 +135,12 @@ public class BorderAndBackgroundTests
     }
 
     [Theory]
-    [InlineData(FitKind.Wrap)]
-    [InlineData(FitKind.Empty)]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
     public void BorderDrawsNothingAroundAChildWithNothingToShow(FitKind outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Color = TestInks.Black, Child = child };
+        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Ink = TestInks.Black, Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -151,7 +151,7 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BorderWithoutContentDrawsOnlyItsOwnSides()
     {
-        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Color = TestInks.Black };
+        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Ink = TestInks.Black };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -168,7 +168,7 @@ public class BorderAndBackgroundTests
         {
             Width = Sides.All(2),
             CornerRadius = 4,
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -189,7 +189,7 @@ public class BorderAndBackgroundTests
         {
             Width = Sides.All(2),
             CornerRadius = 50,
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -209,7 +209,7 @@ public class BorderAndBackgroundTests
         {
             Width = new Sides(left, top, right, bottom),
             CornerRadius = 5,
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -226,7 +226,7 @@ public class BorderAndBackgroundTests
         {
             Width = Sides.Zero,
             CornerRadius = 5,
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(50, 20, TestInks.White)
         };
 
@@ -245,7 +245,7 @@ public class BorderAndBackgroundTests
         {
             Width = Sides.All(30),
             CornerRadius = 5,
-            Color = TestInks.Black,
+            Ink = TestInks.Black,
             Child = new FixedElement(width, height, TestInks.White)
         };
 

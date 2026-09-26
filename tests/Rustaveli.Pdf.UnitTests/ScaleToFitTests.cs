@@ -19,7 +19,7 @@ public class ScaleToFitTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Assert.True(plan.Size.FitsIn(new Extent(100, 100)), $"Scaled content {plan.Size} should fit the offered space.");
     }
 
@@ -28,7 +28,7 @@ public class ScaleToFitTests
     {
         ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = 0.9f, Child = new FixedElement(1000, 10) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(100, 100)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(100, 100)).IsDeferred);
     }
 
     [Theory]
@@ -49,15 +49,15 @@ public class ScaleToFitTests
     {
         ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = float.NaN, Child = new FixedElement(400, 300) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsFullRender);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsComplete);
     }
 
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new ScriptedElement(Fit.Empty()) };
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new ScriptedElement(Fit.Nothing()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsNothing);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class ScaleToFitTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(Extent.Zero, plan.Size);
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
     }

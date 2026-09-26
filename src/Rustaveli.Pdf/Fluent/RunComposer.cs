@@ -23,19 +23,19 @@ public sealed class RunComposer(TextRun span)
         return this;
     }
 
-    public RunComposer FontFamily(string fontFamily) => Refine(style => style.FontFamilyOf(fontFamily));
+    public RunComposer Typeface(string fontFamily) => Refine(style => style.WithTypeface(fontFamily));
 
-    public RunComposer FontSize(float size) => Refine(style => style.FontSizeOf(size));
+    public RunComposer PointSize(float size) => Refine(style => style.WithPointSize(size));
 
-    public RunComposer FontColor(Ink color) => Refine(style => style.ColorOf(color));
+    public RunComposer Ink(Ink color) => Refine(style => style.WithInk(color));
 
-    public RunComposer FontColor(string hexColor) => FontColor(Ink.Hex(hexColor));
+    public RunComposer Ink(string hexColor) => Ink(Primitives.Ink.Hex(hexColor));
 
-    public RunComposer BackgroundColor(Ink color) => Refine(style => style.BackgroundColorOf(color));
+    public RunComposer Highlight(Ink color) => Refine(style => style.WithHighlight(color));
 
-    public RunComposer BackgroundColor(string hexColor) => BackgroundColor(Ink.Hex(hexColor));
+    public RunComposer Highlight(string hexColor) => Highlight(Primitives.Ink.Hex(hexColor));
 
-    public RunComposer Weight(TypeWeight weight) => Refine(style => style.WeightOf(weight));
+    public RunComposer Weight(TypeWeight weight) => Refine(style => style.WithWeight(weight));
 
     public RunComposer Bold() => Refine(style => style.Bold());
 
@@ -43,11 +43,11 @@ public sealed class RunComposer(TextRun span)
 
     public RunComposer Underline(bool value = true) => Refine(style => style.Underline(value));
 
-    public RunComposer Strikethrough(bool value = true) => Refine(style => style.Strikethrough(value));
+    public RunComposer StrikeThrough(bool value = true) => Refine(style => style.StrikeThrough(value));
 
-    public RunComposer LineHeight(float multiplier) => Refine(style => style.LineHeightOf(multiplier));
+    public RunComposer Leading(float multiplier) => Refine(style => style.WithLeading(multiplier));
 
-    public RunComposer LetterSpacing(float spacing) => Refine(style => style.LetterSpacingOf(spacing));
+    public RunComposer Tracking(float spacing) => Refine(style => style.WithTracking(spacing));
 
     public RunComposer Subscript() => Refine(style => style.Subscript());
 

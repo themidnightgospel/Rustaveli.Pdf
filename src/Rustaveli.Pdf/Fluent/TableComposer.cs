@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// </summary>
 public sealed class TableComposer(TableElement element)
 {
-    public void ColumnsDefinition(Action<TableColumns> handler)
+    public void Columns(Action<TableColumns> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         handler(new TableColumns(element));
@@ -23,14 +23,14 @@ public sealed class TableComposer(TableElement element)
     }
 
     /// <summary>Declares rows repeated at the top of every page the table spans.</summary>
-    public void Header(Action<TableBand> handler)
+    public void HeaderRows(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         handler(new TableBand(element.HeaderCells));
     }
 
     /// <summary>Declares rows repeated at the bottom of every page the table spans.</summary>
-    public void Footer(Action<TableBand> handler)
+    public void FooterRows(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
         handler(new TableBand(element.FooterCells));

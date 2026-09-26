@@ -10,12 +10,12 @@ public sealed class WhenBlock : EnclosingBlock
 {
     public bool Condition { get; set; } = true;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        Condition ? base.Measure(availableSpace, context) : Fit.FullRender(Extent.Zero);
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        Condition ? base.Plan(availableSpace, context) : Fit.Complete(Extent.Zero);
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Condition)
-            base.Draw(availableSpace, context);
+            base.Render(availableSpace, context);
     }
 }

@@ -38,7 +38,7 @@ public class RuleAndPlaceholderTests
     {
         Fit plan = LayoutHarness.Measure(new PlaceholderBlock(), new Extent(80, 40));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(80, 40), plan.Size);
     }
 
@@ -49,13 +49,13 @@ public class RuleAndPlaceholderTests
     {
         RuleBlock element = new RuleBlock { Thickness = 5 };
 
-        Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(200, availableHeight)).IsWrap);
+        Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(200, availableHeight)).IsDeferred);
     }
 
     [Fact]
     public void HorizontalRuleIsPaintedAcrossTheWidthInItsColour()
     {
-        RuleBlock element = new RuleBlock { Thickness = 3, Color = TestInks.Red };
+        RuleBlock element = new RuleBlock { Thickness = 3, Ink = TestInks.Red };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
@@ -70,13 +70,13 @@ public class RuleAndPlaceholderTests
     {
         VerticalRuleBlock element = new VerticalRuleBlock { Thickness = 5 };
 
-        Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(availableWidth, 100)).IsWrap);
+        Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(availableWidth, 100)).IsDeferred);
     }
 
     [Fact]
     public void VerticalRuleIsPaintedDownTheHeightInItsColour()
     {
-        VerticalRuleBlock element = new VerticalRuleBlock { Thickness = 2, Color = TestInks.Blue };
+        VerticalRuleBlock element = new VerticalRuleBlock { Thickness = 2, Ink = TestInks.Blue };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 

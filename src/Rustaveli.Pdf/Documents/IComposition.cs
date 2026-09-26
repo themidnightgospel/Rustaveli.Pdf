@@ -6,5 +6,5 @@ namespace Rustaveli.Pdf.Documents;
 public interface IComposition
 {
     /// <summary>Adds a run of pages sharing a size, margin and set of slots.</summary>
-    void Page(Action<Section> handler);
+    void Section(Action<Section> handler);
 }

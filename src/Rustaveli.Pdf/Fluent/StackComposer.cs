@@ -9,13 +9,13 @@ namespace Rustaveli.Pdf.Fluent;
 public sealed class StackComposer(StackBlock element)
 {
     /// <summary>Sets the gap inserted between consecutive items.</summary>
-    public void Spacing(float value)
+    public void SpaceBetween(float value)
     {
         element.Spacing = value;
     }
 
     /// <summary>Adds an item to the bottom of the stack and returns its container.</summary>
-    public IFrame Item()
+    public IFrame Add()
     {
         Frame container = new Frame();
         element.Items.Add(container);

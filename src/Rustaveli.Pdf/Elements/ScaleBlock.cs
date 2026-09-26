@@ -13,10 +13,10 @@ public sealed class ScaleBlock : EnclosingBlock
 
     public float ScaleY { get; set; } = 1f;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (ScaleX == 0 || ScaleY == 0)
-            return Fit.Wrap("A scale factor of zero collapses the content entirely.");
+            return Fit.Defer("A scale factor of zero collapses the content entirely.");
 
         // The child is measured in its own unscaled coordinate space, so expand the offered space by the
         // inverse of the scale before handing it over.
@@ -24,22 +24,22 @@ public sealed class ScaleBlock : EnclosingBlock
             availableSpace.Width / Math.Abs(ScaleX),
             availableSpace.Height / Math.Abs(ScaleY));
 
-        Fit childPlan = Child?.Measure(innerSpace, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
         Extent size = new Extent(
             childPlan.Size.Width * Math.Abs(ScaleX),
             childPlan.Size.Height * Math.Abs(ScaleY));
 
-        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Child is null || ScaleX == 0 || ScaleY == 0)
             return;
@@ -53,7 +53,7 @@ public sealed class ScaleBlock : EnclosingBlock
         context.Canvas.Save();
         context.Canvas.Translate(MirrorOffset(innerSpace, context.Layout));
         context.Canvas.Scale(ScaleX, ScaleY);
-        Child.Draw(innerSpace, context);
+        Child.Render(innerSpace, context);
         context.Canvas.Restore();
     }
 
@@ -66,7 +66,7 @@ public sealed class ScaleBlock : EnclosingBlock
         if (ScaleX > 0 && ScaleY > 0)
             return Offset.Zero;
 
-        Extent childSize = Child!.Measure(innerSpace, context).Size;
+        Extent childSize = Child!.Plan(innerSpace, context).Size;
 
         return new Offset(
             ScaleX < 0 ? childSize.Width * -ScaleX : 0f,

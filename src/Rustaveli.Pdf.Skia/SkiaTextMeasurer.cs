@@ -35,8 +35,8 @@ public sealed class SkiaTextMeasurer(SkiaFontProvider fonts) : ITypeMeasurer
 
         // Tracking sits between characters, so N characters have N-1 gaps. Counting a trailing gap would make
         // every run one letter-space too wide, pushing centred text off-centre and overshooting underlines.
-        if (style.LetterSpacing != 0)
-            width += style.LetterSpacing * Math.Max(0, CountTextElements(text) - 1);
+        if (style.Tracking != 0)
+            width += style.Tracking * Math.Max(0, CountTextElements(text) - 1);
 
         return Math.Max(0, width);
     }
@@ -62,7 +62,7 @@ public sealed class SkiaTextMeasurer(SkiaFontProvider fonts) : ITypeMeasurer
         IReadOnlyList<FontRun> runs = fonts.Split(text, style);
 
         // A single run with no tracking is the common case, and Skia can answer it directly.
-        if (style.LetterSpacing == 0 && runs.Count == 1)
+        if (style.Tracking == 0 && runs.Count == 1)
             return (int)runs[0].Font.BreakText(text, maxWidth);
 
         // Otherwise walk whole characters, switching font at each run boundary. Never split a surrogate pair:
@@ -80,7 +80,7 @@ public sealed class SkiaTextMeasurer(SkiaFontProvider fonts) : ITypeMeasurer
                 int length = char.IsSurrogatePair(run.Text, position) ? 2 : 1;
 
                 if (consumed > 0)
-                    width += style.LetterSpacing;
+                    width += style.Tracking;
 
                 width += run.Font.MeasureText(run.Text.AsSpan(position, length));
 

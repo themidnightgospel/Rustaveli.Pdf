@@ -20,19 +20,19 @@ namespace Rustaveli.Pdf.IntegrationTests;
 public class PdfOutputTests
 {
     private static Document SimpleDocument(Action<Section> configure) =>
-        Document.Create(container => container.Page(page =>
+        Document.Compose(container => container.Section(page =>
         {
-            page.Size = PaperSizes.A4;
-            page.Margin = Sides.All(30);
+            page.Trim = PaperSizes.A4;
+            page.Margins = Sides.All(30);
             configure(page);
         }));
 
     [Fact]
     public void ProducesAFileWithAPdfHeader()
     {
-        Document document = SimpleDocument(page => page.Content().Text("Hello, world."));
+        Document document = SimpleDocument(page => page.Body().Text("Hello, world."));
 
-        byte[] bytes = document.GeneratePdf();
+        byte[] bytes = document.ExportPdf();
 
         Assert.True(bytes.Length > 0);
         Assert.Equal("%PDF"u8.ToArray(), bytes.Take(4).ToArray());
@@ -41,9 +41,9 @@ public class PdfOutputTests
     [Fact]
     public void WritesTextThatCanBeExtractedAgain()
     {
-        Document document = SimpleDocument(page => page.Content().Text("Extractable content"));
+        Document document = SimpleDocument(page => page.Body().Text("Extractable content"));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         Page page = parsed.GetPage(1);
 
         Assert.Contains("Extractable", page.Text);
@@ -52,9 +52,9 @@ public class PdfOutputTests
     [Fact]
     public void ReportsThePageSizeItWasGiven()
     {
-        Document document = SimpleDocument(page => page.Content().Text("A4"));
+        Document document = SimpleDocument(page => page.Body().Text("A4"));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         Page page = parsed.GetPage(1);
 
         // PdfPig reports points; A4 is 595.28 x 841.89.
@@ -65,15 +65,15 @@ public class PdfOutputTests
     [Fact]
     public void FlowsLongContentAcrossSeveralPages()
     {
-        Document document = SimpleDocument(page => page.Content().Column(column =>
+        Document document = SimpleDocument(page => page.Body().Stack(column =>
         {
-            column.Spacing(5);
+            column.SpaceBetween(5);
 
             for (int index = 0; index < 120; index++)
-                column.Item().Text($"Line number {index} of the flowing content.");
+                column.Add().Text($"Line number {index} of the flowing content.");
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
 
         Assert.True(parsed.NumberOfPages > 1, "120 lines should not fit on a single A4 page.");
     }
@@ -83,22 +83,22 @@ public class PdfOutputTests
     {
         Document document = SimpleDocument(page =>
         {
-            page.Footer().Text(text =>
+            page.RunningFoot().Text(text =>
             {
-                text.Span("Page ");
-                text.CurrentPageNumber();
-                text.Span(" of ");
-                text.TotalPages();
+                text.Run("Page ");
+                text.Folio();
+                text.Run(" of ");
+                text.PageCount();
             });
 
-            page.Content().Column(column =>
+            page.Body().Stack(column =>
             {
                 for (int index = 0; index < 120; index++)
-                    column.Item().Text($"Content line {index}.");
+                    column.Add().Text($"Content line {index}.");
             });
         });
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         int total = parsed.NumberOfPages;
         string firstPage = parsed.GetPage(1).Text;
 
@@ -109,11 +109,11 @@ public class PdfOutputTests
     [Fact]
     public void WritesDocumentMetadata()
     {
-        Document document = SimpleDocument(page => page.Content().Text("Metadata"));
-        document.Metadata.Title = "Integration Title";
-        document.Metadata.Author = "Integration Author";
+        Document document = SimpleDocument(page => page.Body().Text("Metadata"));
+        document.Info.Title = "Integration Title";
+        document.Info.Author = "Integration Author";
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
 
         Assert.Equal("Integration Title", parsed.Information.Title);
         Assert.Equal("Integration Author", parsed.Information.Author);
@@ -122,15 +122,15 @@ public class PdfOutputTests
     [Fact]
     public void RendersATableAcrossPagesWithRepeatingHeaders()
     {
-        Document document = SimpleDocument(page => page.Content().Table(table =>
+        Document document = SimpleDocument(page => page.Body().Table(table =>
         {
-            table.ColumnsDefinition(columns =>
+            table.Columns(columns =>
             {
-                columns.ConstantColumn(80);
-                columns.RelativeColumn();
+                columns.Fixed(80);
+                columns.Share();
             });
 
-            table.Header(header =>
+            table.HeaderRows(header =>
             {
                 header.Cell().Text("Code");
                 header.Cell().Text("Description");
@@ -143,7 +143,7 @@ public class PdfOutputTests
             }
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
 
         Assert.True(parsed.NumberOfPages > 1);
 
@@ -155,22 +155,22 @@ public class PdfOutputTests
     [Fact]
     public void RendersMultiplePageRunsWithDifferentSizes()
     {
-        Document document = Document.Create(container =>
+        Document document = Document.Compose(container =>
         {
-            container.Page(page =>
+            container.Section(page =>
             {
-                page.Size = PaperSizes.A4;
-                page.Content().Text("Portrait");
+                page.Trim = PaperSizes.A4;
+                page.Body().Text("Portrait");
             });
 
-            container.Page(page =>
+            container.Section(page =>
             {
-                page.Size = PaperSizes.A4.Landscape();
-                page.Content().Text("Landscape");
+                page.Trim = PaperSizes.A4.Landscape();
+                page.Body().Text("Landscape");
             });
         });
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
 
         Assert.Equal(2, parsed.NumberOfPages);
         Assert.True(parsed.GetPage(2).Width > parsed.GetPage(2).Height);
@@ -179,15 +179,15 @@ public class PdfOutputTests
     [Fact]
     public void ContinuousPagesAdoptTheHeightOfTheirContent()
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(300, 2000);
-            page.IsContinuous = true;
-            page.Margin = Sides.All(10);
-            page.Content().Text("Receipt");
+            page.Trim = new Extent(300, 2000);
+            page.Continuous = true;
+            page.Margins = Sides.All(10);
+            page.Body().Text("Receipt");
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
 
         Assert.Single(parsed.GetPages());
         Assert.True(parsed.GetPage(1).Height < 100, "A one-line receipt should produce a short page.");
@@ -196,17 +196,17 @@ public class PdfOutputTests
     [Fact]
     public void AppliesStylingWithoutFailing()
     {
-        Document document = SimpleDocument(page => page.Content().Column(column =>
+        Document document = SimpleDocument(page => page.Body().Stack(column =>
         {
-            column.Item().Text(text => text.Span("Bold").Bold().FontSize(24));
-            column.Item().Text(text => text.Span("Coloured").FontColor(TestInks.Red));
-            column.Item().Text(text => text.Span("Underlined").Underline());
-            column.Item().Text(text => text.Span("Highlighted").BackgroundColor(TestInks.Yellow));
-            column.Item().Fill(TestInks.GreyLighten3).Inset(10).Text("On a background");
-            column.Item().Stroke(1).StrokeInk(TestInks.Black).Inset(5).Text("In a box");
+            column.Add().Text(text => text.Run("Bold").Bold().PointSize(24));
+            column.Add().Text(text => text.Run("Coloured").Ink(TestInks.Red));
+            column.Add().Text(text => text.Run("Underlined").Underline());
+            column.Add().Text(text => text.Run("Highlighted").Highlight(TestInks.Yellow));
+            column.Add().Fill(TestInks.GreyLighten3).Inset(10).Text("On a background");
+            column.Add().Stroke(1).StrokeInk(TestInks.Black).Inset(5).Text("In a box");
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         string text = parsed.GetPage(1).Text;
 
         Assert.Contains("Bold", text);
@@ -216,31 +216,31 @@ public class PdfOutputTests
     [Fact]
     public void RendersListsWithTheirMarkers()
     {
-        Document document = SimpleDocument(page => page.Content().Column(column =>
+        Document document = SimpleDocument(page => page.Body().Stack(column =>
         {
-            column.Spacing(10);
+            column.SpaceBetween(10);
 
-            column.Item().List(list =>
+            column.Add().List(list =>
             {
-                list.Item().Text("Bulleted one");
-                list.Item().Text("Bulleted two");
+                list.Add().Text("Bulleted one");
+                list.Add().Text("Bulleted two");
             });
 
-            column.Item().List(list =>
+            column.Add().List(list =>
             {
-                list.Ordered();
-                list.Item().Text("Numbered one");
-                list.Item().Text("Numbered two");
+                list.Numbered();
+                list.Add().Text("Numbered one");
+                list.Add().Text("Numbered two");
             });
 
-            column.Item().List(list =>
+            column.Add().List(list =>
             {
-                list.Ordered(ListNumbering.UpperRoman);
-                list.Item().Text("Roman one");
+                list.Numbered(ListNumbering.UpperRoman);
+                list.Add().Text("Roman one");
             });
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         string text = parsed.GetPage(1).Text;
 
         Assert.Contains("Bulleted one", text);
@@ -252,17 +252,17 @@ public class PdfOutputTests
     [Fact]
     public void RendersRoundedContainersAndScaledContent()
     {
-        Document document = SimpleDocument(page => page.Content().Column(column =>
+        Document document = SimpleDocument(page => page.Body().Stack(column =>
         {
-            column.Spacing(8);
+            column.SpaceBetween(8);
 
-            column.Item().Fill(TestInks.AmberLighten3).RoundCorners(8).Inset(10).Text("Rounded panel");
-            column.Item().Stroke(2).StrokeInk(TestInks.Indigo).RoundCorners(6).Inset(10).Text("Rounded outline");
-            column.Item().Width(120).ShrinkToFit().Text("This line is scaled down until it fits its box.");
-            column.Item().MirrorHorizontal().Text("Mirrored");
+            column.Add().Fill(TestInks.AmberLighten3).RoundCorners(8).Inset(10).Text("Rounded panel");
+            column.Add().Stroke(2).StrokeInk(TestInks.Indigo).RoundCorners(6).Inset(10).Text("Rounded outline");
+            column.Add().Width(120).ShrinkToFit().Text("This line is scaled down until it fits its box.");
+            column.Add().MirrorHorizontal().Text("Mirrored");
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
 
         Assert.Contains("Rounded panel", parsed.GetPage(1).Text);
     }
@@ -270,15 +270,15 @@ public class PdfOutputTests
     [Fact]
     public void HonoursParagraphIndentAndSpacing()
     {
-        Document document = SimpleDocument(page => page.Content().Text(text =>
+        Document document = SimpleDocument(page => page.Body().Text(text =>
         {
             text.FirstLineIndent(24);
-            text.ParagraphSpacing(10);
+            text.SpaceBetweenParagraphs(10);
             text.Line("First paragraph opening line.");
-            text.Span("Second paragraph opening line.");
+            text.Run("Second paragraph opening line.");
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         List<Word> words = parsed.GetPage(1).GetWords().ToList();
 
         // Both paragraphs open at the indent, so neither starts at the left margin.
@@ -291,19 +291,19 @@ public class PdfOutputTests
     [Fact]
     public void EnsureSpaceMovesContentRatherThanStrandingIt()
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(300, 160);
-            page.Margin = Sides.All(10);
+            page.Trim = new Extent(300, 160);
+            page.Margins = Sides.All(10);
 
-            page.Content().Column(column =>
+            page.Body().Stack(column =>
             {
-                column.Item().Height(100).Text("Filler");
-                column.Item().RequireSpace(80).Text("Heading that must not be stranded");
+                column.Add().Height(100).Text("Filler");
+                column.Add().RequireSpace(80).Text("Heading that must not be stranded");
             });
         }));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
 
         Assert.Equal(2, parsed.NumberOfPages);
         Assert.DoesNotContain("stranded", parsed.GetPage(1).Text);
@@ -314,9 +314,9 @@ public class PdfOutputTests
     public void EmbedsExternalLinks()
     {
         Document document = SimpleDocument(page =>
-            page.Content().Link("https://example.com").Text("Visit the site"));
+            page.Body().Link("https://example.com").Text("Visit the site"));
 
-        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf());
         List<Annotation> annotations = parsed.GetPage(1).GetAnnotations().ToList();
 
         Assert.NotEmpty(annotations);

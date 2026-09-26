@@ -8,29 +8,29 @@ namespace Rustaveli.Pdf.Elements;
 /// </summary>
 public sealed class FillBlock : EnclosingBlock
 {
-    public Ink Color { get; set; } = Ink.Transparent;
+    public Ink Ink { get; set; } = Ink.Transparent;
 
     /// <summary>Radius of the corner rounding. Zero draws square corners.</summary>
     public float CornerRadius { get; set; }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         // A parent only draws what it measured as drawable; this guards callers that draw without asking.
-        Fit plan = Measure(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Layout);
 
-        if (plan.IsWrap || plan.IsEmpty)
+        if (plan.IsDeferred || plan.IsNothing)
             return;
 
         // The size given is the size this box occupies (ADR 0012), so the background fills all of it — a table
         // cell's full width and row height, not merely the extent of the text inside.
-        if (!Color.IsTransparent)
+        if (!Ink.IsTransparent)
         {
             if (CornerRadius > 0)
-                context.Canvas.DrawRoundedRectangle(Offset.Zero, availableSpace, CornerRadius, Color);
+                context.Canvas.DrawRoundedRectangle(Offset.Zero, availableSpace, CornerRadius, Ink);
             else
-                context.Canvas.DrawRectangle(Offset.Zero, availableSpace, Color);
+                context.Canvas.DrawRectangle(Offset.Zero, availableSpace, Ink);
         }
 
-        Child?.Draw(availableSpace, context);
+        Child?.Render(availableSpace, context);
     }
 }

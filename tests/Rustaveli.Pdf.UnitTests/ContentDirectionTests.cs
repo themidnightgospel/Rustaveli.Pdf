@@ -43,7 +43,7 @@ public class ContentDirectionTests
     public void TextAlignsToTheTrailingEdgeWhenRightToLeft()
     {
         TextBlock element = new TextBlock();
-        new TextComposer(element).Span("Hello");
+        new TextComposer(element).Run("Hello");
 
         PlanContext context = LayoutHarness.Context();
         context.ContentDirection = ReadingDirection.RightToLeft;
@@ -59,7 +59,7 @@ public class ContentDirectionTests
     public void ExplicitTextAlignmentBeatsTheDirection()
     {
         TextBlock element = new TextBlock();
-        new TextComposer(element).Span("Hello");
+        new TextComposer(element).Run("Hello");
         element.Alignment = HorizontalPlacement.Left;
 
         PlanContext context = LayoutHarness.Context();
@@ -73,7 +73,7 @@ public class ContentDirectionTests
     [Fact]
     public void DirectionElementScopesTheChangeToItsSubtree()
     {
-        Block root = LayoutHarness.Build(container => container.RightToLeft().Element(inner =>
+        Block root = LayoutHarness.Build(container => container.RightToLeft().Compose(inner =>
             inner.Child = TwoColumnRow()));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));
@@ -86,7 +86,7 @@ public class ContentDirectionTests
     public void DirectionIsRestoredAfterTheSubtree()
     {
         PlanContext context = LayoutHarness.Context();
-        Block root = LayoutHarness.Build(container => container.RightToLeft().Element(inner =>
+        Block root = LayoutHarness.Build(container => container.RightToLeft().Compose(inner =>
             inner.Child = TwoColumnRow()));
 
         LayoutHarness.Draw(root, new Extent(200, 100), context);
@@ -105,7 +105,7 @@ public class ContentDirectionTests
         Block root = LayoutHarness.Build(container => container.Reading(direction).Text(text =>
         {
             text.FirstLineIndent(20);
-            text.Span("Hello");
+            text.Run("Hello");
         }));
 
         Fit plan = LayoutHarness.Measure(root, new Extent(200, 100), context);
@@ -120,14 +120,14 @@ public class ContentDirectionTests
         TableElement element = new TableElement();
         TableComposer descriptor = new TableComposer(element);
 
-        descriptor.ColumnsDefinition(columns =>
+        descriptor.Columns(columns =>
         {
-            columns.ConstantColumn(60);
-            columns.ConstantColumn(60);
+            columns.Fixed(60);
+            columns.Fixed(60);
         });
 
-        descriptor.Cell().Element(container => container.Child = new FixedElement(1, 10, TestInks.Red));
-        descriptor.Cell().Element(container => container.Child = new FixedElement(1, 10, TestInks.Blue));
+        descriptor.Cell().Compose(container => container.Child = new FixedElement(1, 10, TestInks.Red));
+        descriptor.Cell().Compose(container => container.Child = new FixedElement(1, 10, TestInks.Blue));
         descriptor.PlaceAutomaticCells();
 
         element.Direction = ReadingDirection.RightToLeft;

@@ -10,14 +10,14 @@ public sealed class CrossReferenceBlock : EnclosingBlock
 {
     public string DestinationName { get; set; } = string.Empty;
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Measure(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Layout);
 
-        if (plan.IsWrap || plan.IsEmpty)
+        if (plan.IsDeferred || plan.IsNothing)
             return;
 
-        base.Draw(availableSpace, context);
+        base.Render(availableSpace, context);
 
         if (!string.IsNullOrEmpty(DestinationName))
             context.Canvas.DrawInternalLink(DestinationName, availableSpace);

@@ -6,9 +6,9 @@ public class DocumentGeneratorTests
 {
     private static Document Build(Action<Section> configure)
     {
-        return Document.Create(delegate(IComposition container)
+        return Document.Compose(delegate(IComposition container)
         {
-            container.Page(configure);
+            container.Section(configure);
         });
     }
 
@@ -17,8 +17,8 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Content().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(50f, 50f);
             });
@@ -31,9 +31,9 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Margin = Sides.All(10f);
-            page.Content().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.Margins = Sides.All(10f);
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new SplittableElement(10, 50f);
             });
@@ -46,9 +46,9 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Margin = new Sides(15f, 25f, 0f, 0f);
-            page.Content().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.Margins = new Sides(15f, 25f, 0f, 0f);
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 10f);
             });
@@ -63,12 +63,12 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Header().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.RunningHead().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(50f, 20f, TestInks.Red);
             });
-            page.Content().Element(delegate(IFrame container)
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new SplittableElement(6, 60f);
             });
@@ -86,13 +86,13 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Margin = Sides.All(10f);
-            page.Footer().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.Margins = Sides.All(10f);
+            page.RunningFoot().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(50f, 20f, TestInks.Green);
             });
-            page.Content().Element(delegate(IFrame container)
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 10f);
             });
@@ -107,12 +107,12 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Header().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.RunningHead().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(50f, 30f, TestInks.Red);
             });
-            page.Content().Element(delegate(IFrame container)
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 10f, TestInks.Blue);
             });
@@ -127,15 +127,15 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Footer().Text(delegate(TextComposer text)
+            page.Trim = new Extent(200f, 200f);
+            page.RunningFoot().Text(delegate(TextComposer text)
             {
-                text.Span("Page ");
-                text.CurrentPageNumber();
-                text.Span(" of ");
-                text.TotalPages();
+                text.Run("Page ");
+                text.Folio();
+                text.Run(" of ");
+                text.PageCount();
             });
-            page.Content().Element(delegate(IFrame container)
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new SplittableElement(4, 100f);
             });
@@ -151,13 +151,13 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 300f);
-            page.Margin = Sides.All(20f);
-            page.Background().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 300f);
+            page.Margins = Sides.All(20f);
+            page.Underlay().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(200f, 300f, TestInks.Amber);
             });
-            page.Content().Element(delegate(IFrame container)
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 10f);
             });
@@ -173,12 +173,12 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Foreground().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.Overlay().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(200f, 200f, TestInks.Cyan);
             });
-            page.Content().Element(delegate(IFrame container)
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 10f, TestInks.Blue);
             });
@@ -195,15 +195,15 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Content().Column(delegate(StackComposer column)
+            page.Trim = new Extent(200f, 200f);
+            page.Body().Stack(delegate(StackComposer column)
             {
-                column.Item().Element(delegate(IFrame container)
+                column.Add().Compose(delegate(IFrame container)
                 {
                     container.Child = new FixedElement(10f, 10f);
                 });
-                column.Item().NewPage();
-                column.Item().Element(delegate(IFrame container)
+                column.Add().NewPage();
+                column.Add().Compose(delegate(IFrame container)
                 {
                     container.Child = new FixedElement(10f, 10f);
                 });
@@ -218,9 +218,9 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Header().Element(container => container.Child = new FixedElement(10f, 50f));
-            page.Content().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 200f);
+            page.RunningHead().Compose(container => container.Child = new FixedElement(10f, 50f));
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 500f);
             });
@@ -241,9 +241,9 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(100f, 100f);
-            page.Margin = Sides.All(60f);
-            page.Content().Element(delegate(IFrame container)
+            page.Trim = new Extent(100f, 100f);
+            page.Margins = Sides.All(60f);
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 10f);
             });
@@ -258,16 +258,16 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 100f);
-            page.Header().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 100f);
+            page.RunningHead().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 60f);
             });
-            page.Footer().Element(delegate(IFrame container)
+            page.RunningFoot().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 60f);
             });
-            page.Content().Element(delegate(IFrame container)
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(10f, 10f);
             });
@@ -286,9 +286,9 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 800f);
-            page.IsContinuous = true;
-            page.Content().Element(delegate(IFrame container)
+            page.Trim = new Extent(200f, 800f);
+            page.Continuous = true;
+            page.Body().Compose(delegate(IFrame container)
             {
                 container.Child = new FixedElement(100f, 60f);
             });
@@ -301,20 +301,20 @@ public class DocumentGeneratorTests
     [Fact]
     public void RendersEachPageRunInOrder()
     {
-        Document document = Document.Create(delegate(IComposition container)
+        Document document = Document.Compose(delegate(IComposition container)
         {
-            container.Page(delegate(Section page)
+            container.Section(delegate(Section page)
             {
-                page.Size = new Extent(200f, 200f);
-                page.Content().Element(delegate(IFrame inner)
+                page.Trim = new Extent(200f, 200f);
+                page.Body().Compose(delegate(IFrame inner)
                 {
                     inner.Child = new FixedElement(10f, 10f, TestInks.Red);
                 });
             });
-            container.Page(delegate(Section page)
+            container.Section(delegate(Section page)
             {
-                page.Size = new Extent(300f, 300f);
-                page.Content().Element(delegate(IFrame inner)
+                page.Trim = new Extent(300f, 300f);
+                page.Body().Compose(delegate(IFrame inner)
                 {
                     inner.Child = new FixedElement(10f, 10f, TestInks.Blue);
                 });
@@ -331,14 +331,14 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Content().Column(delegate(StackComposer column)
+            page.Trim = new Extent(200f, 200f);
+            page.Body().Stack(delegate(StackComposer column)
             {
-                column.Item().Element(delegate(IFrame container)
+                column.Add().Compose(delegate(IFrame container)
                 {
                     container.Child = new SplittableElement(3, 150f);
                 });
-                column.Item().Anchor("end").Element(delegate(IFrame container)
+                column.Add().Anchor("end").Compose(delegate(IFrame container)
                 {
                     container.Child = new FixedElement(10f, 10f);
                 });
@@ -355,15 +355,15 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(70f, 100f);
-            page.Footer().Text(delegate(TextComposer text)
+            page.Trim = new Extent(70f, 100f);
+            page.RunningFoot().Text(delegate(TextComposer text)
             {
-                text.Span("Page ");
-                text.CurrentPageNumber();
-                text.Span(" of ");
-                text.TotalPages();
+                text.Run("Page ");
+                text.Folio();
+                text.Run(" of ");
+                text.PageCount();
             });
-            page.Content().Element(delegate(IFrame inner)
+            page.Body().Compose(delegate(IFrame inner)
             {
                 inner.Child = new SplittableElement(96, 10f);
             });
@@ -381,8 +381,8 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(0f, 0f);
-            page.Content().Text("nowhere to draw");
+            page.Trim = new Extent(0f, 0f);
+            page.Body().Text("nowhere to draw");
         });
         Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
     }
@@ -392,19 +392,19 @@ public class DocumentGeneratorTests
     {
         Document document = Build(delegate(Section page)
         {
-            page.Size = new Extent(200f, 200f);
-            page.Content().Column(delegate(StackComposer column)
+            page.Trim = new Extent(200f, 200f);
+            page.Body().Stack(delegate(StackComposer column)
             {
-                column.Item().Text(delegate(TextComposer text)
+                column.Add().Text(delegate(TextComposer text)
                 {
-                    text.Span("Summary on page ");
-                    text.PageNumberOfSection("summary");
+                    text.Run("Summary on page ");
+                    text.FolioOf("summary");
                 });
-                column.Item().Element(delegate(IFrame inner)
+                column.Add().Compose(delegate(IFrame inner)
                 {
                     inner.Child = new SplittableElement(4, 150f);
                 });
-                column.Item().Anchor("summary").Element(delegate(IFrame inner)
+                column.Add().Anchor("summary").Compose(delegate(IFrame inner)
                 {
                     inner.Child = new FixedElement(10f, 10f);
                 });
@@ -417,7 +417,7 @@ public class DocumentGeneratorTests
     [Fact]
     public void WrapsComposeFailuresWithContext()
     {
-        CompositionException ex = Assert.Throws<CompositionException>(() => Document.Create(delegate
+        CompositionException ex = Assert.Throws<CompositionException>(() => Document.Compose(delegate
         {
             throw new InvalidOperationException("boom");
         }));
@@ -427,7 +427,7 @@ public class DocumentGeneratorTests
     [Fact]
     public void RejectsMissingArgumentsByName()
     {
-        Document document = Build(page => page.Content().Text("x"));
+        Document document = Build(page => page.Body().Text("x"));
         RecordingCanvas canvas = new RecordingCanvas();
         ITypeMeasurer measurer = LayoutHarness.Measurer;
 
@@ -451,8 +451,8 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(page =>
         {
-            page.Size = new Extent(width, height);
-            page.Content().Text("nowhere to draw");
+            page.Trim = new Extent(width, height);
+            page.Body().Text("nowhere to draw");
         });
 
         OversetException exception =
@@ -469,8 +469,8 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(page =>
         {
-            page.Size = new Extent(100, 100);
-            page.Margin = Sides.Symmetric(horizontal: 50, vertical: 0);
+            page.Trim = new Extent(100, 100);
+            page.Margins = Sides.Symmetric(horizontal: 50, vertical: 0);
         });
 
         OversetException exception =
@@ -485,8 +485,8 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(page =>
         {
-            page.Size = new Extent(100, 100);
-            page.Margin = Sides.Symmetric(horizontal: 0, vertical: 50);
+            page.Trim = new Extent(100, 100);
+            page.Margins = Sides.Symmetric(horizontal: 0, vertical: 50);
         });
 
         OversetException exception =
@@ -501,10 +501,10 @@ public class DocumentGeneratorTests
         // Margins taller than the nominal page would be rejected on a fixed page; a continuous page grows past it.
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Margin = Sides.Symmetric(horizontal: 0, vertical: 60);
-            page.IsContinuous = true;
-            page.Content().Element(container => container.Child = new FixedElement(10, 10));
+            page.Trim = new Extent(200, 100);
+            page.Margins = Sides.Symmetric(horizontal: 0, vertical: 60);
+            page.Continuous = true;
+            page.Body().Compose(container => container.Child = new FixedElement(10, 10));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
@@ -517,12 +517,12 @@ public class DocumentGeneratorTests
     {
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Margin = new Sides(Left: 0, Top: 10, Right: 0, Bottom: 20);
-            page.IsContinuous = true;
-            page.Header().Element(container => container.Child = new FixedElement(50, 15, TestInks.Red));
-            page.Content().Element(container => container.Child = new FixedElement(50, 500, TestInks.Blue));
-            page.Footer().Element(container => container.Child = new FixedElement(50, 25, TestInks.Green));
+            page.Trim = new Extent(200, 100);
+            page.Margins = new Sides(Left: 0, Top: 10, Right: 0, Bottom: 20);
+            page.Continuous = true;
+            page.RunningHead().Compose(container => container.Child = new FixedElement(50, 15, TestInks.Red));
+            page.Body().Compose(container => container.Child = new FixedElement(50, 500, TestInks.Blue));
+            page.RunningFoot().Compose(container => container.Child = new FixedElement(50, 25, TestInks.Green));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
@@ -539,9 +539,9 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Header().Element(container => container.Child = new FixedElement(10, 150));
-            page.Content().Element(container => container.Child = new FixedElement(10, 10));
+            page.Trim = new Extent(200, 100);
+            page.RunningHead().Compose(container => container.Child = new FixedElement(10, 150));
+            page.Body().Compose(container => container.Child = new FixedElement(10, 10));
         });
 
         OversetException exception =
@@ -559,8 +559,8 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Header().Element(container => container.Child = new OversizedElement(10, 300));
+            page.Trim = new Extent(200, 100);
+            page.RunningHead().Compose(container => container.Child = new OversizedElement(10, 300));
         });
 
         OversetException exception =
@@ -575,10 +575,10 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Margin = Sides.Symmetric(horizontal: 0, vertical: 10);
-            page.Header().ExpandVertically().Text("Title");
-            page.Content().Text("Body");
+            page.Trim = new Extent(200, 100);
+            page.Margins = Sides.Symmetric(horizontal: 0, vertical: 10);
+            page.RunningHead().ExpandVertically().Text("Title");
+            page.Body().Text("Body");
         });
 
         OversetException exception =
@@ -597,9 +597,9 @@ public class DocumentGeneratorTests
         using CultureScope culture = CultureScope.Invariant();
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Header().Element(container => container.Child = new FixedElement(10, 50));
-            page.Footer().Element(container => container.Child = new OversizedElement(10, 200));
+            page.Trim = new Extent(200, 200);
+            page.RunningHead().Compose(container => container.Child = new FixedElement(10, 50));
+            page.RunningFoot().Compose(container => container.Child = new OversizedElement(10, 200));
         });
 
         OversetException exception =
@@ -617,9 +617,9 @@ public class DocumentGeneratorTests
         // fraction of a thousandth more than it was offered. The page must accept what its own footer accepted.
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Header().Element(container => container.Child = new FixedElement(10, 50, TestInks.Red));
-            page.Footer().Element(container => container.Child = new FixedElement(10, 150.0005f, TestInks.Green));
+            page.Trim = new Extent(200, 200);
+            page.RunningHead().Compose(container => container.Child = new FixedElement(10, 50, TestInks.Red));
+            page.RunningFoot().Compose(container => container.Child = new FixedElement(10, 150.0005f, TestInks.Green));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
@@ -631,10 +631,10 @@ public class DocumentGeneratorTests
     public void WrapsADrawingFailureWithThePageItHappenedOn()
     {
         InvalidOperationException failure = new InvalidOperationException("The image could not be decoded.");
-        Document document = Document.Create(container =>
+        Document document = Document.Compose(container =>
         {
-            container.Page(page => page.Content().Element(inner => inner.Child = new FixedElement(10, 10)));
-            container.Page(page => page.Content().Element(inner => inner.Child = new ThrowingElement(failure)));
+            container.Section(page => page.Body().Compose(inner => inner.Child = new FixedElement(10, 10)));
+            container.Section(page => page.Body().Compose(inner => inner.Child = new ThrowingElement(failure)));
         });
 
         RenderingException exception =
@@ -648,7 +648,7 @@ public class DocumentGeneratorTests
     public void LetsALayoutFailureRaisedWhileDrawingPassThroughUnwrapped()
     {
         OversetException failure = new OversetException("A nested layout could not be resolved.");
-        Document document = Build(page => page.Content().Element(inner => inner.Child = new ThrowingElement(failure)));
+        Document document = Build(page => page.Body().Compose(inner => inner.Child = new ThrowingElement(failure)));
 
         Assert.Same(failure, Assert.Throws<OversetException>(() => LayoutHarness.Render(document)));
     }
@@ -657,7 +657,7 @@ public class DocumentGeneratorTests
     public void DoesNotWrapADrawingFailureASecondTime()
     {
         RenderingException failure = new RenderingException("A nested document failed to draw.");
-        Document document = Build(page => page.Content().Element(inner => inner.Child = new ThrowingElement(failure)));
+        Document document = Build(page => page.Body().Compose(inner => inner.Child = new ThrowingElement(failure)));
 
         Assert.Same(failure, Assert.Throws<RenderingException>(() => LayoutHarness.Render(document)));
     }
@@ -667,8 +667,8 @@ public class DocumentGeneratorTests
     {
         Document document = Build(page =>
         {
-            page.Size = new Extent(100, 100);
-            page.Content().Element(container => container.Child = new NeverFinishingElement());
+            page.Trim = new Extent(100, 100);
+            page.Body().Compose(container => container.Child = new NeverFinishingElement());
         });
 
         OversetException exception =
@@ -685,8 +685,8 @@ public class DocumentGeneratorTests
     {
         Document document = Build(page =>
         {
-            page.Size = new Extent(20, 10);
-            page.Content().Element(container => container.Child = new SplittableElement(10_000, 10f));
+            page.Trim = new Extent(20, 10);
+            page.Body().Compose(container => container.Child = new SplittableElement(10_000, 10f));
         });
 
         Assert.Equal(10_000, LayoutHarness.Render(document).Pages.Count);
@@ -697,8 +697,8 @@ public class DocumentGeneratorTests
     {
         Document document = Build(page =>
         {
-            page.Size = new Extent(20, 10);
-            page.Content().Element(container => container.Child = new SplittableElement(10_001, 10f));
+            page.Trim = new Extent(20, 10);
+            page.Body().Compose(container => container.Child = new SplittableElement(10_001, 10f));
         });
 
         OversetException exception =
@@ -713,9 +713,9 @@ public class DocumentGeneratorTests
         PageContextRecorder recorder = new PageContextRecorder();
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Background().Element(container => container.Child = recorder);
-            page.Content().Element(container => container.Child = new SplittableElement(3, 100f));
+            page.Trim = new Extent(200, 100);
+            page.Underlay().Compose(container => container.Child = recorder);
+            page.Body().Compose(container => container.Child = new SplittableElement(3, 100f));
         });
 
         LayoutHarness.Render(document);
@@ -741,8 +741,8 @@ public class DocumentGeneratorTests
         OscillatingElement content = new OscillatingElement();
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 100);
-            page.Content().Element(container => container.Child = content);
+            page.Trim = new Extent(200, 100);
+            page.Body().Compose(container => container.Child = content);
         });
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
@@ -759,12 +759,12 @@ public class DocumentGeneratorTests
         // Each band holds content that reports itself spent once drawn. Only the per-page reset brings it back.
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Background().Element(container => container.Child = new SplittableElement(1, 5f, width: 13));
-            page.Header().Element(container => container.Child = new SplittableElement(1, 20f, width: 11));
-            page.Content().Element(container => container.Child = new SplittableElement(3, 160f, width: 15));
-            page.Footer().Element(container => container.Child = new SplittableElement(1, 20f, width: 12));
-            page.Foreground().Element(container => container.Child = new SplittableElement(1, 5f, width: 14));
+            page.Trim = new Extent(200, 200);
+            page.Underlay().Compose(container => container.Child = new SplittableElement(1, 5f, width: 13));
+            page.RunningHead().Compose(container => container.Child = new SplittableElement(1, 20f, width: 11));
+            page.Body().Compose(container => container.Child = new SplittableElement(3, 160f, width: 15));
+            page.RunningFoot().Compose(container => container.Child = new SplittableElement(1, 20f, width: 12));
+            page.Overlay().Compose(container => container.Child = new SplittableElement(1, 5f, width: 14));
         });
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
@@ -789,9 +789,9 @@ public class DocumentGeneratorTests
         // reset; the per-page reset in between must leave the "already shown" flag alone.
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 200);
-            page.Header().Once().Element(container => container.Child = new FixedElement(50, 20, TestInks.Red));
-            page.Content().Element(container => container.Child = new SplittableElement(3, 150f));
+            page.Trim = new Extent(200, 200);
+            page.RunningHead().Once().Compose(container => container.Child = new FixedElement(50, 20, TestInks.Red));
+            page.Body().Compose(container => container.Child = new SplittableElement(3, 150f));
         });
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
@@ -807,9 +807,9 @@ public class DocumentGeneratorTests
     {
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 300);
-            page.Margin = Sides.All(20);
-            page.BackgroundColor = TestInks.Amber;
+            page.Trim = new Extent(200, 300);
+            page.Margins = Sides.All(20);
+            page.Paper = TestInks.Amber;
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
@@ -825,8 +825,8 @@ public class DocumentGeneratorTests
     {
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 300);
-            page.BackgroundColor = TestInks.Transparent;
+            page.Trim = new Extent(200, 300);
+            page.Paper = TestInks.Transparent;
         });
 
         Assert.Empty(Assert.Single(LayoutHarness.Render(document).Pages).Operations);
@@ -837,12 +837,12 @@ public class DocumentGeneratorTests
     {
         Document document = Build(page =>
         {
-            page.Size = new Extent(200, 300);
-            page.Margin = Sides.All(20);
-            page.Header().Element(container => container.Child = new FixedElement(50, 30, TestInks.Red));
-            page.Content().Element(container => container.Child = new FixedElement(50, 10, TestInks.Blue));
-            page.Footer().Element(container => container.Child = new FixedElement(50, 30, TestInks.Green));
-            page.Foreground().Element(container => container.Child = new FixedElement(200, 300, TestInks.Cyan));
+            page.Trim = new Extent(200, 300);
+            page.Margins = Sides.All(20);
+            page.RunningHead().Compose(container => container.Child = new FixedElement(50, 30, TestInks.Red));
+            page.Body().Compose(container => container.Child = new FixedElement(50, 10, TestInks.Blue));
+            page.RunningFoot().Compose(container => container.Child = new FixedElement(50, 30, TestInks.Green));
+            page.Overlay().Compose(container => container.Child = new FixedElement(200, 300, TestInks.Cyan));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);

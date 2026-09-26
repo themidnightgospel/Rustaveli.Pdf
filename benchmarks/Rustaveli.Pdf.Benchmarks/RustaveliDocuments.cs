@@ -16,7 +16,7 @@ public static class RustaveliDocuments
         List<SkiaImage> images = new List<SkiaImage>();
         try
         {
-            return Build(kind, images).GeneratePdf();
+            return Build(kind, images).ExportPdf();
         }
         finally
         {
@@ -25,60 +25,60 @@ public static class RustaveliDocuments
         }
     }
 
-    private static Document Build(DocumentKind kind, List<SkiaImage> images) => Document.Create(container => container.Page(page =>
+    private static Document Build(DocumentKind kind, List<SkiaImage> images) => Document.Compose(container => container.Section(page =>
     {
-        page.Size = PaperSizes.A4;
-        page.Margin = Sides.All(40f);
-        page.DefaultTextStyle = TypeStyle.Default.FontFamilyOf(BenchmarkFonts.Family).FontSizeOf(10f);
+        page.Trim = PaperSizes.A4;
+        page.Margins = Sides.All(40f);
+        page.DefaultType = TypeStyle.Default.WithTypeface(BenchmarkFonts.Family).WithPointSize(10f);
 
-        page.Header().InsetBottom(10f).Text(kind.ToString());
-        page.Footer().Centered().Text(text =>
+        page.RunningHead().InsetBottom(10f).Text(kind.ToString());
+        page.RunningFoot().Centered().Text(text =>
         {
-            text.Span("Page ");
-            text.CurrentPageNumber();
-            text.Span(" of ");
-            text.TotalPages();
+            text.Run("Page ");
+            text.Folio();
+            text.Run(" of ");
+            text.PageCount();
         });
 
         switch (kind)
         {
             case DocumentKind.Invoice:
-                page.Content().Column(column =>
+                page.Body().Stack(column =>
                 {
-                    column.Spacing(12f);
-                    column.Item().Row(row =>
+                    column.SpaceBetween(12f);
+                    column.Add().Columns(row =>
                     {
-                        row.RelativeItem().Text("Invoice INV-2026-0042\nIssued 26 September 2026");
-                        row.ConstantItem(160f).Text("Customer\nRustaveli Avenue 1\nTbilisi");
+                        row.Share().Text("Invoice INV-2026-0042\nIssued 26 September 2026");
+                        row.Fixed(160f).Text("Customer\nRustaveli Avenue 1\nTbilisi");
                     });
-                    column.Item().Table(table => ItemTable(table, BenchmarkData.InvoiceLines));
-                    column.Item().FlushRight().Text("Total due 12 345.67");
+                    column.Add().Table(table => ItemTable(table, BenchmarkData.InvoiceLines));
+                    column.Add().FlushRight().Text("Total due 12 345.67");
                 });
                 break;
 
             case DocumentKind.Report:
-                page.Content().Column(column =>
+                page.Body().Stack(column =>
                 {
-                    column.Spacing(6f);
+                    column.SpaceBetween(6f);
                     foreach (string paragraph in BenchmarkData.ReportParagraphs)
-                        column.Item().Text(paragraph);
+                        column.Add().Text(paragraph);
                 });
                 break;
 
             case DocumentKind.LargeTable:
-                page.Content().Table(table => ItemTable(table, BenchmarkData.TableRows));
+                page.Body().Table(table => ItemTable(table, BenchmarkData.TableRows));
                 break;
 
             case DocumentKind.Images:
-                page.Content().Column(column =>
+                page.Body().Stack(column =>
                 {
-                    column.Spacing(8f);
+                    column.SpaceBetween(8f);
                     for (int index = 0; index < 40; index++)
                     {
                         SkiaImage image = SkiaImage.FromBytes(BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
                         images.Add(image);
-                        column.Item().Image(image, ImageFitting.Width);
-                        column.Item().Text($"Figure {index + 1}");
+                        column.Add().Image(image, ImageFitting.FitWidth);
+                        column.Add().Text($"Figure {index + 1}");
                     }
                 });
                 break;
@@ -90,14 +90,14 @@ public static class RustaveliDocuments
 
     private static void ItemTable(TableComposer table, IReadOnlyList<LineItem> lines)
     {
-        table.ColumnsDefinition(columns =>
+        table.Columns(columns =>
         {
-            columns.ConstantColumn(80f);
-            columns.RelativeColumn();
-            columns.ConstantColumn(80f);
+            columns.Fixed(80f);
+            columns.Share();
+            columns.Fixed(80f);
         });
 
-        table.Header(header =>
+        table.HeaderRows(header =>
         {
             header.Cell().Text("Code");
             header.Cell().Text("Description");

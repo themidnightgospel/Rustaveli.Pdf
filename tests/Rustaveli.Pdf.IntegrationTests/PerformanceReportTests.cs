@@ -20,21 +20,21 @@ public class PerformanceReportTests(ITestOutputHelper output)
 {
     private static byte[] GenerateTable(int rowCount)
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = PaperSizes.A4;
-            page.Margin = Sides.All(30);
+            page.Trim = PaperSizes.A4;
+            page.Margins = Sides.All(30);
 
-            page.Content().Table(table =>
+            page.Body().Table(table =>
             {
-                table.ColumnsDefinition(columns =>
+                table.Columns(columns =>
                 {
-                    columns.ConstantColumn(80);
-                    columns.RelativeColumn();
-                    columns.ConstantColumn(60);
+                    columns.Fixed(80);
+                    columns.Share();
+                    columns.Fixed(60);
                 });
 
-                table.Header(header =>
+                table.HeaderRows(header =>
                 {
                     header.Cell().Text("Code");
                     header.Cell().Text("Description");
@@ -50,26 +50,26 @@ public class PerformanceReportTests(ITestOutputHelper output)
             });
         }));
 
-        return document.GeneratePdf();
+        return document.ExportPdf();
     }
 
     private static byte[] GenerateColumn(int itemCount)
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = PaperSizes.A4;
-            page.Margin = Sides.All(30);
+            page.Trim = PaperSizes.A4;
+            page.Margins = Sides.All(30);
 
-            page.Content().Column(column =>
+            page.Body().Stack(column =>
             {
-                column.Spacing(2);
+                column.SpaceBetween(2);
 
                 for (int index = 0; index < itemCount; index++)
-                    column.Item().Text($"Paragraph {index}: the quick brown fox jumps over the lazy dog.");
+                    column.Add().Text($"Paragraph {index}: the quick brown fox jumps over the lazy dog.");
             });
         }));
 
-        return document.GeneratePdf();
+        return document.ExportPdf();
     }
 
     [Theory]

@@ -12,31 +12,31 @@ namespace Rustaveli.Pdf.Elements;
 /// </remarks>
 public sealed class UnboundedBlock : EnclosingBlock
 {
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
-        Fit childPlan = Child?.Measure(Extent.Max, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(Extent.Max, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
         // Even unbounded space has a ceiling — the largest page PDF allows. Content that cannot fit inside that
         // is reported rather than swallowed, otherwise Measure would promise a render that Draw silently skips.
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
-        if (childPlan.IsPartialRender)
-            return Fit.Wrap("Unconstrained content does not fit even in the maximum page size, so the remainder would be lost.");
+        if (childPlan.IsPartial)
+            return Fit.Defer("Unconstrained content does not fit even in the maximum page size, so the remainder would be lost.");
 
-        return Fit.FullRender(Extent.Zero);
+        return Fit.Complete(Extent.Zero);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit childPlan = Child?.Measure(Extent.Max, context.Layout) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(Extent.Max, context.Layout) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap || childPlan.IsEmpty)
+        if (childPlan.IsDeferred || childPlan.IsNothing)
             return;
 
-        Child?.Draw(childPlan.Size, context);
+        Child?.Render(childPlan.Size, context);
     }
 }

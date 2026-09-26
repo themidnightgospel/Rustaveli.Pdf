@@ -15,14 +15,14 @@ public sealed class MirrorBlock : EnclosingBlock
 
     public bool FlipVertical { get; set; }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
 
-        Fit plan = Child.Measure(availableSpace, context.Layout);
+        Fit plan = Child.Plan(availableSpace, context.Layout);
 
-        if (plan.IsWrap || plan.IsEmpty)
+        if (plan.IsDeferred || plan.IsNothing)
             return;
 
         float scaleX = FlipHorizontal ? -1f : 1f;
@@ -38,7 +38,7 @@ public sealed class MirrorBlock : EnclosingBlock
         context.Canvas.Save();
         context.Canvas.Translate(offset);
         context.Canvas.Scale(scaleX, scaleY);
-        Child.Draw(availableSpace, context);
+        Child.Render(availableSpace, context);
         context.Canvas.Restore();
     }
 }

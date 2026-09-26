@@ -103,7 +103,7 @@ public class FlowControlTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 150));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(150f, plan.Size.Height);
     }
 
@@ -115,7 +115,7 @@ public class FlowControlTests
 
         LayoutHarness.Draw(element, space);
 
-        Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, space).IsNothing);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class FlowControlTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(50, 30), plan.Size);
     }
 
@@ -139,7 +139,7 @@ public class FlowControlTests
 
         LayoutHarness.Draw(element, space);
 
-        Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, space).IsNothing);
     }
 
     [Fact]

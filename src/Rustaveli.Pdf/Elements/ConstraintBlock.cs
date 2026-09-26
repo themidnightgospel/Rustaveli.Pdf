@@ -20,35 +20,35 @@ public sealed class ConstraintBlock : EnclosingBlock
 
     public float? MaxHeight { get; set; }
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (MinWidth > availableSpace.Width + Extent.Epsilon)
-            return Fit.Wrap($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1}).");
+            return Fit.Defer($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1}).");
 
         if (MinHeight > availableSpace.Height + Extent.Epsilon)
-            return Fit.Wrap($"The requested minimum height ({MinHeight:F1}) exceeds the available height ({availableSpace.Height:F1}).");
+            return Fit.Defer($"The requested minimum height ({MinHeight:F1}) exceeds the available height ({availableSpace.Height:F1}).");
 
         Extent innerSpace = new Extent(
             Math.Min(availableSpace.Width, MaxWidth ?? availableSpace.Width),
             Math.Min(availableSpace.Height, MaxHeight ?? availableSpace.Height));
 
-        Fit childPlan = Child?.Measure(innerSpace, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
         // Grow to the minimum, but never past what the parent offered.
         Extent size = new Extent(
             Math.Min(Math.Max(childPlan.Size.Width, MinWidth ?? 0), availableSpace.Width),
             Math.Min(Math.Max(childPlan.Size.Height, MinHeight ?? 0), availableSpace.Height));
 
-        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
@@ -57,6 +57,6 @@ public sealed class ConstraintBlock : EnclosingBlock
             Math.Min(availableSpace.Width, MaxWidth ?? availableSpace.Width),
             Math.Min(availableSpace.Height, MaxHeight ?? availableSpace.Height));
 
-        Child.Draw(innerSpace, context);
+        Child.Render(innerSpace, context);
     }
 }

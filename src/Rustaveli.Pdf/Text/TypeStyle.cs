@@ -13,42 +13,42 @@ public sealed record TypeStyle
 {
     public static TypeStyle Default { get; } = new TypeStyle();
 
-    public string FontFamily { get; init; } = "Helvetica";
+    public string Typeface { get; init; } = "Helvetica";
 
-    public float FontSize { get; init; } = 12f;
+    public float PointSize { get; init; } = 12f;
 
     public TypeWeight Weight { get; init; } = TypeWeight.Normal;
 
     public bool IsItalic { get; init; }
 
-    public Ink Color { get; init; } = Ink.Black;
+    public Ink Ink { get; init; } = Ink.Black;
 
-    public Ink BackgroundColor { get; init; } = Ink.Transparent;
+    public Ink Highlight { get; init; } = Ink.Transparent;
 
     public bool HasUnderline { get; init; }
 
-    public bool HasStrikethrough { get; init; }
+    public bool HasStrikeThrough { get; init; }
 
     /// <summary>Multiplier applied to the font's natural line height.</summary>
-    public float LineHeight { get; init; } = 1f;
+    public float Leading { get; init; } = 1f;
 
     /// <summary>Additional space inserted between characters, in points.</summary>
-    public float LetterSpacing { get; init; }
+    public float Tracking { get; init; }
 
-    public ScriptPosition Position { get; init; } = ScriptPosition.Normal;
+    public ScriptPosition Script { get; init; } = ScriptPosition.Normal;
 
     /// <summary>
     /// The font size actually rendered, shrunk for sub- and superscript runs.
     /// </summary>
-    public float EffectiveFontSize => Position == ScriptPosition.Normal ? FontSize : FontSize * SubscriptScale;
+    public float EffectivePointSize => Script == ScriptPosition.Normal ? PointSize : PointSize * SubscriptScale;
 
     /// <summary>
     /// How far the baseline shifts for this run, positive downwards.
     /// </summary>
-    public float BaselineOffset => Position switch
+    public float BaselineOffset => Script switch
     {
-        ScriptPosition.Subscript => FontSize * SubscriptOffsetRatio,
-        ScriptPosition.Superscript => -FontSize * SuperscriptOffsetRatio,
+        ScriptPosition.Subscript => PointSize * SubscriptOffsetRatio,
+        ScriptPosition.Superscript => -PointSize * SuperscriptOffsetRatio,
         _ => 0f
     };
 
@@ -59,23 +59,23 @@ public sealed record TypeStyle
 
     private const float SuperscriptOffsetRatio = 0.33f;
 
-    public TypeStyle FontFamilyOf(string fontFamily)
+    public TypeStyle WithTypeface(string fontFamily)
     {
         return this with
         {
-            FontFamily = fontFamily
+            Typeface = fontFamily
         };
     }
 
-    public TypeStyle FontSizeOf(float size)
+    public TypeStyle WithPointSize(float size)
     {
         return this with
         {
-            FontSize = size
+            PointSize = size
         };
     }
 
-    public TypeStyle WeightOf(TypeWeight weight)
+    public TypeStyle WithWeight(TypeWeight weight)
     {
         return this with
         {
@@ -99,19 +99,19 @@ public sealed record TypeStyle
         };
     }
 
-    public TypeStyle ColorOf(Ink color)
+    public TypeStyle WithInk(Ink color)
     {
         return this with
         {
-            Color = color
+            Ink = color
         };
     }
 
-    public TypeStyle BackgroundColorOf(Ink color)
+    public TypeStyle WithHighlight(Ink color)
     {
         return this with
         {
-            BackgroundColor = color
+            Highlight = color
         };
     }
 
@@ -123,27 +123,27 @@ public sealed record TypeStyle
         };
     }
 
-    public TypeStyle Strikethrough(bool value = true)
+    public TypeStyle StrikeThrough(bool value = true)
     {
         return this with
         {
-            HasStrikethrough = value
+            HasStrikeThrough = value
         };
     }
 
-    public TypeStyle LineHeightOf(float multiplier)
+    public TypeStyle WithLeading(float multiplier)
     {
         return this with
         {
-            LineHeight = multiplier
+            Leading = multiplier
         };
     }
 
-    public TypeStyle LetterSpacingOf(float spacing)
+    public TypeStyle WithTracking(float spacing)
     {
         return this with
         {
-            LetterSpacing = spacing
+            Tracking = spacing
         };
     }
 
@@ -151,7 +151,7 @@ public sealed record TypeStyle
     {
         return this with
         {
-            Position = ScriptPosition.Subscript
+            Script = ScriptPosition.Subscript
         };
     }
 
@@ -159,7 +159,7 @@ public sealed record TypeStyle
     {
         return this with
         {
-            Position = ScriptPosition.Superscript
+            Script = ScriptPosition.Superscript
         };
     }
 }

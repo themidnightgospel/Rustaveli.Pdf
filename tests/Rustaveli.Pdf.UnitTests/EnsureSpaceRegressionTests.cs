@@ -8,11 +8,11 @@ public class EnsureSpaceRegressionTests
         // A header measures against the whole page body and then draws with the band height it settled on.
         // Re-deriving the headroom decision from that smaller box would refuse content the parent had already
         // committed to, and the early return would drop it with no diagnostic.
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Extent(300, 400);
-            page.Header().RequireSpace(100).Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
-            page.Content().Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Blue));
+            page.Trim = new Extent(300, 400);
+            page.RunningHead().RequireSpace(100).Compose(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
+            page.Body().Compose(inner => inner.Child = new FixedElement(50, 20, TestInks.Blue));
         }));
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
@@ -49,6 +49,6 @@ public class EnsureSpaceRegressionTests
 
         LayoutHarness.Draw(element, new Extent(200, 100));
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 40)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 40)).IsDeferred);
     }
 }

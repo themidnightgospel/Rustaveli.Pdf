@@ -6,14 +6,14 @@ namespace Rustaveli.Pdf.Primitives;
 public enum ImageFitting
 {
     /// <summary>Fills the available width, deriving height from the aspect ratio.</summary>
-    Width,
+    FitWidth,
 
     /// <summary>Fills the available height, deriving width from the aspect ratio.</summary>
-    Height,
+    FitHeight,
 
     /// <summary>Fits entirely within the available area, preserving the aspect ratio.</summary>
-    Area,
+    Proportionally,
 
     /// <summary>Fills the available area exactly, distorting the image.</summary>
-    Unproportional
+    Stretch
 }

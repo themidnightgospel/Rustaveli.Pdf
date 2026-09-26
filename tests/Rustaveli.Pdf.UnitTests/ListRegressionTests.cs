@@ -7,7 +7,7 @@ public class ListRegressionTests
     {
         // Every member needed to build a list is public, so a list assembled without the fluent helper must not
         // silently render nothing.
-        ListBlock list = new ListBlock { Marker = ListNumbering.Decimal };
+        ListBlock list = new ListBlock { Marker = ListNumbering.Arabic };
         list.Items.Add(new ListEntry { Child = new FixedElement(40, 20, TestInks.Red) });
 
         RecordedPage page = LayoutHarness.Draw(list, new Extent(300, 400));
@@ -20,8 +20,8 @@ public class ListRegressionTests
     {
         Block root = LayoutHarness.Build(container => container.List(list =>
         {
-            list.Item().Text("alpha");
-            list.Item().Text("beta");
+            list.Add().Text("alpha");
+            list.Add().Text("beta");
         }));
 
         ListBlock element = (ListBlock)((Frame)root).Child!;

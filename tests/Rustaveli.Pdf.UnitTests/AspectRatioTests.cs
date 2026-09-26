@@ -5,7 +5,7 @@ public class AspectRatioTests
     [Fact]
     public void DerivesHeightFromWidth()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.FitWidth };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Width };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
@@ -15,7 +15,7 @@ public class AspectRatioTests
     [Fact]
     public void DerivesWidthFromHeight()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.FitHeight };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Height };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 50));
 
@@ -26,7 +26,7 @@ public class AspectRatioTests
     public void FallsBackToHeightWhenWidthWouldOverflow()
     {
         // Fitting the 300pt width would need 300pt of height, but only 100 is available.
-        ProportionBlock element = new ProportionBlock { Ratio = 1f, Option = ProportionFit.FitArea };
+        ProportionBlock element = new ProportionBlock { Ratio = 1f, Option = ProportionFit.Area };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(300, 100));
 
@@ -36,7 +36,7 @@ public class AspectRatioTests
     [Fact]
     public void FitAreaKeepsTheFullWidthWhenTheHeightAllowsIt()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.FitArea };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Area };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
@@ -60,8 +60,8 @@ public class AspectRatioTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
 
-        Assert.True(plan.IsWrap);
-        Assert.Contains("greater than zero", plan.WrapReason);
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("greater than zero", plan.DeferReason);
     }
 
     [Theory]
@@ -70,11 +70,11 @@ public class AspectRatioTests
     public void WrapsWhenTheDerivedHeightDoesNotFit(float availableHeight, bool wraps)
     {
         // Fitting the full 200pt width at 2:1 needs exactly 100pt of height.
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.FitWidth };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Width };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, availableHeight));
 
-        Assert.Equal(wraps, plan.IsWrap);
+        Assert.Equal(wraps, plan.IsDeferred);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class AspectRatioTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
-        Assert.True(plan.IsFullRender);
+        Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
@@ -103,9 +103,9 @@ public class AspectRatioTests
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Child = new ScriptedElement(Fit.Empty()) };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Child = new ScriptedElement(Fit.Nothing()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 500)).IsEmpty);
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 500)).IsNothing);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class AspectRatioTests
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
-        Assert.True(plan.IsPartialRender);
+        Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 

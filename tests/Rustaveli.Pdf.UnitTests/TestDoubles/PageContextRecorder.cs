@@ -12,8 +12,8 @@ public sealed class PageContextRecorder : Block
 {
     public List<(int CurrentPage, int TotalPages, bool IsDocumentLengthKnown)> Draws { get; } = [];
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) => Fit.FullRender(Extent.Zero);
+    public override Fit Plan(Extent availableSpace, PlanContext context) => Fit.Complete(Extent.Zero);
 
-    public override void Draw(Extent availableSpace, RenderContext context) =>
+    public override void Render(Extent availableSpace, RenderContext context) =>
         Draws.Add((context.Page.CurrentPage, context.Page.TotalPages, context.Page.IsDocumentLengthKnown));
 }

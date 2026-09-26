@@ -12,7 +12,7 @@ public class StructureTests
     public void PassesQpdfCheck(Specimen specimen)
     {
         TestFonts.EnsureRegistered();
-        byte[] pdf = specimen.Build().GeneratePdf();
+        byte[] pdf = specimen.Build().ExportPdf();
 
         string report = Qpdf.Check(pdf);
 

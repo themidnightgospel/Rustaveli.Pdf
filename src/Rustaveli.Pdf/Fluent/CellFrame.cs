@@ -14,7 +14,7 @@ public sealed class CellFrame(CellBlock cell) : IFrame
         set => cell.Child = value;
     }
 
-    public CellFrame Row(int row)
+    public CellFrame AtRow(int row)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(row, 1);
 
@@ -23,7 +23,7 @@ public sealed class CellFrame(CellBlock cell) : IFrame
         return this;
     }
 
-    public CellFrame Column(int column)
+    public CellFrame AtColumn(int column)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
 
@@ -32,13 +32,13 @@ public sealed class CellFrame(CellBlock cell) : IFrame
         return this;
     }
 
-    public CellFrame RowSpan(int span)
+    public CellFrame SpanRows(int span)
     {
         cell.RowSpan = Math.Max(1, span);
         return this;
     }
 
-    public CellFrame ColumnSpan(int span)
+    public CellFrame SpanColumns(int span)
     {
         cell.ColumnSpan = Math.Max(1, span);
         return this;

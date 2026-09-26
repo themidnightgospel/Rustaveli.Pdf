@@ -10,13 +10,13 @@ public sealed class RuleBlock : Block
 {
     public float Thickness { get; set; } = 1f;
 
-    public Ink Color { get; set; } = Ink.Black;
+    public Ink Ink { get; set; } = Ink.Black;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
         Thickness > availableSpace.Height + Extent.Epsilon
-            ? Fit.Wrap("The available height is smaller than the line thickness.")
-            : Fit.FullRender(new Extent(availableSpace.Width, Thickness));
+            ? Fit.Defer("The available height is smaller than the line thickness.")
+            : Fit.Complete(new Extent(availableSpace.Width, Thickness));
 
-    public override void Draw(Extent availableSpace, RenderContext context) =>
-        context.Canvas.DrawRectangle(Offset.Zero, new Extent(availableSpace.Width, Thickness), Color);
+    public override void Render(Extent availableSpace, RenderContext context) =>
+        context.Canvas.DrawRectangle(Offset.Zero, new Extent(availableSpace.Width, Thickness), Ink);
 }

@@ -6,8 +6,8 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </summary>
 public sealed class ThrowingElement(Exception exception) : Block
 {
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        Fit.FullRender(10, 10);
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        Fit.Complete(10, 10);
 
-    public override void Draw(Extent availableSpace, RenderContext context) => throw exception;
+    public override void Render(Extent availableSpace, RenderContext context) => throw exception;
 }

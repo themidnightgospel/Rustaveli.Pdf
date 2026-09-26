@@ -9,13 +9,13 @@ public enum ListNumbering
     Bullet,
 
     /// <summary>An arabic numeral counting from the list's start.</summary>
-    Decimal,
+    Arabic,
 
     /// <summary>A lower-case letter: a, b, c … continuing aa, ab beyond the alphabet.</summary>
-    LowerLetter,
+    LowerAlpha,
 
     /// <summary>An upper-case letter.</summary>
-    UpperLetter,
+    UpperAlpha,
 
     /// <summary>A lower-case roman numeral.</summary>
     LowerRoman,

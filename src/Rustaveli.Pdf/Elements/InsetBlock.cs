@@ -10,32 +10,32 @@ public sealed class InsetBlock : EnclosingBlock
 {
     public Sides Padding { get; set; } = Sides.Zero;
 
-    public override Fit Measure(Extent availableSpace, PlanContext context)
+    public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         Extent innerSpace = new Extent(
             availableSpace.Width - Padding.Horizontal,
             availableSpace.Height - Padding.Vertical);
 
         if (innerSpace.IsNegative)
-            return Fit.Wrap("The available space is smaller than the requested padding.");
+            return Fit.Defer("The available space is smaller than the requested padding.");
 
-        Fit childPlan = Child?.Measure(innerSpace, context) ?? Fit.FullRender(Extent.Zero);
+        Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsWrap)
+        if (childPlan.IsDeferred)
             return childPlan;
 
         // A child with nothing left to draw must not resurrect the padding on the next page.
-        if (childPlan.IsEmpty)
-            return Fit.Empty();
+        if (childPlan.IsNothing)
+            return Fit.Nothing();
 
         Extent size = new Extent(
             childPlan.Size.Width + Padding.Horizontal,
             childPlan.Size.Height + Padding.Vertical);
 
-        return childPlan.IsFullRender ? Fit.FullRender(size) : Fit.PartialRender(size);
+        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
@@ -48,7 +48,7 @@ public sealed class InsetBlock : EnclosingBlock
             return;
 
         context.Canvas.Translate(new Offset(Padding.Left, Padding.Top));
-        Child.Draw(innerSpace, context);
+        Child.Render(innerSpace, context);
         context.Canvas.Translate(new Offset(Padding.Left, Padding.Top).Reverse());
     }
 }

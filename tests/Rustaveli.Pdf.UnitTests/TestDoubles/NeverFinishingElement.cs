@@ -9,10 +9,10 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </remarks>
 public sealed class NeverFinishingElement : Block
 {
-    public override Fit Measure(Extent availableSpace, PlanContext context) =>
-        Fit.PartialRender(Extent.Zero);
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        Fit.Partial(Extent.Zero);
 
-    public override void Draw(Extent availableSpace, RenderContext context)
+    public override void Render(Extent availableSpace, RenderContext context)
     {
     }
 }

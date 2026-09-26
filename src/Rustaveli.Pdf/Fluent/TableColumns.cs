@@ -8,8 +8,8 @@ namespace Rustaveli.Pdf.Fluent;
 public sealed class TableColumns(TableElement element)
 {
     /// <summary>Adds a column that shares leftover width with other relative columns, proportional to its weight.</summary>
-    public void RelativeColumn(float weight = 1f) => element.Columns.Add(TableColumnSpec.Relative(weight));
+    public void Share(float weight = 1f) => element.Columns.Add(TableColumnSpec.Relative(weight));
 
     /// <summary>Adds a column of fixed width in points.</summary>
-    public void ConstantColumn(float width) => element.Columns.Add(TableColumnSpec.Constant(width));
+    public void Fixed(float width) => element.Columns.Add(TableColumnSpec.Constant(width));
 }
