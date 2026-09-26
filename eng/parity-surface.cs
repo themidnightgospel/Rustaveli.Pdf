@@ -52,7 +52,7 @@ foreach (IGrouping<string, Type> group in byNamespace)
     }
 }
 
-string target = Path.Combine(AppContext.GetData("EntryPointFileDirectoryPath") as string ?? ".", "..", "artifacts", "parity");
+string target = Path.Combine(RepositoryRoot(), "artifacts", "parity");
 Directory.CreateDirectory(target);
 string file = Path.Combine(target, "questpdf-surface.md");
 File.WriteAllText(file, output.ToString());
@@ -68,3 +68,16 @@ static string Describe(MemberInfo member) => member switch
     FieldInfo field => $"{field.Name} : {field.FieldType.Name}",
     _ => member.Name
 };
+
+// Found by walking up from the working directory, not from this script's location: a file-based app's build output
+// is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
+static string RepositoryRoot()
+{
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
+            return directory.FullName;
+    }
+
+    throw new InvalidOperationException("Run this from inside the Rustaveli.Pdf repository.");
+}

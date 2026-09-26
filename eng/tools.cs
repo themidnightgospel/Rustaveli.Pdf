@@ -13,7 +13,7 @@ using System.Security.Cryptography;
 
 const string QpdfVersion = "12.4.1";
 
-string root = Path.GetFullPath(Path.Combine(AppContext.GetData("EntryPointFileDirectoryPath") as string ?? ".", ".."));
+string root = RepositoryRoot();
 string tools = Path.Combine(root, "artifacts", "tools");
 
 string? asset =
@@ -70,3 +70,16 @@ if (!OperatingSystem.IsWindows())
 
 Console.WriteLine($"qpdf {QpdfVersion} verified and unpacked to {target}");
 return 0;
+
+// Found by walking up from the working directory, not from this script's location: a file-based app's build output
+// is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
+static string RepositoryRoot()
+{
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
+            return directory.FullName;
+    }
+
+    throw new InvalidOperationException("Run this from inside the Rustaveli.Pdf repository.");
+}

@@ -7,7 +7,7 @@
 
 #:property PublishAot=false
 
-string root = Path.GetFullPath(Path.Combine(AppContext.GetData("EntryPointFileDirectoryPath") as string ?? ".", ".."));
+string root = RepositoryRoot();
 string received = Path.Combine(root, "artifacts", "snapshots");
 string approved = Path.Combine(root, "tests", "Rustaveli.Pdf.ConformanceTests", "Snapshots");
 string prefix = args.Length > 0 ? args[0] : string.Empty;
@@ -36,3 +36,16 @@ foreach (string file in Directory.EnumerateFiles(received, "*.received.png"))
 
 Console.WriteLine($"{count} snapshot(s) approved.");
 return 0;
+
+// Found by walking up from the working directory, not from this script's location: a file-based app's build output
+// is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
+static string RepositoryRoot()
+{
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
+            return directory.FullName;
+    }
+
+    throw new InvalidOperationException("Run this from inside the Rustaveli.Pdf repository.");
+}

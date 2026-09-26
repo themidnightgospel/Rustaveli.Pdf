@@ -9,7 +9,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 
-string root = Path.GetFullPath(Path.Combine(AppContext.GetData("EntryPointFileDirectoryPath") as string ?? ".", ".."));
+string root = RepositoryRoot();
 string results = Path.Combine(root, "artifacts", "coverage");
 string report = Path.Combine(results, "report");
 bool runTests = !args.Contains("--no-test");
@@ -58,4 +58,17 @@ static void Run(string file, string arguments)
         Console.Error.WriteLine($"'{file} {arguments}' exited with {process.ExitCode}.");
         Environment.Exit(process.ExitCode);
     }
+}
+
+// Found by walking up from the working directory, not from this script's location: a file-based app's build output
+// is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
+static string RepositoryRoot()
+{
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
+            return directory.FullName;
+    }
+
+    throw new InvalidOperationException("Run this from inside the Rustaveli.Pdf repository.");
 }
