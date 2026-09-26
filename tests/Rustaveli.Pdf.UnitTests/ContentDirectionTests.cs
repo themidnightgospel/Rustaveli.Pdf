@@ -94,6 +94,26 @@ public class ContentDirectionTests
         Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
     }
 
+    [Theory]
+    [InlineData(ContentDirection.LeftToRight, 50f)]
+    [InlineData(ContentDirection.RightToLeft, 30f)]
+    public void DirectionElementAppliesWhileMeasuringToo(ContentDirection direction, float expectedWidth)
+    {
+        // Only left-aligned text takes a first-line indent, and right-to-left text aligns right, so the same
+        // paragraph measures 20pt narrower once the direction reaches it.
+        LayoutContext context = LayoutHarness.Context();
+        Element root = LayoutHarness.Build(container => container.ContentFrom(direction).Text(text =>
+        {
+            text.FirstLineIndent(20);
+            text.Span("Hello");
+        }));
+
+        SpacePlan plan = LayoutHarness.Measure(root, new Size(200, 100), context);
+
+        Approximately.Equal(expectedWidth, plan.Size.Width);
+        Assert.Equal(ContentDirection.LeftToRight, context.ContentDirection);
+    }
+
     [Fact]
     public void TablesMirrorTheirColumnsWhenRightToLeft()
     {
