@@ -149,10 +149,11 @@ row boundaries), `List` (bulleted, numbered, lettered, roman — numbering survi
 **Modifiers** — insets, fills, strokes, rounded corners, width and height constraints, expansion, proportion,
 flush and centred placement, shifting, scaling, shrink-to-fit, quarter turns, mirroring.
 
-**Text** — styled runs, weight, italic, ink, highlight, underline, strike-through, leading, tracking,
+**Text** — styled runs, weight, italic, ink, highlight, underline, strike-through and overline (solid, double,
+dotted, dashed or wavy, in their own ink and weight), leading, tracking, word spacing,
 subscript and superscript, alignment, line breaking, mid-word breaking, non-breaking spaces, first-line indent,
-space between paragraphs, flow across pages, folios, page counts and cross-references, and default type inherited
-from the section.
+space between paragraphs, flow across pages, folios in any numerals, page counts, cross-references and page numbers
+within anchored content, and default type inherited from the section.
 
 **Flow** — `When`, `Once`, `SkipFirst`, `KeepTogether`, `RequireSpace`, `NewPage`, and reusable `ISnippet`s.
 

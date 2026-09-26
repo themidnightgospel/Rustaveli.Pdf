@@ -112,13 +112,13 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Font family, size, colour, background | | ✅ | — |
 | Font family fallback list | `FontFamily(params string[])`, `Fallback` | 🟡 backend substitution only | 3 |
 | Weights Thin…Black | `Thin` … `Black` | ✅ | — |
-| Weight ExtraBlack (950) | `ExtraBlack` | ❌ | 3 |
+| Weight ExtraBlack (950) | `ExtraBlack` | ✅ | — |
 | Italic | `Italic` | ✅ | — |
 | Underline, strikethrough | `Underline`, `Strikethrough` | ✅ | — |
-| Overline | `Overline` | ❌ | 3 |
-| Decoration style (solid, double, dotted, dashed, wavy), colour, thickness | `Decoration*` | ❌ | 3 |
+| Overline | `Overline` | ✅ | — |
+| Decoration style (solid, double, dotted, dashed, wavy), colour, thickness | `Decoration*` | ✅ placed by the font's own metrics | — |
 | Line height, letter spacing | `LineHeight`, `LetterSpacing` | ✅ | — |
-| Word spacing | `WordSpacing` | ❌ | 3 |
+| Word spacing | `WordSpacing` | ✅ | — |
 | Subscript, superscript | `Subscript`, `Superscript` | ✅ | — |
 | Alignment left/centre/right | `AlignLeft`, … | ✅ | — |
 | Alignment start/end (direction-aware) | `AlignStart`, `AlignEnd` | ❌ | 3 |
@@ -132,8 +132,8 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Complex-script shaping | — (built in) | ❌ | 3 (`Shaping` package) |
 | Inline elements in a paragraph, with vertical alignment | `Element(TextInjectedElementAlignment)` | 🟡 no alignment options | 3 |
 | Current page, total pages | `CurrentPageNumber`, `TotalPages` | ✅ | — |
-| Page number formatting (roman, custom) | `TextPageNumberDescriptor.Format` | ❌ | 3 |
-| Section page numbers: begin, end, within, total within | `BeginPageNumberOfSection`, … | 🟡 begin only | 3 |
+| Page number formatting (roman, custom) | `TextPageNumberDescriptor.Format` | ✅ | — |
+| Section page numbers: begin, end, within, total within | `BeginPageNumberOfSection`, … | ✅ | — |
 | Page number of a captured location | `PageNumberOfLocation` | ❌ | 4 |
 | Glyph-availability check | `Settings.CheckIfAllTextGlyphsAreAvailable` | ❌ | 3 |
 
