@@ -92,7 +92,9 @@ internal static class DocumentGenerator
                 if (!hasMore)
                     break;
 
-                if (++renderedInRun > MaxPagesPerRun)
+                // Counts pages that still left content over, so reaching the cap means the run needs more than
+                // MaxPagesPerRun pages. Testing with > would let one extra page through.
+                if (++renderedInRun >= MaxPagesPerRun)
                     throw new DocumentLayoutException(
                         $"The document exceeded {MaxPagesPerRun} pages in a single page run, which usually means an element " +
                         "reports content remaining but never consumes any space.");

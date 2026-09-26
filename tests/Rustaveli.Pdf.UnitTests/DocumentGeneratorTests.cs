@@ -693,6 +693,21 @@ public class DocumentGeneratorTests
     }
 
     [Fact]
+    public void RejectsAPageRunOnePageLongerThanTheMaximum()
+    {
+        Document document = Build(page =>
+        {
+            page.Size = new Size(20, 10);
+            page.Content().Element(container => container.Child = new SplittableElement(10_001, 10f));
+        });
+
+        DocumentLayoutException exception =
+            Assert.Throws<DocumentLayoutException>(() => LayoutHarness.Render(document));
+
+        Assert.StartsWith("The document exceeded 10000 pages in a single page run", exception.Message);
+    }
+
+    [Fact]
     public void CountsPagesQuotingEachAsTheLastThenDrawsWithTheSettledTotal()
     {
         PageContextRecorder recorder = new PageContextRecorder();
