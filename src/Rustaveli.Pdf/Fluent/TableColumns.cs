@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Declares the columns of a table.
 /// </summary>
-public sealed class TableColumnsDefinitionDescriptor(TableElement element)
+public sealed class TableColumns(TableElement element)
 {
     /// <summary>Adds a column that shares leftover width with other relative columns, proportional to its weight.</summary>
     public void RelativeColumn(float weight = 1f) => element.Columns.Add(TableColumnSpec.Relative(weight));

@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Shared plumbing for attaching elements to containers.
 /// </summary>
-internal static class Composition
+internal static class FrameAttachment
 {
     /// <summary>
     /// Places <paramref name="element"/> into <paramref name="parent"/> and returns it as the next container.
@@ -23,8 +23,8 @@ internal static class Composition
         if (parent.Child is not null)
         {
             throw new CompositionException(
-                $"This container already holds {parent.Child.GetType().Name} and cannot also hold {element.GetType().Name}. " +
-                "A container accepts a single child; use Column, Row or Layers to place more than one piece of content.");
+                $"This frame already holds {parent.Child.GetType().Name} and cannot also hold {element.GetType().Name}. " +
+                "A frame holds a single piece of content; use Stack, Columns or Layered to place more than one.");
         }
 
         parent.Child = element;

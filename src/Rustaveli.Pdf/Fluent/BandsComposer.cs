@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds content sandwiched between two repeating bands.
 /// </summary>
-public sealed class DecorationDescriptor(BandsBlock element)
+public sealed class BandsComposer(BandsBlock element)
 {
     /// <summary>The band drawn above the content on every page.</summary>
     public IFrame Before() => element.Before;

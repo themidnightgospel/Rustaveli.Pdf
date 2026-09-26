@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Skia;
 /// <summary>
 /// Renders composed documents to PDF.
 /// </summary>
-public static class PdfGenerationExtensions
+public static class PdfExport
 {
     /// <summary>
     /// Serialises rendering across the process.
@@ -19,16 +19,16 @@ public static class PdfGenerationExtensions
     /// cannot be fixed from this side of the binding.
     ///
     /// Rendering is therefore serialised by default. Callers who have measured their own workload and want the
-    /// throughput can opt out via <see cref="PdfGenerationOptions.AllowConcurrentRendering" />.
+    /// throughput can opt out via <see cref="PdfExportOptions.AllowConcurrentRendering" />.
     /// </remarks>
     private static readonly object RenderGate = new object();
 
-    public static byte[] GeneratePdf(this Document document, PdfGenerationOptions? options = null)
+    public static byte[] GeneratePdf(this Document document, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document, "document");
         if (options == null)
         {
-            options = new PdfGenerationOptions();
+            options = new PdfExportOptions();
         }
         using MemoryStream memoryStream = new MemoryStream();
         SkiaFontProvider fonts = options.Fonts ?? SkiaFontProvider.Shared;
@@ -54,7 +54,7 @@ public static class PdfGenerationExtensions
     /// anything failed part-way — Skia closes the document as it unwinds, so the result looks complete. Building
     /// the whole file first means a failed render leaves the target untouched.
     /// </remarks>
-    public static void GeneratePdf(this Document document, string path, PdfGenerationOptions? options = null)
+    public static void GeneratePdf(this Document document, string path, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(path, "path");
         byte[] bytes = document.GeneratePdf(options);
@@ -71,7 +71,7 @@ public static class PdfGenerationExtensions
     /// the call. Rendering into memory first keeps every such failure an ordinary exception, and means a failed
     /// render writes nothing rather than a truncated document.
     /// </remarks>
-    public static void GeneratePdf(this Document document, Stream stream, PdfGenerationOptions? options = null)
+    public static void GeneratePdf(this Document document, Stream stream, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document, "document");
         ArgumentNullException.ThrowIfNull(stream, "stream");
@@ -79,7 +79,7 @@ public static class PdfGenerationExtensions
         stream.Write(bytes, 0, bytes.Length);
     }
 
-    private static void RenderTo(Stream stream, Document document, SkiaFontProvider fonts, PdfGenerationOptions options)
+    private static void RenderTo(Stream stream, Document document, SkiaFontProvider fonts, PdfExportOptions options)
     {
         SKDocumentPdfMetadata metadata = BuildMetadata(document.Metadata, options);
         using SKDocument sKDocument = SKDocument.CreatePdf(stream, metadata) ?? throw new InvalidOperationException("Skia could not create a PDF document for the supplied stream.");
@@ -88,7 +88,7 @@ public static class PdfGenerationExtensions
         sKDocument.Close();
     }
 
-    private static SKDocumentPdfMetadata BuildMetadata(DocumentInfo metadata, PdfGenerationOptions options)
+    private static SKDocumentPdfMetadata BuildMetadata(DocumentInfo metadata, PdfExportOptions options)
     {
         SKDocumentPdfMetadata result = new SKDocumentPdfMetadata
         {

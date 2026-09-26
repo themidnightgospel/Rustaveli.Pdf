@@ -2,10 +2,10 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class TableElementTests
 {
-    private static TableElement BuildTable(Action<TableDescriptor> compose)
+    private static TableElement BuildTable(Action<TableComposer> compose)
     {
         TableElement element = new TableElement();
-        TableDescriptor descriptor = new TableDescriptor(element);
+        TableComposer descriptor = new TableComposer(element);
         compose(descriptor);
         descriptor.PlaceAutomaticCells();
         return element;

@@ -214,13 +214,13 @@ public class PdfGenerationExtensionsTests
     {
         Document document = TextDocument();
 
-        Assert.Equal(document.GeneratePdf(new PdfGenerationOptions()), document.GeneratePdf());
+        Assert.Equal(document.GeneratePdf(new PdfExportOptions()), document.GeneratePdf());
     }
 
     [Fact]
     public void PdfAEmbedsTheConformanceClaim()
     {
-        using PdfDocument parsed = PdfDocument.Open(TextDocument().GeneratePdf(new PdfGenerationOptions { PdfA = true }));
+        using PdfDocument parsed = PdfDocument.Open(TextDocument().GeneratePdf(new PdfExportOptions { PdfA = true }));
 
         Assert.True(parsed.TryGetXmpMetadata(out XmpMetadata? xmp), "PDF/A requires XMP metadata.");
 
@@ -296,7 +296,7 @@ public class PdfGenerationExtensionsTests
 
             concurrent = await Within(
                 Timeout,
-                Task.Run(() => ShapeDocument().GeneratePdf(new PdfGenerationOptions { AllowConcurrentRendering = true })),
+                Task.Run(() => ShapeDocument().GeneratePdf(new PdfExportOptions { AllowConcurrentRendering = true })),
                 "A render that opted out of the gate still waited for it.");
         }
         finally

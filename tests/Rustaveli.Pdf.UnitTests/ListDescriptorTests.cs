@@ -4,7 +4,7 @@ public class ListDescriptorTests
 {
     private static readonly Extent Space = new Extent(200, 200);
 
-    private static Block BuildList(Action<ListDescriptor> compose) =>
+    private static Block BuildList(Action<ListComposer> compose) =>
         LayoutHarness.Build(container => container.List(compose));
 
     [Fact]

@@ -7,7 +7,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds the contents of a list.
 /// </summary>
-public sealed class ListDescriptor(ListBlock element)
+public sealed class ListComposer(ListBlock element)
 {
     /// <summary>Marks items with a bullet. This is the default.</summary>
     public void Unordered() => element.Marker = ListNumbering.Bullet;

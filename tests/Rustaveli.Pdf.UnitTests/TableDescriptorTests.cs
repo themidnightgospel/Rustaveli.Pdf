@@ -4,33 +4,33 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class TableDescriptorTests
 {
-    private static TableElement Compose(Action<TableDescriptor> compose)
+    private static TableElement Compose(Action<TableComposer> compose)
     {
         Block root = LayoutHarness.Build(container => container.Table(compose));
 
         return Assert.IsType<TableElement>(((Frame)root).Child);
     }
 
-    private static void TwoColumns(TableDescriptor table) =>
+    private static void TwoColumns(TableComposer table) =>
         table.ColumnsDefinition(columns =>
         {
             columns.RelativeColumn();
             columns.RelativeColumn();
         });
 
-    public static TheoryData<string, Action<TableDescriptor>> CallsWithoutAHandler => new()
+    public static TheoryData<string, Action<TableComposer>> CallsWithoutAHandler => new()
     {
-        { nameof(TableDescriptor.ColumnsDefinition), table => table.ColumnsDefinition(null!) },
-        { nameof(TableDescriptor.Header), table => table.Header(null!) },
-        { nameof(TableDescriptor.Footer), table => table.Footer(null!) },
+        { nameof(TableComposer.ColumnsDefinition), table => table.ColumnsDefinition(null!) },
+        { nameof(TableComposer.Header), table => table.Header(null!) },
+        { nameof(TableComposer.Footer), table => table.Footer(null!) },
     };
 
     [Theory]
     [MemberData(nameof(CallsWithoutAHandler))]
-    public void RefusesAMissingHandler(string method, Action<TableDescriptor> call)
+    public void RefusesAMissingHandler(string method, Action<TableComposer> call)
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
-            call(new TableDescriptor(new TableElement())));
+            call(new TableComposer(new TableElement())));
 
         Assert.True(
             exception.ParamName == "handler",

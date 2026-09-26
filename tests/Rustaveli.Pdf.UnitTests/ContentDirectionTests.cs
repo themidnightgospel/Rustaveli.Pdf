@@ -43,7 +43,7 @@ public class ContentDirectionTests
     public void TextAlignsToTheTrailingEdgeWhenRightToLeft()
     {
         TextBlock element = new TextBlock();
-        new TextDescriptor(element).Span("Hello");
+        new TextComposer(element).Span("Hello");
 
         PlanContext context = LayoutHarness.Context();
         context.ContentDirection = ReadingDirection.RightToLeft;
@@ -59,7 +59,7 @@ public class ContentDirectionTests
     public void ExplicitTextAlignmentBeatsTheDirection()
     {
         TextBlock element = new TextBlock();
-        new TextDescriptor(element).Span("Hello");
+        new TextComposer(element).Span("Hello");
         element.Alignment = HorizontalPlacement.Left;
 
         PlanContext context = LayoutHarness.Context();
@@ -118,7 +118,7 @@ public class ContentDirectionTests
     public void TablesMirrorTheirColumnsWhenRightToLeft()
     {
         TableElement element = new TableElement();
-        TableDescriptor descriptor = new TableDescriptor(element);
+        TableComposer descriptor = new TableComposer(element);
 
         descriptor.ColumnsDefinition(columns =>
         {

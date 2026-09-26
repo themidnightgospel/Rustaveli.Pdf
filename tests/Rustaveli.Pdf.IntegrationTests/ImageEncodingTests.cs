@@ -52,7 +52,7 @@ public class ImageEncodingTests
     {
         // The lossless default must be a choice the caller can reverse, not a hard-coded policy.
         byte[] pdf = DocumentWithImage(FlatColourPng())
-            .GeneratePdf(new PdfGenerationOptions { EncodingQuality = 40 });
+            .GeneratePdf(new PdfExportOptions { EncodingQuality = 40 });
 
         Assert.Contains("/DCTDecode", Encoding.Latin1.GetString(pdf), StringComparison.Ordinal);
     }

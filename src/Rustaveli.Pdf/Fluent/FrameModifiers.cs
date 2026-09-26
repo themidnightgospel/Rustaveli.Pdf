@@ -14,10 +14,10 @@ namespace Rustaveli.Pdf.Fluent;
 /// exceptions are the configurators — <c>BorderColor</c> and <c>CornerRadius</c> — which attach nothing and
 /// return the element they just adjusted, and the alignment methods, which fold into an adjacent empty aligner.
 /// </remarks>
-public static class LayoutExtensions
+public static class FrameModifiers
 {
     private static T Attach<T>(IFrame parent, T element) where T : Block =>
-        Composition.Attach(parent, element);
+        FrameAttachment.Attach(parent, element);
 
     // ---- Padding -------------------------------------------------------------------------------------------
 

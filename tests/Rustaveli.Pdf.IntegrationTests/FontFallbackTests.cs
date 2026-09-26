@@ -168,7 +168,7 @@ public class FontFallbackTests
         fonts.FallbackFamilies.Add(family);
 
         string drawnDirectly = FontOf(Build(character, Sans.FontFamilyOf(family)).GeneratePdf(), character);
-        string drawnAsFallback = FontOf(Build($"A{character}").GeneratePdf(new PdfGenerationOptions { Fonts = fonts }), character);
+        string drawnAsFallback = FontOf(Build($"A{character}").GeneratePdf(new PdfExportOptions { Fonts = fonts }), character);
         string platformChoice = FontOf(Build($"A{character}").GeneratePdf(), character);
 
         Assert.Equal(drawnDirectly, drawnAsFallback);
@@ -189,7 +189,7 @@ public class FontFallbackTests
         float whole = measurer.MeasureWidth(Cjk + Georgian, Sans);
         float parts = measurer.MeasureWidth(Cjk, Sans) + measurer.MeasureWidth(Georgian, Sans);
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"{Cjk} {Georgian}").GeneratePdf(new PdfGenerationOptions { Fonts = fonts }));
+        using PdfDocument parsed = PdfDocument.Open(Build($"{Cjk} {Georgian}").GeneratePdf(new PdfExportOptions { Fonts = fonts }));
         string text = parsed.GetPage(1).Text;
 
         Assert.Equal(parts, whole, 0.5f);
@@ -202,7 +202,7 @@ public class FontFallbackTests
     {
         using SkiaFontProvider fonts = TestFonts.NewProvider();
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"{Latin} {Cjk}", Sans.Italic()).GeneratePdf(new PdfGenerationOptions { Fonts = fonts }));
+        using PdfDocument parsed = PdfDocument.Open(Build($"{Latin} {Cjk}", Sans.Italic()).GeneratePdf(new PdfExportOptions { Fonts = fonts }));
         string text = parsed.GetPage(1).Text;
 
         Assert.Contains(Latin, text);
@@ -221,7 +221,7 @@ public class FontFallbackTests
         float whole = measurer.MeasureWidth($"A{Unassigned}B", Sans);
         float parts = measurer.MeasureWidth("A", Sans) + measurer.MeasureWidth(Unassigned, Sans) + measurer.MeasureWidth("B", Sans);
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"A{Unassigned}B").GeneratePdf(new PdfGenerationOptions { Fonts = fonts }));
+        using PdfDocument parsed = PdfDocument.Open(Build($"A{Unassigned}B").GeneratePdf(new PdfExportOptions { Fonts = fonts }));
         IReadOnlyList<Letter> letters = parsed.GetPage(1).Letters;
 
         Assert.Equal(parts, whole, 0.01f);

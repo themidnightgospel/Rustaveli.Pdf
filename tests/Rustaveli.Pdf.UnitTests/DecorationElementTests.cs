@@ -2,10 +2,10 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class DecorationElementTests
 {
-    private static BandsBlock Build(Action<DecorationDescriptor> compose)
+    private static BandsBlock Build(Action<BandsComposer> compose)
     {
         BandsBlock element = new BandsBlock();
-        compose(new DecorationDescriptor(element));
+        compose(new BandsComposer(element));
         return element;
     }
 

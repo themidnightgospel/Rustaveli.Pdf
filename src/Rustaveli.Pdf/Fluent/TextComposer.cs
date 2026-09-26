@@ -8,10 +8,10 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds a paragraph out of styled spans.
 /// </summary>
-public sealed class TextDescriptor(TextBlock element)
+public sealed class TextComposer(TextBlock element)
 {
     /// <summary>Appends a run of text.</summary>
-    public TextSpanDescriptor Span(string text)
+    public RunComposer Span(string text)
     {
         return Add(new TextRun
         {
@@ -20,7 +20,7 @@ public sealed class TextDescriptor(TextBlock element)
     }
 
     /// <summary>Appends a run of text followed by a line break.</summary>
-    public TextSpanDescriptor Line(string text)
+    public RunComposer Line(string text)
     {
         return Add(new TextRun
         {
@@ -38,7 +38,7 @@ public sealed class TextDescriptor(TextBlock element)
     }
 
     /// <summary>Appends the number of the page this text is drawn on.</summary>
-    public TextSpanDescriptor CurrentPageNumber()
+    public RunComposer CurrentPageNumber()
     {
         return Add(new TextRun
         {
@@ -50,7 +50,7 @@ public sealed class TextDescriptor(TextBlock element)
     /// Appends the total number of pages in the document. Resolves to a provisional value during the counting
     /// pass and to the true total when the document is drawn.
     /// </summary>
-    public TextSpanDescriptor TotalPages()
+    public RunComposer TotalPages()
     {
         return Add(new TextRun
         {
@@ -59,7 +59,7 @@ public sealed class TextDescriptor(TextBlock element)
     }
 
     /// <summary>Appends the page number a named section resolved to, or "?" if it has not been reached yet.</summary>
-    public TextSpanDescriptor PageNumberOfSection(string sectionName)
+    public RunComposer PageNumberOfSection(string sectionName)
     {
         return Add(new TextRun
         {
@@ -68,7 +68,7 @@ public sealed class TextDescriptor(TextBlock element)
     }
 
     /// <summary>Appends text that opens an external URL when clicked.</summary>
-    public TextSpanDescriptor Hyperlink(string text, string url)
+    public RunComposer Hyperlink(string text, string url)
     {
         return Add(new TextRun
         {
@@ -78,7 +78,7 @@ public sealed class TextDescriptor(TextBlock element)
     }
 
     /// <summary>Appends text that jumps to a named section when clicked.</summary>
-    public TextSpanDescriptor SectionLink(string text, string sectionName)
+    public RunComposer SectionLink(string text, string sectionName)
     {
         return Add(new TextRun
         {
@@ -145,9 +145,9 @@ public sealed class TextDescriptor(TextBlock element)
             : style => refinement(previous(style));
     }
 
-    private TextSpanDescriptor Add(TextRun span)
+    private RunComposer Add(TextRun span)
     {
         element.Spans.Add(span);
-        return new TextSpanDescriptor(span);
+        return new RunComposer(span);
     }
 }

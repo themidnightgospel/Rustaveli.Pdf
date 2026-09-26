@@ -11,7 +11,7 @@ public class TextSpanDescriptorTests
     /// <param name="refine">The refinements under test.</param>
     /// <param name="inherited">The surrounding default, so a refinement can be seen overriding it.</param>
     private static TypeStyle StyleOf(
-        Func<TextSpanDescriptor, TextSpanDescriptor> refine,
+        Func<RunComposer, RunComposer> refine,
         Func<TypeStyle, TypeStyle>? inherited = null)
     {
         Block root = LayoutHarness.Build(container => container

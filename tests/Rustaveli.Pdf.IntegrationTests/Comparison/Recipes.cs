@@ -23,7 +23,7 @@ public static class Recipes
                 page.Size = new Rustaveli.Pdf.Primitives.Extent(595f, 842f);
                 page.Margin = Sides.All(40f);
                 page.DefaultTextStyle = Rustaveli.Pdf.Text.TypeStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
-                page.Content().Column(delegate(Rustaveli.Pdf.Fluent.ColumnDescriptor column)
+                page.Content().Column(delegate(Rustaveli.Pdf.Fluent.StackComposer column)
                 {
                     column.Spacing(8f);
                     foreach (string paragraph in RecipeData.Paragraphs)
@@ -66,14 +66,14 @@ public static class Recipes
                 page.Margin = Sides.All(40f);
                 page.DefaultTextStyle = Rustaveli.Pdf.Text.TypeStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
                 page.Header().Text("Quarterly Statement");
-                page.Footer().Text(delegate(Rustaveli.Pdf.Fluent.TextDescriptor text)
+                page.Footer().Text(delegate(Rustaveli.Pdf.Fluent.TextComposer text)
                 {
                     text.Span("Page ");
                     text.CurrentPageNumber();
                     text.Span(" of ");
                     text.TotalPages();
                 });
-                page.Content().Column(delegate(Rustaveli.Pdf.Fluent.ColumnDescriptor column)
+                page.Content().Column(delegate(Rustaveli.Pdf.Fluent.StackComposer column)
                 {
                     column.Spacing(4f);
                     foreach ((string Code, string Description, string Amount) row in RecipeData.Rows)
@@ -123,15 +123,15 @@ public static class Recipes
                 page.Size = new Rustaveli.Pdf.Primitives.Extent(595f, 842f);
                 page.Margin = Sides.All(40f);
                 page.DefaultTextStyle = Rustaveli.Pdf.Text.TypeStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
-                page.Content().Table(delegate(Rustaveli.Pdf.Fluent.TableDescriptor table)
+                page.Content().Table(delegate(Rustaveli.Pdf.Fluent.TableComposer table)
                 {
-                    table.ColumnsDefinition(delegate(Rustaveli.Pdf.Fluent.TableColumnsDefinitionDescriptor columns)
+                    table.ColumnsDefinition(delegate(Rustaveli.Pdf.Fluent.TableColumns columns)
                     {
                         columns.ConstantColumn(90f);
                         columns.RelativeColumn();
                         columns.ConstantColumn(70f);
                     });
-                    table.Header(delegate(TableBandDescriptor header)
+                    table.Header(delegate(TableBand header)
                     {
                         header.Cell().Text("Code");
                         header.Cell().Text("Description");

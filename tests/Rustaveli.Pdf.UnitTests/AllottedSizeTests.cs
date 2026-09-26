@@ -9,7 +9,7 @@ public class AllottedSizeTests
     private static readonly Ink Marker = TestInks.Red;
 
     private static void Box(IFrame container, float width, float height, Ink? color = null) =>
-        Composition.Attach(container, color is null ? new FixedElement(width, height) : new FixedElement(width, height, color.Value));
+        FrameAttachment.Attach(container, color is null ? new FixedElement(width, height) : new FixedElement(width, height, color.Value));
 
     private static RectangleOperation MarkerRectangle(RecordedPage page) =>
         page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == Marker);

@@ -8,7 +8,7 @@ public class TextDescriptorTests
 {
     private static readonly Extent Space = new Extent(200, 200);
 
-    private static RecordedPage Draw(Action<TextDescriptor> compose, Pagination? page = null) =>
+    private static RecordedPage Draw(Action<TextComposer> compose, Pagination? page = null) =>
         LayoutHarness.Draw(
             LayoutHarness.Build(container => container.Text(compose)),
             Space,
@@ -123,7 +123,7 @@ public class TextDescriptorTests
         TextBlock element = new TextBlock();
 
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
-            new TextDescriptor(element).Element(null!));
+            new TextComposer(element).Element(null!));
 
         Assert.Equal("handler", exception.ParamName);
         Assert.Empty(element.Spans);

@@ -10,10 +10,10 @@ public class ParagraphIndentTests
 {
     private const float LineHeight = 12f;
 
-    private static TextBlock Text(Action<TextDescriptor> compose)
+    private static TextBlock Text(Action<TextComposer> compose)
     {
         TextBlock element = new TextBlock();
-        compose(new TextDescriptor(element));
+        compose(new TextComposer(element));
         return element;
     }
 

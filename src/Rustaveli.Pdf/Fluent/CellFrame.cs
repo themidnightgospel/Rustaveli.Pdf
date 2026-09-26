@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Positions a single table cell and exposes it as a container for content.
 /// </summary>
-public sealed class TableCellDescriptor(CellBlock cell) : IFrame
+public sealed class CellFrame(CellBlock cell) : IFrame
 {
     Block? IFrame.Child
     {
@@ -14,7 +14,7 @@ public sealed class TableCellDescriptor(CellBlock cell) : IFrame
         set => cell.Child = value;
     }
 
-    public TableCellDescriptor Row(int row)
+    public CellFrame Row(int row)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(row, 1);
 
@@ -23,7 +23,7 @@ public sealed class TableCellDescriptor(CellBlock cell) : IFrame
         return this;
     }
 
-    public TableCellDescriptor Column(int column)
+    public CellFrame Column(int column)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
 
@@ -32,13 +32,13 @@ public sealed class TableCellDescriptor(CellBlock cell) : IFrame
         return this;
     }
 
-    public TableCellDescriptor RowSpan(int span)
+    public CellFrame RowSpan(int span)
     {
         cell.RowSpan = Math.Max(1, span);
         return this;
     }
 
-    public TableCellDescriptor ColumnSpan(int span)
+    public CellFrame ColumnSpan(int span)
     {
         cell.ColumnSpan = Math.Max(1, span);
         return this;

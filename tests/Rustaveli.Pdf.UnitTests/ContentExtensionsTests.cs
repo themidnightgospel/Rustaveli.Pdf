@@ -11,14 +11,14 @@ public class ContentExtensionsTests
 
     public static TheoryData<string, Action<IFrame>> CallsWithoutAHandler => new()
     {
-        { nameof(ContentExtensions.Text), container => container.Text((Action<TextDescriptor>)null!) },
-        { nameof(ContentExtensions.Column), container => container.Column(null!) },
-        { nameof(ContentExtensions.Row), container => container.Row(null!) },
-        { nameof(ContentExtensions.Table), container => container.Table(null!) },
-        { nameof(ContentExtensions.List), container => container.List(null!) },
-        { nameof(ContentExtensions.Layers), container => container.Layers(null!) },
-        { nameof(ContentExtensions.Decoration), container => container.Decoration(null!) },
-        { nameof(ContentExtensions.Element), container => container.Element(null!) },
+        { nameof(FrameContent.Text), container => container.Text((Action<TextComposer>)null!) },
+        { nameof(FrameContent.Column), container => container.Column(null!) },
+        { nameof(FrameContent.Row), container => container.Row(null!) },
+        { nameof(FrameContent.Table), container => container.Table(null!) },
+        { nameof(FrameContent.List), container => container.List(null!) },
+        { nameof(FrameContent.Layers), container => container.Layers(null!) },
+        { nameof(FrameContent.Decoration), container => container.Decoration(null!) },
+        { nameof(FrameContent.Element), container => container.Element(null!) },
     };
 
     [Theory]
@@ -151,14 +151,14 @@ public class ContentExtensionsTests
 
         CompositionException exception = Assert.Throws<CompositionException>(() => container.Empty());
 
-        Assert.Contains("already holds TextElement, so it cannot be marked empty", exception.Message);
+        Assert.Contains("This frame already holds TextBlock, so it cannot be left blank", exception.Message);
         Assert.IsType<TextBlock>(container.Child);
     }
 
     [Fact]
     public void RefusesToMarkAMissingContainerEmpty()
     {
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => ContentExtensions.Empty(null!));
+        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => FrameContent.Empty(null!));
 
         Assert.Equal("parent", exception.ParamName);
     }

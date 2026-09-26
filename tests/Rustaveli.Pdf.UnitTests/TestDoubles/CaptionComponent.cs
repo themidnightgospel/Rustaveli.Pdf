@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// <summary>
 /// A component that writes a single line of text, standing in for any reusable fragment of a document.
 /// </summary>
-public sealed class CaptionComponent(string caption) : IComponent
+public sealed class CaptionComponent(string caption) : ISnippet
 {
     public const string DefaultCaption = "caption";
 

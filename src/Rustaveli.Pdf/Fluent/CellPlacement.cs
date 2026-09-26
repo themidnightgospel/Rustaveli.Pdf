@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// Fills a grid left to right, top to bottom, skipping slots already claimed by explicitly positioned or
 /// spanning cells.
 /// </summary>
-internal static class AutoPlacement
+internal static class CellPlacement
 {
     public static void Apply(List<CellBlock> cells, int columnCount)
     {

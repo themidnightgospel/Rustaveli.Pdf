@@ -6,34 +6,34 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds a table: its columns, body cells and optional repeating header and footer bands.
 /// </summary>
-public sealed class TableDescriptor(TableElement element)
+public sealed class TableComposer(TableElement element)
 {
-    public void ColumnsDefinition(Action<TableColumnsDefinitionDescriptor> handler)
+    public void ColumnsDefinition(Action<TableColumns> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        handler(new TableColumnsDefinitionDescriptor(element));
+        handler(new TableColumns(element));
     }
 
     /// <summary>Adds a body cell. Without an explicit position it is placed in the next free slot.</summary>
-    public TableCellDescriptor Cell()
+    public CellFrame Cell()
     {
         CellBlock tableCell = new CellBlock();
         element.Cells.Add(tableCell);
-        return new TableCellDescriptor(tableCell);
+        return new CellFrame(tableCell);
     }
 
     /// <summary>Declares rows repeated at the top of every page the table spans.</summary>
-    public void Header(Action<TableBandDescriptor> handler)
+    public void Header(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        handler(new TableBandDescriptor(element.HeaderCells));
+        handler(new TableBand(element.HeaderCells));
     }
 
     /// <summary>Declares rows repeated at the bottom of every page the table spans.</summary>
-    public void Footer(Action<TableBandDescriptor> handler)
+    public void Footer(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        handler(new TableBandDescriptor(element.FooterCells));
+        handler(new TableBand(element.FooterCells));
     }
 
     /// <summary>
@@ -43,9 +43,9 @@ public sealed class TableDescriptor(TableElement element)
     internal void PlaceAutomaticCells()
     {
         int columnCount = Math.Max(1, element.Columns.Count);
-        AutoPlacement.Apply(element.Cells, columnCount);
-        AutoPlacement.Apply(element.HeaderCells, columnCount);
-        AutoPlacement.Apply(element.FooterCells, columnCount);
+        CellPlacement.Apply(element.Cells, columnCount);
+        CellPlacement.Apply(element.HeaderCells, columnCount);
+        CellPlacement.Apply(element.FooterCells, columnCount);
         Validate(element.Cells, columnCount, "body");
         Validate(element.HeaderCells, columnCount, "header");
         Validate(element.FooterCells, columnCount, "footer");

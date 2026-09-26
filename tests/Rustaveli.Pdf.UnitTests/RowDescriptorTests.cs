@@ -6,7 +6,7 @@ public class RowDescriptorTests
         container.Element(inner => inner.Child = new FixedElement(width, 10));
 
     /// <summary>The left edge of every item's content, across a 200pt row.</summary>
-    private static List<float> ItemPositions(Action<RowDescriptor> compose)
+    private static List<float> ItemPositions(Action<ColumnsComposer> compose)
     {
         Block root = LayoutHarness.Build(container => container.Row(compose));
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));

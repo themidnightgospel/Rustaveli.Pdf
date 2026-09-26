@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.UnitTests;
 /// </summary>
 public class AutoPlacementTests
 {
-    private static TableElement Compose(int columns, Action<TableDescriptor> cells)
+    private static TableElement Compose(int columns, Action<TableComposer> cells)
     {
         Block root = LayoutHarness.Build(container => container.Table(table =>
         {
@@ -24,7 +24,7 @@ public class AutoPlacementTests
     private static IEnumerable<(int Row, int Column)> Slots(IEnumerable<CellBlock> cells) =>
         cells.Select(cell => (cell.Row, cell.Column));
 
-    private static IEnumerable<(int Row, int Column)> Place(int columns, Action<TableDescriptor> cells) =>
+    private static IEnumerable<(int Row, int Column)> Place(int columns, Action<TableComposer> cells) =>
         Slots(Compose(columns, cells).Cells);
 
     [Fact]

@@ -8,7 +8,7 @@ public class TableCellDescriptorTests
         CellBlock cell = new CellBlock();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new TableCellDescriptor(cell).Row(0));
+            new CellFrame(cell).Row(0));
 
         Assert.Equal("row", exception.ParamName);
         Assert.False(cell.HasExplicitRow);
@@ -20,7 +20,7 @@ public class TableCellDescriptorTests
         CellBlock cell = new CellBlock();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new TableCellDescriptor(cell).Column(0));
+            new CellFrame(cell).Column(0));
 
         Assert.Equal("column", exception.ParamName);
         Assert.False(cell.HasExplicitColumn);
@@ -31,7 +31,7 @@ public class TableCellDescriptorTests
     {
         CellBlock cell = new CellBlock();
 
-        new TableCellDescriptor(cell).Row(1).Column(1);
+        new CellFrame(cell).Row(1).Column(1);
 
         Assert.True(cell.HasExplicitRow);
         Assert.True(cell.HasExplicitColumn);
@@ -44,7 +44,7 @@ public class TableCellDescriptorTests
     {
         CellBlock cell = new CellBlock();
 
-        new TableCellDescriptor(cell).RowSpan(span).ColumnSpan(span);
+        new CellFrame(cell).RowSpan(span).ColumnSpan(span);
 
         Assert.Equal(1, cell.RowSpan);
         Assert.Equal(1, cell.ColumnSpan);
@@ -55,7 +55,7 @@ public class TableCellDescriptorTests
     {
         CellBlock cell = new CellBlock();
 
-        new TableCellDescriptor(cell).RowSpan(3).ColumnSpan(2);
+        new CellFrame(cell).RowSpan(3).ColumnSpan(2);
 
         Assert.Equal(3, cell.RowSpan);
         Assert.Equal(2, cell.ColumnSpan);

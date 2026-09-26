@@ -2,7 +2,7 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class ListTests
 {
-    private static Block BuildList(Action<ListDescriptor> compose) =>
+    private static Block BuildList(Action<ListComposer> compose) =>
         LayoutHarness.Build(container => container.List(compose));
 
     [Fact]

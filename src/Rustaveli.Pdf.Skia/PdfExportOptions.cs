@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.Skia;
 /// <summary>
 /// Options controlling PDF output.
 /// </summary>
-public sealed class PdfGenerationOptions
+public sealed class PdfExportOptions
 {
     /// <summary>
     /// Supplies typefaces. Provide one to reuse fonts registered from streams across several documents;

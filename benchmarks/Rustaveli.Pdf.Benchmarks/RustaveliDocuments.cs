@@ -88,7 +88,7 @@ public static class RustaveliDocuments
         }
     }));
 
-    private static void ItemTable(TableDescriptor table, IReadOnlyList<LineItem> lines)
+    private static void ItemTable(TableComposer table, IReadOnlyList<LineItem> lines)
     {
         table.ColumnsDefinition(columns =>
         {

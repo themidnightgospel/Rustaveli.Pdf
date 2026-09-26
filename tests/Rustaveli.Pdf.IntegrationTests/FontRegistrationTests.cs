@@ -67,7 +67,7 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
             page.Content().Text("Rendered with a registered font");
         }));
 
-        byte[] bytes = document.GeneratePdf(new PdfGenerationOptions { Fonts = fonts });
+        byte[] bytes = document.GeneratePdf(new PdfExportOptions { Fonts = fonts });
 
         using PdfDocument parsed = PdfDocument.Open(bytes);
         Assert.Contains("Rendered", parsed.GetPage(1).Text);

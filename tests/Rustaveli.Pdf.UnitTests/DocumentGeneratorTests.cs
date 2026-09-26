@@ -128,7 +128,7 @@ public class DocumentGeneratorTests
         Document document = Build(delegate(Section page)
         {
             page.Size = new Extent(200f, 200f);
-            page.Footer().Text(delegate(TextDescriptor text)
+            page.Footer().Text(delegate(TextComposer text)
             {
                 text.Span("Page ");
                 text.CurrentPageNumber();
@@ -196,7 +196,7 @@ public class DocumentGeneratorTests
         Document document = Build(delegate(Section page)
         {
             page.Size = new Extent(200f, 200f);
-            page.Content().Column(delegate(ColumnDescriptor column)
+            page.Content().Column(delegate(StackComposer column)
             {
                 column.Item().Element(delegate(IFrame container)
                 {
@@ -332,7 +332,7 @@ public class DocumentGeneratorTests
         Document document = Build(delegate(Section page)
         {
             page.Size = new Extent(200f, 200f);
-            page.Content().Column(delegate(ColumnDescriptor column)
+            page.Content().Column(delegate(StackComposer column)
             {
                 column.Item().Element(delegate(IFrame container)
                 {
@@ -356,7 +356,7 @@ public class DocumentGeneratorTests
         Document document = Build(delegate(Section page)
         {
             page.Size = new Extent(70f, 100f);
-            page.Footer().Text(delegate(TextDescriptor text)
+            page.Footer().Text(delegate(TextComposer text)
             {
                 text.Span("Page ");
                 text.CurrentPageNumber();
@@ -393,9 +393,9 @@ public class DocumentGeneratorTests
         Document document = Build(delegate(Section page)
         {
             page.Size = new Extent(200f, 200f);
-            page.Content().Column(delegate(ColumnDescriptor column)
+            page.Content().Column(delegate(StackComposer column)
             {
-                column.Item().Text(delegate(TextDescriptor text)
+                column.Item().Text(delegate(TextComposer text)
                 {
                     text.Span("Summary on page ");
                     text.PageNumberOfSection("summary");
