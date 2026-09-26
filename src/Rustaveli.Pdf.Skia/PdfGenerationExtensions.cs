@@ -106,13 +106,15 @@ public static class PdfGenerationExtensions
         {
             result.Producer = metadata.Producer;
         }
+        // SkiaSharp stamps the machine's own UTC offset onto whatever clock reading it is given, so the reading has
+        // to be local time. Handed UTC, every date came out shifted by the local offset on any machine not on UTC.
         if (metadata.CreationDate.HasValue)
         {
-            result.Creation = metadata.CreationDate.Value.UtcDateTime;
+            result.Creation = metadata.CreationDate.Value.LocalDateTime;
         }
         if (metadata.ModificationDate.HasValue)
         {
-            result.Modified = metadata.ModificationDate.Value.UtcDateTime;
+            result.Modified = metadata.ModificationDate.Value.LocalDateTime;
         }
         return result;
     }

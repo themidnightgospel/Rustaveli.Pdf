@@ -326,4 +326,34 @@ public class PdfGenerationExtensionsTests
         Assert.Null(information.CreationDate);
         Assert.Null(information.ModifiedDate);
     }
+
+    [Fact]
+    public void RecordsTheCreationAndModificationInstants()
+    {
+        // Regression: the dates were handed to SkiaSharp as UTC readings, but SkiaSharp stamps the machine's own
+        // offset onto whatever reading it is given, so on any machine not set to UTC every date was shifted by
+        // that offset.
+        //
+        // SkiaSharp also derives the offset from the difference between the local and UTC hour fields, which
+        // produces nonsense when the two fall on different calendar days, and it writes whole hours only. The
+        // instant is therefore centred on the local day, and a zone with a part-hour offset is allowed that part.
+        DateTimeOffset noon = new DateTimeOffset(2024, 1, 15, 12, 0, 0, TimeSpan.Zero);
+        TimeSpan localOffset = TimeZoneInfo.Local.GetUtcOffset(noon);
+        DateTimeOffset created = noon.AddTicks(-localOffset.Ticks / 2).ToOffset(TimeSpan.FromHours(2));
+        DateTimeOffset modified = created.AddHours(3).AddMinutes(17);
+        double tolerance = Math.Abs(localOffset.Minutes);
+
+        Document document = TextDocument();
+        document.Metadata.CreationDate = created;
+        document.Metadata.ModificationDate = modified;
+
+        using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
+        DateTimeOffset? writtenCreated = parsed.Information.GetCreatedDateTimeOffset();
+        DateTimeOffset? writtenModified = parsed.Information.GetModifiedDateTimeOffset();
+
+        Assert.True(writtenCreated.HasValue, $"Unreadable creation date '{parsed.Information.CreationDate}'.");
+        Assert.True(writtenModified.HasValue, $"Unreadable modification date '{parsed.Information.ModifiedDate}'.");
+        Assert.InRange(Math.Abs((writtenCreated!.Value - created).TotalMinutes), 0, tolerance);
+        Assert.InRange(Math.Abs((writtenModified!.Value - modified).TotalMinutes), 0, tolerance);
+    }
 }
