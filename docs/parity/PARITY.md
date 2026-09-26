@@ -121,8 +121,8 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Word spacing | `WordSpacing` | ✅ | — |
 | Subscript, superscript | `Subscript`, `Superscript` | ✅ | — |
 | Alignment left/centre/right | `AlignLeft`, … | ✅ | — |
-| Alignment start/end (direction-aware) | `AlignStart`, `AlignEnd` | ❌ | 3 |
-| Justify | `Justify` | ❌ | 3 |
+| Alignment start/end (direction-aware) | `AlignStart`, `AlignEnd` | ✅ | — |
+| Justify | `Justify` | ✅ | — |
 | Clamp to N lines with ellipsis | `ClampLines` | ❌ | 3 |
 | First-line indent, paragraph spacing | `ParagraphFirstLineIndentation`, `ParagraphSpacing` | ✅ | — |
 | Break anywhere | `WrapAnywhere` | 🟡 mid-word break only when a word cannot fit | 3 |

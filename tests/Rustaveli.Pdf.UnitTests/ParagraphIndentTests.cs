@@ -87,11 +87,29 @@ public class ParagraphIndentTests
     }
 
     [Fact]
-    public void RightToLeftTextIsNotNarrowedEither()
+    public void RightToLeftTextIsIndentedFromTheRightAndNarrowedAlike()
+    {
+        // Right-to-left text starts from the right, so that is where its indent goes, and the opening line loses
+        // the same 20pt: seven 6pt characters no longer fit in the 28pt left of a 48pt box.
+        TextBlock element = Text(text =>
+        {
+            text.FirstLineIndent(20);
+            text.Run("aaaaaaa");
+        });
+
+        PlanContext context = LayoutHarness.Context();
+        context.ReadingDirection = ReadingDirection.RightToLeft;
+
+        Approximately.Equal(LineHeight * 2, LayoutHarness.Measure(element, new Extent(48, 500), context).Size.Height);
+    }
+
+    [Fact]
+    public void FlushLeftTextIsNotIndentedWhenItReadsRightToLeft()
     {
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
+            text.FlushLeft();
             text.Run("aaaaaaa");
         });
 

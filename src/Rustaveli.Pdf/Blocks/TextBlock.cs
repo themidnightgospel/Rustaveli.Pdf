@@ -21,10 +21,10 @@ internal sealed class TextBlock : Block
     public List<Text.TextRun> Runs { get; } = [];
 
     /// <summary>
-    /// Overrides how lines are aligned. Null follows the inherited content direction, so right-to-left text
-    /// aligns right without being told to.
+    /// How lines are aligned. The default follows the inherited content direction, so right-to-left text aligns
+    /// right without being told to.
     /// </summary>
-    public HorizontalPlacement? Alignment { get; set; }
+    public LineAlignment Alignment { get; set; }
 
     /// <summary>Adjusts the inherited style for every span in this block. Individual spans refine it further.</summary>
     public Func<TypeStyle, TypeStyle>? DefaultTypeRefinement { get; set; }
@@ -39,23 +39,37 @@ internal sealed class TextBlock : Block
     public override IEnumerable<Block?> GetChildren() => Runs.Select(span => span.Inline);
 
     /// <summary>
-    /// Resolves how lines are aligned, falling back to the inherited content direction.
+    /// The edge a line that is not stretched sits against, resolving start and end by the content direction. A
+    /// justified paragraph's last line sits against the start.
     /// </summary>
-    private HorizontalPlacement ResolveAlignment(PlanContext context) =>
-        Alignment ?? (context.ReadingDirection == ReadingDirection.RightToLeft
-            ? HorizontalPlacement.Right
-            : HorizontalPlacement.Left);
+    private HorizontalPlacement ResolveAlignment(PlanContext context)
+    {
+        bool rightToLeft = context.ReadingDirection == ReadingDirection.RightToLeft;
+
+        return Alignment switch
+        {
+            LineAlignment.Left => HorizontalPlacement.Left,
+            LineAlignment.Center => HorizontalPlacement.Center,
+            LineAlignment.Right => HorizontalPlacement.Right,
+            LineAlignment.End => rightToLeft ? HorizontalPlacement.Left : HorizontalPlacement.Right,
+            _ => rightToLeft ? HorizontalPlacement.Right : HorizontalPlacement.Left,
+        };
+    }
+
+    /// <summary>The edge lines start from in the content direction, where the first-line indent goes.</summary>
+    private static HorizontalPlacement StartEdge(PlanContext context) =>
+        context.ReadingDirection == ReadingDirection.RightToLeft ? HorizontalPlacement.Right : HorizontalPlacement.Left;
 
     /// <summary>
     /// The indent that will actually be drawn on a paragraph's opening line.
     /// </summary>
     /// <remarks>
-    /// Only left-aligned text is indented, so for any other alignment this is zero — and it must be zero
-    /// everywhere, not just at drawing time. Charging the wrap budget for an indent that is never drawn silently
-    /// costs a line's worth of room and shows nothing for it.
+    /// Only text aligned to the edge lines start from is indented, so for any other alignment this is zero — and
+    /// it must be zero everywhere, not just at drawing time. Charging the wrap budget for an indent that is never
+    /// drawn silently costs a line's worth of room and shows nothing for it.
     /// </remarks>
     private float EffectiveIndent(PlanContext context) =>
-        ResolveAlignment(context) == HorizontalPlacement.Left ? Math.Max(0, FirstLineIndent) : 0f;
+        ResolveAlignment(context) == StartEdge(context) ? Math.Max(0, FirstLineIndent) : 0f;
 
     protected override void ResetOwnState()
     {
@@ -124,7 +138,8 @@ internal sealed class TextBlock : Block
         {
             top += SpacingBefore(lines[index], index);
 
-            DrawLine(lines[index], availableSpace.Width, top, context);
+            bool endsParagraph = index == lines.Count - 1 || lines[index + 1].StartsParagraph;
+            DrawLine(lines[index], availableSpace.Width, top, endsParagraph, context);
             top += lines[index].Height;
         }
 
@@ -169,27 +184,37 @@ internal sealed class TextBlock : Block
     private float SpacingBefore(TextLine line, int index) =>
         line.StartsParagraph && line.Runs.Count > 0 && index > _completedLines ? SpaceBetweenParagraphs : 0f;
 
-    private void DrawLine(TextLine line, float availableWidth, float top, RenderContext context)
+    private void DrawLine(TextLine line, float availableWidth, float top, bool endsParagraph, RenderContext context)
     {
         ISurface surface = context.Surface;
         float baseline = top + line.Ascent;
+        float indent = line.StartsParagraph ? EffectiveIndent(context.Planning) : 0f;
+        (int firstWord, int lastWord, int spaces) = line.WordGaps();
+        bool stretched = Alignment == LineAlignment.Justified && !endsParagraph && spaces > 0;
 
-        HorizontalPlacement alignment = ResolveAlignment(context.Planning);
+        // A justified line fills the width from the start edge, the indent taking its place there, by sharing the
+        // slack among the spaces between its words — as word spacing does, each space gets the same.
+        float stretch = stretched ? Math.Max(0, availableWidth - indent - line.Width) / spaces : 0f;
+        HorizontalPlacement alignment = stretched ? StartEdge(context.Planning) : ResolveAlignment(context.Planning);
+        float width = line.Width + (stretch * spaces);
 
         float offset = alignment switch
         {
-            HorizontalPlacement.Center => (availableWidth - line.Width) / 2,
-            HorizontalPlacement.Right => availableWidth - line.Width,
-            _ => 0f
+            HorizontalPlacement.Center => (availableWidth - width) / 2,
+            HorizontalPlacement.Right => availableWidth - width - indent,
+            _ => indent
         };
-
-        if (line.StartsParagraph)
-            offset += EffectiveIndent(context.Planning);
 
         float x = Math.Max(0, offset);
 
-        foreach (TextRun run in line.Runs)
+        for (int index = 0; index < line.Runs.Count; index++)
         {
+            // Whitespace before the first word or after the last is kept as typed; only the gaps between stretch.
+            TextRun run = line.Runs[index];
+
+            if (stretch > 0 && index > firstWord && index < lastWord && IsWordGap(run))
+                run = run with { Width = run.Width + (stretch * run.Text.Length) };
+
             if (run.Inline is not null)
             {
                 Extent inlineSize = new Extent(run.Width, run.Height);
@@ -470,6 +495,10 @@ internal sealed class TextBlock : Block
     private static bool IsBreakableWhitespace(char character) =>
         char.IsWhiteSpace(character) && character is not ('\u00A0' or '\u202F' or '\u2007');
 
+    /// <summary>A run of breakable whitespace between words, as the tokeniser splits it out.</summary>
+    private static bool IsWordGap(TextRun run) =>
+        run.Inline is null && run.Text.Length > 0 && run.Text.All(IsBreakableWhitespace);
+
     /// <summary>Splits text into newlines, breakable whitespace runs and word runs, preserving all characters.</summary>
     private static IEnumerable<string> Tokenise(string text)
     {
@@ -567,8 +596,26 @@ internal sealed class TextBlock : Block
         private static bool IsTrimmable(TextRun run) =>
             run.Url is null
             && run.Destination is null
-            && run.Text.Length > 0
-            && run.Text.All(IsBreakableWhitespace);
+            && IsWordGap(run);
+
+        /// <summary>
+        /// Where the line's words begin and end, as run indexes, and how many spaces lie between them: the spaces
+        /// justification widens. With no word on the line both indexes are -1.
+        /// </summary>
+        public (int First, int Last, int Spaces) WordGaps()
+        {
+            int first = Runs.FindIndex(run => !IsWordGap(run));
+            int last = Runs.FindLastIndex(run => !IsWordGap(run));
+            int spaces = 0;
+
+            for (int index = first + 1; index < last; index++)
+            {
+                if (IsWordGap(Runs[index]))
+                    spaces += Runs[index].Text.Length;
+            }
+
+            return (first, last, spaces);
+        }
 
         public void Clear()
         {

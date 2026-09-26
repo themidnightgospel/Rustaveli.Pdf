@@ -60,7 +60,7 @@ public class ReadingDirectionTests
     {
         TextBlock element = new TextBlock();
         new TextComposer(element).Run("Hello");
-        element.Alignment = HorizontalPlacement.Left;
+        element.Alignment = LineAlignment.Left;
 
         PlanContext context = LayoutHarness.Context();
         context.ReadingDirection = ReadingDirection.RightToLeft;
@@ -99,12 +99,13 @@ public class ReadingDirectionTests
     [InlineData(ReadingDirection.RightToLeft, 30f)]
     public void ReadingDirectionBlockAppliesWhilePlanningToo(ReadingDirection direction, float expectedWidth)
     {
-        // Only left-aligned text takes a first-line indent, and right-to-left text aligns right, so the same
-        // paragraph measures 20pt narrower once the direction reaches it.
+        // Only text flush against the edge lines start from takes a first-line indent, and right-to-left lines
+        // start from the right, so the same flush-left paragraph measures 20pt narrower once the direction reaches it.
         PlanContext context = LayoutHarness.Context();
         Block root = LayoutHarness.Build(container => container.Reading(direction).Text(text =>
         {
             text.FirstLineIndent(20);
+            text.FlushLeft();
             text.Run("Hello");
         }));
 

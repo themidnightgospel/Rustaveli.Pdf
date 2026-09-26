@@ -213,18 +213,173 @@ public class TextBlockTests
     }
 
     [Theory]
-    [InlineData(nameof(HorizontalPlacement.Left), 0f)]
-    [InlineData(nameof(HorizontalPlacement.Center), 35f)]
-    [InlineData(nameof(HorizontalPlacement.Right), 70f)]
-    public void AlignsLinesWithinTheAvailableWidth(string placement, float expectedX)
+    [InlineData(nameof(LineAlignment.Left), 0f)]
+    [InlineData(nameof(LineAlignment.Center), 35f)]
+    [InlineData(nameof(LineAlignment.Right), 70f)]
+    [InlineData(nameof(LineAlignment.Start), 0f)]
+    [InlineData(nameof(LineAlignment.End), 70f)]
+    [InlineData(nameof(LineAlignment.Justified), 0f)]
+    public void AlignsLinesWithinTheAvailableWidth(string alignment, float expectedX)
     {
         TextBlock element = Text(text => text.Run("Hello"));
-        element.Alignment = (HorizontalPlacement)Enum.Parse(typeof(HorizontalPlacement), placement);
+        element.Alignment = Enum.Parse<LineAlignment>(alignment);
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100));
         TextOperation operation = Assert.Single(page.Texts);
 
         Approximately.Equal(expectedX, operation.Position.X);
+    }
+
+    [Theory]
+    [InlineData(nameof(LineAlignment.Left), 0f)]
+    [InlineData(nameof(LineAlignment.Center), 35f)]
+    [InlineData(nameof(LineAlignment.Right), 70f)]
+    [InlineData(nameof(LineAlignment.Start), 70f)]
+    [InlineData(nameof(LineAlignment.End), 0f)]
+    [InlineData(nameof(LineAlignment.Justified), 70f)]
+    public void StartAndEndFollowTheReadingDirection(string alignment, float expectedX)
+    {
+        TextBlock element = Text(text => text.Run("Hello"));
+        element.Alignment = Enum.Parse<LineAlignment>(alignment);
+        PlanContext context = LayoutHarness.Context();
+        context.ReadingDirection = ReadingDirection.RightToLeft;
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100), context);
+
+        Approximately.Equal(expectedX, Assert.Single(page.Texts).Position.X);
+    }
+
+    [Fact]
+    public void JustifiedLinesStretchTheirSpacesToFillTheWidth()
+    {
+        // Two lines of 60pt: "aaa bbb ccc" on the first, "ddd" on the second.
+        TextBlock element = Text(text =>
+        {
+            text.Justified();
+            text.Run("aaa bbb ccc ddd");
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
+        List<TextOperation> words = page.Texts.Where(text => text.Text.Trim().Length > 0).ToList();
+
+        // 66pt of text and 14pt of slack across two spaces: each space grows from 6pt to 13pt.
+        Assert.Equal(["aaa", "bbb", "ccc", "ddd"], words.Select(word => word.Text));
+        Approximately.Equal(0f, words[0].Position.X);
+        Approximately.Equal(31f, words[1].Position.X);
+        Approximately.Equal(62f, words[2].Position.X);
+    }
+
+    [Fact]
+    public void TheLastLineOfAJustifiedParagraphIsNotStretched()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Justified();
+            text.Run("aaa bbb ccc ddd e");
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
+        TextOperation e = page.Texts.Single(text => text.Text == "e");
+
+        // "ddd e" sits at its natural width: "ddd" at 0, a 6pt space, then "e".
+        Approximately.Equal(24f, e.Position.X);
+    }
+
+    [Fact]
+    public void ALineEndedByABreakIsTheLastOfItsParagraphAndIsNotStretched()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Justified();
+            text.Run("a b\nc d e f g h i j k l m n");
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
+
+        Approximately.Equal(12f, page.Texts.Single(text => text.Text == "b").Position.X);
+        Assert.True(page.Texts.Single(text => text.Text == "i").Position.X > 48f, "The wrapped line should stretch.");
+    }
+
+    [Fact]
+    public void AJustifiedLineKeepsItsFirstLineIndent()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Justified();
+            text.FirstLineIndent(12);
+            text.Run("aaa bbb ccc ddd");
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
+        List<TextOperation> words = page.Texts.Where(text => text.Text.Trim().Length > 0).ToList();
+
+        // The indent leaves 68pt: "aaa bbb ccc" (66pt) with 2pt of slack, a point for each space.
+        Approximately.Equal(12f, words[0].Position.X);
+        Approximately.Equal(37f, words[1].Position.X);
+        Approximately.Equal(62f, words[2].Position.X);
+    }
+
+    [Fact]
+    public void JustificationLeavesLeadingWhitespaceAsTyped()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Justified();
+            text.Run("x\n  aa bb cc dd ee ff");
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
+
+        // The two leading spaces keep their 12pt; the slack goes between the words.
+        Approximately.Equal(12f, page.Texts.Single(text => text.Text == "aa").Position.X);
+    }
+
+    [Fact]
+    public void AJustifiedLineWithASingleWordSitsAtTheStart()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Justified();
+            text.Run("aaaaaaaaaaaaaaaaaaaa");
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
+
+        Assert.All(page.Texts, text => Approximately.Equal(0f, text.Position.X));
+    }
+
+    [Fact]
+    public void AStretchedSpaceCarriesItsUnderlineAcrossTheGap()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Justified();
+            text.Run("aaa bbb ccc ddd").Underline();
+        });
+
+        List<LineOperation> lines = LayoutHarness.Draw(element, new Extent(80, 100)).Operations.OfType<LineOperation>().ToList();
+
+        // The first line's strokes run unbroken from 0 to the full 80pt.
+        Approximately.Equal(0f, lines[0].Position.X);
+        Approximately.Equal(80f, lines[4].End.X);
+        for (int index = 1; index < 5; index++)
+            Approximately.Equal(lines[index - 1].End.X, lines[index].Position.X);
+    }
+
+    [Fact]
+    public void ARightToLeftParagraphIsIndentedFromTheRight()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.FirstLineIndent(10);
+            text.Run("Hello");
+        });
+        PlanContext context = LayoutHarness.Context();
+        context.ReadingDirection = ReadingDirection.RightToLeft;
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100), context);
+
+        Approximately.Equal(60f, Assert.Single(page.Texts).Position.X);
     }
 
     [Fact]

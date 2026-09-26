@@ -59,6 +59,41 @@ public class TextComposerTests
         Approximately.Equal(170f, Assert.Single(LayoutHarness.Draw(unaligned, Space).Texts).Position.X);
     }
 
+    [Theory]
+    [InlineData("left", false, 0f)]
+    [InlineData("left", true, 0f)]
+    [InlineData("centre", false, 85f)]
+    [InlineData("right", false, 170f)]
+    [InlineData("right", true, 170f)]
+    [InlineData("start", false, 0f)]
+    [InlineData("start", true, 170f)]
+    [InlineData("end", false, 170f)]
+    [InlineData("end", true, 0f)]
+    [InlineData("justified", false, 0f)]
+    [InlineData("justified", true, 170f)]
+    public void EachAlignmentSetsTheLineWhereItSays(string alignment, bool rightToLeft, float expectedX)
+    {
+        Block root = LayoutHarness.Build(container => container.Reading(rightToLeft ? ReadingDirection.RightToLeft : ReadingDirection.LeftToRight).Text(text =>
+        {
+            // Set against the grain first, so each call is seen to replace what came before.
+            text.FlushEnd();
+
+            switch (alignment)
+            {
+                case "left": text.FlushLeft(); break;
+                case "centre": text.Centered(); break;
+                case "right": text.FlushRight(); break;
+                case "start": text.FlushStart(); break;
+                case "end": text.FlushLeft(); text.FlushEnd(); break;
+                default: text.Justified(); break;
+            }
+
+            text.Run("Hello");
+        }));
+
+        Approximately.Equal(expectedX, Assert.Single(LayoutHarness.Draw(root, Space).Texts).Position.X);
+    }
+
     [Fact]
     public void DefaultTypeReachesEveryRun()
     {

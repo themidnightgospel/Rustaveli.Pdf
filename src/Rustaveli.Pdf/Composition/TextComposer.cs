@@ -159,19 +159,46 @@ public sealed class TextComposer
         _block.SpaceBetweenParagraphs = spacing;
     }
 
+    /// <summary>Sets lines flush against the left edge, whatever the reading direction.</summary>
     public void FlushLeft()
     {
-        _block.Alignment = HorizontalPlacement.Left;
+        _block.Alignment = LineAlignment.Left;
     }
 
+    /// <summary>Centres each line.</summary>
     public void Centered()
     {
-        _block.Alignment = HorizontalPlacement.Center;
+        _block.Alignment = LineAlignment.Center;
     }
 
+    /// <summary>Sets lines flush against the right edge, whatever the reading direction.</summary>
     public void FlushRight()
     {
-        _block.Alignment = HorizontalPlacement.Right;
+        _block.Alignment = LineAlignment.Right;
+    }
+
+    /// <summary>
+    /// Sets lines flush against the edge they start from: left in left-to-right text, right in right-to-left. This
+    /// is the default.
+    /// </summary>
+    public void FlushStart()
+    {
+        _block.Alignment = LineAlignment.Start;
+    }
+
+    /// <summary>Sets lines flush against the edge they end at: right in left-to-right text, left in right-to-left.</summary>
+    public void FlushEnd()
+    {
+        _block.Alignment = LineAlignment.End;
+    }
+
+    /// <summary>
+    /// Stretches every line but the last of each paragraph across the full width by widening the spaces between
+    /// its words; the last sits flush against the start.
+    /// </summary>
+    public void Justified()
+    {
+        _block.Alignment = LineAlignment.Justified;
     }
 
     /// <summary>Adjusts the style inherited by every span in this paragraph.</summary>

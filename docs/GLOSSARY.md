@@ -146,6 +146,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `TextComposer.Link(text, url)` / `CrossReference(text, anchor)` | method | Linked runs. | print | `Hyperlink` / `SectionLink` |
 | `TextComposer.Inline(Action<IFrame>)` | method | A frame set inline with the text. | print ("inline graphic") | `Element` |
 | `TextComposer.FlushLeft()`, `FlushRight()`, `Centered()` | method | Paragraph alignment. | print | `AlignLeft/Right/Center` |
+| `TextComposer.FlushStart()`, `FlushEnd()` | method | Paragraph alignment by reading direction: flush against the edge lines start from, or end at. | print | `AlignStart/End` |
+| `TextComposer.Justified()` | method | Stretches every line but a paragraph's last across the width by widening its word spaces. | print | `Justify` |
 | `TextComposer.FirstLineIndent(float)` | method | Indents the first line of each paragraph. | print | same |
 | `TextComposer.SpaceBetweenParagraphs(float)` | method | Space after each paragraph but the last. | print | `ParagraphSpacing` |
 | `TextComposer.DefaultType(...)` | method | Refines the type style runs inherit. | print | `DefaultTextStyle` |
