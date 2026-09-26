@@ -14,6 +14,9 @@ public class TableElementTests
     private static void Fill(IContainer container, float width, float height) =>
         container.Element(inner => inner.Child = new FixedElement(width, height));
 
+    private static void Fill(IContainer container, float width, float height, Color color) =>
+        container.Element(inner => inner.Child = new FixedElement(width, height, color));
+
     [Fact]
     public void SplitsWidthEvenlyBetweenEqualRelativeColumns()
     {
@@ -374,5 +377,130 @@ public class TableElementTests
         });
 
         Assert.True(LayoutHarness.Measure(table, new Size(100, 200)).IsWrap);
+    }
+
+    [Fact]
+    public void WrapsWithoutAnyColumns()
+    {
+        TableElement table = BuildTable(descriptor => Fill(descriptor.Cell(), 1, 10));
+
+        Assert.True(LayoutHarness.Measure(table, new Size(200, 200)).IsWrap);
+        Assert.Empty(LayoutHarness.Draw(table, new Size(200, 200)).Operations);
+    }
+
+    [Fact]
+    public void ARelativeColumnWithoutWeightGetsNoWidth()
+    {
+        TableElement table = BuildTable(descriptor =>
+        {
+            descriptor.ColumnsDefinition(columns =>
+            {
+                columns.ConstantColumn(50);
+                columns.RelativeColumn(0);
+            });
+
+            Fill(descriptor.Cell(), 1, 10);
+        });
+
+        Approximately.Equal(50f, LayoutHarness.Measure(table, new Size(200, 200)).Size.Width);
+    }
+
+    [Fact]
+    public void WrapsWhenTheRepeatingBandsAloneExceedTheHeight()
+    {
+        TableElement table = BuildTable(descriptor =>
+        {
+            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Header(header => Fill(header.Cell(), 1, 50));
+            descriptor.Footer(footer => Fill(footer.Cell(), 1, 50));
+            Fill(descriptor.Cell(), 1, 10);
+        });
+
+        SpacePlan plan = LayoutHarness.Measure(table, new Size(200, 99));
+
+        Assert.True(plan.IsWrap);
+        Assert.Contains("header and footer", plan.WrapReason);
+    }
+
+    [Fact]
+    public void DrawsNothingWhileTheRepeatingBandsCannotFit()
+    {
+        TableElement table = BuildTable(descriptor =>
+        {
+            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Header(header => Fill(header.Cell(), 1, 50));
+            descriptor.Footer(footer => Fill(footer.Cell(), 1, 50));
+            Fill(descriptor.Cell(), 1, 10);
+        });
+
+        RecordedPage cramped = LayoutHarness.Draw(table, new Size(200, 99));
+        RecordedPage roomy = LayoutHarness.Draw(table, new Size(200, 200));
+
+        Assert.Empty(cramped.Operations);
+        Assert.Equal(3, roomy.Operations.OfType<RectangleOperation>().Count());
+    }
+
+    [Fact]
+    public void DrawsNothingOnceEveryRowIsDrawn()
+    {
+        // The header repeats alongside rows, never on its own.
+        TableElement table = BuildTable(descriptor =>
+        {
+            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Header(header => Fill(header.Cell(), 1, 10));
+            Fill(descriptor.Cell(), 1, 20);
+        });
+
+        Size space = new Size(200, 200);
+        LayoutHarness.Draw(table, space);
+
+        Assert.Empty(LayoutHarness.Draw(table, space).Operations);
+    }
+
+    [Fact]
+    public void LeavesARowTooTallForThePageForTheNextOne()
+    {
+        TableElement table = BuildTable(descriptor =>
+        {
+            descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
+            descriptor.Header(header => Fill(header.Cell(), 1, 10, Colors.Red));
+            Fill(descriptor.Cell(), 1, 30);
+            Fill(descriptor.Cell(), 1, 80, Colors.Blue);
+        });
+
+        LayoutHarness.Draw(table, new Size(200, 50));
+        RecordedPage cramped = LayoutHarness.Draw(table, new Size(200, 50));
+        RecordedPage roomy = LayoutHarness.Draw(table, new Size(200, 100));
+
+        // No header on a page that takes no rows.
+        Assert.Empty(cramped.Operations);
+
+        Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Approximately.Equal(10f, roomy.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Blue).Position.Y);
+    }
+
+    [Fact]
+    public void ASpannedCellTallerThanItsRowsGrowsOnlyTheLastOne()
+    {
+        // Charging the shortfall to the first row would push the second row down inside the span.
+        TableElement table = BuildTable(descriptor =>
+        {
+            descriptor.ColumnsDefinition(columns =>
+            {
+                columns.RelativeColumn();
+                columns.RelativeColumn();
+            });
+
+            Fill(descriptor.Cell().Row(1).Column(1).RowSpan(2), 1, 100);
+            Fill(descriptor.Cell().Row(1).Column(2), 1, 30);
+            Fill(descriptor.Cell().Row(2).Column(2), 1, 30, Colors.Blue);
+        });
+
+        Size space = new Size(200, 200);
+        SpacePlan plan = LayoutHarness.Measure(table, space);
+        RecordedPage page = LayoutHarness.Draw(table, space);
+
+        Approximately.Equal(100f, plan.Size.Height);
+        Approximately.Equal(30f, page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Blue).Position.Y);
     }
 }
