@@ -100,7 +100,7 @@ public class ZlibReaderTests
 
         reader.ReadExactly(buffer, 10, 4000);
         reader.ReadExactly(buffer, 4010, 1000);
-        reader.Finish();
+        reader.Finish(maxTrailing: 0);
 
         Assert.Equal(Text, buffer.AsSpan(10, 5000).ToArray());
     }
@@ -123,12 +123,23 @@ public class ZlibReaderTests
         using ZlibReader reader = new ZlibReader(zlib);
         reader.ReadExactly(new byte[100], 0, 100);
 
-        reader.Finish();
+        reader.Finish(maxTrailing: 4900);
 
         zlib[zlib.Length - 1] ^= 0x80;
         using ZlibReader damaged = new ZlibReader(zlib);
         damaged.ReadExactly(new byte[100], 0, 100);
-        Assert.Throws<ImageFormatException>(damaged.Finish);
+        Assert.Contains("Adler-32", Assert.Throws<ImageFormatException>(() => damaged.Finish(maxTrailing: 4900)).Message);
+    }
+
+    [Fact]
+    public void RefusesToInflateMoreTrailingDataThanAllowed()
+    {
+        using ZlibReader reader = new ZlibReader(TestZlib.Compress(Text));
+        reader.ReadExactly(new byte[100], 0, 100);
+
+        ImageFormatException error = Assert.Throws<ImageFormatException>(() => reader.Finish(maxTrailing: 4899));
+
+        Assert.Contains("continues far past the end of the image", error.Message);
     }
 
     [Fact]

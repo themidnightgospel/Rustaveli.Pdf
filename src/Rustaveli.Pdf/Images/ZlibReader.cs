@@ -65,17 +65,27 @@ internal sealed class ZlibReader : IDisposable
     /// <summary>
     /// Consumes anything left in the stream and verifies the checksum, which covers every decompressed byte.
     /// </summary>
+    /// <param name="maxTrailing">How many decompressed bytes may follow the data the caller read.</param>
     /// <remarks>
-    /// Data beyond what the caller needed is tolerated, as libpng tolerates it, but it must still be read: the
-    /// checksum cannot be verified otherwise. The work is bounded by deflate's maximum expansion of the input.
+    /// A little data beyond what the caller needed is tolerated, as libpng tolerates it, but it must still be read:
+    /// the checksum cannot be verified otherwise. More than <paramref name="maxTrailing"/> is refused rather than
+    /// inflated, because a few kilobytes of deflate data can expand to gigabytes and the reading would not end.
     /// </remarks>
-    public void Finish()
+    public void Finish(long maxTrailing)
     {
         byte[] scratch = ArrayPool<byte>.Shared.Rent(4096);
         try
         {
-            while (Read(scratch, 0, scratch.Length) > 0)
+            long trailing = 0;
+            while (true)
             {
+                int read = Read(scratch, 0, scratch.Length);
+                if (read == 0)
+                    break;
+
+                trailing += read;
+                if (trailing > maxTrailing)
+                    throw new ImageFormatException("The compressed data continues far past the end of the image.");
             }
         }
         finally
@@ -104,7 +114,7 @@ internal sealed class ZlibReader : IDisposable
             output.Write(buffer, 0, read);
         }
 
-        reader.Finish();
+        reader.Finish(maxTrailing: 0);
         return output.ToArray();
     }
 

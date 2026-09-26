@@ -281,6 +281,22 @@ public class PngDecodeTests
         Assert.Equal(rows, Decode(TestPng.Image(4, 2, 8, 0, filtered)));
     }
 
+    [Theory]
+    [InlineData(1, 65536, true)]
+    [InlineData(1, 65537, false)]
+    [InlineData(300, 300 * 301, true)]
+    [InlineData(300, (300 * 301) + 1, false)]
+    public void ReadsTrailingImageDataOnlyAsFarAsTheImageOr64KiB(int size, int trailing, bool accepted)
+    {
+        byte[] filtered = [.. new byte[size * (size + 1)], .. new byte[trailing]];
+        byte[] png = TestPng.Image(size, size, 8, 0, filtered);
+
+        if (accepted)
+            Assert.Equal(size, Decode(png).Length);
+        else
+            Assert.Contains("continues far past the end of the image", Fails(png));
+    }
+
     [Fact]
     public void RejectsImageDataFailingItsChecksum()
     {

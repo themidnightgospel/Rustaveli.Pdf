@@ -18,6 +18,10 @@ internal static class PngScanlineDecoder
     // hundred forged bytes from claiming, and allocating for, a gigapixel image.
     private const long MaxDeflateExpansion = 1032;
 
+    // Image data may run on past the last row, and is still read so its checksum can be verified; but no further
+    // than the image itself, or 64 KiB for a small one, so that a compressed tail cannot expand without end.
+    private const long MinTrailingData = 1 << 16;
+
     public static void Decode(PngFile png, IPngRowSink sink)
     {
         PngHeader header = png.Header;
@@ -61,7 +65,7 @@ internal static class PngScanlineDecoder
             else
                 DecodeSequential(reader, header, (int)rowBytes, sink);
 
-            reader.Finish();
+            reader.Finish(Math.Max(expected, MinTrailingData));
         }
         finally
         {
