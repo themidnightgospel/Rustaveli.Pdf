@@ -174,11 +174,9 @@ public sealed class TableElement : Element
     }
 
     /// <summary>
-    /// Accumulates whole rows from the current position until the next would overflow, never stopping inside a
-    /// vertically spanned group.
-    /// </summary>
-    /// <summary>
-    /// Chooses how many body rows fit in the space left once the repeating bands are accounted for.
+    /// Chooses how many body rows fit in the space left once the repeating bands are accounted for: whole rows are
+    /// accumulated from the current position until the next would overflow, never stopping inside a vertically
+    /// spanned group.
     /// </summary>
     /// <remarks>
     /// A row is only committed once the whole vertically-spanned group it belongs to fits, so a cell spanning
@@ -326,10 +324,6 @@ public sealed class TableElement : Element
     /// For each row, the last row it is bound to by a vertical span. Rows may only be separated where this
     /// equals the row itself.
     /// </summary>
-    /// <summary>
-    /// For each row, the last row it is bound to by a vertical span. Rows may only be separated where this
-    /// equals the row itself.
-    /// </summary>
     private static int[] BuildGroupBoundaries(List<TableCell> cells, int rowCount)
     {
         int[] groupEnd = new int[rowCount];
@@ -350,10 +344,6 @@ public sealed class TableElement : Element
         return groupEnd;
     }
 
-    /// <summary>
-    /// Measures every cell at its natural height, then distributes the height of vertically spanned cells across
-    /// the rows they cover.
-    /// </summary>
     /// <summary>
     /// Measures every cell at its natural height, then distributes the height of vertically spanned cells across
     /// the rows they cover.
@@ -396,7 +386,6 @@ public sealed class TableElement : Element
         return heights;
     }
 
-    /// <summary>Splits the available width across columns: constants keep their size, relatives share the rest.</summary>
     /// <summary>Splits the available width across columns: constants keep their size, relatives share the rest.</summary>
     /// <remarks>Null means the table cannot be laid out at this width, which the caller turns into a wrap.</remarks>
     private float[]? ResolveColumnWidths(float availableWidth)
