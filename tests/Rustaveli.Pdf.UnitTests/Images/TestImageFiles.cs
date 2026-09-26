@@ -9,6 +9,8 @@ internal static class TestImageFiles
 
     public static byte[] Bytes(string name) => File.ReadAllBytes(PathOf(name));
 
+    public static RasterImage Load(string name) => RasterImage.FromFile(PathOf(name));
+
     public static PngFile Png(string name) => PngParser.Parse(Bytes(name));
 
     /// <summary>Every fixture that is a valid image, JPEG and PNG.</summary>
