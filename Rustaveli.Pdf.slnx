@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Rustaveli.Pdf.Benchmarks/Rustaveli.Pdf.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Rustaveli.Pdf.Gallery/Rustaveli.Pdf.Gallery.csproj" />
   </Folder>
@@ -7,6 +10,7 @@
     <Project Path="src/Rustaveli.Pdf/Rustaveli.Pdf.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Rustaveli.Pdf.ConformanceTests/Rustaveli.Pdf.ConformanceTests.csproj" />
     <Project Path="tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj" />
     <Project Path="tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj" />
   </Folder>

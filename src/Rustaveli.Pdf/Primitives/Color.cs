@@ -34,7 +34,9 @@ public readonly record struct Color(byte Red, byte Green, byte Blue, byte Alpha 
             _ => throw new FormatException($"'{hex}' is not a valid colour. Expected 3, 4, 6 or 8 hexadecimal digits.")
         };
 
-        if (!uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint parsed))
+        // HexNumber would also allow surrounding whitespace, letting a space pad a short value out to a valid
+        // length: "#12345 " would parse as #012345 instead of being rejected.
+        if (!uint.TryParse(value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out uint parsed))
             throw new FormatException($"'{hex}' is not a valid colour. Expected hexadecimal digits.");
 
         // Six-digit input carries no alpha channel, so default it to fully opaque.

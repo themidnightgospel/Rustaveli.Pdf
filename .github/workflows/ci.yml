@@ -1,0 +1,111 @@
+# Tier 1: runs on every push to a pull request and on main. Cheap enough to run constantly; strict enough that
+# nothing reaches main without a clean Release build, both runtimes green and the coverage gate met.
+# The expensive checks (mutation testing, benchmarks, macOS) live in gate.yml and run once a PR is ready to merge.
+
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  linux:
+    name: linux · build, test, coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - run: dotnet tool restore
+
+      # qpdf validates generated files. The font-fallback tests check that characters the test font lacks are found
+      # among the platform's fonts: Windows and macOS ship CJK and Georgian faces, the Ubuntu image does not.
+      - name: Install validators and fallback fonts
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qpdf fonts-noto-core fonts-noto-cjk
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build Rustaveli.Pdf.slnx -c Release
+
+      - name: Test with coverage and enforce the gate
+        run: dotnet run eng/coverage.cs
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f artifacts/coverage/report/SummaryGithub.md ]; then
+            cat artifacts/coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: artifacts/coverage/report
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: received-snapshots-linux
+          path: artifacts/snapshots
+          if-no-files-found: ignore
+          retention-days: 14
+
+  windows:
+    name: windows · net10.0 + net48
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Fetch validators (qpdf)
+        run: dotnet run eng/tools.cs
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build Rustaveli.Pdf.slnx -c Release
+
+      - name: Test on both runtimes
+        run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: received-snapshots-windows
+          path: artifacts/snapshots
+          if-no-files-found: ignore
+          retention-days: 14

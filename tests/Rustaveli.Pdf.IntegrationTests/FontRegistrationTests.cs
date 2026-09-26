@@ -12,63 +12,34 @@ namespace Rustaveli.Pdf.IntegrationTests;
 /// Exercises supplying typefaces from a stream rather than relying on what the host has installed.
 /// </summary>
 /// <remarks>
-/// Fonts are read from the operating system's font directory purely as convenient test material; nothing is
-/// redistributed. A host with no fonts at all fails these loudly rather than passing quietly, which is
-/// consistent with the rest of the rendering suite already depending on system fonts.
+/// The font registered is the committed Noto Sans (tests/assets/fonts), so these behave identically on every host.
+/// The providers here start empty on purpose: registration is what is under test.
 /// </remarks>
 public class FontRegistrationTests
 {
     /// <summary>Locates any TrueType font on the host, or null when none is available.</summary>
-    private static string? FindSystemFont()
-    {
-        string[] directories =
-        [
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts"),
-            "/usr/share/fonts",
-            "/Library/Fonts",
-            "/System/Library/Fonts"
-        ];
-
-        foreach (string? directory in directories.Where(Directory.Exists))
-        {
-            string? font = Directory
-                .EnumerateFiles(directory, "*.ttf", SearchOption.AllDirectories)
-                .FirstOrDefault();
-
-            if (font is not null)
-                return font;
-        }
-
-        return null;
-    }
+    private static string FontFile => TestFonts.PathOf("NotoSans-Regular.ttf");
 
     [Fact]
     public void RegisteredFontIsUsedForMeasurement()
     {
-        string? path = FindSystemFont();
-
-        Assert.True(path is not null, "No TrueType font was found; the rendering suite requires system fonts.");
-
-        using SkiaFontProvider fonts = new SkiaFontProvider();
-        using FileStream stream = File.OpenRead(path!);
+using SkiaFontProvider fonts = new SkiaFontProvider();
+        using FileStream stream = File.OpenRead(FontFile);
         fonts.Register(stream);
 
         SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
-        FontMetrics metrics = measurer.GetMetrics(TextStyle.Default);
+        TextStyle style = TextStyle.Default.FontFamilyOf(TestFonts.Sans);
 
-        Assert.True(metrics.Ascent > 0, "A registered font must report a positive ascent.");
-        Assert.True(measurer.MeasureWidth("Hello", TextStyle.Default) > 0);
+        Assert.Equal(TestFonts.Sans, fonts.GetTypeface(style).FamilyName);
+        Assert.True(measurer.GetMetrics(style).Ascent > 0, "A registered font must report a positive ascent.");
+        Assert.True(measurer.MeasureWidth("Hello", style) > 0);
     }
 
     [Fact]
     public void RegisteringFromAStreamDoesNotThrow()
     {
-        string? path = FindSystemFont();
-
-        Assert.True(path is not null, "No TrueType font was found; the rendering suite requires system fonts.");
-
-        using SkiaFontProvider fonts = new SkiaFontProvider();
-        using FileStream stream = File.OpenRead(path!);
+using SkiaFontProvider fonts = new SkiaFontProvider();
+        using FileStream stream = File.OpenRead(FontFile);
 
         fonts.Register(stream);
     }
@@ -85,12 +56,8 @@ public class FontRegistrationTests
     [Fact]
     public void DocumentsCanRenderWithAProvidedFontProvider()
     {
-        string? path = FindSystemFont();
-
-        Assert.True(path is not null, "No TrueType font was found; the rendering suite requires system fonts.");
-
-        using SkiaFontProvider fonts = new SkiaFontProvider();
-        using FileStream stream = File.OpenRead(path!);
+using SkiaFontProvider fonts = new SkiaFontProvider();
+        using FileStream stream = File.OpenRead(FontFile);
         fonts.Register(stream);
 
         Document document = Document.Create(container => container.Page(page =>

@@ -1,0 +1,147 @@
+# Tier 2: the expensive checks, run once a pull request is labelled ready-to-merge (and again on any push after
+# that). A PR merges only when both this and ci.yml are green. Split out because mutation testing, benchmarks and
+# macOS minutes cost too much to spend on every intermediate push.
+
+name: gate
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  # Sharded by source area: one job over the whole engine needs roughly four hours on a hosted runner. Each shard
+  # must clear the 80% floor on its own, which is stricter than a single overall score. Shards are sized from the
+  # mutant counts of the last full run; rebalance them when an area grows.
+  mutation:
+    name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - name: text-and-table
+            mutate: --mutate "**/Elements/TextElement.cs" --mutate "**/Elements/TableElement.cs"
+          - name: elements-a-l
+            mutate: --mutate "**/Elements/[A-L]*.cs"
+          - name: elements-m-z-layout-text
+            mutate: >-
+              --mutate "**/Elements/[M-Z]*.cs" --mutate "!**/Elements/TextElement.cs"
+              --mutate "!**/Elements/TableElement.cs" --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs"
+          - name: primitives
+            mutate: --mutate "**/Primitives/**/*.cs"
+          - name: fluent-documents-drawing
+            mutate: >-
+              --mutate "**/Fluent/**/*.cs" --mutate "**/Documents/**/*.cs" --mutate "**/Drawing/**/*.cs"
+              --mutate "**/Exceptions/**/*.cs"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - run: dotnet tool restore
+
+      # Four test runners: the hosted runner has four cores, and Stryker's default of half the cores leaves two idle.
+      - name: Mutation testing
+        run: dotnet stryker --config-file stryker-config.json --concurrency 4 ${{ matrix.shard.mutate }}
+
+      - name: Publish mutation summary
+        if: always()
+        run: |
+          report=$(find StrykerOutput -name 'mutation-report.md' | head -n 1)
+          if [ -n "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report-${{ matrix.shard.name }}
+          path: StrykerOutput/**/reports
+          retention-days: 14
+
+  benchmarks:
+    name: benchmarks vs QuestPDF
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Reported, not yet gated: regression gating against the main baseline starts with the managed writer
+      # (docs/adr/0009-performance-targets.md).
+      - name: File sizes
+        run: |
+          echo "## File size" >> "$GITHUB_STEP_SUMMARY"
+          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release -- --sizes | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Throughput and allocations
+        run: >
+          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release --
+          --filter "*" --job short --exporters github json --artifacts artifacts/benchmarks
+
+      - name: Publish benchmark summary
+        if: always()
+        run: |
+          for report in artifacts/benchmarks/results/*-report-github.md; do
+            [ -f "$report" ] && cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: artifacts/benchmarks/results
+          retention-days: 30
+
+  macos:
+    name: macos · build, test
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # No portable qpdf build exists for macOS; Homebrew's is the upstream release.
+      - name: Install validators (qpdf)
+        run: brew install qpdf
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build Rustaveli.Pdf.slnx -c Release
+
+      - name: Test
+        run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build

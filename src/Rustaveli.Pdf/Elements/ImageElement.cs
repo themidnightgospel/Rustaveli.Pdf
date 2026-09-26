@@ -41,7 +41,9 @@ public sealed class ImageElement : Element
 
     private Size ResolveSize(Size availableSpace)
     {
-        float ratio = Image!.AspectRatio;
+        // Width divided by height, used to derive layout size from one known dimension. Computed here rather than
+        // as a default interface member, which the netstandard2.0 runtime cannot dispatch.
+        float ratio = (Image!.PixelHeight == 0) ? 1f : ((float)Image.PixelWidth / (float)Image.PixelHeight);
 
         Size fromWidth = new Size(availableSpace.Width, availableSpace.Width / ratio);
         Size fromHeight = new Size(availableSpace.Height * ratio, availableSpace.Height);

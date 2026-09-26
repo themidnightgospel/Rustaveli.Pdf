@@ -1,0 +1,21 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!--
+      Every test runs against both builds the library ships: net10.0 exercises the modern target, net48 exercises
+      the netstandard2.0 build on .NET Framework, which is where polyfilled APIs and older runtime behaviour live.
+      .NET Framework only exists on Windows, so other platforms run the net10.0 leg alone.
+    -->
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0;net48</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <!-- The core's polyfills (Math.Clamp and friends), visible through InternalsVisibleTo. -->
+    <Using Include="Polyfills" />
+  </ItemGroup>
+
+</Project>

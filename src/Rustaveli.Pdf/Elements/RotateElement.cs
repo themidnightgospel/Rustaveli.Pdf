@@ -59,11 +59,13 @@ public sealed class RotateElement : ContainerElement
             return;
 
         // Rotation happens about the origin, so translate the rotated content back into the positive quadrant.
+        // The pivot is the box this element was given (ADR 0012), which is what the child is drawn into; pivoting
+        // about the child's natural size instead would misplace content that fills or aligns within its box.
         Position recentre = QuarterTurns switch
         {
-            1 => new Position(childPlan.Size.Height, 0),
-            2 => new Position(childPlan.Size.Width, childPlan.Size.Height),
-            3 => new Position(0, childPlan.Size.Width),
+            1 => new Position(innerSpace.Height, 0),
+            2 => new Position(innerSpace.Width, innerSpace.Height),
+            3 => new Position(0, innerSpace.Width),
             _ => Position.Zero
         };
 

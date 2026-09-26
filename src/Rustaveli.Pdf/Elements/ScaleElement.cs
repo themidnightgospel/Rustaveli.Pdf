@@ -51,8 +51,25 @@ public sealed class ScaleElement : ContainerElement
         // Undoing a scale by multiplying by its reciprocal loses precision, and the error compounds through
         // nested scales. Save and restore the transform instead, which is exact.
         context.Canvas.Save();
+        context.Canvas.Translate(MirrorOffset(innerSpace, context.Layout));
         context.Canvas.Scale(ScaleX, ScaleY);
         Child.Draw(innerSpace, context);
         context.Canvas.Restore();
+    }
+
+    /// <summary>
+    /// A negative factor reflects the content through the origin, onto the far side of the box Measure reported.
+    /// Shifting by the scaled extent on each mirrored axis brings it back over that box, as a flip does.
+    /// </summary>
+    private Position MirrorOffset(Size innerSpace, LayoutContext context)
+    {
+        if (ScaleX > 0 && ScaleY > 0)
+            return Position.Zero;
+
+        Size childSize = Child!.Measure(innerSpace, context).Size;
+
+        return new Position(
+            ScaleX < 0 ? childSize.Width * -ScaleX : 0f,
+            ScaleY < 0 ? childSize.Height * -ScaleY : 0f);
     }
 }

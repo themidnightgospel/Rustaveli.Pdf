@@ -117,4 +117,53 @@ public class FlowControlTests
 
         Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
     }
+
+    [Fact]
+    public void ShowIfMeasuresItsContentWhenTrue()
+    {
+        ShowIfElement element = new ShowIfElement { Condition = true, Child = new FixedElement(50, 30) };
+
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+
+        Assert.True(plan.IsFullRender);
+        Approximately.Equal(new Size(50, 30), plan.Size);
+    }
+
+    [Fact]
+    public void ShowOnceMeasuresItsContentUntilItHasRendered()
+    {
+        ShowOnceElement element = new ShowOnceElement { Child = new FixedElement(50, 30) };
+        Size space = new Size(200, 200);
+
+        Approximately.Equal(new Size(50, 30), LayoutHarness.Measure(element, space).Size);
+
+        LayoutHarness.Draw(element, space);
+
+        Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
+    }
+
+    [Fact]
+    public void SkipOnceSurvivesAPerPageReset()
+    {
+        // A "continued" marker in a header is reset with the header each page, but must not start skipping again.
+        SkipOnceElement element = new SkipOnceElement { Child = new FixedElement(50, 50) };
+        Size space = new Size(200, 200);
+
+        LayoutHarness.Draw(element, space);
+        element.ResetState(includeDocumentProgress: false);
+
+        Assert.Single(LayoutHarness.Draw(element, space).Operations);
+    }
+
+    [Fact]
+    public void SkipOnceSkipsAgainAfterAFullReset()
+    {
+        SkipOnceElement element = new SkipOnceElement { Child = new FixedElement(50, 50) };
+        Size space = new Size(200, 200);
+
+        LayoutHarness.Draw(element, space);
+        element.ResetState();
+
+        Assert.Empty(LayoutHarness.Draw(element, space).Operations);
+    }
 }

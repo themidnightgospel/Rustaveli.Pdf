@@ -26,7 +26,7 @@ public sealed class SkiaFontProvider : IDisposable
     private readonly ConcurrentDictionary<(string Family, int Weight, bool Italic, float Size), Lazy<SKFont>> _fonts = new();
     private readonly Dictionary<string, List<SKTypeface>> _registered = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<SKTypeface> _owned = [];
-    // Plain object rather than System.Threading.Lock, which is unavailable on net8.0.
+    // Plain object rather than System.Threading.Lock, which is unavailable on netstandard2.0.
     private readonly object _registrationLock = new();
 
     /// <summary>
@@ -71,17 +71,13 @@ public sealed class SkiaFontProvider : IDisposable
 
     public SKFont GetFont(TextStyle style)
     {
-        (string FontFamily, int, bool IsItalic, float EffectiveFontSize) key = (style.FontFamily, (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
+        (string Family, int Weight, bool Italic, float Size) key = (style.FontFamily, (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
 
         // ConcurrentDictionary may run a GetOrAdd factory more than once under contention and discard the
         // losers. For unmanaged Skia handles that would leak, so creation is funnelled through a Lazy that
         // guarantees exactly one instance per key.
         Lazy<SKFont> font = _fonts.GetOrAdd(key, static (k, provider) => new Lazy<SKFont>(
-            () => new SKFont(provider.GetTypeface(k.Family, k.Weight, k.Italic), k.Size)
-            {
-                Subpixel = true,
-                Edging = SKFontEdging.SubpixelAntialias
-            },
+            () => CreateLayoutFont(provider.GetTypeface(k.Family, k.Weight, k.Italic), k.Size),
             LazyThreadSafetyMode.ExecutionAndPublication), this);
 
         return font.Value;
@@ -264,14 +260,10 @@ public sealed class SkiaFontProvider : IDisposable
     /// <summary>Builds a sized font over an already-resolved typeface, cached like any other.</summary>
     private SKFont FontFor(SKTypeface typeface, TextStyle style)
     {
-        (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + " fallback", (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
+        (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + "\0fallback", (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
 
         Lazy<SKFont> font = _fonts.GetOrAdd(key, _ => new Lazy<SKFont>(
-            () => new SKFont(typeface, style.EffectiveFontSize)
-            {
-                Subpixel = true,
-                Edging = SKFontEdging.SubpixelAntialias
-            },
+            () => CreateLayoutFont(typeface, style.EffectiveFontSize),
             LazyThreadSafetyMode.ExecutionAndPublication));
 
         return font.Value;
@@ -288,6 +280,21 @@ public sealed class SkiaFontProvider : IDisposable
     /// Disposing a provider while a document that used it is still being generated corrupts that document. Do
     /// not dispose a provider you have handed to a concurrent render.
     /// </remarks>
+    /// <summary>A font for measuring and drawing text, with metrics that are the same on every platform.</summary>
+    /// <remarks>
+    /// Hinted advances come from the platform's rasteriser — DirectWrite, FreeType or Core Text — and differ for the
+    /// same font file, so the same document spaced its words, and could break its lines, differently on a Linux
+    /// server than on a Windows workstation. Unhinted linear metrics are the font's own design units, scaled, and
+    /// identical everywhere.
+    /// </remarks>
+    private static SKFont CreateLayoutFont(SKTypeface typeface, float size) => new SKFont(typeface, size)
+    {
+        Hinting = SKFontHinting.None,
+        LinearMetrics = true,
+        Subpixel = true,
+        Edging = SKFontEdging.SubpixelAntialias
+    };
+
     public void Dispose()
     {
         foreach (Lazy<SKFont>? font in _fonts.Values.Where(font => font.IsValueCreated))

@@ -115,9 +115,6 @@ public sealed class ScaleToFitElement : ContainerElement
 
     private bool Fits(Size availableSpace, float scale, LayoutContext context)
     {
-        if (scale <= 0)
-            return false;
-
         SpacePlan plan = Child!.Measure(Unscale(availableSpace, scale), context);
 
         // Only a complete render counts: content that wrapped or split has not been made to fit.

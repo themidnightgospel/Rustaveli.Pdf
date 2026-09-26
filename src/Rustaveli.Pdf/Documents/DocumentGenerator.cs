@@ -92,7 +92,9 @@ internal static class DocumentGenerator
                 if (!hasMore)
                     break;
 
-                if (++renderedInRun > MaxPagesPerRun)
+                // Counts pages that still left content over, so reaching the cap means the run needs more than
+                // MaxPagesPerRun pages. Testing with > would let one extra page through.
+                if (++renderedInRun >= MaxPagesPerRun)
                     throw new DocumentLayoutException(
                         $"The document exceeded {MaxPagesPerRun} pages in a single page run, which usually means an element " +
                         "reports content remaining but never consumes any space.");
@@ -131,7 +133,9 @@ internal static class DocumentGenerator
         Bands bands = MeasureBands(descriptor, new Size(contentWidth, availableHeight), layout);
         float contentHeight = availableHeight - bands.HeaderHeight - bands.FooterHeight;
 
-        if (contentHeight < 0)
+        // Tolerate the same sub-epsilon overshoot every element accepts as fitting. A footer that fits by that
+        // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
+        if (contentHeight < -Size.Epsilon)
             throw new DocumentLayoutException(
                 $"The header ({bands.HeaderHeight:F1}) and footer ({bands.FooterHeight:F1}) together exceed the {availableHeight:F1} points available for content.");
 

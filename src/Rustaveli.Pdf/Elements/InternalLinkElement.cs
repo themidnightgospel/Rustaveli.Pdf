@@ -20,6 +20,6 @@ public sealed class InternalLinkElement : ContainerElement
         base.Draw(availableSpace, context);
 
         if (!string.IsNullOrEmpty(DestinationName))
-            context.Canvas.DrawInternalLink(DestinationName, plan.Size);
+            context.Canvas.DrawInternalLink(DestinationName, availableSpace);
     }
 }

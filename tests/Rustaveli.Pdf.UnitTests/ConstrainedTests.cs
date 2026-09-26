@@ -50,4 +50,57 @@ public class ConstrainedTests
         Approximately.Equal(100f, plan.Size.Width);
         Approximately.Equal(25f, plan.Size.Height);
     }
+
+    [Fact]
+    public void WrapsWhenTheMinimumWidthExceedsTheAvailableWidth()
+    {
+        ConstrainedElement element = new ConstrainedElement { MinWidth = 250, Child = new FixedElement(10, 10) };
+
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+
+        Assert.True(plan.IsWrap);
+        Assert.Contains("minimum width", plan.WrapReason);
+    }
+
+    [Fact]
+    public void ReportsEmptyForAnExhaustedChildDespiteAMinimum()
+    {
+        // A minimum describes the content's box; once the content is gone there is no box left to hold open.
+        ConstrainedElement element = new ConstrainedElement { MinWidth = 50, MinHeight = 40, Child = new ScriptedElement(SpacePlan.Empty()) };
+
+        Assert.True(LayoutHarness.Measure(element, new Size(200, 200)).IsEmpty);
+    }
+
+    [Fact]
+    public void KeepsAPartialChildPartial()
+    {
+        ConstrainedElement element = new ConstrainedElement { MaxHeight = 70, Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
+
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+
+        Assert.True(plan.IsPartialRender);
+        Approximately.Equal(new Size(10, 60), plan.Size);
+    }
+
+    [Fact]
+    public void WithoutContentOccupiesItsMinimum()
+    {
+        ConstrainedElement element = new ConstrainedElement { MinWidth = 50, MinHeight = 20 };
+
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+
+        Assert.True(plan.IsFullRender);
+        Approximately.Equal(new Size(50, 20), plan.Size);
+        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 200)).Operations);
+    }
+
+    [Fact]
+    public void DrawsTheChildWithinTheMaximum()
+    {
+        ConstrainedElement element = new ConstrainedElement { MaxWidth = 80, MaxHeight = 30, Child = new PlaceholderElement() };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        Approximately.Equal(new Size(80, 30), Assert.Single(page.Operations.OfType<RectangleOperation>()).Size);
+    }
 }

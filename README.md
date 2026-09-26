@@ -2,8 +2,9 @@
 
 A free, open source, fluent PDF generation library for .NET.
 
-> **Status: Phase 1.** The layout engine, element model, fluent API and a SkiaSharp rendering backend are
-> implemented and tested. See [Roadmap](#roadmap) for what is deliberately not here yet.
+> **Status: pre-release (0.x).** The layout engine, element model, fluent API and a SkiaSharp rendering backend
+> are implemented and tested on `net10.0` and `netstandard2.0` (.NET Framework 4.6.2+). The public vocabulary is
+> about to change and a managed PDF writer is about to replace Skia for PDF output — see [Roadmap](#roadmap).
 
 ## Why this exists
 
@@ -153,21 +154,38 @@ metadata, PDF/A-2b prerequisites via Skia.
 ## Testing
 
 ```bash
-dotnet test
+dotnet run eng/tools.cs       # once, on Windows: fetches the pinned, checksum-verified qpdf (elsewhere: apt/brew install qpdf)
+dotnet test                   # every suite, on net10.0 and (on Windows) net48
+dotnet run eng/coverage.cs    # both suites with coverage, enforcing 95% line / 90% branch
+dotnet stryker                # mutation testing of the engine, failing below 80%
 ```
 
-Two suites, testing different things.
+Every test runs against both builds the library ships: `net10.0`, and the `netstandard2.0` build on .NET Framework
+4.8. Text is measured with the committed Noto Sans (`tests/assets/fonts`), so results are the same on every OS; the
+font-fallback tests additionally need CJK and Georgian fonts installed, which Windows and macOS have and Debian or
+Ubuntu get from `fonts-noto-core` and `fonts-noto-cjk`. The quality gates each pull request must pass are recorded in
+[ADR 0007](docs/adr/0007-quality-gates.md).
 
-**Unit tests** (237) run the layout engine against a deterministic fake text measurer — every character is half
-the font size wide, every line exactly the font size tall — and a recording canvas that resolves each drawing
+**Unit tests** run the layout engine against a deterministic fake text measurer — every character is half the
+font size wide, every line exactly the font size tall — and a recording canvas that resolves each drawing
 operation into absolute page coordinates. This makes expected values calculable by hand and independent of what
-fonts happen to be installed.
+fonts happen to be installed. Alongside them, **property-based tests** compose hundreds of random documents and
+check invariants no example-based test can cover exhaustively: every character of text is drawn exactly once
+across pages, rendering is deterministic, nothing escapes the page, and measuring changes nothing.
 
-**Integration tests** (51) generate real PDFs and read them back with [PdfPig](https://github.com/UglyToad/PdfPig)
-as an independent reader. Among them is an equivalence suite that renders identical recipes through this library
-and through QuestPDF, then compares what a reader recovers from each file: page count, per-page word
-distribution, word sequence and word positions. Others cover font handling, concurrency, and scaling — the
-scaling report prints cost per row so a regression to super-linear behaviour shows up before it reaches users.
+**Integration tests** generate real PDFs and read them back with [PdfPig](https://github.com/UglyToad/PdfPig) as
+an independent reader. Among them is an equivalence suite that renders identical recipes through this library and
+through QuestPDF, then compares what a reader recovers from each file: page count, per-page word distribution,
+word sequence and word positions. Others cover font handling, concurrency, and scaling.
+
+**Conformance tests** check a corpus of specimen documents with [qpdf](https://qpdf.readthedocs.io)'s strict
+structural validator, and render every page with PDFium — a renderer that shares no code with this library — to
+compare against approved snapshots in `tests/Rustaveli.Pdf.ConformanceTests/Snapshots`. A deliberate visual
+change is approved with `dotnet run eng/approve-snapshots.cs` after inspecting the received and diff images.
+
+**Benchmarks** (`benchmarks/Rustaveli.Pdf.Benchmarks`) measure throughput, allocations, parallel scaling and file
+size against QuestPDF on a fixed set of documents, against the targets in
+[ADR 0009](docs/adr/0009-performance-targets.md).
 
 Current agreement across text flow, header/footer pagination and multi-page tables: **identical page counts,
 identical word sequences, vertical positions within 0.04pt and horizontal within 3.3pt.**
@@ -192,9 +210,9 @@ the reader recovers byte-identical content from both files:
 | Table | 574,133 B | 32,182 B |
 
 QuestPDF avoids this by shipping its own native Skia build with the HarfBuzz subsetter wired in; the published
-SkiaSharp package exposes no equivalent. Closing the gap means either subsetting embedded font streams as a
-post-processing pass (HarfBuzzSharp is MIT and exposes `hb_subset`) or building Skia ourselves. The
-`DivergenceReportTests` print these sizes on every run so the number stays visible.
+SkiaSharp package exposes no equivalent. This library closes the gap by writing PDF itself, with font subsetting
+in managed code ([ADR 0001](docs/adr/0001-managed-pdf-writer.md)). The `DivergenceReportTests` print these sizes
+on every run so the number stays visible.
 
 **Rendering is serialised.** Skia's PDF backend keeps process-wide font state that concurrent renders corrupt:
 the resulting file is structurally valid and roughly the right size, but its embedded font encoding no longer
@@ -221,18 +239,22 @@ correctly. CJK will render but without proper line-breaking rules.
 
 ## Roadmap
 
-Not yet implemented, roughly in order of expected value:
+The goal is every capability of QuestPDF — including its tooling — in a vocabulary of our own, and faster. The
+[parity checklist](docs/parity/PARITY.md) tracks each capability against the phase that delivers it, and the
+[architecture decision records](docs/adr/README.md) explain the choices behind the plan.
 
-- **Font subsetting**, to close the file-size gap above. The single highest-value item.
-- SVG, image size optimisation, and inline content injected into a paragraph.
-- Multi-column (newspaper) layout, `Inlined`, and a user-facing canvas drawing API.
-- Font fallback chains and complex-script shaping via HarfBuzz; bidi reordering.
-- Row alignment resolved against natural row height rather than offered height.
-- Encryption, digital signatures, AcroForms, document merge/split, outline/bookmarks.
-- Tagged PDF for accessibility. Skia exposes a structure-element tree and derives bookmarks from it, but the
-  published SkiaSharp binding does not surface either, so this needs a route around the managed API. It must
-  also be designed into the element tree rather than bolted on, because tags are emitted while drawing.
-- A hot-reload preview tool.
+| Phase | Delivers |
+|---|---|
+| 0 | Groundwork: quality gates, pipelines, conformance and property tests, benchmarks |
+| 1 | The print and typesetting vocabulary ([ADR 0002](docs/adr/0002-print-vocabulary.md)); `Ink` colour |
+| 2 | A managed PDF writer with font subsetting and parallel rendering |
+| 3 | The text engine: line breaking, justification, fallback, OpenType features, complex scripts |
+| 4 | Layout and styling parity, and named style sheets |
+| 5 | Images and SVG |
+| 6 | Output formats and conformance: page images, CMYK and spot colour, PDF/A, PDF/UA |
+| 7 | Document operations: merge, overlay, attachments, encryption |
+| 8 | A live preview tool with hot reload |
+| 9 | Documentation, and 1.0 |
 
 ## Licence
 

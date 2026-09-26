@@ -69,4 +69,47 @@ public class PaddingTests
 
         Assert.True(LayoutHarness.Measure(element, space).IsEmpty);
     }
+
+    [Fact]
+    public void KeepsAPartialChildPartial()
+    {
+        // 90pt less 20pt of padding leaves room for two of the four 30pt units.
+        PaddingElement element = new PaddingElement { Padding = Edges.All(10), Child = new SplittableElement(unitCount: 4, unitHeight: 30) };
+
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 90));
+
+        Assert.True(plan.IsPartialRender);
+        Approximately.Equal(new Size(30, 80), plan.Size);
+    }
+
+    [Fact]
+    public void WithoutContentOccupiesJustThePadding()
+    {
+        PaddingElement element = new PaddingElement { Padding = new Edges(10, 5, 20, 15) };
+
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+
+        Assert.True(plan.IsFullRender);
+        Approximately.Equal(new Size(30, 20), plan.Size);
+        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 200)).Operations);
+    }
+
+    [Fact]
+    public void DrawsTheChildIntoTheInsetSpace()
+    {
+        PaddingElement element = new PaddingElement { Padding = new Edges(10, 5, 20, 15), Child = new PlaceholderElement() };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 100));
+        RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        Assert.Equal(new Bounds(10, 5, 180, 85), block.Bounds);
+    }
+
+    [Fact]
+    public void DrawsNothingWhenPaddingAloneExceedsTheSpace()
+    {
+        PaddingElement element = new PaddingElement { Padding = Edges.All(60), Child = new PlaceholderElement() };
+
+        Assert.Empty(LayoutHarness.Draw(element, new Size(100, 100)).Operations);
+    }
 }

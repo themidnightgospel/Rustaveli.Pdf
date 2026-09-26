@@ -17,7 +17,7 @@ public sealed class RecordingCanvas : IDocumentCanvas, ICanvas, IDisposable
 
     private RecordedPage Current => _current ?? throw new InvalidOperationException("No page is open.");
 
-    public bool IsAtIdentity => MathF.Abs(_transform.M11 - 1f) < 0.001f && MathF.Abs(_transform.M22 - 1f) < 0.001f && MathF.Abs(_transform.M12) < 0.001f && MathF.Abs(_transform.M21) < 0.001f && MathF.Abs(_transform.M31) < 0.001f && MathF.Abs(_transform.M32) < 0.001f;
+    public bool IsAtIdentity => Math.Abs(_transform.M11 - 1f) < 0.001f && Math.Abs(_transform.M22 - 1f) < 0.001f && Math.Abs(_transform.M12) < 0.001f && Math.Abs(_transform.M21) < 0.001f && Math.Abs(_transform.M31) < 0.001f && Math.Abs(_transform.M32) < 0.001f;
 
     public int PendingSaves => _saved.Count;
 
@@ -118,7 +118,7 @@ public sealed class RecordingCanvas : IDocumentCanvas, ICanvas, IDisposable
     {
         Position position2 = Resolve(position);
         Position position3 = Resolve(position + new Position(size.Width, size.Height));
-        return new Bounds(MathF.Min(position2.X, position3.X), MathF.Min(position2.Y, position3.Y), MathF.Max(position2.X, position3.X), MathF.Max(position2.Y, position3.Y));
+        return new Bounds(Math.Min(position2.X, position3.X), Math.Min(position2.Y, position3.Y), Math.Max(position2.X, position3.X), Math.Max(position2.Y, position3.Y));
     }
 
     public void Dispose()

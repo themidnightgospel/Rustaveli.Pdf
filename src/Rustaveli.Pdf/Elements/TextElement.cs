@@ -276,13 +276,9 @@ public sealed class TextElement : Element
         TextStyle blockStyle = DefaultStyleOverride?.Invoke(context.DefaultTextStyle) ?? context.DefaultTextStyle;
         float indent = EffectiveIndent(context);
 
-        // Lines are rebuilt from scratch on every call, but the count of lines already committed to earlier
-        // pages is an index into a *particular* wrapping. Re-wrapping at a different width would silently make
-        // that index point at different content — dropping or repeating whole lines. Once anything has been
-        // drawn, the width that produced it is authoritative.
-        float width = _completedLines > 0 && !float.IsNaN(_pinnedWidth)
-            ? _pinnedWidth
-            : Math.Max(0, maxWidth);
+        // Only reached before anything is drawn: from then on the pinned wrapping above is returned whole, which
+        // also fixes the width it was built at.
+        float width = Math.Max(0, maxWidth);
 
         // The opening line of the block starts a paragraph; thereafter only a line following an explicit break
         // does. Carrying the flag on the line itself means the mid-word breaker keeps it right for free.

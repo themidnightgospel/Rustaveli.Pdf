@@ -80,21 +80,10 @@ public readonly record struct SpacePlan
         return FullRender(new Size(width, height));
     }
 
-    public override string ToString()
+    public override string ToString() => Type switch
     {
-        SpacePlanType type = Type;
-        if (1 == 0)
-        {
-        }
-        string result = type switch
-        {
-            SpacePlanType.Wrap => "Wrap (" + WrapReason + ")", 
-            SpacePlanType.Empty => "Empty", 
-            _ => $"{Type} {Size}", 
-        };
-        if (1 == 0)
-        {
-        }
-        return result;
-    }
+        SpacePlanType.Wrap => $"Wrap ({WrapReason})",
+        SpacePlanType.Empty => "Empty",
+        _ => $"{Type} {Size}"
+    };
 }

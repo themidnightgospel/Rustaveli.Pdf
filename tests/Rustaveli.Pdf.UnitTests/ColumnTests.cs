@@ -104,4 +104,71 @@ public class ColumnTests
 
         Assert.Equal(2, splittable.Remaining);
     }
+
+    [Fact]
+    public void ReportsTheFirstItemsOwnReasonWhenItCannotFit()
+    {
+        FixedElement item = new FixedElement(10, 500);
+        ColumnElement column = Column(0, item);
+        Size space = new Size(200, 100);
+
+        Assert.Equal(LayoutHarness.Measure(item, space).WrapReason, LayoutHarness.Measure(column, space).WrapReason);
+    }
+
+    [Fact]
+    public void ReportsEmptyWhenEveryRemainingItemIsExhausted()
+    {
+        ColumnElement column = Column(10, new ScriptedElement(SpacePlan.Empty()), new ScriptedElement(SpacePlan.Empty()));
+
+        Assert.True(LayoutHarness.Measure(column, new Size(200, 200)).IsEmpty);
+    }
+
+    [Fact]
+    public void WrapsWhenOfferedNegativeHeight()
+    {
+        // A placeholder would happily claim a negative box; the column must refuse to hand one out.
+        ColumnElement column = Column(0, new PlaceholderElement());
+
+        Assert.True(LayoutHarness.Measure(column, new Size(200, -5)).IsWrap);
+    }
+
+    [Fact]
+    public void StopsBeforeAnItemThatTheSpacingWouldPushPastTheBottom()
+    {
+        ColumnElement column = Column(10, new FixedElement(10, 95), new PlaceholderElement());
+
+        SpacePlan plan = LayoutHarness.Measure(column, new Size(200, 100));
+
+        Assert.True(plan.IsPartialRender);
+        Approximately.Equal(new Size(10, 95), plan.Size);
+    }
+
+    [Fact]
+    public void DrawingAnExhaustedColumnDoesNotRewindIt()
+    {
+        ColumnElement column = Column(0, new FixedElement(10, 20));
+        Size space = new Size(200, 200);
+
+        LayoutHarness.Draw(column, space);
+        RecordedPage again = LayoutHarness.Draw(column, space);
+
+        Assert.Empty(again.Operations);
+        Assert.True(LayoutHarness.Measure(column, space).IsEmpty);
+    }
+
+    [Fact]
+    public void AnAttemptWhereTheNextItemCannotFitKeepsTheColumnsPlace()
+    {
+        ColumnElement column = Column(0, new FixedElement(10, 10, Colors.Red), new FixedElement(10, 50, Colors.Blue));
+
+        LayoutHarness.Draw(column, new Size(200, 20));
+        RecordedPage cramped = LayoutHarness.Draw(column, new Size(200, 5));
+        RecordedPage roomy = LayoutHarness.Draw(column, new Size(200, 100));
+
+        Assert.Empty(cramped.Operations);
+
+        RectangleOperation resumed = Assert.Single(roomy.Operations.OfType<RectangleOperation>());
+        Assert.Equal(Colors.Blue, resumed.Color);
+        Approximately.Equal(0f, resumed.Position.Y);
+    }
 }

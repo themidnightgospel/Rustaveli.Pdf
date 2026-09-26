@@ -22,7 +22,7 @@ public static class Recipes
             {
                 page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
                 page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf("Arial").FontSizeOf(11f);
+                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
                 page.Content().Column(delegate(Rustaveli.Pdf.Fluent.ColumnDescriptor column)
                 {
                     column.Spacing(8f);
@@ -43,7 +43,7 @@ public static class Recipes
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
-                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily("Arial").FontSize(11f));
+                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
                 page.Content().Column(delegate(QuestPDF.Fluent.ColumnDescriptor column)
                 {
                     column.Spacing(8f);
@@ -64,7 +64,7 @@ public static class Recipes
             {
                 page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
                 page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf("Arial").FontSizeOf(11f);
+                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
                 page.Header().Text("Quarterly Statement");
                 page.Footer().Text(delegate(Rustaveli.Pdf.Fluent.TextDescriptor text)
                 {
@@ -93,7 +93,7 @@ public static class Recipes
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
-                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily("Arial").FontSize(11f));
+                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
                 page.Header().Text("Quarterly Statement");
                 page.Footer().Text(delegate(QuestPDF.Fluent.TextDescriptor text)
                 {
@@ -122,7 +122,7 @@ public static class Recipes
             {
                 page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
                 page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf("Arial").FontSizeOf(11f);
+                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
                 page.Content().Table(delegate(Rustaveli.Pdf.Fluent.TableDescriptor table)
                 {
                     table.ColumnsDefinition(delegate(Rustaveli.Pdf.Fluent.TableColumnsDefinitionDescriptor columns)
@@ -156,7 +156,7 @@ public static class Recipes
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
-                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily("Arial").FontSize(11f));
+                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
                 page.Content().Table(delegate(QuestPDF.Fluent.TableDescriptor table)
                 {
                     table.ColumnsDefinition(delegate(QuestPDF.Fluent.TableColumnsDefinitionDescriptor columns)

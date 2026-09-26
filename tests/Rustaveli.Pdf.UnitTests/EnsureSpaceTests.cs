@@ -37,6 +37,17 @@ public class EnsureSpaceTests
     }
 
     [Fact]
+    public void AGuardWithoutContentNeverCountsAsStarted()
+    {
+        // Drawing nothing must not disarm the guarantee for the pages that follow.
+        EnsureSpaceElement element = new EnsureSpaceElement { MinHeight = 50 };
+
+        LayoutHarness.Draw(element, new Size(200, 100));
+
+        Assert.True(LayoutHarness.Measure(element, new Size(200, 30)).IsWrap);
+    }
+
+    [Fact]
     public void MovesAHeadingToTheNextPageRatherThanStrandingIt()
     {
         Document document = Document.Create(container => container.Page(page =>

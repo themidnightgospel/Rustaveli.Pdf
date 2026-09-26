@@ -1,0 +1,53 @@
+<Project>
+
+  <!--
+    Every package version in the repository is set here and nowhere else. Projects reference packages without a
+    Version; a project that genuinely needs a different one uses VersionOverride, which makes the exception visible.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Shipped: runtime dependencies of the published packages. -->
+  <ItemGroup>
+    <!--
+      Pinned deliberately. SkiaSharp 3.116.x raises the glibc floor to 2.29 and will not load on RHEL 8 or
+      Debian 10 (mono/SkiaSharp#3201), and 3.119.0/3.119.1 dropped libfontconfig from the linux-arm64 binary
+      (#3369). The 4.x line is clear of both. The two packages must move together.
+    -->
+    <PackageVersion Include="SkiaSharp" Version="4.151.0" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.151.0" />
+  </ItemGroup>
+
+  <!-- Build-time only: never reach a consumer. -->
+  <ItemGroup>
+    <PackageVersion Include="Polyfill" Version="11.4.0" />
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+  </ItemGroup>
+
+  <!-- Tests. -->
+  <ItemGroup>
+    <!-- PDFium, as an independent renderer for visual snapshots: pages are never judged by our own reader. -->
+    <PackageVersion Include="bblanchon.PDFium" Version="156.0.8066" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="CsCheck" Version="4.9.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="PdfPig" Version="0.1.15" />
+
+    <!--
+      The behavioural oracle for the equivalence suite. Pinned to 2026.5.0, the last release distributed under an
+      MIT grant: releases from 2026.6.0 onwards carry a licence that forbids using the software to develop a
+      competing PDF library, which would cover this test suite. Never upgrade this reference.
+    -->
+    <PackageVersion Include="QuestPDF" Version="2026.5.0" />
+
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <!-- Benchmarks. -->
+  <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+</Project>

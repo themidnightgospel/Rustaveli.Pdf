@@ -1,0 +1,15 @@
+{
+  "stryker-config": {
+    "project": "Rustaveli.Pdf.csproj",
+    "test-projects": [ "tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj" ],
+    "target-framework": "net10.0",
+    "mutation-level": "Standard",
+    "coverage-analysis": "perTest",
+    "reporters": [ "html", "json", "markdown", "progress" ],
+    "thresholds": {
+      "high": 90,
+      "low": 80,
+      "break": 80
+    }
+  }
+}

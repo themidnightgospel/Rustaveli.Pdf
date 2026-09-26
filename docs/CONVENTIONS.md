@@ -128,3 +128,19 @@ Existing comments in this codebase are load-bearing: they record the reasoning b
 usually one that a previous bug proved necessary. Keep that shape. A comment restating the code is noise; a
 comment explaining why a wrapping is pinned, or why a lock exists, is the reason the next person does not
 reintroduce the bug.
+
+---
+
+## LF line endings everywhere
+
+Every text file is stored and checked out with LF, on every operating system. Windows `.cmd`/`.bat` scripts are
+the only exception, because `cmd.exe` requires CRLF.
+
+**Why.** CI builds on Linux, Windows and macOS, and tests compare generated text and images against approved
+files. With `core.autocrlf` left to each machine, the same commit produces different bytes on different
+checkouts, and a file written by a tool arrives with whichever ending that tool prefers — this repository had
+both mixed in before the rule existed. One canonical form removes the whole class of "passes here, fails there"
+differences. Every editor and IDE in use on Windows handles LF without complaint.
+
+**Enforced.** `.gitattributes` (`* text=auto eol=lf`) normalises on commit and checkout regardless of local git
+settings; `.editorconfig` (`end_of_line = lf`) makes editors write LF in the first place.
