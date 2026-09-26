@@ -13,4 +13,10 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Shared fixtures — fonts, images, documents — at assets/... beside every test assembly. -->
+    <None Include="$(MSBuildThisFileDirectory)assets\**\*" Link="assets\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
 </Project>
