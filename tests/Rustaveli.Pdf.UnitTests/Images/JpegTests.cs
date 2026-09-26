@@ -378,6 +378,7 @@ public class JpegTests
             () => Parse(TestJpeg.Build(TestJpeg.Frame(10, 20, components))));
 
         Assert.Contains($"{components} colour components", error.Message);
+        Assert.EndsWith("only 1 (gray), 3 (colour) and 4 (CMYK) can be embedded.", error.Message);
     }
 
     [Fact]

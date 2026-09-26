@@ -19,7 +19,14 @@ internal sealed class OverstatedStream(byte[] data, long extraLength) : Stream
         set => _inner.Position = value;
     }
 
-    public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, Math.Min(count, 7));
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        // Held to the stream contract, so that a caller asking for more than its buffer holds is caught.
+        if (count > buffer.Length - offset)
+            throw new ArgumentException("The count runs past the end of the buffer.", nameof(count));
+
+        return _inner.Read(buffer, offset, Math.Min(count, 7));
+    }
 
     public override void Flush()
     {

@@ -330,7 +330,7 @@ public class PngDecodeTests
         string message = Fails(png);
 
         Assert.Contains("cannot hold", message);
-        Assert.Contains("268451840 bytes", message);
+        Assert.EndsWith("cannot hold the 268451840 bytes its header requires.", message);
     }
 
     [Theory]
