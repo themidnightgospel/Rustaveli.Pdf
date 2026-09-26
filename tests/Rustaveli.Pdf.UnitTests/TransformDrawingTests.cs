@@ -87,6 +87,26 @@ public class TransformDrawingTests
     }
 
     [Theory]
+    [InlineData(-1f, 1f)]
+    [InlineData(1f, -1f)]
+    [InlineData(-2f, -0.5f)]
+    public void ANegativeScaleMirrorsTheContentWithinTheBoxItReports(float scaleX, float scaleY)
+    {
+        // Regression: a negative factor reflected the content through the origin, so it was painted entirely
+        // outside the box Measure reported — over the previous sibling, or off the page altogether.
+        ScaleElement element = new ScaleElement { ScaleX = scaleX, ScaleY = scaleY, Child = new FixedElement(50, 20) };
+        Size reported = LayoutHarness.Measure(element, new Size(200, 200)).Size;
+
+        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, reported));
+
+        Assert.Equal(new Size(50 * Math.Abs(scaleX), 20 * Math.Abs(scaleY)), reported);
+        Assert.Equal(0f, bounds.Left, 2);
+        Assert.Equal(0f, bounds.Top, 2);
+        Assert.Equal(reported.Width, bounds.Right, 2);
+        Assert.Equal(reported.Height, bounds.Bottom, 2);
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(3)]
     public void AQuarterTurnSwapsTheContentsExtent(int quarterTurns)
