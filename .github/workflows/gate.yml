@@ -1,0 +1,77 @@
+# Tier 2: the expensive checks, run once a pull request is labelled ready-to-merge (and again on any push after
+# that). A PR merges only when both this and ci.yml are green. Split out because mutation testing and macOS minutes
+# cost too much to spend on every intermediate push.
+
+name: gate
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  mutation:
+    name: mutation testing (Stryker, break < 80%)
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - run: dotnet tool restore
+
+      - name: Mutation testing
+        run: dotnet stryker --config-file stryker-config.json
+
+      - name: Publish mutation summary
+        if: always()
+        run: |
+          report=$(find StrykerOutput -name 'mutation-report.md' | head -n 1)
+          if [ -n "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report
+          path: StrykerOutput/**/reports
+          retention-days: 14
+
+  macos:
+    name: macos · build, test
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build Rustaveli.Pdf.slnx -c Release
+
+      - name: Test
+        run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build
