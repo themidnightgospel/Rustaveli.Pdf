@@ -42,6 +42,9 @@ jobs:
 
       - run: dotnet tool restore
 
+      - name: Fetch validators (qpdf)
+        run: dotnet run eng/tools.cs
+
       - name: Mutation testing
         run: dotnet stryker --config-file stryker-config.json
 
@@ -113,6 +116,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+
+      # No portable qpdf build exists for macOS; Homebrew's is the upstream release.
+      - name: Install validators (qpdf)
+        run: brew install qpdf
 
       - name: Build (Release, warnings are errors)
         run: dotnet build Rustaveli.Pdf.slnx -c Release

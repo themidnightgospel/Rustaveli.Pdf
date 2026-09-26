@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      net10.0 only, overriding tests/Directory.Build.props: these tests validate the bytes of generated files with
+      external tools, and those bytes do not depend on which runtime produced them.
+    -->
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="bblanchon.PDFium" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
+    <ProjectReference Include="..\..\src\Rustaveli.Pdf.Skia\Rustaveli.Pdf.Skia.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\assets\fonts\*.ttf" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -43,6 +43,9 @@ jobs:
 
       - run: dotnet tool restore
 
+      - name: Fetch validators (qpdf)
+        run: dotnet run eng/tools.cs
+
       - name: Build (Release, warnings are errors)
         run: dotnet build Rustaveli.Pdf.slnx -c Release
 
@@ -63,6 +66,14 @@ jobs:
           path: artifacts/coverage/report
           retention-days: 14
 
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: received-snapshots-linux
+          path: artifacts/snapshots
+          if-no-files-found: ignore
+          retention-days: 14
+
   windows:
     name: windows · net10.0 + net48
     runs-on: windows-latest
@@ -80,8 +91,19 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      - name: Fetch validators (qpdf)
+        run: dotnet run eng/tools.cs
+
       - name: Build (Release, warnings are errors)
         run: dotnet build Rustaveli.Pdf.slnx -c Release
 
       - name: Test on both runtimes
         run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: received-snapshots-windows
+          path: artifacts/snapshots
+          if-no-files-found: ignore
+          retention-days: 14
