@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Primitives;
-
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>

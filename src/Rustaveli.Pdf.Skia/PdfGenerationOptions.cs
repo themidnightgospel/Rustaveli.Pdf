@@ -1,6 +1,3 @@
-using Rustaveli.Pdf.Documents;
-using SkiaSharp;
-
 namespace Rustaveli.Pdf.Skia;
 
 /// <summary>

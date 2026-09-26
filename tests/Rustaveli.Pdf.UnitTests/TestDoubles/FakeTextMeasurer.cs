@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Text;
-
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
 /// <summary>

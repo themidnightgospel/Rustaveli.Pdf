@@ -4,8 +4,30 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!--
+      Release is the gate: a warning there fails the build, so nothing ships with one outstanding. Debug leaves
+      them as warnings so a half-finished edit still compiles and its tests can be run. Note this does not
+      loosen the rules configured as errors in .editorconfig — explicit types and one-type-per-file fail in
+      every configuration, because those are structural rather than advisory.
+    -->
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!--
+      IDE0005 (unnecessary using directive) is silent on a command-line build unless the documentation file is
+      generated — the compiler skips the analysis the rule reads from, so without this the warning appears only
+      in an IDE. The two packable projects set it themselves because they genuinely ship their .xml; setting it
+      here as well extends the rule to the tests and the sample, which are the projects where stale imports
+      actually accumulate. CS1591 is off everywhere: the point is unused imports, not a doc comment per member.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!--
+      SA0001 fires from the compiler itself rather than against a file, so the severity set for [*.cs] in
+      .editorconfig never reaches it. It only reports that XML comment analysis is off, which is deliberate:
+      the two StyleCop rules this repository uses are structural and need no doc comments.
+    -->
+    <NoWarn>$(NoWarn);SA0001;CS1591</NoWarn>
   </PropertyGroup>
 
   <!--

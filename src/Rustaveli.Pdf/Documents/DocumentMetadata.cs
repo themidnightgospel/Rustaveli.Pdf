@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Exceptions;
-
 namespace Rustaveli.Pdf.Documents;
 
 /// <summary>

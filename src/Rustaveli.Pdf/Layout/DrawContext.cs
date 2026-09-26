@@ -1,5 +1,4 @@
 using Rustaveli.Pdf.Drawing;
-using Rustaveli.Pdf.Primitives;
 using Rustaveli.Pdf.Text;
 
 namespace Rustaveli.Pdf.Layout;

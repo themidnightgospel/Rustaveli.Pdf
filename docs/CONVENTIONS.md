@@ -54,6 +54,74 @@ borrowing its two structural checks, because plain `.editorconfig` cannot expres
 
 ---
 
+## Warnings are errors in Release
+
+`TreatWarningsAsErrors` is on for `Release` only. A Debug build reports warnings and keeps going; a Release
+build fails.
+
+**Why.** Release is what ships and what CI gates on, so nothing should leave the repository with a warning
+outstanding. Applying the same rule to Debug makes the loop worse rather than better: an unused variable in a
+half-written method stops the build, which stops the test suite, which is exactly when the tests are most
+worth running.
+
+This does **not** relax the rules configured as `error` in `.editorconfig` — explicit types (`IDE0008`) and
+one-type-per-file (`SA1402`, `SA1649`) fail in every configuration. Those are structural decisions about how
+the code is written, not advisory diagnostics, so a Debug build gets no discount on them.
+
+**Enforced.** `Directory.Build.props`, conditioned on `'$(Configuration)' == 'Release'`.
+
+---
+
+## No unused `using` directives
+
+An import that nothing in the file needs is removed.
+
+**Why.** The import block is the cheapest available summary of what a file depends on. Once it lists namespaces
+the file stopped using three edits ago, it stops being that summary and starts actively misleading — a reader
+checking whether the layout engine has crept into a dependency on the rendering backend cannot trust it. Stale
+imports also mask a real one: a `using` left over from deleted code looks identical to a `using` that is load-
+bearing.
+
+**Warning, not error.** Unlike explicit types and one-type-per-file, this is tidiness rather than structure. A
+half-finished edit routinely leaves an import briefly orphaned, and stopping the build for it would stop the
+test run too. Debug reports it; the Release gate turns it into a failure, so nothing ships with one.
+
+**Enforced.** `dotnet_diagnostic.IDE0005.severity = warning`.
+
+There is a trap worth knowing: IDE0005 is reported by a command-line build **only** when the project generates
+a documentation file. Without `GenerateDocumentationFile`, the compiler skips the analysis the rule reads from
+and the warning appears in the IDE alone — green in CI, red on a developer's screen. `Directory.Build.props`
+therefore switches doc generation on for every project, and suppresses `CS1591` alongside it: the objective is
+unused imports, not a doc comment on every member.
+
+To clear them in bulk:
+
+```
+dotnet format style --diagnostics IDE0005 --severity warn
+```
+
+Set the two `src` projects to a single `TargetFrameworks` value while doing so. `dotnet format` computes its fix
+once per target framework and, on a multi-targeted project, writes both into the file as unresolved merge
+conflict markers — it has corrupted source in this repository before.
+
+---
+
+## Every change is verified by a build and a test run
+
+A change is not finished when it is written. Build the solution and run the full suite, and check Release when
+the question is warnings:
+
+```
+dotnet build -c Release
+dotnet test
+```
+
+**Why.** This repository lost 23 types to a scripted bulk edit whose damage was invisible until the next build
+was attempted. Verifying continuously bounds how far a bad change travels. It also keeps the test suite honest
+as a description of current behaviour rather than of behaviour from several edits ago.
+
+---
+
 ## Comments explain why, not what
 
 Existing comments in this codebase are load-bearing: they record the reasoning behind a non-obvious choice,

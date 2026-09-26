@@ -1,5 +1,4 @@
 using Rustaveli.Pdf.Elements;
-using Rustaveli.Pdf.Exceptions;
 using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf.Fluent;

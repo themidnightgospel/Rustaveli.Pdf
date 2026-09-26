@@ -1,6 +1,5 @@
 using Rustaveli.Pdf.Elements;
 using Rustaveli.Pdf.Layout;
-using Rustaveli.Pdf.Text;
 
 namespace Rustaveli.Pdf.Fluent;
 

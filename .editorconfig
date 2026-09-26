@@ -44,6 +44,13 @@ dotnet_analyzer_diagnostic.category-StyleCop.CSharp.LayoutRules.severity = none
 dotnet_analyzer_diagnostic.category-StyleCop.CSharp.DocumentationRules.severity = none
 
 ##
+## Unused using directives. Warning rather than error: an import left behind by an edit in progress is a
+## tidiness problem, not a structural one, so Debug reports it and the Release gate turns it into a failure.
+## Reporting this on a command-line build depends on GenerateDocumentationFile — see Directory.Build.props.
+##
+dotnet_diagnostic.IDE0005.severity = warning
+
+##
 ## Language style the codebase already follows, pinned so it stays that way.
 ##
 csharp_style_namespace_declarations = file_scoped:error

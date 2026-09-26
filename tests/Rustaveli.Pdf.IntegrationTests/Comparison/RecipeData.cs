@@ -1,14 +1,3 @@
-using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
-using QDocument = QuestPDF.Fluent.Document;
-using QUnit = QuestPDF.Infrastructure.Unit;
-using RDocument = Rustaveli.Pdf.Documents.Document;
-using RSize = Rustaveli.Pdf.Primitives.Size;
-using RTextStyle = Rustaveli.Pdf.Text.TextStyle;
-
 namespace Rustaveli.Pdf.IntegrationTests.Comparison;
 
 /// <summary>

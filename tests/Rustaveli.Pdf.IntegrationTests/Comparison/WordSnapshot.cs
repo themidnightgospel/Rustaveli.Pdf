@@ -1,5 +1,3 @@
-using UglyToad.PdfPig;
-
 namespace Rustaveli.Pdf.IntegrationTests.Comparison;
 
 /// <summary>
