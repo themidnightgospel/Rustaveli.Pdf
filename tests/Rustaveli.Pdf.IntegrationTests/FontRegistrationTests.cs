@@ -168,16 +168,30 @@ public class FontRegistrationTests
     }
 
     [Fact]
-    public void ALibraryWithNoTypefacesAtAllRefusesTheDocument()
+    public void ALibraryWithNoTypefacesAtAllSetsTextInTheBundledFaces()
     {
+        // A machine with no fonts — a minimal container — still sets text, in the faces the package carries.
         TypefaceLibrary library = new TypefaceLibrary(includeInstalled: false);
-        Document document = Build("Nothing can set this", TypeStyle.Default);
+        Document document = Build("Still set: Grüße, Ελληνικά, Кириллица", TypeStyle.Default.Bold());
 
-        Exception error = Assert.ThrowsAny<Exception>(() => document.ExportPdf(new PdfExportOptions { Typefaces = library }));
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf(new PdfExportOptions { Typefaces = library }));
 
-        CompositionException cause = Assert.IsType<CompositionException>(error as CompositionException ?? error.InnerException);
-        Assert.Contains("Helvetica", cause.Message);
-        Assert.Contains("TypefaceLibrary.Register", cause.Message);
+        Assert.Equal("Still set: Grüße, Ελληνικά, Кириллица", parsed.GetPage(1).Text);
+        Assert.All(parsed.GetPage(1).Letters, letter => Assert.EndsWith("NotoSans-Bold", letter.FontName));
+    }
+
+    [Fact]
+    public void ACharacterOnlyTheBundledFacesHaveIsSetInThem()
+    {
+        // The registered face is the Georgian one alone, so Latin letters fall back to the bundled faces.
+        TypefaceLibrary library = new TypefaceLibrary(includeInstalled: false);
+        library.RegisterFile(TestFonts.PathOf("NotoSansGeorgian-Regular.ttf"));
+        Document document = Build("გამარჯობა Hello", TypeStyle.Default.WithTypeface("Noto Sans Georgian"));
+
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf(new PdfExportOptions { Typefaces = library }));
+
+        Assert.Equal("გამარჯობა Hello", parsed.GetPage(1).Text);
+        Assert.EndsWith("NotoSans-Regular", parsed.GetPage(1).Letters.Last().FontName);
     }
 
     [Fact]

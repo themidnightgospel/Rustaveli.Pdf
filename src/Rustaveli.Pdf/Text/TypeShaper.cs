@@ -50,7 +50,6 @@ internal sealed class TypeShaper
     }
 
     /// <summary>The face a style's text is set in, before any fallback.</summary>
-    /// <exception cref="CompositionException">No face of the typeface, nor of any substitute, is available.</exception>
     public OpenTypeFont Resolve(TypeStyle style) => Resolve(RequestFor(style));
 
     /// <summary>Walks <paramref name="text"/> as glyphs set in <paramref name="style"/>.</summary>
@@ -112,13 +111,12 @@ internal sealed class TypeShaper
                 return stand.Load();
         }
 
-        // Nothing like it anywhere: any registered face will set the text, which beats refusing the document.
+        // Nothing like it anywhere: any registered face will set the text, which beats refusing the document, and
+        // failing that the typefaces the package carries.
         if (_catalog.RegisteredFaces.FirstOrDefault(candidate => candidate.IsEmbeddable) is FontFaceInfo registered)
             return registered.Load();
 
-        throw new CompositionException(
-            $"No typeface named '{request.Family}' is registered or installed, and neither is any common substitute " +
-            "for it. Register a typeface with TypefaceLibrary.Register, or install one.");
+        return BundledTypefaces.Match(request.Style);
     }
 
     private static FontFaceInfo? Embeddable(FontFaceInfo? face) => face is { IsEmbeddable: true } ? face : null;
@@ -133,7 +131,8 @@ internal sealed class TypeShaper
                 return candidate;
         }
 
-        OpenTypeFont? found = _catalog.FindFallback(codepoint, request, _fallbackTypefaces);
+        OpenTypeFont? found = _catalog.FindFallback(codepoint, request, _fallbackTypefaces)
+            ?? BundledTypefaces.Covering(codepoint, request.Style);
 
         // No face anywhere has the character, so the primary sets it as its missing-glyph box.
         if (found is null)
