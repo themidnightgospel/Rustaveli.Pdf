@@ -123,7 +123,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Alignment left/centre/right | `AlignLeft`, … | ✅ | — |
 | Alignment start/end (direction-aware) | `AlignStart`, `AlignEnd` | ✅ | — |
 | Justify | `Justify` | ✅ | — |
-| Clamp to N lines with ellipsis | `ClampLines` | ❌ | 3 |
+| Clamp to N lines with ellipsis | `ClampLines` | ✅ | — |
 | First-line indent, paragraph spacing | `ParagraphFirstLineIndentation`, `ParagraphSpacing` | ✅ | — |
 | Break anywhere | `WrapAnywhere` | 🟡 mid-word break only when a word cannot fit | 3 |
 | Unicode line breaking (UAX #14) | — | ❌ | 3 |

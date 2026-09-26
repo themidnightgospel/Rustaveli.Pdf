@@ -35,6 +35,12 @@ internal sealed class TextBlock : Block
     /// <summary>Vertical gap inserted before every paragraph after the first.</summary>
     public float SpaceBetweenParagraphs { get; set; }
 
+    /// <summary>The most lines the block shows; text beyond them is cut, and the last line ends with <see cref="Ellipsis"/>.</summary>
+    public int? MaxLines { get; set; }
+
+    /// <summary>What ends the last line when <see cref="MaxLines"/> cuts text short.</summary>
+    public string Ellipsis { get; set; } = "…";
+
     // Inline elements are children of this paragraph, so the engine can reset their state between passes.
     public override IEnumerable<Block?> GetChildren() => Runs.Select(span => span.Inline);
 
@@ -344,8 +350,17 @@ internal sealed class TextBlock : Block
             current = new TextLine { StartsParagraph = force };
         }
 
+        // Past the limit, nothing more is shown, so nothing more is measured: a long text clamped to a line or
+        // two costs no more than those lines, and an inline frame beyond them is never asked to plan. The limit is
+        // passed once its last line is complete and something follows it.
+        int limit = MaxLines ?? int.MaxValue;
+        bool PastLimit() => lines.Count > limit || (lines.Count == limit && current.Runs.Count > 0);
+
         foreach (Text.TextRun span in Runs)
         {
+            if (PastLimit())
+                break;
+
             if (span.Inline is not null)
             {
                 // The element is unbreakable, so if it does not fit on this line it moves down whole, exactly
@@ -394,6 +409,9 @@ internal sealed class TextBlock : Block
 
             foreach (string segment in Tokenise(text))
             {
+                if (PastLimit())
+                    break;
+
                 if (segment == "\n")
                 {
                     FlushLine(force: true);
@@ -443,7 +461,57 @@ internal sealed class TextBlock : Block
             lines.Add(current);
         }
 
+        if (lines.Count > limit)
+        {
+            lines.RemoveRange(limit, lines.Count - limit);
+            TextLine last = lines[^1];
+            EndWithEllipsis(last, last.StartsParagraph ? Math.Max(0, width - indent) : width, blockStyle, context);
+            last.Finalise(context.Measurer, blockStyle);
+        }
+
         return lines;
+    }
+
+    /// <summary>
+    /// Cuts the last line a limit allows back until <see cref="Ellipsis"/> fits after it — whole words first, then
+    /// characters of the word that no longer fits, never leaving a space before it — and sets it there.
+    /// </summary>
+    /// <param name="line">The last line shown.</param>
+    /// <param name="budget">The width the line may take.</param>
+    /// <param name="style">
+    /// The paragraph's own type, as CSS sets a text-overflow ellipsis: not whichever run it lands after, whose
+    /// type could be cut away with it.
+    /// </param>
+    /// <param name="context">Supplies the measurer.</param>
+    private void EndWithEllipsis(TextLine line, float budget, TypeStyle style, PlanContext context)
+    {
+        float ellipsisWidth = context.Measurer.MeasureWidth(Ellipsis, style);
+        float room = budget - ellipsisWidth;
+
+        while (line.Runs.Count > 0)
+        {
+            TextRun last = line.Runs[^1];
+
+            if (!IsWordGap(last) && line.Width <= room + Extent.Epsilon)
+                break;
+
+            line.RemoveLast();
+
+            if (IsWordGap(last) || last.Inline is not null)
+                continue;
+
+            int fitting = context.Measurer.MeasureCharactersFitting(last.Text, last.Style, room - line.Width);
+
+            if (fitting > 0)
+            {
+                string kept = last.Text[..fitting];
+                line.Add(last with { Text = kept, Width = context.Measurer.MeasureWidth(kept, last.Style) });
+                break;
+            }
+        }
+
+        if (Ellipsis.Length > 0)
+            line.Add(new TextRun(Ellipsis, style, ellipsisWidth, null, null));
     }
 
     /// <summary>
@@ -590,6 +658,12 @@ internal sealed class TextBlock : Block
             Width += run.Width;
         }
 
+        public void RemoveLast()
+        {
+            Width -= Runs[^1].Width;
+            Runs.RemoveAt(Runs.Count - 1);
+        }
+
         /// <summary>
         /// Whether a trailing run may be dropped: breakable whitespace only, and carrying no annotation.
         /// </summary>
@@ -645,12 +719,14 @@ internal sealed class TextBlock : Block
             // ink, so trimming it would delete the very content it exists to hold together. A run carrying a
             // link is never trimmed either, since dropping it would silently remove the annotation with it.
             while (Runs.Count > 0 && IsTrimmable(Runs[^1]))
-            {
-                Width -= Runs[^1].Width;
-                Runs.RemoveAt(Runs.Count - 1);
-            }
+                RemoveLast();
 
             Width = Math.Max(0, Width);
+
+            // A line cut short by a line limit is finalised again, and must not keep the height of what was cut.
+            Ascent = 0;
+            Descent = 0;
+            Height = 0;
 
             if (Runs.Count == 0)
             {

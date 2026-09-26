@@ -159,6 +159,21 @@ public sealed class TextComposer
         _block.SpaceBetweenParagraphs = spacing;
     }
 
+    /// <summary>
+    /// Shows at most <paramref name="count"/> lines. Text beyond them is left out, and the last line is cut back
+    /// until <paramref name="ellipsis"/> fits after it.
+    /// </summary>
+    /// <param name="count">The most lines to show; at least one.</param>
+    /// <param name="ellipsis">What ends a line cut short; empty to cut without a mark.</param>
+    public void MaxLines(int count, string ellipsis = "…")
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+        ArgumentNullException.ThrowIfNull(ellipsis);
+
+        _block.MaxLines = count;
+        _block.Ellipsis = ellipsis;
+    }
+
     /// <summary>Sets lines flush against the left edge, whatever the reading direction.</summary>
     public void FlushLeft()
     {

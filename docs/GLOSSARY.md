@@ -148,6 +148,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `TextComposer.FlushLeft()`, `FlushRight()`, `Centered()` | method | Paragraph alignment. | print | `AlignLeft/Right/Center` |
 | `TextComposer.FlushStart()`, `FlushEnd()` | method | Paragraph alignment by reading direction: flush against the edge lines start from, or end at. | print | `AlignStart/End` |
 | `TextComposer.Justified()` | method | Stretches every line but a paragraph's last across the width by widening its word spaces. | print | `Justify` |
+| `TextComposer.MaxLines(int, string)` | method | Shows at most so many lines, the last cut back to end in an ellipsis. | plain | `ClampLines` |
 | `TextComposer.FirstLineIndent(float)` | method | Indents the first line of each paragraph. | print | same |
 | `TextComposer.SpaceBetweenParagraphs(float)` | method | Space after each paragraph but the last. | print | `ParagraphSpacing` |
 | `TextComposer.DefaultType(...)` | method | Refines the type style runs inherit. | print | `DefaultTextStyle` |
