@@ -29,6 +29,12 @@ public sealed record TypeStyle
 
     public bool HasOverline { get; init; }
 
+    /// <summary>
+    /// Whether a line may break between any two characters of this type, not only between words, so a long
+    /// identifier or address fills each line rather than leaving it short.
+    /// </summary>
+    public bool BreaksAnywhere { get; init; }
+
     /// <summary>How underlines, strike-throughs and overlines are drawn.</summary>
     public StrokeStyle StrokeStyle { get; init; } = StrokeStyle.Solid;
 
@@ -148,6 +154,14 @@ public sealed record TypeStyle
         return this with
         {
             HasOverline = value
+        };
+    }
+
+    public TypeStyle BreakAnywhere(bool value = true)
+    {
+        return this with
+        {
+            BreaksAnywhere = value
         };
     }
 

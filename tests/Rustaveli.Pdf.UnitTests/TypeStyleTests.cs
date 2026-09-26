@@ -34,6 +34,14 @@ public class TypeStyleTests
     }
 
     [Fact]
+    public void BreakAnywhereChangesOnlyWhereLinesMayBreak()
+    {
+        Assert.False(Base.BreaksAnywhere);
+        Assert.Equal(Base with { BreaksAnywhere = true }, Base.BreakAnywhere());
+        Assert.Equal(Base, Base.BreakAnywhere().BreakAnywhere(false));
+    }
+
+    [Fact]
     public void WithStrokeStyleChangesOnlyTheStrokeStyle()
     {
         Assert.Equal(Base with { StrokeStyle = StrokeStyle.Wavy }, Base.WithStrokeStyle(StrokeStyle.Wavy));

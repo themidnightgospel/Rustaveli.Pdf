@@ -435,6 +435,13 @@ internal sealed class TextBlock : Block
                     continue;
                 }
 
+                // Type that may break anywhere fills the line it is on before going on to the next.
+                if (style.BreaksAnywhere)
+                {
+                    BreakWord(segment, span, style, width, indent, context, current, lines);
+                    continue;
+                }
+
                 if (current.Runs.Count > 0)
                     FlushLine(force: false);
 
@@ -448,7 +455,7 @@ internal sealed class TextBlock : Block
                     continue;
                 }
 
-                BreakOversizedWord(segment, span, style, width, indent, context, current, lines);
+                BreakWord(segment, span, style, width, indent, context, current, lines);
             }
         }
 
@@ -515,10 +522,11 @@ internal sealed class TextBlock : Block
     }
 
     /// <summary>
-    /// Splits a word that cannot fit on any line into character-level chunks, emitting full lines as it goes and
-    /// leaving the remainder on <paramref name="current"/>.
+    /// Splits a word into character-level chunks, filling whatever room <paramref name="current"/> has left, emitting
+    /// full lines as it goes and leaving the remainder on <paramref name="current"/>. Used for a word too long for
+    /// any line, and for every word in type that may break anywhere.
     /// </summary>
-    private static void BreakOversizedWord(
+    private static void BreakWord(
         string word,
         Text.TextRun span,
         TypeStyle style,
@@ -532,11 +540,20 @@ internal sealed class TextBlock : Block
 
         while (remaining.Length > 0)
         {
-            // Recomputed per chunk: the first may be an indented paragraph opening, every one after it is a
-            // continuation entitled to the full width.
-            float maxWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
+            // Recomputed per chunk: the first may continue an indented paragraph opening, every one after it is a
+            // fresh continuation entitled to the full width.
+            float room = (current.StartsParagraph ? Math.Max(0, width - indent) : width) - current.Width;
 
-            int fitting = context.Measurer.MeasureCharactersFitting(remaining, style, maxWidth);
+            int fitting = context.Measurer.MeasureCharactersFitting(remaining, style, room);
+
+            // Not a character fits beside what the line already holds, so the word goes on to the next.
+            if (fitting == 0 && current.Runs.Count > 0)
+            {
+                current.Finalise(context.Measurer, style);
+                lines.Add(new TextLine(current));
+                current.Clear();
+                continue;
+            }
 
             // Always consume at least one character, otherwise an impossibly narrow box would loop forever.
             fitting = Math.Clamp(fitting, 1, remaining.Length);

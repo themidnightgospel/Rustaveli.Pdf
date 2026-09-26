@@ -152,8 +152,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `TextComposer.FirstLineIndent(float)` | method | Indents the first line of each paragraph. | print | same |
 | `TextComposer.SpaceBetweenParagraphs(float)` | method | Space after each paragraph but the last. | print | `ParagraphSpacing` |
 | `TextComposer.DefaultType(...)` | method | Refines the type style runs inherit. | print | `DefaultTextStyle` |
-| `RunComposer` | class | Styles a run: `Typeface`, `PointSize`, `Ink`, `Highlight`, `Weight`, `Bold`, `Italic`, `Underline`, `StrikeThrough`, `Overline`, `StrokeStyle`, `StrokeInk`, `StrokeWeight`, `Leading`, `Tracking`, `WordSpacing`, `Subscript`, `Superscript`, `Style`. | print | `TextSpanDescriptor` |
-| `TypeStyle` | class | How type is set: typeface, point size, weight, italic, ink, highlight, leading, tracking, word spacing, script position, underline, strike-through, overline and how those strokes are drawn. | print ("type style") | `TextStyle` |
+| `RunComposer` | class | Styles a run: `Typeface`, `PointSize`, `Ink`, `Highlight`, `Weight`, `Bold`, `Italic`, `Underline`, `StrikeThrough`, `Overline`, `StrokeStyle`, `StrokeInk`, `StrokeWeight`, `Leading`, `Tracking`, `WordSpacing`, `BreakAnywhere`, `Subscript`, `Superscript`, `Style`. | print | `TextSpanDescriptor` |
+| `TypeStyle` | class | How type is set: typeface, point size, weight, italic, ink, highlight, leading, tracking, word spacing, script position, underline, strike-through, overline and how those strokes are drawn, and whether lines may break anywhere within it. | print ("type style") | `TextStyle` |
 | `TypeStyle.WithTypeface`, `WithPointSize`, `WithInk`, … | method | A copy with one attribute changed. | plain | `FontFamilyOf`, `FontSizeOf`, `ColorOf`, … |
 | `Typeface` | term | A font family, such as Noto Sans. | print | `FontFamily` |
 | `PointSize` | term | Type size in points. | print | `FontSize` |

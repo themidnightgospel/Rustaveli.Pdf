@@ -96,6 +96,16 @@ public class RunComposerTests
         Assert.Equal(value, StyleOf(span => span.Overline(value), style => style.Overline(!value)).HasOverline);
 
     [Fact]
+    public void BreakAnywhereWithoutAnArgumentLetsTheRunBreakAnywhere() =>
+        Assert.True(StyleOf(span => span.BreakAnywhere()).BreaksAnywhere);
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BreakAnywhereOverridesTheInheritedSetting(bool value) =>
+        Assert.Equal(value, StyleOf(span => span.BreakAnywhere(value), style => style.BreakAnywhere(!value)).BreaksAnywhere);
+
+    [Fact]
     public void StrokeStyleSetsHowStrokesAreDrawn() =>
         Assert.Equal(StrokeStyle.Dashed, StyleOf(span => span.StrokeStyle(StrokeStyle.Dashed)).StrokeStyle);
 

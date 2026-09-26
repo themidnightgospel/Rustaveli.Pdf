@@ -69,6 +69,9 @@ public sealed class RunComposer
     /// <summary>Adds space to each space between words, in points; negative tightens.</summary>
     public RunComposer WordSpacing(float spacing) => Refine(style => style.WithWordSpacing(spacing));
 
+    /// <summary>Lets lines break between any two characters of the run, not only between words.</summary>
+    public RunComposer BreakAnywhere(bool value = true) => Refine(style => style.BreakAnywhere(value));
+
     public RunComposer Subscript() => Refine(style => style.Subscript());
 
     public RunComposer Superscript() => Refine(style => style.Superscript());

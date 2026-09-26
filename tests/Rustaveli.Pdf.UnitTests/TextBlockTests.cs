@@ -95,6 +95,78 @@ public class TextBlockTests
     }
 
     [Fact]
+    public void AWordTooLongForAnyLineStartsOnAFreshOne()
+    {
+        TextBlock element = Text(text => text.Run("aa bbbbbbbbbb"));
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(36, 500)).Texts.ToList();
+
+        // "aa" keeps its line to itself, less the space it no longer needs; the long word begins the next.
+        Assert.Equal(["aa", "bbbbbb", "bbbb"], texts.Select(text => text.Text));
+        Approximately.Equal(texts[1].Position.Y, texts[0].Position.Y + LineHeight);
+    }
+
+    [Fact]
+    public void TypeThatBreaksAnywhereFillsTheLineItIsOn()
+    {
+        TextBlock element = Text(text => text.Run("aa bbbbbbbbbb").BreakAnywhere());
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(36, 500)).Texts.ToList();
+
+        // Six characters to a 36pt line: "aa", a space, then as much of the word as fits.
+        Assert.Equal(["aa", " ", "bbb", "bbbbbb", "b"], texts.Select(text => text.Text));
+        Approximately.Equal(texts[0].Position.Y, texts[2].Position.Y);
+        Approximately.Equal(18f, texts[2].Position.X);
+    }
+
+    [Fact]
+    public void TypeThatBreaksAnywhereStillPrefersAWordThatFits()
+    {
+        TextBlock element = Text(text => text.Run("aaa bb").BreakAnywhere());
+
+        Assert.Equal("aaa bb", LayoutHarness.Draw(element, new Extent(36, 500)).Content);
+    }
+
+    [Fact]
+    public void ALineWithNoRoomLeftSendsTheBrokenWordOnToTheNext()
+    {
+        // "aaaaa" and a space fill the 36pt line exactly, so not a character of the next word fits beside them.
+        TextBlock element = Text(text => text.Run("aaaaa bbbbbbbb").BreakAnywhere());
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(36, 500)).Texts.ToList();
+
+        Assert.Equal(["aaaaa", "bbbbbb", "bb"], texts.Select(text => text.Text));
+    }
+
+    [Fact]
+    public void OnlyTheRunThatBreaksAnywhereDoesSo()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Run("aa ").BreakAnywhere();
+            text.Run("bbbbb");
+        });
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(36, 500)).Texts.ToList();
+
+        Assert.Equal(["aa", "bbbbb"], texts.Select(text => text.Text));
+    }
+
+    [Fact]
+    public void AnIndentedOpeningLineThatBreaksAnywhereFillsOnlyTheRoomAfterTheIndent()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.FirstLineIndent(12);
+            text.Run("aaaaaaaaaa").BreakAnywhere();
+        });
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(36, 500)).Texts.ToList();
+
+        Assert.Equal(["aaaa", "aaaaaa"], texts.Select(text => text.Text));
+    }
+
+    [Fact]
     public void StopsAtTheAvailableHeightAndReportsPartial()
     {
         TextBlock element = Text(text => text.Run("aaa bbb ccc ddd"));
