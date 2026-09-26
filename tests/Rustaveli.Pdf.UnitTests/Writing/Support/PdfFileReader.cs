@@ -99,6 +99,35 @@ internal sealed class PdfFileReader
             null => throw new FormatException("Expected a dictionary but found null."),
         };
 
+    /// <summary>The catalog, found through the trailer's <c>/Root</c>.</summary>
+    public Dictionary<string, object?> Catalog() => Dictionary(Trailer["Root"]);
+
+    /// <summary>
+    /// Walks the page tree from the catalog, checking at every node that <c>/Parent</c> points back up and that
+    /// <c>/Count</c> matches the pages beneath. Returns each page's object number and depth, in document order.
+    /// </summary>
+    public List<(int Number, int Depth)> Pages()
+    {
+        List<(int Number, int Depth)> pages = new List<(int Number, int Depth)>();
+        WalkPages((ParsedReference)Catalog()["Pages"]!, null, 0, pages);
+        return pages;
+    }
+
+    /// <summary>
+    /// Walks a name tree, checking that the root has no <c>/Limits</c> and that every other node's limits are the
+    /// first and last keys beneath it. Returns each entry with the depth of its leaf, in tree order.
+    /// </summary>
+    public List<(byte[] Key, object? Value, int Depth)> NameTree(object? root)
+    {
+        List<(byte[] Key, object? Value, int Depth)> entries = new List<(byte[] Key, object? Value, int Depth)>();
+        Dictionary<string, object?> node = Dictionary(root);
+        if (node.ContainsKey("Limits"))
+            throw new FormatException("The root of a name tree must not have /Limits.");
+
+        WalkNames(node, 0, entries);
+        return entries;
+    }
+
     /// <summary>The stream's data with its filter and predictor undone.</summary>
     public static byte[] Decode(ParsedStream stream)
     {
@@ -117,6 +146,56 @@ internal sealed class PdfFileReader
             throw new FormatException("Only PNG predictors are supported.");
 
         return Unpredict(inflated, checked((int)(long)decode["Columns"]!));
+    }
+
+    private int WalkPages(ParsedReference reference, ParsedReference? parent, int depth, List<(int Number, int Depth)> pages)
+    {
+        Dictionary<string, object?> node = Dictionary(reference);
+        if (parent == null ? node.ContainsKey("Parent") : !Equals(node["Parent"], parent))
+            throw new FormatException($"Object {reference.ObjectNumber} does not name {parent?.ToString() ?? "no parent"} as its parent.");
+
+        string type = ((ParsedName)node["Type"]!).Value;
+        if (type == "Page")
+        {
+            pages.Add((reference.ObjectNumber, depth));
+            return 1;
+        }
+
+        if (type != "Pages")
+            throw new FormatException($"Object {reference.ObjectNumber} is a /{type}, not a page tree node.");
+
+        int count = 0;
+        foreach (object? kid in (List<object?>)node["Kids"]!)
+            count += WalkPages((ParsedReference)kid!, reference, depth + 1, pages);
+
+        if ((long)node["Count"]! != count)
+            throw new FormatException($"Page tree node {reference.ObjectNumber} has /Count {node["Count"]} but {count} pages beneath it.");
+
+        return count;
+    }
+
+    private (byte[] First, byte[] Last) WalkNames(Dictionary<string, object?> node, int depth, List<(byte[] Key, object? Value, int Depth)> entries)
+    {
+        int start = entries.Count;
+        if (node.TryGetValue("Names", out object? names))
+        {
+            List<object?> pairs = (List<object?>)names!;
+            for (int index = 0; index < pairs.Count; index += 2)
+                entries.Add(((byte[])pairs[index]!, pairs[index + 1], depth));
+        }
+        else
+        {
+            foreach (object? kid in (List<object?>)node["Kids"]!)
+            {
+                Dictionary<string, object?> child = Dictionary(kid);
+                (byte[] first, byte[] last) = WalkNames(child, depth + 1, entries);
+                List<object?> limits = (List<object?>)child["Limits"]!;
+                if (!((byte[])limits[0]!).SequenceEqual(first) || !((byte[])limits[1]!).SequenceEqual(last))
+                    throw new FormatException("A name tree node's /Limits are not the first and last keys beneath it.");
+            }
+        }
+
+        return (entries[start].Key, entries[entries.Count - 1].Key);
     }
 
     private static byte[] Unpredict(byte[] rows, int columns)
