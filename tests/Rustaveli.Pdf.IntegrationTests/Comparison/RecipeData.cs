@@ -5,7 +5,9 @@ namespace Rustaveli.Pdf.IntegrationTests.Comparison;
 /// </summary>
 public static class RecipeData
 {
-    public const string FontFamily = "Arial";
+    // Committed and registered with both libraries (TestFonts), so the two render with identical metrics on every
+    // OS; a system font would be substituted differently by each library wherever it is missing.
+    public const string FontFamily = TestFonts.Sans;
     public const float FontSize = 11f;
     public const float PageWidth = 595f;
     public const float PageHeight = 842f;

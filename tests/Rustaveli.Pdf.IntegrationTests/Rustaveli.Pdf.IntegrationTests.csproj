@@ -23,4 +23,8 @@
     <ProjectReference Include="..\..\src\Rustaveli.Pdf.Skia\Rustaveli.Pdf.Skia.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\assets\fonts\*.ttf" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

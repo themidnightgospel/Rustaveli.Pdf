@@ -9,16 +9,16 @@ namespace Rustaveli.Pdf.IntegrationTests;
 /// </summary>
 public class SkiaFontProviderTests
 {
-    private static readonly TextStyle Arial = TextStyle.Default.FontFamilyOf("Arial").FontSizeOf(12);
+    private static readonly TextStyle Sans = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(12);
 
     [Fact]
     public void TheTypefaceFollowsTheStylesWeightAndSlant()
     {
-        using SkiaFontProvider fonts = new SkiaFontProvider();
+        using SkiaFontProvider fonts = TestFonts.NewProvider();
 
-        SKTypeface regular = fonts.GetTypeface(Arial);
-        SKTypeface bold = fonts.GetTypeface(Arial.Bold());
-        SKTypeface italic = fonts.GetTypeface(Arial.Italic());
+        SKTypeface regular = fonts.GetTypeface(Sans);
+        SKTypeface bold = fonts.GetTypeface(Sans.Bold());
+        SKTypeface italic = fonts.GetTypeface(Sans.Italic());
 
         Assert.True(bold.FontWeight > regular.FontWeight, $"Bold resolved to weight {bold.FontWeight}, regular to {regular.FontWeight}.");
         Assert.Equal(SKFontStyleSlant.Upright, regular.FontSlant);
@@ -28,11 +28,11 @@ public class SkiaFontProviderTests
     [Fact]
     public void OneTypefaceServesEverySizeOfAStyle()
     {
-        using SkiaFontProvider fonts = new SkiaFontProvider();
+        using SkiaFontProvider fonts = TestFonts.NewProvider();
 
-        SKTypeface small = fonts.GetTypeface(Arial);
+        SKTypeface small = fonts.GetTypeface(Sans);
 
-        Assert.Same(small, fonts.GetTypeface(Arial.FontSizeOf(48)));
-        Assert.Same(small, fonts.GetFont(Arial.FontSizeOf(48)).Typeface);
+        Assert.Same(small, fonts.GetTypeface(Sans.FontSizeOf(48)));
+        Assert.Same(small, fonts.GetFont(Sans.FontSizeOf(48)).Typeface);
     }
 }

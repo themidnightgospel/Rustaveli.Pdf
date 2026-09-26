@@ -30,7 +30,7 @@ public class SkiaPdfCanvasTests
 
     private static readonly Color Brick = new Color(200, 40, 40);
     private static readonly Color Ocean = new Color(10, 120, 230);
-    private static readonly TextStyle Style = TextStyle.Default.FontFamilyOf("Arial").FontSizeOf(20);
+    private static readonly TextStyle Style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
     private const string MathBoldA = "\U0001D400";
@@ -609,7 +609,9 @@ public class SkiaPdfCanvasTests
         using PdfDocument parsed = Render(canvas =>
         {
             canvas.Translate(new Position(100, 100));
-            canvas.ClipRectangle(new Size(50, 50));
+
+            // Wide enough for the whole word at this size in the test font, so only the clip's position is tested.
+            canvas.ClipRectangle(new Size(90, 50));
             canvas.DrawText("Inside", new Position(5, 30), Style);
             canvas.DrawText("Outside", new Position(-90, -60), Style);
         });

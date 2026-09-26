@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.IntegrationTests;
 public class SkiaTextMeasurerTests
 {
     private static readonly SkiaTextMeasurer Measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
-    private static readonly TextStyle Style = TextStyle.Default.FontFamilyOf("Arial").FontSizeOf(20);
+    private static readonly TextStyle Style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
     private const string MathBoldA = "\U0001D400";

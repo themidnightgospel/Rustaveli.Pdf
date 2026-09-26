@@ -161,7 +161,9 @@ dotnet stryker                # mutation testing of the engine, failing below 80
 ```
 
 Every test runs against both builds the library ships: `net10.0`, and the `netstandard2.0` build on .NET Framework
-4.8. The quality gates each pull request must pass are recorded in
+4.8. Text is measured with the committed Noto Sans (`tests/assets/fonts`), so results are the same on every OS; the
+font-fallback tests additionally need CJK and Georgian fonts installed, which Windows and macOS have and Debian or
+Ubuntu get from `fonts-noto-core` and `fonts-noto-cjk`. The quality gates each pull request must pass are recorded in
 [ADR 0007](docs/adr/0007-quality-gates.md).
 
 **Unit tests** run the layout engine against a deterministic fake text measurer — every character is half the
