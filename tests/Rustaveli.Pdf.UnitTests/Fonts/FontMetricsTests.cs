@@ -195,10 +195,10 @@ public class FontMetricsTests
     public void CallsAFontSymbolicOnceItMapsBeyondStandardLatin()
     {
         FontFlags latin = SyntheticFont.Minimal()
-            .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4(('A', 1), ('€', 2), ('ﬂ', 2)))))
+            .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4(('A', 1), ('\u20AC', 2), ('\uFB02', 2)))))
             .Load().Descriptor.Flags;
         FontFlags greek = SyntheticFont.Minimal()
-            .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4(('A', 1), ('Ω', 2)))))
+            .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4(('A', 1), ('\u03A9', 2)))))
             .Load().Descriptor.Flags;
         FontFlags unmapped = SyntheticFont.Minimal()
             .With("cmap", SyntheticTables.Cmap((2, 0, SyntheticTables.Format4(('A', 1)))))

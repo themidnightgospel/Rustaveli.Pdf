@@ -18,11 +18,11 @@ public class CharacterMapTests
         Assert.Equal(5, map.GetGlyph('A'));
 
         // Mac Roman byte 0x8E is é.
-        Assert.Equal(6, map.GetGlyph('é'));
-        Assert.Equal(0, map.GetGlyph('一'));
+        Assert.Equal(6, map.GetGlyph('\u00E9'));
+        Assert.Equal(0, map.GetGlyph('\u4E00'));
         Assert.Equal(0, map.GetGlyph(0x1F600));
         Assert.Equal(
-            new[] { ('A', 5), ('é', 6) },
+            new[] { ('A', 5), ('\u00E9', 6) },
             map.EnumerateMappings().Select(pair => ((char)pair.Key, (int)pair.Value)));
     }
 
@@ -44,7 +44,7 @@ public class CharacterMapTests
         Assert.Equal(22, map.GetGlyph('c'));
         Assert.Equal(35, map.GetGlyph('x'));
         Assert.Equal(0, map.GetGlyph('D'));
-        Assert.Equal(0, map.GetGlyph('ÿ'));
+        Assert.Equal(0, map.GetGlyph('\u00FF'));
         Assert.Equal(0, map.GetGlyph(0xFFFF));
         Assert.Equal(0, map.GetGlyph(0x10000));
         Assert.Equal(0, map.GetGlyph(-1));
@@ -56,11 +56,11 @@ public class CharacterMapTests
     [Fact]
     public void LooksUpPastTheLatinCacheInFormat4()
     {
-        CharacterMap map = Map((3, 1, SyntheticTables.Format4(('Ж', 7), ('ა', 8))));
+        CharacterMap map = Map((3, 1, SyntheticTables.Format4(('\u0416', 7), ('\u10D0', 8))));
 
-        Assert.Equal(7, map.GetGlyph('Ж'));
-        Assert.Equal(8, map.GetGlyph('ა'));
-        Assert.Equal(0, map.GetGlyph('ბ'));
+        Assert.Equal(7, map.GetGlyph('\u0416'));
+        Assert.Equal(8, map.GetGlyph('\u10D0'));
+        Assert.Equal(0, map.GetGlyph('\u10D1'));
     }
 
     [Fact]

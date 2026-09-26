@@ -54,7 +54,7 @@ public class NameTableTests
         byte[] cafe = [(byte)'C', (byte)'a', (byte)'f', 0x8E, 0xA5];
         FontNames names = Read((1, 0, 0, 1, cafe));
 
-        Assert.Equal("Café•", names.Family);
+        Assert.Equal("Caf\u00E9\u2022", names.Family);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class NameTableTests
     [Theory]
     [InlineData("My Font (Bold)/[x]{y}<z>%", "MyFontBoldxyz")]
     [InlineData("  ", "Font")]
-    [InlineData("Élégante-Regular", "lgante-Regular")]
+    [InlineData("\u00C9l\u00E9gante-Regular", "lgante-Regular")]
     public void SanitisesThePostScriptName(string name, string expected)
     {
         Assert.Equal(expected, Read(SyntheticTables.NameRecord(3, 1, 0x0409, 6, name)).PostScriptName);
@@ -192,11 +192,11 @@ public class NameTableTests
     public void EncodesAndDecodesMacRoman()
     {
         Assert.Equal(0x41, MacRoman.Encode('A'));
-        Assert.Equal(0x8E, MacRoman.Encode('é'));
-        Assert.Equal(0xF0, MacRoman.Encode(''));
-        Assert.Equal(-1, MacRoman.Encode('一'));
+        Assert.Equal(0x8E, MacRoman.Encode('\u00E9'));
+        Assert.Equal(0xF0, MacRoman.Encode('\uF8FF'));
+        Assert.Equal(-1, MacRoman.Encode('\u4E00'));
         Assert.Equal(-1, MacRoman.Encode(-1));
         Assert.Equal(-1, MacRoman.Encode(0x1F600));
-        Assert.Equal('ˇ', MacRoman.ToUnicode(0xFF));
+        Assert.Equal('\u02C7', MacRoman.ToUnicode(0xFF));
     }
 }

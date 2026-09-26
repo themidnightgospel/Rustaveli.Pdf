@@ -104,10 +104,10 @@ internal sealed class OpenTypeFont
 
     public HorizontalMetricsTable HorizontalMetrics => _horizontalMetrics.Value;
 
-    /// <summary>The TrueType outlines; null unless the font has <see cref="OutlineFormat.TrueType"/> outlines.</summary>
+    /// <summary>The TrueType outlines; null for fonts with other outlines.</summary>
     public GlyphTable? Glyphs => _glyphs.Value;
 
-    /// <summary>What the CFF table says of itself; null unless the font has <see cref="OutlineFormat.Cff"/> outlines.</summary>
+    /// <summary>What the <c>CFF </c> table says of itself; null for fonts with other outlines.</summary>
     public CompactFontTable? Cff => _cff.Value;
 
     /// <summary>

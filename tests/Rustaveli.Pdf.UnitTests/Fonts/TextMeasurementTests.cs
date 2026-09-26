@@ -107,6 +107,6 @@ public class TextMeasurementTests
         OpenTypeFont georgian = TestFonts.Georgian;
 
         // ვ (U+10D5) then ა (U+10D0): advances 581 and 549, kerned -20.
-        Assert.Equal(581 + 549 - 20, georgian.MeasureWidthInUnits("ვა"));
+        Assert.Equal(581 + 549 - 20, georgian.MeasureWidthInUnits("\u10D5\u10D0"));
     }
 }

@@ -48,7 +48,7 @@ public class OpenTypeFontTests
     [InlineData('a', 68, 561)]
     [InlineData('o', 82, 605)]
     [InlineData('.', 17, 268)]
-    [InlineData('Å', 135, 639)]
+    [InlineData('\u00C5', 135, 639)]
     public void MapsCharactersToGlyphsAndAdvances(char character, int glyph, int advance)
     {
         OpenTypeFont font = TestFonts.Regular;
@@ -62,9 +62,9 @@ public class OpenTypeFontTests
     public void ReportsCharactersTheFontLacksAsGlyphZero()
     {
         // Georgian is exactly what the Latin face lacks and the Georgian face has.
-        Assert.Equal(0, TestFonts.Regular.GetGlyphId('ა'));
-        Assert.False(TestFonts.Regular.HasGlyph('ა'));
-        Assert.Equal(111, TestFonts.Georgian.GetGlyphId('ა'));
+        Assert.Equal(0, TestFonts.Regular.GetGlyphId('\u10D0'));
+        Assert.False(TestFonts.Regular.HasGlyph('\u10D0'));
+        Assert.Equal(111, TestFonts.Georgian.GetGlyphId('\u10D0'));
         Assert.Equal(549, TestFonts.Georgian.GetAdvance(111));
         Assert.False(TestFonts.Georgian.HasGlyph('A'));
     }
@@ -90,7 +90,7 @@ public class OpenTypeFontTests
     [InlineData(TestFonts.BoldFile, 'A', 'V', -40)]
     [InlineData(TestFonts.ItalicFile, 'A', 'V', -10)]
     [InlineData(TestFonts.ItalicFile, 'L', 'T', -40)]
-    [InlineData(TestFonts.GeorgianFile, 'ვ', 'ა', -20)]
+    [InlineData(TestFonts.GeorgianFile, '\u10D5', '\u10D0', -20)]
     public void KernsPairsAsTheFontsGposSays(string file, char left, char right, int expected)
     {
         OpenTypeFont font = file switch

@@ -81,7 +81,7 @@ internal static class NameTable
             typographic.Names);
     }
 
-    /// <summary>How preferable a record is, lower being better; <see cref="Unusable"/> if it cannot be decoded.</summary>
+    /// <summary>How preferable a record is, lower being better; <see cref="Unusable"/> if undecodable.</summary>
     private static int Rank(ushort platform, ushort encoding, ushort language)
     {
         const ushort UnicodePlatform = 0;
