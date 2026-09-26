@@ -29,20 +29,16 @@ public sealed class FlipElement : ContainerElement
         float scaleY = FlipVertical ? -1f : 1f;
 
         // Scaling by -1 reflects through the origin, which would put the content off the far side of it, so
-        // translate by the full extent first to bring it back over its own box.
+        // translate by the full extent first to bring it back over its own box. The box is the one this element
+        // was given (ADR 0012): the child is drawn into it, so it is also the extent to mirror across.
         Position offset = new Position(
-            FlipHorizontal ? plan.Size.Width : 0,
-            FlipVertical ? plan.Size.Height : 0);
+            FlipHorizontal ? availableSpace.Width : 0,
+            FlipVertical ? availableSpace.Height : 0);
 
         context.Canvas.Save();
         context.Canvas.Translate(offset);
         context.Canvas.Scale(scaleX, scaleY);
-
-        // The child is drawn into exactly the box it was measured for, not the larger one on offer. Mirroring
-        // about the measured size while letting the child position itself inside a wider box would throw
-        // self-aligning content — right-aligned or right-to-left text — clean off the page.
-        Child.Draw(plan.Size, context);
-
+        Child.Draw(availableSpace, context);
         context.Canvas.Restore();
     }
 }

@@ -49,9 +49,11 @@ public sealed class AlignmentElement : ContainerElement
 
         context.Canvas.Translate(offset);
 
-        // Drawing against the same space that was measured guarantees the child makes identical internal
-        // decisions — text in particular must not be given a narrower box or it would re-wrap.
-        Child.Draw(availableSpace, context);
+        // The child occupies the box it measured, placed by the offset above (ADR 0012). Given the whole space
+        // instead, content that positions itself — right-aligned or right-to-left text — would be offset a second
+        // time, off the far edge. Text re-wrapped at its own measured width reproduces the same lines: every line
+        // already fits, and none can take a word more than it did in the wider box.
+        Child.Draw(childPlan.Size, context);
 
         context.Canvas.Translate(offset.Reverse());
     }

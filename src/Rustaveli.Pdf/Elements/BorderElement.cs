@@ -43,7 +43,8 @@ public sealed class BorderElement : ContainerElement
         if (Color.IsTransparent)
             return;
 
-        Size size = plan.Size;
+        // Drawn around the whole box this element occupies (ADR 0012), not around its content's natural extent.
+        Size size = availableSpace;
         ICanvas canvas = context.Canvas;
 
         if (CornerRadius > 0 && HasUniformWidth)

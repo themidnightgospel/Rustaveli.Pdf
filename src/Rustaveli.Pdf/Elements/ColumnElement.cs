@@ -71,16 +71,29 @@ public sealed class ColumnElement : Element
         for (int index = _completedItems; index < Items.Count; index++)
         {
             float spacing = hasVisibleContent ? Spacing : 0f;
-            float remainingHeight = availableSpace.Height - totalHeight - spacing;
+            float heightLeft = availableSpace.Height - totalHeight;
 
-            if (remainingHeight < -Size.Epsilon)
+            // Offered less than nothing: there is no box to hand any item, not even one of no height.
+            if (heightLeft < -Size.Epsilon)
             {
                 pending = true;
                 break;
             }
 
-            Size itemSpace = new Size(availableSpace.Width, remainingHeight);
+            // Room remains, but not for the gap — as when a column is drawn at exactly the height it measured. An
+            // item that occupies no height needs no gap, though, and still has to be drawn on this page: its side
+            // effects (a destination, a "skip once" state change) belong here. Offer it the space without the gap
+            // and keep it only if it claims none.
+            bool gapOverflows = heightLeft - spacing < -Size.Epsilon;
+
+            Size itemSpace = new Size(availableSpace.Width, gapOverflows ? Math.Max(0f, heightLeft) : heightLeft - spacing);
             SpacePlan plan = Items[index].Measure(itemSpace, context);
+
+            if (gapOverflows && !plan.IsEmpty && (plan.IsWrap || plan.Size.Height > Size.Epsilon))
+            {
+                pending = true;
+                break;
+            }
 
             if (plan.IsEmpty)
             {
@@ -107,7 +120,8 @@ public sealed class ColumnElement : Element
             if (occupiesSpace)
                 totalHeight += spacing;
 
-            onItem(Items[index], itemSpace, totalHeight);
+            // The item's final size: the column's full width, and the height it measured (ADR 0012).
+            onItem(Items[index], new Size(availableSpace.Width, plan.Size.Height), totalHeight);
 
             totalHeight += plan.Size.Height;
             maxWidth = Math.Max(maxWidth, plan.Size.Width);

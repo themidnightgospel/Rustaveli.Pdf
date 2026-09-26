@@ -17,6 +17,7 @@ so the history of *why* survives.
 | [0009](0009-performance-targets.md) | Performance targets, measured against QuestPDF | Accepted |
 | [0010](0010-preview-tooling.md) | Developer tooling: a dotnet tool with a browser UI | Accepted |
 | [0011](0011-delivery-workflow.md) | Delivery in phases, one pull request each | Accepted |
+| [0012](0012-parents-allot-final-size.md) | Parents allot the final size; decorators fill it | Accepted |
 
 A new record has three sections: **Context** (the forces at play), **Decision** (what we will do) and
 **Consequences** (what becomes easier, what becomes harder, what we now owe).

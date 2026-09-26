@@ -3,14 +3,15 @@ namespace Rustaveli.Pdf.UnitTests;
 public class BorderAndBackgroundTests
 {
     [Fact]
-    public void BackgroundCoversExactlyTheChildArea()
+    public void BackgroundFillsTheBoxItIsGivenRatherThanItsContent()
     {
         BackgroundElement element = new BackgroundElement { Color = Colors.Red, Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
         RectangleOperation background = page.Operations.OfType<RectangleOperation>().First();
 
-        Approximately.Equal(new Size(50, 20), background.Size);
+        // The box a parent allots is the box this element occupies (ADR 0012).
+        Approximately.Equal(new Size(200, 200), background.Size);
         Assert.Equal(Colors.Red, background.Color);
     }
 
@@ -39,7 +40,7 @@ public class BorderAndBackgroundTests
     }
 
     [Fact]
-    public void BorderIsInsetWithinTheChildBounds()
+    public void BorderIsInsetWithinTheBoxItIsGiven()
     {
         BorderElement element = new BorderElement
         {
@@ -48,7 +49,7 @@ public class BorderAndBackgroundTests
             Child = new FixedElement(50, 20, Colors.White)
         };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
         RectangleOperation border = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == Colors.Black);
 
         Approximately.Equal(47f, border.Position.X);

@@ -20,6 +20,6 @@ public sealed class HyperlinkElement : ContainerElement
         base.Draw(availableSpace, context);
 
         if (!string.IsNullOrEmpty(Url))
-            context.Canvas.DrawExternalLink(Url, plan.Size);
+            context.Canvas.DrawExternalLink(Url, availableSpace);
     }
 }

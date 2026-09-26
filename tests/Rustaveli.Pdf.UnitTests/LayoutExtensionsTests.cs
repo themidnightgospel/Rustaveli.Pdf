@@ -19,6 +19,11 @@ public class LayoutExtensionsTests
     private static RectangleOperation Content(Element root) =>
         LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
 
+    // Drawn at exactly the size it measured, as a parent that allots the natural size does (ADR 0012). Transforms
+    // mirror and pivot across the box they are given, so this is the box their assertions describe.
+    private static RectangleOperation ContentInItsOwnBox(Element root) =>
+        LayoutHarness.Draw(root, Measure(root)).Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+
     private static List<RectangleOperation> Bands(Element root, Color color) =>
         LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().Where(r => r.Color == color).ToList();
 
@@ -291,7 +296,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void FlipHorizontalStartsTheContentFromItsRightEdge()
     {
-        RectangleOperation content = Content(Compose(container => container.FlipHorizontal()));
+        RectangleOperation content = ContentInItsOwnBox(Compose(container => container.FlipHorizontal()));
 
         Approximately.Equal(new Position(50, 0), content.Position);
         Approximately.Equal(new Position(0, 0), new Position(content.Bounds.Left, content.Bounds.Top));
@@ -300,7 +305,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void FlipVerticalStartsTheContentFromItsBottomEdge()
     {
-        RectangleOperation content = Content(Compose(container => container.FlipVertical()));
+        RectangleOperation content = ContentInItsOwnBox(Compose(container => container.FlipVertical()));
 
         Approximately.Equal(new Position(0, 20), content.Position);
         Approximately.Equal(new Position(0, 0), new Position(content.Bounds.Left, content.Bounds.Top));
@@ -309,7 +314,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void FlipOverStartsTheContentFromTheOppositeCorner()
     {
-        RectangleOperation content = Content(Compose(container => container.FlipOver()));
+        RectangleOperation content = ContentInItsOwnBox(Compose(container => container.FlipOver()));
 
         Approximately.Equal(new Position(50, 20), content.Position);
         Approximately.Equal(new Position(0, 0), new Position(content.Bounds.Left, content.Bounds.Top));
@@ -436,7 +441,7 @@ public class LayoutExtensionsTests
     public void RotateRightTurnsAQuarterClockwise()
     {
         Element root = Compose(container => container.RotateRight());
-        RectangleOperation content = Content(root);
+        RectangleOperation content = ContentInItsOwnBox(root);
 
         Approximately.Equal(new Size(20, 50), Measure(root));
         Approximately.Equal(new Position(20, 0), content.Position);
@@ -447,7 +452,7 @@ public class LayoutExtensionsTests
     public void RotateLeftTurnsAQuarterAnticlockwise()
     {
         Element root = Compose(container => container.RotateLeft());
-        RectangleOperation content = Content(root);
+        RectangleOperation content = ContentInItsOwnBox(root);
 
         Approximately.Equal(new Size(20, 50), Measure(root));
         Approximately.Equal(new Position(0, 50), content.Position);

@@ -26,18 +26,18 @@ public sealed class LayersElement : Element
 
     public override void Draw(Size availableSpace, DrawContext context)
     {
-        SpacePlan spacePlan = Measure(availableSpace, context.Layout);
-        if (spacePlan.IsWrap || spacePlan.IsEmpty)
-        {
+        SpacePlan plan = Measure(availableSpace, context.Layout);
+
+        if (plan.IsWrap || plan.IsEmpty)
             return;
-        }
+
+        // Every layer shares the whole box the stack occupies (ADR 0012). The primary layer decides how big that
+        // box is when nothing else does, but a secondary layer aligned to the bottom must reach the bottom of the
+        // box, not of the primary layer's content.
         foreach (Layer layer in Layers)
-        {
-            layer.Draw(spacePlan.Size, context);
-        }
-        foreach (Layer item in Layers.Where((Layer layer) => !layer.IsPrimary))
-        {
-            item.ResetState(includeDocumentProgress: false);
-        }
+            layer.Draw(availableSpace, context);
+
+        foreach (Layer layer in Layers.Where(layer => !layer.IsPrimary))
+            layer.ResetState(includeDocumentProgress: false);
     }
 }

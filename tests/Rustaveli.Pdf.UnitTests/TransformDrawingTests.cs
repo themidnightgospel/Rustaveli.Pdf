@@ -44,7 +44,7 @@ public class TransformDrawingTests
     {
         FlipElement element = new FlipElement { FlipHorizontal = true, Child = new FixedElement(50, 20) };
 
-        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(100, 100)));
+        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(50, 20)));
 
         // Mirrored in place: the content still occupies [0,50], not [50,100]. Asserting only the origin cannot
         // distinguish those two, which is how a missing mirror went unnoticed.
@@ -58,7 +58,7 @@ public class TransformDrawingTests
     {
         FlipElement element = new FlipElement { FlipVertical = true, Child = new FixedElement(50, 20) };
 
-        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(100, 100)));
+        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(50, 20)));
 
         Assert.Equal(0f, bounds.Top, 2);
         Assert.Equal(20f, bounds.Bottom, 2);
@@ -151,7 +151,7 @@ public class TransformDrawingTests
     {
         RotateElement element = new RotateElement { QuarterTurns = 2, Child = new FixedElement(100, 10) };
 
-        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(200, 200)));
+        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(100, 10)));
 
         Assert.Equal(100f, bounds.Width, 2);
         Assert.Equal(10f, bounds.Height, 2);
