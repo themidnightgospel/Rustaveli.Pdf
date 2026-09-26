@@ -136,9 +136,13 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Text(string)` / `Text(Action<TextComposer>)` | method | A paragraph. | plain | `Text` |
 | `TextComposer.Run(string)` | method | A run of text in one style. | typography | `Span` |
 | `TextComposer.Line(string)` / `BlankLine()` | method | A run followed by a line break; an empty line. | plain | `Line` / `EmptyLine` |
-| `TextComposer.Folio()` | method | The current page number. | print | `CurrentPageNumber` |
+| `TextComposer.Folio()` | method | The current page number. *Folio* is the printer's word for a page number. Each folio method also takes a `Func<int, string>` that writes the number. | print | `CurrentPageNumber` |
 | `TextComposer.PageCount()` | method | The number of pages. | plain | `TotalPages` |
-| `TextComposer.FolioOf(string anchor)` | method | The page an anchor is on. | print | `PageNumberOfSection` |
+| `TextComposer.FolioOf(string anchor)` | method | The page an anchor begins on. | print | `PageNumberOfSection` |
+| `TextComposer.LastFolioOf(string anchor)` | method | The page an anchored frame's content ends on. | print | `EndPageNumberOfSection` |
+| `TextComposer.FolioWithin(string anchor)` | method | This page's number counted from the page an anchor begins on. | print | `PageNumberWithinSection` |
+| `TextComposer.PageCountOf(string anchor)` | method | How many pages an anchored frame's content spans. | plain | `TotalPagesWithinSection` |
+| `Numerals` | class | Writes numbers as folios and lists are set: `Arabic`, `UpperRoman`, `LowerRoman`, `UpperAlpha`, `LowerAlpha`, or in a list's `Format`. | print | `FormatAsRoman` and friends |
 | `TextComposer.Link(text, url)` / `CrossReference(text, anchor)` | method | Linked runs. | print | `Hyperlink` / `SectionLink` |
 | `TextComposer.Inline(Action<IFrame>)` | method | A frame set inline with the text. | print ("inline graphic") | `Element` |
 | `TextComposer.FlushLeft()`, `FlushRight()`, `Centered()` | method | Paragraph alignment. | print | `AlignLeft/Right/Center` |
@@ -153,7 +157,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Leading` | term | Line spacing, as a multiple of the point size. | print | `LineHeight` |
 | `Tracking` | term | Uniform extra space between letters. | print | `LetterSpacing` |
 | `Highlight` | term | A colour behind a run of text. | plain | `BackgroundColor` |
-| `TypeWeight` | enum | `Thin` … `Black`. | print | `FontWeight` |
+| `TypeWeight` | enum | `Thin` … `Black`, `ExtraBlack`. | print | `FontWeight` |
 | `ScriptPosition` | enum | `Normal`, `Subscript`, `Superscript`. | print | `FontPosition` |
 
 ## Colour

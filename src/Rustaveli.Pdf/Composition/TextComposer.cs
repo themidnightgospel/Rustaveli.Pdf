@@ -41,11 +41,18 @@ public sealed class TextComposer
     }
 
     /// <summary>Appends the number of the page this text is drawn on.</summary>
-    public RunComposer Folio()
+    public RunComposer Folio() => Folio(Numerals.Arabic);
+
+    /// <summary>
+    /// Appends the number of the page this text is drawn on, written by <paramref name="format"/> — such as
+    /// <see cref="Numerals.LowerRoman"/> for front matter.
+    /// </summary>
+    public RunComposer Folio(Func<int, string> format)
     {
+        ArgumentNullException.ThrowIfNull(format);
         return Add(new TextRun
         {
-            DynamicText = (Pagination page) => page.Folio.ToString()
+            DynamicText = page => format(page.Folio)
         });
     }
 
@@ -53,22 +60,51 @@ public sealed class TextComposer
     /// Appends the total number of pages in the document. Resolves to a provisional value during the counting
     /// pass and to the true total when the document is drawn.
     /// </summary>
-    public RunComposer PageCount()
+    public RunComposer PageCount() => PageCount(Numerals.Arabic);
+
+    /// <summary>Appends the total number of pages in the document, written by <paramref name="format"/>.</summary>
+    public RunComposer PageCount(Func<int, string> format)
     {
+        ArgumentNullException.ThrowIfNull(format);
         return Add(new TextRun
         {
-            DynamicText = (Pagination page) => page.PageCount.ToString()
+            DynamicText = page => format(page.PageCount)
         });
     }
 
-    /// <summary>Appends the page number a named section resolved to, or "?" if it has not been reached yet.</summary>
-    public RunComposer FolioOf(string anchor)
-    {
-        return Add(new TextRun
-        {
-            DynamicText = (Pagination page) => page.FolioOf(anchor)?.ToString() ?? "?"
-        });
-    }
+    /// <summary>Appends the number of the page an anchor is on, or "?" until it has been reached.</summary>
+    public RunComposer FolioOf(string anchor) => FolioOf(anchor, Numerals.Arabic);
+
+    /// <summary>Appends the number of the page an anchor is on, written by <paramref name="format"/>.</summary>
+    public RunComposer FolioOf(string anchor, Func<int, string> format) =>
+        Anchored(anchor, format, page => page.FolioOf(anchor));
+
+    /// <summary>
+    /// Appends the number of the page an anchor's content ends on — the last page of a chapter anchored by a
+    /// frame that flows across several — or "?" until it has been reached.
+    /// </summary>
+    public RunComposer LastFolioOf(string anchor) => LastFolioOf(anchor, Numerals.Arabic);
+
+    /// <summary>Appends the number of the page an anchor's content ends on, written by <paramref name="format"/>.</summary>
+    public RunComposer LastFolioOf(string anchor, Func<int, string> format) =>
+        Anchored(anchor, format, page => page.LastFolioOf(anchor));
+
+    /// <summary>
+    /// Appends this page's number counted from the page an anchor begins on — "page 2" of a chapter — or "?" until
+    /// the anchor has been reached.
+    /// </summary>
+    public RunComposer FolioWithin(string anchor) => FolioWithin(anchor, Numerals.Arabic);
+
+    /// <summary>Appends this page's number counted from the page an anchor begins on, written by <paramref name="format"/>.</summary>
+    public RunComposer FolioWithin(string anchor, Func<int, string> format) =>
+        Anchored(anchor, format, page => page.FolioOf(anchor) is int first ? page.Folio - first + 1 : null);
+
+    /// <summary>Appends how many pages an anchor's content spans, or "?" until it has been reached.</summary>
+    public RunComposer PageCountOf(string anchor) => PageCountOf(anchor, Numerals.Arabic);
+
+    /// <summary>Appends how many pages an anchor's content spans, written by <paramref name="format"/>.</summary>
+    public RunComposer PageCountOf(string anchor, Func<int, string> format) =>
+        Anchored(anchor, format, page => page.FolioOf(anchor) is int first && page.LastFolioOf(anchor) is int last ? last - first + 1 : null);
 
     /// <summary>Appends text that opens an external URL when clicked.</summary>
     public RunComposer Link(string text, string url)
@@ -152,5 +188,17 @@ public sealed class TextComposer
     {
         _block.Runs.Add(span);
         return new RunComposer(span);
+    }
+
+    /// <summary>A number read from where an anchor fell, written by <paramref name="format"/>; "?" until it is known.</summary>
+    private RunComposer Anchored(string anchor, Func<int, string> format, Func<Pagination, int?> number)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
+        ArgumentNullException.ThrowIfNull(format);
+
+        return Add(new TextRun
+        {
+            DynamicText = page => number(page) is int value ? format(value) : "?"
+        });
     }
 }
