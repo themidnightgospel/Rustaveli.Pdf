@@ -4,7 +4,7 @@ using Rustaveli.Pdf.Images;
 using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
-namespace Rustaveli.Pdf.Skia;
+namespace Rustaveli.Pdf.Raster;
 
 /// <summary>
 /// Draws pages into images with SkiaSharp, one bitmap per page, encoded as each page ends.

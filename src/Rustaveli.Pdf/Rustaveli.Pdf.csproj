@@ -31,7 +31,7 @@
     <InternalsVisibleTo Include="Rustaveli.Pdf.ConformanceTests" />
 
     <!-- Backends ship in lockstep with the core, so they may use its engine seams without making them public. -->
-    <InternalsVisibleTo Include="Rustaveli.Pdf.Skia" />
+    <InternalsVisibleTo Include="Rustaveli.Pdf.Raster" />
   </ItemGroup>
 
   <!--

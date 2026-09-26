@@ -192,7 +192,7 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | `TypefaceLibrary.Register(...)` / `RegisterFile(string)` | method | Adds every face in a font file. A registered typeface shadows an installed one of the same name. | plain | `FontManager.RegisterFont` |
 | `TypefaceLibrary.Fallbacks` | property | Typefaces tried in order for a character a run's own typeface lacks. | plain | `FallbackFamilies` |
 | `PdfExport` | class | The `ExportPdf` methods, to bytes, a stream or a file. | InDesign | `PdfGenerationExtensions` |
-| `ImageExport` | class | The `ExportImages` methods of the `Rustaveli.Pdf.Skia` package: every page as an image, drawn by SkiaSharp from the same layout and glyphs as the PDF. | InDesign ("Export JPEG") | `GenerateImages` |
+| `ImageExport` | class | The `ExportImages` methods of the `Rustaveli.Pdf.Raster` package: every page as an image, drawn by SkiaSharp from the same layout and glyphs as the PDF. | InDesign ("Export JPEG") | `GenerateImages` |
 | `ImageExportOptions` | class | The `Resolution` in pixels per inch, the `Format`, the `Quality` of lossy formats, and the `Typefaces`. | InDesign | `ImageGenerationSettings` |
 | `PageImageFormat` | enum | `Png`, `Jpeg`, `Webp`. | plain | `ImageFormat` |
 

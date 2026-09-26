@@ -99,7 +99,7 @@ Typesetter            Plan(space) → Fit, then Render(space); pagination; repea
 ISurface              The single seam to any backend, fed glyphs by one shaper for measuring and drawing alike
       │
       ├─▶ PDF             the managed writer: Type 0 font subsets, images as encoded, separations
-      └─▶ Page images     Rustaveli.Pdf.Skia: PNG, JPEG or WebP through SkiaSharp
+      └─▶ Page images     Rustaveli.Pdf.Raster: PNG, JPEG or WebP through SkiaSharp
 ```
 
 Only the composition layer is public. Blocks, the typesetter and the drawing seam are internal, so the engine can
@@ -164,7 +164,7 @@ each searchable through a ToUnicode map; JPEGs and most PNGs embedded as they we
 colour keys, sixteen bits and ICC profiles kept, images shared by content and turned upright by their EXIF
 orientation; CMYK process colour, spot inks as separations with a process fallback, and opacity; links,
 cross-references to anchors and document information. Exports run in parallel. Page images — PNG, JPEG or WebP at
-any resolution — come from the `Rustaveli.Pdf.Skia` package, drawn from the same layout and glyphs.
+any resolution — come from the `Rustaveli.Pdf.Raster` package, drawn from the same layout and glyphs.
 
 **Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with named
 fallbacks and per-character fallback for anything a face lacks, pair kerning, substitution for a typeface nobody
@@ -216,8 +216,8 @@ size against QuestPDF on a fixed set of documents, against the targets in
 | Images | 3,581,499 B | 147,181 B | 0.04× |
 
 Current agreement across text flow, header/footer pagination and multi-page tables: **identical page counts,
-identical word sequences, identical horizontal word positions, and vertical positions within 0.24pt** — the
-difference in where a reader boxes each word, from the fonts' declared descent, not in where the baselines fall.
+identical word sequences, identical horizontal word positions and identical line spacing, with every line 0.24pt
+higher on the page** — a constant offset in where the first baseline falls below the top of the text area.
 
 Byte-level comparison is not meaningful — two PDF producers never emit identical bytes for the same document —
 so the comparison is behavioural throughout.
