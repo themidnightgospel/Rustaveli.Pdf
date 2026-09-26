@@ -54,4 +54,164 @@ public class BorderAndBackgroundTests
         Approximately.Equal(47f, border.Position.X);
         Approximately.Equal(3f, border.Size.Width);
     }
+
+    [Theory]
+    [InlineData(SpacePlanType.Wrap)]
+    [InlineData(SpacePlanType.Empty)]
+    public void BackgroundPaintsNothingBehindAChildWithNothingToShow(SpacePlanType outcome)
+    {
+        ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
+        BackgroundElement element = new BackgroundElement { Color = Colors.Red, Child = child };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        Assert.Empty(page.Operations);
+        Assert.Empty(child.DrawnWith);
+    }
+
+    [Fact]
+    public void BackgroundWithoutContentCoversNoArea()
+    {
+        BackgroundElement element = new BackgroundElement { Color = Colors.Red };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        Assert.All(page.Operations.OfType<RectangleOperation>(), operation => Approximately.Equal(Size.Zero, operation.Size));
+    }
+
+    [Fact]
+    public void BorderPlacesEachSideAlongItsOwnEdge()
+    {
+        BorderElement element = new BorderElement
+        {
+            Width = new Edges(1, 2, 3, 4),
+            Color = Colors.Black,
+            Child = new FixedElement(50, 20, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        List<RectangleOperation> sides = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == Colors.Black).ToList();
+
+        Assert.Equal(4, sides.Count);
+        Assert.Equal(new Bounds(0, 0, 1, 20), sides[0].Bounds);
+        Assert.Equal(new Bounds(0, 0, 50, 2), sides[1].Bounds);
+        Assert.Equal(new Bounds(47, 0, 50, 20), sides[2].Bounds);
+        Assert.Equal(new Bounds(0, 16, 50, 20), sides[3].Bounds);
+    }
+
+    [Fact]
+    public void BorderIsDrawnOverTheContent()
+    {
+        BorderElement element = new BorderElement
+        {
+            Width = Edges.All(2),
+            Color = Colors.Black,
+            Child = new FixedElement(50, 20, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        Assert.Equal(Colors.White, page.Operations.OfType<RectangleOperation>().First().Color);
+    }
+
+    [Fact]
+    public void TransparentBorderDrawsOnlyTheContent()
+    {
+        BorderElement element = new BorderElement
+        {
+            Width = Edges.All(2),
+            Color = Colors.Transparent,
+            Child = new FixedElement(50, 20, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RectangleOperation only = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        Assert.Equal(Colors.White, only.Color);
+    }
+
+    [Theory]
+    [InlineData(SpacePlanType.Wrap)]
+    [InlineData(SpacePlanType.Empty)]
+    public void BorderDrawsNothingAroundAChildWithNothingToShow(SpacePlanType outcome)
+    {
+        ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
+        BorderElement element = new BorderElement { Width = Edges.All(2), Color = Colors.Black, Child = child };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        Assert.Empty(page.Operations);
+        Assert.Empty(child.DrawnWith);
+    }
+
+    [Fact]
+    public void BorderWithoutContentCoversNoArea()
+    {
+        BorderElement element = new BorderElement { Width = Edges.All(2), Color = Colors.Black };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        Assert.All(page.Operations.OfType<RectangleOperation>(), operation =>
+            Approximately.Equal(0f, operation.Size.Width * operation.Size.Height));
+    }
+
+    [Fact]
+    public void RoundedBorderIsStrokedAlongItsCentreline()
+    {
+        // Inset by half the 2pt stroke, with the radius reduced to match, so the outer edge of the stroke lands
+        // on the requested 4pt radius.
+        BorderElement element = new BorderElement
+        {
+            Width = Edges.All(2),
+            CornerRadius = 4,
+            Color = Colors.Black,
+            Child = new FixedElement(50, 20, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RoundedRectangleOperation outline = Assert.Single(page.Operations.OfType<RoundedRectangleOperation>());
+
+        Approximately.Equal(new Position(1, 1), outline.Position);
+        Approximately.Equal(new Size(48, 18), outline.Size);
+        Approximately.Equal(3f, outline.CornerRadius);
+        Approximately.Equal(2f, outline.StrokeWidth);
+        Assert.Equal(Colors.Black, outline.Color);
+    }
+
+    [Fact]
+    public void RoundedBorderRadiusIsCappedAtHalfTheShorterSide()
+    {
+        BorderElement element = new BorderElement
+        {
+            Width = Edges.All(2),
+            CornerRadius = 50,
+            Color = Colors.Black,
+            Child = new FixedElement(50, 20, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        // The 18pt-tall outline cannot turn a corner tighter than a semicircle.
+        Approximately.Equal(9f, Assert.Single(page.Operations.OfType<RoundedRectangleOperation>()).CornerRadius);
+    }
+
+    [Theory]
+    [InlineData(40f, 20f)]
+    [InlineData(20f, 40f)]
+    [InlineData(30f, 40f)]
+    public void RoundedBorderAtLeastAsThickAsItsBoxIsNotDrawn(float width, float height)
+    {
+        BorderElement element = new BorderElement
+        {
+            Width = Edges.All(30),
+            CornerRadius = 5,
+            Color = Colors.Black,
+            Child = new FixedElement(width, height, Colors.White)
+        };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+
+        Assert.Empty(page.Operations.OfType<RoundedRectangleOperation>());
+        Assert.Equal(Colors.White, Assert.Single(page.Operations.OfType<RectangleOperation>()).Color);
+    }
 }
