@@ -149,6 +149,28 @@ internal sealed class OpenTypeFont
         return faces;
     }
 
+    /// <summary>
+    /// The face as a font file of its own, for embedding it whole: a CFF font, or a TrueType font whose licence
+    /// forbids subsetting. A single-font file is returned as it is; a face of a collection has its tables written
+    /// out into a new file, without any digital signature, which would no longer match.
+    /// </summary>
+    public byte[] ToStandaloneFile()
+    {
+        if (!FontContainer.IsCollection(_file.Span))
+            return _file.ToArray();
+
+        const uint DigitalSignature = 0x44534947; // 'DSIG'
+        List<KeyValuePair<uint, byte[]>> tables = [];
+
+        foreach (TableRecord record in Tables.Records)
+        {
+            if (record.Tag != DigitalSignature)
+                tables.Add(new(record.Tag, _file.Slice(record.Offset, record.Length).ToArray()));
+        }
+
+        return SfntWriter.Write(Tables.SfntVersion, tables);
+    }
+
     /// <summary>The table's bytes, or false when the font does not have it.</summary>
     public bool TryGetTable(uint tag, out ReadOnlyMemory<byte> data)
     {

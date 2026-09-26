@@ -38,6 +38,43 @@ public class FontContainerTests
     }
 
     [Fact]
+    public void WritesACollectionFaceOutAsAFontOfItsOwn()
+    {
+        OpenTypeFont face = TestFonts.SpecimenItalic;
+
+        byte[] standalone = face.ToStandaloneFile();
+        OpenTypeFont reloaded = OpenTypeFont.Load(standalone);
+
+        Assert.False(FontContainer.IsCollection(standalone));
+        Assert.Equal("SpecimenSans-Italic", reloaded.Names.PostScriptName);
+        Assert.Equal(face.GlyphCount, reloaded.GlyphCount);
+        Assert.Equal(
+            face.Tables.Records.Select(record => record.Tag), reloaded.Tables.Records.Select(record => record.Tag));
+        Assert.Equal(face.MeasureWidthInUnits("AVATAR"), reloaded.MeasureWidthInUnits("AVATAR"));
+        Assert.Equal(0xB1B0AFBA, SfntWriter.Checksum(standalone));
+    }
+
+    [Fact]
+    public void LeavesOutACollectionFacesSignature()
+    {
+        SyntheticFont signed = SyntheticFont.Minimal().With("DSIG", [0, 0, 0, 1, 0, 0, 0, 0]);
+        OpenTypeFont face = OpenTypeFont.Load(SyntheticFont.Collection(signed, signed), 1);
+
+        OpenTypeFont standalone = OpenTypeFont.Load(face.ToStandaloneFile());
+
+        Assert.True(face.Tables.Contains(TableTag.FromString("DSIG")));
+        Assert.False(standalone.Tables.Contains(TableTag.FromString("DSIG")));
+    }
+
+    [Fact]
+    public void GivesASingleFontFileAsItIs()
+    {
+        byte[] file = TestFonts.Bytes(TestFonts.CffFile);
+
+        Assert.Equal(file, OpenTypeFont.Load(file).ToStandaloneFile());
+    }
+
+    [Fact]
     public void CountsOneFaceInAPlainFontFile()
     {
         Assert.Equal(1, FontContainer.CountFaces(TestFonts.Bytes(TestFonts.RegularFile)));

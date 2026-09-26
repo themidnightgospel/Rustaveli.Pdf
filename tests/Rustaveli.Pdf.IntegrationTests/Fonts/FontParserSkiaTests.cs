@@ -57,6 +57,18 @@ public class FontParserSkiaTests
     }
 
     [Fact]
+    public void SkiaLoadsACollectionFaceWrittenOutOnItsOwn()
+    {
+        OpenTypeFont face = FontAssets.Load("SpecimenSans.ttc", 1);
+        using SKTypeface? typeface = SKTypeface.FromStream(new MemoryStream(face.ToStandaloneFile()));
+
+        Assert.NotNull(typeface);
+        Assert.Equal(face.GlyphCount, typeface!.GlyphCount);
+        Assert.Equal("Specimen Sans", typeface.FamilyName);
+        Assert.Equal(600, typeface.FontWeight);
+    }
+
+    [Fact]
     public void CountsTheSameGlyphsAndUnitsPerEm()
     {
         foreach ((string file, int faceIndex) in new[] { ("NotoSans-Regular.ttf", 0), ("SpecimenSans.ttc", 2) })
