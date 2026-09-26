@@ -56,6 +56,25 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="all" />
   </ItemGroup>
 
+  <!--
+    netstandard2.0 lacks APIs the code uses freely on net10.0 — Index/Range, Math.Clamp, the ArgumentException
+    guard methods and more. Polyfill is source-only: it compiles internal copies of exactly those APIs into each
+    assembly for the old target and nothing for the new one, so the shipped packages keep zero runtime
+    dependencies.
+
+    Shipped projects only. The test projects see the core's copies through InternalsVisibleTo, and a second copy
+    of their own would make every polyfilled call ambiguous between the two.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="Polyfill" Version="11.4.0" PrivateAssets="all"
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Opts into the ThrowIfNull / ThrowIfLessThan family, which Polyfill leaves off by default. -->
+    <PolyArgumentExceptions>true</PolyArgumentExceptions>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <!-- The licence itself travels as a PackageLicenseExpression, which nuget.org can read; only the README
          needs packing as a file. -->

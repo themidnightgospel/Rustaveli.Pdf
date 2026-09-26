@@ -26,7 +26,7 @@ public sealed class SkiaFontProvider : IDisposable
     private readonly ConcurrentDictionary<(string Family, int Weight, bool Italic, float Size), Lazy<SKFont>> _fonts = new();
     private readonly Dictionary<string, List<SKTypeface>> _registered = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<SKTypeface> _owned = [];
-    // Plain object rather than System.Threading.Lock, which is unavailable on net8.0.
+    // Plain object rather than System.Threading.Lock, which is unavailable on netstandard2.0.
     private readonly object _registrationLock = new();
 
     /// <summary>
@@ -71,7 +71,7 @@ public sealed class SkiaFontProvider : IDisposable
 
     public SKFont GetFont(TextStyle style)
     {
-        (string FontFamily, int, bool IsItalic, float EffectiveFontSize) key = (style.FontFamily, (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
+        (string Family, int Weight, bool Italic, float Size) key = (style.FontFamily, (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
 
         // ConcurrentDictionary may run a GetOrAdd factory more than once under contention and discard the
         // losers. For unmanaged Skia handles that would leak, so creation is funnelled through a Lazy that

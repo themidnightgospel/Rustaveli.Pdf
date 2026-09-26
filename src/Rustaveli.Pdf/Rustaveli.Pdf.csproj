@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Rustaveli.Pdf</RootNamespace>
     <AssemblyName>Rustaveli.Pdf</AssemblyName>
     <PackageId>Rustaveli.Pdf</PackageId>
@@ -13,8 +13,8 @@
       unannotated assembly is kept whole, so leaving this off would preserve the entire element tree and fluent
       API — by far the larger of the two assemblies — and would also exclude it from trim analysis.
     -->
-    <IsTrimmable>true</IsTrimmable>
-    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsTrimmable>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
 
     <!--
       Ship the XML documentation. Without this the library's doc comments reach nobody: consumers get no
