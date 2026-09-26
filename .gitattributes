@@ -1,0 +1,17 @@
+# One canonical line ending in the repository and in every working copy, on every OS.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF, which cmd.exe requires.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Never diffed or normalised.
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary

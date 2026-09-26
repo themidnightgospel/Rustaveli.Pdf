@@ -264,7 +264,7 @@ public sealed class SkiaFontProvider : IDisposable
     /// <summary>Builds a sized font over an already-resolved typeface, cached like any other.</summary>
     private SKFont FontFor(SKTypeface typeface, TextStyle style)
     {
-        (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + " fallback", (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
+        (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + "\0fallback", (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
 
         Lazy<SKFont> font = _fonts.GetOrAdd(key, _ => new Lazy<SKFont>(
             () => new SKFont(typeface, style.EffectiveFontSize)
