@@ -60,7 +60,7 @@ public class RuleAndPlaceholderTests
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
         Assert.Equal(new Bounds(0, 0, 200, 3), rule.Bounds);
-        Assert.Equal(TestInks.Red, rule.Color);
+        Assert.Equal(TestInks.Red, rule.Ink);
     }
 
     [Theory]
@@ -81,6 +81,6 @@ public class RuleAndPlaceholderTests
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
         Assert.Equal(new Bounds(0, 0, 2, 100), rule.Bounds);
-        Assert.Equal(TestInks.Blue, rule.Color);
+        Assert.Equal(TestInks.Blue, rule.Ink);
     }
 }

@@ -27,7 +27,7 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
         using FileStream stream = File.OpenRead(FontFile);
         fonts.Register(stream);
 
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
         TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans);
 
         Assert.Equal(TestFonts.Sans, fonts.GetTypeface(style).FamilyName);
@@ -100,7 +100,7 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
     public void FallsBackToADefaultTypefaceForAnUnknownFamily()
     {
         using SkiaFontProvider fonts = new SkiaFontProvider();
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
 
         TypeStyle style = TypeStyle.Default.WithTypeface("A Font That Certainly Does Not Exist");
 

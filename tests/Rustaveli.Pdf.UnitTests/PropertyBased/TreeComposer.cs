@@ -25,7 +25,7 @@ public sealed class TreeComposer
                 break;
 
             case NodeKind.Box:
-                FrameAttachment.Attach(container, new FixedElement(20, node.Amount));
+                FrameAttachment.Attach(container, new FixedBlock(20, node.Amount));
                 break;
 
             case NodeKind.Column:

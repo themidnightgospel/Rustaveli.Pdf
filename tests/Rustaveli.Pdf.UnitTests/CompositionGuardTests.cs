@@ -45,7 +45,7 @@ public class CompositionGuardTests
     {
         Block root = LayoutHarness.Build(container => container
             .Stroke(2).RoundCorners(8)
-            .Compose(inner => inner.Child = new FixedElement(40, 20, TestInks.White)));
+            .Compose(inner => inner.Child = new FixedBlock(40, 20, TestInks.White)));
 
         Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Operations.OfType<RoundedRectangleOperation>());
     }

@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </summary>
 public static class LayoutHarness
 {
-    public static ITypeMeasurer Measurer { get; } = new FakeTextMeasurer();
+    public static ITypeMeasurer Measurer { get; } = new FakeTypeMeasurer();
 
     /// <summary>Composes a fragment and returns its root element, ready to be measured or drawn.</summary>
     public static Block Build(Action<IFrame> compose)
@@ -34,7 +34,7 @@ public static class LayoutHarness
     /// <summary>Draws an element onto a single synthetic page and returns everything it produced.</summary>
     public static RecordedPage Draw(Block element, Extent availableSpace, PlanContext? context = null)
     {
-        RecordingCanvas canvas = new RecordingCanvas();
+        RecordingSurface canvas = new RecordingSurface();
         PlanContext layout = context ?? Context();
 
         canvas.BeginPage(availableSpace);
@@ -55,10 +55,10 @@ public static class LayoutHarness
         Draw(Build(compose), availableSpace);
 
     /// <summary>Renders a whole document, returning every page it produced.</summary>
-    public static RecordingCanvas Render(Document document)
+    public static RecordingSurface Render(Document document)
     {
-        RecordingCanvas canvas = new RecordingCanvas();
-        DocumentRenderer.Render(document, canvas, Measurer);
+        RecordingSurface canvas = new RecordingSurface();
+        Typesetter.Render(document, canvas, Measurer);
         return canvas;
     }
 }

@@ -109,7 +109,7 @@ public class FontFallbackTests
     [Fact]
     public void MixedScriptTextMeasuresWiderThanItsLatinPartAlone()
     {
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
         TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
 
         float latinOnly = measurer.MeasureWidth(Latin, style);
@@ -123,7 +123,7 @@ public class FontFallbackTests
     {
         // Measurement and drawing must split the string identically; if they disagreed, a fallback glyph would
         // land somewhere other than where its advance was reserved.
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
         TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
 
         float whole = measurer.MeasureWidth($"{Latin}{Cjk}", style);
@@ -140,7 +140,7 @@ public class FontFallbackTests
         using SkiaFontProvider provider = TestFonts.NewProvider();
         provider.FallbackFamilies.Add("Segoe UI");
 
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(provider);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(provider);
         TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
 
         Assert.True(measurer.MeasureWidth(Cjk, style) > 0);
@@ -149,7 +149,7 @@ public class FontFallbackTests
     [Fact]
     public void PurelyLatinTextIsUnaffected()
     {
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(SkiaFontProvider.Shared);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
         TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(16);
 
         // The fast path must produce exactly what a single-font measurement always did.
@@ -184,7 +184,7 @@ public class FontFallbackTests
         // The face found for the CJK characters has no Georgian, so the Georgian lookup must look past the
         // fallback already discovered for this style instead of settling for it.
         using SkiaFontProvider fonts = TestFonts.NewProvider();
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
 
         float whole = measurer.MeasureWidth(Cjk + Georgian, Sans);
         float parts = measurer.MeasureWidth(Cjk, Sans) + measurer.MeasureWidth(Georgian, Sans);
@@ -216,7 +216,7 @@ public class FontFallbackTests
         // still be measured with whatever it is drawn with.
         const string Unassigned = "͸";
         using SkiaFontProvider fonts = TestFonts.NewProvider();
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
 
         float whole = measurer.MeasureWidth($"A{Unassigned}B", Sans);
         float parts = measurer.MeasureWidth("A", Sans) + measurer.MeasureWidth(Unassigned, Sans) + measurer.MeasureWidth("B", Sans);

@@ -5,7 +5,7 @@ public class FlowControlTests
     [Fact]
     public void ShowIfHidesContentWhenFalse()
     {
-        WhenBlock element = new WhenBlock { Condition = false, Child = new FixedElement(50, 50) };
+        WhenBlock element = new WhenBlock { Condition = false, Child = new FixedBlock(50, 50) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -19,9 +19,9 @@ public class FlowControlTests
         // A hidden item must leave no trace. If it still counted as drawn content, the column would insert a
         // gap either side of nothing, and toggling a section on and off would shift the whole layout.
         StackBlock column = new StackBlock { Spacing = 10 };
-        column.Items.Add(new FixedElement(10, 20));
-        column.Items.Add(new WhenBlock { Condition = false, Child = new FixedElement(10, 50) });
-        column.Items.Add(new FixedElement(10, 20));
+        column.Items.Add(new FixedBlock(10, 20));
+        column.Items.Add(new WhenBlock { Condition = false, Child = new FixedBlock(10, 50) });
+        column.Items.Add(new FixedBlock(10, 20));
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 500));
 
@@ -34,9 +34,9 @@ public class FlowControlTests
     {
         // Unlike a hidden item, this one must still be drawn so its state advances — but it must not be spaced.
         StackBlock column = new StackBlock { Spacing = 10 };
-        column.Items.Add(new FixedElement(10, 20));
-        column.Items.Add(new SkipFirstBlock { Child = new FixedElement(10, 50) });
-        column.Items.Add(new FixedElement(10, 20));
+        column.Items.Add(new FixedBlock(10, 20));
+        column.Items.Add(new SkipFirstBlock { Child = new FixedBlock(10, 50) });
+        column.Items.Add(new FixedBlock(10, 20));
 
         Fit plan = LayoutHarness.Measure(column, new Extent(200, 500));
 
@@ -46,7 +46,7 @@ public class FlowControlTests
     [Fact]
     public void ShowIfKeepsContentWhenTrue()
     {
-        WhenBlock element = new WhenBlock { Condition = true, Child = new FixedElement(50, 50) };
+        WhenBlock element = new WhenBlock { Condition = true, Child = new FixedBlock(50, 50) };
 
         Assert.Single(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
@@ -54,7 +54,7 @@ public class FlowControlTests
     [Fact]
     public void ShowOnceDrawsOnlyTheFirstTime()
     {
-        OnceBlock element = new OnceBlock { Child = new FixedElement(50, 50) };
+        OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
 
         Assert.Single(LayoutHarness.Draw(element, space).Operations);
@@ -65,7 +65,7 @@ public class FlowControlTests
     public void ShowOnceSurvivesAPerPageReset()
     {
         // Headers are reset between pages; content marked "show once" must not reappear because of it.
-        OnceBlock element = new OnceBlock { Child = new FixedElement(50, 50) };
+        OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
 
         LayoutHarness.Draw(element, space);
@@ -77,7 +77,7 @@ public class FlowControlTests
     [Fact]
     public void ShowOnceReturnsAfterAFullReset()
     {
-        OnceBlock element = new OnceBlock { Child = new FixedElement(50, 50) };
+        OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
 
         LayoutHarness.Draw(element, space);
@@ -89,7 +89,7 @@ public class FlowControlTests
     [Fact]
     public void SkipOnceSuppressesOnlyTheFirstOccurrence()
     {
-        SkipFirstBlock element = new SkipFirstBlock { Child = new FixedElement(50, 50) };
+        SkipFirstBlock element = new SkipFirstBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
 
         Assert.Empty(LayoutHarness.Draw(element, space).Operations);
@@ -121,7 +121,7 @@ public class FlowControlTests
     [Fact]
     public void ShowIfMeasuresItsContentWhenTrue()
     {
-        WhenBlock element = new WhenBlock { Condition = true, Child = new FixedElement(50, 30) };
+        WhenBlock element = new WhenBlock { Condition = true, Child = new FixedBlock(50, 30) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -132,7 +132,7 @@ public class FlowControlTests
     [Fact]
     public void ShowOnceMeasuresItsContentUntilItHasRendered()
     {
-        OnceBlock element = new OnceBlock { Child = new FixedElement(50, 30) };
+        OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 30) };
         Extent space = new Extent(200, 200);
 
         Approximately.Equal(new Extent(50, 30), LayoutHarness.Measure(element, space).Size);
@@ -146,7 +146,7 @@ public class FlowControlTests
     public void SkipOnceSurvivesAPerPageReset()
     {
         // A "continued" marker in a header is reset with the header each page, but must not start skipping again.
-        SkipFirstBlock element = new SkipFirstBlock { Child = new FixedElement(50, 50) };
+        SkipFirstBlock element = new SkipFirstBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
 
         LayoutHarness.Draw(element, space);
@@ -158,7 +158,7 @@ public class FlowControlTests
     [Fact]
     public void SkipOnceSkipsAgainAfterAFullReset()
     {
-        SkipFirstBlock element = new SkipFirstBlock { Child = new FixedElement(50, 50) };
+        SkipFirstBlock element = new SkipFirstBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
 
         LayoutHarness.Draw(element, space);

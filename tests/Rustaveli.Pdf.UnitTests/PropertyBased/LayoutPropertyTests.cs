@@ -28,7 +28,7 @@ public class LayoutPropertyTests
         return (document, composer.WrittenText);
     }
 
-    private static string Drawn(RecordingCanvas canvas) =>
+    private static string Drawn(RecordingSurface canvas) =>
         string.Concat(canvas.Pages.SelectMany(page => page.Texts).Select(text => text.Text)).Replace(" ", string.Empty);
 
     private static string Sorted(string text) => new string(text.OrderBy(character => character).ToArray());
@@ -53,8 +53,8 @@ public class LayoutPropertyTests
     {
         TreeGenerator.Tree.Sample(tree =>
         {
-            RecordingCanvas first = LayoutHarness.Render(Build(tree).Document);
-            RecordingCanvas second = LayoutHarness.Render(Build(tree).Document);
+            RecordingSurface first = LayoutHarness.Render(Build(tree).Document);
+            RecordingSurface second = LayoutHarness.Render(Build(tree).Document);
 
             Assert.Equal(first.Pages.Count, second.Pages.Count);
             for (int index = 0; index < first.Pages.Count; index++)
@@ -67,7 +67,7 @@ public class LayoutPropertyTests
     {
         TreeGenerator.Tree.Sample(tree =>
         {
-            RecordingCanvas canvas = LayoutHarness.Render(Build(tree).Document);
+            RecordingSurface canvas = LayoutHarness.Render(Build(tree).Document);
 
             foreach (RecordedPage page in canvas.Pages)
             {

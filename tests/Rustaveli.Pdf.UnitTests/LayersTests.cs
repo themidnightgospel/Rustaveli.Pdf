@@ -9,7 +9,7 @@ public class LayersTests
         // so without a per-page reset it would be consumed on page one and trail off mid-word on page two.
         LayersBlock element = new LayersBlock();
 
-        Layer primary = new Layer { IsPrimary = true, Child = new SplittableElement(unitCount: 4, unitHeight: 20, width: 200) };
+        Layer primary = new Layer { IsPrimary = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 20, width: 200) };
         Layer overlay = new Layer();
         ((IFrame)overlay).Text("mark");
 
@@ -30,7 +30,7 @@ public class LayersTests
     {
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { Child = new PlaceholderBlock { Ink = TestInks.Red } });
-        element.Layers.Add(new Layer { IsPrimary = true, Child = new FixedElement(50, 20, TestInks.Black) });
+        element.Layers.Add(new Layer { IsPrimary = true, Child = new FixedBlock(50, 20, TestInks.Black) });
         element.Layers.Add(new Layer { Child = new PlaceholderBlock { Ink = TestInks.Blue } });
 
         Extent space = new Extent(200, 200);
@@ -41,7 +41,7 @@ public class LayersTests
 
         Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(50, 20), plan.Size);
-        Assert.Equal(backgroundContentOverlay, painted.Select(operation => operation.Color));
+        Assert.Equal(backgroundContentOverlay, painted.Select(operation => operation.Ink));
         Assert.All(painted, operation => Approximately.Equal(Offset.Zero, operation.Position));
     }
 
@@ -49,7 +49,7 @@ public class LayersTests
     public void WithoutAPrimaryLayerOccupiesNothing()
     {
         LayersBlock element = new LayersBlock();
-        element.Layers.Add(new Layer { Child = new FixedElement(50, 20) });
+        element.Layers.Add(new Layer { Child = new FixedBlock(50, 20) });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -63,7 +63,7 @@ public class LayersTests
     public void DrawsNoLayerWhenThePrimaryHasNothingToShow(FitKind outcome)
     {
         // A watermark without its page content would be a page of watermark alone.
-        ScriptedElement content = ScriptedElement.WithNothingToDraw(outcome);
+        ScriptedBlock content = ScriptedBlock.WithNothingToDraw(outcome);
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
         element.Layers.Add(new Layer { IsPrimary = true, Child = content });
@@ -79,7 +79,7 @@ public class LayersTests
     public void ThePrimaryLayerContinuesWhereItStopped()
     {
         // Only the decorating layers repeat; the content itself must not restart on every page.
-        SplittableElement content = new SplittableElement(unitCount: 4, unitHeight: 20);
+        SplittableBlock content = new SplittableBlock(unitCount: 4, unitHeight: 20);
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { IsPrimary = true, Child = content });
         element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
@@ -95,7 +95,7 @@ public class LayersTests
     [Fact]
     public void AFullResetRewindsThePrimaryLayer()
     {
-        SplittableElement content = new SplittableElement(unitCount: 4, unitHeight: 20);
+        SplittableBlock content = new SplittableBlock(unitCount: 4, unitHeight: 20);
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { IsPrimary = true, Child = content });
 

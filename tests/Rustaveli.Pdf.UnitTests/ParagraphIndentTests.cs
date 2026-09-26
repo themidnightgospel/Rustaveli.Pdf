@@ -4,7 +4,7 @@ namespace Rustaveli.Pdf.UnitTests;
 /// Regression cover for first-line indent and paragraph spacing.
 /// </summary>
 /// <remarks>
-/// Against <see cref="FakeTextMeasurer"/>: characters are 6pt wide and lines 12pt tall at the default size.
+/// Against <see cref="FakeTypeMeasurer"/>: characters are 6pt wide and lines 12pt tall at the default size.
 /// </remarks>
 public class ParagraphIndentTests
 {

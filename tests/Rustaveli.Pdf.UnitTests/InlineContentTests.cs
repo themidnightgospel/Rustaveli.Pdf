@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.UnitTests;
 /// Elements placed among the words of a paragraph.
 /// </summary>
 /// <remarks>
-/// Against <see cref="FakeTextMeasurer"/>: characters are 6pt wide and lines 12pt tall at the default size.
+/// Against <see cref="FakeTypeMeasurer"/>: characters are 6pt wide and lines 12pt tall at the default size.
 /// </remarks>
 public class InlineContentTests
 {
@@ -25,7 +25,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("before");
-            text.Inline(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
+            text.Inline(inline => inline.Child = new FixedBlock(20, 10, TestInks.Red));
             text.Run("after");
         });
 
@@ -42,7 +42,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedElement(20, 10));
+            text.Inline(inline => inline.Child = new FixedBlock(20, 10));
             text.Run("cd");
         });
 
@@ -59,7 +59,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedElement(20, 10));
+            text.Inline(inline => inline.Child = new FixedBlock(20, 10));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -73,7 +73,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedElement(20, 40));
+            text.Inline(inline => inline.Child = new FixedBlock(20, 40));
         });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
@@ -89,7 +89,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedElement(20, 4));
+            text.Inline(inline => inline.Child = new FixedBlock(20, 4));
         });
 
         Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
@@ -101,11 +101,11 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("ab");
-            text.Inline(inline => inline.Child = new FixedElement(20, 6, TestInks.Red));
+            text.Inline(inline => inline.Child = new FixedBlock(20, 6, TestInks.Red));
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
-        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
+        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
 
         // Baseline is 80% of the 12pt line; a 6pt element sits directly above it.
         Approximately.Equal(9.6f - 6f, block.Position.Y);
@@ -117,12 +117,12 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Run("aaaa");
-            text.Inline(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
+            text.Inline(inline => inline.Child = new FixedBlock(20, 10, TestInks.Red));
         });
 
         // 24pt of text plus a 20pt element exceeds 30pt, so the element wraps.
         RecordedPage page = LayoutHarness.Draw(element, new Extent(30, 500));
-        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
+        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
 
         Approximately.Equal(0f, block.Position.X);
         Assert.True(block.Position.Y > 0, "The element should have moved onto the second line.");
@@ -133,7 +133,7 @@ public class InlineContentTests
     {
         TextBlock element = new TextBlock();
         Frame container = new Frame();
-        container.Child = new FixedElement(20, 10);
+        container.Child = new FixedBlock(20, 10);
         element.Spans.Add(new Text.TextRun { InlineElement = container, Url = "https://example.com" });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
@@ -145,7 +145,7 @@ public class InlineContentTests
     public void InlineElementsAreResetBetweenPasses()
     {
         // The paragraph must expose them as children, or their pagination state would survive a new pass.
-        SplittableElement splittable = new SplittableElement(unitCount: 2, unitHeight: 10);
+        SplittableBlock splittable = new SplittableBlock(unitCount: 2, unitHeight: 10);
         TextBlock element = new TextBlock();
         Frame container = new Frame { Child = splittable };
         element.Spans.Add(new Text.TextRun { InlineElement = container });
@@ -255,7 +255,7 @@ public class InlineContentTests
         TextBlock element = Text(text =>
         {
             text.Line("aaa");
-            text.Inline(inline => inline.Child = new FixedElement(200, 20));
+            text.Inline(inline => inline.Child = new FixedBlock(200, 20));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(100, 200)).Operations);
@@ -266,7 +266,7 @@ public class InlineContentTests
     {
         TextBlock element = new TextBlock();
         element.Spans.Add(new Text.TextRun { Text = "ab" });
-        element.Spans.Add(new Text.TextRun { InlineElement = new Frame { Child = new FixedElement(20, 10) }, Destination = "intro" });
+        element.Spans.Add(new Text.TextRun { InlineElement = new Frame { Child = new FixedBlock(20, 10) }, Destination = "intro" });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());

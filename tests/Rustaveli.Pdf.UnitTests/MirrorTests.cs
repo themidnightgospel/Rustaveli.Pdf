@@ -1,0 +1,58 @@
+namespace Rustaveli.Pdf.UnitTests;
+
+public class MirrorTests
+{
+    [Fact]
+    public void FlippingDoesNotChangeTheReportedSize()
+    {
+        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = new FixedBlock(50, 20) };
+
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
+
+        Approximately.Equal(new Extent(50, 20), plan.Size);
+    }
+
+    [Fact]
+    public void HorizontalFlipMirrorsContentBackOverItsOwnBox()
+    {
+        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = new FixedBlock(50, 20) };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
+        RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        // Reflected about the box's right edge, the origin lands where the far corner was.
+        Approximately.Equal(50f, drawn.Position.X);
+    }
+
+    [Fact]
+    public void VerticalFlipMirrorsDownwards()
+    {
+        MirrorBlock element = new MirrorBlock { FlipVertical = true, Child = new FixedBlock(50, 20) };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
+        RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        Approximately.Equal(20f, drawn.Position.Y);
+    }
+
+    [Fact]
+    public void DrawsNothingWithoutContent()
+    {
+        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, FlipVertical = true };
+
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
+    }
+
+    [Theory]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
+    public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
+    {
+        ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
+        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = child };
+
+        LayoutHarness.Draw(element, new Extent(200, 200));
+
+        Assert.Empty(child.DrawnWith);
+    }
+}

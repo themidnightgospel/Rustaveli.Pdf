@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// <summary>
 /// Builds a table: its columns, body cells and optional repeating header and footer bands.
 /// </summary>
-public sealed class TableComposer(TableElement element)
+public sealed class TableComposer(TableBlock element)
 {
     public void Columns(Action<TableColumns> handler)
     {

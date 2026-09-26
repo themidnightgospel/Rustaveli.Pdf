@@ -83,8 +83,8 @@ public static class PdfExport
     {
         SKDocumentPdfMetadata metadata = BuildMetadata(document.Info, options);
         using SKDocument sKDocument = SKDocument.CreatePdf(stream, metadata) ?? throw new InvalidOperationException("Skia could not create a PDF document for the supplied stream.");
-        using SkiaPdfCanvas canvas = new SkiaPdfCanvas(sKDocument, fonts);
-        DocumentRenderer.Render(document, canvas, new SkiaTextMeasurer(fonts));
+        using SkiaPdfSurface canvas = new SkiaPdfSurface(sKDocument, fonts);
+        Typesetter.Render(document, canvas, new SkiaTypeMeasurer(fonts));
         sKDocument.Close();
     }
 

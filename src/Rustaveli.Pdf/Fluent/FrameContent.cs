@@ -56,7 +56,7 @@ public static class FrameContent
     public static void Table(this IFrame parent, Action<TableComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler, "handler");
-        TableElement element = FrameAttachment.Attach(parent, new TableElement());
+        TableBlock element = FrameAttachment.Attach(parent, new TableBlock());
         TableComposer tableDescriptor = new TableComposer(element);
         handler(tableDescriptor);
         tableDescriptor.PlaceAutomaticCells();

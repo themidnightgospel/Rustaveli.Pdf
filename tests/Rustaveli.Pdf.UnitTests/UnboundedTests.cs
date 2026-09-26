@@ -1,0 +1,94 @@
+namespace Rustaveli.Pdf.UnitTests;
+
+public class UnboundedTests
+{
+    [Fact]
+    public void ReportsNoSizeToItsParent()
+    {
+        UnboundedBlock element = new UnboundedBlock { Child = new FixedBlock(500, 500) };
+
+        Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
+
+        Approximately.Equal(Extent.Zero, plan.Size);
+        Assert.True(plan.IsComplete);
+    }
+
+    [Fact]
+    public void DrawsContentLargerThanTheSpaceOffered()
+    {
+        UnboundedBlock element = new UnboundedBlock { Child = new FixedBlock(500, 500) };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 50));
+        RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        Approximately.Equal(new Extent(500, 500), drawn.Size);
+    }
+
+    [Fact]
+    public void WithoutContentOccupiesNothing()
+    {
+        UnboundedBlock element = new UnboundedBlock();
+
+        Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
+
+        Assert.True(plan.IsComplete);
+        Approximately.Equal(Extent.Zero, plan.Size);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(50, 50)).Operations);
+    }
+
+    [Fact]
+    public void ReportsEmptyForAnExhaustedChild()
+    {
+        UnboundedBlock element = new UnboundedBlock { Child = new ScriptedBlock(Fit.Nothing()) };
+
+        Assert.True(LayoutHarness.Measure(element, new Extent(50, 50)).IsNothing);
+    }
+
+    [Fact]
+    public void PassesOnContentLargerThanTheLargestPage()
+    {
+        // Unbounded space still stops at the largest page PDF allows; content beyond it must be reported.
+        FixedBlock child = new FixedBlock(20_000, 10);
+        UnboundedBlock element = new UnboundedBlock { Child = child };
+
+        Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
+
+        Assert.Equal(LayoutHarness.Measure(child, Extent.Max), plan);
+    }
+
+    [Fact]
+    public void RefusesContentThatWouldSplitEvenOnTheLargestPage()
+    {
+        // 20,000pt of units against a 14,400pt ceiling: the remainder would have nowhere to go.
+        UnboundedBlock element = new UnboundedBlock { Child = new SplittableBlock(unitCount: 1_000, unitHeight: 20) };
+
+        Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
+
+        Assert.True(plan.IsDeferred);
+        Assert.Contains("maximum page size", plan.DeferReason);
+    }
+
+    [Theory]
+    [InlineData(FitKind.Defer)]
+    [InlineData(FitKind.Nothing)]
+    public void DoesNotAskAChildWithNothingToShowToDraw(FitKind outcome)
+    {
+        ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
+        UnboundedBlock element = new UnboundedBlock { Child = child };
+
+        LayoutHarness.Draw(element, new Extent(50, 50));
+
+        Assert.Empty(child.DrawnWith);
+    }
+
+    [Fact]
+    public void DrawsTheChildIntoTheSizeItMeasuredUnbounded()
+    {
+        ScriptedBlock child = new ScriptedBlock(Fit.Complete(300, 120));
+        UnboundedBlock element = new UnboundedBlock { Child = child };
+
+        LayoutHarness.Draw(element, new Extent(50, 50));
+
+        Approximately.Equal(new Extent(300, 120), Assert.Single(child.DrawnWith));
+    }
+}

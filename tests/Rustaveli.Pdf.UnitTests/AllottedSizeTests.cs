@@ -9,10 +9,10 @@ public class AllottedSizeTests
     private static readonly Ink Marker = TestInks.Red;
 
     private static void Box(IFrame container, float width, float height, Ink? color = null) =>
-        FrameAttachment.Attach(container, color is null ? new FixedElement(width, height) : new FixedElement(width, height, color.Value));
+        FrameAttachment.Attach(container, color is null ? new FixedBlock(width, height) : new FixedBlock(width, height, color.Value));
 
     private static RectangleOperation MarkerRectangle(RecordedPage page) =>
-        page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == Marker);
+        page.Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == Marker);
 
     [Fact]
     public void ABackgroundInAColumnItemSpansTheColumnWidthAtTheItemsHeight()
@@ -56,7 +56,7 @@ public class AllottedSizeTests
             }),
             new Extent(200, 300));
 
-        List<RectangleOperation> bands = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == Marker).ToList();
+        List<RectangleOperation> bands = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Ink == Marker).ToList();
         RectangleOperation right = bands.Single(band => band.Position.X > 0 && band.Size.Width < 2);
         RectangleOperation bottom = bands.Single(band => band.Position.Y > 0 && band.Size.Height < 2);
 
@@ -93,7 +93,7 @@ public class AllottedSizeTests
             new Extent(200, 300));
 
         RectangleOperation before = MarkerRectangle(page);
-        RectangleOperation after = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == TestInks.Blue);
+        RectangleOperation after = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Blue);
 
         Approximately.Equal(new Extent(200, 10), before.Size);
         Approximately.Equal(new Extent(200, 10), after.Size);
