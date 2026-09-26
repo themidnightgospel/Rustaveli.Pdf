@@ -22,11 +22,32 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
+  # Sharded by source area: one job over the whole engine needs roughly four hours on a hosted runner. Each shard
+  # must clear the 80% floor on its own, which is stricter than a single overall score. Shards are sized from the
+  # mutant counts of the last full run; rebalance them when an area grows.
   mutation:
-    name: mutation testing (Stryker, break < 80%)
+    name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - name: text-and-table
+            mutate: --mutate "**/Elements/TextElement.cs" --mutate "**/Elements/TableElement.cs"
+          - name: elements-a-l
+            mutate: --mutate "**/Elements/[A-L]*.cs"
+          - name: elements-m-z-layout-text
+            mutate: >-
+              --mutate "**/Elements/[M-Z]*.cs" --mutate "!**/Elements/TextElement.cs"
+              --mutate "!**/Elements/TableElement.cs" --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs"
+          - name: primitives
+            mutate: --mutate "**/Primitives/**/*.cs"
+          - name: fluent-documents-drawing
+            mutate: >-
+              --mutate "**/Fluent/**/*.cs" --mutate "**/Documents/**/*.cs" --mutate "**/Drawing/**/*.cs"
+              --mutate "**/Exceptions/**/*.cs"
     steps:
       - uses: actions/checkout@v4
 
@@ -42,8 +63,9 @@ jobs:
 
       - run: dotnet tool restore
 
+      # Four test runners: the hosted runner has four cores, and Stryker's default of half the cores leaves two idle.
       - name: Mutation testing
-        run: dotnet stryker --config-file stryker-config.json
+        run: dotnet stryker --config-file stryker-config.json --concurrency 4 ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
         if: always()
@@ -54,7 +76,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: mutation-report
+          name: mutation-report-${{ matrix.shard.name }}
           path: StrykerOutput/**/reports
           retention-days: 14
 
