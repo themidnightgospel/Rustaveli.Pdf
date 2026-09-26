@@ -40,32 +40,19 @@ public sealed record TextStyle
     /// <summary>
     /// The font size actually rendered, shrunk for sub- and superscript runs.
     /// </summary>
-    public float EffectiveFontSize => (Position == FontPosition.Normal) ? FontSize : (FontSize * 0.58f);
+    public float EffectiveFontSize => Position == FontPosition.Normal ? FontSize : FontSize * SubscriptScale;
 
     /// <summary>
     /// How far the baseline shifts for this run, positive downwards.
     /// </summary>
-    public float BaselineOffset
+    public float BaselineOffset => Position switch
     {
-        get
-        {
-            FontPosition position = Position;
-            if (1 == 0)
-            {
-            }
-            float result = position switch
-            {
-                FontPosition.Subscript => FontSize * 0.16f, 
-                FontPosition.Superscript => (0f - FontSize) * 0.33f, 
-                _ => 0f, 
-            };
-            if (1 == 0)
-            {
-            }
-            return result;
-        }
-    }
+        FontPosition.Subscript => FontSize * SubscriptOffsetRatio,
+        FontPosition.Superscript => -FontSize * SuperscriptOffsetRatio,
+        _ => 0f
+    };
 
+    /// <summary>Sub- and superscript runs are set at this fraction of the surrounding font size.</summary>
     private const float SubscriptScale = 0.58f;
 
     private const float SubscriptOffsetRatio = 0.16f;

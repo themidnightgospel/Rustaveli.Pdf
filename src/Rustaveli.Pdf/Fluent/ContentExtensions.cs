@@ -22,10 +22,7 @@ public static class ContentExtensions
     /// <summary>Adds a paragraph consisting of a single unstyled run.</summary>
     public static void Text(this IContainer parent, string text)
     {
-        parent.Text(delegate(TextDescriptor descriptor)
-        {
-            descriptor.Span(text);
-        });
+        parent.Text(descriptor => descriptor.Span(text));
     }
 
     /// <summary>Adds an image scaled according to <paramref name="fit" />.</summary>
