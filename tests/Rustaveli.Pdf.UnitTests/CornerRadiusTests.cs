@@ -6,7 +6,7 @@ public class CornerRadiusTests
     public void BackgroundDrawsARoundedShapeWhenGivenARadius()
     {
         Block root = LayoutHarness.Build(container => container
-            .Background(TestInks.Red).CornerRadius(6)
+            .Fill(TestInks.Red).RoundCorners(6)
             .Element(inner => inner.Child = new FixedElement(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
@@ -20,7 +20,7 @@ public class CornerRadiusTests
     public void BackgroundStaysSquareWithoutARadius()
     {
         Block root = LayoutHarness.Build(container => container
-            .Background(TestInks.Red)
+            .Fill(TestInks.Red)
             .Element(inner => inner.Child = new FixedElement(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
@@ -33,7 +33,7 @@ public class CornerRadiusTests
     public void RoundedBorderIsStrokedRatherThanFilled()
     {
         Block root = LayoutHarness.Build(container => container
-            .Border(2).CornerRadius(4)
+            .Stroke(2).RoundCorners(4)
             .Element(inner => inner.Child = new FixedElement(50, 20, TestInks.White)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 200));
@@ -63,6 +63,6 @@ public class CornerRadiusTests
     public void RejectsCornerRadiusWithoutABackgroundOrBorder()
     {
         Assert.Throws<InvalidOperationException>(() =>
-            LayoutHarness.Build(container => container.Padding(5).CornerRadius(4)));
+            LayoutHarness.Build(container => container.Inset(5).RoundCorners(4)));
     }
 }

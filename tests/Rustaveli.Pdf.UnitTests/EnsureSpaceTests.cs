@@ -56,7 +56,7 @@ public class EnsureSpaceTests
             page.Content().Column(column =>
             {
                 column.Item().Element(inner => inner.Child = new FixedElement(10, 70, TestInks.Blue));
-                column.Item().EnsureSpace(50).Element(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
+                column.Item().RequireSpace(50).Element(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
             });
         }));
 

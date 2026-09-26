@@ -104,7 +104,7 @@ public class ContentExtensionsTests
     [Fact]
     public void ComposesAComponentIntoTheContainer()
     {
-        Block root = LayoutHarness.Build(container => container.Padding(5).Component(new CaptionComponent("Total")));
+        Block root = LayoutHarness.Build(container => container.Inset(5).Component(new CaptionComponent("Total")));
 
         TextOperation text = Assert.Single(LayoutHarness.Draw(root, Space).Texts);
 

@@ -102,9 +102,9 @@ public class LinkTests
             page.Size = new Extent(200, 100);
             page.Content().Column(column =>
             {
-                column.Item().SectionLink("appendix").Text("See the appendix");
-                column.Item().PageBreak();
-                column.Item().Section("appendix").Text("Appendix");
+                column.Item().CrossReference("appendix").Text("See the appendix");
+                column.Item().NewPage();
+                column.Item().Anchor("appendix").Text("Appendix");
             });
         }));
 

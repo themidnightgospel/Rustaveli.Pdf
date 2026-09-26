@@ -217,7 +217,7 @@ public class InlineContentTests
             page.Content().Text(text =>
             {
                 text.Span("An icon ");
-                text.Element(inline => inline.Width(10).Height(10).AlignMiddle());
+                text.Element(inline => inline.Width(10).Height(10).Middle());
                 text.Span(" follows.");
             });
         }));
@@ -237,7 +237,7 @@ public class InlineContentTests
             page.Content().Text(text =>
             {
                 text.Span("An icon ");
-                text.Element(inline => inline.AlignMiddle().Width(10).Height(10));
+                text.Element(inline => inline.Middle().Width(10).Height(10));
             });
         }));
 

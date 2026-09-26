@@ -99,7 +99,7 @@ public class AlignmentTests
     public void CombinesBothAxesIntoOneElement()
     {
         // Chaining must not nest two aligners, or the inner one would receive an already-collapsed box.
-        Block root = LayoutHarness.Build(container => container.AlignRight().AlignMiddle().Element(inner =>
+        Block root = LayoutHarness.Build(container => container.FlushRight().Middle().Element(inner =>
             inner.Child = new FixedElement(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));

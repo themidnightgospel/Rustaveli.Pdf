@@ -68,7 +68,7 @@ public sealed class TextComposer(TextBlock element)
     }
 
     /// <summary>Appends text that opens an external URL when clicked.</summary>
-    public RunComposer Hyperlink(string text, string url)
+    public RunComposer Link(string text, string url)
     {
         return Add(new TextRun
         {
@@ -78,7 +78,7 @@ public sealed class TextComposer(TextBlock element)
     }
 
     /// <summary>Appends text that jumps to a named section when clicked.</summary>
-    public RunComposer SectionLink(string text, string sectionName)
+    public RunComposer CrossReference(string text, string sectionName)
     {
         return Add(new TextRun
         {
@@ -120,23 +120,23 @@ public sealed class TextComposer(TextBlock element)
         element.ParagraphSpacing = spacing;
     }
 
-    public void AlignLeft()
+    public void FlushLeft()
     {
         element.Alignment = HorizontalPlacement.Left;
     }
 
-    public void AlignCenter()
+    public void Centered()
     {
         element.Alignment = HorizontalPlacement.Center;
     }
 
-    public void AlignRight()
+    public void FlushRight()
     {
         element.Alignment = HorizontalPlacement.Right;
     }
 
     /// <summary>Adjusts the style inherited by every span in this paragraph.</summary>
-    public void DefaultTextStyle(Func<TypeStyle, TypeStyle> refinement)
+    public void DefaultType(Func<TypeStyle, TypeStyle> refinement)
     {
         Func<TypeStyle, TypeStyle>? previous = element.DefaultStyleOverride;
 

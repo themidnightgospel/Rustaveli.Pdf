@@ -43,9 +43,9 @@ public class PerformanceReportTests(ITestOutputHelper output)
 
                 for (int index = 0; index < rowCount; index++)
                 {
-                    table.Cell().Padding(2).Text($"SKU-{index:D4}");
-                    table.Cell().Padding(2).Text($"Description for row {index}");
-                    table.Cell().Padding(2).Text($"{index * 3.25m:F2}");
+                    table.Cell().Inset(2).Text($"SKU-{index:D4}");
+                    table.Cell().Inset(2).Text($"Description for row {index}");
+                    table.Cell().Inset(2).Text($"{index * 3.25m:F2}");
                 }
             });
         }));

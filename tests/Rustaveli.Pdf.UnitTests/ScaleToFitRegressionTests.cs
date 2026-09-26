@@ -21,7 +21,7 @@ public class ScaleToFitRegressionTests
         Document document = Document.Create(container => container.Page(page =>
         {
             page.Size = new Extent(200, 100);
-            page.Content().ScaleToFit().Element(inner => inner.Child = new SplittableElement(unitCount: 40, unitHeight: 20));
+            page.Content().ShrinkToFit().Element(inner => inner.Child = new SplittableElement(unitCount: 40, unitHeight: 20));
         }));
 
         RecordingCanvas canvas = LayoutHarness.Render(document);

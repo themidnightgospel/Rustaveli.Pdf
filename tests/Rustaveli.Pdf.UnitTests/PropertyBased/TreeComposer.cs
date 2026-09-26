@@ -59,15 +59,15 @@ public sealed class TreeComposer
                 break;
 
             case NodeKind.Padding:
-                Compose(container.Padding(node.Amount), node.Children[0]);
+                Compose(container.Inset(node.Amount), node.Children[0]);
                 break;
 
             case NodeKind.Background:
-                Compose(container.Background(TestInks.GreyLighten3), node.Children[0]);
+                Compose(container.Fill(TestInks.GreyLighten3), node.Children[0]);
                 break;
 
             case NodeKind.Border:
-                Compose(container.Border(1).BorderColor(TestInks.Grey), node.Children[0]);
+                Compose(container.Stroke(1).StrokeInk(TestInks.Grey), node.Children[0]);
                 break;
 
             default:

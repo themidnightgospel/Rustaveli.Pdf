@@ -297,7 +297,7 @@ public class TableElementTests
         {
             descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
 
-            descriptor.Header(header => header.Cell().SkipOnce().Text("continued"));
+            descriptor.Header(header => header.Cell().SkipFirst().Text("continued"));
 
             for (int index = 0; index < 4; index++)
                 Fill(descriptor.Cell(), 1, 30);

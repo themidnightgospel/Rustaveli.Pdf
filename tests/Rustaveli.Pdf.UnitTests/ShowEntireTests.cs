@@ -41,7 +41,7 @@ public class ShowEntireTests
             page.Content().Column(column =>
             {
                 column.Item().Element(inner => inner.Child = new FixedElement(10, 60));
-                column.Item().ShowEntire().Element(inner => inner.Child = new FixedElement(10, 60));
+                column.Item().KeepTogether().Element(inner => inner.Child = new FixedElement(10, 60));
             });
         }));
 

@@ -202,7 +202,7 @@ public class DocumentGeneratorTests
                 {
                     container.Child = new FixedElement(10f, 10f);
                 });
-                column.Item().PageBreak();
+                column.Item().NewPage();
                 column.Item().Element(delegate(IFrame container)
                 {
                     container.Child = new FixedElement(10f, 10f);
@@ -338,7 +338,7 @@ public class DocumentGeneratorTests
                 {
                     container.Child = new SplittableElement(3, 150f);
                 });
-                column.Item().Section("end").Element(delegate(IFrame container)
+                column.Item().Anchor("end").Element(delegate(IFrame container)
                 {
                     container.Child = new FixedElement(10f, 10f);
                 });
@@ -404,7 +404,7 @@ public class DocumentGeneratorTests
                 {
                     inner.Child = new SplittableElement(4, 150f);
                 });
-                column.Item().Section("summary").Element(delegate(IFrame inner)
+                column.Item().Anchor("summary").Element(delegate(IFrame inner)
                 {
                     inner.Child = new FixedElement(10f, 10f);
                 });
@@ -577,7 +577,7 @@ public class DocumentGeneratorTests
         {
             page.Size = new Extent(200, 100);
             page.Margin = Sides.Symmetric(horizontal: 0, vertical: 10);
-            page.Header().ExtendVertical().Text("Title");
+            page.Header().ExpandVertically().Text("Title");
             page.Content().Text("Body");
         });
 
@@ -790,7 +790,7 @@ public class DocumentGeneratorTests
         Document document = Build(page =>
         {
             page.Size = new Extent(200, 200);
-            page.Header().ShowOnce().Element(container => container.Child = new FixedElement(50, 20, TestInks.Red));
+            page.Header().Once().Element(container => container.Child = new FixedElement(50, 20, TestInks.Red));
             page.Content().Element(container => container.Child = new SplittableElement(3, 150f));
         });
 

@@ -64,7 +64,7 @@ public class ParagraphIndentTests
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
-            text.AlignCenter();
+            text.Centered();
             text.Span("aaaaaaa");
         });
 
@@ -79,7 +79,7 @@ public class ParagraphIndentTests
         TextBlock element = Text(text =>
         {
             text.FirstLineIndent(20);
-            text.AlignRight();
+            text.FlushRight();
             text.Span("aaaaaaa");
         });
 
@@ -147,7 +147,7 @@ public class ParagraphIndentTests
         TextBlock element = Text(text =>
         {
             text.Span("Fig.");
-            text.Hyperlink(" ", "https://example.com");
+            text.Link(" ", "https://example.com");
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));

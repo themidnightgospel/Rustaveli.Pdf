@@ -169,7 +169,7 @@ public class TextElementTests
     {
         TextBlock element = Text(text =>
         {
-            text.DefaultTextStyle(style => style.FontSizeOf(40));
+            text.DefaultType(style => style.FontSizeOf(40));
             text.Line("A");
             text.EmptyLine();
             text.Line("B");
@@ -258,7 +258,7 @@ public class TextElementTests
     {
         TextBlock element = Text(text =>
         {
-            text.DefaultTextStyle(style => style.FontSizeOf(24));
+            text.DefaultType(style => style.FontSizeOf(24));
             text.Span("Hi");
         });
 
@@ -317,7 +317,7 @@ public class TextElementTests
     [Fact]
     public void MarksHyperlinkSpansAsClickable()
     {
-        TextBlock element = Text(text => text.Hyperlink("click", "https://example.com"));
+        TextBlock element = Text(text => text.Link("click", "https://example.com"));
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         ExternalLinkOperation link = Assert.Single(page.Operations.OfType<ExternalLinkOperation>());
@@ -413,7 +413,7 @@ public class TextElementTests
         TextBlock element = Text(text =>
         {
             text.Span("go ");
-            text.Hyperlink("here", "https://example.com");
+            text.Link("here", "https://example.com");
         });
 
         ExternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<ExternalLinkOperation>());
@@ -428,7 +428,7 @@ public class TextElementTests
         TextBlock element = Text(text =>
         {
             text.Span("go ");
-            text.SectionLink("here", "intro");
+            text.CrossReference("here", "intro");
         });
 
         InternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 500)).Operations.OfType<InternalLinkOperation>());

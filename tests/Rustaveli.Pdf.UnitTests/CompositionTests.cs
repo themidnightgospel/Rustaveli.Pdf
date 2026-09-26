@@ -8,10 +8,10 @@ public class CompositionTests
     public void RefusesToReplaceContentAlreadyInTheContainer()
     {
         Frame container = new Frame();
-        container.Padding(5);
+        container.Inset(5);
 
         CompositionException exception = Assert.Throws<CompositionException>(() =>
-            container.Background(TestInks.Red));
+            container.Fill(TestInks.Red));
 
         // Both types are named so the message points at the two pieces of composition that collided.
         Assert.Contains("This frame already holds InsetBlock and cannot also hold FillBlock", exception.Message);
@@ -23,7 +23,7 @@ public class CompositionTests
     public void RefusesAMissingContainer()
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
-            FrameModifiers.Padding(null!, 5));
+            FrameModifiers.Inset(null!, 5));
 
         Assert.Equal("parent", exception.ParamName);
     }
@@ -33,7 +33,7 @@ public class CompositionTests
     {
         Frame container = new Frame();
 
-        IFrame next = container.Padding(5);
+        IFrame next = container.Inset(5);
 
         Assert.Same(container.Child, next);
     }

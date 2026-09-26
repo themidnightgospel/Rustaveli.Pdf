@@ -10,7 +10,7 @@ namespace Rustaveli.Pdf.Fluent;
 /// </summary>
 /// <remarks>
 /// Most methods attach one element to the container they are called on and return that element as the next
-/// container, so a chain such as <c>.Padding(10).Background(...)</c> nests rather than accumulating flags. The
+/// container, so a chain such as <c>.Inset(10).Fill(...)</c> nests rather than accumulating flags. The
 /// exceptions are the configurators — <c>BorderColor</c> and <c>CornerRadius</c> — which attach nothing and
 /// return the element they just adjusted, and the alignment methods, which fold into an adjacent empty aligner.
 /// </remarks>
@@ -21,54 +21,54 @@ public static class FrameModifiers
 
     // ---- Padding -------------------------------------------------------------------------------------------
 
-    public static IFrame Padding(this IFrame parent, float value) =>
+    public static IFrame Inset(this IFrame parent, float value) =>
         Attach(parent, new InsetBlock { Padding = Sides.All(value) });
 
-    public static IFrame PaddingHorizontal(this IFrame parent, float value) =>
+    public static IFrame InsetHorizontal(this IFrame parent, float value) =>
         Attach(parent, new InsetBlock { Padding = Sides.Symmetric(value, 0) });
 
-    public static IFrame PaddingVertical(this IFrame parent, float value) =>
+    public static IFrame InsetVertical(this IFrame parent, float value) =>
         Attach(parent, new InsetBlock { Padding = Sides.Symmetric(0, value) });
 
-    public static IFrame PaddingLeft(this IFrame parent, float value) =>
+    public static IFrame InsetLeft(this IFrame parent, float value) =>
         Attach(parent, new InsetBlock { Padding = Sides.Zero.WithLeft(value) });
 
-    public static IFrame PaddingRight(this IFrame parent, float value) =>
+    public static IFrame InsetRight(this IFrame parent, float value) =>
         Attach(parent, new InsetBlock { Padding = Sides.Zero.WithRight(value) });
 
-    public static IFrame PaddingTop(this IFrame parent, float value) =>
+    public static IFrame InsetTop(this IFrame parent, float value) =>
         Attach(parent, new InsetBlock { Padding = Sides.Zero.WithTop(value) });
 
-    public static IFrame PaddingBottom(this IFrame parent, float value) =>
+    public static IFrame InsetBottom(this IFrame parent, float value) =>
         Attach(parent, new InsetBlock { Padding = Sides.Zero.WithBottom(value) });
 
     // ---- Painting ------------------------------------------------------------------------------------------
 
-    public static IFrame Background(this IFrame parent, Ink color) =>
+    public static IFrame Fill(this IFrame parent, Ink color) =>
         Attach(parent, new FillBlock { Color = color });
 
-    public static IFrame Background(this IFrame parent, string hexColor) =>
-        parent.Background(Ink.Hex(hexColor));
+    public static IFrame Fill(this IFrame parent, string hexColor) =>
+        parent.Fill(Ink.Hex(hexColor));
 
-    public static IFrame Border(this IFrame parent, float width) =>
+    public static IFrame Stroke(this IFrame parent, float width) =>
         Attach(parent, new StrokeBlock { Width = Sides.All(width) });
 
-    public static IFrame BorderLeft(this IFrame parent, float width) =>
+    public static IFrame StrokeLeft(this IFrame parent, float width) =>
         Attach(parent, new StrokeBlock { Width = Sides.Zero.WithLeft(width) });
 
-    public static IFrame BorderRight(this IFrame parent, float width) =>
+    public static IFrame StrokeRight(this IFrame parent, float width) =>
         Attach(parent, new StrokeBlock { Width = Sides.Zero.WithRight(width) });
 
-    public static IFrame BorderTop(this IFrame parent, float width) =>
+    public static IFrame StrokeTop(this IFrame parent, float width) =>
         Attach(parent, new StrokeBlock { Width = Sides.Zero.WithTop(width) });
 
-    public static IFrame BorderBottom(this IFrame parent, float width) =>
+    public static IFrame StrokeBottom(this IFrame parent, float width) =>
         Attach(parent, new StrokeBlock { Width = Sides.Zero.WithBottom(width) });
 
     /// <summary>
     /// Sets the colour of the nearest enclosing border. Must follow one of the border methods.
     /// </summary>
-    public static IFrame BorderColor(this IFrame parent, Ink color)
+    public static IFrame StrokeInk(this IFrame parent, Ink color)
     {
         if (parent is not StrokeBlock border)
             throw new InvalidOperationException("BorderColor must be applied directly after a Border method.");
@@ -77,13 +77,13 @@ public static class FrameModifiers
         return border;
     }
 
-    public static IFrame BorderColor(this IFrame parent, string hexColor) =>
-        parent.BorderColor(Ink.Hex(hexColor));
+    public static IFrame StrokeInk(this IFrame parent, string hexColor) =>
+        parent.StrokeInk(Ink.Hex(hexColor));
 
     /// <summary>
     /// Rounds the corners of the nearest enclosing background or border. Must follow one of those methods.
     /// </summary>
-    public static IFrame CornerRadius(this IFrame parent, float radius) => parent switch
+    public static IFrame RoundCorners(this IFrame parent, float radius) => parent switch
     {
         FillBlock background => Assign(background, radius),
         StrokeBlock border => Assign(border, radius),
@@ -131,55 +131,55 @@ public static class FrameModifiers
     public static IFrame MaxHeight(this IFrame parent, float value) =>
         Attach(parent, new ConstraintBlock { MaxHeight = value });
 
-    public static IFrame Extend(this IFrame parent) =>
+    public static IFrame Expand(this IFrame parent) =>
         Attach(parent, new ExpandBlock { ExtendHorizontal = true, ExtendVertical = true });
 
-    public static IFrame ExtendHorizontal(this IFrame parent) =>
+    public static IFrame ExpandHorizontally(this IFrame parent) =>
         Attach(parent, new ExpandBlock { ExtendHorizontal = true });
 
-    public static IFrame ExtendVertical(this IFrame parent) =>
+    public static IFrame ExpandVertically(this IFrame parent) =>
         Attach(parent, new ExpandBlock { ExtendVertical = true });
 
-    public static IFrame AspectRatio(this IFrame parent, float ratio, ProportionFit option = ProportionFit.FitWidth) =>
+    public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit option = ProportionFit.FitWidth) =>
         Attach(parent, new ProportionBlock { Ratio = ratio, Option = option });
 
     /// <summary>Shrinks the content just enough to fit the space available.</summary>
-    public static IFrame ScaleToFit(this IFrame parent, float minScale = 0.25f) =>
+    public static IFrame ShrinkToFit(this IFrame parent, float minScale = 0.25f) =>
         Attach(parent, new ShrinkToFitBlock { MinScale = minScale });
 
     /// <summary>Mirrors the content left to right.</summary>
-    public static IFrame FlipHorizontal(this IFrame parent) =>
+    public static IFrame MirrorHorizontal(this IFrame parent) =>
         Attach(parent, new MirrorBlock { FlipHorizontal = true });
 
     /// <summary>Mirrors the content top to bottom.</summary>
-    public static IFrame FlipVertical(this IFrame parent) =>
+    public static IFrame MirrorVertical(this IFrame parent) =>
         Attach(parent, new MirrorBlock { FlipVertical = true });
 
     /// <summary>Mirrors the content on both axes, equivalent to a half turn.</summary>
-    public static IFrame FlipOver(this IFrame parent) =>
+    public static IFrame MirrorBoth(this IFrame parent) =>
         Attach(parent, new MirrorBlock { FlipHorizontal = true, FlipVertical = true });
 
     // ---- Alignment -----------------------------------------------------------------------------------------
 
-    public static IFrame AlignLeft(this IFrame parent) => Align(parent, horizontal: HorizontalPlacement.Left);
+    public static IFrame FlushLeft(this IFrame parent) => Place(parent, horizontal: HorizontalPlacement.Left);
 
-    public static IFrame AlignCenter(this IFrame parent) => Align(parent, horizontal: HorizontalPlacement.Center);
+    public static IFrame Centered(this IFrame parent) => Place(parent, horizontal: HorizontalPlacement.Center);
 
-    public static IFrame AlignRight(this IFrame parent) => Align(parent, horizontal: HorizontalPlacement.Right);
+    public static IFrame FlushRight(this IFrame parent) => Place(parent, horizontal: HorizontalPlacement.Right);
 
-    public static IFrame AlignTop(this IFrame parent) => Align(parent, vertical: VerticalPlacement.Top);
+    public static IFrame FlushTop(this IFrame parent) => Place(parent, vertical: VerticalPlacement.Top);
 
-    public static IFrame AlignMiddle(this IFrame parent) => Align(parent, vertical: VerticalPlacement.Middle);
+    public static IFrame Middle(this IFrame parent) => Place(parent, vertical: VerticalPlacement.Middle);
 
-    public static IFrame AlignBottom(this IFrame parent) => Align(parent, vertical: VerticalPlacement.Bottom);
+    public static IFrame FlushBottom(this IFrame parent) => Place(parent, vertical: VerticalPlacement.Bottom);
 
     /// <summary>
-    /// Reuses an adjacent alignment element when one is already present, so that <c>.AlignRight().AlignMiddle()</c>
+    /// Reuses an adjacent alignment element when one is already present, so that <c>.FlushRight().Middle()</c>
     /// aligns on both axes instead of nesting two elements that each claim the full space.
     /// </summary>
-    private static IFrame Align(IFrame parent, HorizontalPlacement? horizontal = null, VerticalPlacement? vertical = null)
+    private static IFrame Place(IFrame parent, HorizontalPlacement? horizontal = null, VerticalPlacement? vertical = null)
     {
-        // Only fold into an aligner that is still empty. Once it has content, `.AlignRight()` on the same slot
+        // Only fold into an aligner that is still empty. Once it has content, `.FlushRight()` on the same slot
         // is a second, separate piece of composition and must not quietly replace the first.
         if (parent is PlacementBlock existing && existing.Child is null)
         {
@@ -193,10 +193,10 @@ public static class FrameModifiers
 
     // ---- Transforms ----------------------------------------------------------------------------------------
 
-    public static IFrame TranslateX(this IFrame parent, float value) =>
+    public static IFrame ShiftAcross(this IFrame parent, float value) =>
         Attach(parent, new ShiftBlock { Offset = new Offset(value, 0) });
 
-    public static IFrame TranslateY(this IFrame parent, float value) =>
+    public static IFrame ShiftDown(this IFrame parent, float value) =>
         Attach(parent, new ShiftBlock { Offset = new Offset(0, value) });
 
     public static IFrame Scale(this IFrame parent, float factor) =>
@@ -206,43 +206,43 @@ public static class FrameModifiers
         Attach(parent, new ScaleBlock { ScaleX = scaleX, ScaleY = scaleY });
 
     /// <summary>Rotates a quarter turn anticlockwise, swapping the layout axes.</summary>
-    public static IFrame RotateLeft(this IFrame parent) =>
+    public static IFrame TurnLeft(this IFrame parent) =>
         Attach(parent, new TurnBlock { QuarterTurns = 3 });
 
     /// <summary>Rotates a quarter turn clockwise, swapping the layout axes.</summary>
-    public static IFrame RotateRight(this IFrame parent) =>
+    public static IFrame TurnRight(this IFrame parent) =>
         Attach(parent, new TurnBlock { QuarterTurns = 1 });
 
     // ---- Flow control --------------------------------------------------------------------------------------
 
-    public static IFrame ShowIf(this IFrame parent, bool condition) =>
+    public static IFrame When(this IFrame parent, bool condition) =>
         Attach(parent, new WhenBlock { Condition = condition });
 
-    public static IFrame ShowOnce(this IFrame parent) =>
+    public static IFrame Once(this IFrame parent) =>
         Attach(parent, new OnceBlock());
 
-    public static IFrame SkipOnce(this IFrame parent) =>
+    public static IFrame SkipFirst(this IFrame parent) =>
         Attach(parent, new SkipFirstBlock());
 
-    public static void PageBreak(this IFrame parent) =>
+    public static void NewPage(this IFrame parent) =>
         Attach(parent, new NewPageBlock());
 
     // ---- Inherited context ---------------------------------------------------------------------------------
 
     /// <summary>Sets the flow direction for everything nested inside.</summary>
-    public static IFrame ContentFrom(this IFrame parent, ReadingDirection direction) =>
+    public static IFrame Reading(this IFrame parent, ReadingDirection direction) =>
         Attach(parent, new ReadingDirectionBlock { Direction = direction });
 
     /// <summary>Lays out nested content right to left.</summary>
     public static IFrame RightToLeft(this IFrame parent) =>
-        parent.ContentFrom(ReadingDirection.RightToLeft);
+        parent.Reading(ReadingDirection.RightToLeft);
 
     /// <summary>Lays out nested content left to right.</summary>
     public static IFrame LeftToRight(this IFrame parent) =>
-        parent.ContentFrom(ReadingDirection.LeftToRight);
+        parent.Reading(ReadingDirection.LeftToRight);
 
     /// <summary>Adjusts the style inherited by all text nested inside.</summary>
-    public static IFrame DefaultTextStyle(this IFrame parent, Func<TypeStyle, TypeStyle> refinement)
+    public static IFrame DefaultType(this IFrame parent, Func<TypeStyle, TypeStyle> refinement)
     {
         ArgumentNullException.ThrowIfNull(refinement);
         return Attach(parent, new DefaultTypeBlock { Refinement = refinement });
@@ -253,30 +253,30 @@ public static class FrameModifiers
     /// <summary>
     /// Lets content exceed the space offered to it while reporting no size to its parent.
     /// </summary>
-    public static IFrame Unconstrained(this IFrame parent) =>
+    public static IFrame Unbounded(this IFrame parent) =>
         Attach(parent, new UnboundedBlock());
 
     /// <summary>
     /// Prevents content from being split across pages, moving it whole to the next page instead.
     /// </summary>
-    public static IFrame ShowEntire(this IFrame parent) =>
+    public static IFrame KeepTogether(this IFrame parent) =>
         Attach(parent, new KeepTogetherBlock());
 
     /// <summary>
     /// Defers the content to the next page unless at least <paramref name="minHeight"/> remains, so a heading
     /// or short block is never stranded at the bottom of a page.
     /// </summary>
-    public static IFrame EnsureSpace(this IFrame parent, float minHeight) =>
+    public static IFrame RequireSpace(this IFrame parent, float minHeight) =>
         Attach(parent, new RequireSpaceBlock { MinHeight = minHeight });
 
     // ---- Rules and placeholders ----------------------------------------------------------------------------
 
     /// <summary>Draws a horizontal rule across the available width.</summary>
-    public static void LineHorizontal(this IFrame parent, float thickness = 1f, Ink? color = null) =>
+    public static void Rule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
         Attach(parent, new RuleBlock { Thickness = thickness, Color = color ?? Ink.Black });
 
     /// <summary>Draws a vertical rule down the available height.</summary>
-    public static void LineVertical(this IFrame parent, float thickness = 1f, Ink? color = null) =>
+    public static void VerticalRule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
         Attach(parent, new VerticalRuleBlock { Thickness = thickness, Color = color ?? Ink.Black });
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
@@ -285,7 +285,7 @@ public static class FrameModifiers
 
     // ---- Links ---------------------------------------------------------------------------------------------
 
-    public static IFrame Hyperlink(this IFrame parent, string url)
+    public static IFrame Link(this IFrame parent, string url)
     {
         // An empty target makes the element draw no annotation at all, so the region would look linked in the
         // source and do nothing in the file.
@@ -294,8 +294,8 @@ public static class FrameModifiers
         return Attach(parent, new LinkBlock { Url = url });
     }
 
-    /// <summary>Marks this content as a named destination that <see cref="SectionLink"/> can target.</summary>
-    public static IFrame Section(this IFrame parent, string name)
+    /// <summary>Marks this content as a named destination that <see cref="CrossReference"/> can target.</summary>
+    public static IFrame Anchor(this IFrame parent, string name)
     {
         // An unnamed section registers no destination, so every link and page reference aimed at it would
         // silently resolve to nothing for the life of the document.
@@ -304,7 +304,7 @@ public static class FrameModifiers
         return Attach(parent, new AnchorBlock { Name = name });
     }
 
-    public static IFrame SectionLink(this IFrame parent, string sectionName)
+    public static IFrame CrossReference(this IFrame parent, string sectionName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sectionName);
 

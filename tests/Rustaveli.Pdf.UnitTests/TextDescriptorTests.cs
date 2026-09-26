@@ -17,7 +17,7 @@ public class TextDescriptorTests
     [Fact]
     public void SectionLinkMakesTheRunJumpToTheSection()
     {
-        RecordedPage page = Draw(text => text.SectionLink("Summary", "summary"));
+        RecordedPage page = Draw(text => text.CrossReference("Summary", "summary"));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
 
         Assert.Equal("Summary", page.Content);
@@ -49,7 +49,7 @@ public class TextDescriptorTests
     {
         Block aligned = LayoutHarness.Build(container => container.RightToLeft().Text(text =>
         {
-            text.AlignLeft();
+            text.FlushLeft();
             text.Span("Hello");
         }));
         Block unaligned = LayoutHarness.Build(container => container.RightToLeft().Text("Hello"));
@@ -64,7 +64,7 @@ public class TextDescriptorTests
     {
         RecordedPage page = Draw(text =>
         {
-            text.DefaultTextStyle(style => style.FontSizeOf(20));
+            text.DefaultType(style => style.FontSizeOf(20));
             text.Span("a");
             text.Span(" b");
         });
@@ -78,8 +78,8 @@ public class TextDescriptorTests
     {
         RecordedPage page = Draw(text =>
         {
-            text.DefaultTextStyle(style => style.FontSizeOf(20));
-            text.DefaultTextStyle(style => style.Bold());
+            text.DefaultType(style => style.FontSizeOf(20));
+            text.DefaultType(style => style.Bold());
             text.Span("a");
         });
 
@@ -94,8 +94,8 @@ public class TextDescriptorTests
     {
         RecordedPage page = Draw(text =>
         {
-            text.DefaultTextStyle(style => style.FontSizeOf(10));
-            text.DefaultTextStyle(style => style.FontSizeOf(20));
+            text.DefaultType(style => style.FontSizeOf(10));
+            text.DefaultType(style => style.FontSizeOf(20));
             text.Span("a");
         });
 
@@ -107,7 +107,7 @@ public class TextDescriptorTests
     {
         RecordedPage page = Draw(text =>
         {
-            text.DefaultTextStyle(style => style.FontSizeOf(20));
+            text.DefaultType(style => style.FontSizeOf(20));
             text.Span("a").Bold();
         });
 

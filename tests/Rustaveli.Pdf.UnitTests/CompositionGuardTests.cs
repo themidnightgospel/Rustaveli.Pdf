@@ -30,21 +30,21 @@ public class CompositionGuardTests
     {
         // The element cannot round a corner where two thicknesses meet, so it would have ignored the radius.
         Assert.Throws<InvalidOperationException>(() =>
-            LayoutHarness.Build(container => container.BorderLeft(2).CornerRadius(8)));
+            LayoutHarness.Build(container => container.StrokeLeft(2).RoundCorners(8)));
     }
 
     [Fact]
     public void CornerRadiusRejectsAZeroWidthBorder()
     {
         Assert.Throws<InvalidOperationException>(() =>
-            LayoutHarness.Build(container => container.Border(0).CornerRadius(8)));
+            LayoutHarness.Build(container => container.Stroke(0).RoundCorners(8)));
     }
 
     [Fact]
     public void CornerRadiusAcceptsAUniformBorder()
     {
         Block root = LayoutHarness.Build(container => container
-            .Border(2).CornerRadius(8)
+            .Stroke(2).RoundCorners(8)
             .Element(inner => inner.Child = new FixedElement(40, 20, TestInks.White)));
 
         Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Operations.OfType<RoundedRectangleOperation>());
@@ -57,8 +57,8 @@ public class CompositionGuardTests
     public void LinkTargetsMustBeMeaningful(string? target)
     {
         // An empty target draws no annotation, so the region would look linked in the source and do nothing.
-        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Hyperlink(target!)));
-        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Section(target!)));
-        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.SectionLink(target!)));
+        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Link(target!)));
+        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.Anchor(target!)));
+        Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(c => c.CrossReference(target!)));
     }
 }

@@ -6,7 +6,7 @@ public class InheritedStyleTests
     public void DefaultTextStyleReachesNestedText()
     {
         Block root = LayoutHarness.Build(container =>
-            container.DefaultTextStyle(style => style.FontSizeOf(24)).Text("Hi"));
+            container.DefaultType(style => style.FontSizeOf(24)).Text("Hi"));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(500, 500));
 
@@ -17,8 +17,8 @@ public class InheritedStyleTests
     public void NestedDefaultsCompose()
     {
         Block root = LayoutHarness.Build(container => container
-            .DefaultTextStyle(style => style.FontSizeOf(24))
-            .DefaultTextStyle(style => style.Bold())
+            .DefaultType(style => style.FontSizeOf(24))
+            .DefaultType(style => style.Bold())
             .Text("Hi"));
 
         RecordedPage page = LayoutHarness.Draw(root, new Extent(500, 500));
@@ -33,7 +33,7 @@ public class InheritedStyleTests
     {
         PlanContext context = LayoutHarness.Context();
         Block root = LayoutHarness.Build(container =>
-            container.DefaultTextStyle(style => style.FontSizeOf(24)).Text("Hi"));
+            container.DefaultType(style => style.FontSizeOf(24)).Text("Hi"));
 
         LayoutHarness.Draw(root, new Extent(500, 500), context);
 
@@ -46,7 +46,7 @@ public class InheritedStyleTests
         // Measuring at one size and drawing at another would reserve the wrong amount of room for the text.
         PlanContext context = LayoutHarness.Context();
         Block root = LayoutHarness.Build(container =>
-            container.DefaultTextStyle(style => style.FontSizeOf(24)).Text("Hi"));
+            container.DefaultType(style => style.FontSizeOf(24)).Text("Hi"));
 
         Fit plan = LayoutHarness.Measure(root, new Extent(500, 500), context);
 

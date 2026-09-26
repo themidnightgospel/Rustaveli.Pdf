@@ -53,7 +53,7 @@ public class PdfGenerationExtensionsTests
         {
             page.Size = new Extent(200, 200);
             page.Content()
-                .DefaultTextStyle(style =>
+                .DefaultType(style =>
                 {
                     entered.Set();
                     release.Wait();

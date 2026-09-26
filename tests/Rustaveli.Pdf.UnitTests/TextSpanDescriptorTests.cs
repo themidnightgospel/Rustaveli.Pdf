@@ -15,7 +15,7 @@ public class TextSpanDescriptorTests
         Func<TypeStyle, TypeStyle>? inherited = null)
     {
         Block root = LayoutHarness.Build(container => container
-            .DefaultTextStyle(inherited ?? (style => style))
+            .DefaultType(inherited ?? (style => style))
             .Text(text => refine(text.Span("x"))));
 
         return Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Texts).Style;

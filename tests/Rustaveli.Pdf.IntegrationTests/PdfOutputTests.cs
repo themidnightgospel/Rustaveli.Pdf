@@ -202,8 +202,8 @@ public class PdfOutputTests
             column.Item().Text(text => text.Span("Coloured").FontColor(TestInks.Red));
             column.Item().Text(text => text.Span("Underlined").Underline());
             column.Item().Text(text => text.Span("Highlighted").BackgroundColor(TestInks.Yellow));
-            column.Item().Background(TestInks.GreyLighten3).Padding(10).Text("On a background");
-            column.Item().Border(1).BorderColor(TestInks.Black).Padding(5).Text("In a box");
+            column.Item().Fill(TestInks.GreyLighten3).Inset(10).Text("On a background");
+            column.Item().Stroke(1).StrokeInk(TestInks.Black).Inset(5).Text("In a box");
         }));
 
         using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
@@ -256,10 +256,10 @@ public class PdfOutputTests
         {
             column.Spacing(8);
 
-            column.Item().Background(TestInks.AmberLighten3).CornerRadius(8).Padding(10).Text("Rounded panel");
-            column.Item().Border(2).BorderColor(TestInks.Indigo).CornerRadius(6).Padding(10).Text("Rounded outline");
-            column.Item().Width(120).ScaleToFit().Text("This line is scaled down until it fits its box.");
-            column.Item().FlipHorizontal().Text("Mirrored");
+            column.Item().Fill(TestInks.AmberLighten3).RoundCorners(8).Inset(10).Text("Rounded panel");
+            column.Item().Stroke(2).StrokeInk(TestInks.Indigo).RoundCorners(6).Inset(10).Text("Rounded outline");
+            column.Item().Width(120).ShrinkToFit().Text("This line is scaled down until it fits its box.");
+            column.Item().MirrorHorizontal().Text("Mirrored");
         }));
 
         using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
@@ -299,7 +299,7 @@ public class PdfOutputTests
             page.Content().Column(column =>
             {
                 column.Item().Height(100).Text("Filler");
-                column.Item().EnsureSpace(80).Text("Heading that must not be stranded");
+                column.Item().RequireSpace(80).Text("Heading that must not be stranded");
             });
         }));
 
@@ -314,7 +314,7 @@ public class PdfOutputTests
     public void EmbedsExternalLinks()
     {
         Document document = SimpleDocument(page =>
-            page.Content().Hyperlink("https://example.com").Text("Visit the site"));
+            page.Content().Link("https://example.com").Text("Visit the site"));
 
         using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
         List<Annotation> annotations = parsed.GetPage(1).GetAnnotations().ToList();

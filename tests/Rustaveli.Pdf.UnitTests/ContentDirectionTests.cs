@@ -102,7 +102,7 @@ public class ContentDirectionTests
         // Only left-aligned text takes a first-line indent, and right-to-left text aligns right, so the same
         // paragraph measures 20pt narrower once the direction reaches it.
         PlanContext context = LayoutHarness.Context();
-        Block root = LayoutHarness.Build(container => container.ContentFrom(direction).Text(text =>
+        Block root = LayoutHarness.Build(container => container.Reading(direction).Text(text =>
         {
             text.FirstLineIndent(20);
             text.Span("Hello");

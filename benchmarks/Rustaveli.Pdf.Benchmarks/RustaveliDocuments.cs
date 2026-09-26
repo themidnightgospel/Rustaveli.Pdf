@@ -31,8 +31,8 @@ public static class RustaveliDocuments
         page.Margin = Sides.All(40f);
         page.DefaultTextStyle = TypeStyle.Default.FontFamilyOf(BenchmarkFonts.Family).FontSizeOf(10f);
 
-        page.Header().PaddingBottom(10f).Text(kind.ToString());
-        page.Footer().AlignCenter().Text(text =>
+        page.Header().InsetBottom(10f).Text(kind.ToString());
+        page.Footer().Centered().Text(text =>
         {
             text.Span("Page ");
             text.CurrentPageNumber();
@@ -52,7 +52,7 @@ public static class RustaveliDocuments
                         row.ConstantItem(160f).Text("Customer\nRustaveli Avenue 1\nTbilisi");
                     });
                     column.Item().Table(table => ItemTable(table, BenchmarkData.InvoiceLines));
-                    column.Item().AlignRight().Text("Total due 12 345.67");
+                    column.Item().FlushRight().Text("Total due 12 345.67");
                 });
                 break;
 
@@ -101,14 +101,14 @@ public static class RustaveliDocuments
         {
             header.Cell().Text("Code");
             header.Cell().Text("Description");
-            header.Cell().AlignRight().Text("Amount");
+            header.Cell().FlushRight().Text("Amount");
         });
 
         foreach (LineItem line in lines)
         {
             table.Cell().Text(line.Code);
             table.Cell().Text(line.Description);
-            table.Cell().AlignRight().Text(line.Amount);
+            table.Cell().FlushRight().Text(line.Amount);
         }
     }
 }

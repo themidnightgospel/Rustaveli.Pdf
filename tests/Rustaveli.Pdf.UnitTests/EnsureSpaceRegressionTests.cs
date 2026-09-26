@@ -11,7 +11,7 @@ public class EnsureSpaceRegressionTests
         Document document = Document.Create(container => container.Page(page =>
         {
             page.Size = new Extent(300, 400);
-            page.Header().EnsureSpace(100).Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
+            page.Header().RequireSpace(100).Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
             page.Content().Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Blue));
         }));
 

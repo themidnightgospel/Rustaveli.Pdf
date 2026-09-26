@@ -5,7 +5,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void HorizontalRuleSpansTheWidthAtItsThickness()
     {
-        Block root = LayoutHarness.Build(container => container.LineHorizontal(3, TestInks.Red));
+        Block root = LayoutHarness.Build(container => container.Rule(3, TestInks.Red));
 
         Fit plan = LayoutHarness.Measure(root, new Extent(200, 100));
 
@@ -15,7 +15,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void VerticalRuleSpansTheHeightAtItsThickness()
     {
-        Block root = LayoutHarness.Build(container => container.LineVertical(2));
+        Block root = LayoutHarness.Build(container => container.VerticalRule(2));
 
         Fit plan = LayoutHarness.Measure(root, new Extent(200, 100));
 
