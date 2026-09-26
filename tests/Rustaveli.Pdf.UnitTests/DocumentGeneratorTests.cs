@@ -611,6 +611,23 @@ public class DocumentGeneratorTests
     }
 
     [Fact]
+    public void AcceptsBandsThatOvershootThePageOnlyWithinTheLayoutTolerance()
+    {
+        // Every element treats an overshoot below Size.Epsilon as fitting, so a footer may legitimately report a
+        // fraction of a thousandth more than it was offered. The page must accept what its own footer accepted.
+        Document document = Build(page =>
+        {
+            page.Size = new Size(200, 200);
+            page.Header().Element(container => container.Child = new FixedElement(10, 50, Colors.Red));
+            page.Footer().Element(container => container.Child = new FixedElement(10, 150.0005f, Colors.Green));
+        });
+
+        RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
+
+        Approximately.Equal(50f, Rectangle(page, Colors.Green).Position.Y);
+    }
+
+    [Fact]
     public void WrapsADrawingFailureWithThePageItHappenedOn()
     {
         InvalidOperationException failure = new InvalidOperationException("The image could not be decoded.");
