@@ -341,4 +341,112 @@ public class TextElementTests
 
         Assert.True(subscriptWidth < normalWidth, "A subscript digit should be narrower than a full-size one.");
     }
+
+    [Fact]
+    public void DrawsNothingOnceEveryLineIsDrawn()
+    {
+        TextElement element = Text(text => text.Span("aaa"));
+        Size space = new Size(500, 500);
+
+        LayoutHarness.Draw(element, space);
+
+        Assert.Empty(LayoutHarness.Draw(element, space).Operations);
+    }
+
+    [Fact]
+    public void AnAttemptWithoutRoomForALineLeavesTheWrappingOpen()
+    {
+        // Nothing was drawn, so nothing may be pinned: a later, wider box must be free to wrap afresh rather than
+        // inherit the two-line wrapping of the narrow attempt.
+        TextElement element = Text(text => text.Span("aaa bbb"));
+
+        RecordedPage cramped = LayoutHarness.Draw(element, new Size(18, 5));
+        RecordedPage roomy = LayoutHarness.Draw(element, new Size(500, 500));
+
+        Assert.Empty(cramped.Operations);
+        Assert.Equal("aaa bbb", roomy.Content);
+        Assert.All(roomy.Texts, operation => Approximately.Equal(9.6f, operation.Position.Y));
+    }
+
+    [Fact]
+    public void PlacesTheUnderlineHalfTheDescentBelowTheBaseline()
+    {
+        TextElement element = Text(text => text.Span("Hello").Underline());
+
+        LineOperation line = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<LineOperation>());
+
+        // Baseline 9.6 plus half the 2.4pt descent; five 6pt characters long.
+        Approximately.Equal(new Position(0, 10.8f), line.Position);
+        Approximately.Equal(new Position(30, 10.8f), line.End);
+        Approximately.Equal(0.75f, line.Thickness);
+        Assert.Equal(Colors.Black, line.Color);
+    }
+
+    [Fact]
+    public void DrawsAStrikethroughAcrossTheRun()
+    {
+        TextElement element = Text(text => text.Span("Hello").Strikethrough().FontColor(Colors.Red));
+
+        LineOperation line = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<LineOperation>());
+
+        // Baseline 9.6 less 30% of the 9.6pt ascent.
+        Approximately.Equal(new Position(0, 6.72f), line.Position);
+        Approximately.Equal(new Position(30, 6.72f), line.End);
+        Approximately.Equal(0.75f, line.Thickness);
+        Assert.Equal(Colors.Red, line.Color);
+    }
+
+    [Fact]
+    public void DecorationStrokesAreNeverThinnerThanHalfAPoint()
+    {
+        TextElement element = Text(text => text.Span("tiny").FontSize(4).Underline().Strikethrough());
+
+        List<LineOperation> lines = LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<LineOperation>().ToList();
+
+        Assert.Equal(2, lines.Count);
+        Assert.All(lines, line => Approximately.Equal(0.5f, line.Thickness));
+    }
+
+    [Fact]
+    public void AHyperlinkCoversOnlyItsOwnRun()
+    {
+        TextElement element = Text(text =>
+        {
+            text.Span("go ");
+            text.Hyperlink("here", "https://example.com");
+        });
+
+        ExternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<ExternalLinkOperation>());
+
+        // After three 6pt characters, four characters wide and one 12pt line tall.
+        Assert.Equal(new Bounds(18, 0, 42, 12), link.Bounds);
+    }
+
+    [Fact]
+    public void ASectionLinkCoversOnlyItsOwnRun()
+    {
+        TextElement element = Text(text =>
+        {
+            text.Span("go ");
+            text.SectionLink("here", "intro");
+        });
+
+        InternalLinkOperation link = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<InternalLinkOperation>());
+
+        Assert.Equal("intro", link.Destination);
+        Assert.Equal(new Bounds(18, 0, 42, 12), link.Bounds);
+    }
+
+    [Fact]
+    public void AParagraphOfOnlyEmptySpansStillOccupiesALine()
+    {
+        TextElement element = new TextElement { DefaultStyleOverride = style => style.FontSizeOf(40) };
+        element.Spans.Add(new Text.TextSpan { Text = string.Empty });
+
+        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+
+        // As tall as a line of the paragraph's own text would be, but with nothing on it.
+        Assert.True(plan.IsFullRender);
+        Approximately.Equal(new Size(0, 40), plan.Size);
+    }
 }

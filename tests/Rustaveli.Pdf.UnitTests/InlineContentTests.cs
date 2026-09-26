@@ -246,4 +246,52 @@ public class InlineContentTests
         Assert.Contains("inline", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("AlignMiddle", exception.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void AParagraphBlockedByAnInlineElementDrawsNothing()
+    {
+        // Measure has reported a wrap. Drawing the lines completed before the blocker would split the paragraph
+        // across two pages and then repeat those lines on the next.
+        TextElement element = Text(text =>
+        {
+            text.Line("aaa");
+            text.Element(inline => inline.Child = new FixedElement(200, 20));
+        });
+
+        Assert.Empty(LayoutHarness.Draw(element, new Size(100, 200)).Operations);
+    }
+
+    [Fact]
+    public void AnInlineElementCanLinkToASection()
+    {
+        TextElement element = new TextElement();
+        element.Spans.Add(new Text.TextSpan { Text = "ab" });
+        element.Spans.Add(new Text.TextSpan { InlineElement = new Container { Child = new FixedElement(20, 10) }, Destination = "intro" });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
+
+        // The element starts after the two 6pt characters and rests on a baseline its own 10pt height sets.
+        Assert.Equal("intro", link.Destination);
+        Assert.Equal(new Bounds(12, 0, 32, 10), link.Bounds);
+    }
+
+    [Fact]
+    public void AnInlineElementOnAContinuationLineIsOfferedTheFullWidth()
+    {
+        // Only a paragraph's opening line is indented, so an element landing on a later line may use the whole
+        // width. The placeholder takes whatever width it is offered, which makes the budget visible.
+        TextElement element = new TextElement { FirstLineIndent = 20 };
+        element.Spans.Add(new Text.TextSpan { Text = "aaaa bbbb" });
+        element.Spans.Add(new Text.TextSpan
+        {
+            InlineElement = new Container { Child = new ConstrainedElement { MaxHeight = 10, Child = new PlaceholderElement() } }
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Size(60, 500));
+        RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        Approximately.Equal(0f, block.Position.X);
+        Approximately.Equal(60f, block.Size.Width);
+    }
 }
