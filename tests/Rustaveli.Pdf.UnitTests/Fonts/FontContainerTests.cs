@@ -110,6 +110,14 @@ public class FontContainerTests
     }
 
     [Fact]
+    public void RejectsAFaceCountTheFileHasNoRoomFor()
+    {
+        byte[] data = new FontBytes().Tag("ttcf").U16(1).U16(0).U32(100_000_000).U32(16).ToArray();
+
+        Assert.Throws<FontFormatException>(() => OpenTypeFont.LoadAll(data));
+    }
+
+    [Fact]
     public void RejectsAFaceOffsetBeyondAnyFile()
     {
         byte[] data = new FontBytes().Tag("ttcf").U16(1).U16(0).U32(1).U32(0x80000000).ToArray();

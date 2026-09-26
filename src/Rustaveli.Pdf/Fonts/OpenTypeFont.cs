@@ -138,6 +138,12 @@ internal sealed class OpenTypeFont
     public static IReadOnlyList<OpenTypeFont> LoadAll(ReadOnlyMemory<byte> data)
     {
         int count = FontContainer.CountFaces(data.Span);
+
+        // A collection lists an offset per face; a count the file has no room for is corrupt, and must not size
+        // an array of millions of faces before the first one fails to load.
+        if (FontContainer.IsCollection(data.Span))
+            _ = BigEndian.Slice(data.Span, 0, FontContainer.CollectionHeaderSize + (4L * count));
+
         OpenTypeFont[] faces = new OpenTypeFont[count];
 
         for (int index = 0; index < count; index++)
