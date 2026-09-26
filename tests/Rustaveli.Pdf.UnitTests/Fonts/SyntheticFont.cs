@@ -35,6 +35,19 @@ internal sealed class SyntheticFont
             .With("loca", loca);
     }
 
+    /// <summary>A minimal font carrying a family name and a style, for matching tests.</summary>
+    public static SyntheticFont Named(string family, int weight = 400, int width = 5, int fsSelection = 0x40)
+    {
+        string subfamily = (fsSelection & 1) != 0 ? "Italic" : "Regular";
+
+        return Minimal()
+            .With("name", SyntheticTables.Name(
+                SyntheticTables.NameRecord(3, 1, 0x0409, 1, family),
+                SyntheticTables.NameRecord(3, 1, 0x0409, 2, subfamily),
+                SyntheticTables.NameRecord(3, 1, 0x0409, 4, family + " " + subfamily)))
+            .With("OS/2", SyntheticTables.Os2(weight: weight, width: width, fsSelection: fsSelection));
+    }
+
     public SyntheticFont With(string tag, byte[] data)
     {
         _tables[tag] = data;
