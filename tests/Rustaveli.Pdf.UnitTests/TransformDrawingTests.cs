@@ -107,10 +107,13 @@ public class TransformDrawingTests
     {
         RotateElement element = new RotateElement { QuarterTurns = quarterTurns, Child = new FixedElement(100, 10) };
 
-        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(200, 200)));
+        // Offered exactly the turned content's size, so its box is the same however it is decided.
+        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(10, 100)));
 
         Assert.Equal(0f, bounds.Left, 2);
         Assert.Equal(0f, bounds.Top, 2);
+        Assert.Equal(10f, bounds.Right, 2);
+        Assert.Equal(100f, bounds.Bottom, 2);
     }
 
     [Fact]

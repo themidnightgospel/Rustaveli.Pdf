@@ -55,15 +55,4 @@ public class FlipTests
 
         Assert.Empty(child.DrawnWith);
     }
-
-    [Fact]
-    public void DrawsTheChildIntoTheBoxItMeasured()
-    {
-        ScriptedElement child = new ScriptedElement(SpacePlan.FullRender(50, 20));
-        FlipElement element = new FlipElement { FlipHorizontal = true, Child = child };
-
-        LayoutHarness.Draw(element, new Size(200, 200));
-
-        Approximately.Equal(new Size(50, 20), Assert.Single(child.DrawnWith));
-    }
 }

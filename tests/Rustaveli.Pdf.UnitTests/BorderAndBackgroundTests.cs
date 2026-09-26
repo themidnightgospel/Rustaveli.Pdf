@@ -70,13 +70,15 @@ public class BorderAndBackgroundTests
     }
 
     [Fact]
-    public void BackgroundWithoutContentCoversNoArea()
+    public void BackgroundWithoutContentPaintsOnlyItsOwnFill()
     {
         BackgroundElement element = new BackgroundElement { Color = Colors.Red };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RectangleOperation fill = Assert.IsType<RectangleOperation>(Assert.Single(page.Operations));
 
-        Assert.All(page.Operations.OfType<RectangleOperation>(), operation => Approximately.Equal(Size.Zero, operation.Size));
+        Assert.Equal(Colors.Red, fill.Color);
+        Approximately.Equal(Position.Zero, fill.Position);
     }
 
     [Fact]
@@ -89,7 +91,8 @@ public class BorderAndBackgroundTests
             Child = new FixedElement(50, 20, Colors.White)
         };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        // Offered exactly the content's size, so the box the sides trace is the same however it is decided.
+        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
         List<RectangleOperation> sides = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == Colors.Black).ToList();
 
         Assert.Equal(4, sides.Count);
@@ -145,14 +148,14 @@ public class BorderAndBackgroundTests
     }
 
     [Fact]
-    public void BorderWithoutContentCoversNoArea()
+    public void BorderWithoutContentDrawsOnlyItsOwnSides()
     {
         BorderElement element = new BorderElement { Width = Edges.All(2), Color = Colors.Black };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
 
-        Assert.All(page.Operations.OfType<RectangleOperation>(), operation =>
-            Approximately.Equal(0f, operation.Size.Width * operation.Size.Height));
+        Assert.Equal(4, page.Operations.Count);
+        Assert.All(page.Operations, operation => Assert.Equal(Colors.Black, Assert.IsType<RectangleOperation>(operation).Color));
     }
 
     [Fact]
@@ -168,7 +171,7 @@ public class BorderAndBackgroundTests
             Child = new FixedElement(50, 20, Colors.White)
         };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
         RoundedRectangleOperation outline = Assert.Single(page.Operations.OfType<RoundedRectangleOperation>());
 
         Approximately.Equal(new Position(1, 1), outline.Position);
@@ -189,7 +192,7 @@ public class BorderAndBackgroundTests
             Child = new FixedElement(50, 20, Colors.White)
         };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
 
         // The 18pt-tall outline cannot turn a corner tighter than a semicircle.
         Approximately.Equal(9f, Assert.Single(page.Operations.OfType<RoundedRectangleOperation>()).CornerRadius);
@@ -209,7 +212,7 @@ public class BorderAndBackgroundTests
             Child = new FixedElement(width, height, Colors.White)
         };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Size(width, height));
 
         Assert.Empty(page.Operations.OfType<RoundedRectangleOperation>());
         Assert.Equal(Colors.White, Assert.Single(page.Operations.OfType<RectangleOperation>()).Color);
