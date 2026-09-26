@@ -39,6 +39,17 @@ public class PdfFileWriterTests
         byte[]? id = null) =>
         new PdfWriterOptions { CrossReferenceFormat = format, CompressionLevel = level, DocumentId = id };
 
+    private sealed class WriteRecorder : MemoryStream
+    {
+        public int LargestWrite { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            LargestWrite = Math.Max(LargestWrite, count);
+            base.Write(buffer, offset, count);
+        }
+    }
+
     private static byte[] Random(int length, int seed)
     {
         byte[] data = new byte[length];
@@ -326,6 +337,7 @@ public class PdfFileWriterTests
             () => writer.WriteStream(new PdfDictionary { [new PdfName("Length")] = 3 }, new byte[3], PdfStreamCompression.None));
 
         Assert.Equal("dictionary", exception.ParamName);
+        Assert.StartsWith("The writer sets /Length itself.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -337,6 +349,10 @@ public class PdfFileWriterTests
             () => writer.WriteStream(new PdfDictionary { [new PdfName("Filter")] = new PdfName("DCTDecode") }, new byte[3]));
 
         Assert.Equal("dictionary", exception.ParamName);
+        Assert.StartsWith(
+            "A stream that already names a filter must be written with PdfStreamCompression.None.",
+            exception.Message,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -484,6 +500,7 @@ public class PdfFileWriterTests
             () => new PdfFileWriter(new MemoryStream(), new PdfWriterOptions { DocumentId = new byte[length] }));
 
         Assert.Equal("options", exception.ParamName);
+        Assert.StartsWith("A document ID is 16 bytes long.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -494,6 +511,7 @@ public class PdfFileWriterTests
         Assert.Throws<ArgumentNullException>(() => new PdfFileWriter(null!));
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfFileWriter(readOnly));
         Assert.Equal("output", exception.ParamName);
+        Assert.StartsWith("The output stream is not writable.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -523,6 +541,27 @@ public class PdfFileWriterTests
 
         writer.WriteStream(new PdfDictionary(), Random(100_000, 9));
         Assert.True(output.Length > 64 * 1024, $"Only {output.Length} bytes reached the output.");
+    }
+
+    [Theory]
+    [InlineData(nameof(PdfCrossReferenceFormat.Table))]
+    [InlineData(nameof(PdfCrossReferenceFormat.Stream))]
+    public void KeepsItsBufferBoundedHoweverMuchIsWritten(string formatName)
+    {
+        // The writer hands output over in batches as it goes; were it to hold everything until the end, the largest
+        // single write would be the whole file.
+        using WriteRecorder output = new WriteRecorder();
+        using (PdfFileWriter writer = new PdfFileWriter(output, Options(Format(formatName))))
+        {
+            writer.WriteStream(new PdfDictionary(), Random(300_000, 17));
+            for (int index = 0; index < 20_000; index++)
+                writer.Write(new PdfArray { index, index + 0.5, new PdfName("Item") });
+
+            writer.Finish(writer.Write(CatalogDictionary()));
+        }
+
+        Assert.True(output.Length > 300_000, $"Only {output.Length} bytes were written.");
+        Assert.InRange(output.LargestWrite, 1, (2 * 64 * 1024) + 1024);
     }
 
     [Fact]
@@ -559,6 +598,10 @@ public class PdfFileWriterTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() => writer.Write(alias, target));
 
         Assert.Equal("value", exception.ParamName);
+        Assert.StartsWith(
+            "An indirect object cannot consist of a reference; refer to the target directly.",
+            exception.Message,
+            StringComparison.Ordinal);
         writer.Write(alias, new PdfArray { target });
     }
 
@@ -615,8 +658,8 @@ public class PdfFileWriterTests
         using PdfFileWriter writer = new PdfFileWriter(new MemoryStream());
         PdfReference root = writer.Write(CatalogDictionary());
 
-        Assert.Throws<ArgumentException>(() => writer.Finish(default));
-        Assert.Throws<ArgumentException>(() => writer.Finish(root, new PdfReference(99)));
+        Assert.Equal("reference", Assert.Throws<ArgumentException>(() => writer.Finish(default)).ParamName);
+        Assert.Equal("reference", Assert.Throws<ArgumentException>(() => writer.Finish(root, new PdfReference(99))).ParamName);
     }
 
     [Fact]
@@ -626,8 +669,11 @@ public class PdfFileWriterTests
         PdfReference root = writer.Write(CatalogDictionary());
         writer.Finish(root);
 
-        Assert.Throws<InvalidOperationException>(() => writer.Finish(root));
-        Assert.Throws<InvalidOperationException>(() => writer.Reserve());
-        Assert.Throws<InvalidOperationException>(() => writer.Write(root, 1));
+        static string Refusal(Action action) => Assert.Throws<InvalidOperationException>(action).Message;
+
+        Assert.Equal("The file has been finished.", Refusal(() => writer.Finish(root)));
+        Assert.Equal("The file has been finished.", Refusal(() => writer.Reserve()));
+        Assert.Equal("The file has been finished.", Refusal(() => writer.Write(root, 1)));
+        Assert.Equal("The file has been finished.", Refusal(() => writer.WriteStream(root, new PdfDictionary(), new byte[1])));
     }
 }

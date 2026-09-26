@@ -210,9 +210,13 @@ public class PdfDocumentWriterTests
         using PdfDocumentWriter document = new PdfDocumentWriter(new MemoryStream());
         PdfPage page = document.BeginPage(10, 10);
 
-        Assert.Throws<ArgumentNullException>(() => page.AddUriLink(default, null!));
-        Assert.Throws<ArgumentNullException>(() => page.AddDestinationLink(default, null!));
-        Assert.Throws<ArgumentException>(() => page.AddAnnotation(default));
+        Assert.Equal("uri", Assert.Throws<ArgumentNullException>(() => page.AddUriLink(default, null!)).ParamName);
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentNullException>(() => page.AddDestinationLink(default, null!)).ParamName);
+        ArgumentException annotation = Assert.Throws<ArgumentException>(() => page.AddAnnotation(default));
+        Assert.Equal("annotation", annotation.ParamName);
+        Assert.StartsWith("The reference was never assigned an object number.", annotation.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -244,7 +248,10 @@ public class PdfDocumentWriterTests
     {
         using PdfDocumentWriter document = new PdfDocumentWriter(new MemoryStream());
 
-        Assert.Throws<ArgumentNullException>(() => document.AddNamedDestination(null!, new PdfReference(1), 0, 0));
+        ArgumentNullException exception =
+            Assert.Throws<ArgumentNullException>(() => document.AddNamedDestination(null!, new PdfReference(1), 0, 0));
+
+        Assert.Equal("name", exception.ParamName);
     }
 
     [Fact]
@@ -307,6 +314,7 @@ public class PdfDocumentWriterTests
             ArgumentOutOfRangeException exception =
                 Assert.Throws<ArgumentOutOfRangeException>(() => document.GetOpacityState(fill, stroke));
             Assert.Equal(rejected, exception.ParamName);
+            Assert.StartsWith("Opacity runs from 0 to 1.", exception.Message, StringComparison.Ordinal);
         }
     }
 
@@ -359,13 +367,13 @@ public class PdfDocumentWriterTests
         document.EndPage(page);
         document.Finish();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Finish());
-        Assert.Throws<InvalidOperationException>(() => document.BeginPage(10, 10));
-        Assert.Throws<InvalidOperationException>(() => document.EndPage(page));
-        Assert.Throws<InvalidOperationException>(() => document.AddNamedDestination("x", page.Reference, 0, 0));
-        Assert.Throws<InvalidOperationException>(() => document.GetOpacityState(1));
+        static string Refusal(Action action) => Assert.Throws<InvalidOperationException>(action).Message;
 
-        Assert.Equal("The document has been finished.", exception.Message);
+        Assert.Equal("The document has been finished.", Refusal(() => document.Finish()));
+        Assert.Equal("The document has been finished.", Refusal(() => document.BeginPage(10, 10)));
+        Assert.Equal("The document has been finished.", Refusal(() => document.EndPage(page)));
+        Assert.Equal("The document has been finished.", Refusal(() => document.AddNamedDestination("x", page.Reference, 0, 0)));
+        Assert.Equal("The document has been finished.", Refusal(() => document.GetOpacityState(1)));
     }
 
     [Fact]

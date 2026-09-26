@@ -36,12 +36,16 @@ public class PdfNameTests
         Assert.Equal(new ParsedName(value), parsed);
     }
 
-    [Fact]
-    public void RejectsTheNullCharacter()
+    [Theory]
+    [InlineData("a\0b")]
+    [InlineData("\0a")]
+    [InlineData("\0")]
+    public void RejectsTheNullCharacter(string value)
     {
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfName("a\0b"));
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfName(value));
 
         Assert.Equal("value", exception.ParamName);
+        Assert.StartsWith("A PDF name cannot contain the null character.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

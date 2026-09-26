@@ -38,6 +38,7 @@ public class PdfDictionaryTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() => dictionary.Add(new PdfName("A"), 2));
 
         Assert.Equal("key", exception.ParamName);
+        Assert.StartsWith("The dictionary already has a /A entry.", exception.Message, StringComparison.Ordinal);
         Assert.Equal(1, dictionary[A].AsInteger());
     }
 

@@ -32,6 +32,7 @@ public class PdfNameTreeTests
     [InlineData(33, 1)]
     [InlineData(1024, 1)]
     [InlineData(1025, 2)]
+    [InlineData(2048, 2)]
     public void BalancesTheTreeWithSortedKeys(int count, int depth)
     {
         PdfNameTree tree = Numbered(count);
@@ -92,7 +93,9 @@ public class PdfNameTreeTests
         tree.Add(PdfString.FromText("x"), 3);
         using PdfFileWriter writer = new PdfFileWriter(new MemoryStream());
 
-        Assert.Throws<InvalidOperationException>(() => tree.Write(writer));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => tree.Write(writer));
+
+        Assert.Equal("A name tree cannot hold the same key twice.", exception.Message);
     }
 
     [Fact]

@@ -132,6 +132,7 @@ public class ContentStreamBuilderTests
             Assert.Throws<ArgumentOutOfRangeException>(() => content.SetDashPattern(new[] { 2, length }, 0));
 
         Assert.Equal("dashes", exception.ParamName);
+        Assert.StartsWith("Dash and gap lengths cannot be negative.", exception.Message, StringComparison.Ordinal);
         Assert.Equal(0, content.Length);
     }
 
@@ -143,6 +144,7 @@ public class ContentStreamBuilderTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() => content.SetDashPattern(new[] { 0.0, 0 }, 0));
 
         Assert.Equal("dashes", exception.ParamName);
+        Assert.StartsWith("A dash pattern needs at least one non-zero length.", exception.Message, StringComparison.Ordinal);
         Assert.Equal(0, content.Length);
     }
 
@@ -248,7 +250,9 @@ public class ContentStreamBuilderTests
         using ContentStreamBuilder content = new ContentStreamBuilder();
         content.BeginText();
 
-        Assert.Throws<InvalidOperationException>(() => content.BeginText());
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => content.BeginText());
+
+        Assert.Equal("Text objects cannot nest; call EndText first.", exception.Message);
         Assert.Equal("BT\n", Latin1.Text(content.Content));
     }
 
@@ -260,9 +264,10 @@ public class ContentStreamBuilderTests
         content.BeginText();
 
         InvalidOperationException save = Assert.Throws<InvalidOperationException>(() => content.SaveState());
-        Assert.Throws<InvalidOperationException>(() => content.RestoreState());
+        InvalidOperationException restore = Assert.Throws<InvalidOperationException>(() => content.RestoreState());
 
         Assert.Equal("q is not allowed inside a text object; call EndText first.", save.Message);
+        Assert.Equal("Q is not allowed inside a text object; call EndText first.", restore.Message);
         Assert.Equal(1, content.StateDepth);
         Assert.Equal("q\nBT\n", Latin1.Text(content.Content));
     }
@@ -272,13 +277,13 @@ public class ContentStreamBuilderTests
     {
         using ContentStreamBuilder content = new ContentStreamBuilder();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => content.ShowText("a"u8));
-        Assert.Throws<InvalidOperationException>(() => content.MoveTextPosition(1, 2));
-        Assert.Throws<InvalidOperationException>(() => content.SetTextMatrix(1, 0, 0, 1, 0, 0));
-        Assert.Throws<InvalidOperationException>(() => content.BeginTextArray());
-        Assert.Throws<InvalidOperationException>(() => content.EndText());
+        static string Refusal(Action action) => Assert.Throws<InvalidOperationException>(action).Message;
 
-        Assert.Equal("Tj is only valid inside a text object; call BeginText first.", exception.Message);
+        Assert.Equal("Tj is only valid inside a text object; call BeginText first.", Refusal(() => content.ShowText("a"u8)));
+        Assert.Equal("Td is only valid inside a text object; call BeginText first.", Refusal(() => content.MoveTextPosition(1, 2)));
+        Assert.Equal("Tm is only valid inside a text object; call BeginText first.", Refusal(() => content.SetTextMatrix(1, 0, 0, 1, 0, 0)));
+        Assert.Equal("TJ is only valid inside a text object; call BeginText first.", Refusal(() => content.BeginTextArray()));
+        Assert.Equal("ET is only valid inside a text object; call BeginText first.", Refusal(() => content.EndText()));
         Assert.Equal(0, content.Length);
     }
 

@@ -258,7 +258,12 @@ public class PdfByteWriterTests
     {
         using PdfByteWriter writer = new PdfByteWriter();
 
-        Assert.Throws<InvalidOperationException>(() => writer.WriteArray(Nested(PdfByteWriter.MaxNestingDepth + 1)));
+        InvalidOperationException exception =
+            Assert.Throws<InvalidOperationException>(() => writer.WriteArray(Nested(PdfByteWriter.MaxNestingDepth + 1)));
+
+        Assert.Equal(
+            "Arrays and dictionaries nest more than 64 deep; the object graph probably contains itself.",
+            exception.Message);
     }
 
     [Fact]
@@ -300,6 +305,39 @@ public class PdfByteWriterTests
         Assert.Equal(10_001, writer.Length);
         Assert.Equal(0xAA, writer.WrittenSpan[0]);
         Assert.Equal(data, writer.WrittenSpan.Slice(1).ToArray());
+    }
+
+    [Fact]
+    public void GrowsWheneverAWriteWouldOverflowWhateverTheBufferHolds()
+    {
+        // Pooled buffers come in sizes the pool chooses, so every fill level up to well past the smallest is tried:
+        // one of them leaves the buffer exactly full, which is where a missing capacity check would overflow.
+        for (int fill = 0; fill < 80; fill++)
+        {
+            string prefix = new string('x', fill);
+            string separated = fill > 0 ? prefix + " " : prefix;
+
+            Assert.Equal(prefix + "!", Written(fill, writer => writer.WriteByte((byte)'!')));
+            Assert.Equal(separated + "-9223372036854775808", Written(fill, writer => writer.WriteInteger(long.MinValue)));
+            Assert.Equal(separated + "-999999999999999", Written(fill, writer => writer.WriteReal(-999999999999999)));
+            Assert.Equal(separated + "endstream", Written(fill, writer => writer.WriteKeyword("endstream"u8)));
+            Assert.Equal(prefix + "0123456789", Written(fill, writer =>
+            {
+                Span<byte> span = writer.GetSpan(10);
+                "0123456789"u8.CopyTo(span);
+                writer.Advance(10);
+            }));
+        }
+
+        static string Written(int fill, Action<PdfByteWriter> write)
+        {
+            using PdfByteWriter writer = new PdfByteWriter(1);
+            for (int index = 0; index < fill; index++)
+                writer.Write("x"u8);
+
+            write(writer);
+            return Latin1.Text(writer.WrittenSpan);
+        }
     }
 
     [Fact]

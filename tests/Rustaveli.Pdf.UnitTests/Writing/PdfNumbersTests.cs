@@ -121,6 +121,19 @@ public class PdfNumbersTests
     }
 
     [Fact]
+    public void ExplainsWhyAValueWasRejected()
+    {
+        Assert.StartsWith(
+            "PDF has no representation for NaN or infinity.",
+            Assert.Throws<ArgumentOutOfRangeException>(() => Real(double.NaN)).Message,
+            StringComparison.Ordinal);
+        Assert.StartsWith(
+            "PDF output is limited to reals below 10^15 in magnitude.",
+            Assert.Throws<ArgumentOutOfRangeException>(() => Real(1e15)).Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AcceptsTheLargestMagnitudeBelowTheLimit()
     {
         Assert.Equal("-999999999999999", Real(-999999999999999.4));

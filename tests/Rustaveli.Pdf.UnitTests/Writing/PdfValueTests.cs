@@ -83,7 +83,9 @@ public class PdfValueTests
     [Fact]
     public void RefusesAReferenceThatWasNeverAssigned()
     {
-        Assert.Throws<ArgumentException>(() => (PdfValue)default(PdfReference));
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => (PdfValue)default(PdfReference));
+
+        Assert.StartsWith("The reference was never assigned an object number.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

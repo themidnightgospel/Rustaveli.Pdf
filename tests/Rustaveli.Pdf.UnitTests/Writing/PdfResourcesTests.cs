@@ -94,6 +94,10 @@ public class PdfResourcesTests
     {
         PdfResources resources = new PdfResources();
 
-        Assert.Throws<ArgumentException>(() => resources.GetFontName(default));
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => resources.GetFontName(default));
+
+        Assert.Equal("reference", exception.ParamName);
+        Assert.StartsWith("The reference was never assigned an object number.", exception.Message, StringComparison.Ordinal);
+        Assert.True(resources.IsEmpty);
     }
 }
