@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 # Mutation testing and benchmark output
 StrykerOutput/
 BenchmarkDotNet.Artifacts/
+
+# The coverage gate's thresholds are configuration, not coverage output.
+!eng/coverage-thresholds.json
