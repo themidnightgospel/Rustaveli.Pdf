@@ -120,6 +120,29 @@ public class ImageFormatDetectorTests
     }
 
     [Fact]
+    public void RecognisesTheShortestFileTypeBox()
+    {
+        Assert.Equal(ImageFormat.Heic, Detect(FileType("heic").AsSpan(0, 12).ToArray()));
+        Assert.Equal(ImageFormat.Unknown, Detect(FileType("heic").AsSpan(0, 11).ToArray()));
+    }
+
+    [Fact]
+    public void DoesNotReadTheMinorVersionAsABrand()
+    {
+        byte[] data = FileType("mif1");
+        Encoding.ASCII.GetBytes("avif", 0, 4, data, 12);
+
+        Assert.Equal(ImageFormat.Heic, Detect(data));
+    }
+
+    [Fact]
+    public void ReadsTheCompatibleBrandThatFollowsTheMinorVersion()
+    {
+        Assert.Equal(ImageFormat.Avif, Detect(FileType("isom", null, "avif")));
+        Assert.Equal(ImageFormat.Heic, Detect(FileType("isom", null, "heic", "avif").AsSpan(0, 20).ToArray()));
+    }
+
+    [Fact]
     public void AnAvifCompatibleBrandOutranksAGenericHeifMajorBrand()
     {
         Assert.Equal(ImageFormat.Avif, Detect(FileType("mif1", null, "miaf", "avif")));

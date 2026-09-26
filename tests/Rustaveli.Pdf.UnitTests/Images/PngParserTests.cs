@@ -300,6 +300,12 @@ public class PngParserTests
     }
 
     [Fact]
+    public void RejectsTheTallestImageTheFormatAllowsByItsPixelCount()
+    {
+        Assert.StartsWith("The PNG image is 1 × 2147483647 pixels", Fails(Image(Header(width: 1, height: int.MaxValue))));
+    }
+
+    [Fact]
     public void RejectsMoreThanTheMaximumPixelCount()
     {
         Assert.Contains("16385 × 16384 pixels", Fails(Image(Header(width: 16385, height: 16384))));
@@ -460,6 +466,14 @@ public class PngParserTests
         Assert.Contains("unknown critical chunk, CUST", Fails(Gray(Chunk("CUST", 1, 2, 3))));
     }
 
+    [Theory]
+    [InlineData("aAZz")]
+    [InlineData("zZaA")]
+    public void AcceptsEveryLetterInAChunkType(string type)
+    {
+        Assert.Equal(2, Parse(Gray(Chunk(type, 1))).Header.Width);
+    }
+
     [Fact]
     public void IgnoresAnUnknownAncillaryChunk()
     {
@@ -518,11 +532,13 @@ public class PngParserTests
     }
 
     [Theory]
-    [InlineData(4)]
-    [InlineData(6)]
-    public void IgnoresTransparencyInAnImageWithAlpha(int colorType)
+    [InlineData(4, 2)]
+    [InlineData(4, 6)]
+    [InlineData(6, 2)]
+    [InlineData(6, 6)]
+    public void IgnoresTransparencyInAnImageWithAlpha(int colorType, int length)
     {
-        PngFile png = Parse(Image(Header(colorType, 8), Chunk("tRNS", 0, 0)));
+        PngFile png = Parse(Image(Header(colorType, 8), Chunk("tRNS", new byte[length])));
 
         Assert.Null(png.TransparentColor);
         Assert.True(png.PaletteAlpha.IsEmpty);

@@ -333,6 +333,19 @@ public class PngDecodeTests
         Assert.Contains("268451840 bytes", message);
     }
 
+    [Theory]
+    [InlineData(99, "valid zlib header")]
+    [InlineData(98, "cannot hold")]
+    public void RefusesImageDataBeyondDeflatesMaximumExpansionExactly(int dataLength, string failure)
+    {
+        // 100 rows of 1031 pixels need 100 × 1032 bytes inflated: exactly the most 99 compressed bytes can hold,
+        // and more than 98 can. The data is not a zlib stream, so passing the size check fails on the header.
+        byte[] data = Enumerable.Repeat((byte)0x11, dataLength).ToArray();
+        byte[] png = TestPng.Build(TestPng.Header(1031, 100, 8, 0), TestPng.Data(data), TestPng.End());
+
+        Assert.Contains(failure, Fails(png));
+    }
+
     [Fact]
     public void AcceptsAHeaderWithinDeflatesMaximumExpansion()
     {

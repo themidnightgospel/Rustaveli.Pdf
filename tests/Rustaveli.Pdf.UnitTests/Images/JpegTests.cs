@@ -160,6 +160,17 @@ public class JpegTests
     }
 
     [Fact]
+    public void RemembersJfifAndAdobeSegmentsThatAppearTwice()
+    {
+        JpegFile jfif = Parse(TestJpeg.Build(TestJpeg.Jfif(), TestJpeg.Jfif(), TestJpeg.Frame(10, 20, Rgb)));
+        JpegFile adobe = Parse(TestJpeg.Build(TestJpeg.Adobe(0), TestJpeg.Adobe(0), TestJpeg.Frame(10, 20, 4)));
+
+        Assert.False(jfif.IsRgb);
+        Assert.True(adobe.HasAdobeMarker);
+        Assert.NotNull(adobe.Encode().Decode);
+    }
+
+    [Fact]
     public void RecognisesJfifOnlyByItsFullIdentifier()
     {
         byte[] notJfif = TestJpeg.Segment(0xE0, [.. "JFXX\0"u8, 0x10]);
@@ -340,6 +351,10 @@ public class JpegTests
 
         Assert.Equal(ImageFormat.Jpeg, error.Format);
         Assert.Contains($"SOF{marker - 0xC0}", error.Message);
+        Assert.EndsWith(
+            "which PDF readers are not required to decode; only baseline, extended and progressive Huffman-coded " +
+            "JPEGs can be embedded.",
+            error.Message);
     }
 
     [Theory]
@@ -387,7 +402,7 @@ public class JpegTests
     {
         ImageFormatException error = Assert.Throws<ImageFormatException>(() => Parse(TestJpeg.Build(TestJpeg.Frame(65535, 65535, 3))));
 
-        Assert.Contains("65535 × 65535", error.Message);
+        Assert.StartsWith("The JPEG image is 65535 × 65535 pixels", error.Message);
     }
 
     [Fact]

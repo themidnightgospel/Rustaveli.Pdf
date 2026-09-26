@@ -77,12 +77,28 @@ public class ExifReaderTests
     [Fact]
     public void RejectsAnUnknownByteOrder()
     {
-        byte[] tiff = TestJpeg.Orientation(6);
-        tiff[0] = (byte)'M';
-        Assert.Equal(ExifOrientation.Normal, Read(tiff));
+        // Each structure is valid in the byte order its first letter names; only the second letter is wrong.
+        byte[] bigEndian = TestJpeg.Orientation(6, bigEndian: true);
+        bigEndian[1] = (byte)'I';
+        Assert.Equal(ExifOrientation.Normal, Read(bigEndian));
 
-        tiff[0] = (byte)'I';
-        tiff[1] = (byte)'M';
+        byte[] littleEndian = TestJpeg.Orientation(6, bigEndian: false);
+        littleEndian[1] = (byte)'M';
+        Assert.Equal(ExifOrientation.Normal, Read(littleEndian));
+
+        byte[] swapped = TestJpeg.Orientation(6, bigEndian: false);
+        swapped[0] = (byte)'M';
+        Assert.Equal(ExifOrientation.Normal, Read(swapped));
+    }
+
+    [Fact]
+    public void ReadsNoEntriesBeyondTheDirectoryCount()
+    {
+        byte[] tiff = TestJpeg.Tiff(false, (0x010F, 2, 4, 0x41424300), (0x0112, 3, 1, 6));
+
+        // The orientation entry is there, but the count says the directory ends before it.
+        tiff[8] = 1;
+
         Assert.Equal(ExifOrientation.Normal, Read(tiff));
     }
 
