@@ -1,18 +1,69 @@
 using System.Reflection;
-using Xunit.Abstractions;
 
 namespace Rustaveli.Pdf.IntegrationTests;
 
 /// <summary>
-/// Reports which public API names this library shares with QuestPDF.
+/// Keeps the public vocabulary this library's own: names it shares with QuestPDF must be ordinary English of
+/// layout and typography, never that library's coinages.
 /// </summary>
 /// <remarks>
-/// Diagnostic only — it asserts nothing. The point is to distinguish names that are genuinely QuestPDF's
-/// coinages from names that are simply the ordinary English of layout, so that any renaming effort is aimed at
-/// the former rather than churning the latter.
+/// A name added here is a decision: it has to be the plain word a user of any page-layout tool would reach for.
+/// See <c>docs/GLOSSARY.md</c> and ADR 0002.
 /// </remarks>
-public class VocabularyOverlapTests(ITestOutputHelper output)
+public class VocabularyOverlapTests
 {
+    /// <summary>Plain words of layout and typography, and the names .NET itself gives such members.</summary>
+    private static readonly HashSet<string> SharedMethodsAllowed = new HashSet<string>(StringComparer.Ordinal)
+    {
+        // Object, record and .NET conventions.
+        "<Clone>$", "Dispose", "Equals", "FromFile", "FromStream", "GetHashCode", "ToString",
+
+        // Layout.
+        "Cell", "Columns", "Compose", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",
+        "MinWidth", "Placeholder", "Portrait", "Scale", "Section", "Stack", "Table", "Width",
+
+        // Typography.
+        "Bold", "Italic", "Line", "Style", "Subscript", "Superscript", "Text", "Underline", "Weight",
+    };
+
+    private static readonly HashSet<string> SharedTypesAllowed = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "Document",
+    };
+
+    private static readonly Assembly[] Ours = [typeof(Document).Assembly, typeof(PdfExport).Assembly];
+
+    private static readonly Assembly Theirs = typeof(QuestPDF.Fluent.Document).Assembly;
+
+    [Fact]
+    public void SharesOnlyPlainWordsForMethods()
+    {
+        HashSet<string> theirs = PublicMethodNames(Theirs);
+
+        List<string> coined = Ours.SelectMany(PublicMethodNames)
+            .Where(theirs.Contains)
+            .Where(name => !SharedMethodsAllowed.Contains(name))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(coined.Count == 0, "Method names shared with QuestPDF that are not plain words: " + string.Join(", ", coined));
+    }
+
+    [Fact]
+    public void SharesOnlyPlainWordsForTypes()
+    {
+        HashSet<string> theirs = PublicTypeNames(Theirs);
+
+        List<string> coined = Ours.SelectMany(PublicTypeNames)
+            .Where(theirs.Contains)
+            .Where(name => !SharedTypesAllowed.Contains(name))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(coined.Count == 0, "Type names shared with QuestPDF that are not plain words: " + string.Join(", ", coined));
+    }
+
     private static HashSet<string> PublicMethodNames(Assembly assembly) =>
         new HashSet<string>(
             assembly.GetExportedTypes()
@@ -23,32 +74,4 @@ public class VocabularyOverlapTests(ITestOutputHelper output)
 
     private static HashSet<string> PublicTypeNames(Assembly assembly) =>
         new HashSet<string>(assembly.GetExportedTypes().Select(type => type.Name), StringComparer.Ordinal);
-
-    [Fact]
-    public void ReportSharedVocabulary()
-    {
-        Assembly ours = typeof(Document).Assembly;
-        Assembly theirs = typeof(QuestPDF.Fluent.Document).Assembly;
-
-        HashSet<string> ourMethods = PublicMethodNames(ours);
-        HashSet<string> theirMethods = PublicMethodNames(theirs);
-        List<string> sharedMethods = ourMethods.Intersect(theirMethods, StringComparer.Ordinal).OrderBy(name => name).ToList();
-
-        HashSet<string> ourTypes = PublicTypeNames(ours);
-        HashSet<string> theirTypes = PublicTypeNames(theirs);
-        List<string> sharedTypes = ourTypes.Intersect(theirTypes, StringComparer.Ordinal).OrderBy(name => name).ToList();
-
-        output.WriteLine($"our public methods   : {ourMethods.Count}");
-        output.WriteLine($"their public methods : {theirMethods.Count}");
-        output.WriteLine($"shared method names  : {sharedMethods.Count} ({100.0 * sharedMethods.Count / ourMethods.Count:F0}% of ours)");
-        output.WriteLine(string.Empty);
-        output.WriteLine("SHARED METHOD NAMES:");
-        output.WriteLine(string.Join(", ", sharedMethods));
-        output.WriteLine(string.Empty);
-        output.WriteLine("SHARED TYPE NAMES:");
-        output.WriteLine(string.Join(", ", sharedTypes));
-        output.WriteLine(string.Empty);
-        output.WriteLine("OURS ONLY (methods):");
-        output.WriteLine(string.Join(", ", ourMethods.Except(theirMethods, StringComparer.Ordinal).OrderBy(name => name)));
-    }
 }

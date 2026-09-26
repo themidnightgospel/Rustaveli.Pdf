@@ -203,13 +203,13 @@ public class TextBlockTests
     }
 
     [Theory]
-    [InlineData(HorizontalPlacement.Left, 0f)]
-    [InlineData(HorizontalPlacement.Center, 35f)]
-    [InlineData(HorizontalPlacement.Right, 70f)]
-    public void AlignsLinesWithinTheAvailableWidth(HorizontalPlacement alignment, float expectedX)
+    [InlineData(nameof(HorizontalPlacement.Left), 0f)]
+    [InlineData(nameof(HorizontalPlacement.Center), 35f)]
+    [InlineData(nameof(HorizontalPlacement.Right), 70f)]
+    public void AlignsLinesWithinTheAvailableWidth(string placement, float expectedX)
     {
         TextBlock element = Text(text => text.Run("Hello"));
-        element.Alignment = alignment;
+        element.Alignment = (HorizontalPlacement)Enum.Parse(typeof(HorizontalPlacement), placement);
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100));
         TextOperation operation = Assert.Single(page.Texts);

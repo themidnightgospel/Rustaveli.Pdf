@@ -45,6 +45,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Snippet(ISnippet)` / `Snippet<T>()` | method | Places a snippet. | InDesign | `Component` |
 | `Compose(Action<IFrame>)` | method | Composes into a frame with a method of your own. | print | `Element` |
 | `Blank()` | method | Places nothing. | print | `Empty` |
+| `FrameContent` | class | The methods that set content into a frame, and so end a chain: `Text`, `Image`, `Stack`, `Columns`, `Table`, `List`, `Layered`, `Banded`, `Compose`, `Snippet`, `Blank`. | plain | `ContentExtensions` |
+| `FrameModifiers` | class | The methods that wrap a frame in another and return the inner one: every method under *Modifying a frame*, *Flow across pages* and *Rules, links and placeholders* below. | plain | `LayoutExtensions` |
 
 ## Arranging frames
 
@@ -67,6 +69,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `CellFrame` | class | A cell's frame, with its placement: `AtRow`, `AtColumn`, `SpanRows`, `SpanColumns`. | print | `TableCellDescriptor` |
 | `List(Action<ListComposer>)` | method | A bulleted or numbered list. | print | `List` |
 | `ListComposer.Bulleted()` / `Numbered(ListNumbering)` | method | The kind of list. | print | `Unordered` / `Ordered` |
+| `ListComposer.Add()` | method | Adds the next item. | plain | `Item` |
+| `ListComposer.SpaceBetween(float)` | method | Vertical space between items. | print | `Spacing` |
 | `ListComposer.MarkerIndent(float)` | method | The hanging indent the marker sits in. | print | `MarkerWidth` |
 | `ListComposer.MarkerType(Func<TypeStyle, TypeStyle>)` | method | How markers are set. | print | `MarkerStyle` |
 | `ListNumbering` | enum | `Bullet`, `Arabic`, `LowerAlpha`, `UpperAlpha`, `LowerRoman`, `UpperRoman`. | print | `ListMarker` |
@@ -91,7 +95,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `FlushLeft()`, `FlushRight()`, `Centered()` | method | Horizontal placement within the frame. | print | `AlignLeft/Right/Center` |
 | `FlushTop()`, `FlushBottom()`, `Middle()` | method | Vertical placement within the frame. | print | `AlignTop/Bottom/Middle` |
 | `Unbounded()` | method | Lays content out free of the space offered. | plain | `Unconstrained` |
-| `Shift(float x, float y)` | method | Moves drawn content without affecting layout. | InDesign ("shift") | `TranslateX/Y` |
+| `ShiftAcross(float)`, `ShiftDown(float)` | method | Moves drawn content without affecting layout. | InDesign ("shift") | `TranslateX/Y` |
 | `Scale(...)` | method | Scales content. | print | `Scale` |
 | `ShrinkToFit(float)` | method | Scales content down until it fits. | Word | `ScaleToFit` |
 | `TurnLeft()`, `TurnRight()` | method | A quarter turn. | plain | `RotateLeft/Right` |
@@ -175,7 +179,17 @@ The Material Design palette (`Colors.Red.Lighten3` and friends) is removed: user
 | `LengthUnit` | enum | `Point`, `Millimetre`, `Centimetre`, `Metre`, `Inch`, `Foot`. | plain | `Unit` |
 | `Lengths` | class | Conversions such as `20.Millimetres()`. | plain | `UnitExtensions` |
 | `ReadingDirection` | enum | `LeftToRight`, `RightToLeft`. | print | `ContentDirection` |
-| `HorizontalPlacement` / `VerticalPlacement` | enum | Left, centre, right; top, middle, bottom. | plain | `HorizontalAlignment` / `VerticalAlignment` |
+
+## Output through Skia
+
+The `Rustaveli.Pdf.Skia` package renders through SkiaSharp until the managed PDF writer replaces it
+([ADR 0001](adr/0001-managed-pdf-writer.md)); its public types live in the same namespace.
+
+| Name | Kind | Meaning | Source | Replaces |
+|---|---|---|---|---|
+| `PdfExport` | class | The `ExportPdf` methods. | InDesign | `PdfGenerationExtensions` |
+| `SkiaFontProvider` | class | Finds and registers the typefaces Skia sets type in. | plain | `SkiaFontProvider` |
+| `SkiaImage` | class | An image decoded by Skia, for `Image(IImage, ImageFitting)`. | plain | `SkiaImage` |
 
 ## Failures
 
@@ -203,4 +217,6 @@ Not public; listed so the codebase speaks one language throughout.
 | `ISurface` / `IPageSink` | What a backend draws on, and receives pages through. | `ICanvas` / `IDocumentCanvas` |
 | `ITypeMeasurer` / `TypeMetrics` | Measures type for layout. | `ITextMeasurer` / `FontMetrics` |
 | `TextRun` | A run of text inside a paragraph. | `TextSpan` |
+| `HorizontalPlacement` / `VerticalPlacement` | Left, centre, right; top, middle, bottom. | `HorizontalAlignment` / `VerticalAlignment` |
+| `IFrameSlot` | The block a public `IFrame` holds, out of the caller's reach. | `IContainer.Child` |
 | `*Block` | Each element, named after what it does: `FillBlock`, `StrokeBlock`, `StackBlock`, `ColumnsBlock`, … | `*Element` |

@@ -3,12 +3,13 @@ namespace Rustaveli.Pdf.UnitTests;
 public class PlacementTests
 {
     [Theory]
-    [InlineData(HorizontalPlacement.Left, 0f)]
-    [InlineData(HorizontalPlacement.Center, 75f)]
-    [InlineData(HorizontalPlacement.Right, 150f)]
-    public void PositionsTheChildHorizontally(HorizontalPlacement alignment, float expectedX)
+    [InlineData(nameof(HorizontalPlacement.Left), 0f)]
+    [InlineData(nameof(HorizontalPlacement.Center), 75f)]
+    [InlineData(nameof(HorizontalPlacement.Right), 150f)]
+    public void PositionsTheChildHorizontally(string placement, float expectedX)
     {
-        PlacementBlock element = new PlacementBlock { Horizontal = alignment, Child = new FixedBlock(50, 20) };
+        HorizontalPlacement horizontal = (HorizontalPlacement)Enum.Parse(typeof(HorizontalPlacement), placement);
+        PlacementBlock element = new PlacementBlock { Horizontal = horizontal, Child = new FixedBlock(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 100));
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -17,12 +18,13 @@ public class PlacementTests
     }
 
     [Theory]
-    [InlineData(VerticalPlacement.Top, 0f)]
-    [InlineData(VerticalPlacement.Middle, 40f)]
-    [InlineData(VerticalPlacement.Bottom, 80f)]
-    public void PositionsTheChildVertically(VerticalPlacement alignment, float expectedY)
+    [InlineData(nameof(VerticalPlacement.Top), 0f)]
+    [InlineData(nameof(VerticalPlacement.Middle), 40f)]
+    [InlineData(nameof(VerticalPlacement.Bottom), 80f)]
+    public void PositionsTheChildVertically(string placement, float expectedY)
     {
-        PlacementBlock element = new PlacementBlock { Vertical = alignment, Child = new FixedBlock(50, 20) };
+        VerticalPlacement vertical = (VerticalPlacement)Enum.Parse(typeof(VerticalPlacement), placement);
+        PlacementBlock element = new PlacementBlock { Vertical = vertical, Child = new FixedBlock(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 100));
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());
