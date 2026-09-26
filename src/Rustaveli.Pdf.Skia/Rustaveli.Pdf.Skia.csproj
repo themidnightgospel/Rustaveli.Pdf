@@ -16,19 +16,15 @@
   <ItemGroup>
     <ProjectReference Include="..\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
 
-    <!--
-      Pinned deliberately. SkiaSharp 3.116.x raises the glibc floor to 2.29 and will not load on RHEL 8 or
-      Debian 10 (mono/SkiaSharp#3201), and 3.119.0/3.119.1 dropped libfontconfig from the linux-arm64 binary
-      (#3369). The 4.x line is clear of both.
-    -->
-    <PackageReference Include="SkiaSharp" Version="4.151.0" />
+    <!-- Version pinned deliberately; the reason sits next to it in Directory.Packages.props. -->
+    <PackageReference Include="SkiaSharp" />
 
     <!--
       Referenced directly and unconditionally. The base SkiaSharp package does not carry the Linux native
       assets, and the trimmer drops native assets that arrive only transitively, so a direct reference is the
       only reliable way for Linux consumers to end up with a working binary.
     -->
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.151.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
   </ItemGroup>
 
 </Project>
