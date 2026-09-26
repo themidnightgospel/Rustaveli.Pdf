@@ -8,11 +8,11 @@ public class ListRegressionTests
         // Every member needed to build a list is public, so a list assembled without the fluent helper must not
         // silently render nothing.
         ListElement list = new ListElement { Marker = ListMarker.Decimal };
-        list.Items.Add(new ListItem { Child = new FixedElement(40, 20, Colors.Red) });
+        list.Items.Add(new ListItem { Child = new FixedElement(40, 20, TestInks.Red) });
 
         RecordedPage page = LayoutHarness.Draw(list, new Size(300, 400));
 
-        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Fact]
@@ -25,10 +25,10 @@ public class ListRegressionTests
         }));
 
         ListElement element = (ListElement)((Container)root).Child!;
-        element.Items.Add(new ListItem { Child = new FixedElement(40, 20, Colors.Red) });
+        element.Items.Add(new ListItem { Child = new FixedElement(40, 20, TestInks.Red) });
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(300, 400));
 
-        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 }

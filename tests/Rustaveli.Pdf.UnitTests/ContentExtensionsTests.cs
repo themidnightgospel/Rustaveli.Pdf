@@ -6,7 +6,7 @@ public class ContentExtensionsTests
 {
     private static readonly Size Space = new Size(200, 200);
 
-    private static void Fill(IContainer container, float width, float height, Color color) =>
+    private static void Fill(IContainer container, float width, float height, Ink color) =>
         container.Element(inner => inner.Child = new FixedElement(width, height, color));
 
     public static TheoryData<string, Action<IContainer>> CallsWithoutAHandler => new()
@@ -81,17 +81,17 @@ public class ContentExtensionsTests
     {
         Element root = LayoutHarness.Build(container => container.Decoration(decoration =>
         {
-            Fill(decoration.Before(), 50, 10, Colors.Red);
-            Fill(decoration.Content(), 50, 20, Colors.Blue);
-            Fill(decoration.After(), 50, 5, Colors.Green);
+            Fill(decoration.Before(), 50, 10, TestInks.Red);
+            Fill(decoration.Content(), 50, 20, TestInks.Blue);
+            Fill(decoration.After(), 50, 5, TestInks.Green);
         }));
 
         List<RectangleOperation> rectangles =
             LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().ToList();
 
-        float before = rectangles.Single(r => r.Color == Colors.Red).Position.Y;
-        float content = rectangles.Single(r => r.Color == Colors.Blue).Position.Y;
-        float after = rectangles.Single(r => r.Color == Colors.Green).Position.Y;
+        float before = rectangles.Single(r => r.Color == TestInks.Red).Position.Y;
+        float content = rectangles.Single(r => r.Color == TestInks.Blue).Position.Y;
+        float after = rectangles.Single(r => r.Color == TestInks.Green).Position.Y;
 
         // Only the stacking order is asserted: where the bands end up within the space they are given is the
         // decoration element's business, not the fluent API's.

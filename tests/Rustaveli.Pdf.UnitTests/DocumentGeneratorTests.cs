@@ -66,7 +66,7 @@ public class DocumentGeneratorTests
             page.Size = new Size(200f, 200f);
             page.Header().Element(delegate(IContainer container)
             {
-                container.Child = new FixedElement(50f, 20f, Colors.Red);
+                container.Child = new FixedElement(50f, 20f, TestInks.Red);
             });
             page.Content().Element(delegate(IContainer container)
             {
@@ -77,7 +77,7 @@ public class DocumentGeneratorTests
         Assert.True(recordingCanvas.Pages.Count > 1, "The content should span several pages.");
         foreach (RecordedPage page in recordingCanvas.Pages)
         {
-            Assert.Contains(page.Operations.OfType<RectangleOperation>(), (RectangleOperation operation) => operation.Color == Colors.Red);
+            Assert.Contains(page.Operations.OfType<RectangleOperation>(), (RectangleOperation operation) => operation.Color == TestInks.Red);
         }
     }
 
@@ -90,7 +90,7 @@ public class DocumentGeneratorTests
             page.Margin = Edges.All(10f);
             page.Footer().Element(delegate(IContainer container)
             {
-                container.Child = new FixedElement(50f, 20f, Colors.Green);
+                container.Child = new FixedElement(50f, 20f, TestInks.Green);
             });
             page.Content().Element(delegate(IContainer container)
             {
@@ -98,7 +98,7 @@ public class DocumentGeneratorTests
             });
         });
         RecordingCanvas recordingCanvas = LayoutHarness.Render(document);
-        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Color == Colors.Green);
+        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Color == TestInks.Green);
         Approximately.Equal(170f, rectangleOperation.Position.Y);
     }
 
@@ -110,15 +110,15 @@ public class DocumentGeneratorTests
             page.Size = new Size(200f, 200f);
             page.Header().Element(delegate(IContainer container)
             {
-                container.Child = new FixedElement(50f, 30f, Colors.Red);
+                container.Child = new FixedElement(50f, 30f, TestInks.Red);
             });
             page.Content().Element(delegate(IContainer container)
             {
-                container.Child = new FixedElement(10f, 10f, Colors.Blue);
+                container.Child = new FixedElement(10f, 10f, TestInks.Blue);
             });
         });
         RecordingCanvas recordingCanvas = LayoutHarness.Render(document);
-        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Color == Colors.Blue);
+        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Color == TestInks.Blue);
         Approximately.Equal(30f, rectangleOperation.Position.Y);
     }
 
@@ -155,7 +155,7 @@ public class DocumentGeneratorTests
             page.Margin = Edges.All(20f);
             page.Background().Element(delegate(IContainer container)
             {
-                container.Child = new FixedElement(200f, 300f, Colors.Amber);
+                container.Child = new FixedElement(200f, 300f, TestInks.Amber);
             });
             page.Content().Element(delegate(IContainer container)
             {
@@ -163,7 +163,7 @@ public class DocumentGeneratorTests
             });
         });
         RecordingCanvas recordingCanvas = LayoutHarness.Render(document);
-        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Color == Colors.Amber);
+        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Color == TestInks.Amber);
         Approximately.Equal(Position.Zero, rectangleOperation.Position);
         Approximately.Equal(new Size(200f, 300f), rectangleOperation.Size);
     }
@@ -176,16 +176,16 @@ public class DocumentGeneratorTests
             page.Size = new Size(200f, 200f);
             page.Foreground().Element(delegate(IContainer container)
             {
-                container.Child = new FixedElement(200f, 200f, Colors.Cyan);
+                container.Child = new FixedElement(200f, 200f, TestInks.Cyan);
             });
             page.Content().Element(delegate(IContainer container)
             {
-                container.Child = new FixedElement(10f, 10f, Colors.Blue);
+                container.Child = new FixedElement(10f, 10f, TestInks.Blue);
             });
         });
         List<RectangleOperation> list = LayoutHarness.Render(document).Page(1).Operations.OfType<RectangleOperation>().ToList();
-        int content = list.FindIndex(operation => operation.Color == Colors.Blue);
-        int foreground = list.FindIndex(operation => operation.Color == Colors.Cyan);
+        int content = list.FindIndex(operation => operation.Color == TestInks.Blue);
+        int foreground = list.FindIndex(operation => operation.Color == TestInks.Cyan);
 
         Assert.True(foreground > content, "The foreground layer must be painted over the content.");
     }
@@ -308,7 +308,7 @@ public class DocumentGeneratorTests
                 page.Size = new Size(200f, 200f);
                 page.Content().Element(delegate(IContainer inner)
                 {
-                    inner.Child = new FixedElement(10f, 10f, Colors.Red);
+                    inner.Child = new FixedElement(10f, 10f, TestInks.Red);
                 });
             });
             container.Page(delegate(PageDescriptor page)
@@ -316,7 +316,7 @@ public class DocumentGeneratorTests
                 page.Size = new Size(300f, 300f);
                 page.Content().Element(delegate(IContainer inner)
                 {
-                    inner.Child = new FixedElement(10f, 10f, Colors.Blue);
+                    inner.Child = new FixedElement(10f, 10f, TestInks.Blue);
                 });
             });
         });
@@ -520,17 +520,17 @@ public class DocumentGeneratorTests
             page.Size = new Size(200, 100);
             page.Margin = new Edges(Left: 0, Top: 10, Right: 0, Bottom: 20);
             page.IsContinuous = true;
-            page.Header().Element(container => container.Child = new FixedElement(50, 15, Colors.Red));
-            page.Content().Element(container => container.Child = new FixedElement(50, 500, Colors.Blue));
-            page.Footer().Element(container => container.Child = new FixedElement(50, 25, Colors.Green));
+            page.Header().Element(container => container.Child = new FixedElement(50, 15, TestInks.Red));
+            page.Content().Element(container => container.Child = new FixedElement(50, 500, TestInks.Blue));
+            page.Footer().Element(container => container.Child = new FixedElement(50, 25, TestInks.Green));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
 
         Approximately.Equal(new Size(200, 570), page.Size);
-        Approximately.Equal(10f, Rectangle(page, Colors.Red).Position.Y);
-        Approximately.Equal(25f, Rectangle(page, Colors.Blue).Position.Y);
-        Approximately.Equal(525f, Rectangle(page, Colors.Green).Position.Y);
+        Approximately.Equal(10f, Rectangle(page, TestInks.Red).Position.Y);
+        Approximately.Equal(25f, Rectangle(page, TestInks.Blue).Position.Y);
+        Approximately.Equal(525f, Rectangle(page, TestInks.Green).Position.Y);
     }
 
     [Fact]
@@ -618,13 +618,13 @@ public class DocumentGeneratorTests
         Document document = Build(page =>
         {
             page.Size = new Size(200, 200);
-            page.Header().Element(container => container.Child = new FixedElement(10, 50, Colors.Red));
-            page.Footer().Element(container => container.Child = new FixedElement(10, 150.0005f, Colors.Green));
+            page.Header().Element(container => container.Child = new FixedElement(10, 50, TestInks.Red));
+            page.Footer().Element(container => container.Child = new FixedElement(10, 150.0005f, TestInks.Green));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
 
-        Approximately.Equal(50f, Rectangle(page, Colors.Green).Position.Y);
+        Approximately.Equal(50f, Rectangle(page, TestInks.Green).Position.Y);
     }
 
     [Fact]
@@ -774,7 +774,7 @@ public class DocumentGeneratorTests
         {
             float[] widthsInDrawOrder = page.Operations
                 .OfType<RectangleOperation>()
-                .Where(operation => operation.Color == Colors.Blue)
+                .Where(operation => operation.Color == TestInks.Blue)
                 .Select(operation => operation.Size.Width)
                 .ToArray();
 
@@ -790,14 +790,14 @@ public class DocumentGeneratorTests
         Document document = Build(page =>
         {
             page.Size = new Size(200, 200);
-            page.Header().ShowOnce().Element(container => container.Child = new FixedElement(50, 20, Colors.Red));
+            page.Header().ShowOnce().Element(container => container.Child = new FixedElement(50, 20, TestInks.Red));
             page.Content().Element(container => container.Child = new SplittableElement(3, 150f));
         });
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
 
         int[] headersPerPage = canvas.Pages
-            .Select(page => page.Operations.OfType<RectangleOperation>().Count(operation => operation.Color == Colors.Red))
+            .Select(page => page.Operations.OfType<RectangleOperation>().Count(operation => operation.Color == TestInks.Red))
             .ToArray();
         Assert.Equal(new[] { 1, 0, 0 }, headersPerPage);
     }
@@ -809,13 +809,13 @@ public class DocumentGeneratorTests
         {
             page.Size = new Size(200, 300);
             page.Margin = Edges.All(20);
-            page.BackgroundColor = Colors.Amber;
+            page.BackgroundColor = TestInks.Amber;
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
         RectangleOperation fill = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
-        Assert.Equal(Colors.Amber.Base, fill.Color);
+        Assert.Equal(TestInks.Amber, fill.Color);
         Approximately.Equal(Position.Zero, fill.Position);
         Approximately.Equal(new Size(200, 300), fill.Size);
     }
@@ -826,7 +826,7 @@ public class DocumentGeneratorTests
         Document document = Build(page =>
         {
             page.Size = new Size(200, 300);
-            page.BackgroundColor = Colors.Transparent;
+            page.BackgroundColor = TestInks.Transparent;
         });
 
         Assert.Empty(Assert.Single(LayoutHarness.Render(document).Pages).Operations);
@@ -839,20 +839,20 @@ public class DocumentGeneratorTests
         {
             page.Size = new Size(200, 300);
             page.Margin = Edges.All(20);
-            page.Header().Element(container => container.Child = new FixedElement(50, 30, Colors.Red));
-            page.Content().Element(container => container.Child = new FixedElement(50, 10, Colors.Blue));
-            page.Footer().Element(container => container.Child = new FixedElement(50, 30, Colors.Green));
-            page.Foreground().Element(container => container.Child = new FixedElement(200, 300, Colors.Cyan));
+            page.Header().Element(container => container.Child = new FixedElement(50, 30, TestInks.Red));
+            page.Content().Element(container => container.Child = new FixedElement(50, 10, TestInks.Blue));
+            page.Footer().Element(container => container.Child = new FixedElement(50, 30, TestInks.Green));
+            page.Foreground().Element(container => container.Child = new FixedElement(200, 300, TestInks.Cyan));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
 
-        Approximately.Equal(new Position(20, 20), Rectangle(page, Colors.Red).Position);
-        Approximately.Equal(new Position(20, 50), Rectangle(page, Colors.Blue).Position);
-        Approximately.Equal(new Position(20, 250), Rectangle(page, Colors.Green).Position);
-        Approximately.Equal(Position.Zero, Rectangle(page, Colors.Cyan).Position);
+        Approximately.Equal(new Position(20, 20), Rectangle(page, TestInks.Red).Position);
+        Approximately.Equal(new Position(20, 50), Rectangle(page, TestInks.Blue).Position);
+        Approximately.Equal(new Position(20, 250), Rectangle(page, TestInks.Green).Position);
+        Approximately.Equal(Position.Zero, Rectangle(page, TestInks.Cyan).Position);
     }
 
-    private static RectangleOperation Rectangle(RecordedPage page, Color color) =>
+    private static RectangleOperation Rectangle(RecordedPage page, Ink color) =>
         page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == color);
 }

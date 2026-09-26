@@ -25,7 +25,7 @@ public class InlineContentTests
         TextElement element = Text(text =>
         {
             text.Span("before");
-            text.Element(inline => inline.Child = new FixedElement(20, 10, Colors.Red));
+            text.Element(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
             text.Span("after");
         });
 
@@ -101,11 +101,11 @@ public class InlineContentTests
         TextElement element = Text(text =>
         {
             text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 6, Colors.Red));
+            text.Element(inline => inline.Child = new FixedElement(20, 6, TestInks.Red));
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
-        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         // Baseline is 80% of the 12pt line; a 6pt element sits directly above it.
         Approximately.Equal(9.6f - 6f, block.Position.Y);
@@ -117,12 +117,12 @@ public class InlineContentTests
         TextElement element = Text(text =>
         {
             text.Span("aaaa");
-            text.Element(inline => inline.Child = new FixedElement(20, 10, Colors.Red));
+            text.Element(inline => inline.Child = new FixedElement(20, 10, TestInks.Red));
         });
 
         // 24pt of text plus a 20pt element exceeds 30pt, so the element wraps.
         RecordedPage page = LayoutHarness.Draw(element, new Size(30, 500));
-        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(0f, block.Position.X);
         Assert.True(block.Position.Y > 0, "The element should have moved onto the second line.");

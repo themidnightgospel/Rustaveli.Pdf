@@ -44,8 +44,8 @@ public class ListDescriptorTests
         Element root = BuildList(list =>
         {
             list.Spacing(10);
-            list.Item().Element(inner => inner.Child = new FixedElement(10, 20, Colors.Red));
-            list.Item().Element(inner => inner.Child = new FixedElement(10, 20, Colors.Red));
+            list.Item().Element(inner => inner.Child = new FixedElement(10, 20, TestInks.Red));
+            list.Item().Element(inner => inner.Child = new FixedElement(10, 20, TestInks.Red));
         });
 
         SpacePlan plan = LayoutHarness.Measure(root, Space);

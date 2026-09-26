@@ -5,7 +5,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void HorizontalRuleSpansTheWidthAtItsThickness()
     {
-        Element root = LayoutHarness.Build(container => container.LineHorizontal(3, Colors.Red));
+        Element root = LayoutHarness.Build(container => container.LineHorizontal(3, TestInks.Red));
 
         SpacePlan plan = LayoutHarness.Measure(root, new Size(200, 100));
 
@@ -55,12 +55,12 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void HorizontalRuleIsPaintedAcrossTheWidthInItsColour()
     {
-        HorizontalLineElement element = new HorizontalLineElement { Thickness = 3, Color = Colors.Red };
+        HorizontalLineElement element = new HorizontalLineElement { Thickness = 3, Color = TestInks.Red };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Size(200, 100)).Operations.OfType<RectangleOperation>());
 
         Assert.Equal(new Bounds(0, 0, 200, 3), rule.Bounds);
-        Assert.Equal(Colors.Red, rule.Color);
+        Assert.Equal(TestInks.Red, rule.Color);
     }
 
     [Theory]
@@ -76,11 +76,11 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void VerticalRuleIsPaintedDownTheHeightInItsColour()
     {
-        VerticalLineElement element = new VerticalLineElement { Thickness = 2, Color = Colors.Blue };
+        VerticalLineElement element = new VerticalLineElement { Thickness = 2, Color = TestInks.Blue };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Size(200, 100)).Operations.OfType<RectangleOperation>());
 
         Assert.Equal(new Bounds(0, 0, 2, 100), rule.Bounds);
-        Assert.Equal(Colors.Blue, rule.Color);
+        Assert.Equal(TestInks.Blue, rule.Color);
     }
 }

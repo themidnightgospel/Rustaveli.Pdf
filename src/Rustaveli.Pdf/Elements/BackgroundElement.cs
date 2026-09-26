@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.Elements;
 /// </summary>
 public sealed class BackgroundElement : ContainerElement
 {
-    public Color Color { get; set; } = Colors.Transparent;
+    public Ink Color { get; set; } = Ink.Transparent;
 
     /// <summary>Radius of the corner rounding. Zero draws square corners.</summary>
     public float CornerRadius { get; set; }

@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.Elements;
 /// </summary>
 public sealed class PlaceholderElement : Element
 {
-    public Color Color { get; set; } = Colors.Grey.Lighten3;
+    public Ink Color { get; set; } = Ink.Rgb(0xEE, 0xEE, 0xEE);
 
     public override SpacePlan Measure(Size availableSpace, LayoutContext context) =>
         SpacePlan.FullRender(availableSpace);

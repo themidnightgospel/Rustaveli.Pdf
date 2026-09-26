@@ -6,9 +6,9 @@ namespace Rustaveli.Pdf.UnitTests;
 /// </summary>
 public class AllottedSizeTests
 {
-    private static readonly Color Marker = Colors.Red;
+    private static readonly Ink Marker = TestInks.Red;
 
-    private static void Box(IContainer container, float width, float height, Color? color = null) =>
+    private static void Box(IContainer container, float width, float height, Ink? color = null) =>
         Composition.Attach(container, color is null ? new FixedElement(width, height) : new FixedElement(width, height, color.Value));
 
     private static RectangleOperation MarkerRectangle(RecordedPage page) =>
@@ -88,12 +88,12 @@ public class AllottedSizeTests
             {
                 decoration.Before().Background(Marker).Element(band => Box(band, 10, 10));
                 decoration.Content().Element(content => Box(content, 10, 25));
-                decoration.After().Background(Colors.Blue).Element(band => Box(band, 10, 10));
+                decoration.After().Background(TestInks.Blue).Element(band => Box(band, 10, 10));
             })),
             new Size(200, 300));
 
         RectangleOperation before = MarkerRectangle(page);
-        RectangleOperation after = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == Colors.Blue);
+        RectangleOperation after = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == TestInks.Blue);
 
         Approximately.Equal(new Size(200, 10), before.Size);
         Approximately.Equal(new Size(200, 10), after.Size);

@@ -27,13 +27,13 @@ public sealed class TextSpanDescriptor(TextSpan span)
 
     public TextSpanDescriptor FontSize(float size) => Refine(style => style.FontSizeOf(size));
 
-    public TextSpanDescriptor FontColor(Color color) => Refine(style => style.ColorOf(color));
+    public TextSpanDescriptor FontColor(Ink color) => Refine(style => style.ColorOf(color));
 
-    public TextSpanDescriptor FontColor(string hexColor) => FontColor(Color.ParseHex(hexColor));
+    public TextSpanDescriptor FontColor(string hexColor) => FontColor(Ink.Hex(hexColor));
 
-    public TextSpanDescriptor BackgroundColor(Color color) => Refine(style => style.BackgroundColorOf(color));
+    public TextSpanDescriptor BackgroundColor(Ink color) => Refine(style => style.BackgroundColorOf(color));
 
-    public TextSpanDescriptor BackgroundColor(string hexColor) => BackgroundColor(Color.ParseHex(hexColor));
+    public TextSpanDescriptor BackgroundColor(string hexColor) => BackgroundColor(Ink.Hex(hexColor));
 
     public TextSpanDescriptor Weight(FontWeight weight) => Refine(style => style.WeightOf(weight));
 

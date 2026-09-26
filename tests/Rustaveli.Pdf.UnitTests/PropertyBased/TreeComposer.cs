@@ -63,11 +63,11 @@ public sealed class TreeComposer
                 break;
 
             case NodeKind.Background:
-                Compose(container.Background(Colors.Grey.Lighten3), node.Children[0]);
+                Compose(container.Background(TestInks.GreyLighten3), node.Children[0]);
                 break;
 
             case NodeKind.Border:
-                Compose(container.Border(1).BorderColor(Colors.Grey), node.Children[0]);
+                Compose(container.Border(1).BorderColor(TestInks.Grey), node.Children[0]);
                 break;
 
             default:

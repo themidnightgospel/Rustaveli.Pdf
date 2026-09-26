@@ -30,7 +30,7 @@ public interface ICanvas
     /// <summary>Restricts subsequent drawing to a rectangle at the current origin.</summary>
     void ClipRectangle(Size size);
 
-    void DrawRectangle(Position position, Size size, Color color);
+    void DrawRectangle(Position position, Size size, Ink color);
 
     /// <summary>
     /// Draws a rectangle with rounded corners.
@@ -40,9 +40,9 @@ public interface ICanvas
     /// <param name="cornerRadius">Corner rounding. Backends clamp anything larger than half the shorter side.</param>
     /// <param name="color">Fill or stroke colour, depending on <paramref name="strokeWidth"/>.</param>
     /// <param name="strokeWidth">Zero or less fills the shape; a positive value strokes an outline of that width.</param>
-    void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Color color, float strokeWidth = 0f);
+    void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Ink color, float strokeWidth = 0f);
 
-    void DrawLine(Position from, Position to, float thickness, Color color);
+    void DrawLine(Position from, Position to, float thickness, Ink color);
 
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
     void DrawText(string text, Position baselineStart, TextStyle style);

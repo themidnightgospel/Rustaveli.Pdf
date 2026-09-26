@@ -2,7 +2,7 @@ using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Primitives;
 using Rustaveli.Pdf.Text;
 using SkiaSharp;
-using Color = Rustaveli.Pdf.Primitives.Color;
+using Ink = Rustaveli.Pdf.Primitives.Ink;
 
 namespace Rustaveli.Pdf.Skia;
 
@@ -36,7 +36,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
 
     public void ClipRectangle(Size size) => Canvas.ClipRect(SKRect.Create(0, 0, size.Width, size.Height));
 
-    public void DrawRectangle(Position position, Size size, Color color)
+    public void DrawRectangle(Position position, Size size, Ink color)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
@@ -45,7 +45,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), paint);
     }
 
-    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Color color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Ink color, float strokeWidth = 0f)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
@@ -65,7 +65,7 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawRoundRect(rect, radius, radius, paint);
     }
 
-    public void DrawLine(Position from, Position to, float thickness, Color color)
+    public void DrawLine(Position from, Position to, float thickness, Ink color)
     {
         if (color.IsTransparent || thickness <= 0)
             return;
@@ -158,12 +158,21 @@ public sealed class SkiaPdfCanvas(SKDocument document, SkiaFontProvider fonts) :
         Canvas.DrawNamedDestinationAnnotation(new SKPoint(0, 0), destinationName);
     }
 
-    private static SKPaint CreatePaint(Color color) => new()
+    private static SKPaint CreatePaint(Ink color) => new()
     {
-        Color = new SKColor(color.Red, color.Green, color.Blue, color.Alpha),
+        Color = ToSkColor(color),
         IsAntialias = true,
         Style = SKPaintStyle.Fill
     };
+
+    // Skia draws in RGB only: process colours convert without a profile, and spot inks show their fallback.
+    private static SKColor ToSkColor(Ink ink)
+    {
+        (float red, float green, float blue) = ink.ToRgb();
+        return new SKColor(ToByte(red), ToByte(green), ToByte(blue), ToByte(ink.Opacity));
+    }
+
+    private static byte ToByte(float fraction) => (byte)Math.Round(fraction * 255);
 
     /// <summary>
     /// Closes any page still open.

@@ -31,19 +31,19 @@ public class TextSpanDescriptorTests
 
     [Fact]
     public void FontColorSetsTheColour() =>
-        Assert.Equal((Color)Colors.Red, StyleOf(span => span.FontColor(Colors.Red)).Color);
+        Assert.Equal((Ink)TestInks.Red, StyleOf(span => span.FontColor(TestInks.Red)).Color);
 
     [Fact]
     public void FontColorAcceptsHex() =>
-        Assert.Equal(new Color(0x33, 0x66, 0x99), StyleOf(span => span.FontColor("#336699")).Color);
+        Assert.Equal(Ink.Rgb(0x33, 0x66, 0x99), StyleOf(span => span.FontColor("#336699")).Color);
 
     [Fact]
     public void BackgroundColorSetsTheHighlight() =>
-        Assert.Equal((Color)Colors.Yellow, StyleOf(span => span.BackgroundColor(Colors.Yellow)).BackgroundColor);
+        Assert.Equal((Ink)TestInks.Yellow, StyleOf(span => span.BackgroundColor(TestInks.Yellow)).BackgroundColor);
 
     [Fact]
     public void BackgroundColorAcceptsHex() =>
-        Assert.Equal(new Color(0xFF, 0xFF, 0x00), StyleOf(span => span.BackgroundColor("#FFFF00")).BackgroundColor);
+        Assert.Equal(Ink.Rgb(0xFF, 0xFF, 0x00), StyleOf(span => span.BackgroundColor("#FFFF00")).BackgroundColor);
 
     [Fact]
     public void WeightSetsAnyWeight() =>

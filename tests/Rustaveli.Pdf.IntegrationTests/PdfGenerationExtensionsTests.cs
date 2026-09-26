@@ -41,7 +41,7 @@ public class PdfGenerationExtensionsTests
         Document.Create(container => container.Page(page =>
         {
             page.Size = new Size(200, 200);
-            page.Content().Height(50).Placeholder(Colors.Red);
+            page.Content().Height(50).Placeholder(TestInks.Red);
         }));
 
     /// <summary>
@@ -60,7 +60,7 @@ public class PdfGenerationExtensionsTests
                     return style;
                 })
                 .Height(50)
-                .Placeholder(Colors.Blue);
+                .Placeholder(TestInks.Blue);
         }));
 
     private static string TempPath() => Path.Combine(Path.GetTempPath(), $"rustaveli-{Guid.NewGuid():N}.pdf");

@@ -21,9 +21,9 @@ public sealed record TextStyle
 
     public bool IsItalic { get; init; }
 
-    public Color Color { get; init; } = Colors.Black;
+    public Ink Color { get; init; } = Ink.Black;
 
-    public Color BackgroundColor { get; init; } = Colors.Transparent;
+    public Ink BackgroundColor { get; init; } = Ink.Transparent;
 
     public bool HasUnderline { get; init; }
 
@@ -99,7 +99,7 @@ public sealed record TextStyle
         };
     }
 
-    public TextStyle ColorOf(Color color)
+    public TextStyle ColorOf(Ink color)
     {
         return this with
         {
@@ -107,7 +107,7 @@ public sealed record TextStyle
         };
     }
 
-    public TextStyle BackgroundColorOf(Color color)
+    public TextStyle BackgroundColorOf(Ink color)
     {
         return this with
         {

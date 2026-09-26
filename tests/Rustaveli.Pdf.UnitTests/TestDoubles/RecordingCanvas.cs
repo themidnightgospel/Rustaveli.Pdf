@@ -68,17 +68,17 @@ public sealed class RecordingCanvas : IDocumentCanvas, ICanvas, IDisposable
     {
     }
 
-    public void DrawRectangle(Position position, Size size, Color color)
+    public void DrawRectangle(Position position, Size size, Ink color)
     {
         Current.Operations.Add(new RectangleOperation(Resolve(position), size, color, ResolveBounds(position, size)));
     }
 
-    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Color color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Ink color, float strokeWidth = 0f)
     {
         Current.Operations.Add(new RoundedRectangleOperation(Resolve(position), size, cornerRadius, color, strokeWidth, ResolveBounds(position, size)));
     }
 
-    public void DrawLine(Position from, Position to, float thickness, Color color)
+    public void DrawLine(Position from, Position to, float thickness, Ink color)
     {
         Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color));
     }

@@ -199,11 +199,11 @@ public class PdfOutputTests
         Document document = SimpleDocument(page => page.Content().Column(column =>
         {
             column.Item().Text(text => text.Span("Bold").Bold().FontSize(24));
-            column.Item().Text(text => text.Span("Coloured").FontColor(Colors.Red));
+            column.Item().Text(text => text.Span("Coloured").FontColor(TestInks.Red));
             column.Item().Text(text => text.Span("Underlined").Underline());
-            column.Item().Text(text => text.Span("Highlighted").BackgroundColor(Colors.Yellow));
-            column.Item().Background(Colors.Grey.Lighten3).Padding(10).Text("On a background");
-            column.Item().Border(1).BorderColor(Colors.Black).Padding(5).Text("In a box");
+            column.Item().Text(text => text.Span("Highlighted").BackgroundColor(TestInks.Yellow));
+            column.Item().Background(TestInks.GreyLighten3).Padding(10).Text("On a background");
+            column.Item().Border(1).BorderColor(TestInks.Black).Padding(5).Text("In a box");
         }));
 
         using PdfDocument parsed = PdfDocument.Open(document.GeneratePdf());
@@ -256,8 +256,8 @@ public class PdfOutputTests
         {
             column.Spacing(8);
 
-            column.Item().Background(Colors.Amber.Lighten3).CornerRadius(8).Padding(10).Text("Rounded panel");
-            column.Item().Border(2).BorderColor(Colors.Indigo).CornerRadius(6).Padding(10).Text("Rounded outline");
+            column.Item().Background(TestInks.AmberLighten3).CornerRadius(8).Padding(10).Text("Rounded panel");
+            column.Item().Border(2).BorderColor(TestInks.Indigo).CornerRadius(6).Padding(10).Text("Rounded outline");
             column.Item().Width(120).ScaleToFit().Text("This line is scaled down until it fits its box.");
             column.Item().FlipHorizontal().Text("Mirrored");
         }));

@@ -11,7 +11,7 @@ public class CompositionTests
         container.Padding(5);
 
         DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() =>
-            container.Background(Colors.Red));
+            container.Background(TestInks.Red));
 
         // Both types are named so the message points at the two pieces of composition that collided.
         Assert.Contains("already holds PaddingElement and cannot also hold BackgroundElement", exception.Message);

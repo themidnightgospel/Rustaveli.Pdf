@@ -118,11 +118,11 @@ public class ListTests
         Element root = BuildList(list =>
         {
             list.MarkerWidth(30);
-            list.Item().Element(inner => inner.Child = new FixedElement(10, 10, Colors.Red));
+            list.Item().Element(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
         });
 
         RecordedPage page = LayoutHarness.Draw(root, new Size(200, 200));
-        RectangleOperation content = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation content = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(30f, content.Position.X);
     }

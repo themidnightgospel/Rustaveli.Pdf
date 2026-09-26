@@ -10,7 +10,7 @@ public sealed class HorizontalLineElement : Element
 {
     public float Thickness { get; set; } = 1f;
 
-    public Color Color { get; set; } = Colors.Black;
+    public Ink Color { get; set; } = Ink.Black;
 
     public override SpacePlan Measure(Size availableSpace, LayoutContext context) =>
         Thickness > availableSpace.Height + Size.Epsilon

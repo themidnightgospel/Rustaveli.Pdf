@@ -44,11 +44,11 @@ public static class LayoutExtensions
 
     // ---- Painting ------------------------------------------------------------------------------------------
 
-    public static IContainer Background(this IContainer parent, Color color) =>
+    public static IContainer Background(this IContainer parent, Ink color) =>
         Attach(parent, new BackgroundElement { Color = color });
 
     public static IContainer Background(this IContainer parent, string hexColor) =>
-        parent.Background(Color.ParseHex(hexColor));
+        parent.Background(Ink.Hex(hexColor));
 
     public static IContainer Border(this IContainer parent, float width) =>
         Attach(parent, new BorderElement { Width = Edges.All(width) });
@@ -68,7 +68,7 @@ public static class LayoutExtensions
     /// <summary>
     /// Sets the colour of the nearest enclosing border. Must follow one of the border methods.
     /// </summary>
-    public static IContainer BorderColor(this IContainer parent, Color color)
+    public static IContainer BorderColor(this IContainer parent, Ink color)
     {
         if (parent is not BorderElement border)
             throw new InvalidOperationException("BorderColor must be applied directly after a Border method.");
@@ -78,7 +78,7 @@ public static class LayoutExtensions
     }
 
     public static IContainer BorderColor(this IContainer parent, string hexColor) =>
-        parent.BorderColor(Color.ParseHex(hexColor));
+        parent.BorderColor(Ink.Hex(hexColor));
 
     /// <summary>
     /// Rounds the corners of the nearest enclosing background or border. Must follow one of those methods.
@@ -272,16 +272,16 @@ public static class LayoutExtensions
     // ---- Rules and placeholders ----------------------------------------------------------------------------
 
     /// <summary>Draws a horizontal rule across the available width.</summary>
-    public static void LineHorizontal(this IContainer parent, float thickness = 1f, Color? color = null) =>
-        Attach(parent, new HorizontalLineElement { Thickness = thickness, Color = color ?? Colors.Black });
+    public static void LineHorizontal(this IContainer parent, float thickness = 1f, Ink? color = null) =>
+        Attach(parent, new HorizontalLineElement { Thickness = thickness, Color = color ?? Ink.Black });
 
     /// <summary>Draws a vertical rule down the available height.</summary>
-    public static void LineVertical(this IContainer parent, float thickness = 1f, Color? color = null) =>
-        Attach(parent, new VerticalLineElement { Thickness = thickness, Color = color ?? Colors.Black });
+    public static void LineVertical(this IContainer parent, float thickness = 1f, Ink? color = null) =>
+        Attach(parent, new VerticalLineElement { Thickness = thickness, Color = color ?? Ink.Black });
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
-    public static void Placeholder(this IContainer parent, Color? color = null) =>
-        Attach(parent, new PlaceholderElement { Color = color ?? Colors.Grey.Lighten3 });
+    public static void Placeholder(this IContainer parent, Ink? color = null) =>
+        Attach(parent, new PlaceholderElement { Color = color ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
 
     // ---- Links ---------------------------------------------------------------------------------------------
 

@@ -45,7 +45,7 @@ public class CompositionGuardTests
     {
         Element root = LayoutHarness.Build(container => container
             .Border(2).CornerRadius(8)
-            .Element(inner => inner.Child = new FixedElement(40, 20, Colors.White)));
+            .Element(inner => inner.Child = new FixedElement(40, 20, TestInks.White)));
 
         Assert.Single(LayoutHarness.Draw(root, new Size(200, 200)).Operations.OfType<RoundedRectangleOperation>());
     }

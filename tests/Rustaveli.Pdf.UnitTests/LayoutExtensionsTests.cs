@@ -12,19 +12,19 @@ public class LayoutExtensionsTests
 
     private static Element Compose(Func<IContainer, IContainer> chain, float width = 50, float height = 20) =>
         LayoutHarness.Build(container => chain(container).Element(inner =>
-            inner.Child = new FixedElement(width, height, Colors.Red)));
+            inner.Child = new FixedElement(width, height, TestInks.Red)));
 
     private static Size Measure(Element root) => LayoutHarness.Measure(root, Space).Size;
 
     private static RectangleOperation Content(Element root) =>
-        LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
     // Drawn at exactly the size it measured, as a parent that allots the natural size does (ADR 0012). Transforms
     // mirror and pivot across the box they are given, so this is the box their assertions describe.
     private static RectangleOperation ContentInItsOwnBox(Element root) =>
-        LayoutHarness.Draw(root, Measure(root)).Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        LayoutHarness.Draw(root, Measure(root)).Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
-    private static List<RectangleOperation> Bands(Element root, Color color) =>
+    private static List<RectangleOperation> Bands(Element root, Ink color) =>
         LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().Where(r => r.Color == color).ToList();
 
     // ---- Padding -------------------------------------------------------------------------------------------
@@ -108,14 +108,14 @@ public class LayoutExtensionsTests
 
         // Painted first, so it sits behind the content.
         Assert.Equal(2, rectangles.Count);
-        Assert.Equal(new Color(0, 255, 0), rectangles[0].Color);
-        Assert.Equal((Color)Colors.Red, rectangles[1].Color);
+        Assert.Equal(Ink.Rgb(0, 255, 0), rectangles[0].Color);
+        Assert.Equal(TestInks.Red, rectangles[1].Color);
     }
 
     [Fact]
     public void BorderLeftDrawsOnlyTheLeftBand()
     {
-        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderLeft(3)), Colors.Black));
+        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderLeft(3)), TestInks.Black));
 
         Approximately.Equal(new Position(0, 0), band.Position);
         Approximately.Equal(3f, band.Size.Width);
@@ -125,7 +125,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void BorderRightDrawsOnlyTheRightBand()
     {
-        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderRight(3)), Colors.Black));
+        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderRight(3)), TestInks.Black));
 
         Approximately.Equal(0f, band.Position.Y);
         Approximately.Equal(3f, band.Size.Width);
@@ -135,7 +135,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void BorderTopDrawsOnlyTheTopBand()
     {
-        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderTop(3)), Colors.Black));
+        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderTop(3)), TestInks.Black));
 
         Approximately.Equal(new Position(0, 0), band.Position);
         Approximately.Equal(3f, band.Size.Height);
@@ -145,7 +145,7 @@ public class LayoutExtensionsTests
     [Fact]
     public void BorderBottomDrawsOnlyTheBottomBand()
     {
-        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderBottom(3)), Colors.Black));
+        RectangleOperation band = Assert.Single(Bands(Compose(container => container.BorderBottom(3)), TestInks.Black));
 
         Approximately.Equal(0f, band.Position.X);
         Approximately.Equal(3f, band.Size.Height);
@@ -155,10 +155,10 @@ public class LayoutExtensionsTests
     [Fact]
     public void BorderColorRecoloursTheBorderItFollows()
     {
-        Element root = Compose(container => container.Border(2).BorderColor(Colors.Blue));
+        Element root = Compose(container => container.Border(2).BorderColor(TestInks.Blue));
 
-        Assert.Equal(4, Bands(root, Colors.Blue).Count);
-        Assert.Empty(Bands(root, Colors.Black));
+        Assert.Equal(4, Bands(root, TestInks.Blue).Count);
+        Assert.Empty(Bands(root, TestInks.Black));
     }
 
     [Fact]
@@ -166,14 +166,14 @@ public class LayoutExtensionsTests
     {
         Element root = Compose(container => container.Border(2).BorderColor("#0000FF"));
 
-        Assert.Equal(4, Bands(root, new Color(0, 0, 255)).Count);
+        Assert.Equal(4, Bands(root, Ink.Rgb(0, 0, 255)).Count);
     }
 
     [Fact]
     public void BorderColorMustFollowABorder()
     {
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            Compose(container => container.Padding(2).BorderColor(Colors.Blue)));
+            Compose(container => container.Padding(2).BorderColor(TestInks.Blue)));
 
         Assert.Equal("BorderColor must be applied directly after a Border method.", exception.Message);
     }
@@ -208,7 +208,7 @@ public class LayoutExtensionsTests
         RecordedPage page = LayoutHarness.Draw(root, Space);
 
         Assert.Empty(page.Operations.OfType<RoundedRectangleOperation>());
-        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Black);
+        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Black);
     }
 
     // ---- Sizing --------------------------------------------------------------------------------------------
@@ -363,7 +363,7 @@ public class LayoutExtensionsTests
 
         IContainer vertical = container.AlignBottom();
         IContainer both = vertical.AlignCenter();
-        both.Element(inner => inner.Child = new FixedElement(50, 20, Colors.Red));
+        both.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Same(vertical, both);
         Approximately.Equal(new Position(75, 80), Content(container).Position);
@@ -376,7 +376,7 @@ public class LayoutExtensionsTests
 
         IContainer first = container.AlignLeft().AlignTop();
         IContainer second = first.AlignRight().AlignBottom();
-        second.Element(inner => inner.Child = new FixedElement(50, 20, Colors.Red));
+        second.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Same(first, second);
         Approximately.Equal(new Position(150, 80), Content(container).Position);
@@ -389,7 +389,7 @@ public class LayoutExtensionsTests
         // new composition in an occupied slot and refused.
         Container container = new Container();
         IContainer aligned = container.AlignRight();
-        aligned.Element(inner => inner.Child = new FixedElement(50, 20, Colors.Red));
+        aligned.Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
 
         Assert.Throws<DocumentComposeException>(() => aligned.AlignCenter());
         Approximately.Equal(new Position(150, 0), Content(container).Position);
@@ -532,7 +532,7 @@ public class LayoutExtensionsTests
             LayoutHarness.Draw(LayoutHarness.Build(container => container.LineHorizontal()), Space)
                 .Operations.OfType<RectangleOperation>());
 
-        Assert.Equal(Colors.Black, rule.Color);
+        Assert.Equal(TestInks.Black, rule.Color);
         Approximately.Equal(new Size(200, 1), rule.Size);
     }
 
@@ -540,10 +540,10 @@ public class LayoutExtensionsTests
     public void LineHorizontalTakesAThicknessAndColour()
     {
         RectangleOperation rule = Assert.Single(
-            LayoutHarness.Draw(LayoutHarness.Build(container => container.LineHorizontal(3, Colors.Red)), Space)
+            LayoutHarness.Draw(LayoutHarness.Build(container => container.LineHorizontal(3, TestInks.Red)), Space)
                 .Operations.OfType<RectangleOperation>());
 
-        Assert.Equal((Color)Colors.Red, rule.Color);
+        Assert.Equal((Ink)TestInks.Red, rule.Color);
         Approximately.Equal(new Size(200, 3), rule.Size);
     }
 
@@ -554,7 +554,7 @@ public class LayoutExtensionsTests
             LayoutHarness.Draw(LayoutHarness.Build(container => container.LineVertical()), Space)
                 .Operations.OfType<RectangleOperation>());
 
-        Assert.Equal(Colors.Black, rule.Color);
+        Assert.Equal(TestInks.Black, rule.Color);
         Approximately.Equal(new Size(1, 100), rule.Size);
     }
 
@@ -562,10 +562,10 @@ public class LayoutExtensionsTests
     public void LineVerticalTakesAThicknessAndColour()
     {
         RectangleOperation rule = Assert.Single(
-            LayoutHarness.Draw(LayoutHarness.Build(container => container.LineVertical(3, Colors.Red)), Space)
+            LayoutHarness.Draw(LayoutHarness.Build(container => container.LineVertical(3, TestInks.Red)), Space)
                 .Operations.OfType<RectangleOperation>());
 
-        Assert.Equal((Color)Colors.Red, rule.Color);
+        Assert.Equal((Ink)TestInks.Red, rule.Color);
         Approximately.Equal(new Size(3, 100), rule.Size);
     }
 
@@ -576,17 +576,17 @@ public class LayoutExtensionsTests
             LayoutHarness.Draw(LayoutHarness.Build(container => container.Placeholder()), Space)
                 .Operations.OfType<RectangleOperation>());
 
-        Assert.Equal(Colors.Grey.Lighten3, block.Color);
+        Assert.Equal(TestInks.GreyLighten3, block.Color);
     }
 
     [Fact]
     public void PlaceholderTakesAColour()
     {
         RectangleOperation block = Assert.Single(
-            LayoutHarness.Draw(LayoutHarness.Build(container => container.Placeholder(Colors.Red)), Space)
+            LayoutHarness.Draw(LayoutHarness.Build(container => container.Placeholder(TestInks.Red)), Space)
                 .Operations.OfType<RectangleOperation>());
 
-        Assert.Equal((Color)Colors.Red, block.Color);
+        Assert.Equal((Ink)TestInks.Red, block.Color);
     }
 
     // ---- Links ---------------------------------------------------------------------------------------------
@@ -600,7 +600,7 @@ public class LayoutExtensionsTests
         RecordedPage page = LayoutHarness.Draw(Compose(container => container.Hyperlink("https://example.com")), Space);
 
         Assert.Equal("https://example.com", Assert.Single(page.Operations.OfType<ExternalLinkOperation>()).Url);
-        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Fact]
@@ -609,7 +609,7 @@ public class LayoutExtensionsTests
         RecordedPage page = LayoutHarness.Draw(Compose(container => container.Section("intro")), Space);
 
         Assert.Equal("intro", Assert.Single(page.Operations.OfType<DestinationOperation>()).Name);
-        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Fact]
@@ -618,7 +618,7 @@ public class LayoutExtensionsTests
         RecordedPage page = LayoutHarness.Draw(Compose(container => container.SectionLink("intro")), Space);
 
         Assert.Equal("intro", Assert.Single(page.Operations.OfType<InternalLinkOperation>()).Destination);
-        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Single(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Theory]

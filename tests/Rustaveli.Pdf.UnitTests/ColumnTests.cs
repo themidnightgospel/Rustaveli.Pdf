@@ -159,7 +159,7 @@ public class ColumnTests
     [Fact]
     public void AnAttemptWhereTheNextItemCannotFitKeepsTheColumnsPlace()
     {
-        ColumnElement column = Column(0, new FixedElement(10, 10, Colors.Red), new FixedElement(10, 50, Colors.Blue));
+        ColumnElement column = Column(0, new FixedElement(10, 10, TestInks.Red), new FixedElement(10, 50, TestInks.Blue));
 
         LayoutHarness.Draw(column, new Size(200, 20));
         RecordedPage cramped = LayoutHarness.Draw(column, new Size(200, 5));
@@ -168,7 +168,7 @@ public class ColumnTests
         Assert.Empty(cramped.Operations);
 
         RectangleOperation resumed = Assert.Single(roomy.Operations.OfType<RectangleOperation>());
-        Assert.Equal(Colors.Blue, resumed.Color);
+        Assert.Equal(TestInks.Blue, resumed.Color);
         Approximately.Equal(0f, resumed.Position.Y);
     }
 }

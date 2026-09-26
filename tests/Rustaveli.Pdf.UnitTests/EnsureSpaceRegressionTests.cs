@@ -11,29 +11,29 @@ public class EnsureSpaceRegressionTests
         Document document = Document.Create(container => container.Page(page =>
         {
             page.Size = new Size(300, 400);
-            page.Header().EnsureSpace(100).Element(inner => inner.Child = new FixedElement(50, 20, Colors.Red));
-            page.Content().Element(inner => inner.Child = new FixedElement(50, 20, Colors.Blue));
+            page.Header().EnsureSpace(100).Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Red));
+            page.Content().Element(inner => inner.Child = new FixedElement(50, 20, TestInks.Blue));
         }));
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
 
-        Assert.Contains(canvas.Page(1).Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Contains(canvas.Page(1).Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Fact]
     public void SurvivesBeingDrawnInsideARow()
     {
         RowElement row = new RowElement();
-        row.Items.Add(new RowItem { Sizing = RowItemSizing.Relative, Child = new FixedElement(40, 20, Colors.Blue) });
+        row.Items.Add(new RowItem { Sizing = RowItemSizing.Relative, Child = new FixedElement(40, 20, TestInks.Blue) });
         row.Items.Add(new RowItem
         {
             Sizing = RowItemSizing.Relative,
-            Child = new EnsureSpaceElement { MinHeight = 100, Child = new FixedElement(40, 20, Colors.Red) }
+            Child = new EnsureSpaceElement { MinHeight = 100, Child = new FixedElement(40, 20, TestInks.Red) }
         });
 
         RecordedPage page = LayoutHarness.Draw(row, new Size(300, 400));
 
-        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Fact]

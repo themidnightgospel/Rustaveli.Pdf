@@ -6,7 +6,7 @@ public class CornerRadiusTests
     public void BackgroundDrawsARoundedShapeWhenGivenARadius()
     {
         Element root = LayoutHarness.Build(container => container
-            .Background(Colors.Red).CornerRadius(6)
+            .Background(TestInks.Red).CornerRadius(6)
             .Element(inner => inner.Child = new FixedElement(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Size(200, 200));
@@ -20,7 +20,7 @@ public class CornerRadiusTests
     public void BackgroundStaysSquareWithoutARadius()
     {
         Element root = LayoutHarness.Build(container => container
-            .Background(Colors.Red)
+            .Background(TestInks.Red)
             .Element(inner => inner.Child = new FixedElement(50, 20)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Size(200, 200));
@@ -34,7 +34,7 @@ public class CornerRadiusTests
     {
         Element root = LayoutHarness.Build(container => container
             .Border(2).CornerRadius(4)
-            .Element(inner => inner.Child = new FixedElement(50, 20, Colors.White)));
+            .Element(inner => inner.Child = new FixedElement(50, 20, TestInks.White)));
 
         RecordedPage page = LayoutHarness.Draw(root, new Size(200, 200));
         RoundedRectangleOperation rounded = Assert.Single(page.Operations.OfType<RoundedRectangleOperation>());
@@ -50,8 +50,8 @@ public class CornerRadiusTests
         {
             Width = new Edges(1, 4, 1, 1),
             CornerRadius = 5,
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));

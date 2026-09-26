@@ -103,18 +103,18 @@ public class RowTests
         // so recomputing on page two would collapse the column and shift every column beside it.
         RowElement row = Row(0,
             Item(RowItemSizing.Auto, 0, new SplittableElement(unitCount: 4, unitHeight: 30, width: 40)),
-            Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, Colors.Red)));
+            Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)));
 
         Size space = new Size(200, 60);
 
         RecordedPage firstPage = LayoutHarness.Draw(row, space);
         RecordedPage secondPage = LayoutHarness.Draw(row, space);
 
-        RectangleOperation firstRed = firstPage.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation firstRed = firstPage.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         // The constant column must stay put; on page two the finished item is not redrawn at all.
         Approximately.Equal(40f, firstRed.Position.X);
-        Assert.DoesNotContain(secondPage.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.DoesNotContain(secondPage.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class RowTests
     {
         // A stateless leaf has no way to report itself finished, so the row has to remember for it.
         RowElement row = Row(0,
-            Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, Colors.Red)),
+            Item(RowItemSizing.Constant, 30, new FixedElement(30, 20, TestInks.Red)),
             Item(RowItemSizing.Relative, 1, new SplittableElement(unitCount: 6, unitHeight: 30)));
 
         Size space = new Size(200, 60);
@@ -130,8 +130,8 @@ public class RowTests
         RecordedPage firstPage = LayoutHarness.Draw(row, space);
         RecordedPage secondPage = LayoutHarness.Draw(row, space);
 
-        Assert.Contains(firstPage.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
-        Assert.DoesNotContain(secondPage.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.Contains(firstPage.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
+        Assert.DoesNotContain(secondPage.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 
     [Fact]
@@ -177,11 +177,11 @@ public class RowTests
     public void TreatsANegativeConstantWidthAsZero()
     {
         RowElement row = Row(0,
-            Item(RowItemSizing.Constant, -50, new FixedElement(0, 10, Colors.Red)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10, Colors.Blue)));
+            Item(RowItemSizing.Constant, -50, new FixedElement(0, 10, TestInks.Red)),
+            Item(RowItemSizing.Relative, 1, new FixedElement(1, 10, TestInks.Blue)));
 
         RecordedPage page = LayoutHarness.Draw(row, new Size(20, 100));
-        RectangleOperation relative = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Blue);
+        RectangleOperation relative = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Blue);
 
         Approximately.Equal(0f, relative.Position.X);
     }
@@ -221,15 +221,15 @@ public class RowTests
         // Nothing is drawn on the cramped page, so nothing may be marked finished either — otherwise the red
         // item would be skipped on the page where the row finally fits.
         RowElement row = Row(0,
-            Item(RowItemSizing.Constant, 50, new FixedElement(10, 10, Colors.Red)),
-            Item(RowItemSizing.Relative, 1, new FixedElement(10, 200, Colors.Blue)));
+            Item(RowItemSizing.Constant, 50, new FixedElement(10, 10, TestInks.Red)),
+            Item(RowItemSizing.Relative, 1, new FixedElement(10, 200, TestInks.Blue)));
 
         RecordedPage cramped = LayoutHarness.Draw(row, new Size(200, 100));
         RecordedPage roomy = LayoutHarness.Draw(row, new Size(200, 300));
 
         Assert.Empty(cramped.Operations);
-        Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
-        Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Blue);
+        Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
+        Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Blue);
     }
 
     [Fact]

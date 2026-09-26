@@ -15,7 +15,7 @@ public sealed class BorderElement : ContainerElement
 {
     public Edges Width { get; set; } = Edges.Zero;
 
-    public Color Color { get; set; } = Colors.Black;
+    public Ink Color { get; set; } = Ink.Black;
 
     /// <summary>
     /// Radius of the corner rounding. Only honoured when every side has the same width, since a rounded corner

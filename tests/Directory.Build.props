@@ -14,6 +14,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Test code shared by every test project, compiled into each: named inks and similar fixtures in code. -->
+    <Compile Include="$(MSBuildThisFileDirectory)Shared\**\*.cs" LinkBase="Shared" />
+    <Using Include="Rustaveli.Pdf.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Shared fixtures — fonts, images, documents — at assets/... beside every test assembly. -->
     <None Include="$(MSBuildThisFileDirectory)assets\**\*" Link="assets\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" Visible="false" />

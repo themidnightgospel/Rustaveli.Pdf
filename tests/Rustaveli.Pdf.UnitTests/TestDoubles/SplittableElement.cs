@@ -42,7 +42,7 @@ public sealed class SplittableElement(int unitCount, float unitHeight, float wid
             context.Canvas.DrawRectangle(
                 new Position(0, index * unitHeight),
                 new Size(width, unitHeight),
-                Colors.Blue);
+                TestInks.Blue);
         }
 
         _rendered += fitting;

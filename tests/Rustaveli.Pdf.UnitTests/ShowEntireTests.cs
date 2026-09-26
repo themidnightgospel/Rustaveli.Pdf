@@ -48,8 +48,8 @@ public class ShowEntireTests
         RecordingCanvas canvas = LayoutHarness.Render(document);
 
         // Each page also carries the white page background, so count only the content blocks.
-        IEnumerable<RectangleOperation> firstPage = canvas.Page(1).Operations.OfType<RectangleOperation>().Where(r => r.Color == Colors.Black);
-        IEnumerable<RectangleOperation> secondPage = canvas.Page(2).Operations.OfType<RectangleOperation>().Where(r => r.Color == Colors.Black);
+        IEnumerable<RectangleOperation> firstPage = canvas.Page(1).Operations.OfType<RectangleOperation>().Where(r => r.Color == TestInks.Black);
+        IEnumerable<RectangleOperation> secondPage = canvas.Page(2).Operations.OfType<RectangleOperation>().Where(r => r.Color == TestInks.Black);
 
         Assert.Equal(2, canvas.Pages.Count);
         Assert.Single(firstPage);

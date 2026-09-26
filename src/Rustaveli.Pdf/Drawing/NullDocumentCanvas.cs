@@ -45,15 +45,15 @@ public sealed class NullDocumentCanvas : IDocumentCanvas
     {
     }
 
-    public void DrawRectangle(Position position, Size size, Color color)
+    public void DrawRectangle(Position position, Size size, Ink color)
     {
     }
 
-    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Color color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Position position, Size size, float cornerRadius, Ink color, float strokeWidth = 0f)
     {
     }
 
-    public void DrawLine(Position from, Position to, float thickness, Color color)
+    public void DrawLine(Position from, Position to, float thickness, Ink color)
     {
     }
 

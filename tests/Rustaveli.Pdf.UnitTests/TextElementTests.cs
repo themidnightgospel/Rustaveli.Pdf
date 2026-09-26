@@ -306,12 +306,12 @@ public class TextElementTests
     [Fact]
     public void PaintsTheHighlightBehindTheRun()
     {
-        TextElement element = Text(text => text.Span("Hello").BackgroundColor(Colors.Yellow));
+        TextElement element = Text(text => text.Span("Hello").BackgroundColor(TestInks.Yellow));
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
         RectangleOperation highlight = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
-        Assert.Equal(Colors.Yellow, highlight.Color);
+        Assert.Equal(TestInks.Yellow, highlight.Color);
     }
 
     [Fact]
@@ -379,13 +379,13 @@ public class TextElementTests
         Approximately.Equal(new Position(0, 10.8f), line.Position);
         Approximately.Equal(new Position(30, 10.8f), line.End);
         Approximately.Equal(0.75f, line.Thickness);
-        Assert.Equal(Colors.Black, line.Color);
+        Assert.Equal(TestInks.Black, line.Color);
     }
 
     [Fact]
     public void DrawsAStrikethroughAcrossTheRun()
     {
-        TextElement element = Text(text => text.Span("Hello").Strikethrough().FontColor(Colors.Red));
+        TextElement element = Text(text => text.Span("Hello").Strikethrough().FontColor(TestInks.Red));
 
         LineOperation line = Assert.Single(LayoutHarness.Draw(element, new Size(500, 500)).Operations.OfType<LineOperation>());
 
@@ -393,7 +393,7 @@ public class TextElementTests
         Approximately.Equal(new Position(0, 6.72f), line.Position);
         Approximately.Equal(new Position(30, 6.72f), line.End);
         Approximately.Equal(0.75f, line.Thickness);
-        Assert.Equal(Colors.Red, line.Color);
+        Assert.Equal(TestInks.Red, line.Color);
     }
 
     [Fact]

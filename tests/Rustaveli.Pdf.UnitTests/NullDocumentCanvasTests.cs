@@ -39,9 +39,9 @@ public class NullDocumentCanvasTests
         canvas.Scale(2, 2);
         canvas.Rotate(90);
         canvas.ClipRectangle(new Size(10, 10));
-        canvas.DrawRectangle(Position.Zero, new Size(10, 10), Colors.Red);
-        canvas.DrawRoundedRectangle(Position.Zero, new Size(10, 10), 2, Colors.Red, 1);
-        canvas.DrawLine(Position.Zero, new Position(10, 10), 1, Colors.Red);
+        canvas.DrawRectangle(Position.Zero, new Size(10, 10), TestInks.Red);
+        canvas.DrawRoundedRectangle(Position.Zero, new Size(10, 10), 2, TestInks.Red, 1);
+        canvas.DrawLine(Position.Zero, new Position(10, 10), 1, TestInks.Red);
         canvas.DrawText("text", Position.Zero, TextStyle.Default);
         canvas.DrawImage(new FakeImage(10, 10), new Size(10, 10));
         canvas.DrawExternalLink("https://example.com", new Size(10, 10));

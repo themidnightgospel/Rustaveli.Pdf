@@ -18,7 +18,7 @@ public sealed class PageDescriptor
 
     public Edges Margin { get; set; } = Edges.All(0);
 
-    public Color BackgroundColor { get; set; } = Colors.White;
+    public Ink BackgroundColor { get; set; } = Ink.White;
 
     public ContentDirection Direction { get; set; } = ContentDirection.LeftToRight;
 

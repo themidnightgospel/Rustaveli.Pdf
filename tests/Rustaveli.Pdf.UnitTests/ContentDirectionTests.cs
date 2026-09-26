@@ -6,8 +6,8 @@ public class ContentDirectionTests
     {
         RowElement row = new RowElement();
 
-        row.Items.Add(new RowItem { Sizing = RowItemSizing.Constant, Value = 50, Child = new FixedElement(1, 10, Colors.Red) });
-        row.Items.Add(new RowItem { Sizing = RowItemSizing.Constant, Value = 50, Child = new FixedElement(1, 10, Colors.Blue) });
+        row.Items.Add(new RowItem { Sizing = RowItemSizing.Constant, Value = 50, Child = new FixedElement(1, 10, TestInks.Red) });
+        row.Items.Add(new RowItem { Sizing = RowItemSizing.Constant, Value = 50, Child = new FixedElement(1, 10, TestInks.Blue) });
 
         return row;
     }
@@ -19,7 +19,7 @@ public class ContentDirectionTests
         context.ContentDirection = ContentDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(TwoColumnRow(), new Size(200, 100), context);
-        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(150f, first.Position.X);
     }
@@ -34,7 +34,7 @@ public class ContentDirectionTests
         context.ContentDirection = ContentDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(row, new Size(200, 100), context);
-        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(0f, first.Position.X);
     }
@@ -77,7 +77,7 @@ public class ContentDirectionTests
             inner.Child = TwoColumnRow()));
 
         RecordedPage page = LayoutHarness.Draw(root, new Size(200, 100));
-        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(150f, first.Position.X);
     }
@@ -126,14 +126,14 @@ public class ContentDirectionTests
             columns.ConstantColumn(60);
         });
 
-        descriptor.Cell().Element(container => container.Child = new FixedElement(1, 10, Colors.Red));
-        descriptor.Cell().Element(container => container.Child = new FixedElement(1, 10, Colors.Blue));
+        descriptor.Cell().Element(container => container.Child = new FixedElement(1, 10, TestInks.Red));
+        descriptor.Cell().Element(container => container.Child = new FixedElement(1, 10, TestInks.Blue));
         descriptor.PlaceAutomaticCells();
 
         element.Direction = ContentDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(120, 100));
-        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Red);
 
         Approximately.Equal(60f, first.Position.X);
     }

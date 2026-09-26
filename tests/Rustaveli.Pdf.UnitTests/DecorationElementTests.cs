@@ -14,17 +14,17 @@ public class DecorationElementTests
     {
         DecorationElement element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 15, Colors.Red));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 20, Colors.Blue));
-            decoration.After().Element(container => container.Child = new FixedElement(10, 25, Colors.Green));
+            decoration.Before().Element(container => container.Child = new FixedElement(10, 15, TestInks.Red));
+            decoration.Content().Element(container => container.Child = new FixedElement(10, 20, TestInks.Blue));
+            decoration.After().Element(container => container.Child = new FixedElement(10, 25, TestInks.Green));
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
-        Approximately.Equal(0f, rectangles.Single(r => r.Color == Colors.Red).Position.Y);
-        Approximately.Equal(15f, rectangles.Single(r => r.Color == Colors.Blue).Position.Y);
-        Approximately.Equal(35f, rectangles.Single(r => r.Color == Colors.Green).Position.Y);
+        Approximately.Equal(0f, rectangles.Single(r => r.Color == TestInks.Red).Position.Y);
+        Approximately.Equal(15f, rectangles.Single(r => r.Color == TestInks.Blue).Position.Y);
+        Approximately.Equal(35f, rectangles.Single(r => r.Color == TestInks.Green).Position.Y);
     }
 
     [Fact]
@@ -208,8 +208,8 @@ public class DecorationElementTests
     {
         DecorationElement element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 150, Colors.Red));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 10, Colors.Blue));
+            decoration.Before().Element(container => container.Child = new FixedElement(10, 150, TestInks.Red));
+            decoration.Content().Element(container => container.Child = new FixedElement(10, 10, TestInks.Blue));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Size(200, 100)).Operations);
@@ -222,7 +222,7 @@ public class DecorationElementTests
 
         DecorationElement element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 60, Colors.Red));
+            decoration.Before().Element(container => container.Child = new FixedElement(10, 60, TestInks.Red));
             decoration.After().Element(container => container.Child = after);
         });
 
@@ -235,8 +235,8 @@ public class DecorationElementTests
     {
         DecorationElement element = Build(decoration =>
         {
-            decoration.Before().Element(container => container.Child = new FixedElement(10, 10, Colors.Red));
-            decoration.Content().Element(container => container.Child = new FixedElement(10, 200, Colors.Blue));
+            decoration.Before().Element(container => container.Child = new FixedElement(10, 10, TestInks.Red));
+            decoration.Content().Element(container => container.Child = new FixedElement(10, 200, TestInks.Blue));
         });
 
         Assert.Empty(LayoutHarness.Draw(element, new Size(200, 100)).Operations);

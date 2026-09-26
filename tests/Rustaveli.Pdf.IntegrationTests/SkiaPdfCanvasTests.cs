@@ -10,7 +10,6 @@ using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Graphics;
 using UglyToad.PdfPig.Graphics.Colors;
 using UglyToad.PdfPig.Tokens;
-using Color = Rustaveli.Pdf.Primitives.Color;
 
 namespace Rustaveli.Pdf.IntegrationTests;
 
@@ -28,8 +27,8 @@ public class SkiaPdfCanvasTests
     private const float PageSide = 200f;
     private const double Tolerance = 0.5;
 
-    private static readonly Color Brick = new Color(200, 40, 40);
-    private static readonly Color Ocean = new Color(10, 120, 230);
+    private static readonly Ink Brick = Ink.Rgb(200, 40, 40);
+    private static readonly Ink Ocean = Ink.Rgb(10, 120, 230);
     private static readonly TextStyle Style = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(20);
 
     /// <summary>A character outside the Basic Multilingual Plane: one character, two UTF-16 code units.</summary>
@@ -92,14 +91,15 @@ public class SkiaPdfCanvasTests
         Assert.Equal(height, bounds.Value.Height, Tolerance);
     }
 
-    private static void AssertColour(Color expected, IColor? actual)
+    private static void AssertColour(Ink expected, IColor? actual)
     {
         Assert.NotNull(actual);
         (double red, double green, double blue) = actual!.ToRGBValues();
+        (float expectedRed, float expectedGreen, float expectedBlue) = expected.ToRgb();
 
-        Assert.Equal(expected.Red / 255.0, red, 0.01);
-        Assert.Equal(expected.Green / 255.0, green, 0.01);
-        Assert.Equal(expected.Blue / 255.0, blue, 0.01);
+        Assert.Equal(expectedRed, red, 0.01);
+        Assert.Equal(expectedGreen, green, 0.01);
+        Assert.Equal(expectedBlue, blue, 0.01);
     }
 
     private static Letter LetterOf(Page page, string value) => Assert.Single(page.Letters, letter => letter.Value == value);
@@ -194,7 +194,7 @@ public class SkiaPdfCanvasTests
     public void APartiallyTransparentRectangleIsStillDrawn()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Position(20, 30), new Size(50, 40), Brick.WithAlpha(1)));
+            canvas.DrawRectangle(new Position(20, 30), new Size(50, 40), Brick.WithOpacity(1 / 255f)));
 
         Assert.Single(parsed.GetPage(1).Paths);
     }
@@ -209,7 +209,7 @@ public class SkiaPdfCanvasTests
     {
         // A negative extent is not merely empty: Skia would normalise it and paint the mirror-image rectangle.
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Position(100, 100), new Size(width, height), Brick.WithAlpha(alpha)));
+            canvas.DrawRectangle(new Position(100, 100), new Size(width, height), Brick.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -300,7 +300,7 @@ public class SkiaPdfCanvasTests
     public void DrawRoundedRectangleDrawsNothingThatCouldNotBeSeen(float width, float height, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Position(100, 100), new Size(width, height), 5, Brick.WithAlpha(alpha)));
+            canvas.DrawRoundedRectangle(new Position(100, 100), new Size(width, height), 5, Brick.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -330,7 +330,7 @@ public class SkiaPdfCanvasTests
     {
         // A zero stroke width is Skia's hairline, which would still paint a one-device-pixel line.
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawLine(new Position(10, 20), new Position(110, 20), thickness, Ocean.WithAlpha(alpha)));
+            canvas.DrawLine(new Position(10, 20), new Position(110, 20), thickness, Ocean.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -360,7 +360,7 @@ public class SkiaPdfCanvasTests
     public void DrawTextDrawsNothingThatCouldNotBeSeen(string? text, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawText(text!, new Position(40, 120), Style.ColorOf(Brick.WithAlpha(alpha))));
+            canvas.DrawText(text!, new Position(40, 120), Style.ColorOf(Brick.WithOpacity(alpha / 255f))));
 
         Assert.Empty(parsed.GetPage(1).Letters);
     }

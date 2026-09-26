@@ -29,15 +29,15 @@ public class LayersTests
     public void TakesItsSizeFromThePrimaryLayerAndPaintsInDeclarationOrder()
     {
         LayersElement element = new LayersElement();
-        element.Layers.Add(new Layer { Child = new PlaceholderElement { Color = Colors.Red } });
-        element.Layers.Add(new Layer { IsPrimary = true, Child = new FixedElement(50, 20, Colors.Black) });
-        element.Layers.Add(new Layer { Child = new PlaceholderElement { Color = Colors.Blue } });
+        element.Layers.Add(new Layer { Child = new PlaceholderElement { Color = TestInks.Red } });
+        element.Layers.Add(new Layer { IsPrimary = true, Child = new FixedElement(50, 20, TestInks.Black) });
+        element.Layers.Add(new Layer { Child = new PlaceholderElement { Color = TestInks.Blue } });
 
         Size space = new Size(200, 200);
         SpacePlan plan = LayoutHarness.Measure(element, space);
         List<RectangleOperation> painted = LayoutHarness.Draw(element, space).Operations.OfType<RectangleOperation>().ToList();
 
-        Color[] backgroundContentOverlay = [Colors.Red, Colors.Black, Colors.Blue];
+        Ink[] backgroundContentOverlay = [TestInks.Red, TestInks.Black, TestInks.Blue];
 
         Assert.True(plan.IsFullRender);
         Approximately.Equal(new Size(50, 20), plan.Size);

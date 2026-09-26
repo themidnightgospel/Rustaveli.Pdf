@@ -55,15 +55,15 @@ public class EnsureSpaceTests
             page.Size = new Size(200, 100);
             page.Content().Column(column =>
             {
-                column.Item().Element(inner => inner.Child = new FixedElement(10, 70, Colors.Blue));
-                column.Item().EnsureSpace(50).Element(inner => inner.Child = new FixedElement(10, 10, Colors.Red));
+                column.Item().Element(inner => inner.Child = new FixedElement(10, 70, TestInks.Blue));
+                column.Item().EnsureSpace(50).Element(inner => inner.Child = new FixedElement(10, 10, TestInks.Red));
             });
         }));
 
         RecordingCanvas canvas = LayoutHarness.Render(document);
 
         Assert.Equal(2, canvas.Pages.Count);
-        Assert.DoesNotContain(canvas.Page(1).Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
-        Assert.Contains(canvas.Page(2).Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
+        Assert.DoesNotContain(canvas.Page(1).Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
+        Assert.Contains(canvas.Page(2).Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
     }
 }

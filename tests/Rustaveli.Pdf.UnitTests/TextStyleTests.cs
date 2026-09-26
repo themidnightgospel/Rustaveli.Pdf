@@ -13,8 +13,8 @@ public class TextStyleTests
         Assert.Equal(12f, style.FontSize);
         Assert.Equal(FontWeight.Normal, style.Weight);
         Assert.False(style.IsItalic);
-        Assert.Equal(Colors.Black, style.Color);
-        Assert.Equal(Colors.Transparent, style.BackgroundColor);
+        Assert.Equal(TestInks.Black, style.Color);
+        Assert.Equal(TestInks.Transparent, style.BackgroundColor);
         Assert.False(style.HasUnderline);
         Assert.False(style.HasStrikethrough);
         Assert.Equal(1f, style.LineHeight);
@@ -56,13 +56,13 @@ public class TextStyleTests
     [Fact]
     public void ColorOfChangesOnlyTheTextColour()
     {
-        Assert.Equal(Base with { Color = Colors.Red.Base }, Base.ColorOf(Colors.Red));
+        Assert.Equal(Base with { Color = TestInks.Red }, Base.ColorOf(TestInks.Red));
     }
 
     [Fact]
     public void BackgroundColorOfChangesOnlyTheHighlight()
     {
-        Assert.Equal(Base with { BackgroundColor = Colors.Yellow.Base }, Base.BackgroundColorOf(Colors.Yellow));
+        Assert.Equal(Base with { BackgroundColor = TestInks.Yellow }, Base.BackgroundColorOf(TestInks.Yellow));
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class TextStyleTests
         // The default is shared by every span in a document, so deriving a variant must never alter it.
         TextStyle original = TextStyle.Default.FontSizeOf(10);
 
-        original.Bold().Italic().Underline().ColorOf(Colors.Red).FontSizeOf(30).Superscript();
+        original.Bold().Italic().Underline().ColorOf(TestInks.Red).FontSizeOf(30).Superscript();
 
         Assert.Equal(TextStyle.Default with { FontSize = 10 }, original);
     }

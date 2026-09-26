@@ -14,7 +14,7 @@ public class TableElementTests
     private static void Fill(IContainer container, float width, float height) =>
         container.Element(inner => inner.Child = new FixedElement(width, height));
 
-    private static void Fill(IContainer container, float width, float height, Color color) =>
+    private static void Fill(IContainer container, float width, float height, Ink color) =>
         container.Element(inner => inner.Child = new FixedElement(width, height, color));
 
     [Fact]
@@ -463,9 +463,9 @@ public class TableElementTests
         TableElement table = BuildTable(descriptor =>
         {
             descriptor.ColumnsDefinition(columns => columns.RelativeColumn());
-            descriptor.Header(header => Fill(header.Cell(), 1, 10, Colors.Red));
+            descriptor.Header(header => Fill(header.Cell(), 1, 10, TestInks.Red));
             Fill(descriptor.Cell(), 1, 30);
-            Fill(descriptor.Cell(), 1, 80, Colors.Blue);
+            Fill(descriptor.Cell(), 1, 80, TestInks.Blue);
         });
 
         LayoutHarness.Draw(table, new Size(200, 50));
@@ -475,8 +475,8 @@ public class TableElementTests
         // No header on a page that takes no rows.
         Assert.Empty(cramped.Operations);
 
-        Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == Colors.Red);
-        Approximately.Equal(10f, roomy.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Blue).Position.Y);
+        Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Color == TestInks.Red);
+        Approximately.Equal(10f, roomy.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Blue).Position.Y);
     }
 
     [Fact]
@@ -493,7 +493,7 @@ public class TableElementTests
 
             Fill(descriptor.Cell().Row(1).Column(1).RowSpan(2), 1, 100);
             Fill(descriptor.Cell().Row(1).Column(2), 1, 30);
-            Fill(descriptor.Cell().Row(2).Column(2), 1, 30, Colors.Blue);
+            Fill(descriptor.Cell().Row(2).Column(2), 1, 30, TestInks.Blue);
         });
 
         Size space = new Size(200, 200);
@@ -501,6 +501,6 @@ public class TableElementTests
         RecordedPage page = LayoutHarness.Draw(table, space);
 
         Approximately.Equal(100f, plan.Size.Height);
-        Approximately.Equal(30f, page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Blue).Position.Y);
+        Approximately.Equal(30f, page.Operations.OfType<RectangleOperation>().Single(r => r.Color == TestInks.Blue).Position.Y);
     }
 }

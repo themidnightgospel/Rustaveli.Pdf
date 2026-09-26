@@ -5,20 +5,20 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundFillsTheBoxItIsGivenRatherThanItsContent()
     {
-        BackgroundElement element = new BackgroundElement { Color = Colors.Red, Child = new FixedElement(50, 20) };
+        BackgroundElement element = new BackgroundElement { Color = TestInks.Red, Child = new FixedElement(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
         RectangleOperation background = page.Operations.OfType<RectangleOperation>().First();
 
         // The box a parent allots is the box this element occupies (ADR 0012).
         Approximately.Equal(new Size(200, 200), background.Size);
-        Assert.Equal(Colors.Red, background.Color);
+        Assert.Equal(TestInks.Red, background.Color);
     }
 
     [Fact]
     public void BackgroundDoesNotConsumeLayoutSpace()
     {
-        BackgroundElement element = new BackgroundElement { Color = Colors.Red, Child = new FixedElement(50, 20) };
+        BackgroundElement element = new BackgroundElement { Color = TestInks.Red, Child = new FixedElement(50, 20) };
 
         Approximately.Equal(new Size(50, 20), LayoutHarness.Measure(element, new Size(200, 200)).Size);
     }
@@ -29,12 +29,12 @@ public class BorderAndBackgroundTests
         BorderElement element = new BorderElement
         {
             Width = Edges.All(2),
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
-        IEnumerable<RectangleOperation> borders = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == Colors.Black);
+        IEnumerable<RectangleOperation> borders = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == TestInks.Black);
 
         Assert.Equal(4, borders.Count());
     }
@@ -45,12 +45,12 @@ public class BorderAndBackgroundTests
         BorderElement element = new BorderElement
         {
             Width = Edges.Zero.WithRight(3),
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
-        RectangleOperation border = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == Colors.Black);
+        RectangleOperation border = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == TestInks.Black);
 
         Approximately.Equal(47f, border.Position.X);
         Approximately.Equal(3f, border.Size.Width);
@@ -62,7 +62,7 @@ public class BorderAndBackgroundTests
     public void BackgroundPaintsNothingBehindAChildWithNothingToShow(SpacePlanType outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        BackgroundElement element = new BackgroundElement { Color = Colors.Red, Child = child };
+        BackgroundElement element = new BackgroundElement { Color = TestInks.Red, Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
 
@@ -73,12 +73,12 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BackgroundWithoutContentPaintsOnlyItsOwnFill()
     {
-        BackgroundElement element = new BackgroundElement { Color = Colors.Red };
+        BackgroundElement element = new BackgroundElement { Color = TestInks.Red };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
         RectangleOperation fill = Assert.IsType<RectangleOperation>(Assert.Single(page.Operations));
 
-        Assert.Equal(Colors.Red, fill.Color);
+        Assert.Equal(TestInks.Red, fill.Color);
         Approximately.Equal(Position.Zero, fill.Position);
     }
 
@@ -88,13 +88,13 @@ public class BorderAndBackgroundTests
         BorderElement element = new BorderElement
         {
             Width = new Edges(1, 2, 3, 4),
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         // Offered exactly the content's size, so the box the sides trace is the same however it is decided.
         RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
-        List<RectangleOperation> sides = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == Colors.Black).ToList();
+        List<RectangleOperation> sides = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == TestInks.Black).ToList();
 
         Assert.Equal(4, sides.Count);
         Assert.Equal(new Bounds(0, 0, 1, 20), sides[0].Bounds);
@@ -109,13 +109,13 @@ public class BorderAndBackgroundTests
         BorderElement element = new BorderElement
         {
             Width = Edges.All(2),
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
 
-        Assert.Equal(Colors.White, page.Operations.OfType<RectangleOperation>().First().Color);
+        Assert.Equal(TestInks.White, page.Operations.OfType<RectangleOperation>().First().Color);
     }
 
     [Fact]
@@ -124,14 +124,14 @@ public class BorderAndBackgroundTests
         BorderElement element = new BorderElement
         {
             Width = Edges.All(2),
-            Color = Colors.Transparent,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Transparent,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
         RectangleOperation only = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
-        Assert.Equal(Colors.White, only.Color);
+        Assert.Equal(TestInks.White, only.Color);
     }
 
     [Theory]
@@ -140,7 +140,7 @@ public class BorderAndBackgroundTests
     public void BorderDrawsNothingAroundAChildWithNothingToShow(SpacePlanType outcome)
     {
         ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        BorderElement element = new BorderElement { Width = Edges.All(2), Color = Colors.Black, Child = child };
+        BorderElement element = new BorderElement { Width = Edges.All(2), Color = TestInks.Black, Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
 
@@ -151,12 +151,12 @@ public class BorderAndBackgroundTests
     [Fact]
     public void BorderWithoutContentDrawsOnlyItsOwnSides()
     {
-        BorderElement element = new BorderElement { Width = Edges.All(2), Color = Colors.Black };
+        BorderElement element = new BorderElement { Width = Edges.All(2), Color = TestInks.Black };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
 
         Assert.Equal(4, page.Operations.Count);
-        Assert.All(page.Operations, operation => Assert.Equal(Colors.Black, Assert.IsType<RectangleOperation>(operation).Color));
+        Assert.All(page.Operations, operation => Assert.Equal(TestInks.Black, Assert.IsType<RectangleOperation>(operation).Color));
     }
 
     [Fact]
@@ -168,8 +168,8 @@ public class BorderAndBackgroundTests
         {
             Width = Edges.All(2),
             CornerRadius = 4,
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
@@ -179,7 +179,7 @@ public class BorderAndBackgroundTests
         Approximately.Equal(new Size(48, 18), outline.Size);
         Approximately.Equal(3f, outline.CornerRadius);
         Approximately.Equal(2f, outline.StrokeWidth);
-        Assert.Equal(Colors.Black, outline.Color);
+        Assert.Equal(TestInks.Black, outline.Color);
     }
 
     [Fact]
@@ -189,8 +189,8 @@ public class BorderAndBackgroundTests
         {
             Width = Edges.All(2),
             CornerRadius = 50,
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
@@ -209,14 +209,14 @@ public class BorderAndBackgroundTests
         {
             Width = new Edges(left, top, right, bottom),
             CornerRadius = 5,
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
 
         Assert.Empty(page.Operations.OfType<RoundedRectangleOperation>());
-        Assert.Equal(4, page.Operations.OfType<RectangleOperation>().Count(operation => operation.Color == Colors.Black));
+        Assert.Equal(4, page.Operations.OfType<RectangleOperation>().Count(operation => operation.Color == TestInks.Black));
     }
 
     [Fact]
@@ -226,13 +226,13 @@ public class BorderAndBackgroundTests
         {
             Width = Edges.Zero,
             CornerRadius = 5,
-            Color = Colors.Black,
-            Child = new FixedElement(50, 20, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(50, 20, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
 
-        Assert.Equal(Colors.White, Assert.IsType<RectangleOperation>(Assert.Single(page.Operations)).Color);
+        Assert.Equal(TestInks.White, Assert.IsType<RectangleOperation>(Assert.Single(page.Operations)).Color);
     }
 
     [Theory]
@@ -245,13 +245,13 @@ public class BorderAndBackgroundTests
         {
             Width = Edges.All(30),
             CornerRadius = 5,
-            Color = Colors.Black,
-            Child = new FixedElement(width, height, Colors.White)
+            Color = TestInks.Black,
+            Child = new FixedElement(width, height, TestInks.White)
         };
 
         RecordedPage page = LayoutHarness.Draw(element, new Size(width, height));
 
         Assert.Empty(page.Operations.OfType<RoundedRectangleOperation>());
-        Assert.Equal(Colors.White, Assert.Single(page.Operations.OfType<RectangleOperation>()).Color);
+        Assert.Equal(TestInks.White, Assert.Single(page.Operations.OfType<RectangleOperation>()).Color);
     }
 }
