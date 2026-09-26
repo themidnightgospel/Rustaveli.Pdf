@@ -1,4 +1,3 @@
-
 namespace Rustaveli.Pdf.UnitTests;
 
 /// <summary>
@@ -19,7 +18,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementIsDrawnAmongTheWords()
+    public void AnInlineFrameIsDrawnAmongTheWords()
     {
         TextBlock element = Text(text =>
         {
@@ -36,7 +35,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void TextAfterAnInlineElementContinuesPastIt()
+    public void TextAfterAnInlineFrameContinuesPastIt()
     {
         TextBlock element = Text(text =>
         {
@@ -67,7 +66,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void ATallElementRaisesTheLineItLandsOn()
+    public void ATallInlineFrameRaisesTheLineItLandsOn()
     {
         TextBlock element = Text(text =>
         {
@@ -83,7 +82,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AShortElementLeavesTheLineHeightAlone()
+    public void AShortInlineFrameLeavesTheLineSpacingAlone()
     {
         TextBlock element = Text(text =>
         {
@@ -128,7 +127,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementCanCarryALink()
+    public void AnInlineFrameCanCarryALink()
     {
         TextBlock element = new TextBlock();
         Frame container = new Frame();
@@ -141,7 +140,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void InlineElementsAreResetBetweenPasses()
+    public void InlineFramesAreResetBetweenPasses()
     {
         // The paragraph must expose them as children, or their pagination state would survive a new pass.
         SplittableBlock splittable = new SplittableBlock(unitCount: 2, unitHeight: 10);
@@ -169,7 +168,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AParagraphKeepsEveryWordWhenAnInlineElementPrecedesAPageBreak()
+    public void AParagraphKeepsEveryWordWhenAnInlineFramePrecedesANewPage()
     {
         // Regression: Draw re-runs BuildLines on every page and re-measures each inline element. An inline
         // element already consumed on page 1 reports Empty on page 2, so its run is dropped, every later line
@@ -191,7 +190,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementTooWideForItsLineIsReportedRatherThanDropped()
+    public void AnInlineFrameTooWideForItsLineIsReportedRatherThanDropped()
     {
         // Regression: the element used to be skipped outright, so the logo vanished from the document and the
         // paragraph still claimed FullRender — content lost with nothing to show for it.
@@ -205,7 +204,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementGivenAnExplicitHeightSitsAmongTheWords()
+    public void AnInlineFrameGivenAnExplicitHeightSitsAmongTheWords()
     {
         // Regression: inline elements were measured against Size.Max.Height, so a bounded element nested under
         // one that fills its space reported 14400pt and made the paragraph impossible to place at all.
@@ -225,7 +224,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementThatFillsItsHeightIsNamedInTheDiagnostic()
+    public void AnInlineFrameThatFillsItsHeightIsNamedInTheDiagnostic()
     {
         // It cannot be placed — it claims the whole page by definition — but the error used to blame the text
         // height, which sends the reader looking at font sizes instead of at the element.
@@ -247,7 +246,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AParagraphBlockedByAnInlineElementDrawsNothing()
+    public void AParagraphBlockedByAnInlineFrameDrawsNothing()
     {
         // Measure has reported a wrap. Drawing the lines completed before the blocker would split the paragraph
         // across two pages and then repeat those lines on the next.
@@ -261,7 +260,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementCanLinkToASection()
+    public void AnInlineFrameCanCrossReferenceAnAnchor()
     {
         TextBlock element = new TextBlock();
         element.Runs.Add(new Text.TextRun { Text = "ab" });
@@ -276,7 +275,7 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementOnAContinuationLineIsOfferedTheFullWidth()
+    public void AnInlineFrameOnAContinuationLineIsOfferedTheFullWidth()
     {
         // Only a paragraph's opening line is indented, so an element landing on a later line may use the whole
         // width. The placeholder takes whatever width it is offered, which makes the budget visible.

@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class RoundCornersTests
 {
     [Fact]
-    public void BackgroundDrawsARoundedShapeWhenGivenARadius()
+    public void FillDrawsARoundedShapeWhenGivenARadius()
     {
         Block root = LayoutHarness.Build(container => container
             .Fill(TestInks.Red).RoundCorners(6)
@@ -17,7 +17,7 @@ public class RoundCornersTests
     }
 
     [Fact]
-    public void BackgroundStaysSquareWithoutARadius()
+    public void FillStaysSquareWithoutARadius()
     {
         Block root = LayoutHarness.Build(container => container
             .Fill(TestInks.Red)
@@ -30,7 +30,7 @@ public class RoundCornersTests
     }
 
     [Fact]
-    public void RoundedBorderIsStrokedRatherThanFilled()
+    public void RoundedStrokeIsStrokedRatherThanFilled()
     {
         Block root = LayoutHarness.Build(container => container
             .Stroke(2).RoundCorners(4)
@@ -43,7 +43,7 @@ public class RoundCornersTests
     }
 
     [Fact]
-    public void BorderWithUnevenWidthsKeepsSquareCorners()
+    public void StrokeWithUnevenWidthsKeepsSquareCorners()
     {
         // A rounded corner has no meaningful shape where two different thicknesses meet.
         StrokeBlock element = new StrokeBlock
@@ -60,7 +60,7 @@ public class RoundCornersTests
     }
 
     [Fact]
-    public void RejectsCornerRadiusWithoutABackgroundOrBorder()
+    public void RejectsRoundCornersWithoutAFillOrStroke()
     {
         Assert.Throws<CompositionException>(() =>
             LayoutHarness.Build(container => container.Inset(5).RoundCorners(4)));

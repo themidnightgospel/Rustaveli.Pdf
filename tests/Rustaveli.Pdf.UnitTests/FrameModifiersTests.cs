@@ -1,4 +1,3 @@
-
 namespace Rustaveli.Pdf.UnitTests;
 
 /// <summary>
@@ -29,7 +28,7 @@ public class FrameModifiersTests
     // ---- Padding -------------------------------------------------------------------------------------------
 
     [Fact]
-    public void PaddingInsetsEverySide()
+    public void InsetAppliesToEverySide()
     {
         Block root = Compose(container => container.Inset(10));
 
@@ -38,7 +37,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void PaddingHorizontalInsetsTheLeftAndRight()
+    public void InsetHorizontalAppliesToTheLeftAndRight()
     {
         Block root = Compose(container => container.InsetHorizontal(10));
 
@@ -47,7 +46,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void PaddingVerticalInsetsTheTopAndBottom()
+    public void InsetVerticalAppliesToTheTopAndBottom()
     {
         Block root = Compose(container => container.InsetVertical(10));
 
@@ -56,7 +55,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void PaddingLeftInsetsOnlyTheLeft()
+    public void InsetLeftAppliesOnlyToTheLeft()
     {
         Block root = Compose(container => container.InsetLeft(10));
 
@@ -65,7 +64,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void PaddingRightInsetsOnlyTheRight()
+    public void InsetRightAppliesOnlyToTheRight()
     {
         Block root = Compose(container => container.InsetRight(10));
 
@@ -74,7 +73,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void PaddingTopInsetsOnlyTheTop()
+    public void InsetTopAppliesOnlyToTheTop()
     {
         Block root = Compose(container => container.InsetTop(10));
 
@@ -83,7 +82,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void PaddingBottomInsetsOnlyTheBottom()
+    public void InsetBottomAppliesOnlyToTheBottom()
     {
         Block root = Compose(container => container.InsetBottom(10));
 
@@ -98,7 +97,7 @@ public class FrameModifiersTests
     // extent of the painted box.
 
     [Fact]
-    public void BackgroundAcceptsHex()
+    public void FillAcceptsHex()
     {
         Block root = Compose(container => container.Fill("#00FF00"));
 
@@ -112,7 +111,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void BorderLeftDrawsOnlyTheLeftBand()
+    public void StrokeLeftDrawsOnlyTheLeftBand()
     {
         RectangleOperation band = Assert.Single(Bands(Compose(container => container.StrokeLeft(3)), TestInks.Black));
 
@@ -122,7 +121,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void BorderRightDrawsOnlyTheRightBand()
+    public void StrokeRightDrawsOnlyTheRightBand()
     {
         RectangleOperation band = Assert.Single(Bands(Compose(container => container.StrokeRight(3)), TestInks.Black));
 
@@ -132,7 +131,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void BorderTopDrawsOnlyTheTopBand()
+    public void StrokeTopDrawsOnlyTheTopBand()
     {
         RectangleOperation band = Assert.Single(Bands(Compose(container => container.StrokeTop(3)), TestInks.Black));
 
@@ -142,7 +141,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void BorderBottomDrawsOnlyTheBottomBand()
+    public void StrokeBottomDrawsOnlyTheBottomBand()
     {
         RectangleOperation band = Assert.Single(Bands(Compose(container => container.StrokeBottom(3)), TestInks.Black));
 
@@ -152,7 +151,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void BorderColorRecoloursTheBorderItFollows()
+    public void StrokeInkRecoloursTheStrokeItFollows()
     {
         Block root = Compose(container => container.Stroke(2).StrokeInk(TestInks.Blue));
 
@@ -161,7 +160,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void BorderColorAcceptsHex()
+    public void StrokeInkAcceptsHex()
     {
         Block root = Compose(container => container.Stroke(2).StrokeInk("#0000FF"));
 
@@ -199,7 +198,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void AZeroCornerRadiusIsAcceptedOnAnUnevenBorder()
+    public void AZeroRadiusIsAcceptedOnAnUnevenStroke()
     {
         // Zero asks for square corners, which every border can draw, so there is nothing to refuse.
         Block root = Compose(container => container.StrokeLeft(2).RoundCorners(0));
@@ -255,29 +254,29 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void ExtendClaimsTheWholeSpace() =>
+    public void ExpandClaimsTheWholeSpace() =>
         Approximately.Equal(new Extent(200, 100), Measure(Compose(container => container.Expand())));
 
     [Fact]
-    public void ExtendHorizontalClaimsOnlyTheWidth() =>
+    public void ExpandHorizontallyClaimsOnlyTheWidth() =>
         Approximately.Equal(new Extent(200, 20), Measure(Compose(container => container.ExpandHorizontally())));
 
     [Fact]
-    public void ExtendVerticalClaimsOnlyTheHeight() =>
+    public void ExpandVerticallyClaimsOnlyTheHeight() =>
         Approximately.Equal(new Extent(50, 100), Measure(Compose(container => container.ExpandVertically())));
 
     [Fact]
-    public void AspectRatioDerivesTheHeightFromTheWidthByDefault() =>
+    public void ProportionDerivesTheHeightFromTheWidthByDefault() =>
         Approximately.Equal(new Extent(200, 50), Measure(Compose(container => container.Proportion(4))));
 
     [Fact]
-    public void AspectRatioCanDeriveTheWidthFromTheHeight() =>
+    public void ProportionCanDeriveTheWidthFromTheHeight() =>
         Approximately.Equal(
             new Extent(50, 100),
             Measure(Compose(container => container.Proportion(0.5f, ProportionFit.Height))));
 
     [Fact]
-    public void ScaleToFitShrinksNoFurtherThanTheMinimumScale()
+    public void ShrinkToFitShrinksNoFurtherThanTheMinimumScale()
     {
         // A 400pt block needs half scale to fit 200pt. The default floor of a quarter allows that; a floor of
         // three quarters does not, so the block is passed through unscaled and cannot be placed.
@@ -293,7 +292,7 @@ public class FrameModifiersTests
     // A flip mirrors the block within its own box, so only the corner the drawing starts from moves.
 
     [Fact]
-    public void FlipHorizontalStartsTheContentFromItsRightEdge()
+    public void MirrorHorizontalStartsTheContentFromItsRightEdge()
     {
         RectangleOperation content = ContentInItsOwnBox(Compose(container => container.MirrorHorizontal()));
 
@@ -302,7 +301,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void FlipVerticalStartsTheContentFromItsBottomEdge()
+    public void MirrorVerticalStartsTheContentFromItsBottomEdge()
     {
         RectangleOperation content = ContentInItsOwnBox(Compose(container => container.MirrorVertical()));
 
@@ -311,7 +310,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void FlipOverStartsTheContentFromTheOppositeCorner()
+    public void MirrorBothStartsTheContentFromTheOppositeCorner()
     {
         RectangleOperation content = ContentInItsOwnBox(Compose(container => container.MirrorBoth()));
 
@@ -322,7 +321,7 @@ public class FrameModifiersTests
     // ---- Alignment -----------------------------------------------------------------------------------------
 
     [Fact]
-    public void AlignLeftClaimsTheWidthAndKeepsContentAtTheLeft()
+    public void FlushLeftClaimsTheWidthAndKeepsContentAtTheLeft()
     {
         Block root = Compose(container => container.FlushLeft());
 
@@ -331,15 +330,15 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void AlignCenterCentresHorizontally() =>
+    public void CenteredCentresHorizontally() =>
         Approximately.Equal(new Offset(75, 0), Content(Compose(container => container.Centered())).Position);
 
     [Fact]
-    public void AlignRightMovesContentToTheRight() =>
+    public void FlushRightMovesContentToTheRight() =>
         Approximately.Equal(new Offset(150, 0), Content(Compose(container => container.FlushRight())).Position);
 
     [Fact]
-    public void AlignTopClaimsTheHeightAndKeepsContentAtTheTop()
+    public void FlushTopClaimsTheHeightAndKeepsContentAtTheTop()
     {
         Block root = Compose(container => container.FlushTop());
 
@@ -348,11 +347,11 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void AlignMiddleCentresVertically() =>
+    public void MiddleCentresVertically() =>
         Approximately.Equal(new Offset(0, 40), Content(Compose(container => container.Middle())).Position);
 
     [Fact]
-    public void AlignBottomMovesContentToTheBottom() =>
+    public void FlushBottomMovesContentToTheBottom() =>
         Approximately.Equal(new Offset(0, 80), Content(Compose(container => container.FlushBottom())).Position);
 
     [Fact]
@@ -397,7 +396,7 @@ public class FrameModifiersTests
     // ---- Transforms ----------------------------------------------------------------------------------------
 
     [Fact]
-    public void TranslateXShiftsTheDrawingButNotTheLayout()
+    public void ShiftingAcrossMovesTheDrawingButNotTheLayout()
     {
         Block root = Compose(container => container.ShiftAcross(15));
 
@@ -406,7 +405,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void TranslateYShiftsTheDrawingButNotTheLayout()
+    public void ShiftingDownMovesTheDrawingButNotTheLayout()
     {
         Block root = Compose(container => container.ShiftDown(15));
 
@@ -437,7 +436,7 @@ public class FrameModifiersTests
     // Both rotations swap the axes; they differ in which corner the content is drawn from.
 
     [Fact]
-    public void RotateRightTurnsAQuarterClockwise()
+    public void TurnRightTurnsAQuarterClockwise()
     {
         Block root = Compose(container => container.TurnRight());
         RectangleOperation content = ContentInItsOwnBox(root);
@@ -448,7 +447,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void RotateLeftTurnsAQuarterAnticlockwise()
+    public void TurnLeftTurnsAQuarterAnticlockwise()
     {
         Block root = Compose(container => container.TurnLeft());
         RectangleOperation content = ContentInItsOwnBox(root);
@@ -461,7 +460,7 @@ public class FrameModifiersTests
     // ---- Flow control --------------------------------------------------------------------------------------
 
     [Fact]
-    public void ShowIfTrueKeepsTheContent()
+    public void WhenTrueKeepsTheContent()
     {
         Block root = Compose(container => container.When(true));
 
@@ -470,7 +469,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void ShowIfFalseRemovesTheContent()
+    public void WhenFalseRemovesTheContent()
     {
         Block root = Compose(container => container.When(false));
 
@@ -479,7 +478,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void ShowOnceDrawsTheContentOnlyTheFirstTime()
+    public void OnceDrawsTheContentOnlyTheFirstTime()
     {
         Block root = Compose(container => container.Once());
 
@@ -501,7 +500,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void DefaultTextStyleRefusesAMissingRefinement()
+    public void DefaultTypeRefusesAMissingRefinement()
     {
         Frame container = new Frame();
 
@@ -514,7 +513,7 @@ public class FrameModifiersTests
     // ---- Sizing escapes ------------------------------------------------------------------------------------
 
     [Fact]
-    public void UnconstrainedContentOverflowsWhileReportingNoSize()
+    public void UnboundedContentOverflowsWhileReportingNoSize()
     {
         Block root = Compose(container => container.Unbounded(), width: 300);
 
@@ -594,7 +593,7 @@ public class FrameModifiersTests
     // the clickable area.
 
     [Fact]
-    public void HyperlinkMakesTheContentOpenTheUrl()
+    public void LinkMakesTheContentOpenTheUrl()
     {
         RecordedPage page = LayoutHarness.Draw(Compose(container => container.Link("https://example.com")), Space);
 
@@ -612,7 +611,7 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void SectionLinkMakesTheContentJumpToTheSection()
+    public void CrossReferenceMakesTheContentJumpToTheAnchor()
     {
         RecordedPage page = LayoutHarness.Draw(Compose(container => container.CrossReference("intro")), Space);
 

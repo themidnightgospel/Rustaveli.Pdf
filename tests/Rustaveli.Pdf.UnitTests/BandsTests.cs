@@ -43,7 +43,7 @@ public class BandsTests
     }
 
     [Fact]
-    public void ReportsPartialRenderWhileContentRemains()
+    public void ReportsPartialWhileContentRemains()
     {
         BandsBlock element = Build(decoration =>
         {

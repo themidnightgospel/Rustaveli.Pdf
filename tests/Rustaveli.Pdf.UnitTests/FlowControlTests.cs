@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class FlowControlTests
 {
     [Fact]
-    public void ShowIfHidesContentWhenFalse()
+    public void WhenFalseHidesContent()
     {
         WhenBlock element = new WhenBlock { Condition = false, Child = new FixedBlock(50, 50) };
 
@@ -30,7 +30,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void SkipOnceLeavesNoGapWhileItIsSuppressed()
+    public void SkipFirstLeavesNoGapWhileItIsSuppressed()
     {
         // Unlike a hidden item, this one must still be drawn so its state advances — but it must not be spaced.
         StackBlock column = new StackBlock { SpaceBetween = 10 };
@@ -44,7 +44,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void ShowIfKeepsContentWhenTrue()
+    public void WhenTrueKeepsContent()
     {
         WhenBlock element = new WhenBlock { Condition = true, Child = new FixedBlock(50, 50) };
 
@@ -52,7 +52,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void ShowOnceDrawsOnlyTheFirstTime()
+    public void OnceDrawsOnlyTheFirstTime()
     {
         OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
@@ -62,7 +62,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void ShowOnceSurvivesAPerPageReset()
+    public void OnceSurvivesAPerPageReset()
     {
         // Headers are reset between pages; content marked "show once" must not reappear because of it.
         OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 50) };
@@ -75,7 +75,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void ShowOnceReturnsAfterAFullReset()
+    public void OnceReturnsAfterAFullReset()
     {
         OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
@@ -87,7 +87,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void SkipOnceSuppressesOnlyTheFirstOccurrence()
+    public void SkipFirstSuppressesOnlyTheFirstOccurrence()
     {
         SkipFirstBlock element = new SkipFirstBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);
@@ -97,7 +97,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void PageBreakClaimsTheRemainingHeight()
+    public void NewPageClaimsTheRemainingHeight()
     {
         NewPageBlock element = new NewPageBlock();
 
@@ -108,7 +108,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void PageBreakIsSpentAfterDrawing()
+    public void NewPageIsSpentAfterDrawing()
     {
         NewPageBlock element = new NewPageBlock();
         Extent space = new Extent(200, 150);
@@ -119,7 +119,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void ShowIfMeasuresItsContentWhenTrue()
+    public void WhenTruePlansItsContent()
     {
         WhenBlock element = new WhenBlock { Condition = true, Child = new FixedBlock(50, 30) };
 
@@ -130,7 +130,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void ShowOnceMeasuresItsContentUntilItHasRendered()
+    public void OnceMeasuresItsContentUntilItHasRendered()
     {
         OnceBlock element = new OnceBlock { Child = new FixedBlock(50, 30) };
         Extent space = new Extent(200, 200);
@@ -143,7 +143,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void SkipOnceSurvivesAPerPageReset()
+    public void SkipFirstSurvivesAPerPageReset()
     {
         // A "continued" marker in a header is reset with the header each page, but must not start skipping again.
         SkipFirstBlock element = new SkipFirstBlock { Child = new FixedBlock(50, 50) };
@@ -156,7 +156,7 @@ public class FlowControlTests
     }
 
     [Fact]
-    public void SkipOnceSkipsAgainAfterAFullReset()
+    public void SkipFirstSkipsAgainAfterAFullReset()
     {
         SkipFirstBlock element = new SkipFirstBlock { Child = new FixedBlock(50, 50) };
         Extent space = new Extent(200, 200);

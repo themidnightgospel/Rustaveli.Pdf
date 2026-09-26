@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class KeepTogetherTests
 {
     [Fact]
-    public void ConvertsAPartialRenderIntoAWrap()
+    public void ConvertsAPartialIntoADeferral()
     {
         KeepTogetherBlock element = new KeepTogetherBlock { Child = new SplittableBlock(unitCount: 4, unitHeight: 25) };
 

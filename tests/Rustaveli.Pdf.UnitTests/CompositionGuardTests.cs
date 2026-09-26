@@ -1,10 +1,9 @@
-
 namespace Rustaveli.Pdf.UnitTests;
 
 public class CompositionGuardTests
 {
     [Fact]
-    public void EmptyRefusesToDiscardExistingContent()
+    public void BlankRefusesToDiscardExistingContent()
     {
         // Empty declares that nothing was placed here. Letting it blank a filled container would destroy a
         // subtree with no diagnostic — exactly what the attach guard exists to prevent.
@@ -15,7 +14,7 @@ public class CompositionGuardTests
     }
 
     [Fact]
-    public void EmptyIsFineOnAnUntouchedContainer()
+    public void BlankIsFineOnAnUntouchedFrame()
     {
         Frame container = new Frame();
 
@@ -41,7 +40,7 @@ public class CompositionGuardTests
     }
 
     [Fact]
-    public void CornerRadiusRejectsASingleSidedBorder()
+    public void RoundCornersRejectsASingleSidedStroke()
     {
         // The element cannot round a corner where two thicknesses meet, so it would have ignored the radius.
         Assert.Throws<CompositionException>(() =>
@@ -49,14 +48,14 @@ public class CompositionGuardTests
     }
 
     [Fact]
-    public void CornerRadiusRejectsAZeroWidthBorder()
+    public void RoundCornersRejectsAZeroWidthStroke()
     {
         Assert.Throws<CompositionException>(() =>
             LayoutHarness.Build(container => container.Stroke(0).RoundCorners(8)));
     }
 
     [Fact]
-    public void CornerRadiusAcceptsAUniformBorder()
+    public void RoundCornersAcceptsAUniformStroke()
     {
         Block root = LayoutHarness.Build(container => container
             .Stroke(2).RoundCorners(8)

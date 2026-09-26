@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class InheritedTypeTests
 {
     [Fact]
-    public void DefaultTextStyleReachesNestedText()
+    public void DefaultTypeReachesNestedText()
     {
         Block root = LayoutHarness.Build(container =>
             container.DefaultType(style => style.WithPointSize(24)).Text("Hi"));

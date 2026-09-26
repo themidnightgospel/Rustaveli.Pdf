@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class InsetTests
 {
     [Fact]
-    public void AddsPaddingToTheChildSize()
+    public void AddsInsetToTheChildSize()
     {
         InsetBlock element = new InsetBlock
         {
@@ -47,7 +47,7 @@ public class InsetTests
     }
 
     [Fact]
-    public void WrapsWhenPaddingAloneExceedsTheSpace()
+    public void DefersWhenInsetAloneExceedsTheSpace()
     {
         InsetBlock element = new InsetBlock { Inset = Sides.All(60), Child = new FixedBlock(1, 1) };
 
@@ -83,7 +83,7 @@ public class InsetTests
     }
 
     [Fact]
-    public void WithoutContentOccupiesJustThePadding()
+    public void WithoutContentOccupiesJustTheInset()
     {
         InsetBlock element = new InsetBlock { Inset = new Sides(10, 5, 20, 15) };
 
@@ -106,7 +106,7 @@ public class InsetTests
     }
 
     [Fact]
-    public void DrawsNothingWhenPaddingAloneExceedsTheSpace()
+    public void DrawsNothingWhenInsetAloneExceedsTheSpace()
     {
         InsetBlock element = new InsetBlock { Inset = Sides.All(60), Child = new PlaceholderBlock() };
 

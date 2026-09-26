@@ -15,7 +15,7 @@ public class TextComposerTests
             LayoutHarness.Context(page));
 
     [Fact]
-    public void SectionLinkMakesTheRunJumpToTheSection()
+    public void CrossReferenceMakesTheRunJumpToTheAnchor()
     {
         RecordedPage page = Draw(text => text.CrossReference("Summary", "summary"));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
@@ -45,7 +45,7 @@ public class TextComposerTests
         Assert.Equal("9", Draw(text => text.PageCount(), new Pagination { PageCount = 9 }).Content);
 
     [Fact]
-    public void AlignLeftOverridesTheRightToLeftDefault()
+    public void FlushLeftOverridesTheRightToLeftDefault()
     {
         Block aligned = LayoutHarness.Build(container => container.RightToLeft().Text(text =>
         {
@@ -60,7 +60,7 @@ public class TextComposerTests
     }
 
     [Fact]
-    public void DefaultTextStyleReachesEverySpan()
+    public void DefaultTypeReachesEveryRun()
     {
         RecordedPage page = Draw(text =>
         {
@@ -74,7 +74,7 @@ public class TextComposerTests
     }
 
     [Fact]
-    public void DefaultTextStylesCompose()
+    public void DefaultTypesCompose()
     {
         RecordedPage page = Draw(text =>
         {
@@ -90,7 +90,7 @@ public class TextComposerTests
     }
 
     [Fact]
-    public void ALaterDefaultTextStyleOverridesAnEarlierOne()
+    public void ALaterDefaultTypeOverridesAnEarlierOne()
     {
         RecordedPage page = Draw(text =>
         {
@@ -118,7 +118,7 @@ public class TextComposerTests
     }
 
     [Fact]
-    public void ElementRefusesAMissingHandler()
+    public void ComposeRefusesAMissingHandler()
     {
         TextBlock element = new TextBlock();
 

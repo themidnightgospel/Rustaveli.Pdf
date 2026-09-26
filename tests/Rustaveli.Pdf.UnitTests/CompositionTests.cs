@@ -1,10 +1,9 @@
-
 namespace Rustaveli.Pdf.UnitTests;
 
 public class CompositionTests
 {
     [Fact]
-    public void RefusesToReplaceContentAlreadyInTheContainer()
+    public void RefusesToReplaceContentAlreadyInTheFrame()
     {
         Frame container = new Frame();
         container.Inset(5);
@@ -19,7 +18,7 @@ public class CompositionTests
     }
 
     [Fact]
-    public void RefusesAMissingContainer()
+    public void RefusesAMissingFrame()
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
             FrameModifiers.Inset(null!, 5));
@@ -28,7 +27,7 @@ public class CompositionTests
     }
 
     [Fact]
-    public void HandsBackTheAttachedElementAsTheNextSlot()
+    public void HandsBackTheAttachedBlockAsTheNextFrame()
     {
         Frame container = new Frame();
 

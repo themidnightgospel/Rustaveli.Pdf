@@ -43,7 +43,7 @@ public class SkiaTypeMeasurerTests
     [InlineData(7f)]
     [InlineData(11f)]
     [InlineData(13.5f)]
-    public void WidthScalesExactlyWithFontSize(float size)
+    public void WidthScalesExactlyWithPointSize(float size)
     {
         // Linear, unhinted metrics are the font's design units scaled, so width is proportional to size. Hinted
         // advances snap each size to the pixel grid differently — and differently per platform rasteriser, which
@@ -60,7 +60,7 @@ public class SkiaTypeMeasurerTests
     // ---- Metrics -----------------------------------------------------------------------------------------------
 
     [Fact]
-    public void MetricsArePositiveDistancesProportionateToTheFontSize()
+    public void MetricsArePositiveDistancesProportionateToThePointSize()
     {
         TypeMetrics metrics = Measurer.GetMetrics(Style);
 
@@ -85,7 +85,7 @@ public class SkiaTypeMeasurerTests
     }
 
     [Fact]
-    public void MetricsScaleWithTheFontSize()
+    public void MetricsScaleWithThePointSize()
     {
         TypeMetrics regular = Measurer.GetMetrics(Style);
         TypeMetrics doubled = Measurer.GetMetrics(Style.WithPointSize(40));
@@ -123,7 +123,7 @@ public class SkiaTypeMeasurerTests
     }
 
     [Fact]
-    public void WidthIsProportionalToTheFontSize()
+    public void WidthIsProportionalToThePointSize()
     {
         float regular = Measurer.MeasureWidth("Proportional", Style);
 
@@ -131,7 +131,7 @@ public class SkiaTypeMeasurerTests
     }
 
     [Fact]
-    public void LetterSpacingAddsOneGapBetweenEachPairOfCharacters()
+    public void TrackingAddsOneGapBetweenEachPairOfCharacters()
     {
         float plain = Measurer.MeasureWidth("ABCD", Style);
 
@@ -140,13 +140,13 @@ public class SkiaTypeMeasurerTests
     }
 
     [Fact]
-    public void ASingleCharacterTakesNoLetterSpacing()
+    public void ASingleCharacterTakesNoTracking()
     {
         Assert.Equal(Measurer.MeasureWidth("A", Style), Measurer.MeasureWidth("A", Style.WithTracking(5)));
     }
 
     [Fact]
-    public void ASurrogatePairIsOneCharacterForLetterSpacing()
+    public void ASurrogatePairIsOneCharacterForTracking()
     {
         string text = "A" + MathBoldA;
 

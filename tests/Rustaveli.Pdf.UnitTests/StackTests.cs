@@ -43,7 +43,7 @@ public class StackTests
     }
 
     [Fact]
-    public void ReportsPartialRenderWhenAnItemIsLeftOver()
+    public void ReportsPartialWhenAnItemIsLeftOver()
     {
         StackBlock column = Column(0, new FixedBlock(10, 60), new FixedBlock(10, 60));
 

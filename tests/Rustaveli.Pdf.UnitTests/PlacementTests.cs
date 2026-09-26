@@ -96,7 +96,7 @@ public class PlacementTests
     }
 
     [Fact]
-    public void CombinesBothAxesIntoOneElement()
+    public void CombinesBothAxesIntoOneBlock()
     {
         // Chaining must not nest two aligners, or the inner one would receive an already-collapsed box.
         Block root = LayoutHarness.Build(container => container.FlushRight().Middle().Compose(inner =>

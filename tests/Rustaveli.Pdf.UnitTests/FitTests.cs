@@ -32,7 +32,7 @@ public class FitTests
     }
 
     [Fact]
-    public void FullRenderFromDimensionsMatchesFullRenderFromASize()
+    public void CompleteFromDimensionsMatchesCompleteFromASize()
     {
         Fit plan = Fit.Complete(3, 4);
 
@@ -43,7 +43,7 @@ public class FitTests
     }
 
     [Fact]
-    public void PartialRenderFromDimensionsMatchesPartialRenderFromASize()
+    public void PartialFromDimensionsMatchesPartialFromASize()
     {
         Fit plan = Fit.Partial(3, 4);
 

@@ -135,7 +135,7 @@ public class ColumnsTests
     }
 
     [Fact]
-    public void ReportsPartialRenderWhenAnyItemHasContentLeft()
+    public void ReportsPartialWhenAnyItemHasContentLeft()
     {
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)),

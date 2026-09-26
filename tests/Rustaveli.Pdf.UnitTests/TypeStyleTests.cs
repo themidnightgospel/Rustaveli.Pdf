@@ -23,13 +23,13 @@ public class TypeStyleTests
     }
 
     [Fact]
-    public void FontFamilyOfChangesOnlyTheFamily()
+    public void WithTypefaceChangesOnlyTheTypeface()
     {
         Assert.Equal(Base with { Typeface = "Georgia" }, Base.WithTypeface("Georgia"));
     }
 
     [Fact]
-    public void FontSizeOfChangesOnlyTheSize()
+    public void WithPointSizeChangesOnlyThePointSize()
     {
         Assert.Equal(Base with { PointSize = 20 }, Base.WithPointSize(20));
     }
@@ -60,7 +60,7 @@ public class TypeStyleTests
     }
 
     [Fact]
-    public void BackgroundColorOfChangesOnlyTheHighlight()
+    public void WithHighlightChangesOnlyTheHighlight()
     {
         Assert.Equal(Base with { Highlight = TestInks.Yellow }, Base.WithHighlight(TestInks.Yellow));
     }
@@ -80,13 +80,13 @@ public class TypeStyleTests
     }
 
     [Fact]
-    public void LineHeightOfChangesOnlyTheLineHeight()
+    public void WithLeadingChangesOnlyTheLeading()
     {
         Assert.Equal(Base with { Leading = 1.5f }, Base.WithLeading(1.5f));
     }
 
     [Fact]
-    public void LetterSpacingOfChangesOnlyTheLetterSpacing()
+    public void WithTrackingChangesOnlyTheTracking()
     {
         Assert.Equal(Base with { Tracking = 2f }, Base.WithTracking(2f));
     }

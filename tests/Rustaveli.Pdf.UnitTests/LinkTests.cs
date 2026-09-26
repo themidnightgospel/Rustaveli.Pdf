@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class LinkTests
 {
     [Fact]
-    public void AHyperlinkCoversExactlyItsContent()
+    public void ALinkCoversExactlyItsContent()
     {
         LinkBlock element = new LinkBlock { Url = "https://example.com", Child = new FixedBlock(50, 20) };
 
@@ -20,7 +20,7 @@ public class LinkTests
     }
 
     [Fact]
-    public void AHyperlinkWithoutAUrlDrawsOnlyItsContent()
+    public void ALinkWithoutAUrlDrawsOnlyItsContent()
     {
         LinkBlock element = new LinkBlock { Child = new FixedBlock(50, 20) };
 
@@ -33,7 +33,7 @@ public class LinkTests
     [Theory]
     [InlineData(nameof(FitKind.Defer))]
     [InlineData(nameof(FitKind.Nothing))]
-    public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
+    public void ALinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         LinkBlock element = new LinkBlock { Url = "https://example.com", Child = child };
@@ -45,7 +45,7 @@ public class LinkTests
     }
 
     [Fact]
-    public void ASectionLinkCoversExactlyItsContent()
+    public void ACrossReferenceCoversExactlyItsContent()
     {
         CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
@@ -59,7 +59,7 @@ public class LinkTests
     }
 
     [Fact]
-    public void ASectionLinkWithoutADestinationDrawsOnlyItsContent()
+    public void ACrossReferenceWithoutAnAnchorDrawsOnlyItsContent()
     {
         CrossReferenceBlock element = new CrossReferenceBlock { Child = new FixedBlock(50, 20) };
 
@@ -72,7 +72,7 @@ public class LinkTests
     [Theory]
     [InlineData(nameof(FitKind.Defer))]
     [InlineData(nameof(FitKind.Nothing))]
-    public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
+    public void ACrossReferenceAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = child };
@@ -84,7 +84,7 @@ public class LinkTests
     }
 
     [Fact]
-    public void ASectionLinkDoesNotChangeTheLayout()
+    public void ACrossReferenceDoesNotChangeTheLayout()
     {
         CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
@@ -95,7 +95,7 @@ public class LinkTests
     }
 
     [Fact]
-    public void ASectionLinkReachesItsSectionAcrossPages()
+    public void ACrossReferenceReachesItsAnchorAcrossPages()
     {
         Document document = Document.Compose(container => container.Section(page =>
         {

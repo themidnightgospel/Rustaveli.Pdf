@@ -14,7 +14,7 @@ public class TransformRenderingTests
         page.Operations.OfType<RectangleOperation>().Single().Bounds;
 
     [Fact]
-    public void ScaleToFitShrinksOversizedContentToTheWidthOfItsBox()
+    public void ShrinkToFitShrinksOversizedContentToTheWidthOfItsBox()
     {
         ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new FixedBlock(200, 100) };
 
@@ -29,7 +29,7 @@ public class TransformRenderingTests
     }
 
     [Fact]
-    public void ScaleToFitLeavesContentThatAlreadyFitsAtFullSize()
+    public void ShrinkToFitLeavesContentThatAlreadyFitsAtFullSize()
     {
         ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new FixedBlock(40, 20) };
 
@@ -40,7 +40,7 @@ public class TransformRenderingTests
     }
 
     [Fact]
-    public void AHorizontalFlipMirrorsContentAcrossItsOwnBox()
+    public void AHorizontalMirrorReflectsContentAcrossItsOwnBox()
     {
         MirrorBlock element = new MirrorBlock { Horizontally = true, Child = new FixedBlock(50, 20) };
 
@@ -54,7 +54,7 @@ public class TransformRenderingTests
     }
 
     [Fact]
-    public void AVerticalFlipMirrorsContentAcrossItsOwnBox()
+    public void AVerticalMirrorReflectsContentAcrossItsOwnBox()
     {
         MirrorBlock element = new MirrorBlock { Vertically = true, Child = new FixedBlock(50, 20) };
 

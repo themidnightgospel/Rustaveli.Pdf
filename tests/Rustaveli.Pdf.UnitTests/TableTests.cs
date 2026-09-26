@@ -313,7 +313,7 @@ public class TableTests
     }
 
     [Fact]
-    public void ReportsPartialRenderWhileRowsRemain()
+    public void ReportsPartialWhileRowsRemain()
     {
         TableBlock table = BuildTable(descriptor =>
         {

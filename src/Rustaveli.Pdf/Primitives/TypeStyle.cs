@@ -1,4 +1,3 @@
-
 namespace Rustaveli.Pdf;
 
 /// <summary>

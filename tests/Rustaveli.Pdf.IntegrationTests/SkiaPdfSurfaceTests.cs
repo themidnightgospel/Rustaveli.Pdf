@@ -376,7 +376,7 @@ public class SkiaPdfSurfaceTests
     }
 
     [Fact]
-    public void LetterSpacingSeparatesCharactersButDoesNotIndentTheFirst()
+    public void TrackingSeparatesCharactersButDoesNotIndentTheFirst()
     {
         TypeStyle spaced = Style.WithTracking(6);
         SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(SkiaFontProvider.Shared);
@@ -395,7 +395,7 @@ public class SkiaPdfSurfaceTests
     }
 
     [Fact]
-    public void LetterSpacingKeepsASurrogatePairWholeAndCarriesAcrossFontRuns()
+    public void TrackingKeepsASurrogatePairWholeAndCarriesAcrossFontRuns()
     {
         // The pair falls outside Arial, so it is also a separate font run: the gap before "B" proves the spacing
         // count carries on across runs rather than restarting in each.

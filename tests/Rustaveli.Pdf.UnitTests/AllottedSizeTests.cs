@@ -15,7 +15,7 @@ public class AllottedSizeTests
         page.Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == Marker);
 
     [Fact]
-    public void ABackgroundInAColumnItemSpansTheColumnWidthAtTheItemsHeight()
+    public void AFillInAStackItemSpansTheStackWidthAtTheItemsHeight()
     {
         RecordedPage page = LayoutHarness.Draw(
             container => container.Stack(column => column.Add().Fill(Marker).Compose(item => Box(item, 50, 20))),
@@ -27,7 +27,7 @@ public class AllottedSizeTests
     }
 
     [Fact]
-    public void ABackgroundInATableCellFillsTheCellIncludingTheRowHeightSetByItsNeighbour()
+    public void AFillInATableCellFillsTheCellIncludingTheRowHeightSetByItsNeighbour()
     {
         RecordedPage page = LayoutHarness.Draw(
             container => container.Table(table =>
@@ -46,7 +46,7 @@ public class AllottedSizeTests
     }
 
     [Fact]
-    public void ABorderOnARowItemSurroundsTheWholeItemNotItsContent()
+    public void AStrokeOnAColumnSurroundsTheWholeColumnNotItsContent()
     {
         RecordedPage page = LayoutHarness.Draw(
             container => container.Columns(row =>
@@ -81,7 +81,7 @@ public class AllottedSizeTests
     }
 
     [Fact]
-    public void DecorationBandsSpanTheWidthAndTheTrailingBandFollowsTheContent()
+    public void BandsSpanTheWidthAndTheFootBandFollowsTheBody()
     {
         RecordedPage page = LayoutHarness.Draw(
             container => container.Stack(column => column.Add().Banded(decoration =>
@@ -128,7 +128,7 @@ public class AllottedSizeTests
     }
 
     [Fact]
-    public void AFlipMirrorsContentAcrossTheBoxItWasGiven()
+    public void AMirrorReflectsContentAcrossTheBoxItWasGiven()
     {
         RecordedPage page = LayoutHarness.Draw(
             container => container.Width(100).Height(20).MirrorHorizontal().Compose(inner => Box(inner, 10, 10, Marker)),
@@ -140,7 +140,7 @@ public class AllottedSizeTests
     }
 
     [Fact]
-    public void AHyperlinkCoversTheBoxItWasGiven()
+    public void ALinkCoversTheBoxItWasGiven()
     {
         RecordedPage page = LayoutHarness.Draw(
             container => container.Stack(column => column.Add().Link("https://example.com").Compose(item => Box(item, 10, 10))),

@@ -22,11 +22,11 @@ public class RunComposerTests
     }
 
     [Fact]
-    public void FontFamilySetsTheTypeface() =>
+    public void TypefaceSetsTheTypeface() =>
         Assert.Equal("Courier", StyleOf(span => span.Typeface("Courier")).Typeface);
 
     [Fact]
-    public void FontSizeSetsTheSize() =>
+    public void PointSizeSetsTheSize() =>
         Approximately.Equal(20f, StyleOf(span => span.PointSize(20)).PointSize);
 
     [Fact]
@@ -38,11 +38,11 @@ public class RunComposerTests
         Assert.Equal(Ink.Rgb(0x33, 0x66, 0x99), StyleOf(span => span.Ink("#336699")).Ink);
 
     [Fact]
-    public void BackgroundColorSetsTheHighlight() =>
+    public void HighlightSetsTheHighlight() =>
         Assert.Equal((Ink)TestInks.Yellow, StyleOf(span => span.Highlight(TestInks.Yellow)).Highlight);
 
     [Fact]
-    public void BackgroundColorAcceptsHex() =>
+    public void HighlightAcceptsHex() =>
         Assert.Equal(Ink.Rgb(0xFF, 0xFF, 0x00), StyleOf(span => span.Highlight("#FFFF00")).Highlight);
 
     [Fact]
@@ -86,11 +86,11 @@ public class RunComposerTests
             StyleOf(span => span.StrikeThrough(value), style => style.StrikeThrough(!value)).HasStrikeThrough);
 
     [Fact]
-    public void LineHeightSetsTheMultiplier() =>
+    public void LeadingSetsTheMultiplier() =>
         Approximately.Equal(1.5f, StyleOf(span => span.Leading(1.5f)).Leading);
 
     [Fact]
-    public void LetterSpacingSetsTheGap() =>
+    public void TrackingSetsTheGap() =>
         Approximately.Equal(2f, StyleOf(span => span.Tracking(2)).Tracking);
 
     [Fact]

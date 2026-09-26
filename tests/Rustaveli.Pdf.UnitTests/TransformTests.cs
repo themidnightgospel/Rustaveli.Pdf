@@ -40,7 +40,7 @@ public class TransformTests
     }
 
     [Fact]
-    public void TranslateDoesNotAffectLayout()
+    public void ShiftDoesNotAffectLayout()
     {
         ShiftBlock element = new ShiftBlock { Offset = new Offset(25, 25), Child = new FixedBlock(10, 10) };
 
@@ -50,7 +50,7 @@ public class TransformTests
     }
 
     [Fact]
-    public void TranslateShiftsDrawnContent()
+    public void ShiftMovesDrawnContent()
     {
         ShiftBlock element = new ShiftBlock { Offset = new Offset(25, 15), Child = new FixedBlock(10, 10) };
 
@@ -61,7 +61,7 @@ public class TransformTests
     }
 
     [Fact]
-    public void TranslateWithoutContentDrawsNothing()
+    public void ShiftWithoutContentDrawsNothing()
     {
         ShiftBlock element = new ShiftBlock { Offset = new Offset(25, 15) };
 
@@ -164,7 +164,7 @@ public class TransformTests
     }
 
     [Fact]
-    public void RotateWithoutContentOccupiesNothing()
+    public void TurnWithoutContentOccupiesNothing()
     {
         TurnBlock element = new TurnBlock { QuarterTurns = 1 };
 
@@ -176,7 +176,7 @@ public class TransformTests
     }
 
     [Fact]
-    public void RotatePassesTheChildsWrapThroughUnchanged()
+    public void TurnPassesTheChildsWrapThroughUnchanged()
     {
         // A quarter turn offers the child the page's height as its width.
         FixedBlock child = new FixedBlock(300, 10);
@@ -188,7 +188,7 @@ public class TransformTests
     }
 
     [Fact]
-    public void RotateReportsEmptyForAnExhaustedChild()
+    public void TurnReportsEmptyForAnExhaustedChild()
     {
         TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = new ScriptedBlock(Fit.Nothing()) };
 
@@ -196,7 +196,7 @@ public class TransformTests
     }
 
     [Fact]
-    public void RotateKeepsAPartialChildPartialWithItsAxesSwapped()
+    public void TurnKeepsAPartialChildPartialWithItsAxesSwapped()
     {
         // Turned, the child's 70pt of height is the page's 70pt of width: two of its four 30pt units.
         TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = new SplittableBlock(unitCount: 4, unitHeight: 30, width: 20) };
@@ -210,7 +210,7 @@ public class TransformTests
     [Theory]
     [InlineData(nameof(FitKind.Defer))]
     [InlineData(nameof(FitKind.Nothing))]
-    public void RotateDoesNotAskAChildWithNothingToShowToDraw(string outcome)
+    public void TurnDoesNotAskAChildWithNothingToShowToDraw(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         TurnBlock element = new TurnBlock { QuarterTurns = 1, Child = child };

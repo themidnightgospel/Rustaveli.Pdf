@@ -85,7 +85,7 @@ public class TextBlockTests
     }
 
     [Fact]
-    public void StopsAtTheAvailableHeightAndReportsPartialRender()
+    public void StopsAtTheAvailableHeightAndReportsPartial()
     {
         TextBlock element = Text(text => text.Run("aaa bbb ccc ddd"));
 
@@ -269,7 +269,7 @@ public class TextBlockTests
     }
 
     [Fact]
-    public void TallestRunSetsTheLineHeight()
+    public void TallestRunSetsTheLineSpacing()
     {
         TextBlock element = Text(text =>
         {
@@ -315,7 +315,7 @@ public class TextBlockTests
     }
 
     [Fact]
-    public void MarksHyperlinkSpansAsClickable()
+    public void MarksLinkedRunsAsClickable()
     {
         TextBlock element = Text(text => text.Link("click", "https://example.com"));
 
@@ -397,7 +397,7 @@ public class TextBlockTests
     }
 
     [Fact]
-    public void DecorationStrokesAreNeverThinnerThanHalfAPoint()
+    public void DecorationLinesAreNeverThinnerThanHalfAPoint()
     {
         TextBlock element = Text(text => text.Run("tiny").PointSize(4).Underline().StrikeThrough());
 
@@ -408,7 +408,7 @@ public class TextBlockTests
     }
 
     [Fact]
-    public void AHyperlinkCoversOnlyItsOwnRun()
+    public void ALinkCoversOnlyItsOwnRun()
     {
         TextBlock element = Text(text =>
         {
@@ -423,7 +423,7 @@ public class TextBlockTests
     }
 
     [Fact]
-    public void ASectionLinkCoversOnlyItsOwnRun()
+    public void ACrossReferenceCoversOnlyItsOwnRun()
     {
         TextBlock element = Text(text =>
         {

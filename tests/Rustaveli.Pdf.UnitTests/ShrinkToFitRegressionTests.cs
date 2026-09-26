@@ -30,7 +30,7 @@ public class ShrinkToFitRegressionTests
     }
 
     [Fact]
-    public void AMinimumScaleOfOneBehavesAsThoughTheElementWereAbsent()
+    public void AMinimumScaleOfOneBehavesAsThoughTheBlockWereAbsent()
     {
         // "Never shrink" makes this a pass-through, not an unsatisfiable constraint: whatever the child would
         // have reported on its own is what comes back.

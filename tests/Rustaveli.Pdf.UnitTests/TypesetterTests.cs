@@ -1,4 +1,3 @@
-
 namespace Rustaveli.Pdf.UnitTests;
 
 public class TypesetterTests
@@ -146,7 +145,7 @@ public class TypesetterTests
     }
 
     [Fact]
-    public void BackgroundCoversTheWholeSheetIgnoringMargins()
+    public void UnderlayCoversTheWholeSheetIgnoringMargins()
     {
         Document document = Build(page =>
         {
@@ -168,7 +167,7 @@ public class TypesetterTests
     }
 
     [Fact]
-    public void ForegroundIsDrawnAfterTheContent()
+    public void OverlayIsDrawnAfterTheBody()
     {
         Document document = Build(page =>
         {
@@ -190,7 +189,7 @@ public class TypesetterTests
     }
 
     [Fact]
-    public void PageBreakStartsANewPage()
+    public void NewPageStartsANewPage()
     {
         Document document = Build(page =>
         {
@@ -782,7 +781,7 @@ public class TypesetterTests
     }
 
     [Fact]
-    public void ShowsAShowOnceHeaderOnlyOnTheFirstPageOfTheFinalOutput()
+    public void ShowsARunningHeadMarkedOnceOnlyOnTheFirstPageOfTheFinalOutput()
     {
         // The counting passes have already drawn the header once, so the drawing pass must start from a full
         // reset; the per-page reset in between must leave the "already shown" flag alone.
@@ -802,7 +801,7 @@ public class TypesetterTests
     }
 
     [Fact]
-    public void PaintsThePageBackgroundColourAcrossTheWholeSheetIgnoringMargins()
+    public void PaintsThePaperAcrossTheWholeSheetIgnoringMargins()
     {
         Document document = Build(page =>
         {
@@ -820,7 +819,7 @@ public class TypesetterTests
     }
 
     [Fact]
-    public void PaintsNothingForATransparentPageBackground()
+    public void PaintsNothingForTransparentPaper()
     {
         Document document = Build(page =>
         {
@@ -832,7 +831,7 @@ public class TypesetterTests
     }
 
     [Fact]
-    public void PlacesEveryBandRelativeToTheMarginsAndTheForegroundAtThePageCorner()
+    public void PlacesEveryBandRelativeToTheMarginsAndTheOverlayAtThePageCorner()
     {
         Document document = Build(page =>
         {

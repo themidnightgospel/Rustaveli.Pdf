@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class StrokeAndFillTests
 {
     [Fact]
-    public void BackgroundFillsTheBoxItIsGivenRatherThanItsContent()
+    public void FillPaintsTheBoxItIsGivenRatherThanItsContent()
     {
         FillBlock element = new FillBlock { Ink = TestInks.Red, Child = new FixedBlock(50, 20) };
 
@@ -16,7 +16,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void BackgroundDoesNotConsumeLayoutSpace()
+    public void FillDoesNotConsumeLayoutSpace()
     {
         FillBlock element = new FillBlock { Ink = TestInks.Red, Child = new FixedBlock(50, 20) };
 
@@ -24,7 +24,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void BorderDrawsOneBandPerRequestedSide()
+    public void StrokeDrawsOneBandPerRequestedSide()
     {
         StrokeBlock element = new StrokeBlock
         {
@@ -40,7 +40,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void BorderIsInsetWithinTheBoxItIsGiven()
+    public void StrokeIsInsetWithinTheBoxItIsGiven()
     {
         StrokeBlock element = new StrokeBlock
         {
@@ -59,7 +59,7 @@ public class StrokeAndFillTests
     [Theory]
     [InlineData(nameof(FitKind.Defer))]
     [InlineData(nameof(FitKind.Nothing))]
-    public void BackgroundPaintsNothingBehindAChildWithNothingToShow(string outcome)
+    public void FillPaintsNothingBehindAChildWithNothingToShow(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         FillBlock element = new FillBlock { Ink = TestInks.Red, Child = child };
@@ -71,7 +71,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void BackgroundWithoutContentPaintsOnlyItsOwnFill()
+    public void FillWithoutContentPaintsOnlyItsOwnFill()
     {
         FillBlock element = new FillBlock { Ink = TestInks.Red };
 
@@ -83,7 +83,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void BorderPlacesEachSideAlongItsOwnEdge()
+    public void StrokePlacesEachSideAlongItsOwnEdge()
     {
         StrokeBlock element = new StrokeBlock
         {
@@ -104,7 +104,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void BorderIsDrawnOverTheContent()
+    public void StrokeIsDrawnOverTheContent()
     {
         StrokeBlock element = new StrokeBlock
         {
@@ -119,7 +119,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void TransparentBorderDrawsOnlyTheContent()
+    public void TransparentStrokeDrawsOnlyTheContent()
     {
         StrokeBlock element = new StrokeBlock
         {
@@ -137,7 +137,7 @@ public class StrokeAndFillTests
     [Theory]
     [InlineData(nameof(FitKind.Defer))]
     [InlineData(nameof(FitKind.Nothing))]
-    public void BorderDrawsNothingAroundAChildWithNothingToShow(string outcome)
+    public void StrokeDrawsNothingAroundAChildWithNothingToShow(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
         StrokeBlock element = new StrokeBlock { Weight = Sides.All(2), Ink = TestInks.Black, Child = child };
@@ -149,7 +149,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void BorderWithoutContentDrawsOnlyItsOwnSides()
+    public void StrokeWithoutContentDrawsOnlyItsOwnSides()
     {
         StrokeBlock element = new StrokeBlock { Weight = Sides.All(2), Ink = TestInks.Black };
 
@@ -160,7 +160,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void RoundedBorderIsStrokedAlongItsCentreline()
+    public void RoundedStrokeIsStrokedAlongItsCentreline()
     {
         // Inset by half the 2pt stroke, with the radius reduced to match, so the outer edge of the stroke lands
         // on the requested 4pt radius.
@@ -183,7 +183,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void RoundedBorderRadiusIsCappedAtHalfTheShorterSide()
+    public void RoundedStrokeRadiusIsCappedAtHalfTheShorterSide()
     {
         StrokeBlock element = new StrokeBlock
         {
@@ -220,7 +220,7 @@ public class StrokeAndFillTests
     }
 
     [Fact]
-    public void ABorderWithNoWidthDrawsNothingEvenWhenRounded()
+    public void AStrokeWithNoWidthDrawsNothingEvenWhenRounded()
     {
         StrokeBlock element = new StrokeBlock
         {
@@ -239,7 +239,7 @@ public class StrokeAndFillTests
     [InlineData(40f, 20f)]
     [InlineData(20f, 40f)]
     [InlineData(30f, 40f)]
-    public void RoundedBorderAtLeastAsThickAsItsBoxIsNotDrawn(float width, float height)
+    public void RoundedStrokeAtLeastAsThickAsItsBoxIsNotDrawn(float width, float height)
     {
         StrokeBlock element = new StrokeBlock
         {

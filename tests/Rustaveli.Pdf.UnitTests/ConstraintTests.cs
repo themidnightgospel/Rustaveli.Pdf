@@ -41,7 +41,7 @@ public class ConstraintTests
     }
 
     [Fact]
-    public void LeavesAnUnconstrainedAxisAtTheChildSize()
+    public void LeavesAnUnboundedAxisAtTheChildSize()
     {
         ConstraintBlock element = new ConstraintBlock { MinWidth = 100, MaxWidth = 100, Child = new FixedBlock(10, 25) };
 

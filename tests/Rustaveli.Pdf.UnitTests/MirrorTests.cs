@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class MirrorTests
 {
     [Fact]
-    public void FlippingDoesNotChangeTheReportedSize()
+    public void MirroringDoesNotChangeTheReportedSize()
     {
         MirrorBlock element = new MirrorBlock { Horizontally = true, Child = new FixedBlock(50, 20) };
 
@@ -13,7 +13,7 @@ public class MirrorTests
     }
 
     [Fact]
-    public void HorizontalFlipMirrorsContentBackOverItsOwnBox()
+    public void MirroringHorizontallyReflectsContentBackOverItsOwnBox()
     {
         MirrorBlock element = new MirrorBlock { Horizontally = true, Child = new FixedBlock(50, 20) };
 
@@ -25,7 +25,7 @@ public class MirrorTests
     }
 
     [Fact]
-    public void VerticalFlipMirrorsDownwards()
+    public void MirroringVerticallyReflectsDownwards()
     {
         MirrorBlock element = new MirrorBlock { Vertically = true, Child = new FixedBlock(50, 20) };
 

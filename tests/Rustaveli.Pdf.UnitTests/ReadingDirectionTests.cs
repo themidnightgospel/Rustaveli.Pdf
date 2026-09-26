@@ -71,7 +71,7 @@ public class ReadingDirectionTests
     }
 
     [Fact]
-    public void DirectionElementScopesTheChangeToItsSubtree()
+    public void ReadingDirectionBlockScopesTheChangeToItsSubtree()
     {
         Block root = LayoutHarness.Build(container => container.RightToLeft().Compose(inner =>
             inner.Slot().Child = TwoColumnRow()));
@@ -97,7 +97,7 @@ public class ReadingDirectionTests
     [Theory]
     [InlineData(ReadingDirection.LeftToRight, 50f)]
     [InlineData(ReadingDirection.RightToLeft, 30f)]
-    public void DirectionElementAppliesWhileMeasuringToo(ReadingDirection direction, float expectedWidth)
+    public void ReadingDirectionBlockAppliesWhilePlanningToo(ReadingDirection direction, float expectedWidth)
     {
         // Only left-aligned text takes a first-line indent, and right-to-left text aligns right, so the same
         // paragraph measures 20pt narrower once the direction reaches it.

@@ -1,4 +1,3 @@
-
 namespace Rustaveli.Pdf.UnitTests;
 
 public class FrameContentTests
@@ -68,7 +67,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void RefusesAMissingComponent()
+    public void RefusesAMissingSnippet()
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new Frame().Snippet(null!));
 
@@ -76,7 +75,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void DecorationFramesTheContentBetweenItsBands()
+    public void BandsFrameTheBodyBetweenHeadAndFoot()
     {
         Block root = LayoutHarness.Build(container => container.Banded(decoration =>
         {
@@ -101,7 +100,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void ComposesAComponentIntoTheContainer()
+    public void ComposesASnippetIntoTheFrame()
     {
         Block root = LayoutHarness.Build(container => container.Inset(5).Snippet(new CaptionSnippet("Total")));
 
@@ -114,7 +113,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void ConstructsAndComposesAComponentGivenOnlyItsType()
+    public void ConstructsAndComposesASnippetGivenOnlyItsType()
     {
         Block root = LayoutHarness.Build(container => container.Snippet<CaptionSnippet>());
 
@@ -122,7 +121,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void RefusesAComponentComposedTwiceIntoOneSlot()
+    public void RefusesASnippetComposedTwiceIntoOneSlot()
     {
         Frame container = new Frame();
         container.Snippet(new CaptionSnippet("first"));
@@ -132,7 +131,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void ElementHandsTheSameSlotToTheCompositionFunction()
+    public void ComposeHandsTheSameFrameToTheCompositionFunction()
     {
         Frame container = new Frame();
         IFrame? received = null;
@@ -143,7 +142,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void RefusesToMarkAFilledContainerEmpty()
+    public void RefusesToBlankAFilledFrame()
     {
         Frame container = new Frame();
         container.Text("already here");
@@ -155,7 +154,7 @@ public class FrameContentTests
     }
 
     [Fact]
-    public void RefusesToMarkAMissingContainerEmpty()
+    public void RefusesToBlankAMissingFrame()
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => FrameContent.Blank(null!));
 

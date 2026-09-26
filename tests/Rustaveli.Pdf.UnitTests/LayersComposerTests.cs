@@ -8,7 +8,7 @@ public class LayersComposerTests
         container.Compose(inner => inner.Slot().Child = new FixedBlock(width, height, color));
 
     [Fact]
-    public void ThePrimaryLayerSizesTheStack()
+    public void TheBaseLayerSizesTheStack()
     {
         Block root = LayoutHarness.Build(container => container.Layered(layers =>
         {

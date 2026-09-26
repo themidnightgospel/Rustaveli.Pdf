@@ -102,7 +102,7 @@ public class PdfOutputTests
     }
 
     [Fact]
-    public void WritesDocumentMetadata()
+    public void WritesDocumentInfo()
     {
         Document document = SimpleDocument(page => page.Body().Text("Metadata"));
         document.Info.Title = "Integration Title";
@@ -245,7 +245,7 @@ public class PdfOutputTests
     }
 
     [Fact]
-    public void RendersRoundedContainersAndScaledContent()
+    public void RendersRoundedFramesAndScaledContent()
     {
         Document document = SimpleDocument(page => page.Body().Stack(column =>
         {
@@ -284,7 +284,7 @@ public class PdfOutputTests
     }
 
     [Fact]
-    public void EnsureSpaceMovesContentRatherThanStrandingIt()
+    public void RequireSpaceMovesContentRatherThanStrandingIt()
     {
         Document document = Document.Compose(container => container.Section(page =>
         {

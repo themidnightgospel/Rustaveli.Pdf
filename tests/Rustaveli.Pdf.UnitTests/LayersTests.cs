@@ -26,7 +26,7 @@ public class LayersTests
     }
 
     [Fact]
-    public void TakesItsSizeFromThePrimaryLayerAndPaintsInDeclarationOrder()
+    public void TakesItsSizeFromTheBaseLayerAndPaintsInDeclarationOrder()
     {
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { Child = new PlaceholderBlock { Ink = TestInks.Red } });
@@ -46,7 +46,7 @@ public class LayersTests
     }
 
     [Fact]
-    public void WithoutAPrimaryLayerOccupiesNothing()
+    public void WithoutABaseLayerOccupiesNothing()
     {
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { Child = new FixedBlock(50, 20) });
@@ -60,7 +60,7 @@ public class LayersTests
     [Theory]
     [InlineData(nameof(FitKind.Defer))]
     [InlineData(nameof(FitKind.Nothing))]
-    public void DrawsNoLayerWhenThePrimaryHasNothingToShow(string outcome)
+    public void DrawsNoLayerWhenTheBaseLayerHasNothingToShow(string outcome)
     {
         // A watermark without its page content would be a page of watermark alone.
         ScriptedBlock content = ScriptedBlock.WithNothingToDraw(outcome);
@@ -76,7 +76,7 @@ public class LayersTests
     }
 
     [Fact]
-    public void ThePrimaryLayerContinuesWhereItStopped()
+    public void TheBaseLayerContinuesWhereItStopped()
     {
         // Only the decorating layers repeat; the content itself must not restart on every page.
         SplittableBlock content = new SplittableBlock(unitCount: 4, unitHeight: 20);
@@ -93,7 +93,7 @@ public class LayersTests
     }
 
     [Fact]
-    public void AFullResetRewindsThePrimaryLayer()
+    public void AFullResetRewindsTheBaseLayer()
     {
         SplittableBlock content = new SplittableBlock(unitCount: 4, unitHeight: 20);
         LayersBlock element = new LayersBlock();

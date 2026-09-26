@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class ExpandTests
 {
     [Fact]
-    public void ClaimsTheFullWidthWhenExtendingHorizontally()
+    public void ClaimsTheFullWidthWhenExpandingHorizontally()
     {
         ExpandBlock element = new ExpandBlock { Horizontally = true, Child = new FixedBlock(10, 20) };
 
@@ -13,7 +13,7 @@ public class ExpandTests
     }
 
     [Fact]
-    public void ClaimsOnlyTheHeightWhenExtendingVertically()
+    public void ClaimsOnlyTheHeightWhenExpandingVertically()
     {
         ExpandBlock element = new ExpandBlock { Vertically = true, Child = new FixedBlock(10, 20) };
 
@@ -23,7 +23,7 @@ public class ExpandTests
     }
 
     [Fact]
-    public void ClaimsBothAxesWhenExtendingFully()
+    public void ClaimsBothAxesWhenExpandingFully()
     {
         ExpandBlock element = new ExpandBlock { Horizontally = true, Vertically = true, Child = new FixedBlock(10, 20) };
 
@@ -33,7 +33,7 @@ public class ExpandTests
     }
 
     [Fact]
-    public void WithoutContentStillClaimsTheExtendedAxis()
+    public void WithoutContentStillClaimsTheExpandedAxis()
     {
         ExpandBlock element = new ExpandBlock { Horizontally = true };
 

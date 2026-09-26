@@ -56,7 +56,7 @@ public class ListTests
     }
 
     [Fact]
-    public void ContinuesNumberingAcrossAPageBreak()
+    public void ContinuesNumberingAcrossANewPage()
     {
         // Markers are resolved from position at compose time, so a break cannot restart the count.
         Block root = BuildList(list =>

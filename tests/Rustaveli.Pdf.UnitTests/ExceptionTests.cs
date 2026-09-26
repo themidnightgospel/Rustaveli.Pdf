@@ -1,4 +1,3 @@
-
 namespace Rustaveli.Pdf.UnitTests;
 
 public class ExceptionTests
