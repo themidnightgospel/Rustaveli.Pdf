@@ -3,7 +3,7 @@
 //     dotnet run eng/tools.cs
 //
 // Downloads are pinned by version and verified against the publisher's SHA-256 manifest before being unpacked.
-// The tests look here, then on PATH; CI on macOS installs qpdf with Homebrew instead.
+// The tests look here, then on PATH. Windows only: on Linux and macOS, qpdf comes from the package manager.
 
 #:property PublishAot=false
 
@@ -16,16 +16,15 @@ const string QpdfVersion = "12.4.1";
 string root = RepositoryRoot();
 string tools = Path.Combine(root, "artifacts", "tools");
 
-string? asset =
-    RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && RuntimeInformation.OSArchitecture == Architecture.X64 ? $"qpdf-{QpdfVersion}-msvc64.zip" :
-    RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && RuntimeInformation.OSArchitecture == Architecture.X64 ? $"qpdf-{QpdfVersion}-bin-linux-x86_64.zip" :
-    null;
-
-if (asset == null)
+// Windows only. The Linux archive stores its shared library as a symbolic link, which ZIP extraction writes out as a
+// small plain file, so the binary cannot load; Linux and macOS use their package managers' qpdf instead.
+if (!(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && RuntimeInformation.OSArchitecture == Architecture.X64))
 {
-    Console.Error.WriteLine("No portable qpdf build for this platform; install qpdf with your package manager (e.g. brew install qpdf).");
+    Console.Error.WriteLine("Install qpdf with your package manager instead: apt-get install qpdf, or brew install qpdf.");
     return 1;
 }
+
+string asset = $"qpdf-{QpdfVersion}-msvc64.zip";
 
 string target = Path.Combine(tools, $"qpdf-{QpdfVersion}");
 if (Directory.Exists(target))
@@ -60,12 +59,6 @@ using (MemoryStream stream = new MemoryStream(archive))
 using (ZipArchive zip = new ZipArchive(stream))
 {
     zip.ExtractToDirectory(target);
-}
-
-if (!OperatingSystem.IsWindows())
-{
-    foreach (string binary in Directory.EnumerateFiles(target, "qpdf", SearchOption.AllDirectories))
-        File.SetUnixFileMode(binary, File.GetUnixFileMode(binary) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
 }
 
 Console.WriteLine($"qpdf {QpdfVersion} verified and unpacked to {target}");

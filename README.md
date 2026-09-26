@@ -154,7 +154,7 @@ metadata, PDF/A-2b prerequisites via Skia.
 ## Testing
 
 ```bash
-dotnet run eng/tools.cs       # once: fetches the pinned, checksum-verified qpdf the conformance tests use
+dotnet run eng/tools.cs       # once, on Windows: fetches the pinned, checksum-verified qpdf (elsewhere: apt/brew install qpdf)
 dotnet test                   # every suite, on net10.0 and (on Windows) net48
 dotnet run eng/coverage.cs    # both suites with coverage, enforcing 95% line / 90% branch
 dotnet stryker                # mutation testing of the engine, failing below 80%

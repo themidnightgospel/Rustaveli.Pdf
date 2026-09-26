@@ -77,11 +77,7 @@ public sealed class SkiaFontProvider : IDisposable
         // losers. For unmanaged Skia handles that would leak, so creation is funnelled through a Lazy that
         // guarantees exactly one instance per key.
         Lazy<SKFont> font = _fonts.GetOrAdd(key, static (k, provider) => new Lazy<SKFont>(
-            () => new SKFont(provider.GetTypeface(k.Family, k.Weight, k.Italic), k.Size)
-            {
-                Subpixel = true,
-                Edging = SKFontEdging.SubpixelAntialias
-            },
+            () => CreateLayoutFont(provider.GetTypeface(k.Family, k.Weight, k.Italic), k.Size),
             LazyThreadSafetyMode.ExecutionAndPublication), this);
 
         return font.Value;
@@ -267,11 +263,7 @@ public sealed class SkiaFontProvider : IDisposable
         (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + "\0fallback", (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
 
         Lazy<SKFont> font = _fonts.GetOrAdd(key, _ => new Lazy<SKFont>(
-            () => new SKFont(typeface, style.EffectiveFontSize)
-            {
-                Subpixel = true,
-                Edging = SKFontEdging.SubpixelAntialias
-            },
+            () => CreateLayoutFont(typeface, style.EffectiveFontSize),
             LazyThreadSafetyMode.ExecutionAndPublication));
 
         return font.Value;
@@ -288,6 +280,21 @@ public sealed class SkiaFontProvider : IDisposable
     /// Disposing a provider while a document that used it is still being generated corrupts that document. Do
     /// not dispose a provider you have handed to a concurrent render.
     /// </remarks>
+    /// <summary>A font for measuring and drawing text, with metrics that are the same on every platform.</summary>
+    /// <remarks>
+    /// Hinted advances come from the platform's rasteriser — DirectWrite, FreeType or Core Text — and differ for the
+    /// same font file, so the same document spaced its words, and could break its lines, differently on a Linux
+    /// server than on a Windows workstation. Unhinted linear metrics are the font's own design units, scaled, and
+    /// identical everywhere.
+    /// </remarks>
+    private static SKFont CreateLayoutFont(SKTypeface typeface, float size) => new SKFont(typeface, size)
+    {
+        Hinting = SKFontHinting.None,
+        LinearMetrics = true,
+        Subpixel = true,
+        Edging = SKFontEdging.SubpixelAntialias
+    };
+
     public void Dispose()
     {
         foreach (Lazy<SKFont>? font in _fonts.Values.Where(font => font.IsValueCreated))

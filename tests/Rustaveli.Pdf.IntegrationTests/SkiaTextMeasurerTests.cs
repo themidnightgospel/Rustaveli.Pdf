@@ -39,6 +39,24 @@ public class SkiaTextMeasurerTests
         Assert.Equal(text.Length, Measurer.MeasureCharactersFitting(text, style, Measurer.MeasureWidth(text, style) + 1));
     }
 
+    [Theory]
+    [InlineData(7f)]
+    [InlineData(11f)]
+    [InlineData(13.5f)]
+    public void WidthScalesExactlyWithFontSize(float size)
+    {
+        // Linear, unhinted metrics are the font's design units scaled, so width is proportional to size. Hinted
+        // advances snap each size to the pixel grid differently — and differently per platform rasteriser, which
+        // is how the same document came to space its words one way on Windows and another on Linux. Windows keeps
+        // advances linear even when hinting, so this can only fail where the platform hints them: the Linux leg.
+        const string Text = "Paragraph 1. The quick brown fox jumps over the lazy dog";
+        float reference = Measurer.MeasureWidth(Text, Style.FontSizeOf(100));
+
+        float width = Measurer.MeasureWidth(Text, Style.FontSizeOf(size));
+
+        Assert.Equal(reference * size / 100f, width, 0.01f);
+    }
+
     // ---- Metrics -----------------------------------------------------------------------------------------------
 
     [Fact]

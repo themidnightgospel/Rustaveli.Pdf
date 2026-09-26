@@ -43,13 +43,10 @@ jobs:
 
       - run: dotnet tool restore
 
-      - name: Fetch validators (qpdf)
-        run: dotnet run eng/tools.cs
-
-      # The font-fallback tests check that characters the test font lacks are found among the platform's fonts.
-      # Windows and macOS ship CJK and Georgian faces; the Ubuntu image does not.
-      - name: Install fallback fonts
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk
+      # qpdf validates generated files. The font-fallback tests check that characters the test font lacks are found
+      # among the platform's fonts: Windows and macOS ship CJK and Georgian faces, the Ubuntu image does not.
+      - name: Install validators and fallback fonts
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qpdf fonts-noto-core fonts-noto-cjk
 
       - name: Build (Release, warnings are errors)
         run: dotnet build Rustaveli.Pdf.slnx -c Release

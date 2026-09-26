@@ -42,9 +42,6 @@ jobs:
 
       - run: dotnet tool restore
 
-      - name: Fetch validators (qpdf)
-        run: dotnet run eng/tools.cs
-
       - name: Mutation testing
         run: dotnet stryker --config-file stryker-config.json
 
