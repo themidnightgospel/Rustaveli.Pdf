@@ -1,34 +1,47 @@
 # Unicode Character Database files
 
-Unicode 16.0.0 data that the line breaker is built from and tested against. They are committed unchanged, exactly as
-published.
+Unmodified files from the Unicode Character Database, version 16.0.0, that the line breaker and the bidirectional
+algorithm are built from and tested against. They are committed exactly as published.
 
-| File | Source | Used for |
-| --- | --- | --- |
-| `LineBreak.txt` | https://www.unicode.org/Public/16.0.0/ucd/LineBreak.txt | Line_Break of every code point |
-| `EastAsianWidth.txt` | https://www.unicode.org/Public/16.0.0/ucd/EastAsianWidth.txt | the `$EastAsian` set of rules LB19a, LB21a and LB30 |
-| `DerivedGeneralCategory.txt` | https://www.unicode.org/Public/16.0.0/ucd/extracted/DerivedGeneralCategory.txt | resolving SA (LB1), splitting QU into initial and final punctuation (LB15a, LB15b, LB19), unassigned code points (LB30b) |
-| `emoji-data.txt` | https://www.unicode.org/Public/16.0.0/ucd/emoji/emoji-data.txt | Extended_Pictographic (LB30b) |
-| `LineBreakTest.txt` | https://www.unicode.org/Public/16.0.0/ucd/auxiliary/LineBreakTest.txt | the conformance test, `LineBreakConformanceTests` |
+| File | Used for | Source |
+|---|---|---|
+| `LineBreak.txt` | Line_Break of every code point | <https://www.unicode.org/Public/16.0.0/ucd/LineBreak.txt> |
+| `EastAsianWidth.txt` | the `$EastAsian` set of rules LB19a, LB21a and LB30 | <https://www.unicode.org/Public/16.0.0/ucd/EastAsianWidth.txt> |
+| `DerivedGeneralCategory.txt` | resolving SA (LB1), splitting QU into initial and final punctuation (LB15a, LB15b, LB19), unassigned code points (LB30b) | <https://www.unicode.org/Public/16.0.0/ucd/extracted/DerivedGeneralCategory.txt> |
+| `emoji-data.txt` | Extended_Pictographic (LB30b) | <https://www.unicode.org/Public/16.0.0/ucd/emoji/emoji-data.txt> |
+| `LineBreakTest.txt` | the line breaking conformance test, `LineBreakConformanceTests` | <https://www.unicode.org/Public/16.0.0/ucd/auxiliary/LineBreakTest.txt> |
+| `DerivedBidiClass.txt` | Bidi_Class of every code point, defaults for unassigned ones included (`@missing` lines) | <https://www.unicode.org/Public/16.0.0/ucd/extracted/DerivedBidiClass.txt> |
+| `BidiBrackets.txt` | Bidi_Paired_Bracket and Bidi_Paired_Bracket_Type, which rule N0 pairs brackets by | <https://www.unicode.org/Public/16.0.0/ucd/BidiBrackets.txt> |
+| `BidiMirroring.txt` | Bidi_Mirroring_Glyph, the mirrored character rule L4 draws | <https://www.unicode.org/Public/16.0.0/ucd/BidiMirroring.txt> |
+| `BidiTest.txt` | bidi conformance: every sequence of classes up to length 4, and longer ones, per paragraph direction | <https://www.unicode.org/Public/16.0.0/ucd/BidiTest.txt> |
+| `BidiCharacterTest.txt` | bidi conformance: sequences of characters, bracket pairs among them | <https://www.unicode.org/Public/16.0.0/ucd/BidiCharacterTest.txt> |
 
-The rules themselves are [UAX #14, revision 53](https://www.unicode.org/reports/tr14/tr14-53.html), the version of the
-Unicode Line Breaking Algorithm that goes with Unicode 16.0.0.
+The algorithms are [UAX #14, revision 53](https://www.unicode.org/reports/tr14/tr14-53.html) and
+[UAX #9, revision 50](https://www.unicode.org/reports/tr9/tr9-50.html), the versions that go with Unicode 16.0.0.
 
-`eng/unicode-line-break.cs` reads the first four files and writes
-`src/Rustaveli.Pdf/Text/LineBreaking/LineBreakTable.cs`. `LineBreakPropertiesTests` reads them again, independently,
-and checks the generated table against them for every code point.
+## Generated tables
+
+- `dotnet run eng/unicode-line-break.cs` reads the first four files and writes
+  `src/Rustaveli.Pdf/Text/LineBreaking/LineBreakTable.cs`.
+- `dotnet run eng/unicode-bidi.cs` reads `DerivedBidiClass.txt`, `BidiBrackets.txt` and `BidiMirroring.txt` and writes
+  `src/Rustaveli.Pdf/Text/Bidi/BidiCharacterTables.cs`.
+
+The generated tables are committed, so building the library needs neither these files nor the scripts. The unit tests
+read the files again, with parsers of their own, and compare the tables with them for every code point; the
+conformance tests run every case of the test files.
 
 ## Moving to a newer version
 
-1. Download the same five files for the new version from https://www.unicode.org/Public/, replacing these.
-2. Update the version in `eng/unicode-line-break.cs` and run `dotnet run eng/unicode-line-break.cs`.
-3. Read the new revision of UAX #14 against `LineBreakEnumerator`, rule by rule: the rules change between versions
-   about as often as the data does, and the conformance test will fail until they match.
+1. Download the same files for the new version from https://www.unicode.org/Public/, replacing these.
+2. Update the version in both scripts and run them.
+3. Read the new revisions of UAX #14 and UAX #9 against `LineBreakEnumerator` and `BidiParagraph`, rule by rule: the
+   rules change between versions about as often as the data does, and the conformance tests fail until they match.
 
 ## Licence
 
-These files are distributed under the Unicode License v3, and so is the table generated from them, which ships in the
-Rustaveli.Pdf package:
+These files are distributed under the Unicode License v3, from <https://www.unicode.org/license.txt>, and so are the
+tables generated from them, which ship in the Rustaveli.Pdf package. The licence is reproduced here as its terms
+require:
 
 ```
 UNICODE LICENSE V3
