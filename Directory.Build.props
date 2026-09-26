@@ -62,12 +62,17 @@
     assembly for the old target and nothing for the new one, so the shipped packages keep zero runtime
     dependencies.
 
-    Shipped projects only. The test projects see the core's copies through InternalsVisibleTo, and a second copy
-    of their own would make every polyfilled call ambiguous between the two.
+    The core only. Every other assembly here — tests, backends, the packages built on the core — sees the core's
+    copies through InternalsVisibleTo and imports their namespace instead; a second copy of its own would make
+    every polyfilled call ambiguous between the two.
   -->
-  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Rustaveli.Pdf'">
     <PackageReference Include="Polyfill" PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Rustaveli.Pdf' and !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <Using Include="Polyfills" />
   </ItemGroup>
 
   <PropertyGroup>

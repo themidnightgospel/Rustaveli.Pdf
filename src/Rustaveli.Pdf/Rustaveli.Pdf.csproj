@@ -28,6 +28,15 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Rustaveli.Pdf.UnitTests" />
     <InternalsVisibleTo Include="Rustaveli.Pdf.IntegrationTests" />
+    <InternalsVisibleTo Include="Rustaveli.Pdf.ConformanceTests" />
+
+    <!-- Backends ship in lockstep with the core, so they may use its engine seams without making them public. -->
+    <InternalsVisibleTo Include="Rustaveli.Pdf.Skia" />
+  </ItemGroup>
+
+  <!-- Spans and array pools on .NET Framework; net10.0 has them built in (docs/adr/0013). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
 
 </Project>

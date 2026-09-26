@@ -13,9 +13,4 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
-    <!-- The core's polyfills (Math.Clamp and friends), visible through InternalsVisibleTo. -->
-    <Using Include="Polyfills" />
-  </ItemGroup>
-
 </Project>

@@ -19,6 +19,15 @@
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.151.0" />
   </ItemGroup>
 
+  <!--
+    Shipped on netstandard2.0 only: the BCL's span and buffer-pool types, which .NET Framework lacks. The parsers
+    and the PDF writer are built on them; net10.0 gets them from the runtime and has no dependencies at all.
+    (docs/adr/0013-span-compatibility-package.md)
+  -->
+  <ItemGroup>
+    <PackageVersion Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
+
   <!-- Build-time only: never reach a consumer. -->
   <ItemGroup>
     <PackageVersion Include="Polyfill" Version="11.4.0" />
