@@ -6,7 +6,7 @@ public sealed record PdfSnapshot(IReadOnlyList<PageSnapshot> Pages)
 {
     public int PageCount => Pages.Count;
 
-    public IEnumerable<string> AllWords => from word in Pages.SelectMany((PageSnapshot page) => page.Words)
+    public IEnumerable<string> AllWords => from word in Pages.SelectMany(page => page.Words)
         select word.Text;
 
     public static PdfSnapshot Capture(byte[] pdf)

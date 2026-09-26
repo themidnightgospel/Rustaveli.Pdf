@@ -35,19 +35,18 @@ jobs:
       matrix:
         shard:
           - name: text-and-table
-            mutate: --mutate "**/Elements/TextElement.cs" --mutate "**/Elements/TableElement.cs"
-          - name: elements-a-l
-            mutate: --mutate "**/Elements/[A-L]*.cs"
-          - name: elements-m-z-layout-text
+            mutate: --mutate "**/Blocks/TextBlock.cs" --mutate "**/Blocks/TableBlock.cs"
+          - name: blocks-a-l
+            mutate: --mutate "**/Blocks/[A-L]*.cs"
+          - name: blocks-m-z-layout-text
             mutate: >-
-              --mutate "**/Elements/[M-Z]*.cs" --mutate "!**/Elements/TextElement.cs"
-              --mutate "!**/Elements/TableElement.cs" --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs"
+              --mutate "**/Blocks/[M-Z]*.cs" --mutate "!**/Blocks/TextBlock.cs"
+              --mutate "!**/Blocks/TableBlock.cs" --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs"
           - name: primitives
             mutate: --mutate "**/Primitives/**/*.cs"
-          - name: fluent-documents-drawing
+          - name: composition-drawing
             mutate: >-
-              --mutate "**/Fluent/**/*.cs" --mutate "**/Documents/**/*.cs" --mutate "**/Drawing/**/*.cs"
-              --mutate "**/Exceptions/**/*.cs"
+              --mutate "**/Composition/**/*.cs" --mutate "**/Drawing/**/*.cs" --mutate "**/Exceptions/**/*.cs"
     steps:
       - uses: actions/checkout@v4
 

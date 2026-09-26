@@ -71,18 +71,18 @@ internal sealed class BandsBlock : Block
         if (contentPlan.IsDeferred || contentPlan.IsNothing)
             return;
 
-        ISurface canvas = context.Surface;
+        ISurface surface = context.Surface;
 
         Head.Render(new Extent(availableSpace.Width, beforeSize.Height), context);
 
-        canvas.Translate(new Offset(0, beforeSize.Height));
+        surface.Translate(new Offset(0, beforeSize.Height));
         Body.Render(new Extent(availableSpace.Width, contentHeight), context);
-        canvas.Translate(new Offset(0, -beforeSize.Height));
+        surface.Translate(new Offset(0, -beforeSize.Height));
 
         float afterTop = beforeSize.Height + contentPlan.Size.Height;
-        canvas.Translate(new Offset(0, afterTop));
+        surface.Translate(new Offset(0, afterTop));
         Foot.Render(new Extent(availableSpace.Width, afterSize.Height), context);
-        canvas.Translate(new Offset(0, -afterTop));
+        surface.Translate(new Offset(0, -afterTop));
 
         // The bands repeat on every page, but their content tracks how much of itself it has drawn and would
         // report nothing left next time. Reset after drawing so measurement stays free of side effects.

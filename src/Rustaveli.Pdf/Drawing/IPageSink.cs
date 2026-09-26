@@ -2,7 +2,7 @@
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
-/// A canvas that groups drawing operations into pages.
+/// A surface that groups what is drawn on it into pages.
 /// </summary>
 internal interface IPageSink : ISurface, IDisposable
 {

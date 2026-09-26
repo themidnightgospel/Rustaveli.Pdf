@@ -20,7 +20,7 @@ internal sealed class LayersBlock : Block
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
-        return Layers.FirstOrDefault((Layer layer) => layer.IsBase)?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
+        return Layers.FirstOrDefault(layer => layer.IsBase)?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
     }
 
     public override void Render(Extent availableSpace, RenderContext context)

@@ -99,7 +99,7 @@ public sealed class TextComposer
     /// </remarks>
     public void Inline(Action<IFrame> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         Frame container = new Frame();
         handler(container);
         if (container.Child != null)

@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.Drawing;
 /// </summary>
 /// <remarks>
 /// Used for the counting pass, where the engine needs to know how many pages a document produces before it can
-/// resolve content such as "page 2 of 7". Running the identical layout against a canvas that draws nothing keeps
+/// resolve content such as "page 2 of 7". Running the identical layout against a sink that draws nothing keeps
 /// the two passes consistent without emitting output twice.
 /// </remarks>
 internal sealed class CountingPageSink : IPageSink

@@ -7,7 +7,7 @@ namespace Rustaveli.Pdf.Layout;
 /// Turns a composed document into a sequence of drawn pages.
 /// </summary>
 /// <remarks>
-/// Rendering runs the document more than once. Counting passes draw to a canvas that discards everything, purely
+/// Rendering runs the document more than once. Counting passes draw to a page sink that discards everything, purely
 /// to discover how many pages the document occupies; they repeat until the count settles, because feeding the
 /// total back in can itself change it. A final pass then draws for real. Every pass runs identical layout code,
 /// so the count cannot drift between them.
@@ -26,10 +26,10 @@ internal static class Typesetter
     /// </summary>
     private const int MaxCountingPasses = 5;
 
-    public static void Render(Document document, IPageSink canvas, ITypeMeasurer measurer)
+    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer)
     {
         ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(canvas);
+        ArgumentNullException.ThrowIfNull(pages);
         ArgumentNullException.ThrowIfNull(measurer);
 
         Pagination pageContext = new Pagination();
@@ -53,10 +53,10 @@ internal static class Typesetter
             pageContext.IsPageCountKnown = true;
         }
 
-        RunPass(document, canvas, measurer, pageContext);
+        RunPass(document, pages, measurer, pageContext);
     }
 
-    private static void RunPass(Document document, IPageSink canvas, ITypeMeasurer measurer, Pagination pageContext)
+    private static void RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext)
     {
         pageContext.ResetForNewPass();
 
@@ -64,7 +64,7 @@ internal static class Typesetter
             slot.ResetState();
 
         PlanContext layout = new PlanContext(measurer, pageContext);
-        RenderContext context = new RenderContext(canvas, layout);
+        RenderContext context = new RenderContext(pages, layout);
         int pageNumber = 0;
 
         foreach (Section section in document.Sections)
@@ -84,7 +84,7 @@ internal static class Typesetter
                 if (!pageContext.IsPageCountKnown)
                     pageContext.PageCount = pageNumber;
 
-                bool hasMore = RenderPage(section, canvas, context, layout);
+                bool hasMore = RenderPage(section, pages, context, layout);
 
                 if (!hasMore)
                     break;
@@ -174,37 +174,37 @@ internal static class Typesetter
         Extent contentSpace,
         Bands bands)
     {
-        ISurface canvas = context.Surface;
+        ISurface surface = context.Surface;
         Sides margin = section.Margins;
 
         pages.BeginPage(pageSize);
 
         if (!section.Paper.IsTransparent)
-            canvas.DrawRectangle(Offset.Zero, pageSize, section.Paper);
+            surface.DrawRectangle(Offset.Zero, pageSize, section.Paper);
 
         // Background and foreground deliberately ignore margins so watermarks can bleed to the page edge.
         section.UnderlaySlot.Render(pageSize, context);
 
         Offset origin = new Offset(margin.Left, margin.Top);
-        canvas.Translate(origin);
+        surface.Translate(origin);
 
         if (bands.HeadHeight > 0)
             section.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeadHeight), context);
 
-        canvas.Translate(new Offset(0, bands.HeadHeight));
+        surface.Translate(new Offset(0, bands.HeadHeight));
         section.BodySlot.Render(contentSpace, context);
-        canvas.Translate(new Offset(0, -bands.HeadHeight));
+        surface.Translate(new Offset(0, -bands.HeadHeight));
 
         if (bands.FootHeight > 0)
         {
             // The footer sits against the bottom margin rather than immediately after the content.
             float footTop = pageSize.Height - margin.Vertical - bands.FootHeight;
-            canvas.Translate(new Offset(0, footTop));
+            surface.Translate(new Offset(0, footTop));
             section.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FootHeight), context);
-            canvas.Translate(new Offset(0, -footTop));
+            surface.Translate(new Offset(0, -footTop));
         }
 
-        canvas.Translate(origin.Reverse());
+        surface.Translate(origin.Reverse());
 
         section.OverlaySlot.Render(pageSize, context);
 

@@ -171,7 +171,7 @@ internal sealed class TextBlock : Block
 
     private void DrawLine(TextLine line, float availableWidth, float top, RenderContext context)
     {
-        ISurface canvas = context.Surface;
+        ISurface surface = context.Surface;
         float baseline = top + line.Ascent;
 
         HorizontalPlacement alignment = ResolveAlignment(context.Planning);
@@ -195,16 +195,16 @@ internal sealed class TextBlock : Block
                 Extent inlineSize = new Extent(run.Width, run.Height);
                 Offset inlineTop = new Offset(x, baseline - run.Height);
 
-                canvas.Translate(inlineTop);
+                surface.Translate(inlineTop);
                 run.Inline.Render(inlineSize, context);
 
                 if (run.Url is not null)
-                    canvas.DrawExternalLink(run.Url, inlineSize);
+                    surface.DrawExternalLink(run.Url, inlineSize);
 
                 if (run.Destination is not null)
-                    canvas.DrawInternalLink(run.Destination, inlineSize);
+                    surface.DrawInternalLink(run.Destination, inlineSize);
 
-                canvas.Translate(inlineTop.Reverse());
+                surface.Translate(inlineTop.Reverse());
 
                 x += run.Width;
                 continue;
@@ -216,34 +216,34 @@ internal sealed class TextBlock : Block
             Extent runSize = new Extent(run.Width, metrics.Ascent + metrics.Descent);
 
             if (!style.Highlight.IsTransparent)
-                canvas.DrawRectangle(new Offset(x, runTop), runSize, style.Highlight);
+                surface.DrawRectangle(new Offset(x, runTop), runSize, style.Highlight);
 
-            canvas.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style);
+            surface.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style);
 
             if (style.HasUnderline)
             {
                 float y = baseline + style.BaselineOffset + metrics.Descent * UnderlineDepthRatio;
-                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
+                surface.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
             }
 
             if (style.HasStrikeThrough)
             {
                 float y = baseline + style.BaselineOffset - metrics.Ascent * StrikethroughHeightRatio;
-                canvas.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
+                surface.DrawLine(new Offset(x, y), new Offset(x + run.Width, y), DecorationThickness(style), style.Ink);
             }
 
             if (run.Url is not null)
             {
-                canvas.Translate(new Offset(x, runTop));
-                canvas.DrawExternalLink(run.Url, runSize);
-                canvas.Translate(new Offset(x, runTop).Reverse());
+                surface.Translate(new Offset(x, runTop));
+                surface.DrawExternalLink(run.Url, runSize);
+                surface.Translate(new Offset(x, runTop).Reverse());
             }
 
             if (run.Destination is not null)
             {
-                canvas.Translate(new Offset(x, runTop));
-                canvas.DrawInternalLink(run.Destination, runSize);
-                canvas.Translate(new Offset(x, runTop).Reverse());
+                surface.Translate(new Offset(x, runTop));
+                surface.DrawInternalLink(run.Destination, runSize);
+                surface.Translate(new Offset(x, runTop).Reverse());
             }
 
             x += run.Width;

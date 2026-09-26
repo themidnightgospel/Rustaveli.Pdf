@@ -44,7 +44,7 @@ internal sealed class StrokeBlock : EnclosingBlock
 
         // Drawn around the whole box this element occupies (ADR 0012), not around its content's natural extent.
         Extent size = availableSpace;
-        ISurface canvas = context.Surface;
+        ISurface surface = context.Surface;
 
         if (CornerRadius > 0 && HasUniformWeight)
         {
@@ -63,21 +63,21 @@ internal sealed class StrokeBlock : EnclosingBlock
                 0,
                 Math.Min(outline.Width, outline.Height) / 2);
 
-            canvas.DrawRoundedRectangle(new Offset(inset, inset), outline, radius, Ink, Weight.Left);
+            surface.DrawRoundedRectangle(new Offset(inset, inset), outline, radius, Ink, Weight.Left);
 
             return;
         }
 
         if (Weight.Left > 0)
-            canvas.DrawRectangle(Offset.Zero, new Extent(Weight.Left, size.Height), Ink);
+            surface.DrawRectangle(Offset.Zero, new Extent(Weight.Left, size.Height), Ink);
 
         if (Weight.Top > 0)
-            canvas.DrawRectangle(Offset.Zero, new Extent(size.Width, Weight.Top), Ink);
+            surface.DrawRectangle(Offset.Zero, new Extent(size.Width, Weight.Top), Ink);
 
         if (Weight.Right > 0)
-            canvas.DrawRectangle(new Offset(size.Width - Weight.Right, 0), new Extent(Weight.Right, size.Height), Ink);
+            surface.DrawRectangle(new Offset(size.Width - Weight.Right, 0), new Extent(Weight.Right, size.Height), Ink);
 
         if (Weight.Bottom > 0)
-            canvas.DrawRectangle(new Offset(0, size.Height - Weight.Bottom), new Extent(size.Width, Weight.Bottom), Ink);
+            surface.DrawRectangle(new Offset(0, size.Height - Weight.Bottom), new Extent(size.Width, Weight.Bottom), Ink);
     }
 }

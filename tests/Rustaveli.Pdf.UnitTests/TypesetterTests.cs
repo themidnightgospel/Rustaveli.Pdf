@@ -5,7 +5,7 @@ public class TypesetterTests
 {
     private static Document Build(Action<Section> configure)
     {
-        return Document.Compose(delegate(IComposition container)
+        return Document.Compose(container =>
         {
             container.Section(configure);
         });
@@ -14,10 +14,10 @@ public class TypesetterTests
     [Fact]
     public void ProducesOnePageForContentThatFits()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(50f, 50f);
             });
@@ -28,11 +28,11 @@ public class TypesetterTests
     [Fact]
     public void AddsPagesUntilTheContentIsExhausted()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
             page.Margins = Sides.All(10f);
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new SplittableBlock(10, 50f);
             });
@@ -43,38 +43,38 @@ public class TypesetterTests
     [Fact]
     public void AppliesMarginsToContentPosition()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
             page.Margins = new Sides(15f, 25f, 0f, 0f);
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Last();
+        RecordingSurface surface = LayoutHarness.Render(document);
+        RectangleOperation rectangleOperation = surface.Page(1).Operations.OfType<RectangleOperation>().Last();
         Approximately.Equal(new Offset(15f, 25f), rectangleOperation.Position);
     }
 
     [Fact]
     public void RepeatsTheHeaderOnEveryPage()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.RunningHead().Compose(delegate(IFrame container)
+            page.RunningHead().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(50f, 20f, TestInks.Red);
             });
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new SplittableBlock(6, 60f);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        Assert.True(recordingCanvas.Pages.Count > 1, "The content should span several pages.");
-        foreach (RecordedPage page in recordingCanvas.Pages)
+        RecordingSurface surface = LayoutHarness.Render(document);
+        Assert.True(surface.Pages.Count > 1, "The content should span several pages.");
+        foreach (RecordedPage page in surface.Pages)
         {
             Assert.Contains(page.Operations.OfType<RectangleOperation>(), (RectangleOperation operation) => operation.Ink == TestInks.Red);
         }
@@ -83,86 +83,86 @@ public class TypesetterTests
     [Fact]
     public void PlacesTheFooterAgainstTheBottomMargin()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
             page.Margins = Sides.All(10f);
-            page.RunningFoot().Compose(delegate(IFrame container)
+            page.RunningFoot().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(50f, 20f, TestInks.Green);
             });
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Ink == TestInks.Green);
+        RecordingSurface surface = LayoutHarness.Render(document);
+        RectangleOperation rectangleOperation = surface.Page(1).Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Green);
         Approximately.Equal(170f, rectangleOperation.Position.Y);
     }
 
     [Fact]
     public void ContentIsOffsetBelowTheHeader()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.RunningHead().Compose(delegate(IFrame container)
+            page.RunningHead().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(50f, 30f, TestInks.Red);
             });
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 10f, TestInks.Blue);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Ink == TestInks.Blue);
+        RecordingSurface surface = LayoutHarness.Render(document);
+        RectangleOperation rectangleOperation = surface.Page(1).Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Blue);
         Approximately.Equal(30f, rectangleOperation.Position.Y);
     }
 
     [Fact]
     public void ResolvesTheTotalPageCountOnTheSecondPass()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.RunningFoot().Text(delegate(TextComposer text)
+            page.RunningFoot().Text(text =>
             {
                 text.Run("Page ");
                 text.Folio();
                 text.Run(" of ");
                 text.PageCount();
             });
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new SplittableBlock(4, 100f);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        int count = recordingCanvas.Pages.Count;
-        Assert.Equal($"Page 1 of {count}", recordingCanvas.Page(1).Content);
-        Assert.Equal($"Page {count} of {count}", recordingCanvas.Page(count).Content);
+        RecordingSurface surface = LayoutHarness.Render(document);
+        int count = surface.Pages.Count;
+        Assert.Equal($"Page 1 of {count}", surface.Page(1).Content);
+        Assert.Equal($"Page {count} of {count}", surface.Page(count).Content);
     }
 
     [Fact]
     public void BackgroundCoversTheWholeSheetIgnoringMargins()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 300f);
             page.Margins = Sides.All(20f);
-            page.Underlay().Compose(delegate(IFrame container)
+            page.Underlay().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(200f, 300f, TestInks.Amber);
             });
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        RectangleOperation rectangleOperation = recordingCanvas.Page(1).Operations.OfType<RectangleOperation>().Single((RectangleOperation operation) => operation.Ink == TestInks.Amber);
+        RecordingSurface surface = LayoutHarness.Render(document);
+        RectangleOperation rectangleOperation = surface.Page(1).Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Amber);
         Approximately.Equal(Offset.Zero, rectangleOperation.Position);
         Approximately.Equal(new Extent(200f, 300f), rectangleOperation.Size);
     }
@@ -170,14 +170,14 @@ public class TypesetterTests
     [Fact]
     public void ForegroundIsDrawnAfterTheContent()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.Overlay().Compose(delegate(IFrame container)
+            page.Overlay().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(200f, 200f, TestInks.Cyan);
             });
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 10f, TestInks.Blue);
             });
@@ -192,17 +192,17 @@ public class TypesetterTests
     [Fact]
     public void PageBreakStartsANewPage()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.Body().Stack(delegate(StackComposer column)
+            page.Body().Stack(column =>
             {
-                column.Add().Compose(delegate(IFrame container)
+                column.Add().Compose(container =>
                 {
                     container.Slot().Child = new FixedBlock(10f, 10f);
                 });
                 column.Add().NewPage();
-                column.Add().Compose(delegate(IFrame container)
+                column.Add().Compose(container =>
                 {
                     container.Slot().Child = new FixedBlock(10f, 10f);
                 });
@@ -215,11 +215,11 @@ public class TypesetterTests
     public void ThrowsWhenContentCanNeverFit()
     {
         using CultureScope culture = CultureScope.Invariant();
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
             page.RunningHead().Compose(container => container.Slot().Child = new FixedBlock(10f, 50f));
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 500f);
             });
@@ -238,11 +238,11 @@ public class TypesetterTests
     public void ThrowsWhenMarginsLeaveNoRoom()
     {
         using CultureScope culture = CultureScope.Invariant();
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(100f, 100f);
             page.Margins = Sides.All(60f);
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 10f);
             });
@@ -255,18 +255,18 @@ public class TypesetterTests
     public void ThrowsWhenTheHeaderAndFooterFillThePage()
     {
         using CultureScope culture = CultureScope.Invariant();
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 100f);
-            page.RunningHead().Compose(delegate(IFrame container)
+            page.RunningHead().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 60f);
             });
-            page.RunningFoot().Compose(delegate(IFrame container)
+            page.RunningFoot().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 60f);
             });
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(10f, 10f);
             });
@@ -283,68 +283,68 @@ public class TypesetterTests
     [Fact]
     public void ContinuousPagesShrinkToTheirContent()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 800f);
             page.Continuous = true;
-            page.Body().Compose(delegate(IFrame container)
+            page.Body().Compose(container =>
             {
                 container.Slot().Child = new FixedBlock(100f, 60f);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        Approximately.Equal(60f, recordingCanvas.Page(1).Size.Height);
-        Approximately.Equal(200f, recordingCanvas.Page(1).Size.Width);
+        RecordingSurface surface = LayoutHarness.Render(document);
+        Approximately.Equal(60f, surface.Page(1).Size.Height);
+        Approximately.Equal(200f, surface.Page(1).Size.Width);
     }
 
     [Fact]
     public void RendersEachPageRunInOrder()
     {
-        Document document = Document.Compose(delegate(IComposition container)
+        Document document = Document.Compose(container =>
         {
-            container.Section(delegate(Section page)
+            container.Section(page =>
             {
                 page.Trim = new Extent(200f, 200f);
-                page.Body().Compose(delegate(IFrame inner)
+                page.Body().Compose(inner =>
                 {
                     inner.Slot().Child = new FixedBlock(10f, 10f, TestInks.Red);
                 });
             });
-            container.Section(delegate(Section page)
+            container.Section(page =>
             {
                 page.Trim = new Extent(300f, 300f);
-                page.Body().Compose(delegate(IFrame inner)
+                page.Body().Compose(inner =>
                 {
                     inner.Slot().Child = new FixedBlock(10f, 10f, TestInks.Blue);
                 });
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        Assert.Equal(2, recordingCanvas.Pages.Count);
-        Approximately.Equal(new Extent(200f, 200f), recordingCanvas.Page(1).Size);
-        Approximately.Equal(new Extent(300f, 300f), recordingCanvas.Page(2).Size);
+        RecordingSurface surface = LayoutHarness.Render(document);
+        Assert.Equal(2, surface.Pages.Count);
+        Approximately.Equal(new Extent(200f, 200f), surface.Page(1).Size);
+        Approximately.Equal(new Extent(300f, 300f), surface.Page(2).Size);
     }
 
     [Fact]
     public void RegistersSectionsSoLinksCanResolveThem()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.Body().Stack(delegate(StackComposer column)
+            page.Body().Stack(column =>
             {
-                column.Add().Compose(delegate(IFrame container)
+                column.Add().Compose(container =>
                 {
                     container.Slot().Child = new SplittableBlock(3, 150f);
                 });
-                column.Add().Anchor("end").Compose(delegate(IFrame container)
+                column.Add().Anchor("end").Compose(container =>
                 {
                     container.Slot().Child = new FixedBlock(10f, 10f);
                 });
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        DestinationOperation? destinationOperation = recordingCanvas.Pages.SelectMany((RecordedPage page) => page.Operations.OfType<DestinationOperation>()).SingleOrDefault();
+        RecordingSurface surface = LayoutHarness.Render(document);
+        DestinationOperation? destinationOperation = surface.Pages.SelectMany(page => page.Operations.OfType<DestinationOperation>()).SingleOrDefault();
         Assert.NotNull(destinationOperation);
         Assert.Equal("end", destinationOperation.Name);
     }
@@ -352,24 +352,24 @@ public class TypesetterTests
     [Fact]
     public void PrintedTotalMatchesTheActualPageCount()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(70f, 100f);
-            page.RunningFoot().Text(delegate(TextComposer text)
+            page.RunningFoot().Text(text =>
             {
                 text.Run("Page ");
                 text.Folio();
                 text.Run(" of ");
                 text.PageCount();
             });
-            page.Body().Compose(delegate(IFrame inner)
+            page.Body().Compose(inner =>
             {
                 inner.Slot().Child = new SplittableBlock(96, 10f);
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        int count = recordingCanvas.Pages.Count;
-        foreach (RecordedPage page in recordingCanvas.Pages)
+        RecordingSurface surface = LayoutHarness.Render(document);
+        int count = surface.Pages.Count;
+        foreach (RecordedPage page in surface.Pages)
         {
             Assert.Contains($"of{count}", page.Content.Replace(" ", string.Empty));
         }
@@ -378,7 +378,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAPageWithNoArea()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(0f, 0f);
             page.Body().Text("nowhere to draw");
@@ -389,28 +389,28 @@ public class TypesetterTests
     [Fact]
     public void ResolvesPageNumbersOfSectionsDeclaredLaterInTheDocument()
     {
-        Document document = Build(delegate(Section page)
+        Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.Body().Stack(delegate(StackComposer column)
+            page.Body().Stack(column =>
             {
-                column.Add().Text(delegate(TextComposer text)
+                column.Add().Text(text =>
                 {
                     text.Run("Summary on page ");
                     text.FolioOf("summary");
                 });
-                column.Add().Compose(delegate(IFrame inner)
+                column.Add().Compose(inner =>
                 {
                     inner.Slot().Child = new SplittableBlock(4, 150f);
                 });
-                column.Add().Anchor("summary").Compose(delegate(IFrame inner)
+                column.Add().Anchor("summary").Compose(inner =>
                 {
                     inner.Slot().Child = new FixedBlock(10f, 10f);
                 });
             });
         });
-        RecordingSurface recordingCanvas = LayoutHarness.Render(document);
-        Assert.DoesNotContain("?", recordingCanvas.Page(1).Content);
+        RecordingSurface surface = LayoutHarness.Render(document);
+        Assert.DoesNotContain("?", surface.Page(1).Content);
     }
 
     [Fact]
@@ -434,7 +434,7 @@ public class TypesetterTests
             "document",
             Assert.Throws<ArgumentNullException>(() => Typesetter.Render(null!, canvas, measurer)).ParamName);
         Assert.Equal(
-            "canvas",
+            "pages",
             Assert.Throws<ArgumentNullException>(() => Typesetter.Render(document, null!, measurer)).ParamName);
         Assert.Equal(
             "measurer",

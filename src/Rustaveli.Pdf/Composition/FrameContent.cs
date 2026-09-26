@@ -11,7 +11,7 @@ public static class FrameContent
     /// <summary>Adds a paragraph of styled text.</summary>
     public static void Text(this IFrame parent, Action<TextComposer> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         TextBlock element = FrameAttachment.Attach(parent, new TextBlock());
         handler(new TextComposer(element));
     }
@@ -25,7 +25,7 @@ public static class FrameContent
     /// <summary>Adds an image scaled according to <paramref name="fit" />.</summary>
     public static void Image(this IFrame parent, IImage image, ImageFitting fit = ImageFitting.FitWidth)
     {
-        ArgumentNullException.ThrowIfNull(image, "image");
+        ArgumentNullException.ThrowIfNull(image);
         FrameAttachment.Attach(parent, new ImageBlock
         {
             Image = image,
@@ -36,7 +36,7 @@ public static class FrameContent
     /// <summary>Stacks content vertically, flowing across pages when it does not fit.</summary>
     public static void Stack(this IFrame parent, Action<StackComposer> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         StackBlock element = FrameAttachment.Attach(parent, new StackBlock());
         handler(new StackComposer(element));
     }
@@ -44,7 +44,7 @@ public static class FrameContent
     /// <summary>Places content side by side.</summary>
     public static void Columns(this IFrame parent, Action<ColumnsComposer> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         ColumnsBlock element = FrameAttachment.Attach(parent, new ColumnsBlock());
         handler(new ColumnsComposer(element));
     }
@@ -52,7 +52,7 @@ public static class FrameContent
     /// <summary>Adds a grid with sized columns and optional repeating bands.</summary>
     public static void Table(this IFrame parent, Action<TableComposer> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         TableBlock element = FrameAttachment.Attach(parent, new TableBlock());
         TableComposer tableDescriptor = new TableComposer(element);
         handler(tableDescriptor);
@@ -62,7 +62,7 @@ public static class FrameContent
     /// <summary>Adds a bulleted or numbered list.</summary>
     public static void List(this IFrame parent, Action<ListComposer> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         ListBlock listElement = FrameAttachment.Attach(parent, new ListBlock());
         handler(new ListComposer(listElement));
         listElement.Build();
@@ -71,7 +71,7 @@ public static class FrameContent
     /// <summary>Draws content in overlapping layers.</summary>
     public static void Layered(this IFrame parent, Action<LayersComposer> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         LayersBlock element = FrameAttachment.Attach(parent, new LayersBlock());
         handler(new LayersComposer(element));
     }
@@ -79,7 +79,7 @@ public static class FrameContent
     /// <summary>Adds flowing content framed by bands that repeat on every page.</summary>
     public static void Banded(this IFrame parent, Action<BandsComposer> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         BandsBlock element = FrameAttachment.Attach(parent, new BandsBlock());
         handler(new BandsComposer(element));
     }
@@ -89,14 +89,14 @@ public static class FrameContent
     /// </summary>
     public static void Compose(this IFrame parent, Action<IFrame> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         handler(parent);
     }
 
     /// <summary>Composes a reusable component into this container.</summary>
     public static void Snippet(this IFrame parent, ISnippet component)
     {
-        ArgumentNullException.ThrowIfNull(component, "component");
+        ArgumentNullException.ThrowIfNull(component);
         component.Compose(parent);
     }
 
@@ -115,7 +115,7 @@ public static class FrameContent
     /// </remarks>
     public static void Blank(this IFrame parent)
     {
-        ArgumentNullException.ThrowIfNull(parent, "parent");
+        ArgumentNullException.ThrowIfNull(parent);
         Block? existing = FrameAttachment.Slot(parent).Child;
         if (existing != null)
         {

@@ -26,7 +26,7 @@ public static class PdfExport
 
     public static byte[] ExportPdf(this Document document, PdfExportOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(document, "document");
+        ArgumentNullException.ThrowIfNull(document);
         if (options == null)
         {
             options = new PdfExportOptions();
@@ -57,7 +57,7 @@ public static class PdfExport
     /// </remarks>
     public static void ExportPdf(this Document document, string path, PdfExportOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(path, "path");
+        ArgumentNullException.ThrowIfNull(path);
         byte[] bytes = document.ExportPdf(options);
         File.WriteAllBytes(path, bytes);
     }
@@ -74,8 +74,8 @@ public static class PdfExport
     /// </remarks>
     public static void ExportPdf(this Document document, Stream stream, PdfExportOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(document, "document");
-        ArgumentNullException.ThrowIfNull(stream, "stream");
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(stream);
         byte[] bytes = document.ExportPdf(options);
         stream.Write(bytes, 0, bytes.Length);
     }

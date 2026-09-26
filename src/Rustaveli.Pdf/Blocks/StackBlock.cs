@@ -33,18 +33,18 @@ internal sealed class StackBlock : Block
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        ISurface canvas = context.Surface;
+        ISurface surface = context.Surface;
         float offset = 0f;
 
         LayoutResult result = Layout(availableSpace, context.Planning, (item, itemSpace, top) =>
         {
             Offset delta = new Offset(0, top - offset);
-            canvas.Translate(delta);
+            surface.Translate(delta);
             offset = top;
             item.Render(itemSpace, context);
         });
 
-        canvas.Translate(new Offset(0, -offset));
+        surface.Translate(new Offset(0, -offset));
 
         // Exhausted and wrapped results carry no progress, so leave the cursor where it was.
         if (result.DrewContent)

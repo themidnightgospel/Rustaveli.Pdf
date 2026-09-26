@@ -28,7 +28,7 @@ public sealed class Document : IComposition
     /// </summary>
     public static Document Compose(Action<IComposition> compose)
     {
-        ArgumentNullException.ThrowIfNull(compose, "compose");
+        ArgumentNullException.ThrowIfNull(compose);
         Document document = new Document();
         try
         {
@@ -43,7 +43,7 @@ public sealed class Document : IComposition
 
     void IComposition.Section(Action<Section> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         Section pageDescriptor = new Section();
         handler(pageDescriptor);
         _pages.Add(pageDescriptor);

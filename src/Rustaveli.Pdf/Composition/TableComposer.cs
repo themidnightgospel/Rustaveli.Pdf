@@ -13,7 +13,7 @@ public sealed class TableComposer
 
     public void Columns(Action<TableColumns> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         handler(new TableColumns(_block));
     }
 
@@ -28,14 +28,14 @@ public sealed class TableComposer
     /// <summary>Declares rows repeated at the top of every page the table spans.</summary>
     public void HeaderRows(Action<TableBand> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         handler(new TableBand(_block.HeaderCells));
     }
 
     /// <summary>Declares rows repeated at the bottom of every page the table spans.</summary>
     public void FooterRows(Action<TableBand> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler, "handler");
+        ArgumentNullException.ThrowIfNull(handler);
         handler(new TableBand(_block.FooterCells));
     }
 
