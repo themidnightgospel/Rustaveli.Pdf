@@ -14,15 +14,15 @@ Write the type out:
 
 ```csharp
 // Yes
-SpacePlan plan = element.Measure(availableSpace, context);
+Fit plan = block.Plan(availableSpace, context);
 List<TextLine> lines = BuildLines(width, height, context, out string? blocker);
 
 // No
-var plan = element.Measure(availableSpace, context);
+var plan = block.Plan(availableSpace, context);
 ```
 
-**Why.** This codebase is mostly layout arithmetic, where the distinction between `float`, `Size`, `Position`
-and `SpacePlan` is the whole substance of the code. `var` hides exactly the information a reader needs to check
+**Why.** This codebase is mostly layout arithmetic, where the distinction between `float`, `Extent`, `Offset`
+and `Fit` is the whole substance of the code. `var` hides exactly the information a reader needs to check
 that arithmetic — a review of a measurement routine should not require hovering over identifiers to learn what
 is being measured. It also makes an accidental type change at a call site invisible at the point of use.
 
@@ -35,16 +35,16 @@ With `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` already on, a `var` f
 
 ## One top-level type per file, named after the type
 
-`SpacePlan.cs` contains `SpacePlan` and nothing else. A file holding `FlipElement`, `EnsureSpaceElement` and
-`ScaleToFitElement` gets split into three.
+`Fit.cs` contains `Fit` and nothing else. A file holding `MirrorBlock`, `RequireSpaceBlock` and
+`ShrinkToFitBlock` gets split into three.
 
-**Why.** Grouping several types under a plural filename (`SizingElements.cs`, `TransformElements.cs`) means the
+**Why.** Grouping several types under a plural filename (`SizingBlocks.cs`, `TransformBlocks.cs`) means the
 only way to find a type is full-text search, and it lets a file grow without anyone noticing — the two largest
 files in this repository are also the ones that have produced the most defects. One type per file makes the
 file tree an index, keeps diffs attributable to a single type, and puts natural back-pressure on classes that
 are quietly accumulating responsibilities.
 
-**Nested types are not affected.** A private nested helper such as `TextElement.TextLine` belongs with its
+**Nested types are not affected.** A private nested helper such as `TextBlock.TextLine` belongs with its
 parent; the rule is about *top-level* declarations.
 
 **Enforced.** StyleCop `SA1402` (one type per file) and `SA1649` (file name matches the type), both `error`.
@@ -144,3 +144,23 @@ differences. Every editor and IDE in use on Windows handles LF without complaint
 
 **Enforced.** `.gitattributes` (`* text=auto eol=lf`) normalises on commit and checkout regardless of local git
 settings; `.editorconfig` (`end_of_line = lf`) makes editors write LF in the first place.
+
+---
+
+## Public types live in one namespace; everything else is internal
+
+Every public type is in the `Rustaveli.Pdf` namespace, whichever package or folder it is in, so one `using`
+directive is enough to write any document. Public types sit in `Composition/`, `Primitives/` and `Exceptions/`.
+Every other folder — `Blocks/`, `Layout/`, `Drawing/`, `Text/`, and those that follow — is internal, in a
+namespace named after the folder: `Rustaveli.Pdf.Blocks`, `Rustaveli.Pdf.Layout`.
+
+Nothing public may expose an internal type. A composer reaches its block through an internal constructor, and
+`IFrame` hides the block it holds behind the internal `IFrameSlot`. Tests reach internals through
+`InternalsVisibleTo`; a public test method that needs an internal enum takes its name as a string.
+
+**Why.** A small public surface is what lets the engine change: blocks, the typesetter and the drawing seam are
+rewritten phase by phase, and none of that should break a caller. One namespace also keeps the vocabulary in one
+place, where [the glossary](GLOSSARY.md) can account for every word of it.
+
+**Enforced.** `GlossaryTests` fails when a public type is outside `Rustaveli.Pdf` or missing from the glossary,
+and the compiler rejects a public signature that mentions an internal type (`CS0051`).
