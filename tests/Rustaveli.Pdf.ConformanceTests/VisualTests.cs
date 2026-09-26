@@ -14,9 +14,7 @@ public class VisualTests
     // 96 DPI keeps snapshots small while still resolving hairlines, glyph shapes and one-point offsets.
     private const float DotsPerInch = 96f;
 
-    // Skipped until decorators fill the space their parent allots rather than their child's natural size: approving
-    // snapshots of today's output would pin table stripes that stop at the text and misplaced right-to-left boxes.
-    [Theory(Skip = "Awaiting the fix to how decorators size what they paint; see the phase 0 pull request.")]
+    [Theory]
     [MemberData(nameof(SpecimenCatalog.Cases), MemberType = typeof(SpecimenCatalog))]
     public void MatchesApprovedSnapshots(Specimen specimen)
     {
