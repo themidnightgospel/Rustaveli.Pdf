@@ -3,8 +3,10 @@
 //     dotnet run eng/coverage.cs                 run, report, enforce
 //     dotnet run eng/coverage.cs -- --no-test    re-check the last run without re-running the tests
 //
-// Thresholds live in eng/coverage-thresholds.json so that raising them is a reviewed one-line change. The merged
-// HTML report is written to artifacts/coverage/report/index.html.
+// Thresholds live in eng/coverage-thresholds.json so that raising them is a reviewed one-line change. They are a
+// ratchet: 95% line and 90% branch is the floor (docs/adr/0007-quality-gates.md), and whenever coverage settles
+// above that, the thresholds move up to just below it and never come back down. The merged HTML report is written
+// to artifacts/coverage/report/index.html.
 
 using System.Diagnostics;
 using System.Text.Json;
