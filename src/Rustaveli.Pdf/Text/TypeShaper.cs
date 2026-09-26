@@ -56,7 +56,7 @@ internal sealed class TypeShaper
     public GlyphWalk Walk(ReadOnlySpan<char> text, TypeStyle style)
     {
         FontRequest request = RequestFor(style);
-        return new GlyphWalk(this, Resolve(request), request, text, style.EffectivePointSize);
+        return new GlyphWalk(this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing);
     }
 
     /// <summary>The face that sets <paramref name="codepoint"/>: the primary when it has the character.</summary>

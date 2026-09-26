@@ -52,6 +52,9 @@ public sealed class RunComposer
 
     public RunComposer Tracking(float spacing) => Refine(style => style.WithTracking(spacing));
 
+    /// <summary>Adds space to each space between words, in points; negative tightens.</summary>
+    public RunComposer WordSpacing(float spacing) => Refine(style => style.WithWordSpacing(spacing));
+
     public RunComposer Subscript() => Refine(style => style.Subscript());
 
     public RunComposer Superscript() => Refine(style => style.Superscript());

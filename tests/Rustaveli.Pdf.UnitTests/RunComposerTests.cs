@@ -94,6 +94,10 @@ public class RunComposerTests
         Approximately.Equal(2f, StyleOf(span => span.Tracking(2)).Tracking);
 
     [Fact]
+    public void WordSpacingSetsTheSpaceAddedBetweenWords() =>
+        Approximately.Equal(3.5f, StyleOf(span => span.WordSpacing(3.5f)).WordSpacing);
+
+    [Fact]
     public void SubscriptLowersTheRun() =>
         Assert.Equal(ScriptPosition.Subscript, StyleOf(span => span.Subscript()).Script);
 

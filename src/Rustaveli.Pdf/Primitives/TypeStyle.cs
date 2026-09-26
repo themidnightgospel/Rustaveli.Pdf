@@ -33,6 +33,9 @@ public sealed record TypeStyle
     /// <summary>Additional space inserted between characters, in points.</summary>
     public float Tracking { get; init; }
 
+    /// <summary>Additional space added to each space between words, in points; negative tightens.</summary>
+    public float WordSpacing { get; init; }
+
     public ScriptPosition Script { get; init; } = ScriptPosition.Normal;
 
     /// <summary>
@@ -142,6 +145,14 @@ public sealed record TypeStyle
         return this with
         {
             Tracking = spacing
+        };
+    }
+
+    public TypeStyle WithWordSpacing(float spacing)
+    {
+        return this with
+        {
+            WordSpacing = spacing
         };
     }
 

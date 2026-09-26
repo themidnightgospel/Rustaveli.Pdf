@@ -193,12 +193,16 @@ internal sealed class PdfSurface : IPageSink
         int pending = 0;
         double pen = baselineStart.X;
         float previousAdvance = 0f;
+        float previousExtra = 0f;
         bool first = true;
 
         foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style))
         {
+            // Beyond the widths and character spacing a reader applies itself: kerning, and word spacing after a space.
+            float adjustment = glyph.Kerning + previousExtra;
+
             if (!first)
-                pen += previousAdvance + style.Tracking + glyph.Kerning;
+                pen += previousAdvance + style.Tracking + adjustment;
 
             EmbeddedFont font = _fonts.For(glyph.Face);
 
@@ -216,16 +220,17 @@ internal sealed class PdfSurface : IPageSink
                 content.BeginTextArray();
                 current = font;
             }
-            else if (glyph.Kerning != 0)
+            else if (adjustment != 0)
             {
                 Flush(content, ref pending);
-                content.AppendAdjustment(-glyph.Kerning * 1000.0 / size);
+                content.AppendAdjustment(-adjustment * 1000.0 / size);
             }
 
             ushort code = font.CodeFor(glyph);
             Buffer(ref pending, code);
 
             previousAdvance = glyph.Advance;
+            previousExtra = glyph.Extra;
             first = false;
         }
 

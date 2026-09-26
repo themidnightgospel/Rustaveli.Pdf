@@ -15,5 +15,8 @@ namespace Rustaveli.Pdf.Text;
 /// The pair kerning between the previous glyph and this one, in points, negative to bring them closer. Zero for the
 /// first glyph, and between glyphs of different faces.
 /// </param>
+/// <param name="Extra">
+/// Space added after the glyph beyond its advance, in points: the style's word spacing, for a word space.
+/// </param>
 internal readonly record struct ShapedGlyph(
-    OpenTypeFont Face, ushort Glyph, int Codepoint, int Start, int Length, float Advance, float Kerning);
+    OpenTypeFont Face, ushort Glyph, int Codepoint, int Start, int Length, float Advance, float Kerning, float Extra = 0f);

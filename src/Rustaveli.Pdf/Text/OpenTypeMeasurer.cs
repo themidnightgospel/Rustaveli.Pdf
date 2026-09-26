@@ -58,7 +58,10 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         return text.Length;
     }
 
-    /// <summary>How far one glyph moves the pen: its advance, plus kerning and tracking from the glyph before it.</summary>
+    /// <summary>
+    /// How far one glyph moves the pen: kerning and tracking from the glyph before it, its advance, and any word
+    /// spacing it carries.
+    /// </summary>
     private static float Step(ShapedGlyph glyph, float tracking, bool first) =>
-        first ? glyph.Advance : glyph.Kerning + tracking + glyph.Advance;
+        (first ? 0f : glyph.Kerning + tracking) + glyph.Advance + glyph.Extra;
 }

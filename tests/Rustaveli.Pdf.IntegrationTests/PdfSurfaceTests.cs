@@ -379,6 +379,19 @@ public class PdfSurfaceTests
     }
 
     [Fact]
+    public void WordSpacingMovesTheWordsAfterEachSpace()
+    {
+        TypeStyle spaced = Style.WithWordSpacing(12);
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
+
+        using PdfDocument parsed = Render(canvas => canvas.DrawText("A B C", new Offset(20, 120), spaced));
+        Page page = parsed.GetPage(1);
+
+        Assert.Equal(20 + measurer.MeasureWidth("A ", spaced), LetterOf(page, "B").StartBaseLine.X, Tolerance);
+        Assert.Equal(20 + measurer.MeasureWidth("A B ", spaced), LetterOf(page, "C").StartBaseLine.X, Tolerance);
+    }
+
+    [Fact]
     public void TrackingSeparatesCharactersButDoesNotIndentTheFirst()
     {
         TypeStyle spaced = Style.WithTracking(6);

@@ -133,6 +133,29 @@ public class OpenTypeMeasurerTests
     }
 
     [Fact]
+    public void WordSpacingWidensEachSpaceBetweenWords()
+    {
+        TypeStyle spaced = Style.WithWordSpacing(5);
+
+        Assert.Equal(Measurer.MeasureWidth("a b c", Style) + 10, Measurer.MeasureWidth("a b c", spaced), 0.01f);
+        Assert.Equal(Measurer.MeasureWidth("a b", Style) + 5, Measurer.MeasureWidth("a b", spaced), 0.01f);
+
+        // A space measured alone is as wide as it is set, so a line built of separately measured words still adds up.
+        Assert.Equal(Measurer.MeasureWidth(" ", Style) + 5, Measurer.MeasureWidth(" ", spaced), 0.01f);
+        Assert.Equal(Measurer.MeasureWidth("abc", Style), Measurer.MeasureWidth("abc", spaced));
+    }
+
+    [Fact]
+    public void FittingCountsTheWordSpacing()
+    {
+        TypeStyle spaced = Style.WithWordSpacing(40);
+        float firstWordAndSpace = Measurer.MeasureWidth("ab ", spaced);
+
+        Assert.Equal(3, Measurer.MeasureCharactersFitting("ab cd", spaced, firstWordAndSpace + 1));
+        Assert.Equal(2, Measurer.MeasureCharactersFitting("ab cd", spaced, firstWordAndSpace - 1));
+    }
+
+    [Fact]
     public void TrackingAddsOneGapBetweenEachPairOfCharacters()
     {
         float plain = Measurer.MeasureWidth("ABCD", Style);
