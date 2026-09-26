@@ -629,9 +629,7 @@ public class FrameModifiersTests
 
         Assert.Equal("url", Assert.ThrowsAny<ArgumentException>(() => container.Link(target!)).ParamName);
         Assert.Equal("name", Assert.ThrowsAny<ArgumentException>(() => container.Anchor(target!)).ParamName);
-        Assert.Equal(
-            "sectionName",
-            Assert.ThrowsAny<ArgumentException>(() => container.CrossReference(target!)).ParamName);
+        Assert.Equal("anchor", Assert.ThrowsAny<ArgumentException>(() => container.CrossReference(target!)).ParamName);
         Assert.Null(container.Slot().Child);
     }
 }

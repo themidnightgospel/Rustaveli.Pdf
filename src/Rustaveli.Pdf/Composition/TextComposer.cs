@@ -62,11 +62,11 @@ public sealed class TextComposer
     }
 
     /// <summary>Appends the page number a named section resolved to, or "?" if it has not been reached yet.</summary>
-    public RunComposer FolioOf(string sectionName)
+    public RunComposer FolioOf(string anchor)
     {
         return Add(new TextRun
         {
-            DynamicText = (Pagination page) => page.FolioOf(sectionName)?.ToString() ?? "?"
+            DynamicText = (Pagination page) => page.FolioOf(anchor)?.ToString() ?? "?"
         });
     }
 
@@ -81,12 +81,12 @@ public sealed class TextComposer
     }
 
     /// <summary>Appends text that jumps to a named section when clicked.</summary>
-    public RunComposer CrossReference(string text, string sectionName)
+    public RunComposer CrossReference(string text, string anchor)
     {
         return Add(new TextRun
         {
             Text = text,
-            Anchor = sectionName
+            Anchor = anchor
         });
     }
 

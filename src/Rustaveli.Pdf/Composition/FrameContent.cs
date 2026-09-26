@@ -94,10 +94,10 @@ public static class FrameContent
     }
 
     /// <summary>Composes a reusable component into this container.</summary>
-    public static void Snippet(this IFrame parent, ISnippet component)
+    public static void Snippet(this IFrame parent, ISnippet snippet)
     {
-        ArgumentNullException.ThrowIfNull(component);
-        component.Compose(parent);
+        ArgumentNullException.ThrowIfNull(snippet);
+        snippet.Compose(parent);
     }
 
     /// <summary>Composes a reusable component into this container.</summary>

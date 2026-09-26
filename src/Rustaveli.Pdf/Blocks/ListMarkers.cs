@@ -12,7 +12,7 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal static class ListMarkers
 {
-    public static string Format(ListNumbering marker, int oneBasedIndex) => marker switch
+    public static string Format(ListNumbering numbering, int oneBasedIndex) => numbering switch
     {
         ListNumbering.Bullet => "•",
         ListNumbering.Arabic => $"{oneBasedIndex}.",

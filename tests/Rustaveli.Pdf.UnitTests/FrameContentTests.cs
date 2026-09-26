@@ -71,7 +71,7 @@ public class FrameContentTests
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new Frame().Snippet(null!));
 
-        Assert.Equal("component", exception.ParamName);
+        Assert.Equal("snippet", exception.ParamName);
     }
 
     [Fact]

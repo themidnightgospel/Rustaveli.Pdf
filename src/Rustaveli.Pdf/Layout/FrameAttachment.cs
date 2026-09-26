@@ -6,14 +6,14 @@ namespace Rustaveli.Pdf.Layout;
 internal static class FrameAttachment
 {
     /// <summary>
-    /// Places <paramref name="element"/> into <paramref name="parent"/> and returns it as the next container.
+    /// Places <paramref name="block"/> into <paramref name="parent"/> and returns it as the next container.
     /// </summary>
     /// <remarks>
     /// A container holds exactly one child. Assigning over an existing one would discard an entire subtree with
     /// no diagnostic — a component that composes into the same slot twice would simply lose its first
     /// contribution — so the second attempt is refused instead.
     /// </remarks>
-    public static T Attach<T>(IFrame parent, T element) where T : Block
+    public static T Attach<T>(IFrame parent, T block) where T : Block
     {
         ArgumentNullException.ThrowIfNull(parent);
         IFrameSlot slot = Slot(parent);
@@ -21,13 +21,13 @@ internal static class FrameAttachment
         if (slot.Child is not null)
         {
             throw new CompositionException(
-                $"This frame already holds {slot.Child.GetType().Name} and cannot also hold {element.GetType().Name}. " +
+                $"This frame already holds {slot.Child.GetType().Name} and cannot also hold {block.GetType().Name}. " +
                 "A frame holds a single piece of content; use Stack, Columns or Layered to place more than one.");
         }
 
-        slot.Child = element;
+        slot.Child = block;
 
-        return element;
+        return block;
     }
 
     /// <summary>The slot behind a frame the library made.</summary>

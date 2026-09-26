@@ -42,26 +42,26 @@ public static class FrameModifiers
 
     // ---- Painting ------------------------------------------------------------------------------------------
 
-    public static IFrame Fill(this IFrame parent, Ink color) =>
-        Attach(parent, new FillBlock { Ink = color });
+    public static IFrame Fill(this IFrame parent, Ink ink) =>
+        Attach(parent, new FillBlock { Ink = ink });
 
-    public static IFrame Fill(this IFrame parent, string hexColor) =>
-        parent.Fill(Ink.Hex(hexColor));
+    public static IFrame Fill(this IFrame parent, string hex) =>
+        parent.Fill(Ink.Hex(hex));
 
-    public static IFrame Stroke(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.All(width) });
+    public static IFrame Stroke(this IFrame parent, float weight) =>
+        Attach(parent, new StrokeBlock { Weight = Sides.All(weight) });
 
-    public static IFrame StrokeLeft(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithLeft(width) });
+    public static IFrame StrokeLeft(this IFrame parent, float weight) =>
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithLeft(weight) });
 
-    public static IFrame StrokeRight(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithRight(width) });
+    public static IFrame StrokeRight(this IFrame parent, float weight) =>
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithRight(weight) });
 
-    public static IFrame StrokeTop(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithTop(width) });
+    public static IFrame StrokeTop(this IFrame parent, float weight) =>
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithTop(weight) });
 
-    public static IFrame StrokeBottom(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithBottom(width) });
+    public static IFrame StrokeBottom(this IFrame parent, float weight) =>
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithBottom(weight) });
 
     /// <summary>
     /// Sets the ink of the stroke this directly follows.
@@ -138,8 +138,8 @@ public static class FrameModifiers
     public static IFrame ExpandVertically(this IFrame parent) =>
         Attach(parent, new ExpandBlock { Vertically = true });
 
-    public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit option = ProportionFit.Width) =>
-        Attach(parent, new ProportionBlock { Ratio = ratio, Fit = option });
+    public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit fit = ProportionFit.Width) =>
+        Attach(parent, new ProportionBlock { Ratio = ratio, Fit = fit });
 
     /// <summary>Shrinks the content just enough to fit the space available.</summary>
     public static IFrame ShrinkToFit(this IFrame parent, float minScale = 0.25f) =>
@@ -270,16 +270,16 @@ public static class FrameModifiers
     // ---- Rules and placeholders ----------------------------------------------------------------------------
 
     /// <summary>Draws a horizontal rule across the available width.</summary>
-    public static void Rule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
-        Attach(parent, new RuleBlock { Weight = thickness, Ink = color ?? Ink.Black });
+    public static void Rule(this IFrame parent, float weight = 1f, Ink? ink = null) =>
+        Attach(parent, new RuleBlock { Weight = weight, Ink = ink ?? Ink.Black });
 
     /// <summary>Draws a vertical rule down the available height.</summary>
-    public static void VerticalRule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
-        Attach(parent, new VerticalRuleBlock { Weight = thickness, Ink = color ?? Ink.Black });
+    public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink ?? Ink.Black });
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
-    public static void Placeholder(this IFrame parent, Ink? color = null) =>
-        Attach(parent, new PlaceholderBlock { Ink = color ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+    public static void Placeholder(this IFrame parent, Ink? ink = null) =>
+        Attach(parent, new PlaceholderBlock { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
 
     // ---- Links ---------------------------------------------------------------------------------------------
 
@@ -302,10 +302,10 @@ public static class FrameModifiers
         return Attach(parent, new AnchorBlock { Name = name });
     }
 
-    public static IFrame CrossReference(this IFrame parent, string sectionName)
+    public static IFrame CrossReference(this IFrame parent, string anchor)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sectionName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
 
-        return Attach(parent, new CrossReferenceBlock { Anchor = sectionName });
+        return Attach(parent, new CrossReferenceBlock { Anchor = anchor });
     }
 }

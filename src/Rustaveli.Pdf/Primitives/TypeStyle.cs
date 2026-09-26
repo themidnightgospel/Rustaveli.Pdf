@@ -97,19 +97,19 @@ public sealed record TypeStyle
         };
     }
 
-    public TypeStyle WithInk(Ink color)
+    public TypeStyle WithInk(Ink ink)
     {
         return this with
         {
-            Ink = color
+            Ink = ink
         };
     }
 
-    public TypeStyle WithHighlight(Ink color)
+    public TypeStyle WithHighlight(Ink ink)
     {
         return this with
         {
-            Highlight = color
+            Highlight = ink
         };
     }
 

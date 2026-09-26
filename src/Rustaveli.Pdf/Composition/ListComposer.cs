@@ -15,7 +15,7 @@ public sealed class ListComposer
     public void Bulleted() => _block.Numbering = ListNumbering.Bullet;
 
     /// <summary>Numbers the items, using arabic numerals unless another style is given.</summary>
-    public void Numbered(ListNumbering marker = ListNumbering.Arabic) => _block.Numbering = marker;
+    public void Numbered(ListNumbering numbering = ListNumbering.Arabic) => _block.Numbering = numbering;
 
     /// <summary>Sets the width of the gutter the markers sit in.</summary>
     public void MarkerIndent(float width) => _block.MarkerIndent = width;

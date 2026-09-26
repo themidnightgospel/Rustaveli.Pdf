@@ -30,13 +30,13 @@ public sealed class RunComposer
 
     public RunComposer PointSize(float size) => Refine(style => style.WithPointSize(size));
 
-    public RunComposer Ink(Ink color) => Refine(style => style.WithInk(color));
+    public RunComposer Ink(Ink ink) => Refine(style => style.WithInk(ink));
 
-    public RunComposer Ink(string hexColor) => Ink(Rustaveli.Pdf.Ink.Hex(hexColor));
+    public RunComposer Ink(string hex) => Ink(Rustaveli.Pdf.Ink.Hex(hex));
 
-    public RunComposer Highlight(Ink color) => Refine(style => style.WithHighlight(color));
+    public RunComposer Highlight(Ink ink) => Refine(style => style.WithHighlight(ink));
 
-    public RunComposer Highlight(string hexColor) => Highlight(Rustaveli.Pdf.Ink.Hex(hexColor));
+    public RunComposer Highlight(string hex) => Highlight(Rustaveli.Pdf.Ink.Hex(hex));
 
     public RunComposer Weight(TypeWeight weight) => Refine(style => style.WithWeight(weight));
 
