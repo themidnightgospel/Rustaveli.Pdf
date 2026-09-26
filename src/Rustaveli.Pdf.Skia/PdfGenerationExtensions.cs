@@ -25,8 +25,24 @@ public static class PdfGenerationExtensions
 
     public static byte[] GeneratePdf(this Document document, PdfGenerationOptions? options = null)
     {
+        ArgumentNullException.ThrowIfNull(document, "document");
+        if (options == null)
+        {
+            options = new PdfGenerationOptions();
+        }
         using MemoryStream memoryStream = new MemoryStream();
-        document.GeneratePdf(memoryStream, options);
+        SkiaFontProvider fonts = options.Fonts ?? SkiaFontProvider.Shared;
+        if (options.AllowConcurrentRendering)
+        {
+            RenderTo(memoryStream, document, fonts, options);
+        }
+        else
+        {
+            lock (RenderGate)
+            {
+                RenderTo(memoryStream, document, fonts, options);
+            }
+        }
         return memoryStream.ToArray();
     }
 
@@ -45,24 +61,22 @@ public static class PdfGenerationExtensions
         File.WriteAllBytes(path, bytes);
     }
 
+    /// <summary>
+    /// Renders the document to a stream, writing it only once generation has fully succeeded.
+    /// </summary>
+    /// <remarks>
+    /// Skia writes its output through callbacks from native code, where a managed exception cannot unwind. Handed
+    /// the caller's stream directly, one that threw — because it cannot report a Position, as response, network
+    /// and compression streams cannot, or because a write failed — crashed or hung the process instead of failing
+    /// the call. Rendering into memory first keeps every such failure an ordinary exception, and means a failed
+    /// render writes nothing rather than a truncated document.
+    /// </remarks>
     public static void GeneratePdf(this Document document, Stream stream, PdfGenerationOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document, "document");
         ArgumentNullException.ThrowIfNull(stream, "stream");
-        if (options == null)
-        {
-            options = new PdfGenerationOptions();
-        }
-        SkiaFontProvider fonts = options.Fonts ?? SkiaFontProvider.Shared;
-        if (options.AllowConcurrentRendering)
-        {
-            RenderTo(stream, document, fonts, options);
-            return;
-        }
-        lock (RenderGate)
-        {
-            RenderTo(stream, document, fonts, options);
-        }
+        byte[] bytes = document.GeneratePdf(options);
+        stream.Write(bytes, 0, bytes.Length);
     }
 
     private static void RenderTo(Stream stream, Document document, SkiaFontProvider fonts, PdfGenerationOptions options)

@@ -173,6 +173,40 @@ public class PdfGenerationExtensionsTests
         }
     }
 
+    [Fact]
+    public void AFailedRenderWritesNothingToTheStream()
+    {
+        using MemoryStream stream = new MemoryStream();
+
+        DocumentDrawingException error = Assert.Throws<DocumentDrawingException>(() => FailingDocument().GeneratePdf(stream));
+
+        Assert.IsType<ArgumentException>(error.InnerException);
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public void RendersIntoAStreamThatCannotSeek()
+    {
+        // Regression: Skia asked the stream for its Position from native code. A stream that cannot answer — a
+        // response body, a compression or network stream — threw there, where an exception cannot unwind, and
+        // took the whole process down with an access violation.
+        Document document = TextDocument();
+        using MemoryStream received = new MemoryStream();
+
+        document.GeneratePdf(new ForwardOnlyStream(received));
+
+        Assert.Equal(document.GeneratePdf(), received.ToArray());
+    }
+
+    [Fact]
+    public void AStreamThatRefusesTheWriteFailsTheCallRatherThanTheProcess()
+    {
+        // Regression: the same native-callback path turned a stream that throws on Write into a hung process.
+        using MemoryStream full = new MemoryStream(new byte[64]);
+
+        Assert.Throws<NotSupportedException>(() => TextDocument().GeneratePdf(full));
+    }
+
     // ---- Options -----------------------------------------------------------------------------------------------
 
     [Fact]
