@@ -16,6 +16,18 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!--
+    Property-based tests run on the modern runtime only: CsCheck ships for net8.0 and later. They exercise layout
+    logic, which is the same source on both targets, so the net48 leg loses nothing it could uniquely catch.
+  -->
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' != '.NETFramework'">
+    <PackageReference Include="CsCheck" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <Compile Remove="PropertyBased\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
   </ItemGroup>

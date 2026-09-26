@@ -30,6 +30,7 @@
     <!-- PDFium, as an independent renderer for visual snapshots: pages are never judged by our own reader. -->
     <PackageVersion Include="bblanchon.PDFium" Version="156.0.8066" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="CsCheck" Version="4.9.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="PdfPig" Version="0.1.15" />
 
