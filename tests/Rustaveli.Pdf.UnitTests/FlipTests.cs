@@ -34,4 +34,36 @@ public class FlipTests
 
         Approximately.Equal(20f, drawn.Position.Y);
     }
+
+    [Fact]
+    public void DrawsNothingWithoutContent()
+    {
+        FlipElement element = new FlipElement { FlipHorizontal = true, FlipVertical = true };
+
+        Assert.Empty(LayoutHarness.Draw(element, new Size(200, 200)).Operations);
+    }
+
+    [Theory]
+    [InlineData(SpacePlanType.Wrap)]
+    [InlineData(SpacePlanType.Empty)]
+    public void DoesNotAskAChildWithNothingToShowToDraw(SpacePlanType outcome)
+    {
+        ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
+        FlipElement element = new FlipElement { FlipHorizontal = true, Child = child };
+
+        LayoutHarness.Draw(element, new Size(200, 200));
+
+        Assert.Empty(child.DrawnWith);
+    }
+
+    [Fact]
+    public void DrawsTheChildIntoTheBoxItMeasured()
+    {
+        ScriptedElement child = new ScriptedElement(SpacePlan.FullRender(50, 20));
+        FlipElement element = new FlipElement { FlipHorizontal = true, Child = child };
+
+        LayoutHarness.Draw(element, new Size(200, 200));
+
+        Approximately.Equal(new Size(50, 20), Assert.Single(child.DrawnWith));
+    }
 }

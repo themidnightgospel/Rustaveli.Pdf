@@ -100,6 +100,29 @@ public class TransformDrawingTests
         Assert.Equal(100f, bounds.Height, 2);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void AQuarterTurnStaysOverItsOwnBox(int quarterTurns)
+    {
+        RotateElement element = new RotateElement { QuarterTurns = quarterTurns, Child = new FixedElement(100, 10) };
+
+        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(200, 200)));
+
+        Assert.Equal(0f, bounds.Left, 2);
+        Assert.Equal(0f, bounds.Top, 2);
+    }
+
+    [Fact]
+    public void NoTurnDrawsTheContentAsItIs()
+    {
+        RotateElement element = new RotateElement { QuarterTurns = 4, Child = new FixedElement(100, 10) };
+
+        Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Size(200, 200)));
+
+        Assert.Equal(new Bounds(0, 0, 100, 10), bounds);
+    }
+
     [Fact]
     public void AHalfTurnKeepsTheExtentAndStaysOverItsOwnBox()
     {
