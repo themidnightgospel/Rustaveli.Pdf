@@ -68,7 +68,7 @@ public class SkiaTypeMeasurerTests
         Assert.InRange(metrics.Ascent, 0.6f * 20, 1.2f * 20);
         Assert.InRange(metrics.Descent, 0.1f * 20, 0.5f * 20);
         Assert.True(metrics.LineGap >= 0, $"Line gap was {metrics.LineGap}.");
-        Assert.True(metrics.LineHeight > 20, $"A 20pt line measured only {metrics.LineHeight}pt.");
+        Assert.True(metrics.LineSpacing > 20, $"A 20pt line measured only {metrics.LineSpacing}pt.");
     }
 
     [Fact]

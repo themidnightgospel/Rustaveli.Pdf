@@ -11,8 +11,8 @@ internal sealed class ShiftBlock : EnclosingBlock
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        context.Canvas.Translate(Offset);
+        context.Surface.Translate(Offset);
         Child?.Render(availableSpace, context);
-        context.Canvas.Translate(Offset.Reverse());
+        context.Surface.Translate(Offset.Reverse());
     }
 }

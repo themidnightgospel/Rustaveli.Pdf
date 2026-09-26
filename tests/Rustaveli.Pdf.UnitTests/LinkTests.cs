@@ -47,7 +47,7 @@ public class LinkTests
     [Fact]
     public void ASectionLinkCoversExactlyItsContent()
     {
-        CrossReferenceBlock element = new CrossReferenceBlock { DestinationName = "intro", Child = new FixedBlock(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
         RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
@@ -75,7 +75,7 @@ public class LinkTests
     public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
-        CrossReferenceBlock element = new CrossReferenceBlock { DestinationName = "intro", Child = child };
+        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -86,7 +86,7 @@ public class LinkTests
     [Fact]
     public void ASectionLinkDoesNotChangeTheLayout()
     {
-        CrossReferenceBlock element = new CrossReferenceBlock { DestinationName = "intro", Child = new FixedBlock(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 

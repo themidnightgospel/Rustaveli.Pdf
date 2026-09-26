@@ -58,7 +58,7 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
         if (Child is null)
             return;
 
-        float? scale = ResolveScale(availableSpace, context.Layout);
+        float? scale = ResolveScale(availableSpace, context.Planning);
 
         // Matches Measure: content that could not be made to fit is drawn unscaled and left to paginate.
         if (scale is null)
@@ -67,12 +67,12 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
             return;
         }
 
-        context.Canvas.Save();
-        context.Canvas.Scale(scale.Value, scale.Value);
+        context.Surface.Save();
+        context.Surface.Scale(scale.Value, scale.Value);
 
         Child.Render(Unscale(availableSpace, scale.Value), context);
 
-        context.Canvas.Restore();
+        context.Surface.Restore();
     }
 
     private static Extent Unscale(Extent availableSpace, float scale) =>

@@ -20,13 +20,13 @@ internal sealed class TextRun
     public Func<Pagination, string>? DynamicText { get; set; }
 
     /// <summary>Transforms the inherited style into this span's style. Null inherits unchanged.</summary>
-    public Func<TypeStyle, TypeStyle>? StyleOverride { get; set; }
+    public Func<TypeStyle, TypeStyle>? Refinement { get; set; }
 
     /// <summary>Makes this span a clickable link to an external URL.</summary>
     public string? Url { get; set; }
 
     /// <summary>Makes this span a clickable link to a named destination inside the document.</summary>
-    public string? Destination { get; set; }
+    public string? Anchor { get; set; }
 
     /// <summary>
     /// Content placed inline with the surrounding words rather than text.
@@ -36,9 +36,9 @@ internal sealed class TextRun
     /// unit, and contributes its height to the line it lands on. Used for an icon, a logo or a small chart
     /// sitting mid-sentence.
     /// </remarks>
-    public Layout.Block? InlineElement { get; set; }
+    public Layout.Block? Inline { get; set; }
 
     public string Resolve(Pagination page) => DynamicText?.Invoke(page) ?? Text ?? string.Empty;
 
-    public TypeStyle ResolveStyle(TypeStyle inherited) => StyleOverride?.Invoke(inherited) ?? inherited;
+    public TypeStyle ResolveStyle(TypeStyle inherited) => Refinement?.Invoke(inherited) ?? inherited;
 }

@@ -15,5 +15,5 @@ internal sealed class PaginationRecorder : Block
     public override Fit Plan(Extent availableSpace, PlanContext context) => Fit.Complete(Extent.Zero);
 
     public override void Render(Extent availableSpace, RenderContext context) =>
-        Draws.Add((context.Page.CurrentPage, context.Page.TotalPages, context.Page.IsDocumentLengthKnown));
+        Draws.Add((context.Pagination.Folio, context.Pagination.PageCount, context.Pagination.IsPageCountKnown));
 }

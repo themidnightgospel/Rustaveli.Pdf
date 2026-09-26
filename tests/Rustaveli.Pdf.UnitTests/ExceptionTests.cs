@@ -40,4 +40,13 @@ public class ExceptionTests
         Assert.Equal("Nothing fits.", exception.Message);
         Assert.Null(exception.InnerException);
     }
+
+    [Fact]
+    public void EveryFailureSharesOneBase()
+    {
+        // One catch should handle anything the library reports.
+        Assert.IsAssignableFrom<TypesettingException>(new CompositionException("x"));
+        Assert.IsAssignableFrom<TypesettingException>(new OversetException("x"));
+        Assert.IsAssignableFrom<TypesettingException>(new RenderingException("x"));
+    }
 }

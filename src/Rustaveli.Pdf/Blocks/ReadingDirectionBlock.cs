@@ -11,11 +11,11 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class ReadingDirectionBlock : EnclosingBlock
 {
-    public ReadingDirection Direction { get; set; } = ReadingDirection.LeftToRight;
+    public ReadingDirection ReadingDirection { get; set; } = ReadingDirection.LeftToRight;
 
     public override Fit Plan(Extent availableSpace, PlanContext context) =>
-        context.WithDirection(Direction, () => base.Plan(availableSpace, context));
+        context.WithReadingDirection(ReadingDirection, () => base.Plan(availableSpace, context));
 
     public override void Render(Extent availableSpace, RenderContext context) =>
-        context.Layout.WithDirection(Direction, () => base.Render(availableSpace, context));
+        context.Planning.WithReadingDirection(ReadingDirection, () => base.Render(availableSpace, context));
 }

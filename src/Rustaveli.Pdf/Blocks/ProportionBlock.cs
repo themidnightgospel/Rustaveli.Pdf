@@ -10,27 +10,27 @@ internal sealed class ProportionBlock : EnclosingBlock
     /// <summary>Width divided by height. Must be greater than zero.</summary>
     public float Ratio { get; set; } = 1f;
 
-    public ProportionFit Option { get; set; } = ProportionFit.Width;
+    public ProportionFit Fit { get; set; } = ProportionFit.Width;
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (Ratio <= 0)
-            return Fit.Defer("The aspect ratio must be greater than zero.");
+            return Layout.Fit.Defer("The proportion must be greater than zero.");
 
         Extent size = ResolveSize(availableSpace);
 
         if (!size.FitsIn(availableSpace))
-            return Fit.Defer("The available space is too small for the requested aspect ratio.");
+            return Layout.Fit.Defer("The space available is too small for the requested proportion.");
 
-        Fit childPlan = Child?.Plan(size, context) ?? Fit.Complete(Extent.Zero);
+        Fit childPlan = Child?.Plan(size, context) ?? Layout.Fit.Complete(Extent.Zero);
 
         if (childPlan.IsDeferred)
             return childPlan;
 
         if (childPlan.IsNothing)
-            return Fit.Nothing();
+            return Layout.Fit.Nothing();
 
-        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
+        return childPlan.IsComplete ? Layout.Fit.Complete(size) : Layout.Fit.Partial(size);
     }
 
     public override void Render(Extent availableSpace, RenderContext context) =>
@@ -41,7 +41,7 @@ internal sealed class ProportionBlock : EnclosingBlock
         Extent fromWidth = new Extent(availableSpace.Width, availableSpace.Width / Ratio);
         Extent fromHeight = new Extent(availableSpace.Height * Ratio, availableSpace.Height);
 
-        return Option switch
+        return Fit switch
         {
             ProportionFit.Width => fromWidth,
             ProportionFit.Height => fromHeight,

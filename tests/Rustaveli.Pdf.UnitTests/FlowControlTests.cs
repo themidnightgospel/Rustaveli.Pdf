@@ -18,7 +18,7 @@ public class FlowControlTests
     {
         // A hidden item must leave no trace. If it still counted as drawn content, the column would insert a
         // gap either side of nothing, and toggling a section on and off would shift the whole layout.
-        StackBlock column = new StackBlock { Spacing = 10 };
+        StackBlock column = new StackBlock { SpaceBetween = 10 };
         column.Items.Add(new FixedBlock(10, 20));
         column.Items.Add(new WhenBlock { Condition = false, Child = new FixedBlock(10, 50) });
         column.Items.Add(new FixedBlock(10, 20));
@@ -33,7 +33,7 @@ public class FlowControlTests
     public void SkipOnceLeavesNoGapWhileItIsSuppressed()
     {
         // Unlike a hidden item, this one must still be drawn so its state advances — but it must not be spaced.
-        StackBlock column = new StackBlock { Spacing = 10 };
+        StackBlock column = new StackBlock { SpaceBetween = 10 };
         column.Items.Add(new FixedBlock(10, 20));
         column.Items.Add(new SkipFirstBlock { Child = new FixedBlock(10, 50) });
         column.Items.Add(new FixedBlock(10, 20));

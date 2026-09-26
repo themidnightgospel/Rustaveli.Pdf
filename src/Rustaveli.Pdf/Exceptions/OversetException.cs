@@ -1,11 +1,10 @@
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Thrown when a document tree imposes constraints that no page size could satisfy.
+/// Thrown when content fits on no page. In print, text that does not fit its frame is <em>overset</em>.
 /// </summary>
 /// <remarks>
-/// The engine responds to content that does not fit by deferring it to the next page. If a fresh, entirely empty
-/// page still cannot accommodate it, no further page ever will, and continuing would loop forever. This
-/// exception reports that condition along with the element responsible.
+/// Content that does not fit is deferred to the next page. If a fresh, empty page still cannot hold it, no later
+/// page ever will, and continuing would loop forever; this exception reports that instead, with the reason.
 /// </remarks>
-public sealed class OversetException(string message) : Exception(message);
+public sealed class OversetException(string message) : TypesettingException(message, null);

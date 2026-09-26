@@ -20,12 +20,12 @@ internal sealed class LayersBlock : Block
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
-        return Layers.FirstOrDefault((Layer layer) => layer.IsPrimary)?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
+        return Layers.FirstOrDefault((Layer layer) => layer.IsBase)?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
     }
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Plan(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Planning);
 
         if (plan.IsDeferred || plan.IsNothing)
             return;
@@ -36,7 +36,7 @@ internal sealed class LayersBlock : Block
         foreach (Layer layer in Layers)
             layer.Render(availableSpace, context);
 
-        foreach (Layer layer in Layers.Where(layer => !layer.IsPrimary))
+        foreach (Layer layer in Layers.Where(layer => !layer.IsBase))
             layer.ResetState(includeDocumentProgress: false);
     }
 }

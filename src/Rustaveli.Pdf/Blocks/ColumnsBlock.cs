@@ -21,10 +21,10 @@ internal sealed class ColumnsBlock : Block
     public List<ColumnSlot> Items { get; } = [];
 
     /// <summary>Horizontal gap inserted between consecutive items.</summary>
-    public float Spacing { get; set; }
+    public float Gutter { get; set; }
 
     /// <summary>Overrides the inherited flow direction. Null follows the surrounding context.</summary>
-    public ReadingDirection? Direction { get; set; }
+    public ReadingDirection? ReadingDirection { get; set; }
 
     public override IEnumerable<Block?> GetChildren() => Items;
 
@@ -52,13 +52,13 @@ internal sealed class ColumnsBlock : Block
         // Constant columns cannot shrink, so a row whose fixed widths already overflow can never be laid out
         // here however much vertical room arrives. Wrapping sends it to a fresh page, where the engine's
         // non-termination guard turns a second failure into a diagnostic instead of silent overflow.
-        float fixedWidth = Items.Where(item => item.Sizing == ColumnSizing.Constant).Sum(item => Math.Max(0f, item.Value))
-            + (Spacing * Math.Max(0, Items.Count - 1));
+        float fixedWidth = Items.Where(item => item.Sizing == ColumnSizing.Fixed).Sum(item => Math.Max(0f, item.Value))
+            + (Gutter * Math.Max(0, Items.Count - 1));
 
         if (fixedWidth > availableSpace.Width + Extent.Epsilon)
         {
             return Fit.Defer(
-                $"The row's fixed columns need {fixedWidth:F1} points but only {availableSpace.Width:F1} is available.");
+                $"The fixed columns need {fixedWidth:F1} points but only {availableSpace.Width:F1} are available.");
         }
 
         float[] widths = ResolveWidths(availableSpace, context);
@@ -99,8 +99,8 @@ internal sealed class ColumnsBlock : Block
         if (Items.Count == 0)
             return;
 
-        float[] widths = ResolveWidths(availableSpace, context.Layout);
-        Fit plan = Plan(availableSpace, context.Layout);
+        float[] widths = ResolveWidths(availableSpace, context.Planning);
+        Fit plan = Plan(availableSpace, context.Planning);
 
         if (plan.IsDeferred || plan.IsNothing)
             return;
@@ -109,24 +109,24 @@ internal sealed class ColumnsBlock : Block
         // regardless of how much content each one holds.
         float rowHeight = plan.Size.Height;
         float offset = 0f;
-        ReadingDirection direction = Direction ?? context.Layout.ContentDirection;
+        ReadingDirection direction = ReadingDirection ?? context.Planning.ReadingDirection;
         bool[] completed = Completion();
 
         for (int index = 0; index < Items.Count; index++)
         {
             if (!completed[index])
             {
-                Fit itemPlan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context.Layout);
+                Fit itemPlan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context.Planning);
 
                 if (!itemPlan.IsDeferred && !itemPlan.IsNothing)
                 {
-                    float position = direction == ReadingDirection.LeftToRight
+                    float position = direction == Pdf.ReadingDirection.LeftToRight
                         ? offset
                         : availableSpace.Width - offset - widths[index];
 
-                    context.Canvas.Translate(new Offset(position, 0f));
+                    context.Surface.Translate(new Offset(position, 0f));
                     Items[index].Render(new Extent(widths[index], rowHeight), context);
-                    context.Canvas.Translate(new Offset(-position, 0f));
+                    context.Surface.Translate(new Offset(-position, 0f));
                 }
 
                 if (itemPlan.IsComplete || itemPlan.IsNothing)
@@ -135,7 +135,7 @@ internal sealed class ColumnsBlock : Block
 
             // Advanced for every item, finished or not. A column that completed on an earlier page still owns
             // its slot, and skipping it here would slide every later column left on the continuation page.
-            offset += widths[index] + Spacing;
+            offset += widths[index] + Gutter;
         }
     }
 
@@ -155,13 +155,13 @@ internal sealed class ColumnsBlock : Block
         }
 
         float[] widths = new float[Items.Count];
-        float totalSpacing = Spacing * Math.Max(0, Items.Count - 1);
+        float totalSpacing = Gutter * Math.Max(0, Items.Count - 1);
         float available = Math.Max(0f, availableSpace.Width - totalSpacing);
         float consumed = 0f;
 
         for (int index = 0; index < Items.Count; index++)
         {
-            if (Items[index].Sizing != ColumnSizing.Constant)
+            if (Items[index].Sizing != ColumnSizing.Fixed)
                 continue;
 
             widths[index] = Math.Max(0f, Items[index].Value);
@@ -170,7 +170,7 @@ internal sealed class ColumnsBlock : Block
 
         for (int index = 0; index < Items.Count; index++)
         {
-            if (Items[index].Sizing != ColumnSizing.Auto)
+            if (Items[index].Sizing != ColumnSizing.Natural)
                 continue;
 
             Extent offered = new Extent(Math.Max(0f, available - consumed), availableSpace.Height);
@@ -181,7 +181,7 @@ internal sealed class ColumnsBlock : Block
         }
 
         float totalWeight = Items
-            .Where(item => item.Sizing == ColumnSizing.Relative)
+            .Where(item => item.Sizing == ColumnSizing.Share)
             .Sum(item => Math.Max(0f, item.Value));
 
         if (totalWeight > 0f)
@@ -190,7 +190,7 @@ internal sealed class ColumnsBlock : Block
 
             for (int index = 0; index < Items.Count; index++)
             {
-                if (Items[index].Sizing != ColumnSizing.Relative)
+                if (Items[index].Sizing != ColumnSizing.Share)
                     continue;
 
                 widths[index] = leftover * Math.Max(0f, Items[index].Value) / totalWeight;

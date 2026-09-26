@@ -44,14 +44,14 @@ public class CompositionGuardTests
     public void CornerRadiusRejectsASingleSidedBorder()
     {
         // The element cannot round a corner where two thicknesses meet, so it would have ignored the radius.
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<CompositionException>(() =>
             LayoutHarness.Build(container => container.StrokeLeft(2).RoundCorners(8)));
     }
 
     [Fact]
     public void CornerRadiusRejectsAZeroWidthBorder()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<CompositionException>(() =>
             LayoutHarness.Build(container => container.Stroke(0).RoundCorners(8)));
     }
 

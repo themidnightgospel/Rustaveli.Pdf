@@ -4,7 +4,7 @@ public class StackTests
 {
     private static StackBlock Column(float spacing, params Block[] items)
     {
-        StackBlock column = new StackBlock { Spacing = spacing };
+        StackBlock column = new StackBlock { SpaceBetween = spacing };
         column.Items.AddRange(items);
         return column;
     }

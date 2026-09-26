@@ -12,7 +12,7 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class StrokeBlock : EnclosingBlock
 {
-    public Sides Width { get; set; } = Sides.Zero;
+    public Sides Weight { get; set; } = Sides.Zero;
 
     public Ink Ink { get; set; } = Ink.Black;
 
@@ -23,16 +23,16 @@ internal sealed class StrokeBlock : EnclosingBlock
     public float CornerRadius { get; set; }
 
     /// <summary>True when all four sides share a width, which is what makes a corner radius meaningful.</summary>
-    internal bool HasUniformWidth => Width.Left > 0 && IsUniform;
+    internal bool HasUniformWeight => Weight.Left > 0 && IsUniform;
 
     private bool IsUniform =>
-        Math.Abs(Width.Left - Width.Top) < Extent.Epsilon
-        && Math.Abs(Width.Top - Width.Right) < Extent.Epsilon
-        && Math.Abs(Width.Right - Width.Bottom) < Extent.Epsilon;
+        Math.Abs(Weight.Left - Weight.Top) < Extent.Epsilon
+        && Math.Abs(Weight.Top - Weight.Right) < Extent.Epsilon
+        && Math.Abs(Weight.Right - Weight.Bottom) < Extent.Epsilon;
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Plan(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Planning);
 
         if (plan.IsDeferred || plan.IsNothing)
             return;
@@ -44,15 +44,15 @@ internal sealed class StrokeBlock : EnclosingBlock
 
         // Drawn around the whole box this element occupies (ADR 0012), not around its content's natural extent.
         Extent size = availableSpace;
-        ISurface canvas = context.Canvas;
+        ISurface canvas = context.Surface;
 
-        if (CornerRadius > 0 && HasUniformWidth)
+        if (CornerRadius > 0 && HasUniformWeight)
         {
             // A stroke straddles the path, so the outline is drawn on the centreline: inset by half the width,
             // and reduce the radius to match, so that the stroke's *outer* arc lands on the requested radius and
             // coincides with a rounded background of the same value.
-            float inset = Width.Left / 2;
-            Extent outline = new Extent(size.Width - Width.Left, size.Height - Width.Left);
+            float inset = Weight.Left / 2;
+            Extent outline = new Extent(size.Width - Weight.Left, size.Height - Weight.Left);
 
             // Degenerate once the border is thicker than the box it surrounds; nothing sensible to draw.
             if (outline.Width <= 0 || outline.Height <= 0)
@@ -63,21 +63,21 @@ internal sealed class StrokeBlock : EnclosingBlock
                 0,
                 Math.Min(outline.Width, outline.Height) / 2);
 
-            canvas.DrawRoundedRectangle(new Offset(inset, inset), outline, radius, Ink, Width.Left);
+            canvas.DrawRoundedRectangle(new Offset(inset, inset), outline, radius, Ink, Weight.Left);
 
             return;
         }
 
-        if (Width.Left > 0)
-            canvas.DrawRectangle(Offset.Zero, new Extent(Width.Left, size.Height), Ink);
+        if (Weight.Left > 0)
+            canvas.DrawRectangle(Offset.Zero, new Extent(Weight.Left, size.Height), Ink);
 
-        if (Width.Top > 0)
-            canvas.DrawRectangle(Offset.Zero, new Extent(size.Width, Width.Top), Ink);
+        if (Weight.Top > 0)
+            canvas.DrawRectangle(Offset.Zero, new Extent(size.Width, Weight.Top), Ink);
 
-        if (Width.Right > 0)
-            canvas.DrawRectangle(new Offset(size.Width - Width.Right, 0), new Extent(Width.Right, size.Height), Ink);
+        if (Weight.Right > 0)
+            canvas.DrawRectangle(new Offset(size.Width - Weight.Right, 0), new Extent(Weight.Right, size.Height), Ink);
 
-        if (Width.Bottom > 0)
-            canvas.DrawRectangle(new Offset(0, size.Height - Width.Bottom), new Extent(size.Width, Width.Bottom), Ink);
+        if (Weight.Bottom > 0)
+            canvas.DrawRectangle(new Offset(0, size.Height - Weight.Bottom), new Extent(size.Width, Weight.Bottom), Ink);
     }
 }

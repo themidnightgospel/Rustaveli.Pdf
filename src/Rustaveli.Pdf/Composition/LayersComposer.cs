@@ -19,7 +19,7 @@ public sealed class LayersComposer
 
     private IFrame Add(bool isPrimary)
     {
-        Layer layer = new Layer { IsPrimary = isPrimary };
+        Layer layer = new Layer { IsBase = isPrimary };
         _block.Layers.Add(layer);
         return layer;
     }

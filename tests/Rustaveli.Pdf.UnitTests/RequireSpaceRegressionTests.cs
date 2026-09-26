@@ -24,10 +24,10 @@ public class RequireSpaceRegressionTests
     public void SurvivesBeingDrawnInsideARow()
     {
         ColumnsBlock row = new ColumnsBlock();
-        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Relative, Child = new FixedBlock(40, 20, TestInks.Blue) });
+        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Share, Child = new FixedBlock(40, 20, TestInks.Blue) });
         row.Items.Add(new ColumnSlot
         {
-            Sizing = ColumnSizing.Relative,
+            Sizing = ColumnSizing.Share,
             Child = new RequireSpaceBlock { MinHeight = 100, Child = new FixedBlock(40, 20, TestInks.Red) }
         });
 

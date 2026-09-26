@@ -7,7 +7,7 @@ public class ListRegressionTests
     {
         // Every member needed to build a list is public, so a list assembled without the fluent helper must not
         // silently render nothing.
-        ListBlock list = new ListBlock { Marker = ListNumbering.Arabic };
+        ListBlock list = new ListBlock { Numbering = ListNumbering.Arabic };
         list.Items.Add(new ListEntry { Child = new FixedBlock(40, 20, TestInks.Red) });
 
         RecordedPage page = LayoutHarness.Draw(list, new Extent(300, 400));

@@ -5,7 +5,7 @@ public class MirrorTests
     [Fact]
     public void FlippingDoesNotChangeTheReportedSize()
     {
-        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = new FixedBlock(50, 20) };
+        MirrorBlock element = new MirrorBlock { Horizontally = true, Child = new FixedBlock(50, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
@@ -15,7 +15,7 @@ public class MirrorTests
     [Fact]
     public void HorizontalFlipMirrorsContentBackOverItsOwnBox()
     {
-        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = new FixedBlock(50, 20) };
+        MirrorBlock element = new MirrorBlock { Horizontally = true, Child = new FixedBlock(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -27,7 +27,7 @@ public class MirrorTests
     [Fact]
     public void VerticalFlipMirrorsDownwards()
     {
-        MirrorBlock element = new MirrorBlock { FlipVertical = true, Child = new FixedBlock(50, 20) };
+        MirrorBlock element = new MirrorBlock { Vertically = true, Child = new FixedBlock(50, 20) };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -38,7 +38,7 @@ public class MirrorTests
     [Fact]
     public void DrawsNothingWithoutContent()
     {
-        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, FlipVertical = true };
+        MirrorBlock element = new MirrorBlock { Horizontally = true, Vertically = true };
 
         Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 200)).Operations);
     }
@@ -49,7 +49,7 @@ public class MirrorTests
     public void DoesNotAskAChildWithNothingToShowToDraw(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
-        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = child };
+        MirrorBlock element = new MirrorBlock { Horizontally = true, Child = child };
 
         LayoutHarness.Draw(element, new Extent(200, 200));
 

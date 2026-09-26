@@ -133,7 +133,7 @@ public class InlineContentTests
         TextBlock element = new TextBlock();
         Frame container = new Frame();
         container.Slot().Child = new FixedBlock(20, 10);
-        element.Spans.Add(new Text.TextRun { InlineElement = container, Url = "https://example.com" });
+        element.Runs.Add(new Text.TextRun { Inline = container, Url = "https://example.com" });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
 
@@ -147,7 +147,7 @@ public class InlineContentTests
         SplittableBlock splittable = new SplittableBlock(unitCount: 2, unitHeight: 10);
         TextBlock element = new TextBlock();
         Frame container = new Frame { Child = splittable };
-        element.Spans.Add(new Text.TextRun { InlineElement = container });
+        element.Runs.Add(new Text.TextRun { Inline = container });
 
         LayoutHarness.Draw(element, new Extent(500, 500));
         Assert.Equal(0, splittable.Remaining);
@@ -243,7 +243,7 @@ public class InlineContentTests
         OversetException exception = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Contains("inline", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("AlignMiddle", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Middle, FlushBottom or Expand", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -264,8 +264,8 @@ public class InlineContentTests
     public void AnInlineElementCanLinkToASection()
     {
         TextBlock element = new TextBlock();
-        element.Spans.Add(new Text.TextRun { Text = "ab" });
-        element.Spans.Add(new Text.TextRun { InlineElement = new Frame { Child = new FixedBlock(20, 10) }, Destination = "intro" });
+        element.Runs.Add(new Text.TextRun { Text = "ab" });
+        element.Runs.Add(new Text.TextRun { Inline = new Frame { Child = new FixedBlock(20, 10) }, Anchor = "intro" });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
@@ -281,10 +281,10 @@ public class InlineContentTests
         // Only a paragraph's opening line is indented, so an element landing on a later line may use the whole
         // width. The placeholder takes whatever width it is offered, which makes the budget visible.
         TextBlock element = new TextBlock { FirstLineIndent = 20 };
-        element.Spans.Add(new Text.TextRun { Text = "aaaa bbbb" });
-        element.Spans.Add(new Text.TextRun
+        element.Runs.Add(new Text.TextRun { Text = "aaaa bbbb" });
+        element.Runs.Add(new Text.TextRun
         {
-            InlineElement = new Frame { Child = new ConstraintBlock { MaxHeight = 10, Child = new PlaceholderBlock() } }
+            Inline = new Frame { Child = new ConstraintBlock { MaxHeight = 10, Child = new PlaceholderBlock() } }
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(60, 500));

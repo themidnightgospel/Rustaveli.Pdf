@@ -23,7 +23,7 @@ internal sealed class KeepTogetherBlock : EnclosingBlock
     public override void Render(Extent availableSpace, RenderContext context)
     {
         // Measure guarantees the parent only draws this when the whole child fits.
-        if (Plan(availableSpace, context.Layout).IsDeferred)
+        if (Plan(availableSpace, context.Planning).IsDeferred)
             return;
 
         base.Render(availableSpace, context);

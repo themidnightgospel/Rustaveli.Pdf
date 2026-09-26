@@ -17,8 +17,8 @@ internal sealed class AnchorBlock : EnclosingBlock
     {
         if (!string.IsNullOrEmpty(Name))
         {
-            context.Page.RegisterDestination(Name, context.Page.CurrentPage);
-            context.Canvas.DrawDestination(Name);
+            context.Pagination.RegisterAnchor(Name, context.Pagination.Folio);
+            context.Surface.DrawDestination(Name);
         }
 
         base.Render(availableSpace, context);

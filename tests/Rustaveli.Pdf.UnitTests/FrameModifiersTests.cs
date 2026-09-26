@@ -169,32 +169,32 @@ public class FrameModifiersTests
     }
 
     [Fact]
-    public void BorderColorMustFollowABorder()
+    public void StrokeInkMustFollowAStroke()
     {
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+        CompositionException exception = Assert.Throws<CompositionException>(() =>
             Compose(container => container.Inset(2).StrokeInk(TestInks.Blue)));
 
-        Assert.Equal("BorderColor must be applied directly after a Border method.", exception.Message);
+        Assert.Equal("StrokeInk must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.", exception.Message);
     }
 
     [Fact]
-    public void CornerRadiusMustFollowABackgroundOrBorder()
+    public void RoundCornersMustFollowAFillOrStroke()
     {
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+        CompositionException exception = Assert.Throws<CompositionException>(() =>
             Compose(container => container.Inset(2).RoundCorners(4)));
 
-        Assert.Equal("CornerRadius must be applied directly after a Background or Border method.", exception.Message);
+        Assert.Equal("RoundCorners must directly follow Fill or a Stroke method.", exception.Message);
     }
 
     [Fact]
-    public void CornerRadiusExplainsWhyAnUnevenBorderCannotBeRounded()
+    public void RoundCornersExplainsWhyAnUnevenStrokeCannotBeRounded()
     {
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+        CompositionException exception = Assert.Throws<CompositionException>(() =>
             Compose(container => container.StrokeLeft(2).RoundCorners(4)));
 
         Assert.Equal(
-            "CornerRadius requires a border of uniform width. Use Border(width) rather than a single-sided " +
-            "BorderLeft/Right/Top/Bottom, and give it a width greater than zero.",
+            "RoundCorners needs a stroke of one weight on every side, greater than zero. Use Stroke(weight) " +
+            "rather than StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.",
             exception.Message);
     }
 

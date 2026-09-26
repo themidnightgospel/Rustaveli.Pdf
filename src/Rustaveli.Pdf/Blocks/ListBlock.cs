@@ -19,16 +19,16 @@ internal sealed class ListBlock : Block
 
     public List<ListEntry> Items { get; } = new List<ListEntry>();
 
-    public ListNumbering Marker { get; set; } = ListNumbering.Bullet;
+    public ListNumbering Numbering { get; set; } = ListNumbering.Bullet;
 
     /// <summary>Width of the gutter the marker sits in.</summary>
-    public float MarkerWidth { get; set; } = 18f;
+    public float MarkerIndent { get; set; } = 18f;
 
     /// <summary>Vertical gap between items.</summary>
-    public float Spacing { get; set; }
+    public float SpaceBetween { get; set; }
 
     /// <summary>Style applied to the marker. Null inherits from the surrounding text style.</summary>
-    public Func<TypeStyle, TypeStyle>? MarkerStyle { get; set; }
+    public Func<TypeStyle, TypeStyle>? MarkerType { get; set; }
 
     public override IEnumerable<Block?> GetChildren()
     {
@@ -42,29 +42,29 @@ internal sealed class ListBlock : Block
     internal void Build()
     {
         _layout.Items.Clear();
-        _layout.Spacing = Spacing;
+        _layout.SpaceBetween = SpaceBetween;
         for (int i = 0; i < Items.Count; i++)
         {
             ListEntry listItem = Items[i];
-            listItem.Marker = ListMarkers.Format(Marker, i + 1);
+            listItem.Marker = ListMarkers.Format(Numbering, i + 1);
             ColumnsBlock rowElement = new ColumnsBlock();
             ColumnSlot rowItem = new ColumnSlot
             {
-                Sizing = ColumnSizing.Constant,
-                Value = MarkerWidth
+                Sizing = ColumnSizing.Fixed,
+                Value = MarkerIndent
             };
             TextBlock textElement = new TextBlock
             {
-                DefaultStyleOverride = MarkerStyle
+                DefaultTypeRefinement = MarkerType
             };
-            textElement.Spans.Add(new TextRun
+            textElement.Runs.Add(new TextRun
             {
                 Text = listItem.Marker
             });
             rowItem.Child = textElement;
             ColumnSlot item = new ColumnSlot
             {
-                Sizing = ColumnSizing.Relative,
+                Sizing = ColumnSizing.Share,
                 Value = 1f,
                 Child = listItem
             };

@@ -18,7 +18,7 @@ internal sealed class StackBlock : Block
     public List<Block> Items { get; } = [];
 
     /// <summary>Vertical gap inserted between consecutive items.</summary>
-    public float Spacing { get; set; }
+    public float SpaceBetween { get; set; }
 
     public override IEnumerable<Block?> GetChildren() => Items;
 
@@ -33,10 +33,10 @@ internal sealed class StackBlock : Block
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        ISurface canvas = context.Canvas;
+        ISurface canvas = context.Surface;
         float offset = 0f;
 
-        LayoutResult result = Layout(availableSpace, context.Layout, (item, itemSpace, top) =>
+        LayoutResult result = Layout(availableSpace, context.Planning, (item, itemSpace, top) =>
         {
             Offset delta = new Offset(0, top - offset);
             canvas.Translate(delta);
@@ -69,7 +69,7 @@ internal sealed class StackBlock : Block
 
         for (int index = _completedItems; index < Items.Count; index++)
         {
-            float spacing = hasVisibleContent ? Spacing : 0f;
+            float spacing = hasVisibleContent ? SpaceBetween : 0f;
             float heightLeft = availableSpace.Height - totalHeight;
 
             // Offered less than nothing: there is no box to hand any item, not even one of no height.
@@ -142,21 +142,21 @@ internal sealed class StackBlock : Block
         return new LayoutResult(new Extent(maxWidth, totalHeight), completed, pending || completed < Items.Count);
     }
 
-    private readonly record struct LayoutResult(Extent Size, int CompletedItems, bool HasMore, string? WrapReason = null, bool IsExhausted = false)
+    private readonly record struct LayoutResult(Extent Size, int CompletedItems, bool HasMore, string? DeferReason = null, bool IsExhausted = false)
     {
         public static LayoutResult Exhausted() => new(Extent.Zero, 0, false, null, true);
 
         public static LayoutResult Wrapped(string reason) => new(Extent.Zero, 0, false, reason);
 
-        public bool DrewContent => !IsExhausted && WrapReason is null;
+        public bool DrewContent => !IsExhausted && DeferReason is null;
 
         public Fit ToSpacePlan()
         {
             if (IsExhausted)
                 return Fit.Nothing();
 
-            if (WrapReason is not null)
-                return Fit.Defer(WrapReason);
+            if (DeferReason is not null)
+                return Fit.Defer(DeferReason);
 
             return HasMore ? Fit.Partial(Size) : Fit.Complete(Size);
         }

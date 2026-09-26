@@ -7,16 +7,16 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal sealed class InsetBlock : EnclosingBlock
 {
-    public Sides Padding { get; set; } = Sides.Zero;
+    public Sides Inset { get; set; } = Sides.Zero;
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         Extent innerSpace = new Extent(
-            availableSpace.Width - Padding.Horizontal,
-            availableSpace.Height - Padding.Vertical);
+            availableSpace.Width - Inset.Horizontal,
+            availableSpace.Height - Inset.Vertical);
 
         if (innerSpace.IsNegative)
-            return Fit.Defer("The available space is smaller than the requested padding.");
+            return Fit.Defer("The space available is smaller than the inset.");
 
         Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
 
@@ -28,8 +28,8 @@ internal sealed class InsetBlock : EnclosingBlock
             return Fit.Nothing();
 
         Extent size = new Extent(
-            childPlan.Size.Width + Padding.Horizontal,
-            childPlan.Size.Height + Padding.Vertical);
+            childPlan.Size.Width + Inset.Horizontal,
+            childPlan.Size.Height + Inset.Vertical);
 
         return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
@@ -40,14 +40,14 @@ internal sealed class InsetBlock : EnclosingBlock
             return;
 
         Extent innerSpace = new Extent(
-            availableSpace.Width - Padding.Horizontal,
-            availableSpace.Height - Padding.Vertical);
+            availableSpace.Width - Inset.Horizontal,
+            availableSpace.Height - Inset.Vertical);
 
         if (innerSpace.IsNegative)
             return;
 
-        context.Canvas.Translate(new Offset(Padding.Left, Padding.Top));
+        context.Surface.Translate(new Offset(Inset.Left, Inset.Top));
         Child.Render(innerSpace, context);
-        context.Canvas.Translate(new Offset(Padding.Left, Padding.Top).Reverse());
+        context.Surface.Translate(new Offset(Inset.Left, Inset.Top).Reverse());
     }
 }

@@ -6,11 +6,11 @@ namespace Rustaveli.Pdf.Blocks;
 internal enum ColumnSizing
 {
     /// <summary>Takes exactly as much width as the content needs.</summary>
-    Auto,
+    Natural,
 
     /// <summary>Takes a fixed width in points.</summary>
-    Constant,
+    Fixed,
 
     /// <summary>Shares the leftover width with other relative items, in proportion to its weight.</summary>
-    Relative
+    Share
 }

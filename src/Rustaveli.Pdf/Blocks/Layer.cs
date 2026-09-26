@@ -11,5 +11,5 @@ internal sealed class Layer : EnclosingBlock
     /// Whether this layer determines the size of the stack. Exactly one layer should be primary; the others
     /// are painted into whatever space it claims.
     /// </summary>
-    public bool IsPrimary { get; set; }
+    public bool IsBase { get; set; }
 }

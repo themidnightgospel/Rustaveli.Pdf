@@ -13,7 +13,7 @@ internal sealed class DefaultTypeBlock : EnclosingBlock
         WithStyle(context, () => base.Plan(availableSpace, context));
 
     public override void Render(Extent availableSpace, RenderContext context) =>
-        WithStyle(context.Layout, () =>
+        WithStyle(context.Planning, () =>
         {
             base.Render(availableSpace, context);
             return true;
@@ -21,8 +21,8 @@ internal sealed class DefaultTypeBlock : EnclosingBlock
 
     private T WithStyle<T>(PlanContext context, Func<T> function)
     {
-        TypeStyle previous = context.DefaultTextStyle;
-        context.DefaultTextStyle = Refinement(previous);
+        TypeStyle previous = context.DefaultType;
+        context.DefaultType = Refinement(previous);
 
         try
         {
@@ -30,7 +30,7 @@ internal sealed class DefaultTypeBlock : EnclosingBlock
         }
         finally
         {
-            context.DefaultTextStyle = previous;
+            context.DefaultType = previous;
         }
     }
 }

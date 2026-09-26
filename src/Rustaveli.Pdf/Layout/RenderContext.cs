@@ -8,11 +8,11 @@ namespace Rustaveli.Pdf.Layout;
 /// </summary>
 internal sealed class RenderContext(ISurface canvas, PlanContext layout)
 {
-    public ISurface Canvas { get; } = canvas;
+    public ISurface Surface { get; } = canvas;
 
-    public PlanContext Layout { get; } = layout;
+    public PlanContext Planning { get; } = layout;
 
-    public Pagination Page => Layout.Page;
+    public Pagination Pagination => Planning.Pagination;
 
-    public ITypeMeasurer TextMeasurer => Layout.TextMeasurer;
+    public ITypeMeasurer Measurer => Planning.Measurer;
 }

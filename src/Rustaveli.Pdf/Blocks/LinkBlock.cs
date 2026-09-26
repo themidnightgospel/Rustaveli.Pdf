@@ -11,7 +11,7 @@ internal sealed class LinkBlock : EnclosingBlock
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Plan(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Planning);
 
         if (plan.IsDeferred || plan.IsNothing)
             return;
@@ -19,6 +19,6 @@ internal sealed class LinkBlock : EnclosingBlock
         base.Render(availableSpace, context);
 
         if (!string.IsNullOrEmpty(Url))
-            context.Canvas.DrawExternalLink(Url, availableSpace);
+            context.Surface.DrawExternalLink(Url, availableSpace);
     }
 }

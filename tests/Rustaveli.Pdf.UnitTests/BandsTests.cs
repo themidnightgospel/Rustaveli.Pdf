@@ -123,7 +123,7 @@ public class BandsTests
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
-        Assert.Contains("not sufficient", plan.DeferReason);
+        Assert.Contains("too small for the head and foot bands", plan.DeferReason);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class BandsTests
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
-        Assert.Contains("not sufficient", plan.DeferReason);
+        Assert.Contains("too small for the head and foot bands", plan.DeferReason);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class BandsTests
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
-        Assert.Contains("not sufficient", plan.DeferReason);
+        Assert.Contains("too small for the head and foot bands", plan.DeferReason);
     }
 
     [Fact]

@@ -42,7 +42,7 @@ public class TransformRenderingTests
     [Fact]
     public void AHorizontalFlipMirrorsContentAcrossItsOwnBox()
     {
-        MirrorBlock element = new MirrorBlock { FlipHorizontal = true, Child = new FixedBlock(50, 20) };
+        MirrorBlock element = new MirrorBlock { Horizontally = true, Child = new FixedBlock(50, 20) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(50, 20)));
 
@@ -56,7 +56,7 @@ public class TransformRenderingTests
     [Fact]
     public void AVerticalFlipMirrorsContentAcrossItsOwnBox()
     {
-        MirrorBlock element = new MirrorBlock { FlipVertical = true, Child = new FixedBlock(50, 20) };
+        MirrorBlock element = new MirrorBlock { Vertically = true, Child = new FixedBlock(50, 20) };
 
         Bounds bounds = OnlyRectangle(LayoutHarness.Draw(element, new Extent(50, 20)));
 

@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Thrown when an element fails while drawing.
+/// Thrown when drawing a page fails; the inner exception says why.
 /// </summary>
 public sealed class RenderingException(string message, Exception? innerException = null)
-    : Exception(message, innerException);
+    : TypesettingException(message, innerException);

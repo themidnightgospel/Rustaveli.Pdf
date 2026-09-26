@@ -7,18 +7,18 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal sealed class CrossReferenceBlock : EnclosingBlock
 {
-    public string DestinationName { get; set; } = string.Empty;
+    public string Anchor { get; set; } = string.Empty;
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Plan(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Planning);
 
         if (plan.IsDeferred || plan.IsNothing)
             return;
 
         base.Render(availableSpace, context);
 
-        if (!string.IsNullOrEmpty(DestinationName))
-            context.Canvas.DrawInternalLink(DestinationName, availableSpace);
+        if (!string.IsNullOrEmpty(Anchor))
+            context.Surface.DrawInternalLink(Anchor, availableSpace);
     }
 }

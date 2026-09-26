@@ -31,7 +31,7 @@ public class TextComposerTests
     public void PageNumberOfSectionShowsWhereTheSectionLanded()
     {
         Pagination context = new Pagination();
-        context.RegisterDestination("summary", 4);
+        context.RegisterAnchor("summary", 4);
 
         Assert.Equal("4", Draw(text => text.FolioOf("summary"), context).Content);
     }
@@ -42,7 +42,7 @@ public class TextComposerTests
 
     [Fact]
     public void TotalPagesShowsTheDocumentTotal() =>
-        Assert.Equal("9", Draw(text => text.PageCount(), new Pagination { TotalPages = 9 }).Content);
+        Assert.Equal("9", Draw(text => text.PageCount(), new Pagination { PageCount = 9 }).Content);
 
     [Fact]
     public void AlignLeftOverridesTheRightToLeftDefault()
@@ -126,6 +126,6 @@ public class TextComposerTests
             new TextComposer(element).Inline(null!));
 
         Assert.Equal("handler", exception.ParamName);
-        Assert.Empty(element.Spans);
+        Assert.Empty(element.Runs);
     }
 }

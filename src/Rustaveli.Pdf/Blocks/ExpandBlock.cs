@@ -7,9 +7,9 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal sealed class ExpandBlock : EnclosingBlock
 {
-    public bool ExtendHorizontal { get; set; }
+    public bool Horizontally { get; set; }
 
-    public bool ExtendVertical { get; set; }
+    public bool Vertically { get; set; }
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
@@ -22,8 +22,8 @@ internal sealed class ExpandBlock : EnclosingBlock
             return Fit.Nothing();
 
         Extent size = new Extent(
-            ExtendHorizontal ? availableSpace.Width : childPlan.Size.Width,
-            ExtendVertical ? availableSpace.Height : childPlan.Size.Height);
+            Horizontally ? availableSpace.Width : childPlan.Size.Width,
+            Vertically ? availableSpace.Height : childPlan.Size.Height);
 
         return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }

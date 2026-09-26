@@ -22,12 +22,12 @@ internal sealed class OscillatingBlock : Block
     }
 
     public override Fit Plan(Extent availableSpace, PlanContext context) =>
-        _pagesDrawn + 1 < PagesNeeded(context.Page)
+        _pagesDrawn + 1 < PagesNeeded(context.Pagination)
             ? Fit.Partial(10, 10)
             : Fit.Complete(10, 10);
 
     public override void Render(Extent availableSpace, RenderContext context) => _pagesDrawn++;
 
     private static int PagesNeeded(Pagination page) =>
-        page.IsDocumentLengthKnown && page.TotalPages == 1 ? 2 : 1;
+        page.IsPageCountKnown && page.PageCount == 1 ? 2 : 1;
 }

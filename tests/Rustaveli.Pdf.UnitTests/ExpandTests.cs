@@ -5,7 +5,7 @@ public class ExpandTests
     [Fact]
     public void ClaimsTheFullWidthWhenExtendingHorizontally()
     {
-        ExpandBlock element = new ExpandBlock { ExtendHorizontal = true, Child = new FixedBlock(10, 20) };
+        ExpandBlock element = new ExpandBlock { Horizontally = true, Child = new FixedBlock(10, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -15,7 +15,7 @@ public class ExpandTests
     [Fact]
     public void ClaimsOnlyTheHeightWhenExtendingVertically()
     {
-        ExpandBlock element = new ExpandBlock { ExtendVertical = true, Child = new FixedBlock(10, 20) };
+        ExpandBlock element = new ExpandBlock { Vertically = true, Child = new FixedBlock(10, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -25,7 +25,7 @@ public class ExpandTests
     [Fact]
     public void ClaimsBothAxesWhenExtendingFully()
     {
-        ExpandBlock element = new ExpandBlock { ExtendHorizontal = true, ExtendVertical = true, Child = new FixedBlock(10, 20) };
+        ExpandBlock element = new ExpandBlock { Horizontally = true, Vertically = true, Child = new FixedBlock(10, 20) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -35,7 +35,7 @@ public class ExpandTests
     [Fact]
     public void WithoutContentStillClaimsTheExtendedAxis()
     {
-        ExpandBlock element = new ExpandBlock { ExtendHorizontal = true };
+        ExpandBlock element = new ExpandBlock { Horizontally = true };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
@@ -47,7 +47,7 @@ public class ExpandTests
     public void PassesTheChildsWrapThroughUnchanged()
     {
         FixedBlock child = new FixedBlock(300, 20);
-        ExpandBlock element = new ExpandBlock { ExtendHorizontal = true, ExtendVertical = true, Child = child };
+        ExpandBlock element = new ExpandBlock { Horizontally = true, Vertically = true, Child = child };
         Extent space = new Extent(200, 100);
 
         Assert.Equal(LayoutHarness.Measure(child, space), LayoutHarness.Measure(element, space));
@@ -59,8 +59,8 @@ public class ExpandTests
         // Extending a finished child would reserve a whole blank page for it.
         ExpandBlock element = new ExpandBlock
         {
-            ExtendHorizontal = true,
-            ExtendVertical = true,
+            Horizontally = true,
+            Vertically = true,
             Child = new ScriptedBlock(Fit.Nothing())
         };
 
@@ -70,7 +70,7 @@ public class ExpandTests
     [Fact]
     public void KeepsAPartialChildPartial()
     {
-        ExpandBlock element = new ExpandBlock { ExtendHorizontal = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
+        ExpandBlock element = new ExpandBlock { Horizontally = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 70));
 

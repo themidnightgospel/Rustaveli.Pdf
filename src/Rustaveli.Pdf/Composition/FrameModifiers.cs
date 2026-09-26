@@ -20,25 +20,25 @@ public static class FrameModifiers
     // ---- Padding -------------------------------------------------------------------------------------------
 
     public static IFrame Inset(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Padding = Sides.All(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.All(value) });
 
     public static IFrame InsetHorizontal(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Padding = Sides.Symmetric(value, 0) });
+        Attach(parent, new InsetBlock { Inset = Sides.Symmetric(value, 0) });
 
     public static IFrame InsetVertical(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Padding = Sides.Symmetric(0, value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Symmetric(0, value) });
 
     public static IFrame InsetLeft(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Padding = Sides.Zero.WithLeft(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithLeft(value) });
 
     public static IFrame InsetRight(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Padding = Sides.Zero.WithRight(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithRight(value) });
 
     public static IFrame InsetTop(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Padding = Sides.Zero.WithTop(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithTop(value) });
 
     public static IFrame InsetBottom(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Padding = Sides.Zero.WithBottom(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithBottom(value) });
 
     // ---- Painting ------------------------------------------------------------------------------------------
 
@@ -49,64 +49,64 @@ public static class FrameModifiers
         parent.Fill(Ink.Hex(hexColor));
 
     public static IFrame Stroke(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Width = Sides.All(width) });
+        Attach(parent, new StrokeBlock { Weight = Sides.All(width) });
 
     public static IFrame StrokeLeft(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Width = Sides.Zero.WithLeft(width) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithLeft(width) });
 
     public static IFrame StrokeRight(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Width = Sides.Zero.WithRight(width) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithRight(width) });
 
     public static IFrame StrokeTop(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Width = Sides.Zero.WithTop(width) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithTop(width) });
 
     public static IFrame StrokeBottom(this IFrame parent, float width) =>
-        Attach(parent, new StrokeBlock { Width = Sides.Zero.WithBottom(width) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithBottom(width) });
 
     /// <summary>
-    /// Sets the colour of the nearest enclosing border. Must follow one of the border methods.
+    /// Sets the ink of the stroke this directly follows.
     /// </summary>
-    public static IFrame StrokeInk(this IFrame parent, Ink color)
+    public static IFrame StrokeInk(this IFrame parent, Ink ink)
     {
-        if (parent is not StrokeBlock border)
-            throw new InvalidOperationException("BorderColor must be applied directly after a Border method.");
+        if (parent is not StrokeBlock stroke)
+            throw new CompositionException("StrokeInk must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
 
-        border.Ink = color;
-        return border;
+        stroke.Ink = ink;
+        return stroke;
     }
 
-    public static IFrame StrokeInk(this IFrame parent, string hexColor) =>
-        parent.StrokeInk(Ink.Hex(hexColor));
+    public static IFrame StrokeInk(this IFrame parent, string hex) =>
+        parent.StrokeInk(Ink.Hex(hex));
 
     /// <summary>
-    /// Rounds the corners of the nearest enclosing background or border. Must follow one of those methods.
+    /// Rounds the corners of the fill or stroke this directly follows.
     /// </summary>
     public static IFrame RoundCorners(this IFrame parent, float radius) => parent switch
     {
-        FillBlock background => Assign(background, radius),
-        StrokeBlock border => Assign(border, radius),
-        _ => throw new InvalidOperationException("CornerRadius must be applied directly after a Background or Border method.")
+        FillBlock fill => Assign(fill, radius),
+        StrokeBlock stroke => Assign(stroke, radius),
+        _ => throw new CompositionException("RoundCorners must directly follow Fill or a Stroke method.")
     };
 
-    private static IFrame Assign(FillBlock background, float radius)
+    private static IFrame Assign(FillBlock fill, float radius)
     {
-        background.CornerRadius = radius;
-        return background;
+        fill.CornerRadius = radius;
+        return fill;
     }
 
-    private static IFrame Assign(StrokeBlock border, float radius)
+    private static IFrame Assign(StrokeBlock stroke, float radius)
     {
-        // A rounded corner has no shape where two different thicknesses meet, so the element ignores the radius
-        // unless every side matches. Saying so here beats accepting the call and quietly drawing square corners.
-        if (radius > 0 && !border.HasUniformWidth)
+        // A rounded corner has no shape where two different weights meet, so the block ignores the radius unless
+        // every side matches. Saying so here beats accepting the call and quietly drawing square corners.
+        if (radius > 0 && !stroke.HasUniformWeight)
         {
-            throw new InvalidOperationException(
-                "CornerRadius requires a border of uniform width. Use Border(width) rather than a single-sided " +
-                "BorderLeft/Right/Top/Bottom, and give it a width greater than zero.");
+            throw new CompositionException(
+                "RoundCorners needs a stroke of one weight on every side, greater than zero. Use Stroke(weight) " +
+                "rather than StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
         }
 
-        border.CornerRadius = radius;
-        return border;
+        stroke.CornerRadius = radius;
+        return stroke;
     }
 
     // ---- Sizing --------------------------------------------------------------------------------------------
@@ -130,16 +130,16 @@ public static class FrameModifiers
         Attach(parent, new ConstraintBlock { MaxHeight = value });
 
     public static IFrame Expand(this IFrame parent) =>
-        Attach(parent, new ExpandBlock { ExtendHorizontal = true, ExtendVertical = true });
+        Attach(parent, new ExpandBlock { Horizontally = true, Vertically = true });
 
     public static IFrame ExpandHorizontally(this IFrame parent) =>
-        Attach(parent, new ExpandBlock { ExtendHorizontal = true });
+        Attach(parent, new ExpandBlock { Horizontally = true });
 
     public static IFrame ExpandVertically(this IFrame parent) =>
-        Attach(parent, new ExpandBlock { ExtendVertical = true });
+        Attach(parent, new ExpandBlock { Vertically = true });
 
     public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit option = ProportionFit.Width) =>
-        Attach(parent, new ProportionBlock { Ratio = ratio, Option = option });
+        Attach(parent, new ProportionBlock { Ratio = ratio, Fit = option });
 
     /// <summary>Shrinks the content just enough to fit the space available.</summary>
     public static IFrame ShrinkToFit(this IFrame parent, float minScale = 0.25f) =>
@@ -147,15 +147,15 @@ public static class FrameModifiers
 
     /// <summary>Mirrors the content left to right.</summary>
     public static IFrame MirrorHorizontal(this IFrame parent) =>
-        Attach(parent, new MirrorBlock { FlipHorizontal = true });
+        Attach(parent, new MirrorBlock { Horizontally = true });
 
     /// <summary>Mirrors the content top to bottom.</summary>
     public static IFrame MirrorVertical(this IFrame parent) =>
-        Attach(parent, new MirrorBlock { FlipVertical = true });
+        Attach(parent, new MirrorBlock { Vertically = true });
 
     /// <summary>Mirrors the content on both axes, equivalent to a half turn.</summary>
     public static IFrame MirrorBoth(this IFrame parent) =>
-        Attach(parent, new MirrorBlock { FlipHorizontal = true, FlipVertical = true });
+        Attach(parent, new MirrorBlock { Horizontally = true, Vertically = true });
 
     // ---- Alignment -----------------------------------------------------------------------------------------
 
@@ -229,7 +229,7 @@ public static class FrameModifiers
 
     /// <summary>Sets the flow direction for everything nested inside.</summary>
     public static IFrame Reading(this IFrame parent, ReadingDirection direction) =>
-        Attach(parent, new ReadingDirectionBlock { Direction = direction });
+        Attach(parent, new ReadingDirectionBlock { ReadingDirection = direction });
 
     /// <summary>Lays out nested content right to left.</summary>
     public static IFrame RightToLeft(this IFrame parent) =>
@@ -271,11 +271,11 @@ public static class FrameModifiers
 
     /// <summary>Draws a horizontal rule across the available width.</summary>
     public static void Rule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
-        Attach(parent, new RuleBlock { Thickness = thickness, Ink = color ?? Ink.Black });
+        Attach(parent, new RuleBlock { Weight = thickness, Ink = color ?? Ink.Black });
 
     /// <summary>Draws a vertical rule down the available height.</summary>
     public static void VerticalRule(this IFrame parent, float thickness = 1f, Ink? color = null) =>
-        Attach(parent, new VerticalRuleBlock { Thickness = thickness, Ink = color ?? Ink.Black });
+        Attach(parent, new VerticalRuleBlock { Weight = thickness, Ink = color ?? Ink.Black });
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
     public static void Placeholder(this IFrame parent, Ink? color = null) =>
@@ -306,6 +306,6 @@ public static class FrameModifiers
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sectionName);
 
-        return Attach(parent, new CrossReferenceBlock { DestinationName = sectionName });
+        return Attach(parent, new CrossReferenceBlock { Anchor = sectionName });
     }
 }

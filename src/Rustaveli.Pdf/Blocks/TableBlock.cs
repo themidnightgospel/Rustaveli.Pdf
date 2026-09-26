@@ -43,7 +43,7 @@ internal sealed class TableBlock : Block
         /// right edge and a spanning cell is offset by its combined width rather than its first column's.
         /// </summary>
         public float ColumnLeft(CellBlock cell, float spanWidth) =>
-            Direction == ReadingDirection.LeftToRight
+            Direction == Pdf.ReadingDirection.LeftToRight
                 ? ColumnOffsets[cell.Column - 1]
                 : TotalWidth - ColumnOffsets[cell.Column - 1] - spanWidth;
 
@@ -68,7 +68,7 @@ internal sealed class TableBlock : Block
     private ReadingDirection _cachedDirection;
 
     /// <summary>Overrides the inherited flow direction, reversing column order. Null follows the context.</summary>
-    public ReadingDirection? Direction { get; set; }
+    public ReadingDirection? ReadingDirection { get; set; }
 
     public List<TableColumnSpec> Columns { get; } = [];
 
@@ -119,7 +119,7 @@ internal sealed class TableBlock : Block
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        TableLayout? layout = BuildLayout(availableSpace, context.Layout);
+        TableLayout? layout = BuildLayout(availableSpace, context.Planning);
 
         if (layout is null
             || _completedRows >= layout.BodyHeights.Length
@@ -242,9 +242,9 @@ internal sealed class TableBlock : Block
             Extent cellSpace = new Extent(layout.SpanWidth(cell), cellHeight);
             Offset offset = new Offset(layout.ColumnLeft(cell, cellSpace.Width), cellTop);
 
-            context.Canvas.Translate(offset);
+            context.Surface.Translate(offset);
             cell.Render(cellSpace, context);
-            context.Canvas.Translate(offset.Reverse());
+            context.Surface.Translate(offset.Reverse());
         }
     }
 
@@ -263,7 +263,7 @@ internal sealed class TableBlock : Block
     /// </remarks>
     private TableLayout? BuildLayout(Extent availableSpace, PlanContext context)
     {
-        ReadingDirection direction = Direction ?? context.ContentDirection;
+        ReadingDirection direction = ReadingDirection ?? context.ReadingDirection;
 
         if (_cachedLayout is not null
             && Math.Abs(_cachedWidth - availableSpace.Width) < Extent.Epsilon
@@ -392,12 +392,12 @@ internal sealed class TableBlock : Block
         if (Columns.Count == 0)
             return null;
 
-        float constantWidth = Columns.Where(column => !column.IsRelative).Sum(column => Math.Max(0f, column.Value));
+        float constantWidth = Columns.Where(column => !column.TakesShare).Sum(column => Math.Max(0f, column.Value));
 
         if (constantWidth > availableWidth + Extent.Epsilon)
             return null;
 
-        float totalWeight = Columns.Where(column => column.IsRelative).Sum(column => Math.Max(0f, column.Value));
+        float totalWeight = Columns.Where(column => column.TakesShare).Sum(column => Math.Max(0f, column.Value));
         float leftover = Math.Max(0f, availableWidth - constantWidth);
         float[] widths = new float[Columns.Count];
 
@@ -405,7 +405,7 @@ internal sealed class TableBlock : Block
         {
             TableColumnSpec column = Columns[index];
 
-            widths[index] = column.IsRelative
+            widths[index] = column.TakesShare
                 ? (totalWeight > 0f ? leftover * Math.Max(0f, column.Value) / totalWeight : 0f)
                 : Math.Max(0f, column.Value);
         }

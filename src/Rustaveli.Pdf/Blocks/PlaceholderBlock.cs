@@ -13,5 +13,5 @@ internal sealed class PlaceholderBlock : Block
         Fit.Complete(availableSpace);
 
     public override void Render(Extent availableSpace, RenderContext context) =>
-        context.Canvas.DrawRectangle(Offset.Zero, availableSpace, Ink);
+        context.Surface.DrawRectangle(Offset.Zero, availableSpace, Ink);
 }

@@ -228,8 +228,8 @@ public class TypesetterTests
 
         // The space quoted is what an empty page has left once the header is placed, not the whole sheet.
         Assert.Equal(
-            "The page content cannot be drawn even on an empty page, so no additional page would help. " +
-            "Available space: (Width: 200.000, Height: 150.000). Reason: The element requires " +
+            "The body cannot be set even on an empty page, so no further page would help. " +
+            "Space available: (Width: 200.000, Height: 150.000). Reason: The block requires " +
             "(Width: 10.000, Height: 500.000) but only (Width: 200.000, Height: 150.000) is available.",
             ex.Message);
     }
@@ -275,7 +275,7 @@ public class TypesetterTests
 
         // The footer is offered only what the header left over.
         Assert.Equal(
-            "The page footer does not fit in (Width: 200.000, Height: 40.000). Reason: The element requires " +
+            "The running foot does not fit in (Width: 200.000, Height: 40.000). Reason: The block requires " +
             "(Width: 10.000, Height: 60.000) but only (Width: 200.000, Height: 40.000) is available.",
             ex.Message);
     }
@@ -458,7 +458,7 @@ public class TypesetterTests
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Equal(
-            $"The page size {formattedSize} is not drawable. Both dimensions must be greater than zero.",
+            $"The trim size {formattedSize} cannot be drawn. Both dimensions must be greater than zero.",
             exception.Message);
     }
 
@@ -547,7 +547,7 @@ public class TypesetterTests
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Equal(
-            "The page header does not fit in (Width: 200.000, Height: 100.000). Reason: The element requires " +
+            "The running head does not fit in (Width: 200.000, Height: 100.000). Reason: The block requires " +
             "(Width: 10.000, Height: 150.000) but only (Width: 200.000, Height: 100.000) is available.",
             exception.Message);
     }
@@ -565,7 +565,7 @@ public class TypesetterTests
         OversetException exception =
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
-        Assert.Equal("The page header (300.0 points) is taller than the page.", exception.Message);
+        Assert.Equal("The running head (300.0 points) is taller than the page.", exception.Message);
     }
 
     [Fact]
@@ -584,9 +584,9 @@ public class TypesetterTests
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Equal(
-            "The page header claimed the entire 80.0 points available, leaving no room for content or footer. " +
-            "This usually means it contains an element that expands to fill the space offered to it, such as " +
-            "AlignMiddle, AlignBottom or Extend. Give the header an explicit Height, or remove the expanding element.",
+            "The running head took all 80.0 points available, leaving no room for the body or the running foot. " +
+            "This usually means it holds content that expands to fill the space offered to it, such as Middle, " +
+            "FlushBottom or Expand. Give the running head an explicit Height, or remove the expanding content.",
             exception.Message);
     }
 
@@ -605,7 +605,7 @@ public class TypesetterTests
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Equal(
-            "The header (50.0) and footer (200.0) together exceed the 200.0 points available for content.",
+            "The running head (50.0) and running foot (200.0) together exceed the 200.0 points available for the body.",
             exception.Message);
     }
 
@@ -674,8 +674,8 @@ public class TypesetterTests
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Equal(
-            "The document exceeded 10000 pages in a single page run, which usually means an element reports " +
-            "content remaining but never consumes any space.",
+            "The document exceeded 10000 pages in a single section, which usually means some content reports " +
+            "more to come but never takes any space.",
             exception.Message);
     }
 
@@ -703,7 +703,7 @@ public class TypesetterTests
         OversetException exception =
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
-        Assert.StartsWith("The document exceeded 10000 pages in a single page run", exception.Message);
+        Assert.StartsWith("The document exceeded 10000 pages in a single section", exception.Message);
     }
 
     [Fact]

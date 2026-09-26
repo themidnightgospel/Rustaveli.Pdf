@@ -15,7 +15,7 @@ public sealed class StackComposer
     /// <summary>Sets the gap inserted between consecutive items.</summary>
     public void SpaceBetween(float value)
     {
-        _block.Spacing = value;
+        _block.SpaceBetween = value;
     }
 
     /// <summary>Adds an item to the bottom of the stack and returns its container.</summary>

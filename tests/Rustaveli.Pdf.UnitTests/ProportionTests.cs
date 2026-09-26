@@ -5,7 +5,7 @@ public class ProportionTests
     [Fact]
     public void DerivesHeightFromWidth()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Width };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Width };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
@@ -15,7 +15,7 @@ public class ProportionTests
     [Fact]
     public void DerivesWidthFromHeight()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Height };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Height };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 50));
 
@@ -26,7 +26,7 @@ public class ProportionTests
     public void FallsBackToHeightWhenWidthWouldOverflow()
     {
         // Fitting the 300pt width would need 300pt of height, but only 100 is available.
-        ProportionBlock element = new ProportionBlock { Ratio = 1f, Option = ProportionFit.Area };
+        ProportionBlock element = new ProportionBlock { Ratio = 1f, Fit = ProportionFit.Area };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(300, 100));
 
@@ -36,7 +36,7 @@ public class ProportionTests
     [Fact]
     public void FitAreaKeepsTheFullWidthWhenTheHeightAllowsIt()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Area };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Area };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
@@ -46,7 +46,7 @@ public class ProportionTests
     [Fact]
     public void AnUnrecognisedOptionFitsTheWidth()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = (ProportionFit)99 };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = (ProportionFit)99 };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
 
@@ -70,7 +70,7 @@ public class ProportionTests
     public void WrapsWhenTheDerivedHeightDoesNotFit(float availableHeight, bool wraps)
     {
         // Fitting the full 200pt width at 2:1 needs exactly 100pt of height.
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Option = ProportionFit.Width };
+        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Width };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, availableHeight));
 

@@ -19,7 +19,7 @@ internal sealed class ImageBlock : Block
         Extent size = ResolveSize(availableSpace);
 
         if (!size.FitsIn(availableSpace))
-            return Layout.Fit.Defer("The available space is too small for the image at its requested fit.");
+            return Layout.Fit.Defer("The space available is too small for the image as fitted.");
 
         return Layout.Fit.Complete(size);
     }
@@ -34,7 +34,7 @@ internal sealed class ImageBlock : Block
         if (!size.FitsIn(availableSpace))
             return;
 
-        context.Canvas.DrawImage(Image, size);
+        context.Surface.DrawImage(Image, size);
     }
 
     private Extent ResolveSize(Extent availableSpace)

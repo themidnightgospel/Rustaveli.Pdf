@@ -17,9 +17,9 @@ public sealed class RunComposer
 
     private RunComposer Refine(Func<TypeStyle, TypeStyle> refinement)
     {
-        Func<TypeStyle, TypeStyle>? previous = _run.StyleOverride;
+        Func<TypeStyle, TypeStyle>? previous = _run.Refinement;
 
-        _run.StyleOverride = previous is null
+        _run.Refinement = previous is null
             ? refinement
             : style => refinement(previous(style));
 

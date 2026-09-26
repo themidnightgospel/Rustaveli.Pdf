@@ -13,11 +13,11 @@ public class TextRunTests
     [Fact]
     public void DynamicTextWinsOverLiteralTextAndSeesThePageBeingDrawn()
     {
-        Pagination page = new Pagination { CurrentPage = 3, TotalPages = 12 };
+        Pagination page = new Pagination { Folio = 3, PageCount = 12 };
         TextRun span = new TextRun
         {
             Text = "ignored",
-            DynamicText = context => $"{context.CurrentPage} of {context.TotalPages}",
+            DynamicText = context => $"{context.Folio} of {context.PageCount}",
         };
 
         Assert.Equal("3 of 12", span.Resolve(page));
@@ -40,7 +40,7 @@ public class TextRunTests
     [Fact]
     public void AppliesItsOverrideOnTopOfTheSurroundingStyle()
     {
-        TextRun span = new TextRun { StyleOverride = style => style.Bold() };
+        TextRun span = new TextRun { Refinement = style => style.Bold() };
 
         TypeStyle resolved = span.ResolveStyle(TypeStyle.Default.WithPointSize(20));
 

@@ -65,7 +65,7 @@ public class UnboundedTests
         Fit plan = LayoutHarness.Measure(element, new Extent(50, 50));
 
         Assert.True(plan.IsDeferred);
-        Assert.Contains("maximum page size", plan.DeferReason);
+        Assert.Contains("largest page", plan.DeferReason);
     }
 
     [Theory]

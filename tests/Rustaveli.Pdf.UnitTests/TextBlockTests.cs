@@ -286,7 +286,7 @@ public class TextBlockTests
     public void ResolvesTheCurrentPageNumber()
     {
         TextBlock element = Text(text => text.Folio());
-        Pagination page = new Pagination { CurrentPage = 7 };
+        Pagination page = new Pagination { Folio = 7 };
 
         RecordedPage recorded = LayoutHarness.Draw(element, new Extent(500, 500), LayoutHarness.Context(page));
 
@@ -440,8 +440,8 @@ public class TextBlockTests
     [Fact]
     public void AParagraphOfOnlyEmptySpansStillOccupiesALine()
     {
-        TextBlock element = new TextBlock { DefaultStyleOverride = style => style.WithPointSize(40) };
-        element.Spans.Add(new Text.TextRun { Text = string.Empty });
+        TextBlock element = new TextBlock { DefaultTypeRefinement = style => style.WithPointSize(40) };
+        element.Runs.Add(new Text.TextRun { Text = string.Empty });
 
         Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 

@@ -9,7 +9,7 @@ public class LayersTests
         // so without a per-page reset it would be consumed on page one and trail off mid-word on page two.
         LayersBlock element = new LayersBlock();
 
-        Layer primary = new Layer { IsPrimary = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 20, width: 200) };
+        Layer primary = new Layer { IsBase = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 20, width: 200) };
         Layer overlay = new Layer();
         ((IFrame)overlay).Text("mark");
 
@@ -30,7 +30,7 @@ public class LayersTests
     {
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { Child = new PlaceholderBlock { Ink = TestInks.Red } });
-        element.Layers.Add(new Layer { IsPrimary = true, Child = new FixedBlock(50, 20, TestInks.Black) });
+        element.Layers.Add(new Layer { IsBase = true, Child = new FixedBlock(50, 20, TestInks.Black) });
         element.Layers.Add(new Layer { Child = new PlaceholderBlock { Ink = TestInks.Blue } });
 
         Extent space = new Extent(200, 200);
@@ -66,7 +66,7 @@ public class LayersTests
         ScriptedBlock content = ScriptedBlock.WithNothingToDraw(outcome);
         LayersBlock element = new LayersBlock();
         element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
-        element.Layers.Add(new Layer { IsPrimary = true, Child = content });
+        element.Layers.Add(new Layer { IsBase = true, Child = content });
         element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
@@ -81,7 +81,7 @@ public class LayersTests
         // Only the decorating layers repeat; the content itself must not restart on every page.
         SplittableBlock content = new SplittableBlock(unitCount: 4, unitHeight: 20);
         LayersBlock element = new LayersBlock();
-        element.Layers.Add(new Layer { IsPrimary = true, Child = content });
+        element.Layers.Add(new Layer { IsBase = true, Child = content });
         element.Layers.Add(new Layer { Child = new PlaceholderBlock() });
 
         Extent space = new Extent(200, 40);
@@ -97,7 +97,7 @@ public class LayersTests
     {
         SplittableBlock content = new SplittableBlock(unitCount: 4, unitHeight: 20);
         LayersBlock element = new LayersBlock();
-        element.Layers.Add(new Layer { IsPrimary = true, Child = content });
+        element.Layers.Add(new Layer { IsBase = true, Child = content });
 
         LayoutHarness.Draw(element, new Extent(200, 40));
         element.ResetState();

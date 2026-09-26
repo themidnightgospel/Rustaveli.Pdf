@@ -17,7 +17,7 @@ public sealed class Document : IComposition
 
     public DocumentInfo Info { get; } = new DocumentInfo();
 
-    internal IReadOnlyList<Section> Pages => _pages;
+    internal IReadOnlyList<Section> Sections => _pages;
 
     private Document()
     {

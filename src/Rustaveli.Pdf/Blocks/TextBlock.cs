@@ -18,7 +18,7 @@ internal sealed class TextBlock : Block
     private float _pinnedWidth = float.NaN;
     private List<TextLine>? _pinnedWrapping;
 
-    public List<Text.TextRun> Spans { get; } = [];
+    public List<Text.TextRun> Runs { get; } = [];
 
     /// <summary>
     /// Overrides how lines are aligned. Null follows the inherited content direction, so right-to-left text
@@ -27,22 +27,22 @@ internal sealed class TextBlock : Block
     public HorizontalPlacement? Alignment { get; set; }
 
     /// <summary>Adjusts the inherited style for every span in this block. Individual spans refine it further.</summary>
-    public Func<TypeStyle, TypeStyle>? DefaultStyleOverride { get; set; }
+    public Func<TypeStyle, TypeStyle>? DefaultTypeRefinement { get; set; }
 
     /// <summary>Horizontal indent applied to the opening line of each paragraph.</summary>
     public float FirstLineIndent { get; set; }
 
     /// <summary>Vertical gap inserted before every paragraph after the first.</summary>
-    public float ParagraphSpacing { get; set; }
+    public float SpaceBetweenParagraphs { get; set; }
 
     // Inline elements are children of this paragraph, so the engine can reset their state between passes.
-    public override IEnumerable<Block?> GetChildren() => Spans.Select(span => span.InlineElement);
+    public override IEnumerable<Block?> GetChildren() => Runs.Select(span => span.Inline);
 
     /// <summary>
     /// Resolves how lines are aligned, falling back to the inherited content direction.
     /// </summary>
     private HorizontalPlacement ResolveAlignment(PlanContext context) =>
-        Alignment ?? (context.ContentDirection == ReadingDirection.RightToLeft
+        Alignment ?? (context.ReadingDirection == ReadingDirection.RightToLeft
             ? HorizontalPlacement.Right
             : HorizontalPlacement.Left);
 
@@ -69,7 +69,7 @@ internal sealed class TextBlock : Block
         // Without usable width there is no wrapping that could succeed. Reporting a wrap sends the paragraph to
         // a fresh page, where the engine will either find room or raise a layout error naming the cause —
         // either is better than silently emitting one character per line forever.
-        if (Spans.Count > 0 && float.IsNaN(_pinnedWidth)
+        if (Runs.Count > 0 && float.IsNaN(_pinnedWidth)
             && availableSpace.Width - EffectiveIndent(context) <= Extent.Epsilon)
         {
             return Fit.Defer("There is no width available for text once the first-line indent is applied.");
@@ -87,13 +87,13 @@ internal sealed class TextBlock : Block
 
         if (count == 0)
         {
-            // An element that expands to fill whatever it is offered claims the paragraph's entire height, and
-            // the line's own descender then pushes it past the page. Blaming the text height sends the reader
-            // looking at font sizes, so name the real cause.
+            // Content that expands to fill whatever it is offered claims the paragraph's entire height, and the
+            // line's own descender then pushes it past the page. Blaming the text height sends the reader looking
+            // at point sizes, so name the real cause.
             return Fit.Defer(lines[_completedLines].Runs.Any(run => run.Inline is not null)
-                ? "A line holding an inline element is taller than the space available. An element that expands "
-                  + "to fill the space offered to it, such as AlignMiddle, AlignBottom or Extend, claims the "
-                  + "whole page when placed inline — give it an explicit height instead."
+                ? "A line holding an inline frame is taller than the space available. Content that expands to "
+                  + "fill the space offered to it, such as Middle, FlushBottom or Expand, claims the whole page "
+                  + "when set inline — give it an explicit Height instead."
                 : "The available height is not sufficient for even a single line of text.");
         }
 
@@ -107,12 +107,12 @@ internal sealed class TextBlock : Block
     public override void Render(Extent availableSpace, RenderContext context)
     {
         // A blocker means Measure reported a wrap, so this paragraph should not have been asked to draw here.
-        List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Layout, out string? blocker);
+        List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);
 
         if (blocker is not null || _completedLines >= lines.Count)
             return;
 
-        float indent = EffectiveIndent(context.Layout);
+        float indent = EffectiveIndent(context.Planning);
         (float _, float _, int count) = MeasureLines(lines, availableSpace.Height, indent);
 
         if (count == 0)
@@ -167,14 +167,14 @@ internal sealed class TextBlock : Block
     /// is not a paragraph worth spacing.
     /// </summary>
     private float SpacingBefore(TextLine line, int index) =>
-        line.StartsParagraph && line.Runs.Count > 0 && index > _completedLines ? ParagraphSpacing : 0f;
+        line.StartsParagraph && line.Runs.Count > 0 && index > _completedLines ? SpaceBetweenParagraphs : 0f;
 
     private void DrawLine(TextLine line, float availableWidth, float top, RenderContext context)
     {
-        ISurface canvas = context.Canvas;
+        ISurface canvas = context.Surface;
         float baseline = top + line.Ascent;
 
-        HorizontalPlacement alignment = ResolveAlignment(context.Layout);
+        HorizontalPlacement alignment = ResolveAlignment(context.Planning);
 
         float offset = alignment switch
         {
@@ -184,7 +184,7 @@ internal sealed class TextBlock : Block
         };
 
         if (line.StartsParagraph)
-            offset += EffectiveIndent(context.Layout);
+            offset += EffectiveIndent(context.Planning);
 
         float x = Math.Max(0, offset);
 
@@ -211,7 +211,7 @@ internal sealed class TextBlock : Block
             }
 
             TypeStyle style = run.Style;
-            TypeMetrics metrics = context.TextMeasurer.GetMetrics(style);
+            TypeMetrics metrics = context.Measurer.GetMetrics(style);
             float runTop = baseline - metrics.Ascent + style.BaselineOffset;
             Extent runSize = new Extent(run.Width, metrics.Ascent + metrics.Descent);
 
@@ -272,7 +272,7 @@ internal sealed class TextBlock : Block
 
         List<TextLine> lines = new List<TextLine>();
         TextLine current = new TextLine();
-        TypeStyle blockStyle = DefaultStyleOverride?.Invoke(context.DefaultTextStyle) ?? context.DefaultTextStyle;
+        TypeStyle blockStyle = DefaultTypeRefinement?.Invoke(context.DefaultType) ?? context.DefaultType;
         float indent = EffectiveIndent(context);
 
         // Only reached before anything is drawn: from then on the pinned wrapping above is returned whole, which
@@ -288,14 +288,14 @@ internal sealed class TextBlock : Block
             if (current.Runs.Count == 0 && !force)
                 return;
 
-            current.Finalise(context.TextMeasurer, blockStyle);
+            current.Finalise(context.Measurer, blockStyle);
             lines.Add(current);
             current = new TextLine { StartsParagraph = force };
         }
 
-        foreach (Text.TextRun span in Spans)
+        foreach (Text.TextRun span in Runs)
         {
-            if (span.InlineElement is not null)
+            if (span.Inline is not null)
             {
                 // The element is unbreakable, so if it does not fit on this line it moves down whole, exactly
                 // like a word — but it is measured against the budget of a line it could actually occupy, and
@@ -303,7 +303,7 @@ internal sealed class TextBlock : Block
                 // element that fills what it is given — AlignMiddle, Extend — report the full 14400pt and drag
                 // the whole paragraph into a wrap it can never satisfy.
                 float lineBudget = current.StartsParagraph ? Math.Max(0, width - indent) : width;
-                Fit inlinePlan = span.InlineElement.Plan(new Extent(lineBudget, maxHeight), context);
+                Fit inlinePlan = span.Inline.Plan(new Extent(lineBudget, maxHeight), context);
 
                 if (inlinePlan.IsNothing)
                     continue;
@@ -313,8 +313,8 @@ internal sealed class TextBlock : Block
                 // so the paragraph defers as a whole instead and the engine reports it if no page can hold it.
                 if (inlinePlan.IsDeferred || inlinePlan.IsPartial)
                 {
-                    blocker = "A paragraph contains an inline element that does not fit the width available to "
-                        + "it. Inline elements cannot be split across lines, so it has to fit on one.";
+                    blocker = "A paragraph holds an inline frame that does not fit the width available to it. "
+                        + "Inline frames cannot be split across lines, so it has to fit on one.";
 
                     return lines;
                 }
@@ -327,14 +327,14 @@ internal sealed class TextBlock : Block
                     span.ResolveStyle(blockStyle),
                     inlinePlan.Size.Width,
                     span.Url,
-                    span.Destination,
-                    span.InlineElement,
+                    span.Anchor,
+                    span.Inline,
                     inlinePlan.Size.Height));
 
                 continue;
             }
 
-            string text = span.Resolve(context.Page);
+            string text = span.Resolve(context.Pagination);
 
             if (text.Length == 0)
                 continue;
@@ -350,12 +350,12 @@ internal sealed class TextBlock : Block
                 }
 
                 bool isWhitespace = IsBreakableWhitespace(segment[0]);
-                float segmentWidth = context.TextMeasurer.MeasureWidth(segment, style);
+                float segmentWidth = context.Measurer.MeasureWidth(segment, style);
                 float lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
                 if (current.Width + segmentWidth <= lineWidth + Extent.Epsilon)
                 {
-                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Destination));
+                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Anchor));
                     continue;
                 }
 
@@ -375,7 +375,7 @@ internal sealed class TextBlock : Block
 
                 if (segmentWidth <= lineWidth + Extent.Epsilon)
                 {
-                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Destination));
+                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Anchor));
                     continue;
                 }
 
@@ -386,9 +386,9 @@ internal sealed class TextBlock : Block
         FlushLine(force: false);
 
         // A paragraph consisting solely of blank spans still occupies one line.
-        if (lines.Count == 0 && Spans.Count > 0)
+        if (lines.Count == 0 && Runs.Count > 0)
         {
-            current.Finalise(context.TextMeasurer, blockStyle);
+            current.Finalise(context.Measurer, blockStyle);
             lines.Add(current);
         }
 
@@ -417,21 +417,21 @@ internal sealed class TextBlock : Block
             // continuation entitled to the full width.
             float maxWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
-            int fitting = context.TextMeasurer.MeasureCharactersFitting(remaining, style, maxWidth);
+            int fitting = context.Measurer.MeasureCharactersFitting(remaining, style, maxWidth);
 
             // Always consume at least one character, otherwise an impossibly narrow box would loop forever.
             fitting = Math.Clamp(fitting, 1, remaining.Length);
 
             string chunk = remaining[..fitting];
-            float chunkWidth = context.TextMeasurer.MeasureWidth(chunk, style);
+            float chunkWidth = context.Measurer.MeasureWidth(chunk, style);
 
-            current.Add(new TextRun(chunk, style, chunkWidth, span.Url, span.Destination));
+            current.Add(new TextRun(chunk, style, chunkWidth, span.Url, span.Anchor));
             remaining = remaining[fitting..];
 
             if (remaining.Length == 0)
                 break;
 
-            current.Finalise(context.TextMeasurer, style);
+            current.Finalise(context.Measurer, style);
             lines.Add(new TextLine(current));
             current.Clear();
         }
@@ -584,7 +584,7 @@ internal sealed class TextBlock : Block
                 TypeMetrics fallback = measurer.GetMetrics(fallbackStyle);
                 Ascent = fallback.Ascent;
                 Descent = fallback.Descent;
-                Height = fallback.LineHeight;
+                Height = fallback.LineSpacing;
                 return;
             }
 
@@ -604,7 +604,7 @@ internal sealed class TextBlock : Block
                 // A superscript has a negative offset and so extends the line upwards; a subscript downwards.
                 Ascent = Math.Max(Ascent, metrics.Ascent - Math.Min(0, offset));
                 Descent = Math.Max(Descent, metrics.Descent + Math.Max(0, offset));
-                Height = Math.Max(Height, metrics.LineHeight * run.Style.Leading);
+                Height = Math.Max(Height, metrics.LineSpacing * run.Style.Leading);
             }
 
             Height = Math.Max(Height, Ascent + Descent);

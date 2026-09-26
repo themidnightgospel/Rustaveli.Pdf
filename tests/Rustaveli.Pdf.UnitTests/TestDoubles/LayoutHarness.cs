@@ -20,7 +20,7 @@ internal static class LayoutHarness
         PlanContext context = new PlanContext(Measurer, page ?? new Pagination());
 
         if (defaultStyle is not null)
-            context.DefaultTextStyle = defaultStyle;
+            context.DefaultType = defaultStyle;
 
         return context;
     }

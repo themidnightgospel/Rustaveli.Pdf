@@ -48,7 +48,7 @@ public class RoundCornersTests
         // A rounded corner has no meaningful shape where two different thicknesses meet.
         StrokeBlock element = new StrokeBlock
         {
-            Width = new Sides(1, 4, 1, 1),
+            Weight = new Sides(1, 4, 1, 1),
             CornerRadius = 5,
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
@@ -62,7 +62,7 @@ public class RoundCornersTests
     [Fact]
     public void RejectsCornerRadiusWithoutABackgroundOrBorder()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<CompositionException>(() =>
             LayoutHarness.Build(container => container.Inset(5).RoundCorners(4)));
     }
 }

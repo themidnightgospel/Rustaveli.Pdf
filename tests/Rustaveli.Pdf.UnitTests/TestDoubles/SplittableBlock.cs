@@ -39,7 +39,7 @@ internal sealed class SplittableBlock(int unitCount, float unitHeight, float wid
 
         for (int index = 0; index < fitting; index++)
         {
-            context.Canvas.DrawRectangle(
+            context.Surface.DrawRectangle(
                 new Offset(0, index * unitHeight),
                 new Extent(width, unitHeight),
                 TestInks.Blue);

@@ -10,8 +10,8 @@ public class PlanContextTests
 
         PlanContext context = new PlanContext(measurer, page);
 
-        Assert.Same(measurer, context.TextMeasurer);
-        Assert.Same(page, context.Page);
+        Assert.Same(measurer, context.Measurer);
+        Assert.Same(page, context.Pagination);
     }
 
     [Fact]
@@ -19,8 +19,8 @@ public class PlanContextTests
     {
         PlanContext context = LayoutHarness.Context();
 
-        Assert.Same(TypeStyle.Default, context.DefaultTextStyle);
-        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
+        Assert.Same(TypeStyle.Default, context.DefaultType);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ReadingDirection);
     }
 
     [Fact]
@@ -29,21 +29,21 @@ public class PlanContextTests
         PlanContext context = LayoutHarness.Context();
         ReadingDirection observed = ReadingDirection.LeftToRight;
 
-        context.WithDirection(ReadingDirection.RightToLeft, () => { observed = context.ContentDirection; });
+        context.WithReadingDirection(ReadingDirection.RightToLeft, () => { observed = context.ReadingDirection; });
 
         Assert.Equal(ReadingDirection.RightToLeft, observed);
-        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ReadingDirection);
     }
 
     [Fact]
     public void AnActionRestoresThePreviousDirectionRatherThanTheDefault()
     {
         PlanContext context = LayoutHarness.Context();
-        context.ContentDirection = ReadingDirection.RightToLeft;
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
-        context.WithDirection(ReadingDirection.LeftToRight, () => { });
+        context.WithReadingDirection(ReadingDirection.LeftToRight, () => { });
 
-        Assert.Equal(ReadingDirection.RightToLeft, context.ContentDirection);
+        Assert.Equal(ReadingDirection.RightToLeft, context.ReadingDirection);
     }
 
     [Fact]
@@ -53,10 +53,10 @@ public class PlanContextTests
         InvalidOperationException failure = new InvalidOperationException("boom");
 
         InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() =>
-            context.WithDirection(ReadingDirection.RightToLeft, () => { throw failure; }));
+            context.WithReadingDirection(ReadingDirection.RightToLeft, () => { throw failure; }));
 
         Assert.Same(failure, thrown);
-        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ReadingDirection);
     }
 
     [Fact]
@@ -64,22 +64,22 @@ public class PlanContextTests
     {
         PlanContext context = LayoutHarness.Context();
 
-        ReadingDirection observed = context.WithDirection(ReadingDirection.RightToLeft, () => context.ContentDirection);
+        ReadingDirection observed = context.WithReadingDirection(ReadingDirection.RightToLeft, () => context.ReadingDirection);
 
         Assert.Equal(ReadingDirection.RightToLeft, observed);
-        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ReadingDirection);
     }
 
     [Fact]
     public void AFunctionRestoresThePreviousDirectionRatherThanTheDefault()
     {
         PlanContext context = LayoutHarness.Context();
-        context.ContentDirection = ReadingDirection.RightToLeft;
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
-        int result = context.WithDirection(ReadingDirection.LeftToRight, () => 42);
+        int result = context.WithReadingDirection(ReadingDirection.LeftToRight, () => 42);
 
         Assert.Equal(42, result);
-        Assert.Equal(ReadingDirection.RightToLeft, context.ContentDirection);
+        Assert.Equal(ReadingDirection.RightToLeft, context.ReadingDirection);
     }
 
     [Fact]
@@ -89,10 +89,10 @@ public class PlanContextTests
         InvalidOperationException failure = new InvalidOperationException("boom");
 
         InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() =>
-            context.WithDirection<int>(ReadingDirection.RightToLeft, () => throw failure));
+            context.WithReadingDirection<int>(ReadingDirection.RightToLeft, () => throw failure));
 
         Assert.Same(failure, thrown);
-        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ReadingDirection);
     }
 
     [Fact]
@@ -101,12 +101,12 @@ public class PlanContextTests
         PlanContext context = LayoutHarness.Context();
         List<ReadingDirection> seen = [];
 
-        context.WithDirection(ReadingDirection.RightToLeft, () =>
+        context.WithReadingDirection(ReadingDirection.RightToLeft, () =>
         {
-            context.WithDirection(ReadingDirection.LeftToRight, () => { seen.Add(context.ContentDirection); });
-            seen.Add(context.ContentDirection);
+            context.WithReadingDirection(ReadingDirection.LeftToRight, () => { seen.Add(context.ReadingDirection); });
+            seen.Add(context.ReadingDirection);
         });
-        seen.Add(context.ContentDirection);
+        seen.Add(context.ReadingDirection);
 
         Assert.Equal(
             new[] { ReadingDirection.LeftToRight, ReadingDirection.RightToLeft, ReadingDirection.LeftToRight },

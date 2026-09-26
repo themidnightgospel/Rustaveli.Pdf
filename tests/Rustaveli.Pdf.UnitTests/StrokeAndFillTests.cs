@@ -28,7 +28,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.All(2),
+            Weight = Sides.All(2),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -44,7 +44,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.Zero.WithRight(3),
+            Weight = Sides.Zero.WithRight(3),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -87,7 +87,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = new Sides(1, 2, 3, 4),
+            Weight = new Sides(1, 2, 3, 4),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -108,7 +108,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.All(2),
+            Weight = Sides.All(2),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -123,7 +123,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.All(2),
+            Weight = Sides.All(2),
             Ink = TestInks.Transparent,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -140,7 +140,7 @@ public class StrokeAndFillTests
     public void BorderDrawsNothingAroundAChildWithNothingToShow(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
-        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Ink = TestInks.Black, Child = child };
+        StrokeBlock element = new StrokeBlock { Weight = Sides.All(2), Ink = TestInks.Black, Child = child };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -151,7 +151,7 @@ public class StrokeAndFillTests
     [Fact]
     public void BorderWithoutContentDrawsOnlyItsOwnSides()
     {
-        StrokeBlock element = new StrokeBlock { Width = Sides.All(2), Ink = TestInks.Black };
+        StrokeBlock element = new StrokeBlock { Weight = Sides.All(2), Ink = TestInks.Black };
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
@@ -166,7 +166,7 @@ public class StrokeAndFillTests
         // on the requested 4pt radius.
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.All(2),
+            Weight = Sides.All(2),
             CornerRadius = 4,
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
@@ -187,7 +187,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.All(2),
+            Weight = Sides.All(2),
             CornerRadius = 50,
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
@@ -207,7 +207,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = new Sides(left, top, right, bottom),
+            Weight = new Sides(left, top, right, bottom),
             CornerRadius = 5,
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
@@ -224,7 +224,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.Zero,
+            Weight = Sides.Zero,
             CornerRadius = 5,
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
@@ -243,7 +243,7 @@ public class StrokeAndFillTests
     {
         StrokeBlock element = new StrokeBlock
         {
-            Width = Sides.All(30),
+            Weight = Sides.All(30),
             CornerRadius = 5,
             Ink = TestInks.Black,
             Child = new FixedBlock(width, height, TestInks.White)

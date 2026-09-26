@@ -15,7 +15,7 @@ internal sealed class FillBlock : EnclosingBlock
     public override void Render(Extent availableSpace, RenderContext context)
     {
         // A parent only draws what it measured as drawable; this guards callers that draw without asking.
-        Fit plan = Plan(availableSpace, context.Layout);
+        Fit plan = Plan(availableSpace, context.Planning);
 
         if (plan.IsDeferred || plan.IsNothing)
             return;
@@ -25,9 +25,9 @@ internal sealed class FillBlock : EnclosingBlock
         if (!Ink.IsTransparent)
         {
             if (CornerRadius > 0)
-                context.Canvas.DrawRoundedRectangle(Offset.Zero, availableSpace, CornerRadius, Ink);
+                context.Surface.DrawRoundedRectangle(Offset.Zero, availableSpace, CornerRadius, Ink);
             else
-                context.Canvas.DrawRectangle(Offset.Zero, availableSpace, Ink);
+                context.Surface.DrawRectangle(Offset.Zero, availableSpace, Ink);
         }
 
         Child?.Render(availableSpace, context);

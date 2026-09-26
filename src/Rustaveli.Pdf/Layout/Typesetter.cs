@@ -49,8 +49,8 @@ internal static class Typesetter
                 break;
 
             total = probe.PageCount;
-            pageContext.TotalPages = total;
-            pageContext.IsDocumentLengthKnown = true;
+            pageContext.PageCount = total;
+            pageContext.IsPageCountKnown = true;
         }
 
         RunPass(document, canvas, measurer, pageContext);
@@ -60,31 +60,31 @@ internal static class Typesetter
     {
         pageContext.ResetForNewPass();
 
-        foreach (Block? slot in document.Pages.SelectMany(descriptor => descriptor.Slots()))
+        foreach (Block? slot in document.Sections.SelectMany(section => section.Slots()))
             slot.ResetState();
 
         PlanContext layout = new PlanContext(measurer, pageContext);
         RenderContext context = new RenderContext(canvas, layout);
         int pageNumber = 0;
 
-        foreach (Section descriptor in document.Pages)
+        foreach (Section section in document.Sections)
         {
-            layout.DefaultTextStyle = descriptor.DefaultType;
-            layout.ContentDirection = descriptor.ReadingDirection;
+            layout.DefaultType = section.DefaultType;
+            layout.ReadingDirection = section.ReadingDirection;
 
             int renderedInRun = 0;
 
             while (true)
             {
                 pageNumber++;
-                pageContext.CurrentPage = pageNumber;
+                pageContext.Folio = pageNumber;
 
                 // Until the real total is known, quote the page count as the current page so that dynamic text
                 // such as "3 of 3" occupies a realistic width and does not shift the layout on the second pass.
-                if (!pageContext.IsDocumentLengthKnown)
-                    pageContext.TotalPages = pageNumber;
+                if (!pageContext.IsPageCountKnown)
+                    pageContext.PageCount = pageNumber;
 
-                bool hasMore = RenderPage(descriptor, canvas, context, layout);
+                bool hasMore = RenderPage(section, canvas, context, layout);
 
                 if (!hasMore)
                     break;
@@ -93,73 +93,73 @@ internal static class Typesetter
                 // MaxPagesPerRun pages. Testing with > would let one extra page through.
                 if (++renderedInRun >= MaxPagesPerRun)
                     throw new OversetException(
-                        $"The document exceeded {MaxPagesPerRun} pages in a single page run, which usually means an element " +
-                        "reports content remaining but never consumes any space.");
+                        $"The document exceeded {MaxPagesPerRun} pages in a single section, which usually means some content " +
+                        "reports more to come but never takes any space.");
             }
         }
     }
 
     /// <summary>Draws one page and reports whether content remains for a following page.</summary>
-    private static bool RenderPage(Section descriptor, IPageSink pageCanvas, RenderContext context, PlanContext layout)
+    private static bool RenderPage(Section section, IPageSink pages, RenderContext context, PlanContext layout)
     {
         // Headers and footers repeat in full, so clear the pagination state they accumulated on the previous
         // page while leaving document-wide counters such as "show once" intact.
-        descriptor.RunningHeadSlot.ResetState(includeDocumentProgress: false);
-        descriptor.RunningFootSlot.ResetState(includeDocumentProgress: false);
-        descriptor.UnderlaySlot.ResetState(includeDocumentProgress: false);
-        descriptor.OverlaySlot.ResetState(includeDocumentProgress: false);
+        section.RunningHeadSlot.ResetState(includeDocumentProgress: false);
+        section.RunningFootSlot.ResetState(includeDocumentProgress: false);
+        section.UnderlaySlot.ResetState(includeDocumentProgress: false);
+        section.OverlaySlot.ResetState(includeDocumentProgress: false);
 
-        if (descriptor.Trim.Width <= 0 || descriptor.Trim.Height <= 0)
+        if (section.Trim.Width <= 0 || section.Trim.Height <= 0)
             throw new OversetException(
-                $"The page size {descriptor.Trim} is not drawable. Both dimensions must be greater than zero.");
+                $"The trim size {section.Trim} cannot be drawn. Both dimensions must be greater than zero.");
 
-        float contentWidth = descriptor.Trim.Width - descriptor.Margins.Horizontal;
+        float contentWidth = section.Trim.Width - section.Margins.Horizontal;
 
         if (contentWidth <= 0)
             throw new OversetException(
-                $"The horizontal margins ({descriptor.Margins.Horizontal:F1}) leave no room on a page {descriptor.Trim.Width:F1} points wide.");
+                $"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {section.Trim.Width:F1} points wide.");
 
-        float availableHeight = descriptor.Continuous
-            ? MaxPageHeight - descriptor.Margins.Vertical
-            : descriptor.Trim.Height - descriptor.Margins.Vertical;
+        float availableHeight = section.Continuous
+            ? MaxPageHeight - section.Margins.Vertical
+            : section.Trim.Height - section.Margins.Vertical;
 
         if (availableHeight <= 0)
             throw new OversetException(
-                $"The vertical margins ({descriptor.Margins.Vertical:F1}) leave no room on a page {descriptor.Trim.Height:F1} points tall.");
+                $"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {section.Trim.Height:F1} points tall.");
 
-        Bands bands = MeasureBands(descriptor, new Extent(contentWidth, availableHeight), layout);
-        float contentHeight = availableHeight - bands.HeaderHeight - bands.FooterHeight;
+        Bands bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
+        float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
 
         // Tolerate the same sub-epsilon overshoot every element accepts as fitting. A footer that fits by that
         // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
         if (contentHeight < -Extent.Epsilon)
             throw new OversetException(
-                $"The header ({bands.HeaderHeight:F1}) and footer ({bands.FooterHeight:F1}) together exceed the {availableHeight:F1} points available for content.");
+                $"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body.");
 
         Extent contentSpace = new Extent(contentWidth, contentHeight);
-        Fit contentPlan = descriptor.BodySlot.Plan(contentSpace, layout);
+        Fit contentPlan = section.BodySlot.Plan(contentSpace, layout);
 
         if (contentPlan.IsDeferred)
             throw new OversetException(
-                "The page content cannot be drawn even on an empty page, so no additional page would help. " +
-                $"Available space: {contentSpace}. Reason: {contentPlan.DeferReason}");
+                "The body cannot be set even on an empty page, so no further page would help. " +
+                $"Space available: {contentSpace}. Reason: {contentPlan.DeferReason}");
 
-        Extent pageSize = descriptor.Continuous
+        Extent pageSize = section.Continuous
             ? new Extent(
-                descriptor.Trim.Width,
-                Math.Min(MaxPageHeight, descriptor.Margins.Vertical + bands.HeaderHeight + contentPlan.Size.Height + bands.FooterHeight))
-            : descriptor.Trim;
+                section.Trim.Width,
+                Math.Min(MaxPageHeight, section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight))
+            : section.Trim;
 
         try
         {
-            DrawPage(descriptor, pageCanvas, context, pageSize, contentSpace, bands);
+            DrawPage(section, pages, context, pageSize, contentSpace, bands);
         }
         catch (Exception exception) when (exception is not OversetException and not RenderingException)
         {
             // Failures raised from user content — a component that throws, an image that cannot be drawn — are
             // otherwise reported with a stack trace that says nothing about where in the document they occurred.
             throw new RenderingException(
-                $"Drawing page {context.Page.CurrentPage} failed. See the inner exception for details.",
+                $"Drawing page {context.Pagination.Folio} failed. See the inner exception for details.",
                 exception);
         }
 
@@ -167,79 +167,79 @@ internal static class Typesetter
     }
 
     private static void DrawPage(
-        Section descriptor,
-        IPageSink pageCanvas,
+        Section section,
+        IPageSink pages,
         RenderContext context,
         Extent pageSize,
         Extent contentSpace,
         Bands bands)
     {
-        ISurface canvas = context.Canvas;
-        Sides margin = descriptor.Margins;
+        ISurface canvas = context.Surface;
+        Sides margin = section.Margins;
 
-        pageCanvas.BeginPage(pageSize);
+        pages.BeginPage(pageSize);
 
-        if (!descriptor.Paper.IsTransparent)
-            canvas.DrawRectangle(Offset.Zero, pageSize, descriptor.Paper);
+        if (!section.Paper.IsTransparent)
+            canvas.DrawRectangle(Offset.Zero, pageSize, section.Paper);
 
         // Background and foreground deliberately ignore margins so watermarks can bleed to the page edge.
-        descriptor.UnderlaySlot.Render(pageSize, context);
+        section.UnderlaySlot.Render(pageSize, context);
 
         Offset origin = new Offset(margin.Left, margin.Top);
         canvas.Translate(origin);
 
-        if (bands.HeaderHeight > 0)
-            descriptor.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeaderHeight), context);
+        if (bands.HeadHeight > 0)
+            section.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeadHeight), context);
 
-        canvas.Translate(new Offset(0, bands.HeaderHeight));
-        descriptor.BodySlot.Render(contentSpace, context);
-        canvas.Translate(new Offset(0, -bands.HeaderHeight));
+        canvas.Translate(new Offset(0, bands.HeadHeight));
+        section.BodySlot.Render(contentSpace, context);
+        canvas.Translate(new Offset(0, -bands.HeadHeight));
 
-        if (bands.FooterHeight > 0)
+        if (bands.FootHeight > 0)
         {
             // The footer sits against the bottom margin rather than immediately after the content.
-            float footerTop = pageSize.Height - margin.Vertical - bands.FooterHeight;
-            canvas.Translate(new Offset(0, footerTop));
-            descriptor.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FooterHeight), context);
-            canvas.Translate(new Offset(0, -footerTop));
+            float footTop = pageSize.Height - margin.Vertical - bands.FootHeight;
+            canvas.Translate(new Offset(0, footTop));
+            section.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FootHeight), context);
+            canvas.Translate(new Offset(0, -footTop));
         }
 
         canvas.Translate(origin.Reverse());
 
-        descriptor.OverlaySlot.Render(pageSize, context);
+        section.OverlaySlot.Render(pageSize, context);
 
-        pageCanvas.EndPage();
+        pages.EndPage();
     }
 
-    private static Bands MeasureBands(Section descriptor, Extent available, PlanContext layout)
+    private static Bands PlanBands(Section section, Extent available, PlanContext layout)
     {
-        Fit headerPlan = descriptor.RunningHeadSlot.Plan(available, layout);
+        Fit headPlan = section.RunningHeadSlot.Plan(available, layout);
 
-        if (headerPlan.IsDeferred)
+        if (headPlan.IsDeferred)
             throw new OversetException(
-                $"The page header does not fit in {available}. Reason: {headerPlan.DeferReason}");
+                $"The running head does not fit in {available}. Reason: {headPlan.DeferReason}");
 
-        Extent remaining = new Extent(available.Width, available.Height - headerPlan.Size.Height);
+        Extent remaining = new Extent(available.Width, available.Height - headPlan.Size.Height);
 
         if (remaining.IsNegative)
-            throw new OversetException($"The page header ({headerPlan.Size.Height:F1} points) is taller than the page.");
+            throw new OversetException($"The running head ({headPlan.Size.Height:F1} points) is taller than the page.");
 
-        // A header that swallows the whole page is nearly always an element that expands to fill whatever it is
-        // offered — vertical alignment or Extend — placed in a band that has no height of its own to work with.
+        // A running head that swallows the whole page nearly always holds content that expands to fill whatever
+        // it is offered — vertical placement or Expand — in a band with no height of its own to work with.
         if (remaining.Height <= Extent.Epsilon)
             throw new OversetException(
-                $"The page header claimed the entire {available.Height:F1} points available, leaving no room for content or footer. " +
-                "This usually means it contains an element that expands to fill the space offered to it, such as AlignMiddle, " +
-                "AlignBottom or Extend. Give the header an explicit Height, or remove the expanding element.");
+                $"The running head took all {available.Height:F1} points available, leaving no room for the body or the running foot. " +
+                "This usually means it holds content that expands to fill the space offered to it, such as Middle, " +
+                "FlushBottom or Expand. Give the running head an explicit Height, or remove the expanding content.");
 
-        Fit footerPlan = descriptor.RunningFootSlot.Plan(remaining, layout);
+        Fit footPlan = section.RunningFootSlot.Plan(remaining, layout);
 
-        if (footerPlan.IsDeferred)
+        if (footPlan.IsDeferred)
             throw new OversetException(
-                $"The page footer does not fit in {remaining}. Reason: {footerPlan.DeferReason}");
+                $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}");
 
-        return new Bands(headerPlan.Size.Height, footerPlan.Size.Height);
+        return new Bands(headPlan.Size.Height, footPlan.Size.Height);
     }
 
-    private readonly record struct Bands(float HeaderHeight, float FooterHeight);
+    private readonly record struct Bands(float HeadHeight, float FootHeight);
 }

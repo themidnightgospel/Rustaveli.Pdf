@@ -45,7 +45,7 @@ public sealed class TextComposer
     {
         return Add(new TextRun
         {
-            DynamicText = (Pagination page) => page.CurrentPage.ToString()
+            DynamicText = (Pagination page) => page.Folio.ToString()
         });
     }
 
@@ -57,7 +57,7 @@ public sealed class TextComposer
     {
         return Add(new TextRun
         {
-            DynamicText = (Pagination page) => page.TotalPages.ToString()
+            DynamicText = (Pagination page) => page.PageCount.ToString()
         });
     }
 
@@ -66,7 +66,7 @@ public sealed class TextComposer
     {
         return Add(new TextRun
         {
-            DynamicText = (Pagination page) => page.GetDestinationPage(sectionName)?.ToString() ?? "?"
+            DynamicText = (Pagination page) => page.FolioOf(sectionName)?.ToString() ?? "?"
         });
     }
 
@@ -86,7 +86,7 @@ public sealed class TextComposer
         return Add(new TextRun
         {
             Text = text,
-            Destination = sectionName
+            Anchor = sectionName
         });
     }
 
@@ -104,9 +104,9 @@ public sealed class TextComposer
         handler(container);
         if (container.Child != null)
         {
-            _block.Spans.Add(new TextRun
+            _block.Runs.Add(new TextRun
             {
-                InlineElement = container
+                Inline = container
             });
         }
     }
@@ -120,7 +120,7 @@ public sealed class TextComposer
     /// <summary>Inserts a vertical gap before every paragraph after the first.</summary>
     public void SpaceBetweenParagraphs(float spacing)
     {
-        _block.ParagraphSpacing = spacing;
+        _block.SpaceBetweenParagraphs = spacing;
     }
 
     public void FlushLeft()
@@ -141,16 +141,16 @@ public sealed class TextComposer
     /// <summary>Adjusts the style inherited by every span in this paragraph.</summary>
     public void DefaultType(Func<TypeStyle, TypeStyle> refinement)
     {
-        Func<TypeStyle, TypeStyle>? previous = _block.DefaultStyleOverride;
+        Func<TypeStyle, TypeStyle>? previous = _block.DefaultTypeRefinement;
 
-        _block.DefaultStyleOverride = previous is null
+        _block.DefaultTypeRefinement = previous is null
             ? refinement
             : style => refinement(previous(style));
     }
 
     private RunComposer Add(TextRun span)
     {
-        _block.Spans.Add(span);
+        _block.Runs.Add(span);
         return new RunComposer(span);
     }
 }

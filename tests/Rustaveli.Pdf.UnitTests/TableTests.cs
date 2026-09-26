@@ -145,7 +145,7 @@ public class TableTests
 
             descriptor.Cell().SpanColumns(2).Compose(inner => inner.Slot().Child = new ExpandBlock
             {
-                ExtendHorizontal = true,
+                Horizontally = true,
                 Child = new FixedBlock(1, 10)
             });
         });

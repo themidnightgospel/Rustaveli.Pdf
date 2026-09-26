@@ -52,7 +52,7 @@ internal sealed class TurnBlock : EnclosingBlock
             ? new Extent(availableSpace.Height, availableSpace.Width)
             : availableSpace;
 
-        Fit childPlan = Child.Plan(innerSpace, context.Layout);
+        Fit childPlan = Child.Plan(innerSpace, context.Planning);
 
         if (childPlan.IsDeferred || childPlan.IsNothing)
             return;
@@ -68,10 +68,10 @@ internal sealed class TurnBlock : EnclosingBlock
             _ => Offset.Zero
         };
 
-        context.Canvas.Save();
-        context.Canvas.Translate(recentre);
-        context.Canvas.Rotate(QuarterTurns * 90f);
+        context.Surface.Save();
+        context.Surface.Translate(recentre);
+        context.Surface.Rotate(QuarterTurns * 90f);
         Child.Render(innerSpace, context);
-        context.Canvas.Restore();
+        context.Surface.Restore();
     }
 }

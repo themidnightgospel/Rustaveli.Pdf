@@ -9,5 +9,5 @@ namespace Rustaveli.Pdf.Text;
 internal readonly record struct TypeMetrics(float Ascent, float Descent, float LineGap)
 {
     /// <summary>Total height occupied by one line of this font.</summary>
-    public float LineHeight => Ascent + Descent + LineGap;
+    public float LineSpacing => Ascent + Descent + LineGap;
 }

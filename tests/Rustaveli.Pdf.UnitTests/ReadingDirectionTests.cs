@@ -6,8 +6,8 @@ public class ReadingDirectionTests
     {
         ColumnsBlock row = new ColumnsBlock();
 
-        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Constant, Value = 50, Child = new FixedBlock(1, 10, TestInks.Red) });
-        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Constant, Value = 50, Child = new FixedBlock(1, 10, TestInks.Blue) });
+        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Fixed, Value = 50, Child = new FixedBlock(1, 10, TestInks.Red) });
+        row.Items.Add(new ColumnSlot { Sizing = ColumnSizing.Fixed, Value = 50, Child = new FixedBlock(1, 10, TestInks.Blue) });
 
         return row;
     }
@@ -16,7 +16,7 @@ public class ReadingDirectionTests
     public void RowsInheritDirectionFromTheContext()
     {
         PlanContext context = LayoutHarness.Context();
-        context.ContentDirection = ReadingDirection.RightToLeft;
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(TwoColumnRow(), new Extent(200, 100), context);
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
@@ -28,10 +28,10 @@ public class ReadingDirectionTests
     public void AnExplicitRowDirectionOverridesTheContext()
     {
         ColumnsBlock row = TwoColumnRow();
-        row.Direction = ReadingDirection.LeftToRight;
+        row.ReadingDirection = ReadingDirection.LeftToRight;
 
         PlanContext context = LayoutHarness.Context();
-        context.ContentDirection = ReadingDirection.RightToLeft;
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100), context);
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
@@ -46,7 +46,7 @@ public class ReadingDirectionTests
         new TextComposer(element).Run("Hello");
 
         PlanContext context = LayoutHarness.Context();
-        context.ContentDirection = ReadingDirection.RightToLeft;
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100), context);
         TextOperation text = Assert.Single(page.Texts);
@@ -63,7 +63,7 @@ public class ReadingDirectionTests
         element.Alignment = HorizontalPlacement.Left;
 
         PlanContext context = LayoutHarness.Context();
-        context.ContentDirection = ReadingDirection.RightToLeft;
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(100, 100), context);
 
@@ -91,7 +91,7 @@ public class ReadingDirectionTests
 
         LayoutHarness.Draw(root, new Extent(200, 100), context);
 
-        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ReadingDirection);
     }
 
     [Theory]
@@ -111,7 +111,7 @@ public class ReadingDirectionTests
         Fit plan = LayoutHarness.Measure(root, new Extent(200, 100), context);
 
         Approximately.Equal(expectedWidth, plan.Size.Width);
-        Assert.Equal(ReadingDirection.LeftToRight, context.ContentDirection);
+        Assert.Equal(ReadingDirection.LeftToRight, context.ReadingDirection);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class ReadingDirectionTests
         descriptor.Cell().Compose(container => container.Slot().Child = new FixedBlock(1, 10, TestInks.Blue));
         descriptor.PlaceAutomaticCells();
 
-        element.Direction = ReadingDirection.RightToLeft;
+        element.ReadingDirection = ReadingDirection.RightToLeft;
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(120, 100));
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);

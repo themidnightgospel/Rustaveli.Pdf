@@ -40,7 +40,7 @@ public class ParagraphIndentTests
         // An Auto row item derives its width from the measured width. If that width excluded the indent, the
         // text would be re-wrapped into a box narrower than it needs and collapse to one character per line.
         ColumnsBlock row = new ColumnsBlock();
-        ColumnSlot item = new ColumnSlot { Sizing = ColumnSizing.Auto };
+        ColumnSlot item = new ColumnSlot { Sizing = ColumnSizing.Natural };
 
         TextBlock text = Text(descriptor =>
         {
@@ -96,7 +96,7 @@ public class ParagraphIndentTests
         });
 
         PlanContext context = LayoutHarness.Context();
-        context.ContentDirection = ReadingDirection.RightToLeft;
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
         Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(48, 500), context).Size.Height);
     }

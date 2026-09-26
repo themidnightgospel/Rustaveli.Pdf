@@ -37,7 +37,7 @@ public class InheritedTypeTests
 
         LayoutHarness.Draw(root, new Extent(500, 500), context);
 
-        Approximately.Equal(TypeStyle.Default.PointSize, context.DefaultTextStyle.PointSize);
+        Approximately.Equal(TypeStyle.Default.PointSize, context.DefaultType.PointSize);
     }
 
     [Fact]
@@ -52,6 +52,6 @@ public class InheritedTypeTests
 
         // Two characters at 12pt each, on a 24pt line.
         Approximately.Equal(new Extent(24, 24), plan.Size);
-        Approximately.Equal(TypeStyle.Default.PointSize, context.DefaultTextStyle.PointSize);
+        Approximately.Equal(TypeStyle.Default.PointSize, context.DefaultType.PointSize);
     }
 }

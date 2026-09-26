@@ -24,14 +24,14 @@ internal sealed class UnboundedBlock : EnclosingBlock
             return childPlan;
 
         if (childPlan.IsPartial)
-            return Fit.Defer("Unconstrained content does not fit even in the maximum page size, so the remainder would be lost.");
+            return Fit.Defer("Unbounded content does not fit even on the largest page, so the rest would be lost.");
 
         return Fit.Complete(Extent.Zero);
     }
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        Fit childPlan = Child?.Plan(Extent.Max, context.Layout) ?? Fit.Complete(Extent.Zero);
+        Fit childPlan = Child?.Plan(Extent.Max, context.Planning) ?? Fit.Complete(Extent.Zero);
 
         if (childPlan.IsDeferred || childPlan.IsNothing)
             return;

@@ -37,7 +37,7 @@ internal sealed class PlacementBlock : EnclosingBlock
         if (Child is null)
             return;
 
-        Fit childPlan = Child.Plan(availableSpace, context.Layout);
+        Fit childPlan = Child.Plan(availableSpace, context.Planning);
 
         if (childPlan.IsDeferred || childPlan.IsNothing)
             return;
@@ -46,7 +46,7 @@ internal sealed class PlacementBlock : EnclosingBlock
             HorizontalOffset(availableSpace.Width, childPlan.Size.Width),
             VerticalOffset(availableSpace.Height, childPlan.Size.Height));
 
-        context.Canvas.Translate(offset);
+        context.Surface.Translate(offset);
 
         // The child occupies the box it measured, placed by the offset above (ADR 0012). Given the whole space
         // instead, content that positions itself — right-aligned or right-to-left text — would be offset a second
@@ -54,7 +54,7 @@ internal sealed class PlacementBlock : EnclosingBlock
         // already fits, and none can take a word more than it did in the wider box.
         Child.Render(childPlan.Size, context);
 
-        context.Canvas.Translate(offset.Reverse());
+        context.Surface.Translate(offset.Reverse());
     }
 
     private float HorizontalOffset(float available, float child) => Horizontal switch

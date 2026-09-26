@@ -47,7 +47,7 @@ public class RuleAndPlaceholderTests
     [InlineData(4.9f, true)]
     public void HorizontalRuleWrapsWhenThickerThanTheSpace(float availableHeight, bool wraps)
     {
-        RuleBlock element = new RuleBlock { Thickness = 5 };
+        RuleBlock element = new RuleBlock { Weight = 5 };
 
         Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(200, availableHeight)).IsDeferred);
     }
@@ -55,7 +55,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void HorizontalRuleIsPaintedAcrossTheWidthInItsColour()
     {
-        RuleBlock element = new RuleBlock { Thickness = 3, Ink = TestInks.Red };
+        RuleBlock element = new RuleBlock { Weight = 3, Ink = TestInks.Red };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
@@ -68,7 +68,7 @@ public class RuleAndPlaceholderTests
     [InlineData(4.9f, true)]
     public void VerticalRuleWrapsWhenThickerThanTheSpace(float availableWidth, bool wraps)
     {
-        VerticalRuleBlock element = new VerticalRuleBlock { Thickness = 5 };
+        VerticalRuleBlock element = new VerticalRuleBlock { Weight = 5 };
 
         Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(availableWidth, 100)).IsDeferred);
     }
@@ -76,7 +76,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void VerticalRuleIsPaintedDownTheHeightInItsColour()
     {
-        VerticalRuleBlock element = new VerticalRuleBlock { Thickness = 2, Ink = TestInks.Blue };
+        VerticalRuleBlock element = new VerticalRuleBlock { Weight = 2, Ink = TestInks.Blue };
 
         RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
