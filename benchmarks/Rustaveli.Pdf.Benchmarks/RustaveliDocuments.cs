@@ -19,14 +19,14 @@ public static class RustaveliDocuments
         }
     }
 
-    private static Document Build(DocumentKind kind, List<SkiaImage> images) => Document.Compose(container => container.Section(page =>
+    private static Document Build(DocumentKind kind, List<SkiaImage> images) => Document.Compose(composition => composition.Section(section =>
     {
-        page.Trim = PaperSizes.A4;
-        page.Margins = Sides.All(40f);
-        page.DefaultType = TypeStyle.Default.WithTypeface(BenchmarkFonts.Family).WithPointSize(10f);
+        section.Trim = PaperSizes.A4;
+        section.Margins = Sides.All(40f);
+        section.DefaultType = TypeStyle.Default.WithTypeface(BenchmarkFonts.Family).WithPointSize(10f);
 
-        page.RunningHead().InsetBottom(10f).Text(kind.ToString());
-        page.RunningFoot().Centered().Text(text =>
+        section.RunningHead().InsetBottom(10f).Text(kind.ToString());
+        section.RunningFoot().Centered().Text(text =>
         {
             text.Run("Page ");
             text.Folio();
@@ -37,42 +37,42 @@ public static class RustaveliDocuments
         switch (kind)
         {
             case DocumentKind.Invoice:
-                page.Body().Stack(column =>
+                section.Body().Stack(stack =>
                 {
-                    column.SpaceBetween(12f);
-                    column.Add().Columns(row =>
+                    stack.SpaceBetween(12f);
+                    stack.Add().Columns(columns =>
                     {
-                        row.Share().Text("Invoice INV-2026-0042\nIssued 26 September 2026");
-                        row.Fixed(160f).Text("Customer\nRustaveli Avenue 1\nTbilisi");
+                        columns.Share().Text("Invoice INV-2026-0042\nIssued 26 September 2026");
+                        columns.Fixed(160f).Text("Customer\nRustaveli Avenue 1\nTbilisi");
                     });
-                    column.Add().Table(table => ItemTable(table, BenchmarkData.InvoiceLines));
-                    column.Add().FlushRight().Text("Total due 12 345.67");
+                    stack.Add().Table(table => ItemTable(table, BenchmarkData.InvoiceLines));
+                    stack.Add().FlushRight().Text("Total due 12 345.67");
                 });
                 break;
 
             case DocumentKind.Report:
-                page.Body().Stack(column =>
+                section.Body().Stack(stack =>
                 {
-                    column.SpaceBetween(6f);
+                    stack.SpaceBetween(6f);
                     foreach (string paragraph in BenchmarkData.ReportParagraphs)
-                        column.Add().Text(paragraph);
+                        stack.Add().Text(paragraph);
                 });
                 break;
 
             case DocumentKind.LargeTable:
-                page.Body().Table(table => ItemTable(table, BenchmarkData.TableRows));
+                section.Body().Table(table => ItemTable(table, BenchmarkData.TableRows));
                 break;
 
             case DocumentKind.Images:
-                page.Body().Stack(column =>
+                section.Body().Stack(stack =>
                 {
-                    column.SpaceBetween(8f);
+                    stack.SpaceBetween(8f);
                     for (int index = 0; index < 40; index++)
                     {
                         SkiaImage image = SkiaImage.FromBytes(BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
                         images.Add(image);
-                        column.Add().Image(image, ImageFitting.FitWidth);
-                        column.Add().Text($"Figure {index + 1}");
+                        stack.Add().Image(image, ImageFitting.FitWidth);
+                        stack.Add().Text($"Figure {index + 1}");
                     }
                 });
                 break;
