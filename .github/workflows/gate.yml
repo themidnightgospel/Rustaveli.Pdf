@@ -42,11 +42,28 @@ jobs:
             mutate: >-
               --mutate "**/Blocks/[M-Z]*.cs" --mutate "!**/Blocks/TextBlock.cs"
               --mutate "!**/Blocks/TableBlock.cs" --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs"
+              --mutate "!**/Text/TypeShaper.cs" --mutate "!**/Text/GlyphWalk.cs" --mutate "!**/Text/OpenTypeMeasurer.cs"
           - name: primitives
             mutate: --mutate "**/Primitives/**/*.cs"
           - name: composition-drawing
             mutate: >-
               --mutate "**/Composition/**/*.cs" --mutate "**/Drawing/**/*.cs" --mutate "**/Exceptions/**/*.cs"
+          - name: writing
+            mutate: --mutate "**/Writing/**/*.cs"
+          - name: fonts
+            mutate: --mutate "**/Fonts/**/*.cs" --mutate "!**/Fonts/TypefaceLibrary.cs"
+          - name: images
+            mutate: --mutate "**/Images/**/*.cs"
+          # Shaping, the PDF surface and the typeface library are checked by reading real files back, so this shard
+          # runs the integration tests too — and those need the system's fallback fonts.
+          - name: typesetting-output
+            fonts: true
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: >-
+              --mutate "**/Output/**/*.cs" --mutate "**/Fonts/TypefaceLibrary.cs" --mutate "**/Text/TypeShaper.cs"
+              --mutate "**/Text/GlyphWalk.cs" --mutate "**/Text/OpenTypeMeasurer.cs"
     steps:
       - uses: actions/checkout@v4
 
@@ -62,9 +79,15 @@ jobs:
 
       - run: dotnet tool restore
 
+      - name: Install fallback fonts
+        if: matrix.shard.fonts
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk
+
       # Four test runners: the hosted runner has four cores, and Stryker's default of half the cores leaves two idle.
       - name: Mutation testing
-        run: dotnet stryker --config-file stryker-config.json --concurrency 4 ${{ matrix.shard.mutate }}
+        run: >
+          dotnet stryker --config-file stryker-config.json --concurrency 4
+          ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
         if: always()
