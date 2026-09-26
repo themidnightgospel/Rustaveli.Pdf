@@ -1,8 +1,4 @@
 using System.Diagnostics;
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
 using UglyToad.PdfPig;
 using Xunit.Abstractions;
 
@@ -20,21 +16,21 @@ public class PerformanceReportTests(ITestOutputHelper output)
 {
     private static byte[] GenerateTable(int rowCount)
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
+            page.Trim = PaperSizes.A4;
+            page.Margins = Sides.All(30);
 
-            page.Content().Table(table =>
+            page.Body().Table(table =>
             {
-                table.ColumnsDefinition(columns =>
+                table.Columns(columns =>
                 {
-                    columns.ConstantColumn(80);
-                    columns.RelativeColumn();
-                    columns.ConstantColumn(60);
+                    columns.Fixed(80);
+                    columns.Share();
+                    columns.Fixed(60);
                 });
 
-                table.Header(header =>
+                table.HeaderRows(header =>
                 {
                     header.Cell().Text("Code");
                     header.Cell().Text("Description");
@@ -43,33 +39,33 @@ public class PerformanceReportTests(ITestOutputHelper output)
 
                 for (int index = 0; index < rowCount; index++)
                 {
-                    table.Cell().Padding(2).Text($"SKU-{index:D4}");
-                    table.Cell().Padding(2).Text($"Description for row {index}");
-                    table.Cell().Padding(2).Text($"{index * 3.25m:F2}");
+                    table.Cell().Inset(2).Text($"SKU-{index:D4}");
+                    table.Cell().Inset(2).Text($"Description for row {index}");
+                    table.Cell().Inset(2).Text($"{index * 3.25m:F2}");
                 }
             });
         }));
 
-        return document.GeneratePdf();
+        return document.ExportPdf();
     }
 
     private static byte[] GenerateColumn(int itemCount)
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
+            page.Trim = PaperSizes.A4;
+            page.Margins = Sides.All(30);
 
-            page.Content().Column(column =>
+            page.Body().Stack(column =>
             {
-                column.Spacing(2);
+                column.SpaceBetween(2);
 
                 for (int index = 0; index < itemCount; index++)
-                    column.Item().Text($"Paragraph {index}: the quick brown fox jumps over the lazy dog.");
+                    column.Add().Text($"Paragraph {index}: the quick brown fox jumps over the lazy dog.");
             });
         }));
 
-        return document.GeneratePdf();
+        return document.ExportPdf();
     }
 
     [Theory]

@@ -1,35 +1,33 @@
-using Rustaveli.Pdf.Exceptions;
-
 namespace Rustaveli.Pdf.UnitTests;
 
 /// <summary>
 /// Elements placed among the words of a paragraph.
 /// </summary>
 /// <remarks>
-/// Against <see cref="FakeTextMeasurer"/>: characters are 6pt wide and lines 12pt tall at the default size.
+/// Against <see cref="FakeTypeMeasurer"/>: characters are 6pt wide and lines 12pt tall at the default size.
 /// </remarks>
 public class InlineContentTests
 {
     private const float LineHeight = 12f;
 
-    private static TextElement Text(Action<TextDescriptor> compose)
+    private static TextBlock Text(Action<TextComposer> compose)
     {
-        TextElement element = new TextElement();
-        compose(new TextDescriptor(element));
+        TextBlock element = new TextBlock();
+        compose(new TextComposer(element));
         return element;
     }
 
     [Fact]
-    public void AnInlineElementIsDrawnAmongTheWords()
+    public void AnInlineFrameIsDrawnAmongTheWords()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
-            text.Span("before");
-            text.Element(inline => inline.Child = new FixedElement(20, 10, Colors.Red));
-            text.Span("after");
+            text.Run("before");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10, TestInks.Red));
+            text.Run("after");
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         // Six characters at 6pt, so the element starts right after "before".
@@ -37,16 +35,16 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void TextAfterAnInlineElementContinuesPastIt()
+    public void TextAfterAnInlineFrameContinuesPastIt()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 10));
-            text.Span("cd");
+            text.Run("ab");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10));
+            text.Run("cd");
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         List<TextOperation> drawn = page.Texts.ToList();
 
         Approximately.Equal(0f, drawn[0].Position.X);
@@ -56,27 +54,27 @@ public class InlineContentTests
     [Fact]
     public void ItsWidthCountsTowardsTheLine()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 10));
+            text.Run("ab");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         Approximately.Equal(32f, plan.Size.Width);
     }
 
     [Fact]
-    public void ATallElementRaisesTheLineItLandsOn()
+    public void ATallInlineFrameRaisesTheLineItLandsOn()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 40));
+            text.Run("ab");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 40));
         });
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         // The element occupies 40pt above the baseline; the text beside it still hangs its 2.4pt descender
         // below, so the line is the sum rather than just the taller of the two.
@@ -84,28 +82,28 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AShortElementLeavesTheLineHeightAlone()
+    public void AShortInlineFrameLeavesTheLineSpacingAlone()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 4));
+            text.Run("ab");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 4));
         });
 
-        Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Size(500, 500)).Size.Height);
+        Approximately.Equal(LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
     }
 
     [Fact]
     public void ItRestsOnTheBaseline()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
-            text.Span("ab");
-            text.Element(inline => inline.Child = new FixedElement(20, 6, Colors.Red));
+            text.Run("ab");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 6, TestInks.Red));
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
-        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
+        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
 
         // Baseline is 80% of the 12pt line; a 6pt element sits directly above it.
         Approximately.Equal(9.6f - 6f, block.Position.Y);
@@ -114,43 +112,43 @@ public class InlineContentTests
     [Fact]
     public void ItMovesToTheNextLineWholeRatherThanBeingSplit()
     {
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
-            text.Span("aaaa");
-            text.Element(inline => inline.Child = new FixedElement(20, 10, Colors.Red));
+            text.Run("aaaa");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 10, TestInks.Red));
         });
 
         // 24pt of text plus a 20pt element exceeds 30pt, so the element wraps.
-        RecordedPage page = LayoutHarness.Draw(element, new Size(30, 500));
-        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Color == Colors.Red);
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(30, 500));
+        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
 
         Approximately.Equal(0f, block.Position.X);
         Assert.True(block.Position.Y > 0, "The element should have moved onto the second line.");
     }
 
     [Fact]
-    public void AnInlineElementCanCarryALink()
+    public void AnInlineFrameCanCarryALink()
     {
-        TextElement element = new TextElement();
-        Container container = new Container();
-        container.Child = new FixedElement(20, 10);
-        element.Spans.Add(new Text.TextSpan { InlineElement = container, Url = "https://example.com" });
+        TextBlock element = new TextBlock();
+        Frame container = new Frame();
+        container.Slot().Child = new FixedBlock(20, 10);
+        element.Runs.Add(new Text.TextRun { Inline = container, Url = "https://example.com" });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
 
         Assert.Single(page.Operations.OfType<ExternalLinkOperation>());
     }
 
     [Fact]
-    public void InlineElementsAreResetBetweenPasses()
+    public void InlineFramesAreResetBetweenPasses()
     {
         // The paragraph must expose them as children, or their pagination state would survive a new pass.
-        SplittableElement splittable = new SplittableElement(unitCount: 2, unitHeight: 10);
-        TextElement element = new TextElement();
-        Container container = new Container { Child = splittable };
-        element.Spans.Add(new Text.TextSpan { InlineElement = container });
+        SplittableBlock splittable = new SplittableBlock(unitCount: 2, unitHeight: 10);
+        TextBlock element = new TextBlock();
+        Frame container = new Frame { Child = splittable };
+        element.Runs.Add(new Text.TextRun { Inline = container });
 
-        LayoutHarness.Draw(element, new Size(500, 500));
+        LayoutHarness.Draw(element, new Extent(500, 500));
         Assert.Equal(0, splittable.Remaining);
 
         element.ResetState();
@@ -161,28 +159,28 @@ public class InlineContentTests
     [Fact]
     public void APlainParagraphIsUnaffected()
     {
-        TextElement element = Text(text => text.Span("hello"));
+        TextBlock element = Text(text => text.Run("hello"));
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(500, 500));
+        Fit plan = LayoutHarness.Measure(element, new Extent(500, 500));
 
         Approximately.Equal(30f, plan.Size.Width);
         Approximately.Equal(LineHeight, plan.Size.Height);
     }
 
     [Fact]
-    public void AParagraphKeepsEveryWordWhenAnInlineElementPrecedesAPageBreak()
+    public void AParagraphKeepsEveryWordWhenAnInlineFramePrecedesANewPage()
     {
         // Regression: Draw re-runs BuildLines on every page and re-measures each inline element. An inline
         // element already consumed on page 1 reports Empty on page 2, so its run is dropped, every later line
         // shifts up by one, and _completedLines — an index into the *old* wrapping — skips a line of text.
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Size(60, 13);
-            page.Margin = Edges.All(0);
-            page.Content().Text(text =>
+            page.Trim = new Extent(60, 13);
+            page.Margins = Sides.All(0);
+            page.Body().Text(text =>
             {
-                text.Element(inline => inline.Text(nested => nested.Span("IIIIIIIIII")));
-                text.Span("aaaaa bbbbb ccccc");
+                text.Inline(inline => inline.Text(nested => nested.Run("IIIIIIIIII")));
+                text.Run("aaaaa bbbbb ccccc");
             });
         }));
 
@@ -192,33 +190,33 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementTooWideForItsLineIsReportedRatherThanDropped()
+    public void AnInlineFrameTooWideForItsLineIsReportedRatherThanDropped()
     {
         // Regression: the element used to be skipped outright, so the logo vanished from the document and the
         // paragraph still claimed FullRender — content lost with nothing to show for it.
-        Element element = LayoutHarness.Build(container => container.Text(text =>
+        Block element = LayoutHarness.Build(container => container.Text(text =>
         {
-            text.Span("logo:");
-            text.Element(inline => inline.Width(200).Height(20));
+            text.Run("logo:");
+            text.Inline(inline => inline.Width(200).Height(20));
         }));
 
-        Assert.True(LayoutHarness.Measure(element, new Size(100, 200)).IsWrap);
+        Assert.True(LayoutHarness.Measure(element, new Extent(100, 200)).IsDeferred);
     }
 
     [Fact]
-    public void AnInlineElementGivenAnExplicitHeightSitsAmongTheWords()
+    public void AnInlineFrameGivenAnExplicitHeightSitsAmongTheWords()
     {
         // Regression: inline elements were measured against Size.Max.Height, so a bounded element nested under
         // one that fills its space reported 14400pt and made the paragraph impossible to place at all.
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Size(300, 200);
-            page.Margin = Edges.All(10);
-            page.Content().Text(text =>
+            page.Trim = new Extent(300, 200);
+            page.Margins = Sides.All(10);
+            page.Body().Text(text =>
             {
-                text.Span("An icon ");
-                text.Element(inline => inline.Width(10).Height(10).AlignMiddle());
-                text.Span(" follows.");
+                text.Run("An icon ");
+                text.Inline(inline => inline.Width(10).Height(10).Middle());
+                text.Run(" follows.");
             });
         }));
 
@@ -226,49 +224,49 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementThatFillsItsHeightIsNamedInTheDiagnostic()
+    public void AnInlineFrameThatFillsItsHeightIsNamedInTheDiagnostic()
     {
         // It cannot be placed — it claims the whole page by definition — but the error used to blame the text
         // height, which sends the reader looking at font sizes instead of at the element.
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Size(300, 200);
-            page.Margin = Edges.All(10);
-            page.Content().Text(text =>
+            page.Trim = new Extent(300, 200);
+            page.Margins = Sides.All(10);
+            page.Body().Text(text =>
             {
-                text.Span("An icon ");
-                text.Element(inline => inline.AlignMiddle().Width(10).Height(10));
+                text.Run("An icon ");
+                text.Inline(inline => inline.Middle().Width(10).Height(10));
             });
         }));
 
-        DocumentLayoutException exception = Assert.Throws<Pdf.Exceptions.DocumentLayoutException>(() => LayoutHarness.Render(document));
+        OversetException exception = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Contains("inline", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("AlignMiddle", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Middle, FlushBottom or Expand", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AParagraphBlockedByAnInlineElementDrawsNothing()
+    public void AParagraphBlockedByAnInlineFrameDrawsNothing()
     {
         // Measure has reported a wrap. Drawing the lines completed before the blocker would split the paragraph
         // across two pages and then repeat those lines on the next.
-        TextElement element = Text(text =>
+        TextBlock element = Text(text =>
         {
             text.Line("aaa");
-            text.Element(inline => inline.Child = new FixedElement(200, 20));
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(200, 20));
         });
 
-        Assert.Empty(LayoutHarness.Draw(element, new Size(100, 200)).Operations);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(100, 200)).Operations);
     }
 
     [Fact]
-    public void AnInlineElementCanLinkToASection()
+    public void AnInlineFrameCanCrossReferenceAnAnchor()
     {
-        TextElement element = new TextElement();
-        element.Spans.Add(new Text.TextSpan { Text = "ab" });
-        element.Spans.Add(new Text.TextSpan { InlineElement = new Container { Child = new FixedElement(20, 10) }, Destination = "intro" });
+        TextBlock element = new TextBlock();
+        element.Runs.Add(new Text.TextRun { Text = "ab" });
+        element.Runs.Add(new Text.TextRun { Inline = new Frame { Child = new FixedBlock(20, 10) }, Anchor = "intro" });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(500, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
 
         // The element starts after the two 6pt characters and rests on a baseline its own 10pt height sets.
@@ -277,18 +275,18 @@ public class InlineContentTests
     }
 
     [Fact]
-    public void AnInlineElementOnAContinuationLineIsOfferedTheFullWidth()
+    public void AnInlineFrameOnAContinuationLineIsOfferedTheFullWidth()
     {
         // Only a paragraph's opening line is indented, so an element landing on a later line may use the whole
         // width. The placeholder takes whatever width it is offered, which makes the budget visible.
-        TextElement element = new TextElement { FirstLineIndent = 20 };
-        element.Spans.Add(new Text.TextSpan { Text = "aaaa bbbb" });
-        element.Spans.Add(new Text.TextSpan
+        TextBlock element = new TextBlock { FirstLineIndent = 20 };
+        element.Runs.Add(new Text.TextRun { Text = "aaaa bbbb" });
+        element.Runs.Add(new Text.TextRun
         {
-            InlineElement = new Container { Child = new ConstrainedElement { MaxHeight = 10, Child = new PlaceholderElement() } }
+            Inline = new Frame { Child = new ConstraintBlock { MaxHeight = 10, Child = new PlaceholderBlock() } }
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(60, 500));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(60, 500));
         RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         Approximately.Equal(0f, block.Position.X);

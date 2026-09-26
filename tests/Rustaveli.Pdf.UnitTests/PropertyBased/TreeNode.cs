@@ -7,7 +7,7 @@ namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 /// <param name="Amount">Kind-specific: word count for text, height for a box, spacing for a column, padding.</param>
 /// <param name="Sizes">For a row, each item's width (positive: constant, zero: relative); for a table, its column count.</param>
 /// <param name="Children">Nested nodes.</param>
-public sealed record TreeNode(NodeKind Kind, int Amount, IReadOnlyList<int> Sizes, IReadOnlyList<TreeNode> Children)
+internal sealed record TreeNode(NodeKind Kind, int Amount, IReadOnlyList<int> Sizes, IReadOnlyList<TreeNode> Children)
 {
     public override string ToString() => Kind switch
     {

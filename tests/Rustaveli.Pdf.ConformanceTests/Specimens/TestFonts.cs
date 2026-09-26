@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Skia;
-
 namespace Rustaveli.Pdf.ConformanceTests.Specimens;
 
 /// <summary>

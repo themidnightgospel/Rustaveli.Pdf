@@ -1,5 +1,5 @@
 using CsCheck;
-using Size = Rustaveli.Pdf.Primitives.Size;
+using Size = Rustaveli.Pdf.Extent;
 
 namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 
@@ -17,18 +17,18 @@ public class LayoutPropertyTests
     private static (Document Document, string Written) Build(TreeNode tree)
     {
         TreeComposer composer = new TreeComposer();
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = PageSize;
-            page.Margin = Edges.All(20);
-            page.DefaultTextStyle = TextStyle.Default.FontSizeOf(8);
-            composer.Compose(page.Content(), tree);
+            page.Trim = PageSize;
+            page.Margins = Sides.All(20);
+            page.DefaultType = TypeStyle.Default.WithPointSize(8);
+            composer.Compose(page.Body(), tree);
         }));
 
         return (document, composer.WrittenText);
     }
 
-    private static string Drawn(RecordingCanvas canvas) =>
+    private static string Drawn(RecordingSurface canvas) =>
         string.Concat(canvas.Pages.SelectMany(page => page.Texts).Select(text => text.Text)).Replace(" ", string.Empty);
 
     private static string Sorted(string text) => new string(text.OrderBy(character => character).ToArray());
@@ -53,8 +53,8 @@ public class LayoutPropertyTests
     {
         TreeGenerator.Tree.Sample(tree =>
         {
-            RecordingCanvas first = LayoutHarness.Render(Build(tree).Document);
-            RecordingCanvas second = LayoutHarness.Render(Build(tree).Document);
+            RecordingSurface first = LayoutHarness.Render(Build(tree).Document);
+            RecordingSurface second = LayoutHarness.Render(Build(tree).Document);
 
             Assert.Equal(first.Pages.Count, second.Pages.Count);
             for (int index = 0; index < first.Pages.Count; index++)
@@ -67,7 +67,7 @@ public class LayoutPropertyTests
     {
         TreeGenerator.Tree.Sample(tree =>
         {
-            RecordingCanvas canvas = LayoutHarness.Render(Build(tree).Document);
+            RecordingSurface canvas = LayoutHarness.Render(Build(tree).Document);
 
             foreach (RecordedPage page in canvas.Pages)
             {
@@ -94,15 +94,15 @@ public class LayoutPropertyTests
         TreeGenerator.Tree.Sample(tree =>
         {
             TreeComposer composer = new TreeComposer();
-            Element root = LayoutHarness.Build(container => composer.Compose(container, tree));
+            Block root = LayoutHarness.Build(container => composer.Compose(container, tree));
             Size space = new Size(360, 460);
 
-            SpacePlan first = LayoutHarness.Measure(root, space);
-            SpacePlan second = LayoutHarness.Measure(root, space);
-            RecordedPage drawnAfterMeasuring = LayoutHarness.Draw(root, first.IsWrap || first.IsEmpty ? space : first.Size);
+            Fit first = LayoutHarness.Measure(root, space);
+            Fit second = LayoutHarness.Measure(root, space);
+            RecordedPage drawnAfterMeasuring = LayoutHarness.Draw(root, first.IsDeferred || first.IsNothing ? space : first.Size);
 
-            Element fresh = LayoutHarness.Build(container => new TreeComposer().Compose(container, tree));
-            RecordedPage drawnFresh = LayoutHarness.Draw(fresh, first.IsWrap || first.IsEmpty ? space : first.Size);
+            Block fresh = LayoutHarness.Build(container => new TreeComposer().Compose(container, tree));
+            RecordedPage drawnFresh = LayoutHarness.Draw(fresh, first.IsDeferred || first.IsNothing ? space : first.Size);
 
             Assert.Equal(first, second);
             Assert.Equal(drawnFresh.Operations, drawnAfterMeasuring.Operations);

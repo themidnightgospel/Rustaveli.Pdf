@@ -1,6 +1,5 @@
 using Rustaveli.Pdf.ConformanceTests.Rendering;
 using Rustaveli.Pdf.ConformanceTests.Specimens;
-using Rustaveli.Pdf.Skia;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.ConformanceTests;
@@ -19,7 +18,7 @@ public class VisualTests
     public void MatchesApprovedSnapshots(Specimen specimen)
     {
         TestFonts.EnsureRegistered();
-        byte[] pdf = specimen.Build().GeneratePdf();
+        byte[] pdf = specimen.Build().ExportPdf();
 
         List<SKBitmap> pages = PageRenderer.Render(pdf, DotsPerInch);
         try

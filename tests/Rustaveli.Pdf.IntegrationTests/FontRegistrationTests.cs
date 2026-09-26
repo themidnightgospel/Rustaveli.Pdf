@@ -1,8 +1,4 @@
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
 using Rustaveli.Pdf.Skia;
-using Rustaveli.Pdf.Text;
 using SkiaSharp;
 using UglyToad.PdfPig;
 
@@ -27,8 +23,8 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
         using FileStream stream = File.OpenRead(FontFile);
         fonts.Register(stream);
 
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
-        TextStyle style = TextStyle.Default.FontFamilyOf(TestFonts.Sans);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
+        TypeStyle style = TypeStyle.Default.WithTypeface(TestFonts.Sans);
 
         Assert.Equal(TestFonts.Sans, fonts.GetTypeface(style).FamilyName);
         Assert.True(measurer.GetMetrics(style).Ascent > 0, "A registered font must report a positive ascent.");
@@ -60,14 +56,14 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
         using FileStream stream = File.OpenRead(FontFile);
         fonts.Register(stream);
 
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(30);
-            page.Content().Text("Rendered with a registered font");
+            page.Trim = PaperSizes.A4;
+            page.Margins = Sides.All(30);
+            page.Body().Text("Rendered with a registered font");
         }));
 
-        byte[] bytes = document.GeneratePdf(new PdfGenerationOptions { Fonts = fonts });
+        byte[] bytes = document.ExportPdf(new PdfExportOptions { Fonts = fonts });
 
         using PdfDocument parsed = PdfDocument.Open(bytes);
         Assert.Contains("Rendered", parsed.GetPage(1).Text);
@@ -77,7 +73,7 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
     public void ReusesTheSameFontInstanceForRepeatedStyles()
     {
         using SkiaFontProvider fonts = new SkiaFontProvider();
-        TextStyle style = TextStyle.Default.FontSizeOf(14);
+        TypeStyle style = TypeStyle.Default.WithPointSize(14);
 
         // Caching matters: the layout engine measures the same styles many times per document.
         Assert.Same(fonts.GetFont(style), fonts.GetFont(style));
@@ -88,9 +84,9 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
     {
         using SkiaFontProvider fonts = new SkiaFontProvider();
 
-        SKFont regular = fonts.GetFont(TextStyle.Default.FontSizeOf(12));
-        SKFont larger = fonts.GetFont(TextStyle.Default.FontSizeOf(24));
-        SKFont bold = fonts.GetFont(TextStyle.Default.FontSizeOf(12).Bold());
+        SKFont regular = fonts.GetFont(TypeStyle.Default.WithPointSize(12));
+        SKFont larger = fonts.GetFont(TypeStyle.Default.WithPointSize(24));
+        SKFont bold = fonts.GetFont(TypeStyle.Default.WithPointSize(12).Bold());
 
         Assert.NotSame(regular, larger);
         Assert.NotSame(regular, bold);
@@ -100,9 +96,9 @@ using SkiaFontProvider fonts = new SkiaFontProvider();
     public void FallsBackToADefaultTypefaceForAnUnknownFamily()
     {
         using SkiaFontProvider fonts = new SkiaFontProvider();
-        SkiaTextMeasurer measurer = new SkiaTextMeasurer(fonts);
+        SkiaTypeMeasurer measurer = new SkiaTypeMeasurer(fonts);
 
-        TextStyle style = TextStyle.Default.FontFamilyOf("A Font That Certainly Does Not Exist");
+        TypeStyle style = TypeStyle.Default.WithTypeface("A Font That Certainly Does Not Exist");
 
         // Skia substitutes rather than failing, so text must still measure to something usable.
         Assert.True(measurer.MeasureWidth("Hello", style) > 0);

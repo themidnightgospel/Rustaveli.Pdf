@@ -1,40 +1,38 @@
-using Rustaveli.Pdf.Exceptions;
-
 namespace Rustaveli.Pdf.UnitTests;
 
 public class CompositionTests
 {
     [Fact]
-    public void RefusesToReplaceContentAlreadyInTheContainer()
+    public void RefusesToReplaceContentAlreadyInTheFrame()
     {
-        Container container = new Container();
-        container.Padding(5);
+        Frame container = new Frame();
+        container.Inset(5);
 
-        DocumentComposeException exception = Assert.Throws<DocumentComposeException>(() =>
-            container.Background(Colors.Red));
+        CompositionException exception = Assert.Throws<CompositionException>(() =>
+            container.Fill(TestInks.Red));
 
         // Both types are named so the message points at the two pieces of composition that collided.
-        Assert.Contains("already holds PaddingElement and cannot also hold BackgroundElement", exception.Message);
-        Assert.Contains("use Column, Row or Layers", exception.Message);
-        Assert.IsType<PaddingElement>(container.Child);
+        Assert.Contains("This frame already holds InsetBlock and cannot also hold FillBlock", exception.Message);
+        Assert.Contains("use Stack, Columns or Layered", exception.Message);
+        Assert.IsType<InsetBlock>(container.Slot().Child);
     }
 
     [Fact]
-    public void RefusesAMissingContainer()
+    public void RefusesAMissingFrame()
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
-            LayoutExtensions.Padding(null!, 5));
+            FrameModifiers.Inset(null!, 5));
 
         Assert.Equal("parent", exception.ParamName);
     }
 
     [Fact]
-    public void HandsBackTheAttachedElementAsTheNextSlot()
+    public void HandsBackTheAttachedBlockAsTheNextFrame()
     {
-        Container container = new Container();
+        Frame container = new Frame();
 
-        IContainer next = container.Padding(5);
+        IFrame next = container.Inset(5);
 
-        Assert.Same(container.Child, next);
+        Assert.Same(container.Slot().Child, next);
     }
 }

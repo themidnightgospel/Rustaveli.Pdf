@@ -3,9 +3,9 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// <summary>
 /// One recorded page.
 /// </summary>
-public sealed class RecordedPage(Size size)
+internal sealed class RecordedPage(Extent size)
 {
-    public Size Size { get; } = size;
+    public Extent Size { get; } = size;
 
     public List<DrawOperation> Operations { get; } = [];
 

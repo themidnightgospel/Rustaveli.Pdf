@@ -1,9 +1,6 @@
 using QuestPDF;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
 
 namespace Rustaveli.Pdf.IntegrationTests.Comparison;
 
@@ -16,35 +13,35 @@ public static class Recipes
 
     public static byte[] RustaveliTextFlow()
     {
-        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IDocumentContainer container)
+        return Rustaveli.Pdf.Document.Compose(container =>
         {
-            container.Page(delegate(Rustaveli.Pdf.Documents.PageDescriptor page)
+            container.Section(page =>
             {
-                page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
-                page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
-                page.Content().Column(delegate(Rustaveli.Pdf.Fluent.ColumnDescriptor column)
+                page.Trim = new Rustaveli.Pdf.Extent(595f, 842f);
+                page.Margins = Sides.All(40f);
+                page.DefaultType = Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
+                page.Body().Stack(column =>
                 {
-                    column.Spacing(8f);
+                    column.SpaceBetween(8f);
                     foreach (string paragraph in RecipeData.Paragraphs)
                     {
-                        column.Item().Text(paragraph);
+                        column.Add().Text(paragraph);
                     }
                 });
             });
-        }).GeneratePdf();
+        }).ExportPdf();
     }
 
     public static byte[] QuestTextFlow()
     {
-        return QuestPDF.Fluent.Document.Create(delegate(QuestPDF.Infrastructure.IDocumentContainer container)
+        return QuestPDF.Fluent.Document.Create(container =>
         {
-            container.Page(delegate(QuestPDF.Fluent.PageDescriptor page)
+            container.Page(page =>
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
                 page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
-                page.Content().Column(delegate(QuestPDF.Fluent.ColumnDescriptor column)
+                page.Content().Column(column =>
                 {
                     column.Spacing(8f);
                     foreach (string paragraph in RecipeData.Paragraphs)
@@ -58,51 +55,51 @@ public static class Recipes
 
     public static byte[] RustaveliPaginated()
     {
-        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IDocumentContainer container)
+        return Rustaveli.Pdf.Document.Compose(container =>
         {
-            container.Page(delegate(Rustaveli.Pdf.Documents.PageDescriptor page)
+            container.Section(page =>
             {
-                page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
-                page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
-                page.Header().Text("Quarterly Statement");
-                page.Footer().Text(delegate(Rustaveli.Pdf.Fluent.TextDescriptor text)
+                page.Trim = new Rustaveli.Pdf.Extent(595f, 842f);
+                page.Margins = Sides.All(40f);
+                page.DefaultType = Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
+                page.RunningHead().Text("Quarterly Statement");
+                page.RunningFoot().Text(text =>
                 {
-                    text.Span("Page ");
-                    text.CurrentPageNumber();
-                    text.Span(" of ");
-                    text.TotalPages();
+                    text.Run("Page ");
+                    text.Folio();
+                    text.Run(" of ");
+                    text.PageCount();
                 });
-                page.Content().Column(delegate(Rustaveli.Pdf.Fluent.ColumnDescriptor column)
+                page.Body().Stack(column =>
                 {
-                    column.Spacing(4f);
+                    column.SpaceBetween(4f);
                     foreach ((string Code, string Description, string Amount) row in RecipeData.Rows)
                     {
-                        column.Item().Text($"{row.Code} {row.Description} {row.Amount}");
+                        column.Add().Text($"{row.Code} {row.Description} {row.Amount}");
                     }
                 });
             });
-        }).GeneratePdf();
+        }).ExportPdf();
     }
 
     public static byte[] QuestPaginated()
     {
-        return QuestPDF.Fluent.Document.Create(delegate(QuestPDF.Infrastructure.IDocumentContainer container)
+        return QuestPDF.Fluent.Document.Create(container =>
         {
-            container.Page(delegate(QuestPDF.Fluent.PageDescriptor page)
+            container.Page(page =>
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
                 page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
                 page.Header().Text("Quarterly Statement");
-                page.Footer().Text(delegate(QuestPDF.Fluent.TextDescriptor text)
+                page.Footer().Text(text =>
                 {
                     text.Span("Page ");
                     text.CurrentPageNumber();
                     text.Span(" of ");
                     text.TotalPages();
                 });
-                page.Content().Column(delegate(QuestPDF.Fluent.ColumnDescriptor column)
+                page.Content().Column(column =>
                 {
                     column.Spacing(4f);
                     foreach ((string Code, string Description, string Amount) row in RecipeData.Rows)
@@ -116,22 +113,22 @@ public static class Recipes
 
     public static byte[] RustaveliTable()
     {
-        return Rustaveli.Pdf.Documents.Document.Create(delegate(Rustaveli.Pdf.Documents.IDocumentContainer container)
+        return Rustaveli.Pdf.Document.Compose(container =>
         {
-            container.Page(delegate(Rustaveli.Pdf.Documents.PageDescriptor page)
+            container.Section(page =>
             {
-                page.Size = new Rustaveli.Pdf.Primitives.Size(595f, 842f);
-                page.Margin = Edges.All(40f);
-                page.DefaultTextStyle = Rustaveli.Pdf.Text.TextStyle.Default.FontFamilyOf(RecipeData.FontFamily).FontSizeOf(11f);
-                page.Content().Table(delegate(Rustaveli.Pdf.Fluent.TableDescriptor table)
+                page.Trim = new Rustaveli.Pdf.Extent(595f, 842f);
+                page.Margins = Sides.All(40f);
+                page.DefaultType = Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
+                page.Body().Table(table =>
                 {
-                    table.ColumnsDefinition(delegate(Rustaveli.Pdf.Fluent.TableColumnsDefinitionDescriptor columns)
+                    table.Columns(columns =>
                     {
-                        columns.ConstantColumn(90f);
-                        columns.RelativeColumn();
-                        columns.ConstantColumn(70f);
+                        columns.Fixed(90f);
+                        columns.Share();
+                        columns.Fixed(70f);
                     });
-                    table.Header(delegate(TableBandDescriptor header)
+                    table.HeaderRows(header =>
                     {
                         header.Cell().Text("Code");
                         header.Cell().Text("Description");
@@ -145,27 +142,27 @@ public static class Recipes
                     }
                 });
             });
-        }).GeneratePdf();
+        }).ExportPdf();
     }
 
     public static byte[] QuestTable()
     {
-        return QuestPDF.Fluent.Document.Create(delegate(QuestPDF.Infrastructure.IDocumentContainer container)
+        return QuestPDF.Fluent.Document.Create(container =>
         {
-            container.Page(delegate(QuestPDF.Fluent.PageDescriptor page)
+            container.Page(page =>
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
                 page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
-                page.Content().Table(delegate(QuestPDF.Fluent.TableDescriptor table)
+                page.Content().Table(table =>
                 {
-                    table.ColumnsDefinition(delegate(QuestPDF.Fluent.TableColumnsDefinitionDescriptor columns)
+                    table.ColumnsDefinition(columns =>
                     {
                         columns.ConstantColumn(90f);
                         columns.RelativeColumn();
                         columns.ConstantColumn(70f);
                     });
-                    table.Header(delegate(QuestPDF.Fluent.TableCellDescriptor header)
+                    table.Header(header =>
                     {
                         header.Cell().Text("Code");
                         header.Cell().Text("Description");

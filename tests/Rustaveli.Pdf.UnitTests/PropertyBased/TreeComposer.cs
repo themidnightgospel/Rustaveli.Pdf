@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.UnitTests.PropertyBased;
 /// Turns a generated tree into a real document through the public fluent API, and records every character of text
 /// it wrote so a render can be checked for lost or duplicated content.
 /// </summary>
-public sealed class TreeComposer
+internal sealed class TreeComposer
 {
     private const string Alphabet = "abcdefghijklmnopqrstuvwxyz";
 
@@ -16,7 +16,7 @@ public sealed class TreeComposer
     /// <summary>Every non-space character composed into the document, in composition order.</summary>
     public string WrittenText => _written.ToString();
 
-    public void Compose(IContainer container, TreeNode node)
+    public void Compose(IFrame container, TreeNode node)
     {
         switch (node.Kind)
         {
@@ -25,33 +25,33 @@ public sealed class TreeComposer
                 break;
 
             case NodeKind.Box:
-                Composition.Attach(container, new FixedElement(20, node.Amount));
+                FrameAttachment.Attach(container, new FixedBlock(20, node.Amount));
                 break;
 
             case NodeKind.Column:
-                container.Column(column =>
+                container.Stack(column =>
                 {
-                    column.Spacing(node.Amount);
+                    column.SpaceBetween(node.Amount);
                     foreach (TreeNode child in node.Children)
-                        Compose(column.Item(), child);
+                        Compose(column.Add(), child);
                 });
                 break;
 
             case NodeKind.Row:
-                container.Row(row =>
+                container.Columns(row =>
                 {
                     for (int index = 0; index < node.Children.Count; index++)
-                        Compose(node.Sizes[index] == 0 ? row.RelativeItem() : row.ConstantItem(node.Sizes[index]), node.Children[index]);
+                        Compose(node.Sizes[index] == 0 ? row.Share() : row.Fixed(node.Sizes[index]), node.Children[index]);
                 });
                 break;
 
             case NodeKind.Table:
                 container.Table(table =>
                 {
-                    table.ColumnsDefinition(columns =>
+                    table.Columns(columns =>
                     {
                         for (int index = 0; index < node.Sizes[0]; index++)
-                            columns.RelativeColumn();
+                            columns.Share();
                     });
                     foreach (TreeNode cell in node.Children)
                         Compose(table.Cell(), cell);
@@ -59,15 +59,15 @@ public sealed class TreeComposer
                 break;
 
             case NodeKind.Padding:
-                Compose(container.Padding(node.Amount), node.Children[0]);
+                Compose(container.Inset(node.Amount), node.Children[0]);
                 break;
 
             case NodeKind.Background:
-                Compose(container.Background(Colors.Grey.Lighten3), node.Children[0]);
+                Compose(container.Fill(TestInks.GreyLighten3), node.Children[0]);
                 break;
 
             case NodeKind.Border:
-                Compose(container.Border(1).BorderColor(Colors.Grey), node.Children[0]);
+                Compose(container.Stroke(1).StrokeInk(TestInks.Grey), node.Children[0]);
                 break;
 
             default:

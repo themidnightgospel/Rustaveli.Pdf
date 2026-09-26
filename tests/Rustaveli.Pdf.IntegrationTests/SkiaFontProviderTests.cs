@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Skia;
-using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.IntegrationTests;
@@ -9,7 +7,7 @@ namespace Rustaveli.Pdf.IntegrationTests;
 /// </summary>
 public class SkiaFontProviderTests
 {
-    private static readonly TextStyle Sans = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(12);
+    private static readonly TypeStyle Sans = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(12);
 
     [Fact]
     public void TheTypefaceFollowsTheStylesWeightAndSlant()
@@ -32,7 +30,7 @@ public class SkiaFontProviderTests
 
         SKTypeface small = fonts.GetTypeface(Sans);
 
-        Assert.Same(small, fonts.GetTypeface(Sans.FontSizeOf(48)));
-        Assert.Same(small, fonts.GetFont(Sans.FontSizeOf(48)).Typeface);
+        Assert.Same(small, fonts.GetTypeface(Sans.WithPointSize(48)));
+        Assert.Same(small, fonts.GetFont(Sans.WithPointSize(48)).Typeface);
     }
 }

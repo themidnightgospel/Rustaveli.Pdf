@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Documents;
-
 namespace Rustaveli.Pdf.ConformanceTests.Specimens;
 
 /// <summary>A named document in the conformance corpus.</summary>

@@ -1,5 +1,3 @@
-using Rustaveli.Pdf.Drawing;
-
 namespace Rustaveli.Pdf.IntegrationTests;
 
 /// <summary>

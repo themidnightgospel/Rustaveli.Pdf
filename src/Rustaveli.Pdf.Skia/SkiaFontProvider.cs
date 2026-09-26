@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
-using Rustaveli.Pdf.Text;
+using Rustaveli.Pdf.Skia;
 using SkiaSharp;
 
-namespace Rustaveli.Pdf.Skia;
+namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Resolves <see cref="TextStyle"/> values to Skia typefaces and fonts, caching the results.
+/// Resolves <see cref="TypeStyle"/> values to Skia typefaces and fonts, caching the results.
 /// </summary>
 /// <remarks>
 /// Typeface lookup is comparatively expensive and the layout engine measures the same styles repeatedly, so both
@@ -69,9 +69,9 @@ public sealed class SkiaFontProvider : IDisposable
         }
     }
 
-    public SKFont GetFont(TextStyle style)
+    public SKFont GetFont(TypeStyle style)
     {
-        (string Family, int Weight, bool Italic, float Size) key = (style.FontFamily, (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
+        (string Family, int Weight, bool Italic, float Size) key = (style.Typeface, (int)style.Weight, style.IsItalic, style.EffectivePointSize);
 
         // ConcurrentDictionary may run a GetOrAdd factory more than once under contention and discard the
         // losers. For unmanaged Skia handles that would leak, so creation is funnelled through a Lazy that
@@ -83,8 +83,8 @@ public sealed class SkiaFontProvider : IDisposable
         return font.Value;
     }
 
-    public SKTypeface GetTypeface(TextStyle style) =>
-        GetTypeface(style.FontFamily, (int)style.Weight, style.IsItalic);
+    public SKTypeface GetTypeface(TypeStyle style) =>
+        GetTypeface(style.Typeface, (int)style.Weight, style.IsItalic);
 
     private SKTypeface GetTypeface(string family, int weight, bool italic) =>
         _typefaces.GetOrAdd((family, weight, italic), key =>
@@ -141,7 +141,7 @@ public sealed class SkiaFontProvider : IDisposable
     /// Measurement and drawing both go through this, so the two cannot disagree about where a fallback begins —
     /// which is the failure mode that would otherwise put a glyph in one place and its advance in another.
     /// </remarks>
-    internal IReadOnlyList<FontRun> Split(string text, TextStyle style)
+    internal IReadOnlyList<FontRun> Split(string text, TypeStyle style)
     {
         if (string.IsNullOrEmpty(text))
             return [];
@@ -206,12 +206,12 @@ public sealed class SkiaFontProvider : IDisposable
     /// Finds a font able to draw <paramref name="codepoint"/>, preferring the primary, then the configured
     /// fallbacks, then whatever the platform suggests.
     /// </summary>
-    private SKFont ResolveFont(int codepoint, TextStyle style, SKFont primary)
+    private SKFont ResolveFont(int codepoint, TypeStyle style, SKFont primary)
     {
         if (Covers(primary.Typeface, codepoint))
             return primary;
 
-        (string FontFamily, int, bool IsItalic) key = (style.FontFamily, (int)style.Weight, style.IsItalic);
+        (string FontFamily, int, bool IsItalic) key = (style.Typeface, (int)style.Weight, style.IsItalic);
 
         foreach (string family in FallbackFamilies)
         {
@@ -236,7 +236,7 @@ public sealed class SkiaFontProvider : IDisposable
         }
 
         SKTypeface? matched = SKFontManager.Default.MatchCharacter(
-            style.FontFamily,
+            style.Typeface,
             (int)style.Weight,
             (int)SKFontStyleWidth.Normal,
             style.IsItalic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright,
@@ -258,12 +258,12 @@ public sealed class SkiaFontProvider : IDisposable
     }
 
     /// <summary>Builds a sized font over an already-resolved typeface, cached like any other.</summary>
-    private SKFont FontFor(SKTypeface typeface, TextStyle style)
+    private SKFont FontFor(SKTypeface typeface, TypeStyle style)
     {
-        (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + "\0fallback", (int)style.Weight, style.IsItalic, style.EffectiveFontSize);
+        (string, int, bool IsItalic, float EffectiveFontSize) key = (typeface.FamilyName + "\0fallback", (int)style.Weight, style.IsItalic, style.EffectivePointSize);
 
         Lazy<SKFont> font = _fonts.GetOrAdd(key, _ => new Lazy<SKFont>(
-            () => CreateLayoutFont(typeface, style.EffectiveFontSize),
+            () => CreateLayoutFont(typeface, style.EffectivePointSize),
             LazyThreadSafetyMode.ExecutionAndPublication));
 
         return font.Value;

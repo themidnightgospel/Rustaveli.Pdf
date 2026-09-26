@@ -6,57 +6,57 @@ namespace Rustaveli.Pdf.UnitTests;
 /// </summary>
 public class AllottedSizeTests
 {
-    private static readonly Color Marker = Colors.Red;
+    private static readonly Ink Marker = TestInks.Red;
 
-    private static void Box(IContainer container, float width, float height, Color? color = null) =>
-        Composition.Attach(container, color is null ? new FixedElement(width, height) : new FixedElement(width, height, color.Value));
+    private static void Box(IFrame container, float width, float height, Ink? color = null) =>
+        FrameAttachment.Attach(container, color is null ? new FixedBlock(width, height) : new FixedBlock(width, height, color.Value));
 
     private static RectangleOperation MarkerRectangle(RecordedPage page) =>
-        page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == Marker);
+        page.Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == Marker);
 
     [Fact]
-    public void ABackgroundInAColumnItemSpansTheColumnWidthAtTheItemsHeight()
+    public void AFillInAStackItemSpansTheStackWidthAtTheItemsHeight()
     {
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Column(column => column.Item().Background(Marker).Element(item => Box(item, 50, 20))),
-            new Size(200, 300));
+            container => container.Stack(column => column.Add().Fill(Marker).Compose(item => Box(item, 50, 20))),
+            new Extent(200, 300));
 
         RectangleOperation background = MarkerRectangle(page);
-        Approximately.Equal(Position.Zero, background.Position);
-        Approximately.Equal(new Size(200, 20), background.Size);
+        Approximately.Equal(Offset.Zero, background.Position);
+        Approximately.Equal(new Extent(200, 20), background.Size);
     }
 
     [Fact]
-    public void ABackgroundInATableCellFillsTheCellIncludingTheRowHeightSetByItsNeighbour()
+    public void AFillInATableCellFillsTheCellIncludingTheRowHeightSetByItsNeighbour()
     {
         RecordedPage page = LayoutHarness.Draw(
             container => container.Table(table =>
             {
-                table.ColumnsDefinition(columns =>
+                table.Columns(columns =>
                 {
-                    columns.RelativeColumn();
-                    columns.RelativeColumn();
+                    columns.Share();
+                    columns.Share();
                 });
-                table.Cell().Background(Marker).Element(cell => Box(cell, 10, 10));
-                table.Cell().Element(cell => Box(cell, 10, 40));
+                table.Cell().Fill(Marker).Compose(cell => Box(cell, 10, 10));
+                table.Cell().Compose(cell => Box(cell, 10, 40));
             }),
-            new Size(200, 300));
+            new Extent(200, 300));
 
-        Approximately.Equal(new Size(100, 40), MarkerRectangle(page).Size);
+        Approximately.Equal(new Extent(100, 40), MarkerRectangle(page).Size);
     }
 
     [Fact]
-    public void ABorderOnARowItemSurroundsTheWholeItemNotItsContent()
+    public void AStrokeOnAColumnSurroundsTheWholeColumnNotItsContent()
     {
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Row(row =>
+            container => container.Columns(row =>
             {
-                row.RelativeItem().Border(1).BorderColor(Marker).Element(item => Box(item, 10, 10));
-                row.ConstantItem(50).Element(item => Box(item, 50, 30));
+                row.Share().Stroke(1).StrokeInk(Marker).Compose(item => Box(item, 10, 10));
+                row.Fixed(50).Compose(item => Box(item, 50, 30));
             }),
-            new Size(200, 300));
+            new Extent(200, 300));
 
-        List<RectangleOperation> bands = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Color == Marker).ToList();
+        List<RectangleOperation> bands = page.Operations.OfType<RectangleOperation>().Where(operation => operation.Ink == Marker).ToList();
         RectangleOperation right = bands.Single(band => band.Position.X > 0 && band.Size.Width < 2);
         RectangleOperation bottom = bands.Single(band => band.Position.Y > 0 && band.Size.Height < 2);
 
@@ -70,33 +70,33 @@ public class AllottedSizeTests
     public void EveryLayerIsGivenTheWholeBoxSoASecondaryLayerCanAlignToItsFarCorner()
     {
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Height(100).Layers(layers =>
+            container => container.Height(100).Layered(layers =>
             {
-                layers.PrimaryLayer().Element(layer => Box(layer, 50, 20));
-                layers.Layer().AlignRight().AlignBottom().Element(layer => Box(layer, 10, 10, Marker));
+                layers.BaseLayer().Compose(layer => Box(layer, 50, 20));
+                layers.Layer().FlushRight().FlushBottom().Compose(layer => Box(layer, 10, 10, Marker));
             }),
-            new Size(200, 300));
+            new Extent(200, 300));
 
-        Approximately.Equal(new Position(190, 90), MarkerRectangle(page).Position);
+        Approximately.Equal(new Offset(190, 90), MarkerRectangle(page).Position);
     }
 
     [Fact]
-    public void DecorationBandsSpanTheWidthAndTheTrailingBandFollowsTheContent()
+    public void BandsSpanTheWidthAndTheFootBandFollowsTheBody()
     {
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Column(column => column.Item().Decoration(decoration =>
+            container => container.Stack(column => column.Add().Banded(decoration =>
             {
-                decoration.Before().Background(Marker).Element(band => Box(band, 10, 10));
-                decoration.Content().Element(content => Box(content, 10, 25));
-                decoration.After().Background(Colors.Blue).Element(band => Box(band, 10, 10));
+                decoration.Head().Fill(Marker).Compose(band => Box(band, 10, 10));
+                decoration.Body().Compose(content => Box(content, 10, 25));
+                decoration.Foot().Fill(TestInks.Blue).Compose(band => Box(band, 10, 10));
             })),
-            new Size(200, 300));
+            new Extent(200, 300));
 
         RectangleOperation before = MarkerRectangle(page);
-        RectangleOperation after = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Color == Colors.Blue);
+        RectangleOperation after = page.Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Blue);
 
-        Approximately.Equal(new Size(200, 10), before.Size);
-        Approximately.Equal(new Size(200, 10), after.Size);
+        Approximately.Equal(new Extent(200, 10), before.Size);
+        Approximately.Equal(new Extent(200, 10), after.Size);
         Approximately.Equal(35f, after.Position.Y);
     }
 
@@ -105,10 +105,10 @@ public class AllottedSizeTests
     {
         // Right-to-left text aligns itself to the right of whatever box it is drawn in. Drawn in the full width
         // after the alignment had already moved it, it was pushed off the far edge of the page.
-        RecordedPage page = LayoutHarness.Draw(container => container.RightToLeft().AlignCenter().Text("Hello"), new Size(100, 100));
+        RecordedPage page = LayoutHarness.Draw(container => container.RightToLeft().Centered().Text("Hello"), new Extent(100, 100));
 
         TextOperation text = page.Texts.Single();
-        float width = LayoutHarness.Measurer.MeasureWidth("Hello", TextStyle.Default);
+        float width = LayoutHarness.Measurer.MeasureWidth("Hello", TypeStyle.Default);
 
         Approximately.Equal((100 - width) / 2, text.Position.X);
     }
@@ -117,8 +117,8 @@ public class AllottedSizeTests
     public void AQuarterTurnFillsTheBoxItWasGiven()
     {
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Width(80).Height(40).RotateLeft().Background(Marker).Element(inner => Box(inner, 10, 10)),
-            new Size(200, 300));
+            container => container.Width(80).Height(40).TurnLeft().Fill(Marker).Compose(inner => Box(inner, 10, 10)),
+            new Extent(200, 300));
 
         Bounds bounds = MarkerRectangle(page).Bounds;
         Approximately.Equal(0f, bounds.Left);
@@ -128,11 +128,11 @@ public class AllottedSizeTests
     }
 
     [Fact]
-    public void AFlipMirrorsContentAcrossTheBoxItWasGiven()
+    public void AMirrorReflectsContentAcrossTheBoxItWasGiven()
     {
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Width(100).Height(20).FlipHorizontal().Element(inner => Box(inner, 10, 10, Marker)),
-            new Size(200, 300));
+            container => container.Width(100).Height(20).MirrorHorizontal().Compose(inner => Box(inner, 10, 10, Marker)),
+            new Extent(200, 300));
 
         Bounds bounds = MarkerRectangle(page).Bounds;
         Approximately.Equal(90f, bounds.Left);
@@ -140,13 +140,13 @@ public class AllottedSizeTests
     }
 
     [Fact]
-    public void AHyperlinkCoversTheBoxItWasGiven()
+    public void ALinkCoversTheBoxItWasGiven()
     {
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Column(column => column.Item().Hyperlink("https://example.com").Element(item => Box(item, 10, 10))),
-            new Size(200, 300));
+            container => container.Stack(column => column.Add().Link("https://example.com").Compose(item => Box(item, 10, 10))),
+            new Extent(200, 300));
 
-        Approximately.Equal(new Size(200, 10), page.Operations.OfType<ExternalLinkOperation>().Single().Size);
+        Approximately.Equal(new Extent(200, 10), page.Operations.OfType<ExternalLinkOperation>().Single().Size);
     }
 
     [Fact]
@@ -156,13 +156,13 @@ public class AllottedSizeTests
         // occupies no height needs no gap, and must still be drawn: its side effects — here a destination, and
         // for markers such as "skip once" a change of state — belong to the page it was measured on.
         RecordedPage page = LayoutHarness.Draw(
-            container => container.Column(outer => outer.Item().Column(inner =>
+            container => container.Stack(outer => outer.Add().Stack(inner =>
             {
-                inner.Spacing(10);
-                inner.Item().Element(item => Box(item, 50, 20));
-                inner.Item().Section("end");
+                inner.SpaceBetween(10);
+                inner.Add().Compose(item => Box(item, 50, 20));
+                inner.Add().Anchor("end");
             })),
-            new Size(200, 300));
+            new Extent(200, 300));
 
         Assert.Single(page.Operations.OfType<DestinationOperation>(), operation => operation.Name == "end");
     }

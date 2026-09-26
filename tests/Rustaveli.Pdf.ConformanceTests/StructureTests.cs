@@ -1,6 +1,5 @@
 using Rustaveli.Pdf.ConformanceTests.Specimens;
 using Rustaveli.Pdf.ConformanceTests.Validation;
-using Rustaveli.Pdf.Skia;
 
 namespace Rustaveli.Pdf.ConformanceTests;
 
@@ -12,7 +11,7 @@ public class StructureTests
     public void PassesQpdfCheck(Specimen specimen)
     {
         TestFonts.EnsureRegistered();
-        byte[] pdf = specimen.Build().GeneratePdf();
+        byte[] pdf = specimen.Build().ExportPdf();
 
         string report = Qpdf.Check(pdf);
 

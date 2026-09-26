@@ -16,6 +16,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
 
+    <InternalsVisibleTo Include="Rustaveli.Pdf.IntegrationTests" />
+    <InternalsVisibleTo Include="Rustaveli.Pdf.ConformanceTests" />
+
     <!-- Version pinned deliberately; the reason sits next to it in Directory.Packages.props. -->
     <PackageReference Include="SkiaSharp" />
 

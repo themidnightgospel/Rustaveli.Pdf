@@ -1,9 +1,3 @@
-using Rustaveli.Pdf.Documents;
-using Rustaveli.Pdf.Fluent;
-using Rustaveli.Pdf.Layout;
-using Rustaveli.Pdf.Primitives;
-using Rustaveli.Pdf.Skia;
-using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.ConformanceTests.Specimens;
@@ -31,250 +25,250 @@ public static class SpecimenCatalog
         return data;
     }
 
-    private static Document Page(Action<IContainer> content, Action<PageDescriptor>? configure = null) =>
-        Document.Create(container => container.Page(page =>
+    private static Document Page(Action<IFrame> content, Action<Section>? configure = null) =>
+        Document.Compose(composition => composition.Section(section =>
         {
-            page.Size = PageSizes.A4;
-            page.Margin = Edges.All(40f);
-            page.DefaultTextStyle = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(10f);
-            configure?.Invoke(page);
-            content(page.Content());
+            section.Trim = PaperSizes.A4;
+            section.Margins = Sides.All(40f);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(10f);
+            configure?.Invoke(section);
+            content(section.Body());
         }));
 
-    private static Document Gallery() => Page(content => content.Column(column =>
+    private static Document Gallery() => Page(content => content.Stack(stack =>
     {
-        column.Spacing(14f);
+        stack.SpaceBetween(14f);
 
-        column.Item().Text(text =>
+        stack.Add().Text(text =>
         {
-            text.Span("Styles compose: ");
-            text.Span("bold").Bold();
-            text.Span(", ");
-            text.Span("italic").Italic();
-            text.Span(", ");
-            text.Span("underlined").Underline();
-            text.Span(", ");
-            text.Span("struck through").Strikethrough();
-            text.Span(", ");
-            text.Span("highlighted").BackgroundColor(Colors.Yellow);
-            text.Span(" and coloured").FontColor(Colors.Red);
-            text.Span(". H");
-            text.Span("2").Subscript();
-            text.Span("O and e");
-            text.Span("iπ").Superscript();
-            text.Span(".");
+            text.Run("Styles compose: ");
+            text.Run("bold").Bold();
+            text.Run(", ");
+            text.Run("italic").Italic();
+            text.Run(", ");
+            text.Run("underlined").Underline();
+            text.Run(", ");
+            text.Run("struck through").StrikeThrough();
+            text.Run(", ");
+            text.Run("highlighted").Highlight(TestInks.Yellow);
+            text.Run(" and coloured").Ink(TestInks.Red);
+            text.Run(". H");
+            text.Run("2").Subscript();
+            text.Run("O and e");
+            text.Run("iπ").Superscript();
+            text.Run(".");
         });
 
-        column.Item().Text(text =>
+        stack.Add().Text(text =>
         {
             text.FirstLineIndent(18f);
-            text.Span("A paragraph long enough to wrap across several lines, with a first-line indent, so that line "
+            text.Run("A paragraph long enough to wrap across several lines, with a first-line indent, so that line "
                 + "breaking, indentation and the measured width of every word all show up in the rendered page.");
         });
 
-        column.Item().Text(text =>
+        stack.Add().Text(text =>
         {
-            text.AlignCenter();
-            text.Span("Centred").FontColor(Colors.Teal);
+            text.Centered();
+            text.Run("Centred").Ink(TestInks.Teal);
         });
 
-        column.Item().Text(text =>
+        stack.Add().Text(text =>
         {
-            text.AlignRight();
-            text.Span("Right aligned").FontColor(Colors.Teal);
+            text.FlushRight();
+            text.Run("Right aligned").Ink(TestInks.Teal);
         });
 
-        column.Item().Row(row =>
+        stack.Add().Columns(columns =>
         {
-            row.Spacing(10f);
-            row.RelativeItem().Border(1f).BorderColor(Colors.Grey).Padding(8f).Text("Bordered box");
-            row.RelativeItem().Height(60f).Background(Colors.Indigo).Padding(8f).AlignCenter().AlignMiddle()
-                .Text(text => text.Span("Centred on both axes").FontColor(Colors.White));
-            row.ConstantItem(60f).Height(60f).Placeholder(Colors.Grey.Lighten3);
+            columns.Gutter(10f);
+            columns.Share().Stroke(1f).StrokeInk(TestInks.Grey).Inset(8f).Text("Bordered box");
+            columns.Share().Height(60f).Fill(TestInks.Indigo).Inset(8f).Centered().Middle()
+                .Text(text => text.Run("Centred on both axes").Ink(TestInks.White));
+            columns.Fixed(60f).Height(60f).Placeholder(TestInks.GreyLighten3);
         });
 
-        column.Item().Row(row =>
+        stack.Add().Columns(columns =>
         {
-            row.Spacing(10f);
-            row.RelativeItem().Background(Colors.Amber.Lighten4).CornerRadius(8f).Padding(8f).Text("Rounded fill");
-            row.RelativeItem().Border(1f).BorderColor(Colors.Teal).CornerRadius(8f).Padding(8f).Text("Rounded outline");
-            row.AutoItem().Background(Colors.Grey.Lighten4).Padding(8f).Text("Auto");
+            columns.Gutter(10f);
+            columns.Share().Fill(TestInks.AmberLighten4).RoundCorners(8f).Inset(8f).Text("Rounded fill");
+            columns.Share().Stroke(1f).StrokeInk(TestInks.Teal).RoundCorners(8f).Inset(8f).Text("Rounded outline");
+            columns.Natural().Fill(TestInks.GreyLighten4).Inset(8f).Text("Auto");
         });
 
-        column.Item().Row(row =>
+        stack.Add().Columns(columns =>
         {
-            row.Spacing(14f);
-            row.RelativeItem().List(list =>
+            columns.Gutter(14f);
+            columns.Share().List(list =>
             {
-                list.Item().Text("A bulleted item");
-                list.Item().Text("Another, long enough to wrap so continuation lines clear the marker");
+                list.Add().Text("A bulleted item");
+                list.Add().Text("Another, long enough to wrap so continuation lines clear the marker");
             });
-            row.RelativeItem().List(list =>
+            columns.Share().List(list =>
             {
-                list.Ordered();
-                list.Item().Text("Numbered");
-                list.Item().Text("items");
+                list.Numbered();
+                list.Add().Text("Numbered");
+                list.Add().Text("items");
             });
         });
 
-        column.Item().Table(table =>
+        stack.Add().Table(table =>
         {
-            table.ColumnsDefinition(columns =>
+            table.Columns(columns =>
             {
-                columns.ConstantColumn(70f);
-                columns.RelativeColumn();
-                columns.ConstantColumn(70f);
+                columns.Fixed(70f);
+                columns.Share();
+                columns.Fixed(70f);
             });
-            table.Header(header =>
+            table.HeaderRows(header =>
             {
-                header.Cell().Background(Colors.Indigo).Padding(4f).Text(text => text.Span("Code").Bold().FontColor(Colors.White));
-                header.Cell().Background(Colors.Indigo).Padding(4f).Text(text => text.Span("Description").Bold().FontColor(Colors.White));
-                header.Cell().Background(Colors.Indigo).Padding(4f).AlignRight().Text(text => text.Span("Amount").Bold().FontColor(Colors.White));
+                header.Cell().Fill(TestInks.Indigo).Inset(4f).Text(text => text.Run("Code").Bold().Ink(TestInks.White));
+                header.Cell().Fill(TestInks.Indigo).Inset(4f).Text(text => text.Run("Description").Bold().Ink(TestInks.White));
+                header.Cell().Fill(TestInks.Indigo).Inset(4f).FlushRight().Text(text => text.Run("Amount").Bold().Ink(TestInks.White));
             });
             for (int index = 1; index <= 6; index++)
             {
-                Color shade = index % 2 == 0 ? Colors.White : Colors.Grey.Lighten4;
-                table.Cell().Background(shade).Padding(4f).Text($"SKU-{index:D3}");
-                table.Cell().Background(shade).Padding(4f).Text($"Line item {index}");
-                table.Cell().Background(shade).Padding(4f).AlignRight().Text($"{index * 12.5m:F2}");
+                Ink shade = index % 2 == 0 ? TestInks.White : TestInks.GreyLighten4;
+                table.Cell().Fill(shade).Inset(4f).Text($"SKU-{index:D3}");
+                table.Cell().Fill(shade).Inset(4f).Text($"Line item {index}");
+                table.Cell().Fill(shade).Inset(4f).FlushRight().Text($"{index * 12.5m:F2}");
             }
-            table.Cell().ColumnSpan(2).Padding(4f).AlignRight().Text(text => text.Span("Total").Bold());
-            table.Cell().Padding(4f).AlignRight().Text(text => text.Span("262.50").Bold());
+            table.Cell().SpanColumns(2).Inset(4f).FlushRight().Text(text => text.Run("Total").Bold());
+            table.Cell().Inset(4f).FlushRight().Text(text => text.Run("262.50").Bold());
         });
 
-        column.Item().RightToLeft().Row(row =>
+        stack.Add().RightToLeft().Columns(columns =>
         {
-            row.Spacing(6f);
-            row.ConstantItem(60f).Background(Colors.Teal).Padding(4f).Text("first");
-            row.ConstantItem(60f).Background(Colors.Cyan).Padding(4f).Text("second");
-            row.RelativeItem().Text("right to left");
+            columns.Gutter(6f);
+            columns.Fixed(60f).Fill(TestInks.Teal).Inset(4f).Text("first");
+            columns.Fixed(60f).Fill(TestInks.Cyan).Inset(4f).Text("second");
+            columns.Share().Text("right to left");
         });
 
-        column.Item().Section("destination").Text(text =>
+        stack.Add().Anchor("destination").Text(text =>
         {
-            text.Span("A named destination with an external ");
-            text.Hyperlink("hyperlink", "https://example.com").FontColor(Colors.Blue).Underline();
-            text.Span(" and an internal ");
-            text.SectionLink("jump", "destination").FontColor(Colors.Blue).Underline();
-            text.Span(".");
+            text.Run("A named destination with an external ");
+            text.Link("hyperlink", "https://example.com").Ink(TestInks.Blue).Underline();
+            text.Run(" and an internal ");
+            text.CrossReference("jump", "destination").Ink(TestInks.Blue).Underline();
+            text.Run(".");
         });
     }));
 
-    private static Document Transforms() => Page(content => content.Column(column =>
+    private static Document Transforms() => Page(content => content.Stack(stack =>
     {
-        column.Spacing(16f);
+        stack.SpaceBetween(16f);
 
-        column.Item().Row(row =>
+        stack.Add().Columns(columns =>
         {
-            row.Spacing(12f);
-            row.ConstantItem(80f).Height(40f).RotateLeft().Background(Colors.Teal.Lighten3).Text("left");
-            row.ConstantItem(80f).Height(40f).RotateRight().Background(Colors.Teal.Lighten3).Text("right");
-            row.ConstantItem(80f).FlipHorizontal().Background(Colors.Amber.Lighten3).Text("flipped");
-            row.ConstantItem(80f).FlipVertical().Background(Colors.Amber.Lighten3).Text("flipped");
-            row.ConstantItem(80f).FlipOver().Background(Colors.Amber.Lighten3).Text("over");
+            columns.Gutter(12f);
+            columns.Fixed(80f).Height(40f).TurnLeft().Fill(TestInks.TealLighten3).Text("left");
+            columns.Fixed(80f).Height(40f).TurnRight().Fill(TestInks.TealLighten3).Text("right");
+            columns.Fixed(80f).MirrorHorizontal().Fill(TestInks.AmberLighten3).Text("flipped");
+            columns.Fixed(80f).MirrorVertical().Fill(TestInks.AmberLighten3).Text("flipped");
+            columns.Fixed(80f).MirrorBoth().Fill(TestInks.AmberLighten3).Text("over");
         });
 
-        column.Item().Row(row =>
+        stack.Add().Columns(columns =>
         {
-            row.Spacing(12f);
-            row.ConstantItem(120f).Scale(0.5f).Background(Colors.Pink.Lighten3).Padding(6f).Text("half size");
-            row.ConstantItem(120f).Scale(1.5f, 1f).Background(Colors.Pink.Lighten3).Padding(6f).Text("stretched");
-            row.ConstantItem(120f).TranslateX(10f).TranslateY(6f).Background(Colors.Pink.Lighten3).Padding(6f).Text("moved");
+            columns.Gutter(12f);
+            columns.Fixed(120f).Scale(0.5f).Fill(TestInks.PinkLighten3).Inset(6f).Text("half size");
+            columns.Fixed(120f).Scale(1.5f, 1f).Fill(TestInks.PinkLighten3).Inset(6f).Text("stretched");
+            columns.Fixed(120f).ShiftAcross(10f).ShiftDown(6f).Fill(TestInks.PinkLighten3).Inset(6f).Text("moved");
         });
 
-        column.Item().Width(160f).Height(24f).ScaleToFit().Text("Scaled down until this whole sentence fits the box it was given.");
+        stack.Add().Width(160f).Height(24f).ShrinkToFit().Text("Scaled down until this whole sentence fits the box it was given.");
 
-        column.Item().Width(120f).AspectRatio(2f).Background(Colors.Lime.Lighten3).AlignCenter().AlignMiddle().Text("2 : 1");
+        stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
     }));
 
-    private static Document Images() => Page(content => content.Column(column =>
+    private static Document Images() => Page(content => content.Stack(stack =>
     {
-        column.Spacing(10f);
+        stack.SpaceBetween(10f);
 
         byte[] photograph = Photograph();
 
         // Each fit mode gets a box it can satisfy: fitting the width needs free height, and fitting the height needs
         // free width. Area and unproportional fit any box.
-        column.Item().Text("Width");
-        column.Item().Width(200f).Border(0.5f).BorderColor(Colors.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Width);
-        column.Item().Text("Height");
-        column.Item().Height(100f).AlignLeft().Border(0.5f).BorderColor(Colors.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Height);
-        column.Item().Text("Area");
-        column.Item().Width(300f).Height(120f).Border(0.5f).BorderColor(Colors.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Area);
-        column.Item().Text("Unproportional");
-        column.Item().Width(300f).Height(120f).Border(0.5f).BorderColor(Colors.Grey).Image(SkiaImage.FromBytes(photograph), ImageFit.Unproportional);
+        stack.Add().Text("Width");
+        stack.Add().Width(200f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.FitWidth);
+        stack.Add().Text("Height");
+        stack.Add().Height(100f).FlushLeft().Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.FitHeight);
+        stack.Add().Text("Area");
+        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Proportionally);
+        stack.Add().Text("Unproportional");
+        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Stretch);
     }));
 
-    private static Document LayersAndDecoration() => Page(content => content.Column(column =>
+    private static Document LayersAndDecoration() => Page(content => content.Stack(stack =>
     {
-        column.Spacing(16f);
+        stack.SpaceBetween(16f);
 
-        column.Item().Height(160f).Layers(layers =>
+        stack.Add().Height(160f).Layered(layers =>
         {
-            layers.Layer().AlignCenter().AlignMiddle().Text(text => text.Span("WATERMARK").FontSize(40f).FontColor(Colors.Grey.Lighten3));
-            layers.PrimaryLayer().Padding(10f).Text("The primary layer sets the size; other layers draw behind or in front of it.");
-            layers.Layer().AlignRight().AlignBottom().Padding(6f).Text(text => text.Span("corner").FontColor(Colors.Red));
+            layers.Layer().Centered().Middle().Text(text => text.Run("WATERMARK").PointSize(40f).Ink(TestInks.GreyLighten3));
+            layers.BaseLayer().Inset(10f).Text("The primary layer sets the size; other layers draw behind or in front of it.");
+            layers.Layer().FlushRight().FlushBottom().Inset(6f).Text(text => text.Run("corner").Ink(TestInks.Red));
         });
 
-        column.Item().Decoration(decoration =>
+        stack.Add().Banded(decoration =>
         {
-            decoration.Before().Background(Colors.Indigo.Lighten4).Padding(6f).Text("Before");
-            decoration.Content().Padding(6f).Text("Decorated content sits between the bands.");
-            decoration.After().Background(Colors.Indigo.Lighten4).Padding(6f).Text("After");
+            decoration.Head().Fill(TestInks.IndigoLighten4).Inset(6f).Text("Before");
+            decoration.Body().Inset(6f).Text("Decorated content sits between the bands.");
+            decoration.Foot().Fill(TestInks.IndigoLighten4).Inset(6f).Text("After");
         });
 
-        column.Item().LineHorizontal(1f, Colors.Grey);
+        stack.Add().Rule(1f, TestInks.Grey);
 
-        column.Item().Height(60f).Row(row =>
+        stack.Add().Height(60f).Columns(columns =>
         {
-            row.RelativeItem().Text("left of the rule");
-            row.ConstantItem(20f).AlignCenter().LineVertical(1f, Colors.Grey);
-            row.RelativeItem().Text("right of the rule");
+            columns.Share().Text("left of the rule");
+            columns.Fixed(20f).Centered().VerticalRule(1f, TestInks.Grey);
+            columns.Share().Text("right of the rule");
         });
     }));
 
-    private static Document LongFlow() => Document.Create(container => container.Page(page =>
+    private static Document LongFlow() => Document.Compose(composition => composition.Section(section =>
     {
-        page.Size = PageSizes.A5;
-        page.Margin = Edges.All(30f);
-        page.DefaultTextStyle = TextStyle.Default.FontFamilyOf(TestFonts.Sans).FontSizeOf(9f);
+        section.Trim = PaperSizes.A5;
+        section.Margins = Sides.All(30f);
+        section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(9f);
 
-        page.Header().PaddingBottom(6f).Text(text => text.Span("Running head").Bold());
-        page.Footer().AlignCenter().Text(text =>
+        section.RunningHead().InsetBottom(6f).Text(text => text.Run("Running head").Bold());
+        section.RunningFoot().Centered().Text(text =>
         {
-            text.Span("Page ");
-            text.CurrentPageNumber();
-            text.Span(" of ");
-            text.TotalPages();
+            text.Run("Page ");
+            text.Folio();
+            text.Run(" of ");
+            text.PageCount();
         });
 
-        page.Content().Column(column =>
+        section.Body().Stack(stack =>
         {
-            column.Spacing(6f);
+            stack.SpaceBetween(6f);
 
             for (int index = 0; index < 8; index++)
             {
-                column.Item().Text($"Paragraph {index + 1}. The quick brown fox jumps over the lazy dog, and then keeps "
+                stack.Add().Text($"Paragraph {index + 1}. The quick brown fox jumps over the lazy dog, and then keeps "
                     + "running across the page so that the paragraph wraps onto several lines and the flow reaches the "
                     + "bottom margin, forcing content onto the following page.");
             }
 
-            column.Item().Table(table =>
+            stack.Add().Table(table =>
             {
-                table.ColumnsDefinition(columns =>
+                table.Columns(columns =>
                 {
-                    columns.ConstantColumn(60f);
-                    columns.RelativeColumn();
+                    columns.Fixed(60f);
+                    columns.Share();
                 });
-                table.Header(header =>
+                table.HeaderRows(header =>
                 {
-                    header.Cell().Background(Colors.Grey.Lighten3).Padding(3f).Text("Code");
-                    header.Cell().Background(Colors.Grey.Lighten3).Padding(3f).Text("Description");
+                    header.Cell().Fill(TestInks.GreyLighten3).Inset(3f).Text("Code");
+                    header.Cell().Fill(TestInks.GreyLighten3).Inset(3f).Text("Description");
                 });
                 for (int index = 1; index <= 40; index++)
                 {
-                    table.Cell().Padding(3f).Text($"R{index:D2}");
-                    table.Cell().Padding(3f).Text($"Row {index} of a table whose header repeats on every page");
+                    table.Cell().Inset(3f).Text($"R{index:D2}");
+                    table.Cell().Inset(3f).Text($"Row {index} of a table whose header repeats on every page");
                 }
             });
         });

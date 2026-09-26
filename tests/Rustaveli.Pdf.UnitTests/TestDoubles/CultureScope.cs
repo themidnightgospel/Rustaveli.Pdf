@@ -9,7 +9,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Sizes and positions format their numbers with the current culture, and they surface in exception messages.
 /// Asserting those messages literally needs a known decimal separator, whatever machine the suite runs on.
 /// </remarks>
-public sealed class CultureScope : IDisposable
+internal sealed class CultureScope : IDisposable
 {
     private readonly CultureInfo _previous;
 

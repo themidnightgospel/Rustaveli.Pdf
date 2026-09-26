@@ -6,12 +6,12 @@ namespace Rustaveli.Pdf.UnitTests;
 public class LinkTests
 {
     [Fact]
-    public void AHyperlinkCoversExactlyItsContent()
+    public void ALinkCoversExactlyItsContent()
     {
-        HyperlinkElement element = new HyperlinkElement { Url = "https://example.com", Child = new FixedElement(50, 20) };
+        LinkBlock element = new LinkBlock { Url = "https://example.com", Child = new FixedBlock(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
-        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         ExternalLinkOperation link = Assert.Single(page.Operations.OfType<ExternalLinkOperation>());
 
         Assert.Equal("https://example.com", link.Url);
@@ -20,37 +20,37 @@ public class LinkTests
     }
 
     [Fact]
-    public void AHyperlinkWithoutAUrlDrawsOnlyItsContent()
+    public void ALinkWithoutAUrlDrawsOnlyItsContent()
     {
-        HyperlinkElement element = new HyperlinkElement { Child = new FixedElement(50, 20) };
+        LinkBlock element = new LinkBlock { Child = new FixedBlock(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations.OfType<ExternalLinkOperation>());
         Assert.Single(page.Operations.OfType<RectangleOperation>());
     }
 
     [Theory]
-    [InlineData(SpacePlanType.Wrap)]
-    [InlineData(SpacePlanType.Empty)]
-    public void AHyperlinkAroundContentWithNothingToShowIsNotDrawn(SpacePlanType outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void ALinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
-        ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        HyperlinkElement element = new HyperlinkElement { Url = "https://example.com", Child = child };
+        ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
+        LinkBlock element = new LinkBlock { Url = "https://example.com", Child = child };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations);
         Assert.Empty(child.DrawnWith);
     }
 
     [Fact]
-    public void ASectionLinkCoversExactlyItsContent()
+    public void ACrossReferenceCoversExactlyItsContent()
     {
-        InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = new FixedElement(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
-        RecordedPage page = LayoutHarness.Draw(element, new Size(50, 20));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
 
         Assert.Equal("intro", link.Destination);
@@ -59,56 +59,56 @@ public class LinkTests
     }
 
     [Fact]
-    public void ASectionLinkWithoutADestinationDrawsOnlyItsContent()
+    public void ACrossReferenceWithoutAnAnchorDrawsOnlyItsContent()
     {
-        InternalLinkElement element = new InternalLinkElement { Child = new FixedElement(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { Child = new FixedBlock(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations.OfType<InternalLinkOperation>());
         Assert.Single(page.Operations.OfType<RectangleOperation>());
     }
 
     [Theory]
-    [InlineData(SpacePlanType.Wrap)]
-    [InlineData(SpacePlanType.Empty)]
-    public void ASectionLinkAroundContentWithNothingToShowIsNotDrawn(SpacePlanType outcome)
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void ACrossReferenceAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
-        ScriptedElement child = ScriptedElement.WithNothingToDraw(outcome);
-        InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = child };
+        ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
+        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = child };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Size(200, 200));
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
 
         Assert.Empty(page.Operations);
         Assert.Empty(child.DrawnWith);
     }
 
     [Fact]
-    public void ASectionLinkDoesNotChangeTheLayout()
+    public void ACrossReferenceDoesNotChangeTheLayout()
     {
-        InternalLinkElement element = new InternalLinkElement { DestinationName = "intro", Child = new FixedElement(50, 20) };
+        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
-        SpacePlan plan = LayoutHarness.Measure(element, new Size(200, 200));
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
 
-        Assert.True(plan.IsFullRender);
-        Approximately.Equal(new Size(50, 20), plan.Size);
+        Assert.True(plan.IsComplete);
+        Approximately.Equal(new Extent(50, 20), plan.Size);
     }
 
     [Fact]
-    public void ASectionLinkReachesItsSectionAcrossPages()
+    public void ACrossReferenceReachesItsAnchorAcrossPages()
     {
-        Document document = Document.Create(container => container.Page(page =>
+        Document document = Document.Compose(container => container.Section(page =>
         {
-            page.Size = new Size(200, 100);
-            page.Content().Column(column =>
+            page.Trim = new Extent(200, 100);
+            page.Body().Stack(column =>
             {
-                column.Item().SectionLink("appendix").Text("See the appendix");
-                column.Item().PageBreak();
-                column.Item().Section("appendix").Text("Appendix");
+                column.Add().CrossReference("appendix").Text("See the appendix");
+                column.Add().NewPage();
+                column.Add().Anchor("appendix").Text("Appendix");
             });
         }));
 
-        RecordingCanvas canvas = LayoutHarness.Render(document);
+        RecordingSurface canvas = LayoutHarness.Render(document);
 
         Assert.Equal("appendix", Assert.Single(canvas.Page(1).Operations.OfType<InternalLinkOperation>()).Destination);
         Assert.Equal("appendix", Assert.Single(canvas.Page(2).Operations.OfType<DestinationOperation>()).Name);
