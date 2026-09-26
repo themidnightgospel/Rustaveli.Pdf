@@ -40,7 +40,8 @@ internal static class XxHash64
                 lane4 = Round(lane4, BinaryPrimitives.ReadUInt64LittleEndian(data.Slice(offset + 24, 8)));
             }
 
-            hash = unchecked(RotateLeft(lane1, 1) + RotateLeft(lane2, 7) + RotateLeft(lane3, 12) + RotateLeft(lane4, 18));
+            hash = unchecked(
+                RotateLeft(lane1, 1) + RotateLeft(lane2, 7) + RotateLeft(lane3, 12) + RotateLeft(lane4, 18));
             hash = MergeRound(hash, lane1);
             hash = MergeRound(hash, lane2);
             hash = MergeRound(hash, lane3);

@@ -40,14 +40,16 @@ internal static class PngImageEncoder
     public static EncodedImage Encode(PngFile png)
     {
         PngHeader header = png.Header;
-        PaletteTransparency transparency = Classify(png.PaletteAlpha.Span, out int firstTransparent, out int lastTransparent);
+        PaletteTransparency transparency =
+            Classify(png.PaletteAlpha.Span, out int firstTransparent, out int lastTransparent);
         IReadOnlyList<int>? colorKey = transparency == PaletteTransparency.ColorKey
             ? [firstTransparent, lastTransparent]
             : ColorKey(png.TransparentColor);
 
         bool paletteMask = transparency == PaletteTransparency.SoftMask;
         ImageColorSpace colorSpace = ColorSpaceOf(png);
-        FlateDecodeParameters parameters = new FlateDecodeParameters(header.ColorChannels, header.BitDepth, header.Width);
+        FlateDecodeParameters parameters =
+            new FlateDecodeParameters(header.ColorChannels, header.BitDepth, header.Width);
 
         if (!header.Interlaced && !header.HasAlphaChannel && !paletteMask)
         {

@@ -66,7 +66,10 @@ internal static class PngFilters
         for (int index = 0; index < step; index++)
             output[index + 1] = (byte)(row[index] - previous[index]);
         for (int index = step; index < length; index++)
-            output[index + 1] = (byte)(row[index] - Predict(row[index - step], previous[index], previous[index - step]));
+        {
+            byte prediction = Predict(row[index - step], previous[index], previous[index - step]);
+            output[index + 1] = (byte)(row[index] - prediction);
+        }
     }
 
     /// <summary>The Paeth predictor: whichever of a, b and c is closest to a + b − c, preferring a, then b.</summary>

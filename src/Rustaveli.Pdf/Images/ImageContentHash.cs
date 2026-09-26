@@ -28,7 +28,8 @@ internal readonly struct ImageContentHash : IEquatable<ImageContentHash>
 
     public static bool operator !=(ImageContentHash left, ImageContentHash right) => !left.Equals(right);
 
-    public static ImageContentHash Of(ReadOnlySpan<byte> data) => new ImageContentHash(XxHash64.Hash(data), data.Length);
+    public static ImageContentHash Of(ReadOnlySpan<byte> data) =>
+        new ImageContentHash(XxHash64.Hash(data), data.Length);
 
     public bool Equals(ImageContentHash other) => Value == other.Value && Length == other.Length;
 

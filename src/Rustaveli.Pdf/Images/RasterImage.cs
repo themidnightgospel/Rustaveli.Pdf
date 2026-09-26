@@ -62,7 +62,9 @@ internal sealed class RasterImage : IImage
     /// Loads an image from <paramref name="data"/>. The array is copied, so the caller may reuse it afterwards.
     /// </summary>
     /// <exception cref="ImageFormatException">The data is not a well-formed JPEG or PNG within the limits.</exception>
-    /// <exception cref="UnsupportedImageFormatException">The data is a format, or uses a feature, that cannot be embedded.</exception>
+    /// <exception cref="UnsupportedImageFormatException">
+    /// The data is in a format, or uses a feature, that cannot be embedded.
+    /// </exception>
     public static RasterImage FromBytes(byte[] data)
     {
         ArgumentNullException.ThrowIfNull(data);

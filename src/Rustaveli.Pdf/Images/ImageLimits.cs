@@ -18,7 +18,7 @@ internal static class ImageLimits
     /// <summary>1 GiB of encoded input, read from a stream or file.</summary>
     public const long MaxSourceBytes = 1L << 30;
 
-    /// <summary>Throws unless a <paramref name="width"/> × <paramref name="height"/> image is within the limits.</summary>
+    /// <summary>Throws unless an image of <paramref name="width"/> × <paramref name="height"/> is allowed.</summary>
     public static void CheckDimensions(long width, long height, string format)
     {
         if (width <= 0 || height <= 0)

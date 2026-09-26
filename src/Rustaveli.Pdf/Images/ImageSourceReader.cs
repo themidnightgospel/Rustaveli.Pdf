@@ -16,9 +16,13 @@ internal static class ImageSourceReader
 
             byte[] buffer = new byte[remaining];
             int total = 0;
-            int read;
-            while (total < buffer.Length && (read = stream.Read(buffer, total, buffer.Length - total)) > 0)
+            while (total < buffer.Length)
+            {
+                int read = stream.Read(buffer, total, buffer.Length - total);
+                if (read == 0)
+                    break;
                 total += read;
+            }
 
             // A stream that ends before its reported length is taken at its word the second time.
             if (total < buffer.Length)
@@ -29,9 +33,12 @@ internal static class ImageSourceReader
 
         using MemoryStream copy = new MemoryStream();
         byte[] chunk = new byte[ChunkSize];
-        int count;
-        while ((count = stream.Read(chunk, 0, chunk.Length)) > 0)
+        while (true)
         {
+            int count = stream.Read(chunk, 0, chunk.Length);
+            if (count == 0)
+                break;
+
             CheckSize(copy.Length + count, maxBytes);
             copy.Write(chunk, 0, count);
         }

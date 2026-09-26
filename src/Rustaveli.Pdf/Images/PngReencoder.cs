@@ -160,7 +160,8 @@ internal sealed class PngReencoder : IPngRowSink, IDisposable
         else
         {
             int step = channels * bitDepth / 8;
-            PngFilters.ApplyPaeth(row.AsSpan(0, length), previous.AsSpan(0, length), _filtered.AsSpan(0, length + 1), step);
+            PngFilters.ApplyPaeth(
+                row.AsSpan(0, length), previous.AsSpan(0, length), _filtered.AsSpan(0, length + 1), step);
         }
 
         writer.Write(_filtered, 0, length + 1);

@@ -27,13 +27,17 @@ internal static class PngScanlineDecoder
 
         long imageBytes = rowBytes * header.Height;
         if (header.Interlaced && imageBytes > ImageLimits.MaxArrayLength)
-            throw new ImageFormatException($"The interlaced PNG needs {imageBytes} bytes to de-interlace, which is too many.");
+        {
+            throw new ImageFormatException(
+                $"The interlaced PNG needs {imageBytes} bytes to de-interlace, which is too many.");
+        }
 
         long expected = ExpectedLength(header);
         if (expected > (png.ImageDataLength * MaxDeflateExpansion) + MaxDeflateExpansion)
         {
             throw new ImageFormatException(
-                $"The PNG's {png.ImageDataLength} bytes of image data cannot hold the {expected} bytes its header requires.");
+                $"The PNG's {png.ImageDataLength} bytes of image data cannot hold the {expected} bytes its " +
+                "header requires.");
         }
 
         byte[]? pooled = null;
@@ -66,7 +70,7 @@ internal static class PngScanlineDecoder
         }
     }
 
-    /// <summary>The length of the inflated image data: every row of every pass, each with its filter-type byte.</summary>
+    /// <summary>The length of the inflated image data: every row of every pass, with its filter-type byte.</summary>
     public static long ExpectedLength(PngHeader header)
     {
         if (!header.Interlaced)
@@ -130,7 +134,8 @@ internal static class PngScanlineDecoder
                 {
                     ReadRow(reader, current, previous, passBytes, header.FilterStep);
                     int y = Adam7.RowStart(pass) + (row * Adam7.RowStep(pass));
-                    Scatter(current.AsSpan(1, passBytes), image.AsSpan(y * rowBytes, rowBytes), pass, columns, header.BitsPerPixel);
+                    Span<byte> target = image.AsSpan(y * rowBytes, rowBytes);
+                    Scatter(current.AsSpan(1, passBytes), target, pass, columns, header.BitsPerPixel);
                     (current, previous) = (previous, current);
                 }
             }

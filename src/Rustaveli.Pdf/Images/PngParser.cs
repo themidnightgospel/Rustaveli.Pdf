@@ -178,7 +178,10 @@ internal static class PngParser
         };
 
         if (!valid)
-            throw new ImageFormatException($"The PNG combines colour type {colorType} with bit depth {bitDepth}, which is not allowed.");
+        {
+            throw new ImageFormatException(
+                $"The PNG combines colour type {colorType} with bit depth {bitDepth}, which is not allowed.");
+        }
 
         if (body[10] != 0)
             throw new ImageFormatException($"The PNG uses compression method {body[10]}; only 0 (deflate) exists.");
@@ -198,7 +201,10 @@ internal static class PngParser
             throw new ImageFormatException("The PNG is a grayscale image with a PLTE chunk.");
 
         if (body.Length == 0 || body.Length % 3 != 0 || body.Length > 256 * 3)
-            throw new ImageFormatException($"The PNG PLTE chunk is {body.Length} bytes long, which is not 1 to 256 entries.");
+        {
+            throw new ImageFormatException(
+                $"The PNG PLTE chunk is {body.Length} bytes long, which is not 1 to 256 entries.");
+        }
 
         return body;
     }

@@ -20,11 +20,11 @@ internal sealed class ImageColorSpace
         Profile = profile;
     }
 
-    public static ImageColorSpace DeviceGray { get; } = new ImageColorSpace(ImageColorSpaceKind.DeviceGray, 1, null, default, null);
+    public static ImageColorSpace DeviceGray { get; } = Device(ImageColorSpaceKind.DeviceGray, 1);
 
-    public static ImageColorSpace DeviceRgb { get; } = new ImageColorSpace(ImageColorSpaceKind.DeviceRgb, 3, null, default, null);
+    public static ImageColorSpace DeviceRgb { get; } = Device(ImageColorSpaceKind.DeviceRgb, 3);
 
-    public static ImageColorSpace DeviceCmyk { get; } = new ImageColorSpace(ImageColorSpaceKind.DeviceCmyk, 4, null, default, null);
+    public static ImageColorSpace DeviceCmyk { get; } = Device(ImageColorSpaceKind.DeviceCmyk, 4);
 
     public ImageColorSpaceKind Kind { get; }
 
@@ -34,7 +34,7 @@ internal sealed class ImageColorSpace
     /// </summary>
     public int ComponentCount { get; }
 
-    /// <summary>For <see cref="ImageColorSpaceKind.Indexed"/>: the space the palette entries are expressed in.</summary>
+    /// <summary>For <see cref="ImageColorSpaceKind.Indexed"/>: the space the palette entries are in.</summary>
     public ImageColorSpace? Base { get; }
 
     /// <summary>
@@ -68,6 +68,9 @@ internal sealed class ImageColorSpace
     /// <summary>The ICC-based space for <paramref name="profile"/> if there is one, else the device space.</summary>
     public static ImageColorSpace For(int components, IccProfile? profile) =>
         profile == null ? Device(components) : Icc(profile);
+
+    private static ImageColorSpace Device(ImageColorSpaceKind kind, int components) =>
+        new ImageColorSpace(kind, components, null, default, null);
 
     private static ImageColorSpace Device(int components) => components switch
     {

@@ -32,7 +32,8 @@ internal sealed class ZlibReader : IDisposable
         CheckHeader(span[0], span[1]);
         _expectedChecksum = BinaryPrimitives.ReadUInt32BigEndian(span.Slice(span.Length - ChecksumLength));
 
-        ArraySegment<byte> deflate = AsArraySegment(zlib.Slice(HeaderLength, zlib.Length - HeaderLength - ChecksumLength));
+        int deflateLength = zlib.Length - HeaderLength - ChecksumLength;
+        ArraySegment<byte> deflate = AsArraySegment(zlib.Slice(HeaderLength, deflateLength));
         MemoryStream input = new MemoryStream(deflate.Array!, deflate.Offset, deflate.Count, writable: false);
         _inflater = new DeflateStream(input, CompressionMode.Decompress);
     }
@@ -42,21 +43,12 @@ internal sealed class ZlibReader : IDisposable
     /// </summary>
     public int Read(byte[] buffer, int offset, int count)
     {
-        int read;
-        try
-        {
-            read = _inflater.Read(buffer, offset, count);
-        }
-        catch (InvalidDataException exception)
-        {
-            throw new ImageFormatException("The compressed data is corrupt.", exception);
-        }
-
+        int read = Inflate(buffer, offset, count);
         _checksum = Adler32.Append(_checksum, buffer.AsSpan(offset, read));
         return read;
     }
 
-    /// <summary>Reads exactly <paramref name="count"/> decompressed bytes, or throws if the stream ends first.</summary>
+    /// <summary>Reads exactly <paramref name="count"/> decompressed bytes, or throws if the data ends first.</summary>
     public void ReadExactly(byte[] buffer, int offset, int count)
     {
         while (count > 0)
@@ -97,7 +89,7 @@ internal sealed class ZlibReader : IDisposable
 
     public void Dispose() => _inflater.Dispose();
 
-    /// <summary>Inflates a whole zlib stream, refusing to produce more than <paramref name="maxLength"/> bytes.</summary>
+    /// <summary>Inflates a whole zlib stream, refusing to produce over <paramref name="maxLength"/> bytes.</summary>
     public static byte[] InflateAll(ReadOnlyMemory<byte> zlib, int maxLength)
     {
         using ZlibReader reader = new ZlibReader(zlib);
@@ -114,6 +106,18 @@ internal sealed class ZlibReader : IDisposable
 
         reader.Finish();
         return output.ToArray();
+    }
+
+    private int Inflate(byte[] buffer, int offset, int count)
+    {
+        try
+        {
+            return _inflater.Read(buffer, offset, count);
+        }
+        catch (InvalidDataException exception)
+        {
+            throw new ImageFormatException("The compressed data is corrupt.", exception);
+        }
     }
 
     private static void CheckHeader(byte method, byte flags)

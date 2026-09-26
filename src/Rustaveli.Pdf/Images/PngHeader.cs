@@ -37,6 +37,6 @@ internal sealed class PngHeader(int width, int height, int bitDepth, PngColorTyp
     /// </summary>
     public int FilterStep => Math.Max(1, BitsPerPixel / 8);
 
-    /// <summary>Bytes in one unfiltered row of <paramref name="pixels"/> pixels, without the filter-type byte.</summary>
+    /// <summary>Bytes in an unfiltered row of <paramref name="pixels"/> pixels, less the filter-type byte.</summary>
     public long RowBytes(long pixels) => ((pixels * BitsPerPixel) + 7) / 8;
 }

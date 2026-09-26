@@ -49,7 +49,10 @@ internal static class JpegParser
                 continue;
 
             if (marker == StartOfImage)
-                throw new ImageFormatException($"The JPEG has a second start-of-image marker at offset {position - 2}.");
+            {
+                throw new ImageFormatException(
+                    $"The JPEG has a second start-of-image marker at offset {position - 2}.");
+            }
 
             if (marker == EndOfImage)
                 throw new ImageFormatException("The JPEG ends before any image data.");
@@ -77,9 +80,9 @@ internal static class JpegParser
                 case 0xCF:
                     throw new UnsupportedImageFormatException(
                         ImageFormat.Jpeg,
-                        $"The JPEG uses coding process SOF{marker - 0xC0} (lossless, hierarchical or arithmetic-coded), " +
-                        "which PDF readers are not required to decode; only baseline, extended and progressive " +
-                        "Huffman-coded JPEGs can be embedded.");
+                        $"The JPEG uses coding process SOF{marker - 0xC0} (lossless, hierarchical or " +
+                        "arithmetic-coded), which PDF readers are not required to decode; only baseline, extended " +
+                        "and progressive Huffman-coded JPEGs can be embedded.");
 
                 case StartOfScan:
                     if (frame == null)
@@ -100,7 +103,8 @@ internal static class JpegParser
                     {
                         iccChunks ??= new List<IccChunk>();
                         int offset = position - segment.Length;
-                        iccChunks.Add(new IccChunk(segment[12], segment[13], offset + IccHeaderLength, segment.Length - IccHeaderLength));
+                        iccChunks.Add(new IccChunk(
+                            segment[12], segment[13], offset + IccHeaderLength, segment.Length - IccHeaderLength));
                     }
 
                     break;
@@ -129,7 +133,10 @@ internal static class JpegParser
 
         byte marker = data[position++];
         if (marker == 0x00)
-            throw new ImageFormatException($"Found a stuffed zero byte where a JPEG marker was expected, at offset {position - 1}.");
+        {
+            throw new ImageFormatException(
+                $"Found a stuffed zero byte where a JPEG marker was expected, at offset {position - 1}.");
+        }
 
         return marker;
     }
@@ -141,7 +148,10 @@ internal static class JpegParser
 
         int length = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(position, 2));
         if (length < 2)
-            throw new ImageFormatException($"The JPEG marker segment at offset {position} has an invalid length of {length}.");
+        {
+            throw new ImageFormatException(
+                $"The JPEG marker segment at offset {position} has an invalid length of {length}.");
+        }
 
         if (length > data.Length - position)
             throw new ImageFormatException("The JPEG ends inside a marker segment.");
@@ -175,7 +185,8 @@ internal static class JpegParser
         {
             throw new UnsupportedImageFormatException(
                 ImageFormat.Jpeg,
-                $"The JPEG has {components} colour components; only 1 (gray), 3 (colour) and 4 (CMYK) can be embedded.");
+                $"The JPEG has {components} colour components; only 1 (gray), 3 (colour) and 4 (CMYK) can be " +
+                "embedded.");
         }
 
         // A height of zero defers it to a DNL marker after the first scan, which PDF readers are not required to
@@ -230,7 +241,8 @@ internal static class JpegParser
         int length = 0;
         foreach (IccChunk chunk in chunks)
         {
-            if (chunk.Count != count || chunk.Sequence < 1 || chunk.Sequence > count || ordered[chunk.Sequence - 1].Count != 0)
+            bool valid = chunk.Count == count && chunk.Sequence >= 1 && chunk.Sequence <= count;
+            if (!valid || ordered[chunk.Sequence - 1].Count != 0)
                 return null;
 
             ordered[chunk.Sequence - 1] = chunk;
