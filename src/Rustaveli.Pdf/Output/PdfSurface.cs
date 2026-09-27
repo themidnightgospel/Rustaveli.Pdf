@@ -43,6 +43,9 @@ internal sealed class PdfSurface : IPageSink
     private readonly FontEmbedder _fonts;
     private readonly ImageEmbedder _images;
     private readonly ImageAdjuster _adjuster;
+
+    /// <summary>Whether every ink is written as RGB, as PDF/A's sRGB output intent needs.</summary>
+    private readonly bool _rgbOnly;
     private readonly Dictionary<(string Name, InkModel Model, (float, float, float, float) Components), PdfReference> _separations = [];
     private readonly Dictionary<(Extent Size, Corners Corners, float Deviation, Ink Ink), (PdfReference Image, ShadowMask Mask)> _shadows = [];
     private readonly Stack<State> _saved = new Stack<State>();
@@ -61,6 +64,7 @@ internal sealed class PdfSurface : IPageSink
         _fonts = new FontEmbedder(writer.File);
         _images = new ImageEmbedder(writer.File);
         _adjuster = new ImageAdjuster(options);
+        _rgbOnly = options?.Conformance is { } conformance && conformance != PdfAConformance.None;
     }
 
     private PdfPage Page => _page ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
@@ -477,7 +481,7 @@ internal sealed class PdfSurface : IPageSink
         if (!_shadows.TryGetValue(key, out (PdfReference Image, ShadowMask Mask) cast))
         {
             ShadowMask mask = ShadowMask.Create(grown, radii, deviation);
-            cast = (ShadowImage.Write(_writer.File, mask, colour), mask);
+            cast = (ShadowImage.Write(_writer.File, mask, colour, _rgbOnly), mask);
             _shadows.Add(key, cast);
         }
 
@@ -650,7 +654,7 @@ internal sealed class PdfSurface : IPageSink
     public void BeginGradient(Gradient gradient, Offset position, Extent size)
     {
         (Offset start, Offset end) = gradient.Axis(position, size);
-        PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix));
+        PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix, _rgbOnly));
 
         _gradient = (Page.Resources.GetPatternName(pattern), gradient.Opacity);
     }
@@ -733,7 +737,8 @@ internal sealed class PdfSurface : IPageSink
     {
         ContentStreamBuilder content = Content;
 
-        switch (ink.Model)
+        // Under PDF/A every ink is written as the sRGB its output intent names; the model is kept only otherwise.
+        switch (_rgbOnly ? InkModel.Rgb : ink.Model)
         {
             case InkModel.Cmyk:
                 (float cyan, float magenta, float yellow, float black) = ink.ToCmyk();

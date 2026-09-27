@@ -20,14 +20,14 @@ internal static class ShadowImage
     private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
 
     /// <summary>The image XObject for a shadow of <paramref name="ink"/> covering <paramref name="mask"/>.</summary>
-    public static PdfReference Write(PdfFileWriter file, ShadowMask mask, Ink ink)
+    public static PdfReference Write(PdfFileWriter file, ShadowMask mask, Ink ink, bool rgbOnly = false)
     {
         PdfReference softMask = file.WriteStream(
             Dictionary(mask.Width, mask.Height, DeviceGray),
             mask.Coverage);
 
         // A soft mask need not match its image's size, so the ink is one pixel however large the shadow.
-        bool cmyk = ink.Model == InkModel.Cmyk;
+        bool cmyk = !rgbOnly && ink.Model == InkModel.Cmyk;
         PdfDictionary image = Dictionary(1, 1, cmyk ? DeviceCmyk : DeviceRgb);
         image[SMask] = softMask;
 

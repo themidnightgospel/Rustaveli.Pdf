@@ -72,6 +72,13 @@ public sealed class PdfExportOptions
     /// <summary>What re-encodes images when a quality or maximum resolution asks for it.</summary>
     public IImageProcessor? ImageProcessor { get; set; }
 
+    /// <summary>
+    /// The PDF/A part and level the document is written to, <see cref="PdfAConformance.None"/> unless set. Under PDF/A
+    /// every glyph must be found, as if <see cref="RequireEveryGlyph"/> were on, and CMYK images without a colour profile
+    /// need an <see cref="ImageProcessor"/> to become RGB.
+    /// </summary>
+    public PdfAConformance Conformance { get; set; }
+
     private int? _imageQuality;
 
     private float? _maximumImageResolution;

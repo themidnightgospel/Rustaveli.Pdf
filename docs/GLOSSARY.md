@@ -170,6 +170,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `IImageProcessor` | interface | Re-encodes images for embedding when a quality or maximum resolution asks for it. | plain | — |
 | `ImageProcessing` | struct | What a processor is asked: the `Source`, the `PixelWidth` and `PixelHeight` to make, and the `Quality`. | plain | — |
 | `PdfExportOptions.ImageQuality`, `MaximumImageResolution`, `ImageProcessor` | property | Document-wide image quality and resolution, and what processes images to meet them. | plain | `Settings.ImageCompressionQuality`, `ImageRasterDpi` |
+| `PdfAConformance` | enum | The part and level of PDF/A a document is written to: `None`, `PdfA2B`, `PdfA2U`, `PdfA3B` or `PdfA3U`. | ISO 19005 | `PDFA_Conformance` |
+| `PdfExportOptions.Conformance` | property | The PDF/A part and level to write: XMP metadata, an sRGB output intent, inks in RGB and every glyph found. | ISO 19005 | `Settings.PDFA_Conformance` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |
 
 ## Text

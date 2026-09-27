@@ -119,11 +119,19 @@ public static class PdfExport
         if (!string.IsNullOrWhiteSpace(document.Info.Language))
             writer.Catalog[Lang] = PdfString.FromText(document.Info.Language!.Trim());
 
+        PdfAConformance conformance = options?.Conformance ?? PdfAConformance.None;
+
+        if (conformance != PdfAConformance.None)
+            PdfAArchive.Declare(writer, conformance);
+
         using PdfSurface surface = new PdfSurface(writer, shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
         Typesetter.Render(document, surface, measurer, options?.ImageResolution ?? 288);
 
-        if (options?.RequireEveryGlyph == true && measurer.MissingCodepoints.Count > 0)
+        // PDF/A forbids drawing the missing glyph, so every character must be found under it.
+        bool everyGlyph = options?.RequireEveryGlyph == true || conformance != PdfAConformance.None;
+
+        if (everyGlyph && measurer.MissingCodepoints.Count > 0)
             throw new MissingGlyphException(measurer.MissingCodepoints);
 
         surface.Finish();

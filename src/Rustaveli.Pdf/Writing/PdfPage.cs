@@ -8,6 +8,9 @@ namespace Rustaveli.Pdf.Writing;
 /// </summary>
 internal sealed class PdfPage
 {
+    /// <summary>An annotation's flags, <c>/F</c>.</summary>
+    private static readonly PdfName Flags = new PdfName("F");
+
     private readonly PdfFileWriter _file;
     private readonly List<PdfReference> _annotations = new List<PdfReference>();
 
@@ -109,6 +112,9 @@ internal sealed class PdfPage
             [PdfNames.Rect] = area.ToArray(),
             [PdfNames.Border] = new PdfArray { 0, 0, 0 },
             [PdfNames.A] = action,
+
+            // Printed with the page, as PDF/A requires of every annotation.
+            [Flags] = 4,
         }));
     }
 }
