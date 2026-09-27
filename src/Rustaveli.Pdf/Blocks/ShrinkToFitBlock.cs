@@ -53,7 +53,7 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
         return Fit.Complete(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;
@@ -63,7 +63,7 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
         // Matches Measure: content that could not be made to fit is drawn unscaled and left to paginate.
         if (scale is null)
         {
-            base.Render(availableSpace, context);
+            base.RenderCore(availableSpace, context);
             return;
         }
 

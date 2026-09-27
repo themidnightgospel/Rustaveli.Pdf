@@ -134,7 +134,7 @@ internal sealed class TableBlock : Block
             : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         TableLayout? layout = BuildLayout(availableSpace, context.Planning);
 

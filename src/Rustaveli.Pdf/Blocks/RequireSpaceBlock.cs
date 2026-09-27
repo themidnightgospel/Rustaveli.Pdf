@@ -34,7 +34,7 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
         return base.PlanCore(availableSpace, context);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // The headroom test is deliberately not repeated here. A parent decides by measuring, and it may then
         // legitimately draw with less height than it offered — a header band shrinks to the height it settled
@@ -42,7 +42,7 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
         // refuse content the parent had already committed to, and drop it with no diagnostic.
         Fit plan = Child?.Plan(availableSpace, context.Planning) ?? Fit.Complete(Extent.Zero);
 
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
 
         // Only content that actually occupied space counts as having started. Otherwise a page on which this
         // rendered nothing would permanently disarm the guarantee for every page after it.

@@ -12,10 +12,10 @@ internal sealed class DefaultTypeBlock : EnclosingBlock
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         WithStyle(context, () => base.PlanCore(availableSpace, context));
 
-    public override void Render(Extent availableSpace, RenderContext context) =>
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
         WithStyle(context.Planning, () =>
         {
-            base.Render(availableSpace, context);
+            base.RenderCore(availableSpace, context);
             return true;
         });
 

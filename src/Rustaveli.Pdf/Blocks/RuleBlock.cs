@@ -30,6 +30,6 @@ internal sealed class RuleBlock : Block
             : Fit.Complete(new Extent(availableSpace.Width, breadth));
     }
 
-    public override void Render(Extent availableSpace, RenderContext context) =>
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
         Stroke.Draw(context.Surface, new Extent(availableSpace.Width, Stroke.Breadth), across: true);
 }

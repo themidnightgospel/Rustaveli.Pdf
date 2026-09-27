@@ -21,6 +21,6 @@ internal abstract class EnclosingBlock : Block, IFrameSlot
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
 
-    public override void Render(Extent availableSpace, RenderContext context) =>
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
         Child?.Render(availableSpace, context);
 }

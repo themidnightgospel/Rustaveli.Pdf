@@ -33,7 +33,7 @@ internal sealed class ProportionBlock : EnclosingBlock
         return childPlan.IsComplete ? Layout.Fit.Complete(size) : Layout.Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context) =>
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
         Child?.Render(ResolveSize(availableSpace), context);
 
     private Extent ResolveSize(Extent availableSpace)

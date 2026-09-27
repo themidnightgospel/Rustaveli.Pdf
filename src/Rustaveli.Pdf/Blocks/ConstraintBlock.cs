@@ -47,7 +47,7 @@ internal sealed class ConstraintBlock : EnclosingBlock
         return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;

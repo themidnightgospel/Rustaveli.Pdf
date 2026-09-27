@@ -31,12 +31,12 @@ internal sealed class KeepTogetherBlock : EnclosingBlock
         return Fit.Defer("The content is kept together and does not fit in the remaining space.");
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // Measure guarantees the parent only draws this when it is to be drawn here, whole or, where possible, not.
         if (Plan(availableSpace, context.Planning).IsDeferred)
             return;
 
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
     }
 }

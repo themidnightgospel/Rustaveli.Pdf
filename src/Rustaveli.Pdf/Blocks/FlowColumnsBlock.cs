@@ -58,7 +58,7 @@ internal sealed class FlowColumnsBlock : Block
         return pour.Done ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Story is null)
             return;

@@ -37,7 +37,7 @@ internal sealed class SplittableBlock(int unitCount, float unitHeight, float wid
             : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         int fitting = FittingUnits(availableSpace.Height);
 

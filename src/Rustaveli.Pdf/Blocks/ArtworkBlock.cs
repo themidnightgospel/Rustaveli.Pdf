@@ -20,7 +20,7 @@ internal sealed class ArtworkBlock : Block
             : Layout.Fit.Defer("The space available is too small for the artwork as fitted.");
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         Extent size = ResolveSize(availableSpace);
 

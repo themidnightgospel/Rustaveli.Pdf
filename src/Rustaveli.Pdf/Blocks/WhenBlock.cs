@@ -16,10 +16,10 @@ internal sealed class WhenBlock : EnclosingBlock
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Holds(context.Pagination) ? base.PlanCore(availableSpace, context) : Fit.Complete(Extent.Zero);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Holds(context.Planning.Pagination))
-            base.Render(availableSpace, context);
+            base.RenderCore(availableSpace, context);
     }
 
     private bool Holds(Pagination pagination) =>

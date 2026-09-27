@@ -12,7 +12,7 @@ internal sealed class OversizedBlock(float width, float height) : Block
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(width, height);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
     }
 }

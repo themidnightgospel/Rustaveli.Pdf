@@ -106,7 +106,7 @@ internal sealed class ColumnsBlock : Block
         return anyPartial ? Fit.Partial(size) : Fit.Complete(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Items.Count == 0)
             return;

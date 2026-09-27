@@ -12,13 +12,13 @@ internal sealed class DrawOrderBlock : EnclosingBlock
 {
     public int Order { get; set; }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // Pages are only drawn in order where some content asks for it; elsewhere, and while pages are only being
         // counted, there is nothing to reorder.
         if (context.Surface is not LayeredPageSink layers)
         {
-            base.Render(availableSpace, context);
+            base.RenderCore(availableSpace, context);
             return;
         }
 
@@ -27,7 +27,7 @@ internal sealed class DrawOrderBlock : EnclosingBlock
 
         try
         {
-            base.Render(availableSpace, context);
+            base.RenderCore(availableSpace, context);
         }
         finally
         {

@@ -34,9 +34,9 @@ internal sealed class FrameEdgesBlock : EnclosingBlock
         yield return _label;
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
 
         Offset topRight = new Offset(availableSpace.Width, 0);
         Offset bottomLeft = new Offset(0, availableSpace.Height);

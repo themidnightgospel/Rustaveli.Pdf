@@ -35,7 +35,7 @@ internal sealed class StackBlock : Block
         return result.ToSpacePlan();
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         ISurface surface = context.Surface;
         float offset = 0f;

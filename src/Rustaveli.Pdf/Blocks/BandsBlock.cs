@@ -53,7 +53,7 @@ internal sealed class BandsBlock : Block
         return contentPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context.Planning);
 

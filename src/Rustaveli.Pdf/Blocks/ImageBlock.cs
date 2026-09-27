@@ -24,7 +24,7 @@ internal sealed class ImageBlock : Block
         return Layout.Fit.Complete(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Image is null)
             return;

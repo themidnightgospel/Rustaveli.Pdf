@@ -24,12 +24,12 @@ internal sealed class OnceBlock : EnclosingBlock
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         _hasRendered ? Fit.Nothing() : base.PlanCore(availableSpace, context);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (_hasRendered)
             return;
 
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
         _hasRendered = true;
     }
 }

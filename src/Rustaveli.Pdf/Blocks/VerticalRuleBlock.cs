@@ -30,6 +30,6 @@ internal sealed class VerticalRuleBlock : Block
             : Fit.Complete(new Extent(breadth, availableSpace.Height));
     }
 
-    public override void Render(Extent availableSpace, RenderContext context) =>
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
         Stroke.Draw(context.Surface, new Extent(Stroke.Breadth, availableSpace.Height), across: false);
 }

@@ -37,7 +37,7 @@ internal sealed class PlaceholderBlock : Block
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(availableSpace);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         context.Surface.DrawRectangle(Offset.Zero, availableSpace, Ink);
 

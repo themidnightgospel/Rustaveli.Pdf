@@ -142,7 +142,7 @@ internal sealed class TextBlock : Block
             : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // A blocker means Measure reported a wrap, so this paragraph should not have been asked to draw here.
         List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);

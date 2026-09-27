@@ -22,12 +22,12 @@ internal sealed class TagBlock : EnclosingBlock
     {
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (context.Tags.Enabled && _element is null && Plan(availableSpace, context.Planning) is { IsDeferred: false, IsNothing: false })
             _element = context.Tags.Create(Tag);
 
         using TagStack.Scope scope = context.Tags.Enter(_element);
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
     }
 }

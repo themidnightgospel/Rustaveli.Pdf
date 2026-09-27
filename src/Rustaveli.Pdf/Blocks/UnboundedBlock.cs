@@ -29,7 +29,7 @@ internal sealed class UnboundedBlock : EnclosingBlock
         return Fit.Complete(Extent.Zero);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         Fit childPlan = Child?.Plan(Extent.Max, context.Planning) ?? Fit.Complete(Extent.Zero);
 

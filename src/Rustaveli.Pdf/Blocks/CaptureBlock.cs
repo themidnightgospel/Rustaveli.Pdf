@@ -10,7 +10,7 @@ internal sealed class CaptureBlock : EnclosingBlock
 {
     public required string Name { get; init; }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         Fit plan = Plan(availableSpace, context.Planning);
 
@@ -18,6 +18,6 @@ internal sealed class CaptureBlock : EnclosingBlock
             return;
 
         context.Pagination.RegisterPosition(Name, new CapturedPosition(context.Pagination.Folio, context.Surface.Origin, availableSpace));
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
     }
 }

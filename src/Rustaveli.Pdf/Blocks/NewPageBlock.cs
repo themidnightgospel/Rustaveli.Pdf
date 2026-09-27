@@ -22,5 +22,5 @@ internal sealed class NewPageBlock : Block
             // a partial render guarantees the engine comes back for the remainder on a fresh page.
             : Fit.Partial(new Extent(0, availableSpace.Height));
 
-    public override void Render(Extent availableSpace, RenderContext context) => _hasBroken = true;
+    protected override void RenderCore(Extent availableSpace, RenderContext context) => _hasBroken = true;
 }

@@ -27,7 +27,8 @@ internal static class Typesetter
     /// <param name="measurer">What measures text.</param>
     /// <param name="resolution">The resolution generated images are asked for.</param>
     /// <param name="tagged">Whether the final pass records the document's structure, for a tagged PDF.</param>
-    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288, bool tagged = false)
+    /// <param name="inspection">Where the final pass records every frame it draws, for a preview's inspector.</param>
+    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288, bool tagged = false, LayoutInspection? inspection = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pages);
@@ -57,16 +58,16 @@ internal static class Typesetter
             pageContext.IsPageCountKnown = true;
         }
 
-        RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null);
+        RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null, inspection);
     }
 
     /// <summary>Runs the document once through <paramref name="pages"/>; returns how many pages each merged document took.</summary>
-    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null)
+    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null, LayoutInspection? inspection = null)
     {
         pageContext.ResetForNewPass();
 
         PlanContext layout = new PlanContext(measurer, pageContext) { Resolution = resolution };
-        RenderContext direct = new RenderContext(pages, layout, structure);
+        RenderContext direct = new RenderContext(pages, layout, structure) { Inspection = inspection };
         int pageNumber = 0;
         int[] pagesByPart = new int[document.PartCount];
 
@@ -86,7 +87,7 @@ internal static class Typesetter
             // away, so they need no order.
             bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
             IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
-            RenderContext context = ordered ? new RenderContext(sink, layout, structure) : direct;
+            RenderContext context = ordered ? new RenderContext(sink, layout, structure) { Inspection = inspection } : direct;
 
             layout.DefaultType = section.DefaultType;
             layout.ReadingDirection = section.ReadingDirection;
@@ -211,6 +212,7 @@ internal static class Typesetter
         Sides margin = section.Margins;
 
         pages.BeginPage(pageSize);
+        context.Inspection?.BeginPage();
 
         // Only the body is the document's content; paper, underlay, running head and foot and overlay are the page's,
         // repeated on every one, and left out of its structure.

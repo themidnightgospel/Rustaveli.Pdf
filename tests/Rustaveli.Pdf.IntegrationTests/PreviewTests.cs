@@ -1,4 +1,6 @@
 using System.Net;
+using Rustaveli.Pdf.Blocks;
+using Rustaveli.Pdf.Layout;
 #if NETFRAMEWORK
 using System.Net.Http;
 #endif
@@ -114,10 +116,44 @@ public class PreviewTests
         Assert.Contains("returned no document", await Get(session, "/state"), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task ServesEveryFrameDrawnOnAPageWithTheLineThatMadeIt()
+    {
+        using PreviewSession session = Start(() => Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(144, 72);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Inset(10).Named("Greeting").Text("Hello");
+        })));
+
+        string frames = await Get(session, "/frames/1");
+
+        Assert.StartsWith("[{\"name\":", frames, StringComparison.Ordinal);
+        Assert.Matches("\"name\":\"\\\\\"Greeting\\\\\"\",\"source\":\"[^\"]*PreviewTests\\.cs:\\d+\",\"x\":10,\"y\":10,\"width\":124,\"height\":52,\"children\":\\[\\{", frames);
+    }
+
+    [Fact]
+    public void FramesAreWrittenAsNestedJson()
+    {
+        LayoutInspection inspection = new LayoutInspection();
+        inspection.BeginPage();
+        LayoutInspection.Node node = inspection.Enter(new StackBlock(), new Offset(1.234f, 2), new Extent(3, 4));
+        inspection.Leave(inspection.Enter(new NewPageBlock(), Offset.Zero, Extent.Zero));
+        inspection.Leave(node);
+
+        Assert.Equal(
+            "[{\"name\":\"Stack\",\"source\":null,\"x\":1.23,\"y\":2,\"width\":3,\"height\":4,\"children\":"
+            + "[{\"name\":\"NewPage\",\"source\":null,\"x\":0,\"y\":0,\"width\":0,\"height\":0,\"children\":[]}]}]",
+            PreviewSession.Frames(inspection.Pages[0]));
+    }
+
     [Theory]
     [InlineData("/pages/0")]
     [InlineData("/pages/3")]
     [InlineData("/pages/x")]
+    [InlineData("/frames/0")]
+    [InlineData("/frames/3")]
+    [InlineData("/frames/x")]
     [InlineData("/elsewhere")]
     public async Task WhatIsNotThereIsNotFound(string path)
     {

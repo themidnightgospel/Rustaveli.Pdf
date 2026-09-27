@@ -16,7 +16,7 @@ internal sealed class FillBlock : EnclosingBlock
     /// <summary>Painted in place of <see cref="Ink"/> when set.</summary>
     public Gradient? Gradient { get; set; }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // A parent only draws what it measured as drawable; this guards callers that draw without asking.
         Fit plan = Plan(availableSpace, context.Planning);

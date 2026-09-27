@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Rustaveli.Pdf.Layout;
 using Rustaveli.Pdf.Preview;
 
 namespace Rustaveli.Pdf;
@@ -26,6 +27,7 @@ public sealed class PreviewSession : IDisposable
     private int _version = 1;
     private int _drawnVersion;
     private List<byte[]> _pages = [];
+    private LayoutInspection _frames = new LayoutInspection();
     private string? _error;
     private bool _disposed;
 
@@ -83,8 +85,11 @@ public sealed class PreviewSession : IDisposable
         }
     }
 
-    /// <summary>The pages as drawn for the latest version, or the failure that stopped them being drawn.</summary>
-    internal (int Version, IReadOnlyList<byte[]> Pages, string? Error) Draw()
+    /// <summary>
+    /// The pages as drawn for the latest version with every frame drawn on them, or the failure that stopped them
+    /// being drawn.
+    /// </summary>
+    internal (int Version, IReadOnlyList<byte[]> Pages, LayoutInspection Frames, string? Error) Draw()
     {
         lock (_drawing)
         {
@@ -92,23 +97,32 @@ public sealed class PreviewSession : IDisposable
 
             if (_drawnVersion != version)
             {
+                _frames = new LayoutInspection();
+
                 try
                 {
-                    Document document = _compose() ?? throw new InvalidOperationException("The preview's compose function returned no document.");
-                    _pages = document.ExportImages(new ImageExportOptions { Resolution = _options.Resolution, Typefaces = _options.Typefaces }).ToList();
+                    Document document;
+
+                    // Each element remembers the line that made it, so the inspector can lead back to it.
+                    using (SourceCapture.Record())
+                        document = _compose() ?? throw new InvalidOperationException("The preview's compose function returned no document.");
+
+                    ImageExportOptions options = new ImageExportOptions { Resolution = _options.Resolution, Typefaces = _options.Typefaces };
+                    _pages = ImageExport.ExportImages(document, options, _frames).ToList();
                     _error = null;
                 }
                 catch (Exception exception)
                 {
                     // Whatever the document's code throws is what the writer needs to see, not a dead page.
                     _pages = [];
+                    _frames = new LayoutInspection();
                     _error = Describe(exception);
                 }
 
                 _drawnVersion = version;
             }
 
-            return (version, _pages, _error);
+            return (version, _pages, _frames, _error);
         }
     }
 
@@ -178,6 +192,12 @@ public sealed class PreviewSession : IDisposable
             {
                 Send(response, "image/png", pages[number - 1]);
             }
+            else if (path.StartsWith("/frames/", StringComparison.Ordinal)
+                && int.TryParse(path.Substring("/frames/".Length), NumberStyles.None, CultureInfo.InvariantCulture, out int page)
+                && Draw().Frames.Pages is { } drawn && page >= 1 && page <= drawn.Count)
+            {
+                Send(response, "application/json", Encoding.UTF8.GetBytes(Frames(drawn[page - 1])));
+            }
             else
             {
                 response.StatusCode = 404;
@@ -204,7 +224,7 @@ public sealed class PreviewSession : IDisposable
     /// <summary>The state the page polls: the version, each page's size on screen, and any failure.</summary>
     private string State()
     {
-        (int version, IReadOnlyList<byte[]> pages, string? error) = Draw();
+        (int version, IReadOnlyList<byte[]> pages, _, string? error) = Draw();
         StringBuilder json = new StringBuilder("{\"version\":").Append(version.ToString(CultureInfo.InvariantCulture)).Append(",\"pages\":[");
 
         for (int index = 0; index < pages.Count; index++)
@@ -221,6 +241,44 @@ public sealed class PreviewSession : IDisposable
 
         json.Append("],\"error\":").Append(error is null ? "null" : Quote(error)).Append('}');
         return json.ToString();
+    }
+
+    /// <summary>
+    /// The frames drawn on a page as the inspector reads them: each one's name, the line that made it, its top left
+    /// and its size in points, and the frames it drew within it.
+    /// </summary>
+    internal static string Frames(IReadOnlyList<LayoutInspection.Node> nodes)
+    {
+        StringBuilder json = new StringBuilder();
+        Append(nodes);
+        return json.ToString();
+
+        void Append(IReadOnlyList<LayoutInspection.Node> level)
+        {
+            json.Append('[');
+
+            for (int index = 0; index < level.Count; index++)
+            {
+                LayoutInspection.Node node = level[index];
+
+                if (index > 0)
+                    json.Append(',');
+
+                json.Append("{\"name\":").Append(Quote(node.Name))
+                    .Append(",\"source\":").Append(node.Source is null ? "null" : Quote(node.Source))
+                    .Append(",\"x\":").Append(Number(node.Origin.X))
+                    .Append(",\"y\":").Append(Number(node.Origin.Y))
+                    .Append(",\"width\":").Append(Number(node.Size.Width))
+                    .Append(",\"height\":").Append(Number(node.Size.Height))
+                    .Append(",\"children\":");
+                Append(node.Children);
+                json.Append('}');
+            }
+
+            json.Append(']');
+        }
+
+        static string Number(float value) => Math.Round(value, 2).ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>A PNG's size in pixels, from its header.</summary>

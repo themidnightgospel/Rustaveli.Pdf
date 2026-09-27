@@ -14,7 +14,7 @@ internal sealed class MirrorBlock : EnclosingBlock
 
     public bool Vertically { get; set; }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;

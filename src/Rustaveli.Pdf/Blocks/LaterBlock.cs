@@ -41,7 +41,7 @@ internal sealed class LaterBlock : Block
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         _done ? Fit.Nothing() : Content().Plan(availableSpace, context);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (_done)
             return;

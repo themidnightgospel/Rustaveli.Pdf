@@ -128,10 +128,98 @@ public class DebuggingTests
         Assert.Null(context.Trace);
     }
 
+    [Fact]
+    public void AnInspectionRecordsEveryFrameDrawnWithinTheOneThatDrewItAndWhereItLies()
+    {
+        Document document = Document.Compose(composition => composition.Section(page =>
+        {
+            page.Trim = new Extent(200, 100);
+            page.Body().Stack(stack =>
+            {
+                stack.Add().Inset(10).Named("Box").Compose(inner => inner.Slot().Child = new FixedBlock(30, 20));
+                stack.Add().NewPage();
+                stack.Add().Compose(inner => inner.Slot().Child = new FixedBlock(5, 5));
+            });
+        }));
+        LayoutInspection inspection = new LayoutInspection();
+
+        Typesetter.Render(document, new RecordingSurface(), LayoutHarness.Measurer, inspection: inspection);
+
+        Assert.Equal(2, inspection.Pages.Count);
+        LayoutInspection.Node box = Descendants(inspection.Pages[0]).Single(node => node.Name == "\"Box\"");
+        LayoutInspection.Node fixedBlock = Descendants(box.Children).Single(node => node.Name == "Fixed");
+        Assert.Equal(new Offset(10, 10), box.Origin);
+        Assert.Equal(new Offset(10, 10), fixedBlock.Origin);
+        Assert.Equal(new Extent(180, 20), fixedBlock.Size);
+        Assert.Same(box, Ancestors(fixedBlock).Last(node => node.Name == "\"Box\""));
+        Assert.Null(inspection.Pages[0][0].Parent);
+        Assert.Contains(Descendants(inspection.Pages[1]), node => node.Name == "Fixed" && node.Origin == Offset.Zero);
+        Assert.All(Descendants(inspection.Pages[0]), node => Assert.Null(node.Source));
+    }
+
+    [Fact]
+    public void FramesDrawnBeforeAnyPageBelongToNone()
+    {
+        LayoutInspection inspection = new LayoutInspection();
+
+        inspection.Leave(inspection.Enter(new FixedBlock(1, 1), Offset.Zero, Extent.Zero));
+
+        Assert.Empty(inspection.Pages);
+    }
+
+    [Fact]
+    public void AFrameIsInspectedByItsNameOrWhatItIs()
+    {
+        Assert.Equal("\"Totals\"", LayoutInspection.Name(new LabelBlock { Label = "Totals" }));
+        Assert.Equal("Fixed", LayoutInspection.Name(new FixedBlock(1, 1)));
+        Assert.Equal(nameof(Probe), LayoutInspection.Name(new Probe()));
+    }
+
+    [Fact]
+    public void AFrameRemembersTheLineThatMadeItOnlyWhileSourcesAreRecorded()
+    {
+        Assert.Null(new FixedBlock(1, 1).Source);
+
+        using (SourceCapture.Record())
+        {
+            // A frame made by a frame of the writer's own is traced to that frame's code, or to the line that made
+            // it where the runtime folded the small constructor into it.
+            Assert.Matches(@"(FixedBlock|DebuggingTests)\.cs:\d+$", new FixedBlock(1, 1).Source);
+            Assert.Matches(@"DebuggingTests\.cs:\d+$", SourceCapture.Current());
+
+            using (SourceCapture.Record())
+                Assert.NotNull(SourceCapture.Current());
+
+            // Ending an inner recording leaves the outer one on.
+            Assert.NotNull(SourceCapture.Current());
+        }
+
+        Assert.Null(SourceCapture.Current());
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
     public void AFrameIsNamedWithWords(string? name) =>
         Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(frame => frame.Named(name!)));
+
+    private static IEnumerable<LayoutInspection.Node> Descendants(IEnumerable<LayoutInspection.Node> nodes) =>
+        nodes.SelectMany(node => Descendants(node.Children).Prepend(node));
+
+    private static IEnumerable<LayoutInspection.Node> Ancestors(LayoutInspection.Node node)
+    {
+        for (LayoutInspection.Node? parent = node.Parent; parent is not null; parent = parent.Parent)
+            yield return parent;
+    }
+
+    /// <summary>A frame whose kind does not end in the word every library frame ends in.</summary>
+    private sealed class Probe : Block
+    {
+        protected override Fit PlanCore(Extent availableSpace, PlanContext context) => Fit.Complete(Extent.Zero);
+
+        protected override void RenderCore(Extent availableSpace, RenderContext context)
+        {
+        }
+    }
 }

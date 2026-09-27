@@ -26,7 +26,7 @@ internal sealed class OscillatingBlock : Block
             ? Fit.Partial(10, 10)
             : Fit.Complete(10, 10);
 
-    public override void Render(Extent availableSpace, RenderContext context) => _pagesDrawn++;
+    protected override void RenderCore(Extent availableSpace, RenderContext context) => _pagesDrawn++;
 
     private static int PagesNeeded(Pagination page) =>
         page.IsPageCountKnown && page.PageCount == 1 ? 2 : 1;

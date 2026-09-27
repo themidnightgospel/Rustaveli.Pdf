@@ -103,7 +103,7 @@ internal sealed class ListBlock : Block
         return _list.Plan(availableSpace, context);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         EnsureBuilt();
         _list.Render(availableSpace, context);

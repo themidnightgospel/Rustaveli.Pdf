@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using Rustaveli.Pdf.Blocks;
 
 namespace Rustaveli.Pdf.Layout;
 
@@ -62,14 +61,7 @@ internal sealed class PlanTrace
     }
 
     /// <summary>A frame as the trace names it: by its label, or by what it is.</summary>
-    private static string Name(Block block)
-    {
-        if (block is LabelBlock labelled)
-            return "\"" + labelled.Label + "\"";
-
-        string name = block.GetType().Name;
-        return name.EndsWith("Block", StringComparison.Ordinal) && name.Length > "Block".Length ? name.Substring(0, name.Length - "Block".Length) : name;
-    }
+    private static string Name(Block block) => LayoutInspection.Name(block);
 
     private static string Format(Extent size) => Length(size.Width) + " × " + Length(size.Height);
 

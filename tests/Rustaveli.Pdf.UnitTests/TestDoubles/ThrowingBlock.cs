@@ -9,5 +9,5 @@ internal sealed class ThrowingBlock(Exception exception) : Block
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(10, 10);
 
-    public override void Render(Extent availableSpace, RenderContext context) => throw exception;
+    protected override void RenderCore(Extent availableSpace, RenderContext context) => throw exception;
 }

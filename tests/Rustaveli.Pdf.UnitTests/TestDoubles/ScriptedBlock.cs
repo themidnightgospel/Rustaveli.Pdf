@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </remarks>
 internal sealed class ScriptedBlock(Fit plan) : Block
 {
-    /// <summary>The space offered on each call to <see cref="Render"/>, in order.</summary>
+    /// <summary>The space offered on each call to <see cref="Block.Render"/>, in order.</summary>
     public List<Extent> DrawnWith { get; } = [];
 
     /// <summary>
@@ -28,5 +28,5 @@ internal sealed class ScriptedBlock(Fit plan) : Block
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) => plan;
 
-    public override void Render(Extent availableSpace, RenderContext context) => DrawnWith.Add(availableSpace);
+    protected override void RenderCore(Extent availableSpace, RenderContext context) => DrawnWith.Add(availableSpace);
 }

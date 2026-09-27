@@ -13,7 +13,7 @@ internal sealed class AnchorBlock : EnclosingBlock
 {
     public string Name { get; set; } = string.Empty;
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (!string.IsNullOrEmpty(Name))
         {
@@ -21,6 +21,6 @@ internal sealed class AnchorBlock : EnclosingBlock
             context.Surface.DrawDestination(Name);
         }
 
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
     }
 }

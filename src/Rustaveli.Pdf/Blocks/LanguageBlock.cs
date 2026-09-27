@@ -21,7 +21,7 @@ internal sealed class LanguageBlock : EnclosingBlock
     {
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         TagStack tags = context.Tags;
 
@@ -33,6 +33,6 @@ internal sealed class LanguageBlock : EnclosingBlock
 
         using TagStack.Scope inside = tags.Enter(_span);
         using TagStack.Scope speaking = tags.Speak(Language);
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
     }
 }
