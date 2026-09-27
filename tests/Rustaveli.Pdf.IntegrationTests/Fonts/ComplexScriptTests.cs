@@ -79,6 +79,9 @@ public class ComplexScriptTests
         List<ShapedGlyph> marked = Shape(Shaped, "بَ", Arabic);
 
         Assert.Equal(["بَ", string.Empty, string.Empty], marked.Select(glyph => glyph.ReadsAs));
+
+        // The cluster keeps the order HarfBuzz draws it in, right to left: what sits on the letter, then the letter.
+        Assert.Equal([false, false, true], marked.Select(glyph => glyph.Advance > 0));
         Assert.Contains(marked, glyph => glyph.Advance == 0 && (glyph.XOffset != 0 || glyph.YOffset != 0));
         Assert.Equal(plain.Sum(glyph => glyph.Advance), marked.Sum(glyph => glyph.Advance), 0.001f);
     }
@@ -178,4 +181,35 @@ public class ComplexScriptTests
 
         Assert.Equal(complex, shaper.Handles($"ab{character}".AsSpan()));
     }
+
+    /// <summary>The first and last character of every block whose scripts HarfBuzz shapes.</summary>
+    public static TheoryData<int> BlockEdges => new TheoryData<int>
+    {
+        0x0590, 0x05FF, 0x0600, 0x08FF, 0x0900, 0x0DFF, 0x0E00, 0x0FFF, 0x1000, 0x109F, 0x1780, 0x18AF, 0x1900, 0x1AAF,
+        0x1B00, 0x1C4F, 0xA800, 0xA82F, 0xA840, 0xA8FF, 0xA900, 0xAAFF, 0xABC0, 0xABFF, 0xFB1D, 0xFB4F, 0xFB50, 0xFDFF,
+        0xFE70, 0xFEFF,
+    };
+
+    [Theory]
+    [MemberData(nameof(BlockEdges))]
+    public void EveryBlockIsComplexToItsEdges(int character) =>
+        Assert.True(ComplexScriptCharacters.Contains((char)character), $"U+{character:X4}");
+
+    [Theory]
+    [InlineData(0x058F)]
+    [InlineData(0x10A0)]
+    [InlineData(0x177F)]
+    [InlineData(0x18B0)]
+    [InlineData(0x1AB0)]
+    [InlineData(0x1C50)]
+    [InlineData(0xA7FF)]
+    [InlineData(0xA830)]
+    [InlineData(0xAB00)]
+    [InlineData(0xABBF)]
+    [InlineData(0xAC00)]
+    [InlineData(0xFB1C)]
+    [InlineData(0xFE00)]
+    [InlineData(0xFF00)]
+    public void CharactersJustOutsideTheBlocksAreNot(int character) =>
+        Assert.False(ComplexScriptCharacters.Contains((char)character), $"U+{character:X4}");
 }
