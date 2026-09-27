@@ -150,10 +150,11 @@ row boundaries), `List` (bulleted, numbered, lettered, roman — numbering survi
 flush and centred placement, shifting, scaling, shrink-to-fit, quarter turns, mirroring.
 
 **Text** — styled runs, weight, italic, ink, highlight, underline, strike-through and overline (solid, double,
-dotted, dashed or wavy, in their own ink and weight), leading, tracking, word spacing,
-subscript and superscript, alignment, Unicode line breaking (UAX #14), mid-word breaking, non-breaking spaces, first-line indent,
-space between paragraphs, flow across pages, folios in any numerals, page counts, cross-references and page numbers
-within anchored content, and default type inherited from the section.
+dotted, dashed or wavy, in their own ink and weight), leading, tracking, word spacing, subscript and superscript;
+paragraphs flush left, right, start or end, centred or justified, broken into lines by the Unicode rules (UAX #14)
+or anywhere, limited to a number of lines with an ellipsis, with non-breaking spaces, first-line indents, space
+between paragraphs and inline frames placed against the line; flow across pages, folios in any numerals, page
+counts, cross-references and page numbers within anchored content, and default type inherited from the section.
 
 **Flow** — `When`, `Once`, `SkipFirst`, `KeepTogether`, `RequireSpace`, `NewPage`, and reusable `ISnippet`s.
 
