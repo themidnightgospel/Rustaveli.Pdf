@@ -141,6 +141,58 @@ public class BidirectionalTextTests
     }
 
     [Fact]
+    public void ARunSetRightToLeftEndsAtItsLeft()
+    {
+        RecordedPage page = Draw(text =>
+        {
+            text.Run("abc ");
+            text.Run("def ghi!").RightToLeft();
+        });
+
+        // Latin words keep their order even so — the space between two of them reads left to right — but the "!"
+        // ending the run ends it on the left, where a right-to-left run ends.
+        Assert.Equal(["abc", " ", "!", "def", " ", "ghi"], Drawn(page));
+    }
+
+    [Fact]
+    public void ARunSetLeftToRightKeepsItsPunctuationAtItsOwnEnd()
+    {
+        // Unset, the "!" ending a right-to-left paragraph takes the paragraph's direction and moves to the phrase's
+        // left; set apart as left to right, the phrase keeps it.
+        RecordedPage unset = Draw(text => text.Run($"{Shalom} abc!"), ReadingDirection.RightToLeft);
+        RecordedPage isolated = Draw(
+            text =>
+            {
+                text.Run($"{Shalom} ");
+                text.Run("abc!").LeftToRight();
+            },
+            ReadingDirection.RightToLeft);
+
+        Assert.Equal(["!", "abc", " ", ShalomDrawn], Drawn(unset));
+        Assert.Equal(["abc!", " ", ShalomDrawn], Drawn(isolated));
+    }
+
+    [Fact]
+    public void ARunSetRightToLeftStaysSoAcrossALineBreak()
+    {
+        RecordedPage page = Draw(text => text.Run("ab!\ncd!").RightToLeft());
+
+        Assert.Equal(["!", "ab", "!", "cd"], Drawn(page));
+    }
+
+    [Fact]
+    public void RunsWithoutADirectionOfTheirOwnAreNotReordered()
+    {
+        RecordedPage page = Draw(text =>
+        {
+            text.Run("ab ");
+            text.Run("cd").LeftToRight();
+        });
+
+        Assert.Equal(["ab", " ", "cd"], Drawn(page));
+    }
+
+    [Fact]
     public void AJustifiedRightToLeftLineStretchesBetweenItsWords()
     {
         RecordedPage page = Draw(

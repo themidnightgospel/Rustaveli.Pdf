@@ -559,6 +559,18 @@ internal sealed class TextBlock : Block
 
             TypeStyle style = span.ResolveStyle(blockStyle);
 
+            // A run with a direction of its own is isolated in the paragraph's text (UAX #9 isolates), so it is
+            // resolved in that direction as one unit; the controls are never drawn, since no run covers them.
+            char? isolate = style.Direction switch
+            {
+                ReadingDirection.LeftToRight => LeftToRightIsolate,
+                ReadingDirection.RightToLeft => RightToLeftIsolate,
+                _ => null,
+            };
+
+            if (isolate is char opening)
+                paragraph.Append(opening);
+
             foreach (string segment in Tokenise(text))
             {
                 if (PastLimit())
@@ -568,6 +580,11 @@ internal sealed class TextBlock : Block
                 {
                     FlushLine(force: true);
                     CloseParagraph();
+
+                    // The run goes on into the next paragraph, isolated there too.
+                    if (isolate is char reopening)
+                        paragraph.Append(reopening);
+
                     continue;
                 }
 
@@ -613,6 +630,9 @@ internal sealed class TextBlock : Block
 
                 BreakWord(segment, span, style, width, indent, context, offset, current, lines);
             }
+
+            if (isolate is not null)
+                paragraph.Append(PopDirectionalIsolate);
         }
 
         FlushLine(force: false);
@@ -797,6 +817,12 @@ internal sealed class TextBlock : Block
 
     /// <summary>What an inline frame stands as in its paragraph's text.</summary>
     private const char ObjectReplacement = (char)0xFFFC;
+
+    private const char LeftToRightIsolate = (char)0x2066;
+
+    private const char RightToLeftIsolate = (char)0x2067;
+
+    private const char PopDirectionalIsolate = (char)0x2069;
 
     private const char ParagraphSeparator = (char)0x2029;
 

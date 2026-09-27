@@ -106,6 +106,18 @@ public class RunComposerTests
         Assert.Equal(value, StyleOf(span => span.BreakAnywhere(value), style => style.BreakAnywhere(!value)).BreaksAnywhere);
 
     [Fact]
+    public void RunsFollowTheParagraphsDirectionUnlessTold() =>
+        Assert.Null(StyleOf(span => span).Direction);
+
+    [Fact]
+    public void LeftToRightSetsTheRunsDirection() =>
+        Assert.Equal(ReadingDirection.LeftToRight, StyleOf(span => span.LeftToRight()).Direction);
+
+    [Fact]
+    public void RightToLeftSetsTheRunsDirection() =>
+        Assert.Equal(ReadingDirection.RightToLeft, StyleOf(span => span.RightToLeft()).Direction);
+
+    [Fact]
     public void StrokeStyleSetsHowStrokesAreDrawn() =>
         Assert.Equal(StrokeStyle.Dashed, StyleOf(span => span.StrokeStyle(StrokeStyle.Dashed)).StrokeStyle);
 

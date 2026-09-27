@@ -42,6 +42,14 @@ public class TypeStyleTests
     }
 
     [Fact]
+    public void WithDirectionChangesOnlyTheDirection()
+    {
+        Assert.Null(Base.Direction);
+        Assert.Equal(Base with { Direction = ReadingDirection.RightToLeft }, Base.WithDirection(ReadingDirection.RightToLeft));
+        Assert.Equal(Base, Base.WithDirection(ReadingDirection.LeftToRight).WithDirection(null));
+    }
+
+    [Fact]
     public void WithStrokeStyleChangesOnlyTheStrokeStyle()
     {
         Assert.Equal(Base with { StrokeStyle = StrokeStyle.Wavy }, Base.WithStrokeStyle(StrokeStyle.Wavy));

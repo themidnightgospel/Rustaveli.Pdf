@@ -69,6 +69,18 @@ public sealed class RunComposer
     /// <summary>Adds space to each space between words, in points; negative tightens.</summary>
     public RunComposer WordSpacing(float spacing) => Refine(style => style.WithWordSpacing(spacing));
 
+    /// <summary>
+    /// Reads the run left to right, set apart from the text around it: an English phrase in a right-to-left paragraph
+    /// keeps its punctuation at its own end.
+    /// </summary>
+    public RunComposer LeftToRight() => Refine(style => style.WithDirection(ReadingDirection.LeftToRight));
+
+    /// <summary>
+    /// Reads the run right to left, set apart from the text around it: its words run from right to left even where
+    /// they are written in a left-to-right script.
+    /// </summary>
+    public RunComposer RightToLeft() => Refine(style => style.WithDirection(ReadingDirection.RightToLeft));
+
     /// <summary>Lets lines break between any two characters of the run, not only between words.</summary>
     public RunComposer BreakAnywhere(bool value = true) => Refine(style => style.BreakAnywhere(value));
 

@@ -35,6 +35,13 @@ public sealed record TypeStyle
     /// </summary>
     public bool BreaksAnywhere { get; init; }
 
+    /// <summary>
+    /// The direction the type reads in, set apart from the text around it: a right-to-left name in an English
+    /// sentence keeps its own word order and carries its punctuation with it. Null leaves the type to the paragraph,
+    /// where each character takes the direction its script gives it.
+    /// </summary>
+    public ReadingDirection? Direction { get; init; }
+
     /// <summary>How underlines, strike-throughs and overlines are drawn.</summary>
     public StrokeStyle StrokeStyle { get; init; } = StrokeStyle.Solid;
 
@@ -162,6 +169,15 @@ public sealed record TypeStyle
         return this with
         {
             BreaksAnywhere = value
+        };
+    }
+
+    /// <summary>A copy that reads in <paramref name="direction"/>, set apart from the text around it; null to follow it.</summary>
+    public TypeStyle WithDirection(ReadingDirection? direction)
+    {
+        return this with
+        {
+            Direction = direction
         };
     }
 
