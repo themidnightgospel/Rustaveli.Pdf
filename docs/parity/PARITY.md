@@ -181,7 +181,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Page images: PNG, JPEG, WebP, DPI, quality | `GenerateImages`, `ImageGenerationSettings` | ✅ `ExportImages` in `Rustaveli.Pdf.Raster` | — |
 | Parallel generation | built in | ✅ no process-wide lock | — |
 | SVG pages | `GenerateSvg` | ✅ `ExportSvg`, text as outlines | — |
-| XPS | `GenerateXps` | ❌ | 6 |
+| XPS | `GenerateXps` | ✅ `ExportXps`, Windows only as theirs is | — |
 | Stream compression switch | `DocumentSettings.CompressDocument` | ✅ `PdfExportOptions.Compress` | — |
 | PDF/A-2b | `PDFA_Conformance.PDFA_2B` | 🟡 prerequisites only | 6 |
 | PDF/A-2a, 2u, 3a, 3b, 3u | `PDFA_Conformance` | ❌ | 6 |

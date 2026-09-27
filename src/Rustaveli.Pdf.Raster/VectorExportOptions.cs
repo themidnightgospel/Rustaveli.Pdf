@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf;
 
-/// <summary>How a document is exported as SVG pages.</summary>
-public sealed class SvgExportOptions
+/// <summary>How a document is exported as vector pages: SVG, or XPS.</summary>
+public sealed class VectorExportOptions
 {
     private float _imageResolution = 288;
 

@@ -12,11 +12,11 @@ namespace Rustaveli.Pdf;
 public static class SvgExport
 {
     /// <summary>Exports every page as an SVG document, in page order.</summary>
-    public static IReadOnlyList<string> ExportSvg(this Document document, SvgExportOptions? options = null)
+    public static IReadOnlyList<string> ExportSvg(this Document document, VectorExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        options ??= new SvgExportOptions();
+        options ??= new VectorExportOptions();
         TypeShaper shaper = (options.Typefaces ?? TypefaceLibrary.Shared).Shaper;
 
         using SkiaRasterSurface surface = new SkiaRasterSurface(shaper, new SvgPageTarget());
@@ -30,7 +30,7 @@ public static class SvgExport
     }
 
     /// <summary>Exports every page as an SVG file, at the path <paramref name="pathOfPage"/> gives its number, from 1.</summary>
-    public static void ExportSvg(this Document document, Func<int, string> pathOfPage, SvgExportOptions? options = null)
+    public static void ExportSvg(this Document document, Func<int, string> pathOfPage, VectorExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pathOfPage);

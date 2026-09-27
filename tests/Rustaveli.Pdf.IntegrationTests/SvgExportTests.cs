@@ -80,7 +80,7 @@ public class SvgExportTests
         Document document = Document.Compose(composition => composition.Section(section =>
             section.Body().Text(text => text.Run("").Typeface(TestFonts.Sans))));
 
-        Assert.Throws<MissingGlyphException>(() => document.ExportSvg(new SvgExportOptions { RequireEveryGlyph = true, Typefaces = TestFonts.NewLibrary(includeInstalled: false) }));
+        Assert.Throws<MissingGlyphException>(() => document.ExportSvg(new VectorExportOptions { RequireEveryGlyph = true, Typefaces = TestFonts.NewLibrary(includeInstalled: false) }));
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class SvgExportTests
             section.Body().Image(request => { requests.Add(request); return TestImages.Png(request.PixelWidth, request.PixelHeight); });
         }));
 
-        document.ExportSvg(new SvgExportOptions { ImageResolution = 100 });
+        document.ExportSvg(new VectorExportOptions { ImageResolution = 100 });
 
         Assert.Equal(100, Assert.Single(requests).PixelWidth);
     }
@@ -103,7 +103,7 @@ public class SvgExportTests
     [InlineData(float.NaN)]
     [InlineData(float.PositiveInfinity)]
     public void AResolutionIsAboveNothing(float resolution) =>
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SvgExportOptions { ImageResolution = resolution });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VectorExportOptions { ImageResolution = resolution });
 
     [Fact]
     public void ADocumentIsNeeded()

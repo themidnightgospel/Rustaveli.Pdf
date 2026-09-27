@@ -256,8 +256,9 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | `ImageExportOptions` | class | The `Resolution` in pixels per inch, the `Format`, the `Quality` of lossy formats, the `Typefaces`, and whether to `RequireEveryGlyph`. | InDesign | `ImageGenerationSettings` |
 | `SkiaImageProcessor` | class | Scales and recompresses images for PDF export with Skia, turning them the right way up. | plain | — |
 | `ExportSvg()` | method | Writes every page as an SVG document, text as outlines and images within. | plain | `GenerateSvg` |
-| `SvgExportOptions` | class | The `Typefaces`, whether to `RequireEveryGlyph`, and the `ImageResolution` generated images are asked for. | plain | `ImageGenerationSettings` |
-| `SvgExport` | class | Holds `ExportSvg`. | plain | — |
+| `ExportXps()` | method | Writes the document as one XPS document; Windows only. | plain | `GenerateXps` |
+| `VectorExportOptions` | class | For SVG and XPS: the `Typefaces`, whether to `RequireEveryGlyph`, and the `ImageResolution` generated images are asked for. | plain | `ImageGenerationSettings` |
+| `SvgExport`, `XpsExport` | class | Hold `ExportSvg` and `ExportXps`. | plain | — |
 | `PageImageFormat` | enum | `Png`, `Jpeg`, `Webp`. | plain | `ImageFormat` |
 
 ## Failures
