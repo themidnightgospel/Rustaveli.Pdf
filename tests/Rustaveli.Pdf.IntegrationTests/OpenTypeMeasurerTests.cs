@@ -73,17 +73,18 @@ public class OpenTypeMeasurerTests
     [Fact]
     public void MetricsAreTheFontsOwnAsPositiveDistances()
     {
-        // An independent reading of the same file: Skia's, unhinted, at the same size.
+        // An independent reading of the same file: Skia's, unhinted, at the same size. Within a thousandth of a point,
+        // since the two scale font units in different orders and platforms round the last bit differently.
         using SKTypeface typeface = SKTypeface.FromFile(TestFonts.PathOf("NotoSans-Regular.ttf"));
         using SKFont font = new SKFont(typeface, Style.PointSize) { Hinting = SKFontHinting.None, LinearMetrics = true };
         SKFontMetrics native = font.Metrics;
         TypeMetrics metrics = Measurer.GetMetrics(Style);
 
-        Assert.Equal(-native.Ascent, metrics.Ascent);
-        Assert.Equal(native.Descent, metrics.Descent);
+        Assert.Equal(-native.Ascent, metrics.Ascent, 0.001f);
+        Assert.Equal(native.Descent, metrics.Descent, 0.001f);
 
         // Leading is the one value a font may report as negative; a line gap can only add space.
-        Assert.Equal(Math.Max(0f, native.Leading), metrics.LineGap);
+        Assert.Equal(Math.Max(0f, native.Leading), metrics.LineGap, 0.001f);
     }
 
     [Fact]

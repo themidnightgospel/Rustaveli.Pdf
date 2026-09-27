@@ -157,11 +157,13 @@ public class FontFallbackTests
         float parts = measurer.MeasureWidth(Cjk, Sans) + measurer.MeasureWidth(Georgian, Sans);
 
         using PdfDocument parsed = PdfDocument.Open(Build($"{Cjk} {Georgian}").ExportPdf(new PdfExportOptions { Typefaces = library }));
-        string text = parsed.GetPage(1).Text;
+        Page page = parsed.GetPage(1);
 
+        // The faces found are the platform's, so a failure names them: which one each letter was set in.
+        string faces = string.Join(", ", page.Letters.Select(letter => $"{letter.Value}={letter.FontName}"));
         Assert.Equal(parts, whole, 0.01f);
-        Assert.Contains(Cjk, text);
-        Assert.Contains(Georgian, text);
+        Assert.True(page.Text.Contains(Cjk), $"The CJK text did not survive. Letters: {faces}");
+        Assert.True(page.Text.Contains(Georgian), $"The Georgian text did not survive. Letters: {faces}");
     }
 
     [Fact]
