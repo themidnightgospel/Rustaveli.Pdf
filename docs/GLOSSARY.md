@@ -124,8 +124,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
-| `Rule(float, Ink?)` | method | A horizontal line. | print | `LineHorizontal` |
-| `VerticalRule(float, Ink?)` | method | A vertical line — between columns, say. | print | `LineVertical` |
+| `Rule(float, Ink?, StrokeStyle)`, `Rule(float, Ink, IReadOnlyList<float>)` | method | A horizontal line, solid, in a stroke style, or in dashes and gaps of the lengths given. | print | `LineHorizontal`, `LineDashPattern` |
+| `VerticalRule(float, Ink?, StrokeStyle)`, `VerticalRule(float, Ink, IReadOnlyList<float>)` | method | A vertical line — between columns, say — styled as a rule is. | print | `LineVertical` |
 | `Link(string url)` | method | Makes the frame a link to a URL. | plain | `Hyperlink` |
 | `Anchor(string name)` | method | Names a place others can refer to. | print, InDesign ("text anchor") | `Section` |
 | `CrossReference(string anchor)` | method | Makes the frame a link to an anchor. | print | `SectionLink` |
@@ -170,7 +170,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Highlight` | term | A colour behind a run of text. | plain | `BackgroundColor` |
 | `TypeWeight` | enum | `Thin` … `Black`, `ExtraBlack`. | print | `FontWeight` |
 | `ScriptPosition` | enum | `Normal`, `Subscript`, `Superscript`. | print | `FontPosition` |
-| `StrokeStyle` | enum | `Solid`, `Double`, `Dotted`, `Dashed`, `Wavy`: how a text stroke (underline, strike-through, overline) is drawn. | print | `TextStyle.Decoration*` |
+| `StrokeStyle` | enum | `Solid`, `Double`, `Dotted`, `Dashed`, `Wavy`: how a text stroke (underline, strike-through, overline) or a rule is drawn. | print | `TextStyle.Decoration*` |
 
 ## Colour
 

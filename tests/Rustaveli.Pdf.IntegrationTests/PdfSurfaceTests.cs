@@ -45,6 +45,7 @@ public class PdfSurfaceTests
         ["DrawRectangle"] = canvas => canvas.DrawRectangle(Offset.Zero, new Extent(10, 10), Brick),
         ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), Brick),
         ["DrawLine"] = canvas => canvas.DrawLine(Offset.Zero, new Offset(10, 0), 1, Brick),
+        ["DrawDashedLine"] = canvas => canvas.DrawDashedLine(Offset.Zero, new Offset(10, 0), 1, Brick, [2, 1]),
         ["DrawText"] = canvas => canvas.DrawText("Text", new Offset(10, 30), Style),
         ["DrawImage"] = canvas =>
         {
@@ -139,6 +140,7 @@ public class PdfSurfaceTests
     [InlineData("DrawRectangle")]
     [InlineData("DrawRoundedRectangle")]
     [InlineData("DrawLine")]
+    [InlineData("DrawDashedLine")]
     [InlineData("DrawText")]
     [InlineData("DrawImage")]
     [InlineData("DrawExternalLink")]
@@ -375,6 +377,45 @@ public class PdfSurfaceTests
 
         Assert.Equal(LineCapStyle.Butt, path.LineCapStyle);
         Assert.Equal([6d, 4d], path.LineDashPattern!.Value.Array);
+    }
+
+    [Fact]
+    public void ADashedLineTakesThePatternGiven()
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawDashedLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, [5, 1, 0.5f, 1]));
+
+        PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
+
+        Assert.True(path.IsStroked);
+        Assert.Equal(2, path.LineWidth, 0.01);
+        Assert.Equal([5d, 1d, 0.5d, 1d], path.LineDashPattern!.Value.Array);
+        AssertBounds(path.GetBoundingRectangle(), left: 10, top: 20, width: 100, height: 0);
+        AssertColour(Ocean, path.StrokeColor);
+    }
+
+    [Fact]
+    public void AStrokeDrawnAfterADashedLineIsSolid()
+    {
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.DrawDashedLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, [4, 2]);
+            canvas.DrawLine(new Offset(10, 40), new Offset(110, 40), 2, Ocean);
+        });
+
+        Assert.Empty(parsed.GetPage(1).Paths[1].LineDashPattern?.Array ?? []);
+    }
+
+    [Theory]
+    [InlineData(2, 0)]
+    [InlineData(0, 255)]
+    [InlineData(-1, 255)]
+    public void ADashedLineDrawsNothingThatCouldNotBeSeen(float thickness, byte alpha)
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawDashedLine(new Offset(10, 20), new Offset(110, 20), thickness, Ocean.WithOpacity(alpha / 255f), [4, 2]));
+
+        Assert.Empty(parsed.GetPage(1).Paths);
     }
 
     [Theory]

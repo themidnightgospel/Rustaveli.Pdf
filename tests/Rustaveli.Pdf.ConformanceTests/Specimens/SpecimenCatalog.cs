@@ -12,6 +12,7 @@ public static class SpecimenCatalog
     [
         new Specimen("gallery", Gallery),
         new Specimen("transforms", Transforms),
+        new Specimen("frames-and-rules", FramesAndRules),
         new Specimen("images", Images),
         new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
@@ -304,6 +305,47 @@ public static class SpecimenCatalog
         stack.Add().Width(160f).Height(24f).ShrinkToFit().Text("Scaled down until this whole sentence fits the box it was given.");
 
         stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
+    }));
+
+    /// <summary>
+    /// Frames rounded corner by corner and stroked inside, on or outside their edge; content turned by any angle; and
+    /// rules in every stroke style and in a pattern of dashes.
+    /// </summary>
+    private static Document FramesAndRules() => Page(content => content.Stack(stack =>
+    {
+        stack.SpaceBetween(16f);
+
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(16f);
+            columns.Fixed(100f).Height(50f).Fill(TestInks.TealLighten3).RoundCorners(0, 12, 24, 6).Centered().Middle().Text("corners");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Inside).Fill(TestInks.AmberLighten3).Centered().Middle().Text("inside");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Center).Fill(TestInks.AmberLighten3).Centered().Middle().Text("centred");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Outside).RoundCorners(10).Fill(TestInks.AmberLighten3).RoundCorners(10).Centered().Middle().Text("outside");
+        });
+
+        stack.Add().Height(70f).Columns(columns =>
+        {
+            columns.Gutter(24f);
+            columns.Fixed(80f).Rotate(15f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("15°");
+            columns.Fixed(80f).Rotate(-30f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("-30°");
+            columns.Fixed(80f).Rotate(90f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("90°");
+        });
+
+        stack.Add().Rule(2f, TestInks.Grey, StrokeStyle.Dashed);
+        stack.Add().Rule(2f, TestInks.Grey, StrokeStyle.Dotted);
+        stack.Add().Rule(3f, TestInks.Grey, StrokeStyle.Double);
+        stack.Add().Rule(1.5f, TestInks.Grey, StrokeStyle.Wavy);
+        stack.Add().Rule(2f, TestInks.Grey, [8, 3, 2, 3]);
+        stack.Add().Rule(2f, TestInks.Grey, [6]);
+
+        stack.Add().Height(60f).Columns(columns =>
+        {
+            columns.Share().Text("dashed on the left");
+            columns.Fixed(20f).Centered().VerticalRule(2f, TestInks.Grey, [4, 2]);
+            columns.Share().Text("wavy on the right");
+            columns.Fixed(20f).Centered().VerticalRule(1.5f, TestInks.Grey, StrokeStyle.Wavy);
+        });
     }));
 
     /// <summary>

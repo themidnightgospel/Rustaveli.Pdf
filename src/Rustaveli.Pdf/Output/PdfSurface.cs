@@ -214,6 +214,25 @@ internal sealed class PdfSurface : IPageSink
         }
     }
 
+    public void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern)
+    {
+        if (color.IsTransparent || thickness <= 0)
+            return;
+
+        double[] dashes = new double[pattern.Count];
+        for (int index = 0; index < dashes.Length; index++)
+            dashes[index] = pattern[index];
+
+        SetStroke(color);
+
+        // The dash pattern is graphics state that nothing else sets, so it is scoped to this line.
+        Save();
+        SetLineWidth(thickness);
+        Content.SetDashPattern(dashes, 0);
+        StrokeSegment(from, to);
+        Restore();
+    }
+
     private void StrokeSegment(Offset from, Offset to)
     {
         ContentStreamBuilder content = Content;

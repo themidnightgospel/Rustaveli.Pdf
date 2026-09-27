@@ -149,6 +149,24 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
+    public void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern)
+    {
+        if (color.IsTransparent || thickness <= 0)
+            return;
+
+        // Skia needs an even number of intervals; a pattern of odd length repeats twice over to make one, as PDF's does.
+        float[] intervals = new float[pattern.Count % 2 == 0 ? pattern.Count : pattern.Count * 2];
+        for (int index = 0; index < intervals.Length; index++)
+            intervals[index] = pattern[index % pattern.Count];
+
+        using SKPaint paint = Paint(color);
+        paint.Style = SKPaintStyle.Stroke;
+        paint.StrokeWidth = thickness;
+
+        using (paint.PathEffect = SKPathEffect.CreateDash(intervals, 0))
+            Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
+    }
+
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         float size = style.EffectivePointSize;

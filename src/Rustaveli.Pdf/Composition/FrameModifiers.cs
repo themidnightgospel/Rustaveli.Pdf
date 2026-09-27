@@ -325,13 +325,41 @@ public static class FrameModifiers
 
     // ---- Rules and placeholders ----------------------------------------------------------------------------
 
-    /// <summary>Draws a horizontal rule across the available width.</summary>
-    public static void Rule(this IFrame parent, float weight = 1f, Ink? ink = null) =>
-        Attach(parent, new RuleBlock { Weight = weight, Ink = ink ?? Ink.Black });
+    /// <summary>
+    /// Draws a horizontal rule across the available width, solid unless <paramref name="style"/> says otherwise. A
+    /// wavy rule takes three times its weight, the wave swinging a weight either side of its centre.
+    /// </summary>
+    public static void Rule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new RuleBlock { Weight = weight, Ink = ink ?? Ink.Black, Style = style });
 
-    /// <summary>Draws a vertical rule down the available height.</summary>
-    public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null) =>
-        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink ?? Ink.Black });
+    /// <summary>
+    /// Draws a horizontal rule across the available width in dashes and gaps of the lengths in
+    /// <paramref name="dashes"/>, alternating and starting with a dash: <c>[4, 2]</c> is dashes of 4 points 2 apart.
+    /// </summary>
+    public static void Rule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
+        Attach(parent, new RuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
+
+    /// <summary>Draws a vertical rule down the available height, solid unless <paramref name="style"/> says otherwise.</summary>
+    public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink ?? Ink.Black, Style = style });
+
+    /// <summary>Draws a vertical rule down the available height in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    public static void VerticalRule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
+
+    /// <summary>
+    /// A copy of a dash pattern, checked now rather than when the page is drawn: a pattern of no lengths, a negative
+    /// length, or only gaps of nothing would draw no dash at all.
+    /// </summary>
+    private static float[] Checked(IReadOnlyList<float> dashes)
+    {
+        ArgumentNullException.ThrowIfNull(dashes);
+
+        if (dashes.Count == 0 || dashes.Any(length => !(length >= 0) || float.IsInfinity(length)) || dashes.All(length => length == 0))
+            throw new ArgumentException("A dash pattern needs lengths that are finite, none negative and not all zero.", nameof(dashes));
+
+        return dashes.ToArray();
+    }
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
     public static void Placeholder(this IFrame parent, Ink? ink = null) =>

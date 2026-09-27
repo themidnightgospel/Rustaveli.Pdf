@@ -83,6 +83,11 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color, style));
     }
 
+    public void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern)
+    {
+        Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color, StrokeStyle.Solid, pattern));
+    }
+
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         Current.Operations.Add(new TextOperation(Resolve(baselineStart), text, style, rightToLeft));

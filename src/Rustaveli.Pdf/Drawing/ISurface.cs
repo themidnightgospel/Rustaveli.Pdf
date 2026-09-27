@@ -46,6 +46,12 @@ internal interface ISurface
     /// </summary>
     void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid);
 
+    /// <summary>
+    /// Strokes a line in dashes and gaps of the lengths in <paramref name="pattern"/>, alternating and starting with a
+    /// dash, repeated along its length. The lengths are never negative and not all zero.
+    /// </summary>
+    void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern);
+
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
     /// <param name="text">The text, in logical order.</param>
     /// <param name="baselineStart">Where the run begins, on the baseline.</param>

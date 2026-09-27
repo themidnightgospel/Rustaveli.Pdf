@@ -54,6 +54,10 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
+    public void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern)
+    {
+    }
+
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
     }
