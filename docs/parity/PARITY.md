@@ -158,7 +158,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Keep original image bytes | `UseOriginalImage` | ✅ always, wherever PDF can carry the encoding | — |
 | Dynamic images generated at the final size | `GenerateDynamicImageDelegate` | ❌ | 5 |
 | SVG, static and dynamic | `Svg`, `SvgImage` | ❌ | 5 |
-| Custom vector drawing | `Canvas(DrawOnCanvas)` | ❌ own drawing API, not a raw Skia canvas | 5 |
+| Custom vector drawing | `Canvas(DrawOnCanvas)` | ✅ `Artwork`, our own drawing API, vector in the PDF | — |
 
 ## Fonts
 

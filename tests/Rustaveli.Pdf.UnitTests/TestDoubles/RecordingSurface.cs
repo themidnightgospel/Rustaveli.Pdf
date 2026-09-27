@@ -61,6 +61,36 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         _transform = Matrix3x2.CreateScale(scaleX, scaleY) * _transform;
     }
 
+    public void Concatenate(float a, float b, float c, float d, float e, float f)
+    {
+        _transform = new Matrix3x2(a, b, c, d, e, f) * _transform;
+    }
+
+    public void FillPath(VectorPath path, Ink ink, FillRule rule)
+    {
+        Current.Operations.Add(new PathOperation(Resolve(Offset.Zero), PathPainting.Fill, path, ink, rule, null, PathBounds(path)));
+    }
+
+    public void StrokePath(VectorPath path, Ink ink, LineStyle style)
+    {
+        Current.Operations.Add(new PathOperation(Resolve(Offset.Zero), PathPainting.Stroke, path, ink, FillRule.NonZero, style, PathBounds(path)));
+    }
+
+    public void ClipPath(VectorPath path, FillRule rule)
+    {
+        Current.Operations.Add(new PathOperation(Resolve(Offset.Zero), PathPainting.Clip, path, Ink.Transparent, rule, null, PathBounds(path)));
+    }
+
+    /// <summary>The box the path's points reach, on the page.</summary>
+    private Bounds PathBounds(VectorPath path)
+    {
+        if (path.IsEmpty)
+            return new Bounds(0, 0, 0, 0);
+
+        List<Offset> points = path.Points.Select(Resolve).ToList();
+        return new Bounds(points.Min(point => point.X), points.Min(point => point.Y), points.Max(point => point.X), points.Max(point => point.Y));
+    }
+
     public void Rotate(float degrees)
     {
         _transform = Matrix3x2.CreateRotation(degrees * (float)Math.PI / 180f) * _transform;

@@ -37,4 +37,7 @@ internal sealed class TransformTracker
     public void Scale(float scaleX, float scaleY) => Current = Current.After(Transform.Scaling(scaleX, scaleY));
 
     public void Rotate(float degrees) => Current = Current.After(Transform.Rotation(degrees));
+
+    public void Concatenate(float a, float b, float c, float d, float e, float f) =>
+        Current = Current.After(new Transform(a, b, c, d, e, f));
 }

@@ -46,6 +46,10 @@ public class PdfSurfaceTests
         ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), Brick),
         ["DrawLine"] = canvas => canvas.DrawLine(Offset.Zero, new Offset(10, 0), 1, Brick),
         ["DrawDashedLine"] = canvas => canvas.DrawDashedLine(Offset.Zero, new Offset(10, 0), 1, Brick, [2, 1]),
+        ["Concatenate"] = canvas => canvas.Concatenate(1, 0, 0, 1, 5, 5),
+        ["FillPath"] = canvas => canvas.FillPath(new VectorPath().AddRectangle(0, 0, 5, 5), Brick, FillRule.NonZero),
+        ["StrokePath"] = canvas => canvas.StrokePath(new VectorPath().AddRectangle(0, 0, 5, 5), Brick, new LineStyle(1)),
+        ["ClipPath"] = canvas => canvas.ClipPath(new VectorPath().AddRectangle(0, 0, 5, 5), FillRule.NonZero),
         ["DrawText"] = canvas => canvas.DrawText("Text", new Offset(10, 30), Style),
         ["DrawImage"] = canvas =>
         {
@@ -141,6 +145,10 @@ public class PdfSurfaceTests
     [InlineData("DrawRoundedRectangle")]
     [InlineData("DrawLine")]
     [InlineData("DrawDashedLine")]
+    [InlineData("Concatenate")]
+    [InlineData("FillPath")]
+    [InlineData("StrokePath")]
+    [InlineData("ClipPath")]
     [InlineData("DrawText")]
     [InlineData("DrawImage")]
     [InlineData("DrawExternalLink")]

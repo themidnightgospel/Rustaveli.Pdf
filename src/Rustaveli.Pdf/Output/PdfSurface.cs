@@ -131,6 +131,107 @@ internal sealed class PdfSurface : IPageSink
     // In the flipped, Y-down space the engine draws in, this matrix turns clockwise.
     public void Rotate(float degrees) => Concatenate(Transform.Rotation(degrees));
 
+    public void Concatenate(float a, float b, float c, float d, float e, float f) => Concatenate(new Transform(a, b, c, d, e, f));
+
+    public void FillPath(VectorPath path, Ink ink, FillRule rule)
+    {
+        if (ink.IsTransparent || path.IsEmpty)
+            return;
+
+        SetFill(ink);
+        AppendPath(path);
+
+        if (rule == FillRule.EvenOdd)
+            Content.FillEvenOdd();
+        else
+            Content.Fill();
+    }
+
+    public void StrokePath(VectorPath path, Ink ink, LineStyle style)
+    {
+        if (ink.IsTransparent || path.IsEmpty || style.Weight <= 0)
+            return;
+
+        SetStroke(ink);
+
+        // Caps, joins and dashes are graphics state that nothing else sets, so they are scoped to this stroke.
+        Save();
+        ContentStreamBuilder content = Content;
+        SetLineWidth(style.Weight);
+
+        if (style.Cap != LineCap.Butt)
+            content.SetLineCap(style.Cap == LineCap.Round ? PdfLineCap.Round : PdfLineCap.ProjectingSquare);
+
+        if (style.Join != LineJoin.Miter)
+            content.SetLineJoin(style.Join == LineJoin.Round ? PdfLineJoin.Round : PdfLineJoin.Bevel);
+
+        if (style.MiterLimit != 10)
+            content.SetMiterLimit(Math.Max(1, style.MiterLimit));
+
+        if (style.Dashes is { Count: > 0 } dashes && dashes.Any(length => length > 0))
+        {
+            double[] pattern = new double[dashes.Count];
+            for (int index = 0; index < pattern.Length; index++)
+                pattern[index] = Math.Max(0, dashes[index]);
+
+            content.SetDashPattern(pattern, style.DashOffset);
+        }
+
+        AppendPath(path);
+        content.Stroke();
+        Restore();
+    }
+
+    public void ClipPath(VectorPath path, FillRule rule)
+    {
+        ContentStreamBuilder content = Content;
+
+        // An empty path encloses nothing, so nothing drawn after it shows.
+        if (path.IsEmpty)
+            content.Rectangle(0, 0, 0, 0);
+        else
+            AppendPath(path);
+
+        if (rule == FillRule.EvenOdd)
+            content.ClipEvenOdd();
+        else
+            content.Clip();
+
+        content.EndPath();
+    }
+
+    private void AppendPath(VectorPath path)
+    {
+        ContentStreamBuilder content = Content;
+        IReadOnlyList<Offset> points = path.Points;
+        int point = 0;
+
+        foreach (PathVerb verb in path.Verbs)
+        {
+            switch (verb)
+            {
+                case PathVerb.Move:
+                    content.MoveTo(points[point].X, points[point].Y);
+                    point++;
+                    break;
+
+                case PathVerb.Line:
+                    content.LineTo(points[point].X, points[point].Y);
+                    point++;
+                    break;
+
+                case PathVerb.Cubic:
+                    content.CurveTo(points[point].X, points[point].Y, points[point + 1].X, points[point + 1].Y, points[point + 2].X, points[point + 2].Y);
+                    point += 3;
+                    break;
+
+                default:
+                    content.ClosePath();
+                    break;
+            }
+        }
+    }
+
     public void ClipRectangle(Extent size)
     {
         ContentStreamBuilder content = Content;

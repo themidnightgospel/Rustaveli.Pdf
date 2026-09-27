@@ -84,6 +84,91 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
 
     public void Rotate(float degrees) => Canvas.RotateDegrees(degrees);
 
+    public void Concatenate(float a, float b, float c, float d, float e, float f)
+    {
+        SKMatrix matrix = new SKMatrix(a, c, e, b, d, f, 0, 0, 1);
+        Canvas.Concat(in matrix);
+    }
+
+    public void FillPath(VectorPath path, Ink ink, FillRule rule)
+    {
+        if (ink.IsTransparent || path.IsEmpty)
+            return;
+
+        using SKPaint paint = ShapePaint(ink);
+        using SKPath shape = ToSkia(path, rule);
+        Canvas.DrawPath(shape, paint);
+    }
+
+    public void StrokePath(VectorPath path, Ink ink, LineStyle style)
+    {
+        if (ink.IsTransparent || path.IsEmpty || style.Weight <= 0)
+            return;
+
+        using SKPaint paint = ShapePaint(ink);
+        paint.Style = SKPaintStyle.Stroke;
+        paint.StrokeWidth = style.Weight;
+        paint.StrokeCap = style.Cap switch { LineCap.Round => SKStrokeCap.Round, LineCap.Square => SKStrokeCap.Square, _ => SKStrokeCap.Butt };
+        paint.StrokeJoin = style.Join switch { LineJoin.Round => SKStrokeJoin.Round, LineJoin.Bevel => SKStrokeJoin.Bevel, _ => SKStrokeJoin.Miter };
+        paint.StrokeMiter = Math.Max(1, style.MiterLimit);
+
+        if (style.Dashes is { Count: > 0 } dashes && dashes.Any(length => length > 0))
+        {
+            // Skia needs an even number of intervals; a pattern of odd length repeats twice over to make one, as PDF's does.
+            float[] intervals = new float[dashes.Count % 2 == 0 ? dashes.Count : dashes.Count * 2];
+            for (int index = 0; index < intervals.Length; index++)
+                intervals[index] = Math.Max(0, dashes[index % dashes.Count]);
+
+            paint.PathEffect = SKPathEffect.CreateDash(intervals, style.DashOffset);
+        }
+
+        using SKPath shape = ToSkia(path, FillRule.NonZero);
+
+        using (paint.PathEffect)
+            Canvas.DrawPath(shape, paint);
+    }
+
+    public void ClipPath(VectorPath path, FillRule rule)
+    {
+        using SKPath shape = ToSkia(path, rule);
+        Canvas.ClipPath(shape, SKClipOperation.Intersect, antialias: true);
+    }
+
+    private static SKPath ToSkia(VectorPath path, FillRule rule)
+    {
+        using SKPathBuilder builder = new SKPathBuilder();
+        builder.FillType = rule == FillRule.EvenOdd ? SKPathFillType.EvenOdd : SKPathFillType.Winding;
+        IReadOnlyList<Offset> points = path.Points;
+        int point = 0;
+
+        foreach (PathVerb verb in path.Verbs)
+        {
+            switch (verb)
+            {
+                case PathVerb.Move:
+                    builder.MoveTo(points[point].X, points[point].Y);
+                    point++;
+                    break;
+
+                case PathVerb.Line:
+                    builder.LineTo(points[point].X, points[point].Y);
+                    point++;
+                    break;
+
+                case PathVerb.Cubic:
+                    builder.CubicTo(points[point].X, points[point].Y, points[point + 1].X, points[point + 1].Y, points[point + 2].X, points[point + 2].Y);
+                    point += 3;
+                    break;
+
+                default:
+                    builder.Close();
+                    break;
+            }
+        }
+
+        return builder.Detach();
+    }
+
     public void ClipRectangle(Extent size) => Canvas.ClipRect(SKRect.Create(0, 0, size.Width, size.Height), antialias: true);
 
     public void DrawRectangle(Offset position, Extent size, Ink color)

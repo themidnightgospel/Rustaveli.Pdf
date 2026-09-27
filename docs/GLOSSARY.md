@@ -150,6 +150,13 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Placeholder(Ink?)` | method | A box standing in for content not there yet. | print | `Placeholder` |
 | `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |
 | `Image(IImage, ImageFitting)` | method | Places an image. | plain | `Image` |
+| `Artwork(Artwork, ImageFitting)` | method | Places vector artwork, fitted as an image is and kept vector in the PDF. | print ("artwork") | `Svg`, `Canvas` |
+| `Artwork` | class | Vector artwork of a size of its own, made by `Draw(width, height, ...)`. | print | `SvgImage`, `DrawOnCanvas` |
+| `ArtworkComposer` | class | Draws artwork: `Fill`, `Stroke`, `Clip`, `Text`, `SaveState`, `RestoreState`, `Translate`, `Scale`, `Rotate`, `Transform`. | print | a Skia canvas |
+| `VectorPath` | class | Straight and curved segments — `MoveTo`, `LineTo`, `CurveTo`, `QuadraticTo`, `ArcTo`, `Close` — and shapes: `AddRectangle`, `AddRoundedRectangle`, `AddEllipse`, `AddCircle`. | plain | `SKPath` |
+| `FillRule` | enum | `NonZero`, `EvenOdd`: what counts as inside a path that crosses itself. | plain | `SKPathFillType` |
+| `LineStyle` | struct | A stroke's `Weight`, `Cap`, `Join`, `MiterLimit`, `Dashes` and `DashOffset`. | plain | `SKPaint` stroke settings |
+| `LineCap`, `LineJoin` | enum | How a stroke's ends (`Butt`, `Round`, `Square`) and corners (`Miter`, `Round`, `Bevel`) are finished. | plain | `SKStrokeCap`, `SKStrokeJoin` |
 | `IImage` | interface | An image a frame can place, with its size in pixels the right way up. | plain | `IImage` |
 | `RasterImage` | class | A JPEG or PNG, loaded with `FromBytes`, `FromStream` or `FromFile` and embedded as it was encoded wherever PDF allows. *Raster*, as prepress distinguishes pixel images from vector art. | print | `Image` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |

@@ -33,6 +33,13 @@ public static class FrameContent
         });
     }
 
+    /// <summary>Adds vector artwork, scaled to the frame according to <paramref name="fit"/> and kept vector in the PDF.</summary>
+    public static void Artwork(this IFrame parent, Artwork artwork, ImageFitting fit = ImageFitting.FitWidth)
+    {
+        ArgumentNullException.ThrowIfNull(artwork);
+        FrameAttachment.Attach(parent, new ArtworkBlock { Artwork = artwork, Fit = fit });
+    }
+
     /// <summary>Stacks content vertically, flowing across pages when it does not fit.</summary>
     public static void Stack(this IFrame parent, Action<StackComposer> handler)
     {
