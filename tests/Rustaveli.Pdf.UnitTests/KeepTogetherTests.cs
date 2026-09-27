@@ -55,4 +55,60 @@ public class KeepTogetherTests
         Assert.Single(firstPage);
         Assert.Single(secondPage);
     }
+
+    /// <summary>Content blocks drawn on each page: the fixed block in black, each splittable unit in blue.</summary>
+    private static List<int> Blocks(RecordingSurface canvas) =>
+        canvas.Pages.Select(page => page.Operations.OfType<RectangleOperation>().Count(rectangle => rectangle.Ink == TestInks.Black || rectangle.Ink == TestInks.Blue)).ToList();
+
+    private static Document TwoItems(Func<IFrame, IFrame> keep, int units) => Document.Compose(container => container.Section(page =>
+    {
+        page.Trim = new Extent(200, 100);
+        page.Body().Stack(column =>
+        {
+            column.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 60));
+            keep(column.Add()).Compose(inner => inner.Slot().Child = new SplittableBlock(unitCount: units, unitHeight: 25));
+        });
+    }));
+
+    [Fact]
+    public void WherePossibleMovesContentThatWouldFitAFreshPage()
+    {
+        RecordingSurface canvas = LayoutHarness.Render(TwoItems(frame => frame.KeepTogetherWherePossible(), units: 3));
+
+        Assert.Equal([1, 3], Blocks(canvas));
+    }
+
+    [Fact]
+    public void WherePossibleSplitsContentLongerThanAnyPage()
+    {
+        RecordingSurface canvas = LayoutHarness.Render(TwoItems(frame => frame.KeepTogetherWherePossible(), units: 6));
+
+        Assert.Equal([2, 4, 1], Blocks(canvas));
+        Assert.Throws<OversetException>(() => LayoutHarness.Render(TwoItems(frame => frame.KeepTogether(), units: 6)));
+    }
+
+    [Fact]
+    public void WherePossibleSplitsAtTheTopOfAPage()
+    {
+        KeepTogetherBlock element = new KeepTogetherBlock { WherePossible = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 25) };
+        PlanContext context = LayoutHarness.Context();
+        context.PageBody = new Extent(200, 50);
+
+        Fit plan = element.Plan(new Extent(200, 50), context);
+
+        Assert.True(plan.IsPartial);
+        Approximately.Equal(new Extent(10, 50), plan.Size);
+    }
+
+    [Fact]
+    public void WherePossibleDefersContentThatFitsAFreshPageAndDrawsNothingHere()
+    {
+        KeepTogetherBlock element = new KeepTogetherBlock { WherePossible = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 25) };
+        PlanContext context = LayoutHarness.Context();
+        context.PageBody = new Extent(200, 100);
+
+        Assert.True(element.Plan(new Extent(200, 50), context).IsDeferred);
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 50), context).Operations);
+        Assert.False(new KeepTogetherBlock().WherePossible);
+    }
 }

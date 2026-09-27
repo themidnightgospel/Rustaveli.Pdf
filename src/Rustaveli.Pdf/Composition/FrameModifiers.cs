@@ -379,11 +379,25 @@ public static class FrameModifiers
     public static IFrame Unbounded(this IFrame parent) =>
         Attach(parent, new UnboundedBlock());
 
+    /// <summary>Gives the frame the document's frame style named <paramref name="name"/>, returning the frame content goes in.</summary>
+    public static IFrame Style(this IFrame parent, string name)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        return StyleSheet.InForce.Frame(name)(parent);
+    }
+
     /// <summary>
     /// Prevents content from being split across pages, moving it whole to the next page instead.
     /// </summary>
     public static IFrame KeepTogether(this IFrame parent) =>
         Attach(parent, new KeepTogetherBlock());
+
+    /// <summary>
+    /// Keeps the frame on one page where it can be: moved whole to the next page when it does not fit on this one but
+    /// would on a fresh one, and split like any other content when it is longer than a page.
+    /// </summary>
+    public static IFrame KeepTogetherWherePossible(this IFrame parent) =>
+        Attach(parent, new KeepTogetherBlock { WherePossible = true });
 
     /// <summary>
     /// Defers the content to the next page unless at least <paramref name="minHeight"/> remains, so a heading
@@ -449,6 +463,13 @@ public static class FrameModifiers
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
     public static void Placeholder(this IFrame parent, Ink? ink = null) =>
         Attach(parent, new PlaceholderBlock { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+
+    /// <summary>Fills the available space with a block standing in for unwritten content, saying what will go there.</summary>
+    public static void Placeholder(this IFrame parent, string label, Ink? ink = null)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+        Attach(parent, new PlaceholderBlock(label) { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+    }
 
     // ---- Links ---------------------------------------------------------------------------------------------
 

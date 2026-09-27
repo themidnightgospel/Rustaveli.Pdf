@@ -85,6 +85,35 @@ public class MergeTests
     }
 
     [Fact]
+    public void AMergedDocumentMayTakeThePagesItsDocumentsAllow()
+    {
+        Document first = Pages("A", 1);
+        first.PageLimit = 3;
+        Document second = Pages("B", 1);
+        second.PageLimit = int.MaxValue;
+
+        Assert.Equal(10_000 + 3, Document.Merge(Pages("C", 1), first).PageLimit);
+        Assert.Equal(int.MaxValue, Document.Merge(first, second).PageLimit);
+    }
+
+    [Fact]
+    public void ContentComposedLaterNamesStylesFromItsOwnDocument()
+    {
+        Document Styled(float size) => Document.Compose(composition =>
+        {
+            composition.Styles.DefineType("Size", style => style.WithPointSize(size));
+            composition.Section(section => section.Body().ComposeLater(later => later.Text(text => text.Run("x").Style("Size"))));
+        });
+
+        List<float> sizes = LayoutHarness.Render(Document.Merge(Styled(10), Styled(20))).Pages
+            .SelectMany(page => page.Operations.OfType<TextOperation>())
+            .Select(text => text.Style.PointSize)
+            .ToList();
+
+        Assert.Equal([10f, 20f], sizes);
+    }
+
+    [Fact]
     public void MergingNeedsDocuments()
     {
         Assert.Throws<ArgumentNullException>(() => Document.Merge(null!));

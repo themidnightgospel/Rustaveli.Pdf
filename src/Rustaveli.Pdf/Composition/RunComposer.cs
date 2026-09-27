@@ -113,4 +113,7 @@ public sealed class RunComposer
 
     /// <summary>Applies an arbitrary style transformation.</summary>
     public RunComposer Style(Func<TypeStyle, TypeStyle> refinement) => Refine(refinement);
+
+    /// <summary>Sets the run in the document's type style named <paramref name="name"/>.</summary>
+    public RunComposer Style(string name) => Refine(StyleSheet.InForce.Type(name));
 }

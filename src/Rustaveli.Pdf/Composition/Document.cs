@@ -17,7 +17,29 @@ public sealed class Document : IComposition
     /// <summary>The section each document merged into this one begins at; this document alone is one, from 0.</summary>
     private readonly List<int> _partStarts = [0];
 
+    /// <summary>The style sheet of each document merged into this one, in order; none for a document composed alone.</summary>
+    private readonly List<StyleSheet> _partStyles = [];
+
+    private int _pageLimit = 10_000;
+
     public DocumentInfo Info { get; } = new DocumentInfo();
+
+    /// <summary>The document's named type, paragraph and frame styles.</summary>
+    public StyleSheet Styles { get; } = new StyleSheet();
+
+    /// <summary>
+    /// The most pages the document may take, 10,000 unless set. Content that never stops asking for another page —
+    /// a frame that reports more to come but takes no room — fails once it passes this, rather than running forever.
+    /// </summary>
+    public int PageLimit
+    {
+        get => _pageLimit;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            _pageLimit = value;
+        }
+    }
 
     internal IReadOnlyList<Section> Sections => _pages;
 
@@ -28,6 +50,9 @@ public sealed class Document : IComposition
 
     /// <summary>Which merged document the section at <paramref name="section"/> came from.</summary>
     internal int PartOf(int section) => _partStarts.FindLastIndex(start => start <= section);
+
+    /// <summary>The style sheet of the merged document <paramref name="part"/>, which its content names styles from.</summary>
+    internal StyleSheet StylesOf(int part) => _partStyles.Count > part ? _partStyles[part] : Styles;
 
     /// <summary>
     /// A document of every page of <paramref name="documents"/>, one after another, numbered on from one to the next
@@ -46,8 +71,12 @@ public sealed class Document : IComposition
         foreach (Document document in documents)
         {
             merged._partStarts.Add(merged._pages.Count);
+            merged._partStyles.Add(document.Styles);
             merged._pages.AddRange(document._pages);
         }
+
+        // Each document may take the pages it allows, so together they may take them all.
+        merged.PageLimit = (int)Math.Min(int.MaxValue, documents.Sum(document => (long)document.PageLimit));
 
         DocumentInfo first = documents[0].Info;
         merged.Info.Title = first.Title;
@@ -85,7 +114,8 @@ public sealed class Document : IComposition
         Document document = new Document();
         try
         {
-            compose(document);
+            using (document.Styles.Use())
+                compose(document);
         }
         catch (Exception ex) when (!(ex is CompositionException))
         {
