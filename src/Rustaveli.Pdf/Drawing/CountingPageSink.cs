@@ -46,7 +46,7 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
-    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
     {
     }
 

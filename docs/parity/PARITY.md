@@ -90,10 +90,10 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Solid background | `Background` | ✅ | — |
 | Linear-gradient background | `BackgroundLinearGradient` | ❌ | 4 |
 | Borders per side, colour | `Border*`, `BorderColor` | ✅ | — |
-| Border alignment inside/middle/outside | `BorderAlignment*` | ❌ | 4 |
+| Border alignment inside/middle/outside | `BorderAlignment*` | ✅ | — |
 | Linear-gradient border | `BorderLinearGradient` | ❌ | 4 |
 | Corner radius, uniform | `CornerRadius` | ✅ | — |
-| Corner radius per corner | `CornerRadiusTopLeft`, … | ❌ | 4 |
+| Corner radius per corner | `CornerRadiusTopLeft`, … | ✅ | — |
 | Box shadow (blur, spread, offset, colour) | `Shadow`, `BoxShadowStyle` | ❌ | 4 |
 | Lines: thickness | `LineHorizontal/Vertical` | ✅ | — |
 | Lines: colour, dash pattern, gradient | `LineDescriptor` | ❌ | 4 |

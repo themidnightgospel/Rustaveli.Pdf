@@ -34,10 +34,10 @@ internal interface ISurface
     /// </summary>
     /// <param name="position">Top-left corner of the shape, relative to the current origin.</param>
     /// <param name="size">Outer extent of the shape.</param>
-    /// <param name="cornerRadius">Corner rounding. Backends clamp anything larger than half the shorter side.</param>
+    /// <param name="corners">Each corner's rounding, fitted to the shape as CSS fits it: radii that would overlap are scaled down together.</param>
     /// <param name="color">Fill or stroke colour, depending on <paramref name="strokeWidth"/>.</param>
     /// <param name="strokeWidth">Zero or less fills the shape; a positive value strokes an outline of that width.</param>
-    void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f);
+    void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f);
 
     /// <summary>
     /// Strokes a line from <paramref name="from"/> to <paramref name="to"/>. A double line is two strokes a third of

@@ -77,7 +77,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         Canvas.DrawRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), paint);
     }
 
-    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
@@ -90,9 +90,18 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             paint.StrokeWidth = strokeWidth;
         }
 
-        // A radius beyond half the shorter side has no shape, so it is clamped, as the PDF surface clamps it.
-        float radius = Math.Max(0, Math.Min(cornerRadius, Math.Min(size.Width, size.Height) / 2));
-        Canvas.DrawRoundRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), radius, radius, paint);
+        // Fitted as the PDF surface fits them, so both draw the same shape.
+        Corners radii = corners.FittedTo(size);
+        using SKRoundRect shape = new SKRoundRect();
+        shape.SetRectRadii(
+            SKRect.Create(position.X, position.Y, size.Width, size.Height),
+            [
+                new SKPoint(radii.TopLeft, radii.TopLeft),
+                new SKPoint(radii.TopRight, radii.TopRight),
+                new SKPoint(radii.BottomRight, radii.BottomRight),
+                new SKPoint(radii.BottomLeft, radii.BottomLeft)
+            ]);
+        Canvas.DrawRoundRect(shape, paint);
     }
 
     public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)

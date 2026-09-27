@@ -167,7 +167,7 @@ public class StrokeAndFillTests
         StrokeBlock element = new StrokeBlock
         {
             Weight = Sides.All(2),
-            CornerRadius = 4,
+            Corners = Corners.All(4),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -188,7 +188,7 @@ public class StrokeAndFillTests
         StrokeBlock element = new StrokeBlock
         {
             Weight = Sides.All(2),
-            CornerRadius = 50,
+            Corners = Corners.All(50),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -208,7 +208,7 @@ public class StrokeAndFillTests
         StrokeBlock element = new StrokeBlock
         {
             Weight = new Sides(left, top, right, bottom),
-            CornerRadius = 5,
+            Corners = Corners.All(5),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -225,7 +225,7 @@ public class StrokeAndFillTests
         StrokeBlock element = new StrokeBlock
         {
             Weight = Sides.Zero,
-            CornerRadius = 5,
+            Corners = Corners.All(5),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };
@@ -244,7 +244,7 @@ public class StrokeAndFillTests
         StrokeBlock element = new StrokeBlock
         {
             Weight = Sides.All(30),
-            CornerRadius = 5,
+            Corners = Corners.All(5),
             Ink = TestInks.Black,
             Child = new FixedBlock(width, height, TestInks.White)
         };

@@ -9,8 +9,8 @@ internal sealed class FillBlock : EnclosingBlock
 {
     public Ink Ink { get; set; } = Ink.Transparent;
 
-    /// <summary>Radius of the corner rounding. Zero draws square corners.</summary>
-    public float CornerRadius { get; set; }
+    /// <summary>The rounding of each corner. Zero draws square corners.</summary>
+    public Corners Corners { get; set; }
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
@@ -24,8 +24,8 @@ internal sealed class FillBlock : EnclosingBlock
         // cell's full width and row height, not merely the extent of the text inside.
         if (!Ink.IsTransparent)
         {
-            if (CornerRadius > 0)
-                context.Surface.DrawRoundedRectangle(Offset.Zero, availableSpace, CornerRadius, Ink);
+            if (Corners.IsRounded)
+                context.Surface.DrawRoundedRectangle(Offset.Zero, availableSpace, Corners, Ink);
             else
                 context.Surface.DrawRectangle(Offset.Zero, availableSpace, Ink);
         }

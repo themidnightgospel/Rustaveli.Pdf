@@ -43,7 +43,7 @@ public class PdfSurfaceTests
         ["Rotate"] = canvas => canvas.Rotate(90),
         ["ClipRectangle"] = canvas => canvas.ClipRectangle(new Extent(10, 10)),
         ["DrawRectangle"] = canvas => canvas.DrawRectangle(Offset.Zero, new Extent(10, 10), Brick),
-        ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), 2, Brick),
+        ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), Brick),
         ["DrawLine"] = canvas => canvas.DrawLine(Offset.Zero, new Offset(10, 0), 1, Brick),
         ["DrawText"] = canvas => canvas.DrawText("Text", new Offset(10, 30), Style),
         ["DrawImage"] = canvas =>
@@ -220,7 +220,7 @@ public class PdfSurfaceTests
     public void DrawRoundedRectangleFillsAShapeWithCurvedCorners()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(10), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -238,7 +238,7 @@ public class PdfSurfaceTests
     public void AnOversizedRadiusIsClampedToHalfTheShorterSide()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 500, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(500), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -255,7 +255,7 @@ public class PdfSurfaceTests
     public void APositiveStrokeWidthOutlinesTheRoundedRectangleInstead()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Ocean, strokeWidth: 3));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(10), Ocean, strokeWidth: 3));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -271,7 +271,7 @@ public class PdfSurfaceTests
     public void AStrokeWidthOfZeroOrLessFillsTheRoundedRectangle(float strokeWidth)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Brick, strokeWidth));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(10), Brick, strokeWidth));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -285,7 +285,7 @@ public class PdfSurfaceTests
     public void ARadiusOfZeroOrLessDrawsSquareCorners(float radius)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), radius, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(radius), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -302,7 +302,7 @@ public class PdfSurfaceTests
     public void DrawRoundedRectangleDrawsNothingThatCouldNotBeSeen(float width, float height, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(100, 100), new Extent(width, height), 5, Brick.WithOpacity(alpha / 255f)));
+            canvas.DrawRoundedRectangle(new Offset(100, 100), new Extent(width, height), Corners.All(5), Brick.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }

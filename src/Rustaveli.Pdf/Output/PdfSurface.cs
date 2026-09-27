@@ -138,7 +138,7 @@ internal sealed class PdfSurface : IPageSink
         Content.Fill();
     }
 
-    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
@@ -153,9 +153,7 @@ internal sealed class PdfSurface : IPageSink
             SetFill(color);
         }
 
-        // A radius beyond half the shorter side has no shape, so it is clamped.
-        double radius = Math.Max(0, Math.Min(cornerRadius, Math.Min(size.Width, size.Height) / 2));
-        AppendRoundedRectangle(position.X, position.Y, size.Width, size.Height, radius);
+        AppendRoundedRectangle(position.X, position.Y, size.Width, size.Height, corners.FittedTo(size));
 
         if (strokeWidth > 0)
             Content.Stroke();
@@ -406,29 +404,48 @@ internal sealed class PdfSurface : IPageSink
             Math.Max(Math.Max(y0, y1), Math.Max(y2, y3)));
     }
 
-    private void AppendRoundedRectangle(double x, double y, double width, double height, double radius)
+    /// <summary>
+    /// A rectangle with each corner rounded to its own radius, as a quarter ellipse approximated by a cubic; square
+    /// where a radius is zero, and a plain rectangle where all are.
+    /// </summary>
+    private void AppendRoundedRectangle(double x, double y, double width, double height, Corners radii)
     {
         ContentStreamBuilder content = Content;
 
-        if (radius <= 0)
+        if (!radii.IsRounded)
         {
             content.Rectangle(x, y, width, height);
             return;
         }
 
-        double k = radius * Kappa;
         double right = x + width;
         double bottom = y + height;
+        double topLeft = radii.TopLeft;
+        double topRight = radii.TopRight;
+        double bottomRight = radii.BottomRight;
+        double bottomLeft = radii.BottomLeft;
 
-        content.MoveTo(x + radius, y);
-        content.LineTo(right - radius, y);
-        content.CurveTo(right - radius + k, y, right, y + radius - k, right, y + radius);
-        content.LineTo(right, bottom - radius);
-        content.CurveTo(right, bottom - radius + k, right - radius + k, bottom, right - radius, bottom);
-        content.LineTo(x + radius, bottom);
-        content.CurveTo(x + radius - k, bottom, x, bottom - radius + k, x, bottom - radius);
-        content.LineTo(x, y + radius);
-        content.CurveTo(x, y + radius - k, x + radius - k, y, x + radius, y);
+        content.MoveTo(x + topLeft, y);
+        content.LineTo(right - topRight, y);
+
+        if (topRight > 0)
+            content.CurveTo(right - topRight + (topRight * Kappa), y, right, y + topRight - (topRight * Kappa), right, y + topRight);
+
+        content.LineTo(right, bottom - bottomRight);
+
+        if (bottomRight > 0)
+            content.CurveTo(right, bottom - bottomRight + (bottomRight * Kappa), right - bottomRight + (bottomRight * Kappa), bottom, right - bottomRight, bottom);
+
+        content.LineTo(x + bottomLeft, bottom);
+
+        if (bottomLeft > 0)
+            content.CurveTo(x + bottomLeft - (bottomLeft * Kappa), bottom, x, bottom - bottomLeft + (bottomLeft * Kappa), x, bottom - bottomLeft);
+
+        content.LineTo(x, y + topLeft);
+
+        if (topLeft > 0)
+            content.CurveTo(x, y + topLeft - (topLeft * Kappa), x + topLeft - (topLeft * Kappa), y, x + topLeft, y);
+
         content.ClosePath();
     }
 

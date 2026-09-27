@@ -87,7 +87,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Fill(Ink)` | method | Paints the frame's whole area. | InDesign | `Background` |
 | `Stroke(float)`, `StrokeLeft/Top/Right/Bottom` | method | A line around the frame's edge, of a given weight. | InDesign | `Border*` |
 | `StrokeInk(Ink)` | method | The ink a stroke is drawn in. | InDesign | `BorderColor` |
-| `RoundCorners(float)` | method | Rounds the frame's corners. | InDesign ("corner options") | `CornerRadius` |
+| `RoundCorners(float)`, `RoundCorners(topLeft, topRight, bottomRight, bottomLeft)` | method | Rounds the frame's corners, alike or each on its own. | InDesign ("corner options") | `CornerRadius*` |
+| `AlignStroke(StrokeAlignment)` | method | Whether the stroke just set lies inside the frame's edge, centred on it or outside it. | InDesign ("align stroke") | `BorderAlignment*` |
 | `Width`, `Height`, `MinWidth`, `MaxWidth`, `MinHeight`, `MaxHeight` | method | Size constraints. | plain | same |
 | `Expand()`, `ExpandHorizontally()`, `ExpandVertically()` | method | Claims all the space offered. | plain | `Extend*` |
 | `Proportion(float, ProportionFit)` | method | Holds a width-to-height ratio. | print | `AspectRatio` |
@@ -185,6 +186,8 @@ The Material Design palette (`Colors.Red.Lighten3` and friends) is removed: user
 | `Extent` | struct | A width and a height, in points. | plain | `Size` |
 | `Offset` | struct | A displacement or position, in points. | plain | `Position` |
 | `Sides` | struct | Four values, one per side — margins, insets, stroke weights. | plain | `Edges` |
+| `Corners` | struct | Four radii, one per corner, clockwise from the top left. | plain | — |
+| `StrokeAlignment` | enum | `Inside`, `Center`, `Outside`: where a stroke lies against the edge. | InDesign | `BorderAlignment*` |
 | `PaperSizes` | class | ISO A, B and C series, US and architectural sizes, envelopes. | print | `PageSizes` |
 | `Landscape()` / `Portrait()` | method | An extent turned to its wide or tall orientation. | print | same |
 | `LengthUnit` | enum | `Point`, `Millimetre`, `Centimetre`, `Metre`, `Inch`, `Foot`, `Mil`, `Pica`. | plain | `Unit` |

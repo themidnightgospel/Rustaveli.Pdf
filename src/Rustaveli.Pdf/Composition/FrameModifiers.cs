@@ -9,8 +9,9 @@ namespace Rustaveli.Pdf;
 /// <remarks>
 /// Most methods attach one element to the container they are called on and return that element as the next
 /// container, so a chain such as <c>.Inset(10).Fill(...)</c> nests rather than accumulating flags. The
-/// exceptions are the configurators — <c>BorderColor</c> and <c>CornerRadius</c> — which attach nothing and
-/// return the element they just adjusted, and the alignment methods, which fold into an adjacent empty aligner.
+/// exceptions are the configurators — <c>StrokeInk</c>, <c>AlignStroke</c> and <c>RoundCorners</c> — which attach
+/// nothing and return the element they just adjusted, and the alignment methods, which fold into an adjacent empty
+/// aligner.
 /// </remarks>
 public static class FrameModifiers
 {
@@ -81,31 +82,54 @@ public static class FrameModifiers
     /// <summary>
     /// Rounds the corners of the fill or stroke this directly follows.
     /// </summary>
-    public static IFrame RoundCorners(this IFrame parent, float radius) => parent switch
+    public static IFrame RoundCorners(this IFrame parent, float radius) => parent.RoundCorners(Corners.All(radius));
+
+    /// <summary>
+    /// Rounds each corner of the fill or stroke this directly follows to its own radius, clockwise from the top left;
+    /// zero leaves a corner square.
+    /// </summary>
+    public static IFrame RoundCorners(this IFrame parent, float topLeft, float topRight, float bottomRight, float bottomLeft) =>
+        parent.RoundCorners(new Corners(topLeft, topRight, bottomRight, bottomLeft));
+
+    /// <summary>Rounds each corner of the fill or stroke this directly follows to its radius in <paramref name="corners"/>.</summary>
+    public static IFrame RoundCorners(this IFrame parent, Corners corners) => parent switch
     {
-        FillBlock fill => Assign(fill, radius),
-        StrokeBlock stroke => Assign(stroke, radius),
+        FillBlock fill => Assign(fill, corners),
+        StrokeBlock stroke => Assign(stroke, corners),
         _ => throw new CompositionException("RoundCorners must directly follow Fill or a Stroke method.")
     };
 
-    private static IFrame Assign(FillBlock fill, float radius)
+    /// <summary>
+    /// Sets where the stroke this directly follows lies against the frame's edge: inside it, the default, centred
+    /// on it, or outside it.
+    /// </summary>
+    public static IFrame AlignStroke(this IFrame parent, StrokeAlignment alignment)
     {
-        fill.CornerRadius = radius;
+        if (parent is not StrokeBlock stroke)
+            throw new CompositionException("AlignStroke must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
+
+        stroke.Alignment = alignment;
+        return stroke;
+    }
+
+    private static IFrame Assign(FillBlock fill, Corners corners)
+    {
+        fill.Corners = corners;
         return fill;
     }
 
-    private static IFrame Assign(StrokeBlock stroke, float radius)
+    private static IFrame Assign(StrokeBlock stroke, Corners corners)
     {
         // A rounded corner has no shape where two different weights meet, so the block ignores the radius unless
         // every side matches. Saying so here beats accepting the call and quietly drawing square corners.
-        if (radius > 0 && !stroke.HasUniformWeight)
+        if (corners.IsRounded && !stroke.HasUniformWeight)
         {
             throw new CompositionException(
                 "RoundCorners needs a stroke of one weight on every side, greater than zero. Use Stroke(weight) " +
                 "rather than StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
         }
 
-        stroke.CornerRadius = radius;
+        stroke.Corners = corners;
         return stroke;
     }
 

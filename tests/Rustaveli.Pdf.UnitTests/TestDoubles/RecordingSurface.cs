@@ -73,9 +73,9 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new RectangleOperation(Resolve(position), size, color, ResolveBounds(position, size)));
     }
 
-    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
     {
-        Current.Operations.Add(new RoundedRectangleOperation(Resolve(position), size, cornerRadius, color, strokeWidth, ResolveBounds(position, size)));
+        Current.Operations.Add(new RoundedRectangleOperation(Resolve(position), size, corners, color, strokeWidth, ResolveBounds(position, size)));
     }
 
     public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
