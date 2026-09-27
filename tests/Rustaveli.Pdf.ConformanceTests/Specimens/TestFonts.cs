@@ -15,10 +15,7 @@ internal static class TestFonts
     private static bool Register()
     {
         foreach (string file in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "fonts"), "*.ttf"))
-        {
-            using FileStream stream = File.OpenRead(file);
-            SkiaFontProvider.Shared.Register(stream);
-        }
+            TypefaceLibrary.Shared.RegisterFile(file);
 
         return true;
     }

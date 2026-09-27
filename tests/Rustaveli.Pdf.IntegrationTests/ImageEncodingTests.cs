@@ -1,5 +1,8 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using SkiaSharp;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Content;
 
 namespace Rustaveli.Pdf.IntegrationTests;
 
@@ -9,7 +12,7 @@ namespace Rustaveli.Pdf.IntegrationTests;
 public class ImageEncodingTests
 {
     /// <summary>A hard-edged two-colour image — the shape that shows JPEG damage most clearly.</summary>
-    private static byte[] FlatColourPng()
+    private static byte[] FlatColour(SKEncodedImageFormat format)
     {
         using SKBitmap bitmap = new SKBitmap(64, 64);
 
@@ -20,37 +23,52 @@ public class ImageEncodingTests
             canvas.DrawRect(SKRect.Create(16, 16, 32, 32), paint);
         }
 
-        using SKData data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
+        using SKData data = bitmap.Encode(format, 90);
         return data.ToArray();
     }
 
-    private static Document DocumentWithImage(byte[] png) =>
-        Document.Compose(container => container.Section(page =>
+    private static Document DocumentWithImages(params byte[][] images) =>
+        Document.Compose(composition => composition.Section(section =>
         {
-            page.Trim = new Extent(200, 200);
-            page.Body().Image(SkiaImage.FromBytes(png));
+            section.Trim = new Extent(200, 400);
+            section.Body().Stack(stack =>
+            {
+                foreach (byte[] image in images)
+                    stack.Add().Height(120).Image(RasterImage.FromBytes(image), ImageFitting.Proportionally);
+            });
         }));
 
     [Fact]
-    public void AnOpaqueImageIsStoredLosslesslyRatherThanAsAJpeg()
+    public void AnOpaquePngIsStoredLosslesslyRatherThanAsAJpeg()
     {
-        // Regression: SKDocumentPdfMetadata's parameterless constructor leaves EncodingQuality at zero, which is
-        // a valid JPEG quality rather than an unset marker. Every opaque non-JPEG image was re-encoded at the
-        // worst quality the format allows — catastrophic for the logos, charts and barcodes that dominate the
-        // library's use cases, and invisible to any structural PDF checker.
-        byte[] pdf = DocumentWithImage(FlatColourPng()).ExportPdf();
+        // Logos, charts and barcodes dominate the library's use cases, and JPEG damage to them is invisible to any
+        // structural check. A PNG stays a Flate-compressed image.
+        byte[] pdf = DocumentWithImages(FlatColour(SKEncodedImageFormat.Png)).ExportPdf();
 
         Assert.DoesNotContain("/DCTDecode", Encoding.Latin1.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("/FlateDecode", Encoding.Latin1.GetString(pdf), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void TheEncodingQualityCanBeLoweredDeliberately()
+    public void AJpegIsEmbeddedByteForByte()
     {
-        // The lossless default must be a choice the caller can reverse, not a hard-coded policy.
-        byte[] pdf = DocumentWithImage(FlatColourPng())
-            .ExportPdf(new PdfExportOptions { EncodingQuality = 40 });
+        // Decoding and re-encoding a JPEG loses quality a second time; PDF can carry the original as it is.
+        byte[] jpeg = FlatColour(SKEncodedImageFormat.Jpeg);
 
-        Assert.Contains("/DCTDecode", Encoding.Latin1.GetString(pdf), StringComparison.Ordinal);
+        using PdfDocument parsed = PdfDocument.Open(DocumentWithImages(jpeg).ExportPdf());
+        IPdfImage image = Assert.Single(parsed.GetPage(1).GetImages());
+
+        Assert.Equal(jpeg, image.RawBytes.ToArray());
     }
 
+    [Fact]
+    public void AnImageShownTwiceIsEmbeddedOnce()
+    {
+        // The same bytes loaded twice are still one image: it is matched by content, not by instance.
+        byte[] png = FlatColour(SKEncodedImageFormat.Png);
+
+        string pdf = Encoding.Latin1.GetString(DocumentWithImages(png, png).ExportPdf(new PdfExportOptions { Compress = false }));
+
+        Assert.Single(Regex.Matches(pdf, @"/Subtype\s*/Image\b"));
+    }
 }

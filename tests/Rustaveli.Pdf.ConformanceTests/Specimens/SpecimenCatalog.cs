@@ -13,6 +13,7 @@ public static class SpecimenCatalog
         new Specimen("gallery", Gallery),
         new Specimen("transforms", Transforms),
         new Specimen("images", Images),
+        new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
         new Specimen("long-flow", LongFlow)
     ];
@@ -81,7 +82,7 @@ public static class SpecimenCatalog
         stack.Add().Columns(columns =>
         {
             columns.Gutter(10f);
-            columns.Share().Stroke(1f).StrokeInk(TestInks.Grey).Inset(8f).Text("Bordered box");
+            columns.Share().Stroke(1f).StrokeInk(TestInks.Grey).Inset(8f).Text("Stroked frame");
             columns.Share().Height(60f).Fill(TestInks.Indigo).Inset(8f).Centered().Middle()
                 .Text(text => text.Run("Centred on both axes").Ink(TestInks.White));
             columns.Fixed(60f).Height(60f).Placeholder(TestInks.GreyLighten3);
@@ -92,7 +93,7 @@ public static class SpecimenCatalog
             columns.Gutter(10f);
             columns.Share().Fill(TestInks.AmberLighten4).RoundCorners(8f).Inset(8f).Text("Rounded fill");
             columns.Share().Stroke(1f).StrokeInk(TestInks.Teal).RoundCorners(8f).Inset(8f).Text("Rounded outline");
-            columns.Natural().Fill(TestInks.GreyLighten4).Inset(8f).Text("Auto");
+            columns.Natural().Fill(TestInks.GreyLighten4).Inset(8f).Text("Natural");
         });
 
         stack.Add().Columns(columns =>
@@ -146,10 +147,10 @@ public static class SpecimenCatalog
 
         stack.Add().Anchor("destination").Text(text =>
         {
-            text.Run("A named destination with an external ");
-            text.Link("hyperlink", "https://example.com").Ink(TestInks.Blue).Underline();
-            text.Run(" and an internal ");
-            text.CrossReference("jump", "destination").Ink(TestInks.Blue).Underline();
+            text.Run("An anchor with a ");
+            text.Link("link", "https://example.com").Ink(TestInks.Blue).Underline();
+            text.Run(" and a ");
+            text.CrossReference("cross-reference", "destination").Ink(TestInks.Blue).Underline();
             text.Run(".");
         });
     }));
@@ -163,9 +164,9 @@ public static class SpecimenCatalog
             columns.Gutter(12f);
             columns.Fixed(80f).Height(40f).TurnLeft().Fill(TestInks.TealLighten3).Text("left");
             columns.Fixed(80f).Height(40f).TurnRight().Fill(TestInks.TealLighten3).Text("right");
-            columns.Fixed(80f).MirrorHorizontal().Fill(TestInks.AmberLighten3).Text("flipped");
-            columns.Fixed(80f).MirrorVertical().Fill(TestInks.AmberLighten3).Text("flipped");
-            columns.Fixed(80f).MirrorBoth().Fill(TestInks.AmberLighten3).Text("over");
+            columns.Fixed(80f).MirrorHorizontal().Fill(TestInks.AmberLighten3).Text("mirrored");
+            columns.Fixed(80f).MirrorVertical().Fill(TestInks.AmberLighten3).Text("mirrored");
+            columns.Fixed(80f).MirrorBoth().Fill(TestInks.AmberLighten3).Text("both");
         });
 
         stack.Add().Columns(columns =>
@@ -181,6 +182,37 @@ public static class SpecimenCatalog
         stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
     }));
 
+    /// <summary>
+    /// One image per way an image reaches the page: a JPEG as it is, turned by its EXIF orientation, in CMYK, in
+    /// grey, with an ICC profile; a PNG with a palette, an alpha channel, a colour key, sixteen bits and a profile.
+    /// </summary>
+    private static Document ImageSources() => Page(content => content.Table(table =>
+    {
+        string[] fixtures =
+        [
+            "jpeg-baseline.jpg", "jpeg-exif-orientation6.jpg", "jpeg-cmyk-adobe.jpg", "jpeg-gray.jpg", "jpeg-icc.jpg",
+            "basn3p08.png", "basn6a08.png", "tbrn2c08.png", "basi0g16.png", "png-iccp.png",
+        ];
+
+        table.Columns(columns =>
+        {
+            for (int column = 0; column < 5; column++)
+                columns.Share();
+        });
+
+        foreach (string fixture in fixtures)
+        {
+            table.Cell().Inset(4f).Stack(stack =>
+            {
+                stack.SpaceBetween(4f);
+                stack.Add().Height(80f).Fill(TestInks.GreyLighten4).Image(
+                    RasterImage.FromFile(Path.Combine(AppContext.BaseDirectory, "assets", "images", fixture)),
+                    ImageFitting.Proportionally);
+                stack.Add().Text(text => text.Run(fixture).PointSize(7f));
+            });
+        }
+    }));
+
     private static Document Images() => Page(content => content.Stack(stack =>
     {
         stack.SpaceBetween(10f);
@@ -190,13 +222,13 @@ public static class SpecimenCatalog
         // Each fit mode gets a box it can satisfy: fitting the width needs free height, and fitting the height needs
         // free width. Area and unproportional fit any box.
         stack.Add().Text("Width");
-        stack.Add().Width(200f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.FitWidth);
+        stack.Add().Width(200f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.FitWidth);
         stack.Add().Text("Height");
-        stack.Add().Height(100f).FlushLeft().Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.FitHeight);
+        stack.Add().Height(100f).FlushLeft().Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.FitHeight);
         stack.Add().Text("Area");
-        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Proportionally);
+        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.Proportionally);
         stack.Add().Text("Unproportional");
-        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(SkiaImage.FromBytes(photograph), ImageFitting.Stretch);
+        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.Stretch);
     }));
 
     private static Document LayersAndDecoration() => Page(content => content.Stack(stack =>
@@ -206,15 +238,15 @@ public static class SpecimenCatalog
         stack.Add().Height(160f).Layered(layers =>
         {
             layers.Layer().Centered().Middle().Text(text => text.Run("WATERMARK").PointSize(40f).Ink(TestInks.GreyLighten3));
-            layers.BaseLayer().Inset(10f).Text("The primary layer sets the size; other layers draw behind or in front of it.");
+            layers.BaseLayer().Inset(10f).Text("The base layer sets the size; other layers draw behind or in front of it.");
             layers.Layer().FlushRight().FlushBottom().Inset(6f).Text(text => text.Run("corner").Ink(TestInks.Red));
         });
 
-        stack.Add().Banded(decoration =>
+        stack.Add().Banded(bands =>
         {
-            decoration.Head().Fill(TestInks.IndigoLighten4).Inset(6f).Text("Before");
-            decoration.Body().Inset(6f).Text("Decorated content sits between the bands.");
-            decoration.Foot().Fill(TestInks.IndigoLighten4).Inset(6f).Text("After");
+            bands.Head().Fill(TestInks.IndigoLighten4).Inset(6f).Text("Head");
+            bands.Body().Inset(6f).Text("The body sits between the bands.");
+            bands.Foot().Fill(TestInks.IndigoLighten4).Inset(6f).Text("Foot");
         });
 
         stack.Add().Rule(1f, TestInks.Grey);

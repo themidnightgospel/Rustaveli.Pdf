@@ -150,9 +150,11 @@ settings; `.editorconfig` (`end_of_line = lf`) makes editors write LF in the fir
 ## Public types live in one namespace; everything else is internal
 
 Every public type is in the `Rustaveli.Pdf` namespace, whichever package or folder it is in, so one `using`
-directive is enough to write any document. Public types sit in `Composition/`, `Primitives/` and `Exceptions/`.
-Every other folder — `Blocks/`, `Layout/`, `Drawing/`, `Text/`, and those that follow — is internal, in a
-namespace named after the folder: `Rustaveli.Pdf.Blocks`, `Rustaveli.Pdf.Layout`.
+directive is enough to write any document. `Composition/`, `Primitives/` and `Exceptions/` hold public types only.
+A topic folder may hold a public type beside its internals — `TypefaceLibrary` in `Fonts/`, `RasterImage` in
+`Images/`, `PdfExport` in `Output/` — and its internal types take a namespace named after the folder:
+`Rustaveli.Pdf.Fonts`, `Rustaveli.Pdf.Output`. `Blocks/`, `Layout/`, `Drawing/`, `Text/` and `Writing/` are
+internal throughout.
 
 Nothing public may expose an internal type. A composer reaches its block through an internal constructor, and
 `IFrame` hides the block it holds behind the internal `IFrameSlot`. Tests reach internals through

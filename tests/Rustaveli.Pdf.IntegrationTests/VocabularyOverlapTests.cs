@@ -31,7 +31,7 @@ public class VocabularyOverlapTests
         "Document",
     };
 
-    private static readonly Assembly[] Ours = [typeof(Document).Assembly, typeof(PdfExport).Assembly];
+    private static readonly Assembly[] Ours = [typeof(Document).Assembly, typeof(ImageExport).Assembly];
 
     private static readonly Assembly Theirs = typeof(QuestPDF.Fluent.Document).Assembly;
 

@@ -19,6 +19,8 @@ so the history of *why* survives.
 | [0011](0011-delivery-workflow.md) | Delivery in phases, one pull request each | Accepted |
 | [0012](0012-parents-allot-final-size.md) | Parents allot the final size; decorators fill it | Accepted |
 | [0013](0013-span-compatibility-package.md) | Spans on .NET Framework come from System.Memory | Accepted |
+| [0014](0014-text-is-shaped-once.md) | Text is shaped once, in the core, for measuring and drawing alike | Accepted |
+| [0015](0015-text-engine-layers.md) | The text engine in layers: Unicode rules in the core, complex shaping by opt-in | Accepted |
 
 A new record has three sections: **Context** (the forces at play), **Decision** (what we will do) and
 **Consequences** (what becomes easier, what becomes harder, what we now owe).

@@ -31,7 +31,16 @@
     <InternalsVisibleTo Include="Rustaveli.Pdf.ConformanceTests" />
 
     <!-- Backends ship in lockstep with the core, so they may use its engine seams without making them public. -->
-    <InternalsVisibleTo Include="Rustaveli.Pdf.Skia" />
+    <InternalsVisibleTo Include="Rustaveli.Pdf.Raster" />
+  </ItemGroup>
+
+  <!--
+    The last-resort typefaces: Latin, Greek and Cyrillic subsets of Noto Sans, built by eng/bundle-fonts.py. The SIL
+    Open Font License they are distributed under travels in the package beside the MIT licence of the code.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts\Bundled\*.ttf" LogicalName="Rustaveli.Pdf.Fonts.Bundled.%(Filename)%(Extension)" />
+    <None Include="Fonts\Bundled\OFL.txt" Pack="true" PackagePath="licenses\NotoSans-OFL.txt" />
   </ItemGroup>
 
   <!-- Spans and array pools on .NET Framework; net10.0 has them built in (docs/adr/0013). -->

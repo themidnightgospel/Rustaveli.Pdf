@@ -6,7 +6,7 @@
     <Project Path="samples/Rustaveli.Pdf.Gallery/Rustaveli.Pdf.Gallery.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Rustaveli.Pdf.Skia/Rustaveli.Pdf.Skia.csproj" />
+    <Project Path="src/Rustaveli.Pdf.Raster/Rustaveli.Pdf.Raster.csproj" />
     <Project Path="src/Rustaveli.Pdf/Rustaveli.Pdf.csproj" />
   </Folder>
   <Folder Name="/tests/">

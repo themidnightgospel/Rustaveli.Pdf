@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <RootNamespace>Rustaveli.Pdf.Raster</RootNamespace>
+    <PackageId>Rustaveli.Pdf.Raster</PackageId>
+    <Description>Exports Rustaveli.Pdf documents as page images — PNG, JPEG or WebP — through SkiaSharp.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsTrimmable>
+
+    <!-- See the core project: without this the doc comments reach no consumer. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
+
+    <InternalsVisibleTo Include="Rustaveli.Pdf.IntegrationTests" />
+    <InternalsVisibleTo Include="Rustaveli.Pdf.ConformanceTests" />
+
+    <!-- Version pinned deliberately; the reason sits next to it in Directory.Packages.props. -->
+    <PackageReference Include="SkiaSharp" />
+
+    <!--
+      Referenced directly and unconditionally. The base SkiaSharp package does not carry the Linux native
+      assets, and the trimmer drops native assets that arrive only transitively, so a direct reference is the
+      only reliable way for Linux consumers to end up with a working binary.
+    -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+  </ItemGroup>
+
+</Project>

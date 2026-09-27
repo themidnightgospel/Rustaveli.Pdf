@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
-    <ProjectReference Include="..\..\src\Rustaveli.Pdf.Skia\Rustaveli.Pdf.Skia.csproj" />
+    <ProjectReference Include="..\..\src\Rustaveli.Pdf.Raster\Rustaveli.Pdf.Raster.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,9 +2,9 @@
 
 A free, open source, fluent PDF generation library for .NET.
 
-> **Status: pre-release (0.x).** The layout engine, the composing API in its own print vocabulary and a SkiaSharp
-> rendering backend are implemented and tested on `net10.0` and `netstandard2.0` (.NET Framework 4.6.2+). A managed
-> PDF writer is about to replace Skia for PDF output — see [Roadmap](#roadmap).
+> **Status: pre-release (0.x).** The layout engine, the composing API in its own print vocabulary and a managed PDF
+> writer — font subsetting, pass-through images, CMYK and spot inks — are implemented and tested on `net10.0` and
+> `netstandard2.0` (.NET Framework 4.6.2+), with page images through SkiaSharp. See [Roadmap](#roadmap).
 
 ## Why this exists
 
@@ -96,10 +96,10 @@ Blocks                The tree the composition builds — decorators, arrangemen
 Typesetter            Plan(space) → Fit, then Render(space); pagination; repeated passes for page counts
       │
       ▼
-ISurface              The single seam to any backend
+ISurface              The single seam to any backend, fed glyphs by one shaper for measuring and drawing alike
       │
-      ▼
-Backend               Rustaveli.Pdf.Skia → SkiaSharp → PDF
+      ├─▶ PDF             the managed writer: Type 0 font subsets, images as encoded, separations
+      └─▶ Page images     Rustaveli.Pdf.Raster: PNG, JPEG or WebP through SkiaSharp
 ```
 
 Only the composition layer is public. Blocks, the typesetter and the drawing seam are internal, so the engine can
@@ -159,8 +159,16 @@ from the section.
 **Ink** — RGB, CMYK process colour and named spot inks with a process fallback, tints and opacity
 ([ADR 0004](docs/adr/0004-ink-colour-model.md)). There is no built-in palette: a document brings its own colours.
 
-**Output** — images with four fitting modes, links, cross-references to anchors, document information, PDF/A-2b
-prerequisites via Skia.
+**Output** — PDF written in managed code: TrueType faces subset to the glyphs used and CFF faces embedded whole,
+each searchable through a ToUnicode map; JPEGs and most PNGs embedded as they were encoded, with palettes, alpha,
+colour keys, sixteen bits and ICC profiles kept, images shared by content and turned upright by their EXIF
+orientation; CMYK process colour, spot inks as separations with a process fallback, and opacity; links,
+cross-references to anchors and document information. Exports run in parallel. Page images — PNG, JPEG or WebP at
+any resolution — come from the `Rustaveli.Pdf.Raster` package, drawn from the same layout and glyphs.
+
+**Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with named
+fallbacks and per-character fallback for anything a face lacks, pair kerning, substitution for a typeface nobody
+has, and bundled Noto Sans for a machine with no fonts at all.
 
 ## Testing
 
@@ -192,14 +200,24 @@ word sequence and word positions. Others cover font handling, concurrency, and s
 **Conformance tests** check a corpus of specimen documents with [qpdf](https://qpdf.readthedocs.io)'s strict
 structural validator, and render every page with PDFium — a renderer that shares no code with this library — to
 compare against approved snapshots in `tests/Rustaveli.Pdf.ConformanceTests/Snapshots`. A deliberate visual
-change is approved with `dotnet run eng/approve-snapshots.cs` after inspecting the received and diff images.
+change is approved with `dotnet run eng/approve-snapshots.cs` after inspecting the received and diff images. The
+same specimens are exported as page images through Skia and compared with PDFium's rendering of the PDF: two
+renderers that share no code agree within half a percent of pixels.
 
 **Benchmarks** (`benchmarks/Rustaveli.Pdf.Benchmarks`) measure throughput, allocations, parallel scaling and file
 size against QuestPDF on a fixed set of documents, against the targets in
-[ADR 0009](docs/adr/0009-performance-targets.md).
+[ADR 0009](docs/adr/0009-performance-targets.md). File sizes on those documents:
+
+| Document | QuestPDF | This library | Ratio |
+|---|---:|---:|---:|
+| Invoice | 15,011 B | 11,451 B | 0.76× |
+| Report | 993,479 B | 671,147 B | 0.68× |
+| Large table | 1,063,132 B | 837,225 B | 0.79× |
+| Images | 3,581,499 B | 147,181 B | 0.04× |
 
 Current agreement across text flow, header/footer pagination and multi-page tables: **identical page counts,
-identical word sequences, vertical positions within 0.04pt and horizontal within 3.3pt.**
+identical word sequences, identical horizontal word positions and identical line spacing, with every line 0.24pt
+higher on the page** — a constant offset in where the first baseline falls below the top of the text area.
 
 Byte-level comparison is not meaningful — two PDF producers never emit identical bytes for the same document —
 so the comparison is behavioural throughout.
@@ -210,32 +228,9 @@ so the comparison is behavioural throughout.
 
 ## Known limitations
 
-**Output files are large, because fonts are not subset.** Stock SkiaSharp's PDF backend embeds each typeface in
-full rather than emitting only the glyphs a document actually uses. Measured on the equivalence recipes, where
-the reader recovers byte-identical content from both files:
-
-| Recipe | This library | QuestPDF |
-|---|---|---|
-| Text flow | 570,999 B | 32,116 B |
-| Header/footer pagination | 573,997 B | 31,491 B |
-| Table | 574,133 B | 32,182 B |
-
-QuestPDF avoids this by shipping its own native Skia build with the HarfBuzz subsetter wired in; the published
-SkiaSharp package exposes no equivalent. This library closes the gap by writing PDF itself, with font subsetting
-in managed code ([ADR 0001](docs/adr/0001-managed-pdf-writer.md)). The `DivergenceReportTests` print these sizes
-on every run so the number stays visible.
-
-**Rendering is serialised.** Skia's PDF backend keeps process-wide font state that concurrent renders corrupt:
-the resulting file is structurally valid and roughly the right size, but its embedded font encoding no longer
-matches its text operators, so every glyph extracts as U+0000 — and nothing throws. This was reproduced with a
-separate font provider, document and output stream per thread, which leaves Skia's own caches as the only shared
-state. Export therefore takes a process-wide lock. `PdfExportOptions.AllowConcurrentRendering` opts out if you
-have measured your own workload.
-
-Relatedly, a `SkiaFontProvider` must be long-lived. One created per document and dropped will, once collected,
-release typefaces that other renders are still using. Use `SkiaFontProvider.Shared` unless you have a reason not
-to. And a single `Document` instance must not be exported from two threads at once — it carries the layout
-cursors in its block tree.
+**A document is exported from one thread at a time.** Documents export in parallel, each with its own writer, but a
+single `Document` instance carries the layout cursors in its block tree, so it must not be exported from two
+threads at once. Compose one document per thread, or export them one after another.
 
 **Placement expands to fill.** `Middle` and `FlushBottom` claim the whole height offered, and any placement claims
 the whole width. Inside a running head or foot that means claiming the rest of the page; inside a `Natural` column
@@ -243,8 +238,9 @@ it defeats the point of natural sizing and starves the neighbouring columns. Bot
 error rather than producing silent garbage, but the general fix — resolving natural size before placing within it —
 is not implemented. Constrain the size explicitly when placing.
 
-**Text shaping is advance-width only.** There is no complex-script shaping, no font fallback chain and no bidi
-reordering. `ReadingDirection` mirrors *layout* — the order of columns and table columns, and the default text
+**Text is set glyph by glyph, with pair kerning but no other OpenType features.** There are no ligatures or other
+`GSUB` substitutions, no mark positioning, no complex-script shaping and no bidi reordering yet — the text engine of
+phase 3. `ReadingDirection` mirrors *layout* — the order of columns and table columns, and the default text
 alignment — but does not reorder characters within a string. Arabic, Hebrew and Indic text will not render
 correctly. CJK will render but without proper line-breaking rules.
 
@@ -270,5 +266,10 @@ The goal is every capability of QuestPDF — including its tooling — in a voca
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+The core package carries Latin, Greek and Cyrillic subsets of [Noto Sans](https://notofonts.github.io/), set only when
+nothing registered or installed can set a document's text. They are distributed under the SIL Open Font License
+1.1, which travels with them in the package (`licenses/NotoSans-OFL.txt`) and is in
+[`src/Rustaveli.Pdf/Fonts/Bundled`](src/Rustaveli.Pdf/Fonts/Bundled/OFL.txt).
 
 This project is independent and is not affiliated with, endorsed by, or sponsored by QuestPDF.

@@ -24,8 +24,22 @@ public class VisualTests
         try
         {
             Assert.NotEmpty(pages);
+
+            // Every page is compared, so one run writes out every page that changed and one approval takes them all.
+            List<string> mismatches = [];
             for (int index = 0; index < pages.Count; index++)
-                SnapshotAssert.Matches($"{specimen.Name}.page{index + 1}", pages[index]);
+            {
+                try
+                {
+                    SnapshotAssert.Matches($"{specimen.Name}.page{index + 1}", pages[index]);
+                }
+                catch (Xunit.Sdk.XunitException mismatch)
+                {
+                    mismatches.Add(mismatch.Message);
+                }
+            }
+
+            Assert.True(mismatches.Count == 0, string.Join(Environment.NewLine, mismatches));
         }
         finally
         {

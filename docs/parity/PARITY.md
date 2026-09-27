@@ -98,7 +98,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Lines: thickness | `LineHorizontal/Vertical` | ✅ | — |
 | Lines: colour, dash pattern, gradient | `LineDescriptor` | ❌ | 4 |
 | Colour: RGB(A), hex | `Color` | ✅ | — |
-| Colour: CMYK and spot inks, tints | — | ❌ ours only | 1 (model), 6 (output) |
+| Colour: CMYK and spot inks, tints | — | ✅ ours only: process colour, separations with a fallback | — |
 | Colour palette | `Colors` (Material) | ➖ replaced by `Ink` basics ([ADR 0004](../adr/0004-ink-colour-model.md)) | 1 |
 | Named style sheets | — | ❌ ours only ([ADR 0003](../adr/0003-api-shape-and-style-sheets.md)) | 4 |
 | Placeholder box | `Placeholder` | 🟡 no label text | 4 |
@@ -154,7 +154,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Image from bytes, stream, file; shared image object | `Image`, `Image.From*` | ✅ | — |
 | Fit width, height, area, unproportional | `ImageScaling`, `Fit*` | ✅ | — |
 | Per-image compression quality and target DPI | `WithCompressionQuality`, `WithRasterDpi` | 🟡 document-wide only | 5 |
-| Keep original image bytes | `UseOriginalImage` | ❌ | 2 |
+| Keep original image bytes | `UseOriginalImage` | ✅ always, wherever PDF can carry the encoding | — |
 | Dynamic images generated at the final size | `GenerateDynamicImageDelegate` | ❌ | 5 |
 | SVG, static and dynamic | `Svg`, `SvgImage` | ❌ | 5 |
 | Custom vector drawing | `Canvas(DrawOnCanvas)` | ❌ own drawing API, not a raw Skia canvas | 5 |
@@ -163,10 +163,12 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
-| Register fonts from stream, file, embedded resource, custom name | `FontManager.Register*` | 🟡 stream/file | 2 |
-| System font discovery; extra discovery paths; opt out | `Settings.UseEnvironmentFonts`, `FontDiscoveryPaths` | 🟡 via Skia | 2 |
-| Font subsetting | — (built in) | ❌ | 2 |
-| Bundled default font | Lato | ❌ | 2 |
+| Register fonts from stream, file, embedded resource, custom name | `FontManager.Register*` | 🟡 bytes, stream, file (`TypefaceLibrary`); custom name ❌ | 2, 4 |
+| System font discovery; extra discovery paths; opt out | `Settings.UseEnvironmentFonts`, `FontDiscoveryPaths` | 🟡 managed discovery; opt out per library; extra paths ❌ | 2, 4 |
+| Font subsetting | — (built in) | ✅ TrueType subset, CFF whole | — |
+| Bundled default font | Lato | ✅ Noto Sans subsets, Latin/Greek/Cyrillic | — |
+| Fallback per character | built in | ✅ named fallbacks, registered, installed, bundled | — |
+| Pair kerning | built in (HarfBuzz) | ✅ `GPOS` and `kern` | — |
 
 ## Output
 
@@ -174,10 +176,11 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 |---|---|---|---|
 | PDF to bytes, stream, file | `GeneratePdf` | ✅ | — |
 | Generate and open in the default viewer | `GeneratePdfAndShow` | ❌ | 6 |
-| Page images: PNG, JPEG, WebP, DPI, quality | `GenerateImages`, `ImageGenerationSettings` | ❌ | 6 (`Raster` package) |
+| Page images: PNG, JPEG, WebP, DPI, quality | `GenerateImages`, `ImageGenerationSettings` | ✅ `ExportImages` in `Rustaveli.Pdf.Raster` | — |
+| Parallel generation | built in | ✅ no process-wide lock | — |
 | SVG pages | `GenerateSvg` | ❌ | 6 |
 | XPS | `GenerateXps` | ❌ | 6 |
-| Stream compression switch | `DocumentSettings.CompressDocument` | ❌ | 2 |
+| Stream compression switch | `DocumentSettings.CompressDocument` | ✅ `PdfExportOptions.Compress` | — |
 | PDF/A-2b | `PDFA_Conformance.PDFA_2B` | 🟡 prerequisites only | 6 |
 | PDF/A-2a, 2u, 3a, 3b, 3u | `PDFA_Conformance` | ❌ | 6 |
 | PDF/UA-1 with semantic tagging (headings, lists, tables, figures, alt text, language, artifacts) | `PDFUA_Conformance`, `Semantic*`, `AsSemanticHorizontalHeader` | ❌ | 6 |

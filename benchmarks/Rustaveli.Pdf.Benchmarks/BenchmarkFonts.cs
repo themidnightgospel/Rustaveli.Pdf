@@ -25,8 +25,7 @@ public static class BenchmarkFonts
             using (FileStream stream = File.OpenRead(file))
                 FontManager.RegisterFont(stream);
 
-            using (FileStream stream = File.OpenRead(file))
-                SkiaFontProvider.Shared.Register(stream);
+            TypefaceLibrary.Shared.RegisterFile(file);
         }
 
         return true;
