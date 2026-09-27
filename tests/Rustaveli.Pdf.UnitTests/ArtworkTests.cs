@@ -178,7 +178,7 @@ public class ArtworkTests
     public void NothingIsDrawnWithoutWhatItNeeds()
     {
         Assert.Throws<ArgumentNullException>(() => Artwork.Draw(10, 10, null!));
-        Assert.Throws<ArgumentNullException>(() => LayoutHarness.Build(frame => frame.Artwork(null!)));
+        Assert.Throws<ArgumentNullException>(() => LayoutHarness.Build(frame => frame.Artwork((Artwork)null!)));
         Artwork.Draw(10, 10, art =>
         {
             Assert.Throws<ArgumentNullException>(() => art.Fill(null!, TestInks.Red));

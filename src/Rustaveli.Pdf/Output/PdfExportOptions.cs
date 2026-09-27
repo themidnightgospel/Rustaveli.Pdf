@@ -37,5 +37,44 @@ public sealed class PdfExportOptions
         }
     }
 
+    /// <summary>
+    /// The quality, from 1 to 100, images are compressed at when they set none of their own, or null, the default, to
+    /// embed them as they are. Needs an <see cref="ImageProcessor"/>.
+    /// </summary>
+    public int? ImageQuality
+    {
+        get => _imageQuality;
+        set
+        {
+            if (value is < 1 or > 100)
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Quality runs from 1 to 100.");
+
+            _imageQuality = value;
+        }
+    }
+
+    /// <summary>
+    /// The most pixels per inch images are embedded at where they are shown, when they set none of their own, or
+    /// null, the default, to keep all their pixels. Needs an <see cref="ImageProcessor"/>.
+    /// </summary>
+    public float? MaximumImageResolution
+    {
+        get => _maximumImageResolution;
+        set
+        {
+            if (value is { } resolution && (!(resolution > 0) || float.IsInfinity(resolution)))
+                throw new ArgumentOutOfRangeException(nameof(value), value, "A resolution is a finite number of pixels per inch above nothing.");
+
+            _maximumImageResolution = value;
+        }
+    }
+
+    /// <summary>What re-encodes images when a quality or maximum resolution asks for it.</summary>
+    public IImageProcessor? ImageProcessor { get; set; }
+
+    private int? _imageQuality;
+
+    private float? _maximumImageResolution;
+
     private float _imageResolution = 288;
 }

@@ -164,6 +164,10 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `LineCap`, `LineJoin` | enum | How a stroke's ends (`Butt`, `Round`, `Square`) and corners (`Miter`, `Round`, `Bevel`) are finished. | plain | `SKStrokeCap`, `SKStrokeJoin` |
 | `IImage` | interface | An image a frame can place, with its size in pixels the right way up. | plain | `IImage` |
 | `RasterImage` | class | A JPEG or PNG, loaded with `FromBytes`, `FromStream` or `FromFile` and embedded as it was encoded wherever PDF allows. *Raster*, as prepress distinguishes pixel images from vector art. | print | `Image` |
+| `RasterImage.WithQuality(int)`, `WithMaximumResolution(float)` | method | The image, recompressed at a quality or scaled to the resolution it is shown at when embedded. | plain | `WithCompressionQuality`, `WithRasterDpi` |
+| `IImageProcessor` | interface | Re-encodes images for embedding when a quality or maximum resolution asks for it. | plain | — |
+| `ImageProcessing` | struct | What a processor is asked: the `Source`, the `PixelWidth` and `PixelHeight` to make, and the `Quality`. | plain | — |
+| `PdfExportOptions.ImageQuality`, `MaximumImageResolution`, `ImageProcessor` | property | Document-wide image quality and resolution, and what processes images to meet them. | plain | `Settings.ImageCompressionQuality`, `ImageRasterDpi` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |
 
 ## Text
@@ -248,6 +252,7 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | `ImageExport` | class | The `ExportImages` methods of the `Rustaveli.Pdf.Raster` package: every page as an image, drawn by SkiaSharp from the same layout and glyphs as the PDF. | InDesign ("Export JPEG") | `GenerateImages` |
 | `ComplexScripts` | class | `ShapeComplexScripts`, from the `Rustaveli.Pdf.Shaping` package: shapes Arabic, Hebrew points, Indic and South-East Asian scripts with HarfBuzz for the text a `TypefaceLibrary` sets. | typesetting ("complex scripts") | built in |
 | `ImageExportOptions` | class | The `Resolution` in pixels per inch, the `Format`, the `Quality` of lossy formats, the `Typefaces`, and whether to `RequireEveryGlyph`. | InDesign | `ImageGenerationSettings` |
+| `SkiaImageProcessor` | class | Scales and recompresses images for PDF export with Skia, turning them the right way up. | plain | — |
 | `PageImageFormat` | enum | `Png`, `Jpeg`, `Webp`. | plain | `ImageFormat` |
 
 ## Failures

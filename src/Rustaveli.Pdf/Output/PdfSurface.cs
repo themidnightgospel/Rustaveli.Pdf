@@ -42,6 +42,7 @@ internal sealed class PdfSurface : IPageSink
     private readonly TypeShaper _shaper;
     private readonly FontEmbedder _fonts;
     private readonly ImageEmbedder _images;
+    private readonly ImageAdjuster _adjuster;
     private readonly Dictionary<(string Name, InkModel Model, (float, float, float, float) Components), PdfReference> _separations = [];
     private readonly Dictionary<(Extent Size, Corners Corners, float Deviation, Ink Ink), (PdfReference Image, ShadowMask Mask)> _shadows = [];
     private readonly Stack<State> _saved = new Stack<State>();
@@ -53,12 +54,13 @@ internal sealed class PdfSurface : IPageSink
     /// <summary>The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.</summary>
     private (PdfName Pattern, float Opacity)? _gradient;
 
-    public PdfSurface(PdfDocumentWriter writer, TypeShaper shaper)
+    public PdfSurface(PdfDocumentWriter writer, TypeShaper shaper, PdfExportOptions? options = null)
     {
         _writer = writer;
         _shaper = shaper;
         _fonts = new FontEmbedder(writer.File);
         _images = new ImageEmbedder(writer.File);
+        _adjuster = new ImageAdjuster(options);
     }
 
     private PdfPage Page => _page ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
@@ -438,6 +440,7 @@ internal sealed class PdfSurface : IPageSink
         if (size.Width <= 0 || size.Height <= 0)
             return;
 
+        raster = _adjuster.Adjust(raster, size);
         PdfName name = Page.Resources.GetXObjectName(_images.Reference(raster));
         Transform placement = Placement(raster.Orientation, size.Width, size.Height);
 

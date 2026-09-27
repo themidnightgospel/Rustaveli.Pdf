@@ -89,7 +89,7 @@ public static class PdfExport
         using PdfDocumentWriter writer = new PdfDocumentWriter(stream, writing);
         CopyInfo(document.Info, writer.Info);
 
-        using PdfSurface surface = new PdfSurface(writer, shaper);
+        using PdfSurface surface = new PdfSurface(writer, shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
         Typesetter.Render(document, surface, measurer, options?.ImageResolution ?? 288);
 
