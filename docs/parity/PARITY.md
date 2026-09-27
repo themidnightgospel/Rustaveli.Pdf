@@ -41,7 +41,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Tables: constant/relative columns, auto and explicit placement, spans, header/footer bands | `Table` | ✅ | — |
 | Table: stretch last cells to table bottom | `ExtendLastCellsToTableBottom` | ❌ | 4 |
 | Uniform grid | `Grid` | ✅ | — |
-| Flow of inline items with wrapping, alignment, baseline | `Inlined` | ❌ | 4 |
+| Flow of inline items with wrapping, alignment, baseline | `Inlined` | ✅ | — |
 | Newspaper columns, balanced | `MultiColumn` | ❌ | 4 |
 | Stacked layers, one primary | `Layers` | ✅ | — |
 | Content with repeating before/after bands | `Decoration` | ✅ | — |

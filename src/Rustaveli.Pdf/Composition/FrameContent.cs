@@ -50,6 +50,16 @@ public static class FrameContent
     }
 
     /// <summary>
+    /// Adds a flow of items set side by side as words are, wrapping on to a new line wherever the next would not fit.
+    /// </summary>
+    public static void Flow(this IFrame parent, Action<FlowComposer> handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        FlowBlock element = FrameAttachment.Attach(parent, new FlowBlock());
+        handler(new FlowComposer(element));
+    }
+
+    /// <summary>
     /// Adds a grid of cells flowing into rows of equal columns, each cell spanning one or more.
     /// </summary>
     public static void Grid(this IFrame parent, Action<GridComposer> handler)

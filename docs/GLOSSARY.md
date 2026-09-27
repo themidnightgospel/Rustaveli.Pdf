@@ -57,6 +57,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `StackComposer.Add()` | method | Adds the next frame to the stack. | plain | `ColumnDescriptor.Item` |
 | `StackComposer.SpaceBetween(float)` | method | Vertical space between stacked frames. | print ("space between") | `ColumnDescriptor.Spacing` |
 | `Columns(Action<ColumnsComposer>)` | method | Frames side by side. In page layout, content set side by side is set in columns. | print | `Row` |
+| `Flow(Action<FlowComposer>)` | method | Items set side by side as words are, wrapping on to new lines. | print ("inline") | `Inlined` |
+| `FlowComposer` | class | Builds a flow: `Gutter`, `SpaceBetweenLines`, `FlushLeft`, `Centered`, `FlushRight`, `Justified`, `SpacedAround`, `FlushTop`, `Middle`, `FlushBottom`, and `Add` for each item. | print | `InlinedDescriptor` |
 | `Grid(Action<GridComposer>)` | method | Cells flowing into rows of equal columns. | print ("layout grid") | `Grid` |
 | `GridComposer` | class | Builds a grid: `Columns`, `Gutter`, `SpaceBetweenRows`, `FlushLeft`, `Centered`, `FlushRight`, and `Cell(span)` for each cell. | print | `GridDescriptor` |
 | `ColumnsComposer.Share(float)` | method | A column taking a share of the width left over, in proportion to its weight. | plain | `RowDescriptor.RelativeItem` |
