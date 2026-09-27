@@ -20,14 +20,14 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
 | Build a document from pages; reusable document classes | `Document.Create`, `IDocument` | ✅ | — |
-| Page size, named sizes, landscape/portrait | `PageDescriptor.Size`, `PageSizes`, `PageSizeExtensions` | 🟡 A0–A6, Letter, Legal, Tabloid, Executive; missing A7–A10, B, C, ARCH, envelopes, postcard | 4 |
+| Page size, named sizes, landscape/portrait | `PageDescriptor.Size`, `PageSizes`, `PageSizeExtensions` | ✅ | — |
 | Margins, per side | `Margin*` | ✅ | — |
 | Continuous (single tall) page | `ContinuousSize` | ✅ | — |
 | Page size bounded by content (min/max) | `MinSize`, `MaxSize` | ❌ | 4 |
 | Header, footer, content, background, foreground slots | `Header`, `Footer`, `Content`, `Background`, `Foreground` | ✅ | — |
 | Page colour | `PageColor` | ✅ | — |
 | Page-level default text style and direction | `DefaultTextStyle`, `ContentFrom*` | ✅ | — |
-| Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | 🟡 pt, mm, cm, inch | 4 |
+| Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | ✅ plus pica | — |
 | Metadata: title, author, subject, keywords, creator, producer, dates | `DocumentMetadata` | ✅ | — |
 | Document language | `DocumentMetadata.Language` | ❌ | 6 |
 | Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ❌ | 7 |

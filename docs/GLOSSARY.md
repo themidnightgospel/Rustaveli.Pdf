@@ -187,7 +187,7 @@ The Material Design palette (`Colors.Red.Lighten3` and friends) is removed: user
 | `Sides` | struct | Four values, one per side — margins, insets, stroke weights. | plain | `Edges` |
 | `PaperSizes` | class | ISO A, B and C series, US and architectural sizes, envelopes. | print | `PageSizes` |
 | `Landscape()` / `Portrait()` | method | An extent turned to its wide or tall orientation. | print | same |
-| `LengthUnit` | enum | `Point`, `Millimetre`, `Centimetre`, `Metre`, `Inch`, `Foot`. | plain | `Unit` |
+| `LengthUnit` | enum | `Point`, `Millimetre`, `Centimetre`, `Metre`, `Inch`, `Foot`, `Mil`, `Pica`. | plain | `Unit` |
 | `Lengths` | class | Conversions such as `20.Millimetres()`. | plain | `UnitExtensions` |
 | `ReadingDirection` | enum | `LeftToRight`, `RightToLeft`. | print | `ContentDirection` |
 
