@@ -92,6 +92,40 @@ public class FontDiscoveryTests
         Assert.Equal(new[] { "NotoSansGeorgian-Regular" }, index.Faces.Select(face => face.Names.PostScriptName));
     }
 
+    [Theory]
+    [InlineData("LastResort")]
+    [InlineData("Last Resort")]
+    [InlineData("lastresort")]
+    public void NeverFallsBackToALastResortFont(string family)
+    {
+        // Sorted by family, the last-resort font would come first; it claims the character but only draws a box.
+        using TemporaryFolder folder = new TemporaryFolder();
+        folder.Write("last.ttf", SyntheticFont.Named(family).Build());
+        folder.Write("real.ttf", SyntheticFont.Named("Real").Build());
+
+        FontFaceInfo? face = new SystemFontIndex([folder.Path]).FindCovering('A', new FaceStyle(400, 5, FontSlant.Upright));
+
+        Assert.Equal("Real", face?.Names.PreferredFamily);
+    }
+
+    [Fact]
+    public void ALastResortFontAloneIsNoFallback()
+    {
+        using TemporaryFolder folder = new TemporaryFolder();
+        folder.Write("last.ttf", SyntheticFont.Named("LastResort").Build());
+
+        Assert.Null(new SystemFontIndex([folder.Path]).FindCovering('A', new FaceStyle(400, 5, FontSlant.Upright)));
+    }
+
+    [Fact]
+    public void AFamilyThatMerelyContainsTheNameIsNoLastResort()
+    {
+        using TemporaryFolder folder = new TemporaryFolder();
+        folder.Write("last.ttf", SyntheticFont.Named("LastResort Sans").Build());
+
+        Assert.NotNull(new SystemFontIndex([folder.Path]).FindCovering('A', new FaceStyle(400, 5, FontSlant.Upright)));
+    }
+
     [Fact]
     public void DescribesAFontWithoutNamesOrOs2()
     {

@@ -74,7 +74,9 @@ internal sealed class SystemFontIndex
 
         foreach (FontFaceInfo face in OrderedFor(style))
         {
-            if (face.IsEmbeddable && face.Covers(codepoint))
+            // A last-resort font covers everything and shows nothing: no fallback at all is better, since the
+            // bundled face still gets a chance and the character's text survives.
+            if (face.IsEmbeddable && !face.Names.IsLastResort && face.Covers(codepoint))
             {
                 // Only threads racing on the same miss can list a face twice, which costs one repeated coverage
                 // check and nothing else; a face already listed that covered this code point would have been found.
