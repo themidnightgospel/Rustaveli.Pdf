@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
 using Rustaveli.Pdf.Fonts;
@@ -122,6 +123,25 @@ internal sealed class EmbeddedFont
                 characters.Add(((ushort)code, text));
         }
 
+        // Codes a glyph was given for other text than its first: each is mapped to its glyph, is as wide, and reads
+        // back as what it showed. Without them codes are glyph ids, and the mapping stays the identity.
+        IReadOnlyList<(ushort Glyph, string Text)> shared = subset.SharedCodes;
+        PdfArray widthRanges = new PdfArray(4) { 0, widths };
+
+        if (shared.Count > 0)
+        {
+            PdfArray sharedWidths = new PdfArray(shared.Count);
+
+            for (int index = 0; index < shared.Count; index++)
+            {
+                sharedWidths.Add(Width(font.OriginalGlyphIds[shared[index].Glyph]));
+                characters.Add(((ushort)(GlyphSubset.FirstSharedCode + index), shared[index].Text));
+            }
+
+            widthRanges.Add((int)GlyphSubset.FirstSharedCode);
+            widthRanges.Add(sharedWidths);
+        }
+
         PdfReference cidFont = file.Write(new PdfDictionary
         {
             [PdfNames.Type] = PdfNames.Font,
@@ -129,8 +149,8 @@ internal sealed class EmbeddedFont
             [BaseFont] = new PdfName(name),
             [CidSystemInfo] = SystemInfo(),
             [FontDescriptor] = WriteDescriptor(file, name, FontFile2, program),
-            [PdfNames.W] = new PdfArray(2) { 0, widths },
-            [CidToGidMap] = Identity,
+            [PdfNames.W] = widthRanges,
+            [CidToGidMap] = shared.Count == 0 ? Identity : file.WriteStream(new PdfDictionary(), CidToGidMapOf(font.GlyphCount, shared)),
         });
 
         WriteType0(file, name, cidFont, characters);
@@ -237,6 +257,24 @@ internal sealed class EmbeddedFont
         }
 
         return name.Length > 0 ? name.ToString() : "Font";
+    }
+
+    /// <summary>
+    /// The glyph each code shows, two bytes per code from 0: codes below the subset's glyph count are the glyphs
+    /// themselves, codes from <see cref="GlyphSubset.FirstSharedCode"/> the glyphs they were given for, and the codes
+    /// between show .notdef. The long run of zeros costs next to nothing once the stream is compressed.
+    /// </summary>
+    internal static byte[] CidToGidMapOf(int glyphCount, IReadOnlyList<(ushort Glyph, string Text)> shared)
+    {
+        byte[] map = new byte[2 * (GlyphSubset.FirstSharedCode + shared.Count)];
+
+        for (int glyph = 0; glyph < glyphCount; glyph++)
+            BinaryPrimitives.WriteUInt16BigEndian(map.AsSpan(2 * glyph), (ushort)glyph);
+
+        for (int index = 0; index < shared.Count; index++)
+            BinaryPrimitives.WriteUInt16BigEndian(map.AsSpan(2 * (GlyphSubset.FirstSharedCode + index)), shared[index].Glyph);
+
+        return map;
     }
 
     /// <summary>A CMap from each two-byte code to the UTF-16 of the character it shows.</summary>
