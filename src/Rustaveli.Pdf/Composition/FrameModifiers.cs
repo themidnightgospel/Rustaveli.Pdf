@@ -304,6 +304,14 @@ public static class FrameModifiers
     public static IFrame Rotate(this IFrame parent, float degrees) =>
         Attach(parent, new RotateBlock { Degrees = degrees });
 
+    /// <summary>
+    /// Sets the order the frame is drawn in: content of a higher order is drawn over content of a lower one wherever
+    /// it sits on the page, whatever order it comes in. Everything is of order zero unless it, or a frame around
+    /// it, says otherwise; negative orders are drawn beneath.
+    /// </summary>
+    public static IFrame DrawOrder(this IFrame parent, int order) =>
+        Attach(parent, new DrawOrderBlock { Order = order });
+
     // ---- Flow control --------------------------------------------------------------------------------------
 
     public static IFrame When(this IFrame parent, bool condition) =>

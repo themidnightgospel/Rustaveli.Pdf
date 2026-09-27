@@ -53,7 +53,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Aspect ratio | `AspectRatio` | ✅ | — |
 | Alignment, horizontal and vertical | `Align*` | 🟡 alignment expands to fill (README known limitation) | 4 |
 | Unconstrained | `Unconstrained` | ✅ | — |
-| Z-order | `ZIndex` | ❌ | 4 |
+| Z-order | `ZIndex` | ✅ | — |
 
 ## Transforms
 

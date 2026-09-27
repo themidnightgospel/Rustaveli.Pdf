@@ -1,3 +1,4 @@
+using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Text;
 
@@ -61,11 +62,17 @@ internal static class Typesetter
             slot.ResetState();
 
         PlanContext layout = new PlanContext(measurer, pageContext);
-        RenderContext context = new RenderContext(pages, layout);
+        RenderContext direct = new RenderContext(pages, layout);
         int pageNumber = 0;
 
         foreach (Section section in document.Sections)
         {
+            // Pages whose content sets a draw order are held back and drawn in that order; counted pages are thrown
+            // away, so they need no order.
+            bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
+            IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
+            RenderContext context = ordered ? new RenderContext(sink, layout) : direct;
+
             layout.DefaultType = section.DefaultType;
             layout.ReadingDirection = section.ReadingDirection;
 
@@ -81,7 +88,7 @@ internal static class Typesetter
                 if (!pageContext.IsPageCountKnown)
                     pageContext.PageCount = pageNumber;
 
-                bool hasMore = RenderPage(section, pages, context, layout);
+                bool hasMore = RenderPage(section, sink, context, layout);
 
                 if (!hasMore)
                     break;
@@ -186,7 +193,13 @@ internal static class Typesetter
         pages.BeginPage(pageSize);
 
         if (!section.Paper.IsTransparent)
+        {
+            // The paper lies beneath everything, even content drawn beneath the rest.
+            LayeredPageSink? layers = pages as LayeredPageSink;
+            layers?.Order = int.MinValue;
             surface.DrawRectangle(Offset.Zero, pageSize, section.Paper);
+            layers?.Order = 0;
+        }
 
         // Background and foreground deliberately ignore margins so watermarks can bleed to the page edge.
         section.UnderlaySlot.Render(pageSize, context);

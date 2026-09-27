@@ -103,6 +103,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `ShrinkToFit(float)` | method | Scales content down until it fits. | Word | `ScaleToFit` |
 | `FitToContent()`, `FitWidthToContent()`, `FitHeightToContent()` | method | Gives what follows only the content's own size, so a fill or stroke hugs it. | InDesign ("fit frame to content") | `Shrink`, `ShrinkHorizontal`, `ShrinkVertical` |
 | `TurnLeft()`, `TurnRight()` | method | A quarter turn. | plain | `RotateLeft/Right` |
+| `DrawOrder(int)` | method | Content of a higher order is drawn over content of a lower one wherever it sits on the page. | InDesign ("arrange") | `ZIndex` |
 | `Rotate(float)` | method | Any angle, clockwise about the frame's centre, leaving layout alone. | plain | same |
 | `MirrorHorizontal()`, `MirrorVertical()`, `MirrorBoth()` | method | Reflects content. | print | `FlipHorizontal/Vertical/Over` |
 | `LeftToRight()`, `RightToLeft()`, `Reading(ReadingDirection)` | method | Reading direction for the frame and its content. | print | `ContentFrom` |
