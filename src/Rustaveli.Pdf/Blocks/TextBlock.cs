@@ -130,7 +130,7 @@ internal sealed class TextBlock : Block
             // at point sizes, so name the real cause.
             return Fit.Defer(lines[_completedLines].Runs.Any(run => run.Inline is not null)
                 ? "A line holding an inline frame is taller than the space available. Content that expands to "
-                  + "fill the space offered to it, such as Middle, FlushBottom or Expand, claims the whole page "
+                  + "fill the space offered to it, such as Expand, claims the whole page "
                   + "when set inline — give it an explicit Height instead."
                 : "The available height is not sufficient for even a single line of text.");
         }

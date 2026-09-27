@@ -320,14 +320,14 @@ public class InlineContentTests
             page.Body().Text(text =>
             {
                 text.Run("An icon ");
-                text.Inline(inline => inline.Middle().Width(10).Height(10));
+                text.Inline(inline => inline.ExpandVertically().Width(10).Height(10));
             });
         }));
 
         OversetException exception = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Contains("inline", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Middle, FlushBottom or Expand", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("such as Expand", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

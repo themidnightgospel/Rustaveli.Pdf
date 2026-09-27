@@ -11,18 +11,29 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class KeepTogetherBlock : EnclosingBlock
 {
+    /// <summary>
+    /// Whether content too long for any page is split rather than refused: kept together only where that is possible.
+    /// </summary>
+    public bool WherePossible { get; init; }
+
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         Fit childPlan = base.Plan(availableSpace, context);
 
-        return childPlan.IsPartial
-            ? Fit.Defer("The content is kept together and does not fit in the remaining space.")
-            : childPlan;
+        if (!childPlan.IsPartial)
+            return childPlan;
+
+        // Moved to a fresh page, would it fit whole there? Only then is moving it worth a page; content longer than
+        // any page is split where it is, as it would be anyway.
+        if (WherePossible && (availableSpace.Height >= context.PageBody.Height - Extent.Epsilon || !base.Plan(new Extent(availableSpace.Width, context.PageBody.Height), context).IsComplete))
+            return childPlan;
+
+        return Fit.Defer("The content is kept together and does not fit in the remaining space.");
     }
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
-        // Measure guarantees the parent only draws this when the whole child fits.
+        // Measure guarantees the parent only draws this when it is to be drawn here, whole or, where possible, not.
         if (Plan(availableSpace, context.Planning).IsDeferred)
             return;
 

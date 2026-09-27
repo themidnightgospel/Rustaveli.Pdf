@@ -16,6 +16,9 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Document` | class | A composed document, ready to export. | — | `Document` |
+| `StyleSheet` | class | A document's named styles — `DefineType`, `DefineParagraph`, `DefineFrame` — each able to build on another `basedOn` it; the document's is `Document.Styles`, also `IComposition.Styles` while composing. | InDesign ("character, paragraph and object styles") | — |
+| `Style(string)` | method | Applies a named style: a type style to a run, a paragraph style to a block of text, a frame style to a frame. | InDesign | — |
+| `Document.PageLimit` | property | The most pages a document may take before content that never stops asking for another is taken to be a fault. | plain | `Settings.DocumentLayoutExceptionThreshold` |
 | `Document.Compose(Action<IComposition>)` | method | Builds a document. *Composition* is the old word for typesetting: compositors composed type into pages. | print | `Document.Create` |
 | `IComposition` | interface | What a document is composed of: a sequence of sections. | print | `IDocumentContainer` |
 | `IComposition.Section(Action<Section>)` | method | Adds a section: a run of pages sharing one page setup and running heads, as in Word and InDesign. | Word, InDesign | `IDocumentContainer.Page` |
@@ -130,6 +133,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 |---|---|---|---|---|
 | `NewPage()` | method | Starts the next page. | print ("start on next page") | `PageBreak` |
 | `KeepTogether()` | method | Never splits the frame across pages. | print | `ShowEntire` |
+| `KeepTogetherWherePossible()` | method | Moves the frame whole to the next page when it would fit there, and splits it only when it is longer than a page. | print ("keep options") | `PreventPageBreak` |
 | `RequireSpace(float)` | method | Starts a new page unless at least this much space remains. | plain | `EnsureSpace` |
 | `When(bool)` | method | Includes the frame only when the condition holds. | plain | `ShowIf` |
 | `When(Func<PageFacts, bool>)` | method | Includes the frame only on the pages the condition accepts. | plain | `ShowIf(Predicate<ShowIfContext>)` |
@@ -149,7 +153,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Anchor(string name)` | method | Names a place others can refer to. | print, InDesign ("text anchor") | `Section` |
 | `Bookmark(string, int)` | method | An entry in the document's outline, nested by level, leading to where the content starts. | print ("bookmark") | outline from `Section` |
 | `CrossReference(string anchor)` | method | Makes the frame a link to an anchor. | print | `SectionLink` |
-| `Placeholder(Ink?)` | method | A box standing in for content not there yet. | print | `Placeholder` |
+| `Placeholder(Ink?)`, `Placeholder(string, Ink?)` | method | A box standing in for content not there yet, saying what will go there if given words. | print | `Placeholder` |
 | `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |
 | `Image(IImage, ImageFitting)` | method | Places an image. | plain | `Image` |
 | `Image(Func<ImageRequest, byte[]?>)` | method | An image generated for the box it fills, at the resolution images are generated at. | plain | `Image(GenerateDynamicImageDelegate)` |

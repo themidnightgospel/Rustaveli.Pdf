@@ -33,14 +33,19 @@ public class PlacementTests
     }
 
     [Fact]
-    public void ClaimsTheFullSpaceOnlyOnAlignedAxes()
+    public void MeasuresAsItsChildDoesOnEveryAxis()
     {
-        PlacementBlock element = new PlacementBlock { Horizontal = HorizontalPlacement.Center, Child = new FixedBlock(50, 20) };
+        PlacementBlock element = new PlacementBlock
+        {
+            Horizontal = HorizontalPlacement.Center,
+            Vertical = VerticalPlacement.Middle,
+            Child = new FixedBlock(50, 20),
+        };
 
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
 
-        Approximately.Equal(200f, plan.Size.Width);
-        Approximately.Equal(20f, plan.Size.Height);
+        Assert.True(plan.IsComplete);
+        Approximately.Equal(new Extent(50, 20), plan.Size);
     }
 
     [Fact]
@@ -70,7 +75,7 @@ public class PlacementTests
     }
 
     [Fact]
-    public void KeepsAPartialChildPartialAtTheAlignedSize()
+    public void KeepsAPartialChildPartialAtItsOwnSize()
     {
         PlacementBlock element = new PlacementBlock
         {
@@ -81,7 +86,7 @@ public class PlacementTests
         Fit plan = LayoutHarness.Measure(element, new Extent(200, 70));
 
         Assert.True(plan.IsPartial);
-        Approximately.Equal(new Extent(200, 60), plan.Size);
+        Approximately.Equal(new Extent(40, 60), plan.Size);
     }
 
     [Theory]

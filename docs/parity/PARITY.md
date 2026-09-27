@@ -51,7 +51,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Extend to fill | `Extend*` | ✅ | — |
 | Shrink to content | `Shrink*`, `MinimalBox` | ✅ | — |
 | Aspect ratio | `AspectRatio` | ✅ | — |
-| Alignment, horizontal and vertical | `Align*` | 🟡 alignment expands to fill (README known limitation) | 4 |
+| Alignment, horizontal and vertical | `Align*` | ✅ `FlushLeft`, `Centered`, `FlushRight`, `FlushTop`, `Middle`, `FlushBottom`: measured as their content, placed in the room granted | — |
 | Unconstrained | `Unconstrained` | ✅ | — |
 | Z-order | `ZIndex` | ✅ | — |
 
@@ -74,7 +74,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Show if (static condition) | `ShowIf(bool)` | ✅ | — |
 | Show if (per page: page number, total pages) | `ShowIf(Predicate<ShowIfContext>)` | ✅ | — |
 | Show once, skip once | `ShowOnce`, `SkipOnce` | ✅ | — |
-| Keep together / never split | `ShowEntire`, `PreventPageBreak` | 🟡 `ShowEntire` only | 4 |
+| Keep together / never split | `ShowEntire`, `PreventPageBreak` | ✅ `KeepTogether`, `KeepTogetherWherePossible` | — |
 | Ensure space | `EnsureSpace` | ✅ | — |
 | Repeat on every page | `Repeat` | ✅ | — |
 | Stop paging (draw first page only) | `StopPaging` | ✅ | — |
@@ -101,8 +101,8 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Colour: RGB(A), hex | `Color` | ✅ | — |
 | Colour: CMYK and spot inks, tints | — | ✅ ours only: process colour, separations with a fallback | — |
 | Colour palette | `Colors` (Material) | ➖ replaced by `Ink` basics ([ADR 0004](../adr/0004-ink-colour-model.md)) | 1 |
-| Named style sheets | — | ❌ ours only ([ADR 0003](../adr/0003-api-shape-and-style-sheets.md)) | 4 |
-| Placeholder box | `Placeholder` | 🟡 no label text | 4 |
+| Named style sheets | — | ✅ ours only ([ADR 0003](../adr/0003-api-shape-and-style-sheets.md)): `StyleSheet` of type, paragraph and frame styles, `basedOn`, `Style(name)` | — |
+| Placeholder box | `Placeholder` | ✅ `Placeholder(label)` | — |
 | Sample data for prototyping | `Placeholders` (lorem ipsum, dates, prices, …) | ✅ seeded, so the same every time | — |
 
 ## Text
@@ -209,7 +209,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Layout errors raised with explanation | `DocumentLayoutException` | ✅ | — |
 | Visual debug areas and pointers | `DebugArea`, `DebugPointer` | ❌ | 8 |
 | Debug mode with element-tree trace of a layout failure | `Settings.EnableDebugging` | ❌ | 8 |
-| Layout exception threshold | `DocumentLayoutExceptionThreshold` | 🟡 fixed page cap | 4 |
+| Layout exception threshold | `DocumentLayoutExceptionThreshold` | ✅ `Document.PageLimit` | — |
 | Caching switch | `Settings.EnableCaching` | ➖ no global switch; caching is internal | 2 |
 | Live previewer with hot reload, element inspector, source navigation | `ShowInCompanion`, `ShowInPreviewer` | ❌ | 8 |
 | Licence selection | `Settings.License`, `LicenseType` | ➖ MIT, nothing to select | — |
