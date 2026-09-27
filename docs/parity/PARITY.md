@@ -103,7 +103,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Colour palette | `Colors` (Material) | ➖ replaced by `Ink` basics ([ADR 0004](../adr/0004-ink-colour-model.md)) | 1 |
 | Named style sheets | — | ❌ ours only ([ADR 0003](../adr/0003-api-shape-and-style-sheets.md)) | 4 |
 | Placeholder box | `Placeholder` | 🟡 no label text | 4 |
-| Sample data for prototyping | `Placeholders` (lorem ipsum, dates, prices, …) | ❌ | 4 |
+| Sample data for prototyping | `Placeholders` (lorem ipsum, dates, prices, …) | ✅ seeded, so the same every time | — |
 
 ## Text
 
