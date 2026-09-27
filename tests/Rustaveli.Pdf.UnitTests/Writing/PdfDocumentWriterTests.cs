@@ -108,7 +108,6 @@ public class PdfDocumentWriterTests
     [Theory]
     [InlineData("Type")]
     [InlineData("Pages")]
-    [InlineData("Names")]
     public void RefusesCatalogEntriesTheWriterOwns(string key)
     {
         using PdfDocumentWriter document = new PdfDocumentWriter(new MemoryStream());
@@ -117,6 +116,66 @@ public class PdfDocumentWriterTests
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Finish());
 
         Assert.Equal($"The writer sets the catalog's /{key} entry itself.", exception.Message);
+    }
+
+    [Fact]
+    public void KeepsNameTreesTheCallerSuppliesAndAddsDestinationsBesideThem()
+    {
+        PdfName embedded = new PdfName("EmbeddedFiles");
+
+        PdfFileReader alone = Write(document =>
+        {
+            document.Catalog[PdfNames.Names] = new PdfDictionary { [embedded] = new PdfDictionary() };
+            document.EndPage(document.BeginPage(10, 10));
+        });
+
+        PdfFileReader together = Write(document =>
+        {
+            document.Catalog[PdfNames.Names] = new PdfDictionary { [embedded] = new PdfDictionary() };
+            PdfPage page = document.BeginPage(10, 10);
+            document.AddNamedDestination("here", page.Reference, 0, 10);
+            document.EndPage(page);
+        });
+
+        Assert.Equal(["EmbeddedFiles"], alone.Dictionary(alone.Catalog()["Names"]).Keys);
+        Assert.Equal(["Dests", "EmbeddedFiles"], together.Dictionary(together.Catalog()["Names"]).Keys.OrderBy(key => key, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void AddsPagesItDoesNotDrawInTheirPlaceInTheTree()
+    {
+        PdfFileReader reader = Write(document =>
+        {
+            document.EndPage(document.BeginPage(10, 10));
+            (PdfReference page, PdfReference parent) = document.AddPage();
+            document.File.Write(page, new PdfDictionary
+            {
+                [PdfNames.Type] = PdfNames.Page,
+                [PdfNames.Parent] = parent,
+                [PdfNames.MediaBox] = new PdfArray { 0, 0, 20, 20 },
+            });
+            document.EndPage(document.BeginPage(30, 30));
+        });
+
+        List<object?> widths = reader.Pages()
+            .Select(page => ((List<object?>)reader.Dictionary(new ParsedReference(page.Number, 0))["MediaBox"]!)[2])
+            .ToList();
+
+        Assert.Equal([10L, 20L, 30L], widths);
+    }
+
+    [Fact]
+    public void WritesAGivenInformationDictionaryInPlaceOfItsOwn()
+    {
+        PdfFileReader reader = Write(document =>
+        {
+            document.Info.Title = "Ignored";
+            document.InfoDictionary = new PdfDictionary { [new PdfName("Custom")] = 7 };
+            document.EndPage(document.BeginPage(10, 10));
+        });
+
+        Dictionary<string, object?> info = reader.Dictionary(reader.Trailer["Info"]);
+        Assert.Equal(["Custom"], info.Keys);
     }
 
     [Fact]

@@ -39,6 +39,7 @@ internal sealed class PdfSource
     private readonly Dictionary<int, object> _objects = [];
     private readonly Dictionary<int, (int[] Numbers, int[] Offsets, byte[] Data, int First)> _objectStreams = [];
     private readonly HashSet<int> _loading = [];
+    private readonly HashSet<int> _pageTree = [];
     private IReadOnlyList<SourcePage>? _pages;
     private bool _rebuilt;
 
@@ -142,10 +143,21 @@ internal sealed class PdfSource
     /// <summary>The pages, in order, with what each inherits from the page tree.</summary>
     public IReadOnlyList<SourcePage> Pages => _pages ??= ReadPages();
 
+    /// <summary>The objects of the page tree, pages and the nodes above them alike.</summary>
+    public IReadOnlyCollection<int> PageTree
+    {
+        get
+        {
+            _ = Pages;
+            return _pageTree;
+        }
+    }
+
     private List<SourcePage> ReadPages()
     {
         List<SourcePage> pages = [];
-        HashSet<int> visited = [];
+        HashSet<int> visited = _pageTree;
+        visited.Clear();
 
         if (!Catalog.TryGetValue(PdfNames.Pages, out PdfValue tree) || tree.Kind != PdfValueKind.Reference)
             throw new UnreadableFileException("The file is not a PDF this library can read: its catalog has no page tree.");

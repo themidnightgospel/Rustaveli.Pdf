@@ -16,7 +16,7 @@ public class VocabularyOverlapTests
     private static readonly HashSet<string> SharedMethodsAllowed = new HashSet<string>(StringComparer.Ordinal)
     {
         // Object, record and .NET conventions.
-        "<Clone>$", "Dispose", "Equals", "Format", "FromFile", "FromStream", "GetHashCode", "ToString",
+        "<Clone>$", "Dispose", "Equals", "Format", "FromFile", "FromStream", "GetHashCode", "Save", "ToString",
 
         // Layout.
         "Cell", "Columns", "Compose", "Grid", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",

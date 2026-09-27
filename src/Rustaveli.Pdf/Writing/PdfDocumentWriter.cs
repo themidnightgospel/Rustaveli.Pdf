@@ -45,6 +45,9 @@ internal sealed class PdfDocumentWriter : IDisposable
 
     public PdfDocumentInfo Info { get; } = new PdfDocumentInfo();
 
+    /// <summary>An information dictionary written as it is in place of <see cref="Info"/>, as one copied from another file.</summary>
+    public PdfDictionary? InfoDictionary { get; set; }
+
     /// <summary>
     /// Further entries for the catalog beyond those the writer supplies: <c>/Type</c>, <c>/Pages</c> and
     /// <c>/Names</c>.
@@ -111,6 +114,17 @@ internal sealed class PdfDocumentWriter : IDisposable
         File.Write(page.Reference, dictionary);
         _openPages.Remove(page);
         page.Content.Dispose();
+    }
+
+    /// <summary>
+    /// Adds a page this writer does not draw — one copied from another file — as the next page, returning its object
+    /// and the page tree node it must name as its parent. The caller writes the page object itself.
+    /// </summary>
+    public (PdfReference Page, PdfReference Parent) AddPage()
+    {
+        ThrowIfFinished();
+        PdfReference reference = File.Reserve();
+        return (reference, _pages.Add(reference));
     }
 
     /// <summary>
@@ -184,7 +198,7 @@ internal sealed class PdfDocumentWriter : IDisposable
         if (_openPages.Count > 0)
             throw new InvalidOperationException($"{_openPages.Count} page(s) were begun but never ended.");
 
-        CheckNotOwned(Catalog, "catalog", PdfNames.Type, PdfNames.Pages, PdfNames.Names);
+        CheckNotOwned(Catalog, "catalog", PdfNames.Type, PdfNames.Pages);
 
         PdfDictionary catalog = new PdfDictionary(3 + Catalog.Count)
         {
@@ -198,7 +212,17 @@ internal sealed class PdfDocumentWriter : IDisposable
             foreach (KeyValuePair<string, PdfArray> destination in _destinations)
                 tree.Add(PdfString.FromText(destination.Key), destination.Value);
 
-            catalog[PdfNames.Names] = new PdfDictionary { [PdfNames.Dests] = tree.Write(File) };
+            // Name trees a caller supplied, embedded files say, are kept beside the destinations.
+            PdfDictionary names = new PdfDictionary();
+
+            if (Catalog.TryGetValue(PdfNames.Names, out PdfValue given))
+            {
+                foreach (KeyValuePair<PdfName, PdfValue> entry in given.AsDictionary())
+                    names[entry.Key] = entry.Value;
+            }
+
+            names[PdfNames.Dests] = tree.Write(File);
+            catalog[PdfNames.Names] = names;
         }
 
         if (_outline.Count > 0)
@@ -209,10 +233,13 @@ internal sealed class PdfDocumentWriter : IDisposable
         }
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in Catalog)
-            catalog[entry.Key] = entry.Value;
+        {
+            if (!catalog.ContainsKey(entry.Key) || !entry.Key.Equals(PdfNames.Names))
+                catalog[entry.Key] = entry.Value;
+        }
 
         PdfReference root = File.Write(catalog);
-        PdfReference? info = Info.IsEmpty ? null : File.Write(Info.ToDictionary());
+        PdfReference? info = InfoDictionary is { } copied ? File.Write(copied) : Info.IsEmpty ? null : File.Write(Info.ToDictionary());
         File.Finish(root, info);
         _finished = true;
     }

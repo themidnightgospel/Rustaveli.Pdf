@@ -72,6 +72,13 @@ jobs:
           - name: operations-reading
             project: --project Rustaveli.Pdf.Operations.csproj
             mutate: --mutate "**/Reading/**/*.cs"
+          - name: operations-assembly
+            project: --project Rustaveli.Pdf.Operations.csproj
+            fonts: true
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/Assembly/**/*.cs" --mutate "**/PdfFile.cs"
           - name: writing-files
             mutate: --mutate "**/Writing/Pdf[D-F]*.cs"
           - name: writing-objects

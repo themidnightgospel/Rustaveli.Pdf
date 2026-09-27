@@ -193,10 +193,10 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
-| Load an existing PDF, with password | `DocumentOperation.LoadFile` | ❌ | 7 |
-| Merge files | `MergeFile` | ❌ | 7 |
-| Select pages | `TakePages` | ❌ | 7 |
-| Overlay and underlay with page mapping | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` | ❌ | 7 |
+| Load an existing PDF, with password | `DocumentOperation.LoadFile` | 🟡 `PdfFile.Open`, damaged files repaired; passwords to come | 7 |
+| Merge files | `MergeFile` | ✅ `PdfFile.Append` | — |
+| Select pages | `TakePages` | ✅ `PdfFile.KeepPages("1-3, 5, 8-last")` | — |
+| Overlay and underlay with page mapping | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` | ✅ `PdfFile.Overlay`, `Underlay` with `onto` and `from` pages | — |
 | Attachments with relationship (ZUGFeRD / Factur-X) | `AddAttachment`, `DocumentAttachment` | ❌ | 7 |
 | Encrypt 40/128/256-bit with permissions; decrypt; remove restrictions | `Encrypt`, `Decrypt`, `RemoveRestrictions` | ❌ | 7 |
 | Linearise (fast web view) | `Linearize` | ❌ | 7 |
