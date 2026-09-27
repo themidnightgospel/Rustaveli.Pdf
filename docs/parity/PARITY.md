@@ -39,7 +39,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Vertical sequence with spacing | `Column`, `Stack` | ✅ | — |
 | Horizontal sequence: constant, relative, auto items, spacing | `Row` | ✅ | — |
 | Tables: constant/relative columns, auto and explicit placement, spans, header/footer bands | `Table` | ✅ | — |
-| Table: stretch last cells to table bottom | `ExtendLastCellsToTableBottom` | ❌ | 4 |
+| Table: stretch last cells to table bottom | `ExtendLastCellsToTableBottom` | ✅ | — |
 | Uniform grid | `Grid` | ✅ | — |
 | Flow of inline items with wrapping, alignment, baseline | `Inlined` | ✅ | — |
 | Newspaper columns, balanced | `MultiColumn` | ✅ | — |
@@ -135,7 +135,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Current page, total pages | `CurrentPageNumber`, `TotalPages` | ✅ | — |
 | Page number formatting (roman, custom) | `TextPageNumberDescriptor.Format` | ✅ | — |
 | Section page numbers: begin, end, within, total within | `BeginPageNumberOfSection`, … | ✅ | — |
-| Page number of a captured location | `PageNumberOfLocation` | ❌ | 4 |
+| Page number of a captured location | `PageNumberOfLocation` | ✅ `FolioOf` (their former name for `BeginPageNumberOfSection`) | — |
 | Glyph-availability check | `Settings.CheckIfAllTextGlyphsAreAvailable` | ✅ per export | — |
 
 ## Links and navigation
@@ -145,7 +145,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | External hyperlink on a region or text | `Hyperlink`, `ExternalLink` | ✅ | — |
 | Internal link to a named section | `SectionLink`, `InternalLink` | ✅ | — |
 | Named destinations | `Section`, `Location` | ✅ | — |
-| Links to captured locations from text | `ExternalLocation`, `InternalLocation` | ❌ | 4 |
+| Links to captured locations from text | `ExternalLocation`, `InternalLocation` | ✅ `TextComposer.Link`, `CrossReference` (their former names for `Hyperlink`, `SectionLink`) | — |
 | Outline / bookmarks | — (derived from semantic tags) | ❌ | 6 |
 
 ## Images and vector graphics

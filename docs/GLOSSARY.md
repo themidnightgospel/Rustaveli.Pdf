@@ -72,6 +72,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `TableColumns.Fixed(float)` / `Share(float)` | method | A fixed-width or proportional column. | plain | `ConstantColumn` / `RelativeColumn` |
 | `TableComposer.Cell()` | method | The next cell, placed automatically or explicitly. | print | `Cell` |
 | `TableComposer.HeaderRows(...)` / `FooterRows(...)` | method | Rows repeated at the top or bottom of every page the table spans. | InDesign | `Header` / `Footer` |
+| `TableComposer.ExtendLastCellsToBottom()` | method | Stretches the last cell of every column to the bottom of the table on each page. | plain | `ExtendLastCellsToTableBottom` |
 | `TableBand` | class | The cells of a header or footer band. | print | `TableBandDescriptor` |
 | `CellFrame` | class | A cell's frame, with its placement: `AtRow`, `AtColumn`, `SpanRows`, `SpanColumns`. | print | `TableCellDescriptor` |
 | `List(Action<ListComposer>)` | method | A bulleted or numbered list. | print | `List` |

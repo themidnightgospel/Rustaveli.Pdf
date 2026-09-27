@@ -25,6 +25,12 @@ public sealed class TableComposer
         return new CellFrame(tableCell);
     }
 
+    /// <summary>
+    /// Stretches the last cell of every column down to the bottom of the table on each page, so a column that ends
+    /// early, beside cells spanning further down, still reaches the table's foot.
+    /// </summary>
+    public void ExtendLastCellsToBottom() => _block.ExtendLastCells = true;
+
     /// <summary>Declares rows repeated at the top of every page the table spans.</summary>
     public void HeaderRows(Action<TableBand> handler)
     {
