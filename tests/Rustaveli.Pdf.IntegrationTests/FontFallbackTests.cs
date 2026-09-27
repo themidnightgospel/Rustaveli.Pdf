@@ -149,8 +149,10 @@ public class FontFallbackTests
     public void EachScriptFindsItsOwnFallback()
     {
         // The face found for the CJK characters has no Georgian, so the Georgian lookup must look past the
-        // fallback already discovered for this style instead of settling for it.
+        // fallback already discovered for this style instead of settling for it. The CJK face is the platform's;
+        // Georgian is registered, since not every platform has a font for it.
         TypefaceLibrary library = TestFonts.NewLibrary();
+        library.RegisterFile(TestFonts.PathOf("NotoSansGeorgian-Regular.ttf"));
         OpenTypeMeasurer measurer = Measurer(library);
 
         float whole = measurer.MeasureWidth(Cjk + Georgian, Sans);

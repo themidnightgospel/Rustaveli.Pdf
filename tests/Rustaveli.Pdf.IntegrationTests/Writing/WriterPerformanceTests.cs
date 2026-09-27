@@ -78,7 +78,9 @@ public class WriterPerformanceTests(ITestOutputHelper output)
             $"{format}: {PageCount} pages in {stopwatch.ElapsedMilliseconds} ms ({pagesPerSecond:F0} pages/s), "
             + $"{pdf.Length / 1024} KiB, {pdf.Length / PageCount} bytes/page");
 
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"Writing {PageCount} pages took {stopwatch.Elapsed}.");
+        // A guard against a writer gone quadratic, not a benchmark: shared CI runners vary several-fold, and the
+        // benchmarks job measures throughput properly.
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(15), $"Writing {PageCount} pages took {stopwatch.Elapsed}.");
         using PdfDocument document = PdfDocument.Open(pdf);
         Assert.Equal(PageCount, document.NumberOfPages);
     }

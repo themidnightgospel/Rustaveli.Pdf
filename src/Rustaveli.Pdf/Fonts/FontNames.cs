@@ -68,6 +68,14 @@ internal sealed class FontNames
     /// <summary>The typographic family (ID 16) in every language; empty when the font has none.</summary>
     public IReadOnlyList<string> TypographicFamilyAliases { get; }
 
+    /// <summary>
+    /// Whether this is a last-resort font — Apple's LastResort, or the Unicode Consortium's Last Resort it derives
+    /// from — which claims every code point but draws each as a box naming its block. Set in one, text loses its
+    /// letters, and every character of a block shares a glyph, so it cannot be read back out of the PDF either.
+    /// </summary>
+    public bool IsLastResort =>
+        string.Equals(PreferredFamily.Replace(" ", string.Empty), "LastResort", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>The names of <see cref="PreferredFamily"/> in every language.</summary>
     public IReadOnlyList<string> PreferredFamilyAliases =>
         TypographicFamilyAliases.Count > 0 ? TypographicFamilyAliases : FamilyAliases;
