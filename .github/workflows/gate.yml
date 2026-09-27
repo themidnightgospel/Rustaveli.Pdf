@@ -22,21 +22,24 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  # Sharded by source file: one job over the whole engine needs many hours on a four-core hosted runner, and a
-  # shard of more than about 450 lines of code (roughly 500 mutants) outruns the timeout there. Each shard must
-  # clear the 80% floor on its own, which is stricter than a single overall score. Rebalance a shard by file name
-  # once its area grows past that size; shards beyond the account's concurrent-job limit simply queue.
+  # Sharded by source file: one job over the whole engine needs many hours on a four-core hosted runner, where the
+  # first test run alone takes some twenty minutes and a shard of more than about 300 mutants outruns the timeout.
+  # Each shard must clear the 80% floor on its own, which is stricter than a single overall score. Rebalance a shard
+  # by file name once its area grows past that size, and split a file too large alone by character span —
+  # "File.cs{0..23000}" — a span counting characters, not lines; shards beyond the concurrent-job limit simply queue.
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
         shard:
-          - name: text-block
-            mutate: --mutate "**/Blocks/TextBlock.cs"
+          - name: text-block-a
+            mutate: --mutate "**/Blocks/TextBlock.cs{0..23000}"
+          - name: text-block-b
+            mutate: --mutate "**/Blocks/TextBlock.cs{23000..200000}"
           - name: table-block
             mutate: --mutate "**/Blocks/TableBlock.cs"
           - name: blocks-a-l
@@ -49,8 +52,12 @@ jobs:
               --mutate "**/Layout/**/*.cs" --mutate "**/Text/*.cs" --mutate "!**/Text/TypeShaper.cs"
               --mutate "!**/Text/GlyphWalk.cs" --mutate "!**/Text/OpenTypeMeasurer.cs"
           # The generated character tables are data, not logic: Stryker skips files marked auto-generated.
-          - name: line-breaking
-            mutate: --mutate "**/Text/LineBreaking/**/*.cs"
+          - name: line-breaking-a
+            mutate: --mutate "**/Text/LineBreaking/LineBreakEnumerator.cs{0..11000}"
+          - name: line-breaking-b
+            mutate: >-
+              --mutate "**/Text/LineBreaking/LineBreakEnumerator.cs{11000..200000}" --mutate "**/Text/LineBreaking/LineBreak.cs"
+              --mutate "**/Text/LineBreaking/LineBreak[CP]*.cs" --mutate "**/Text/LineBreaking/LineBreaker.cs"
           - name: bidi-paragraph
             mutate: >-
               --mutate "**/Text/Bidi/Bidi*.cs" --mutate "**/Text/Bidi/LineReordering.cs"
@@ -91,13 +98,18 @@ jobs:
             mutate: --mutate "**/Fonts/[O-R]*.cs"
           - name: fonts-s-z
             mutate: --mutate "**/Fonts/[S-Z]*.cs" --mutate "!**/Fonts/TypefaceLibrary.cs"
+          # Decoding tests hold whole images in memory; three runners over them ran the hosted runner out of it.
           - name: images-a-i
+            runners: 2
             mutate: --mutate "**/Images/[A-I]*.cs"
           - name: images-jpeg-png-a-h
+            runners: 2
             mutate: --mutate "**/Images/[J-O]*.cs" --mutate "**/Images/Png[A-H]*.cs"
           - name: images-png-i-z
+            runners: 2
             mutate: --mutate "**/Images/Png[I-Z]*.cs"
           - name: images-r-z
+            runners: 2
             mutate: --mutate "**/Images/[Q-Z]*.cs"
           # The PDF surface, shaping and the typeface library are checked by reading real files back, so these
           # shards run the integration tests too — and those need the system's fallback fonts.
@@ -111,14 +123,20 @@ jobs:
             project: --project Rustaveli.Pdf.Shaping.csproj
             tests: --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
             mutate: --mutate "**/*.cs"
-          - name: typesetting
+          - name: typesetting-output
+            fonts: true
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/Output/**/*.cs" --mutate "!**/Output/PdfSurface.cs"
+          - name: typesetting-text
             fonts: true
             tests: >-
               --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
               --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
             mutate: >-
-              --mutate "**/Output/**/*.cs" --mutate "!**/Output/PdfSurface.cs" --mutate "**/Fonts/TypefaceLibrary.cs"
-              --mutate "**/Text/TypeShaper.cs" --mutate "**/Text/GlyphWalk.cs" --mutate "**/Text/OpenTypeMeasurer.cs"
+              --mutate "**/Fonts/TypefaceLibrary.cs" --mutate "**/Text/TypeShaper.cs" --mutate "**/Text/GlyphWalk.cs"
+              --mutate "**/Text/OpenTypeMeasurer.cs"
     steps:
       - uses: actions/checkout@v4
 
@@ -138,10 +156,16 @@ jobs:
         if: matrix.shard.fonts
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk
 
-      # Four test runners: the hosted runner has four cores, and Stryker's default of half the cores leaves two idle.
+      # Three test runners, two where the integration tests run too or a shard says so: four, one a core, ran the
+      # hosted runner out of memory as they started, and it was shut down mid-run. A mutant that removes a size guard
+      # can ask for more memory than the machine has, with the same result and every mutant's outcome lost, so each
+      # process's heap is capped: such a mutant meets an OutOfMemoryException its tests fail on, and is killed.
       - name: Mutation testing
+        env:
+          DOTNET_GCHeapHardLimit: '0x100000000'
         run: >
-          dotnet stryker --config-file stryker-config.json --concurrency 4
+          dotnet stryker --config-file stryker-config.json
+          --concurrency ${{ matrix.shard.runners || (matrix.shard.fonts && 2 || 3) }}
           ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
