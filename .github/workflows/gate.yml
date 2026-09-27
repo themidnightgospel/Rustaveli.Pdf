@@ -22,48 +22,78 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  # Sharded by source area: one job over the whole engine needs roughly four hours on a hosted runner. Each shard
-  # must clear the 80% floor on its own, which is stricter than a single overall score. Shards are sized from the
-  # mutant counts of the last full run; rebalance them when an area grows.
+  # Sharded by source file: one job over the whole engine needs many hours on a four-core hosted runner, and a
+  # shard of more than about 450 lines of code (roughly 500 mutants) outruns the timeout there. Each shard must
+  # clear the 80% floor on its own, which is stricter than a single overall score. Rebalance a shard by file name
+  # once its area grows past that size; shards beyond the account's concurrent-job limit simply queue.
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
         shard:
-          - name: text-and-table
-            mutate: --mutate "**/Blocks/TextBlock.cs" --mutate "**/Blocks/TableBlock.cs"
+          - name: text-block
+            mutate: --mutate "**/Blocks/TextBlock.cs"
+          - name: table-block
+            mutate: --mutate "**/Blocks/TableBlock.cs"
           - name: blocks-a-l
             mutate: --mutate "**/Blocks/[A-L]*.cs"
-          - name: blocks-m-z-layout-text
+          - name: blocks-m-z
             mutate: >-
-              --mutate "**/Blocks/[M-Z]*.cs" --mutate "!**/Blocks/TextBlock.cs"
-              --mutate "!**/Blocks/TableBlock.cs" --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs"
-              --mutate "!**/Text/TypeShaper.cs" --mutate "!**/Text/GlyphWalk.cs" --mutate "!**/Text/OpenTypeMeasurer.cs"
+              --mutate "**/Blocks/[M-Z]*.cs" --mutate "!**/Blocks/TextBlock.cs" --mutate "!**/Blocks/TableBlock.cs"
+          - name: layout-text
+            mutate: >-
+              --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs" --mutate "!**/Text/TypeShaper.cs"
+              --mutate "!**/Text/GlyphWalk.cs" --mutate "!**/Text/OpenTypeMeasurer.cs"
           - name: primitives
             mutate: --mutate "**/Primitives/**/*.cs"
           - name: composition-drawing
             mutate: >-
               --mutate "**/Composition/**/*.cs" --mutate "**/Drawing/**/*.cs" --mutate "**/Exceptions/**/*.cs"
-          - name: writing
-            mutate: --mutate "**/Writing/**/*.cs"
-          - name: fonts
-            mutate: --mutate "**/Fonts/**/*.cs" --mutate "!**/Fonts/TypefaceLibrary.cs"
-          - name: images
-            mutate: --mutate "**/Images/**/*.cs"
-          # Shaping, the PDF surface and the typeface library are checked by reading real files back, so this shard
-          # runs the integration tests too — and those need the system's fallback fonts.
-          - name: typesetting-output
+          - name: writing-values
+            mutate: >-
+              --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/Z*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
+          - name: writing-files
+            mutate: --mutate "**/Writing/Pdf[D-F]*.cs"
+          - name: writing-objects
+            mutate: --mutate "**/Writing/Pdf[G-Z]*.cs"
+          - name: fonts-a-c
+            mutate: --mutate "**/Fonts/[A-C]*.cs"
+          - name: fonts-d-f
+            mutate: --mutate "**/Fonts/[D-F]*.cs"
+          - name: fonts-g-n
+            mutate: --mutate "**/Fonts/[G-N]*.cs"
+          - name: fonts-o-r
+            mutate: --mutate "**/Fonts/[O-R]*.cs"
+          - name: fonts-s-z
+            mutate: --mutate "**/Fonts/[S-Z]*.cs" --mutate "!**/Fonts/TypefaceLibrary.cs"
+          - name: images-a-i
+            mutate: --mutate "**/Images/[A-I]*.cs"
+          - name: images-jpeg-png-a-h
+            mutate: --mutate "**/Images/[J-O]*.cs" --mutate "**/Images/Png[A-H]*.cs"
+          - name: images-png-i-z
+            mutate: --mutate "**/Images/Png[I-Z]*.cs"
+          - name: images-r-z
+            mutate: --mutate "**/Images/[Q-Z]*.cs"
+          # The PDF surface, shaping and the typeface library are checked by reading real files back, so these
+          # shards run the integration tests too — and those need the system's fallback fonts.
+          - name: output-surface
+            fonts: true
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/Output/PdfSurface.cs"
+          - name: typesetting
             fonts: true
             tests: >-
               --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
               --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
             mutate: >-
-              --mutate "**/Output/**/*.cs" --mutate "**/Fonts/TypefaceLibrary.cs" --mutate "**/Text/TypeShaper.cs"
-              --mutate "**/Text/GlyphWalk.cs" --mutate "**/Text/OpenTypeMeasurer.cs"
+              --mutate "**/Output/**/*.cs" --mutate "!**/Output/PdfSurface.cs" --mutate "**/Fonts/TypefaceLibrary.cs"
+              --mutate "**/Text/TypeShaper.cs" --mutate "**/Text/GlyphWalk.cs" --mutate "**/Text/OpenTypeMeasurer.cs"
     steps:
       - uses: actions/checkout@v4
 

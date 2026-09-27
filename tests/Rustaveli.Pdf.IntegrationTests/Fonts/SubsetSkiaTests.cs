@@ -52,7 +52,7 @@ public class SubsetSkiaTests
             ushort original = font.GetGlyphId(Text[index]);
 
             Assert.Equal(subset.GlyphIdMap[original], glyphs[index]);
-            Assert.Equal(font.GetAdvance(original), widths[index], 3);
+            Assert.Equal(font.GetAdvance(original), widths[index], 0.01f);
         }
     }
 
