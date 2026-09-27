@@ -498,10 +498,20 @@ public class GlyphSubstitutionTableTests
     }
 
     [Fact]
-    public void ReportsAMalformedTableWhenItIsRead()
+    public void LeavesOutAMalformedTableAsShapersDo()
     {
+        // A face that gets its substitutions wrong still sets its text, only without them.
         OpenTypeFont font = SyntheticFont.Minimal().With("GSUB", [0, 1, 0]).Load();
 
-        Assert.Throws<FontFormatException>(() => font.Substitutions);
+        Assert.Null(font.Substitutions);
+        Assert.Equal(new[] { 2 }, Glyphs(GlyphBuffer.FromText(font, "B")));
+    }
+
+    [Fact]
+    public void LeavesOutAMalformedGlyphDefinitionTable()
+    {
+        OpenTypeFont font = SyntheticFont.Minimal().With("GDEF", [0, 9, 0, 0]).Load();
+
+        Assert.Null(font.GlyphDefinitions);
     }
 }
