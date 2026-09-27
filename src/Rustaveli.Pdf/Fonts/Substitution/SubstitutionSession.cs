@@ -29,15 +29,11 @@ internal sealed class SubstitutionSession
 
     private readonly List<(int Index, int Change)> _edits = [];
     private readonly List<int>?[] _positions = new List<int>?[MaximumNesting + 1];
-    private readonly int _maximumLength;
+    private int _maximumLength;
     private long _work;
 
     public SubstitutionSession(GlyphSubstitutionTable table, GlyphBuffer buffer)
-        : this(
-            table,
-            buffer,
-            BaseWork + (WorkPerGlyph * buffer.Count),
-            (int)Math.Min(int.MaxValue, BaseLength + (LengthPerGlyph * buffer.Count)))
+        : this(table, buffer, WorkFor(buffer), LengthFor(buffer))
     {
     }
 
@@ -50,9 +46,29 @@ internal sealed class SubstitutionSession
         _maximumLength = maximumLength;
     }
 
-    public GlyphSubstitutionTable Table { get; }
+    public GlyphSubstitutionTable Table { get; private set; }
 
-    public GlyphBuffer Buffer { get; }
+    public GlyphBuffer Buffer { get; private set; }
+
+    /// <summary>
+    /// Readies the session to apply <paramref name="table"/> to <paramref name="buffer"/> afresh, with the limits a
+    /// new session would have, keeping the storage it has grown: text is shaped a word at a time, and a session per
+    /// word would be most of what shaping allocates.
+    /// </summary>
+    public void Reset(GlyphSubstitutionTable table, GlyphBuffer buffer)
+    {
+        Table = table;
+        Buffer = buffer;
+        _work = WorkFor(buffer);
+        _maximumLength = LengthFor(buffer);
+        _edits.Clear();
+        Depth = 0;
+        FeatureValue = 1;
+    }
+
+    private static long WorkFor(GlyphBuffer buffer) => BaseWork + (WorkPerGlyph * buffer.Count);
+
+    private static int LengthFor(GlyphBuffer buffer) => (int)Math.Min(int.MaxValue, BaseLength + (LengthPerGlyph * buffer.Count));
 
     /// <summary>The value of the feature whose lookup is being applied, which chooses among alternates.</summary>
     public int FeatureValue { get; set; } = 1;

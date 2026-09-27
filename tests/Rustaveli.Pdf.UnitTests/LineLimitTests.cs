@@ -71,8 +71,8 @@ public class LineLimitTests
 
         RecordedPage page = Draw(element, 36);
 
-        Assert.Equal("aaaa…", page.Content);
-        Approximately.Equal(24f, page.Texts.Single(text => text.Text == "…").Position.X);
+        // The ellipsis follows "aaaa" directly, drawn with it as one piece of text.
+        Assert.Equal("aaaa…", Assert.Single(page.Texts).Text);
     }
 
     [Fact]

@@ -40,7 +40,7 @@ internal sealed class TypeShaper
     private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups = new();
 
     [ThreadStatic]
-    private static GlyphBuffer? _spareBuffer;
+    private static ShapingScratch? _spareScratch;
 
     // Held rather than converted from the method group on every call: text is measured on the hot path.
     private readonly Func<FontRequest, OpenTypeFont> _find;
@@ -82,15 +82,18 @@ internal sealed class TypeShaper
         return _lookups.TryGetValue(key, out (int Index, int Value)[]? known) ? known : _lookups.GetOrAdd(key, ResolveLookups);
     }
 
-    /// <summary>A buffer to shape with, kept per thread so that measuring text allocates nothing once warm.</summary>
-    internal static GlyphBuffer RentBuffer()
+    /// <summary>
+    /// What shaping needs, kept per thread so that measuring text allocates nothing once warm. A walk nested inside
+    /// another, which the one spare cannot serve, gets its own.
+    /// </summary>
+    internal static ShapingScratch RentScratch()
     {
-        GlyphBuffer? buffer = _spareBuffer;
-        _spareBuffer = null;
-        return buffer ?? new GlyphBuffer();
+        ShapingScratch? scratch = _spareScratch;
+        _spareScratch = null;
+        return scratch ?? new ShapingScratch();
     }
 
-    internal static void ReturnBuffer(GlyphBuffer buffer) => _spareBuffer = buffer;
+    internal static void ReturnScratch(ShapingScratch scratch) => _spareScratch = scratch;
 
     private static (int Index, int Value)[] ResolveLookups((OpenTypeFont Face, ScriptTag Script, TypeFeatures Features) key)
     {

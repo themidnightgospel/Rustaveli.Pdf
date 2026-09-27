@@ -11,25 +11,35 @@ namespace Rustaveli.Pdf.Fonts;
 /// the subset at the end keeps those ids and appends only the component glyphs of composites after them.
 /// </para>
 /// <para>
-/// Each glyph remembers the first character it was used for, which is what a ToUnicode CMap needs to make the text
+/// Each glyph remembers the first text it was used for, which is what a ToUnicode CMap needs to make the text
 /// searchable and copyable.
 /// </para>
 /// <para>
-/// Safe to use from several threads, though a document is normally written by one; the lock is this instance's,
-/// so documents never contend with one another.
+/// Safe to use from several threads, though a document is normally written by one. Every glyph drawn passes through
+/// here, and almost every one is a glyph already recorded with its text, so that case takes no lock and allocates
+/// nothing; only a glyph's first use, or one that gives it text at last, locks — this instance only, so documents
+/// never contend with one another.
 /// </para>
 /// </remarks>
 internal sealed class GlyphSubset
 {
+    private const int NoCodepoint = -1;
+
     private readonly object _sync = new object();
     private readonly List<ushort> _glyphs = [0];
-    private readonly List<string?> _texts = [null];
-    private readonly Dictionary<ushort, ushort> _numbers = new Dictionary<ushort, ushort> { [0] = 0 };
+
+    // By original glyph id, the subset glyph id handed out for it; 0 until then, since .notdef is never numbered.
+    private readonly ushort[] _numbers;
+
+    // By subset glyph id, the text the glyph reads as. Replaced, never resized in place, so a reader without the lock
+    // always sees a whole array at least as new as the number it read.
+    private string?[] _texts = new string?[16];
 
     public GlyphSubset(OpenTypeFont font)
     {
         ArgumentNullException.ThrowIfNull(font);
         Font = font;
+        _numbers = new ushort[font.GlyphCount];
     }
 
     public OpenTypeFont Font { get; }
@@ -55,15 +65,21 @@ internal sealed class GlyphSubset
     }
 
     /// <summary>Records a use of <paramref name="glyph"/> and returns its subset glyph id.</summary>
-    public ushort Add(ushort glyph) => Add(glyph, (string?)null);
+    public ushort Add(ushort glyph) => Add(glyph, NoCodepoint, null);
 
     /// <summary>Records a use of <paramref name="glyph"/> to show <paramref name="codepoint"/>.</summary>
     /// <remarks>A value that is no Unicode scalar value reads back as the replacement character, U+FFFD.</remarks>
-    public ushort Add(ushort glyph, int codepoint) => Add(glyph, TextOf(codepoint));
+    public ushort Add(ushort glyph, int codepoint) => Add(glyph, codepoint, null);
 
     /// <summary>
     /// Records a use of <paramref name="glyph"/> to show <paramref name="text"/> — one character, or all of a
-    /// ligature's — and returns its subset glyph id. The first text recorded for a glyph is kept. Empty text is a
+    /// ligature's — and returns its subset glyph id.
+    /// </summary>
+    public ushort Add(ushort glyph, string? text) => Add(glyph, NoCodepoint, text);
+
+    /// <summary>
+    /// Records a use of <paramref name="glyph"/> to show <paramref name="text"/>, or <paramref name="codepoint"/> when
+    /// there is no text, and returns its subset glyph id. The first text recorded for a glyph is kept. Empty text is a
     /// glyph standing for none of its own, such as the accent of a letter set as two glyphs: it reads back as
     /// nothing, rather than as whatever the font's character map says, until a use that shows text replaces it.
     /// </summary>
@@ -71,7 +87,7 @@ internal sealed class GlyphSubset
     /// .notdef stands in for every character the font lacks, so it is never associated with one: a ToUnicode entry
     /// for it would turn every missing character into whichever happened to be missing first.
     /// </remarks>
-    public ushort Add(ushort glyph, string? text)
+    public ushort Add(ushort glyph, int codepoint, string? text)
     {
         if (glyph >= Font.GlyphCount)
             throw new ArgumentOutOfRangeException(nameof(glyph), glyph, $"The font has {Font.GlyphCount} glyphs.");
@@ -79,19 +95,45 @@ internal sealed class GlyphSubset
         if (glyph == 0)
             return 0;
 
+        bool offers = text is not null || codepoint != NoCodepoint;
+        ushort known = Volatile.Read(ref _numbers[glyph]);
+
+        if (known != 0)
+        {
+            string? recorded = Volatile.Read(ref _texts)[known];
+
+            // Nothing to change: the glyph reads as text already, or this use offers none better than it has.
+            if (!string.IsNullOrEmpty(recorded) || !offers || (text is { Length: 0 } && recorded is not null))
+                return known;
+        }
+
+        string? offered = text ?? (codepoint == NoCodepoint ? null : TextOf(codepoint));
+
         lock (_sync)
         {
-            if (_numbers.TryGetValue(glyph, out ushort number))
+            ushort number = _numbers[glyph];
+
+            if (number != 0)
             {
-                _texts[number] = Keep(_texts[number], text);
+                _texts[number] = Keep(_texts[number], offered);
                 return number;
             }
 
             // At most one entry per glyph of a font whose glyph count is 16-bit, so the number always fits.
             number = (ushort)_glyphs.Count;
             _glyphs.Add(glyph);
-            _texts.Add(text);
-            _numbers.Add(glyph, number);
+
+            if (number >= _texts.Length)
+            {
+                string?[] grown = new string?[_texts.Length * 2];
+                _texts.CopyTo(grown, 0);
+                Volatile.Write(ref _texts, grown);
+            }
+
+            _texts[number] = offered;
+
+            // Published last, so a reader that finds the number finds its text slot too.
+            Volatile.Write(ref _numbers[glyph], number);
             return number;
         }
     }
@@ -101,7 +143,7 @@ internal sealed class GlyphSubset
     {
         lock (_sync)
         {
-            text = (subsetGlyphId < _texts.Count ? _texts[subsetGlyphId] : null)!;
+            text = (subsetGlyphId < _glyphs.Count ? _texts[subsetGlyphId] : null)!;
             return text is not null;
         }
     }

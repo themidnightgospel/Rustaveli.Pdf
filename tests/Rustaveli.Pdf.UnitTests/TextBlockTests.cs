@@ -105,11 +105,9 @@ public class TextBlockTests
 
         List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(30, 500)).Texts.ToList();
 
-        Assert.Equal(["ab", " ", "世", "界", "你", "好"], texts.Select(text => text.Text));
-        Approximately.Equal(18f, texts[2].Position.X);
-        Approximately.Equal(texts[0].Position.Y, texts[3].Position.Y);
-        Approximately.Equal(0f, texts[4].Position.X);
-        Approximately.Equal(texts[0].Position.Y + LineHeight, texts[4].Position.Y);
+        Assert.Equal(["ab 世界", "你好"], texts.Select(text => text.Text));
+        Approximately.Equal(0f, texts[1].Position.X);
+        Approximately.Equal(texts[0].Position.Y + LineHeight, texts[1].Position.Y);
     }
 
     [Fact]
@@ -179,9 +177,9 @@ public class TextBlockTests
         List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(36, 500)).Texts.ToList();
 
         // Six characters to a 36pt line: "aa", a space, then as much of the word as fits.
-        Assert.Equal(["aa", " ", "bbb", "bbbbbb", "b"], texts.Select(text => text.Text));
-        Approximately.Equal(texts[0].Position.Y, texts[2].Position.Y);
-        Approximately.Equal(18f, texts[2].Position.X);
+        Assert.Equal(["aa bbb", "bbbbbb", "b"], texts.Select(text => text.Text));
+        Approximately.Equal(texts[0].Position.Y + LineHeight, texts[1].Position.Y);
+        Approximately.Equal(0f, texts[1].Position.X);
     }
 
     [Fact]
@@ -407,6 +405,58 @@ public class TextBlockTests
     }
 
     [Fact]
+    public void ALineInOneTypeIsDrawnAsOnePieceOfText()
+    {
+        TextBlock element = Text(text => text.Run("aaa bbb ccc"));
+
+        TextOperation line = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 100)).Texts);
+
+        Assert.Equal("aaa bbb ccc", line.Text);
+    }
+
+    [Fact]
+    public void AChangeOfTypeStartsANewPieceWhereTheWordsWereMeasured()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Run("aaa ");
+            text.Run("bbb").Bold();
+            text.Run(" ccc");
+        });
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(500, 100)).Texts.ToList();
+
+        Assert.Equal(["aaa ", "bbb", " ccc"], texts.Select(text => text.Text));
+        Assert.Equal([0f, 24f, 42f], texts.Select(text => text.Position.X));
+    }
+
+    [Fact]
+    public void TrackedTypeIsDrawnAWordAtATime()
+    {
+        // Tracking falls between the characters of what is measured; words measured apart must be drawn apart.
+        TextBlock element = Text(text => text.Run("aa bb").Tracking(1));
+
+        Assert.Equal(["aa", " ", "bb"], LayoutHarness.Draw(element, new Extent(500, 100)).Texts.Select(text => text.Text));
+    }
+
+    [Fact]
+    public void WordsOfOneLinkAreOneLink()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Link("go here", "https://example.com");
+            text.Link(" or there", "https://example.org");
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 100));
+        List<ExternalLinkOperation> links = page.Operations.OfType<ExternalLinkOperation>().ToList();
+
+        Assert.Equal(["go here", " or there"], page.Texts.Select(text => text.Text));
+        Assert.Equal(["https://example.com", "https://example.org"], links.Select(link => link.Url));
+        Approximately.Equal(42f, links[0].Size.Width);
+    }
+
+    [Fact]
     public void TheLastLineOfAJustifiedParagraphIsNotStretched()
     {
         TextBlock element = Text(text =>
@@ -416,10 +466,11 @@ public class TextBlockTests
         });
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
-        TextOperation e = page.Texts.Single(text => text.Text == "e");
+        // A stretched line is drawn a word at a time, its spaces widened; "ddd e" is drawn whole, at its own width.
+        TextOperation last = page.Texts.Single(text => text.Text == "ddd e");
 
-        // "ddd e" sits at its natural width: "ddd" at 0, a 6pt space, then "e".
-        Approximately.Equal(24f, e.Position.X);
+        Approximately.Equal(0f, last.Position.X);
+        Assert.Contains(page.Texts, text => text.Text == "ccc");
     }
 
     [Fact]
@@ -433,7 +484,7 @@ public class TextBlockTests
 
         RecordedPage page = LayoutHarness.Draw(element, new Extent(80, 100));
 
-        Approximately.Equal(12f, page.Texts.Single(text => text.Text == "b").Position.X);
+        Approximately.Equal(0f, page.Texts.Single(text => text.Text == "a b").Position.X);
         Assert.True(page.Texts.Single(text => text.Text == "i").Position.X > 48f, "The wrapped line should stretch.");
     }
 

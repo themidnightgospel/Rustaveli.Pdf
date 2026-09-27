@@ -20,7 +20,8 @@ namespace Rustaveli.Pdf.Fonts.Substitution;
 /// read: the default instance's lookups apply.
 /// </para>
 /// <para>
-/// Lookups are parsed on first use and kept, under a lock, so one table may shape text on several threads at once.
+/// Lookups are parsed on first use and kept; threads racing to parse one may each do so, and one result is kept, so
+/// one table may shape text on several threads at once without a lock on the path every glyph takes.
 /// Malformed data throws <see cref="FontFormatException"/> from whichever call first reads it.
 /// </para>
 /// </remarks>
@@ -47,7 +48,6 @@ internal sealed class GlyphSubstitutionTable
     private readonly int _featureList;
     private readonly int _lookupList;
     private readonly SubstitutionLookup?[] _lookups;
-    private readonly object _sync = new object();
     private int _subtableBudget = MaximumSubtables;
 
     /// <param name="table">The GSUB table's bytes.</param>
@@ -179,8 +179,13 @@ internal sealed class GlyphSubstitutionTable
         if (index >= _lookups.Length)
             return null;
 
-        lock (_sync)
-            return _lookups[index] ??= ReadLookup(index);
+        SubstitutionLookup? lookup = Volatile.Read(ref _lookups[index]);
+
+        if (lookup is not null)
+            return lookup;
+
+        // A lookup is immutable once read, so a thread that loses the race uses the winner's and drops its own.
+        return Interlocked.CompareExchange(ref _lookups[index], ReadLookup(index), null) ?? _lookups[index];
     }
 
     private static int Spend(ref int budget, int entries)

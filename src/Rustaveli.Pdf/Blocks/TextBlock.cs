@@ -22,6 +22,9 @@ internal sealed class TextBlock : Block
     private float _pinnedWidth = float.NaN;
     private List<TextLine>? _pinnedWrapping;
 
+    // Not reset between passes: the lines of the same text at the same width do not change.
+    private BuiltLines? _built;
+
     public List<Text.TextRun> Runs { get; } = [];
 
     /// <summary>
@@ -232,6 +235,9 @@ internal sealed class TextBlock : Block
         if (line.Bidi is not null)
             runs = InDisplayOrder(runs, line.Bidi, context.Measurer);
 
+        if (stretch <= 0)
+            runs = Coalesced(runs);
+
         foreach (TextRun run in runs)
         {
             if (run.Inline is not null)
@@ -342,6 +348,63 @@ internal sealed class TextBlock : Block
         return ordered;
     }
 
+    /// <summary>
+    /// Joins neighbouring runs set in the same type, carrying the same link, into one, so a line of words is drawn as
+    /// one piece of text rather than a word and a space at a time.
+    /// </summary>
+    /// <remarks>
+    /// Drawing walks the joined text glyph by glyph exactly as measuring walked each piece, so the words land where
+    /// the line was measured — with two exceptions, which are kept apart: tracking, which measuring each piece on its
+    /// own leaves out between pieces, and a stretched space, whose width is more than its glyph's.
+    /// </remarks>
+    private static List<TextRun> Coalesced(List<TextRun> runs)
+    {
+        List<TextRun> joined = new List<TextRun>(runs.Count);
+        int start = 0;
+
+        while (start < runs.Count)
+        {
+            int end = start + 1;
+            int length = runs[start].Text.Length;
+            float width = runs[start].Width;
+
+            while (end < runs.Count && Joins(runs[start], runs[end]))
+            {
+                length += runs[end].Text.Length;
+                width += runs[end].Width;
+                end++;
+            }
+
+            // One allocation per piece drawn, however many words it joins.
+            joined.Add(end == start + 1 ? runs[start] : runs[start] with { Text = Concatenate(runs, start, end, length), Width = width });
+            start = end;
+        }
+
+        return joined;
+    }
+
+    private static string Concatenate(List<TextRun> runs, int start, int end, int length)
+    {
+        char[] characters = new char[length];
+        int at = 0;
+
+        for (int index = start; index < end; index++)
+        {
+            runs[index].Text.CopyTo(0, characters, at, runs[index].Text.Length);
+            at += runs[index].Text.Length;
+        }
+
+        return new string(characters);
+    }
+
+    private static bool Joins(TextRun previous, TextRun next) =>
+        previous.Inline is null
+        && next.Inline is null
+        && previous.Style.Tracking == 0
+        && (ReferenceEquals(previous.Style, next.Style) || previous.Style.Equals(next.Style))
+        && previous.Url == next.Url
+        && previous.Destination == next.Destination;
+
     /// <summary>How many code units a run takes in its paragraph's text: an inline frame stands in for one.</summary>
     private static int LogicalLength(TextRun run) => run.Inline is null ? run.Text.Length : 1;
 
@@ -447,9 +510,33 @@ internal sealed class TextBlock : Block
         if (_pinnedWrapping is not null)
             return _pinnedWrapping;
 
+        TypeStyle blockStyle = DefaultTypeRefinement?.Invoke(context.DefaultType) ?? context.DefaultType;
+
+        // Lines depend on nothing but the text, the width, the type and the direction — unless a run's text depends
+        // on the page or a frame's plan on the height — so a paragraph planned and drawn again, on every attempt of
+        // both passes, builds them once.
+        bool reusable = Runs.TrueForAll(run => run.Inline is null && run.DynamicText is null);
+
+        if (reusable && _built is { } built && built.Width == maxWidth && ReferenceEquals(built.Measurer, context.Measurer)
+            && built.Direction == context.ReadingDirection && built.Style.Equals(blockStyle))
+        {
+            return built.Lines;
+        }
+
+        List<TextLine> lines = BuildLinesAfresh(maxWidth, maxHeight, blockStyle, context, out blocker);
+
+        if (reusable && blocker is null)
+            _built = new BuiltLines(maxWidth, blockStyle, context.ReadingDirection, context.Measurer, lines);
+
+        return lines;
+    }
+
+    private List<TextLine> BuildLinesAfresh(
+        float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker)
+    {
+        blocker = null;
         List<TextLine> lines = new List<TextLine>();
         TextLine current = new TextLine();
-        TypeStyle blockStyle = DefaultTypeRefinement?.Invoke(context.DefaultType) ?? context.DefaultType;
         float indent = EffectiveIndent(context);
 
         // Only reached before anything is drawn: from then on the pinned wrapping above is returned whole, which
@@ -761,7 +848,19 @@ internal sealed class TextBlock : Block
 
     /// <summary>A run of breakable whitespace between words, as the tokeniser splits it out.</summary>
     private static bool IsWordGap(TextRun run) =>
-        run.Inline is null && run.Text.Length > 0 && run.Text.All(IsBreakableWhitespace);
+        run.Inline is null && run.Text.Length > 0 && IsAllBreakableWhitespace(run.Text);
+
+    // A loop rather than LINQ: every run of every line passes through here, and an enumerator each would add up.
+    private static bool IsAllBreakableWhitespace(string text)
+    {
+        foreach (char character in text)
+        {
+            if (!IsBreakableWhitespace(character))
+                return false;
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Splits text at the places a line may end, by the Unicode line breaking rules: after spaces, after hyphens,
@@ -825,6 +924,10 @@ internal sealed class TextBlock : Block
     private const char PopDirectionalIsolate = (char)0x2069;
 
     private const char ParagraphSeparator = (char)0x2029;
+
+    /// <summary>The lines last built, and what they were built for.</summary>
+    private sealed record BuiltLines(
+        float Width, TypeStyle Style, ReadingDirection Direction, ITypeMeasurer Measurer, List<TextLine> Lines);
 
     /// <summary>
     /// One piece of a line: either a stretch of text, or an element sitting inline among the words.

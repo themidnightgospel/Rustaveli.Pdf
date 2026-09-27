@@ -35,6 +35,7 @@ internal ref struct GlyphWalk
     private int _plainEnd;
     private OpenTypeFont? _previousFace;
     private ushort _previousGlyph;
+    private ShapingScratch? _scratch;
     private GlyphBuffer? _buffer;
     private OpenTypeFont? _bufferFace;
     private int _bufferIndex;
@@ -61,6 +62,7 @@ internal ref struct GlyphWalk
         _plainEnd = 0;
         _previousFace = null;
         _previousGlyph = 0;
+        _scratch = null;
         _buffer = null;
         _bufferFace = null;
         _bufferIndex = 0;
@@ -135,13 +137,14 @@ internal ref struct GlyphWalk
             return false;
         }
 
-        GlyphBuffer buffer = TypeShaper.RentBuffer();
+        ShapingScratch scratch = TypeShaper.RentScratch();
+        GlyphBuffer buffer = scratch.Buffer;
         buffer.Load(face, run);
 
         try
         {
             GlyphSubstitutionTable table = face.Substitutions!;
-            table.Apply(new SubstitutionSession(table, buffer), lookups);
+            table.Apply(scratch.SessionFor(table), lookups);
         }
         catch (FontFormatException)
         {
@@ -149,6 +152,7 @@ internal ref struct GlyphWalk
             buffer.Load(face, run);
         }
 
+        _scratch = scratch;
         _buffer = buffer;
         _bufferFace = face;
         _bufferIndex = 0;
@@ -207,7 +211,8 @@ internal ref struct GlyphWalk
         if (_buffer is null)
             return;
 
-        TypeShaper.ReturnBuffer(_buffer);
+        TypeShaper.ReturnScratch(_scratch!);
+        _scratch = null;
         _buffer = null;
         _bufferFace = null;
     }

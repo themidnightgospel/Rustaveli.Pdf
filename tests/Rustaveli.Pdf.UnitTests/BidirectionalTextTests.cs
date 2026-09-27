@@ -39,8 +39,8 @@ public class BidirectionalTextTests
     {
         RecordedPage page = Draw(text => text.Run($"abc {Shalom} def"));
 
-        Assert.Equal(["abc", " ", ShalomDrawn, " ", "def"], Drawn(page));
-        Assert.Equal([0f, 18f, 24f, 48f, 54f], page.Texts.Select(text => text.Position.X));
+        Assert.Equal([$"abc {ShalomDrawn} def"], Drawn(page));
+        Approximately.Equal(0f, page.Texts.Single().Position.X);
     }
 
     [Fact]
@@ -49,9 +49,8 @@ public class BidirectionalTextTests
         RecordedPage page = Draw(text => text.Run($"{Shalom} abc"), ReadingDirection.RightToLeft, width: 100);
 
         // The English word comes second in reading, so it sits to the left; the line is flush right.
-        Assert.Equal(["abc", " ", ShalomDrawn], Drawn(page));
+        Assert.Equal([$"abc {ShalomDrawn}"], Drawn(page));
         Approximately.Equal(52f, page.Texts.First().Position.X);
-        Approximately.Equal(76f, page.Texts.Last().Position.X);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public class BidirectionalTextTests
         RecordedPage page = Draw(text => text.Run("אב גד"));
 
         // "אב" (alef, bet) is read first, so it is drawn at the right, with "גד" to its left.
-        Assert.Equal(["דג", " ", "בא"], Drawn(page));
+        Assert.Equal(["דג בא"], Drawn(page));
     }
 
     [Fact]
@@ -73,12 +72,12 @@ public class BidirectionalTextTests
     }
 
     [Fact]
-    public void AWordMixingScriptsIsSplitWhereTheDirectionChanges()
+    public void AWordMixingScriptsShowsEachInItsOwnDirection()
     {
         RecordedPage page = Draw(text => text.Run($"abc{Shalom}"));
 
-        Assert.Equal(["abc", ShalomDrawn], Drawn(page));
-        Approximately.Equal(18f, page.Texts.Last().Position.X);
+        Assert.Equal([$"abc{ShalomDrawn}"], Drawn(page));
+        Approximately.Equal(0f, page.Texts.Single().Position.X);
     }
 
     [Fact]
@@ -127,7 +126,7 @@ public class BidirectionalTextTests
             ReadingDirection.RightToLeft,
             width: 40);
 
-        Assert.Equal(["…", ShalomDrawn], Drawn(page));
+        Assert.Equal([$"…{ShalomDrawn}"], Drawn(page));
     }
 
     [Fact]
@@ -136,8 +135,8 @@ public class BidirectionalTextTests
         // Hebrew ending one paragraph has no hold on the next: the English after the break is set as it reads.
         RecordedPage page = Draw(text => text.Run($"{Shalom}\nabc def"));
 
-        Assert.Equal([ShalomDrawn, "abc", " ", "def"], Drawn(page));
-        Approximately.Equal(0f, page.Texts.Single(operation => operation.Text == "abc").Position.X);
+        Assert.Equal([ShalomDrawn, "abc def"], Drawn(page));
+        Approximately.Equal(0f, page.Texts.Single(operation => operation.Text == "abc def").Position.X);
     }
 
     [Fact]
@@ -151,7 +150,7 @@ public class BidirectionalTextTests
 
         // Latin words keep their order even so — the space between two of them reads left to right — but the "!"
         // ending the run ends it on the left, where a right-to-left run ends.
-        Assert.Equal(["abc", " ", "!", "def", " ", "ghi"], Drawn(page));
+        Assert.Equal(["abc ", "!def ghi"], Drawn(page));
     }
 
     [Fact]
@@ -168,8 +167,8 @@ public class BidirectionalTextTests
             },
             ReadingDirection.RightToLeft);
 
-        Assert.Equal(["!", "abc", " ", ShalomDrawn], Drawn(unset));
-        Assert.Equal(["abc!", " ", ShalomDrawn], Drawn(isolated));
+        Assert.Equal([$"!abc {ShalomDrawn}"], Drawn(unset));
+        Assert.Equal(["abc!", $" {ShalomDrawn}"], Drawn(isolated));
     }
 
     [Fact]
@@ -177,7 +176,7 @@ public class BidirectionalTextTests
     {
         RecordedPage page = Draw(text => text.Run("ab!\ncd!").RightToLeft());
 
-        Assert.Equal(["!", "ab", "!", "cd"], Drawn(page));
+        Assert.Equal(["!ab", "!cd"], Drawn(page));
     }
 
     [Fact]
@@ -189,7 +188,7 @@ public class BidirectionalTextTests
             text.Run("cd").LeftToRight();
         });
 
-        Assert.Equal(["ab", " ", "cd"], Drawn(page));
+        Assert.Equal(["ab ", "cd"], Drawn(page));
     }
 
     [Fact]

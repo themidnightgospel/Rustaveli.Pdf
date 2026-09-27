@@ -78,16 +78,20 @@ internal sealed class EmbeddedFont
     public ushort CodeFor(ShapedGlyph glyph)
     {
         if (_subset is not null)
-            return _subset.Add(glyph.Glyph, glyph.ReadsAs);
+            return _subset.Add(glyph.Glyph, glyph.Codepoint, glyph.Text);
 
         CompactFontTable cff = Face.Cff!;
         ushort code = cff.IsCidKeyed ? cff.GetCid(glyph.Glyph) : glyph.Glyph;
 
         // As in a subset: the first text a glyph shows is kept, and .notdef, which stands for every missing character,
         // reads as none of them.
-        string? text = glyph.Glyph == 0 ? null : glyph.ReadsAs;
+        bool known = _shown!.TryGetValue(code, out (ushort Glyph, string? Text) shown);
 
-        _shown![code] = (glyph.Glyph, GlyphSubset.Keep(_shown.TryGetValue(code, out (ushort Glyph, string? Text) shown) ? shown.Text : null, text));
+        if (known && !string.IsNullOrEmpty(shown.Text))
+            return code;
+
+        string? text = glyph.Glyph == 0 ? null : glyph.ReadsAs;
+        _shown[code] = (glyph.Glyph, GlyphSubset.Keep(known ? shown.Text : null, text));
 
         return code;
     }
