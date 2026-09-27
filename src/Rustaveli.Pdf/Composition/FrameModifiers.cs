@@ -208,6 +208,21 @@ public static class FrameModifiers
     public static IFrame ExpandVertically(this IFrame parent) =>
         Attach(parent, new ExpandBlock { Vertically = true });
 
+    /// <summary>
+    /// Fits the frame to its content: whatever follows is given the content's own size rather than all the room
+    /// there is, so a fill or stroke hugs it. Across, the content starts where the reading direction does.
+    /// </summary>
+    public static IFrame FitToContent(this IFrame parent) =>
+        Attach(parent, new FitToContentBlock());
+
+    /// <summary>Fits the frame's width to its content, keeping all the height there is.</summary>
+    public static IFrame FitWidthToContent(this IFrame parent) =>
+        Attach(parent, new FitToContentBlock { Down = false });
+
+    /// <summary>Fits the frame's height to its content, keeping all the width there is.</summary>
+    public static IFrame FitHeightToContent(this IFrame parent) =>
+        Attach(parent, new FitToContentBlock { Across = false });
+
     public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit fit = ProportionFit.Width) =>
         Attach(parent, new ProportionBlock { Ratio = ratio, Fit = fit });
 

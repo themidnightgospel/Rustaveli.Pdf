@@ -25,9 +25,36 @@ public sealed class Section
 
     /// <summary>
     /// When set, the page grows vertically to fit its content instead of using a fixed height, capped at the
-    /// PDF maximum of 14400 points.
+    /// PDF maximum of 14400 points: a page as wide as <see cref="Trim"/>, sized by its content between no height and
+    /// that maximum.
     /// </summary>
     public bool Continuous { get; set; }
+
+    /// <summary>
+    /// When set, the smallest a page may be: pages are sized by their content, no smaller than this and no larger
+    /// than <see cref="MaximumTrim"/>, or <see cref="Trim"/> when that is not set.
+    /// </summary>
+    public Extent? MinimumTrim { get; set; }
+
+    /// <summary>
+    /// When set, the largest a page may be: pages are sized by their content, no larger than this and no smaller
+    /// than <see cref="MinimumTrim"/>, or <see cref="Trim"/> when that is not set. Content that does not fit flows
+    /// on to a page of the same bounds.
+    /// </summary>
+    public Extent? MaximumTrim { get; set; }
+
+    /// <summary>The smallest a page of this section may be.</summary>
+    internal Extent SmallestTrim => MinimumTrim ?? (Continuous ? new Extent(Trim.Width, 0) : Trim);
+
+    /// <summary>The largest a page of this section may be, never beyond what PDF allows.</summary>
+    internal Extent LargestTrim
+    {
+        get
+        {
+            Extent largest = MaximumTrim ?? (Continuous ? new Extent(Trim.Width, Extent.Max.Height) : Trim);
+            return new Extent(Math.Min(largest.Width, Extent.Max.Width), Math.Min(largest.Height, Extent.Max.Height));
+        }
+    }
 
     internal Frame RunningHeadSlot { get; } = new();
 

@@ -26,6 +26,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Section.ReadingDirection` | property | Left-to-right or right-to-left. | print | `PageDescriptor.Direction` |
 | `Section.DefaultType` | property | The type style text inherits unless told otherwise. | print ("body type") | `PageDescriptor.DefaultTextStyle` |
 | `Section.Continuous` | property | One page that grows to fit its content, instead of paginating. | plain | `PageDescriptor.IsContinuous` |
+| `Section.MinimumTrim`, `Section.MaximumTrim` | property | Bounds a page sized by its content: no smaller than the one, no larger than the other. | print | `PageDescriptor.MinSize`, `MaxSize` |
 | `Section.RunningHead()` | method | Repeated at the top of every page. | print | `PageDescriptor.Header()` |
 | `Section.Body()` | method | The main text area, flowing across pages. | print ("body text") | `PageDescriptor.Content()` |
 | `Section.RunningFoot()` | method | Repeated at the bottom of every page. | print | `PageDescriptor.Footer()` |
@@ -100,6 +101,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `ShiftAcross(float)`, `ShiftDown(float)` | method | Moves drawn content without affecting layout. | InDesign ("shift") | `TranslateX/Y` |
 | `Scale(...)` | method | Scales content. | print | `Scale` |
 | `ShrinkToFit(float)` | method | Scales content down until it fits. | Word | `ScaleToFit` |
+| `FitToContent()`, `FitWidthToContent()`, `FitHeightToContent()` | method | Gives what follows only the content's own size, so a fill or stroke hugs it. | InDesign ("fit frame to content") | `Shrink`, `ShrinkHorizontal`, `ShrinkVertical` |
 | `TurnLeft()`, `TurnRight()` | method | A quarter turn. | plain | `RotateLeft/Right` |
 | `Rotate(float)` | method | Any angle, clockwise about the frame's centre, leaving layout alone. | plain | same |
 | `MirrorHorizontal()`, `MirrorVertical()`, `MirrorBoth()` | method | Reflects content. | print | `FlipHorizontal/Vertical/Over` |

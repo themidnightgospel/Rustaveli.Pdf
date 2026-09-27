@@ -17,9 +17,6 @@ internal static class Typesetter
     /// <summary>Upper bound on pages per run, so a layout that never terminates fails loudly instead of hanging.</summary>
     private const int MaxPagesPerRun = 10_000;
 
-    /// <summary>The tallest page PDF permits, in points.</summary>
-    private const float MaxPageHeight = 14_400f;
-
     /// <summary>
     /// How many times the page count may be recomputed before the result is accepted as-is. Documents settle in
     /// two passes in practice; the cap stops a pathological one that oscillates from looping forever.
@@ -109,23 +106,29 @@ internal static class Typesetter
         section.UnderlaySlot.ResetState(includeDocumentProgress: false);
         section.OverlaySlot.ResetState(includeDocumentProgress: false);
 
-        if (section.Trim.Width <= 0 || section.Trim.Height <= 0)
-            throw new OversetException(
-                $"The trim size {section.Trim} cannot be drawn. Both dimensions must be greater than zero.");
+        // A page is sized by its content between these bounds; a fixed page is one whose bounds are equal.
+        Extent smallest = section.SmallestTrim;
+        Extent largest = section.LargestTrim;
 
-        float contentWidth = section.Trim.Width - section.Margins.Horizontal;
+        if (largest.Width <= 0 || largest.Height <= 0)
+            throw new OversetException(
+                $"The trim size {largest} cannot be drawn. Both dimensions must be greater than zero.");
+
+        if (smallest.Width > largest.Width || smallest.Height > largest.Height)
+            throw new OversetException(
+                $"The smallest trim {smallest} is larger than the largest {largest}.");
+
+        float contentWidth = largest.Width - section.Margins.Horizontal;
 
         if (contentWidth <= 0)
             throw new OversetException(
-                $"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {section.Trim.Width:F1} points wide.");
+                $"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {largest.Width:F1} points wide.");
 
-        float availableHeight = section.Continuous
-            ? MaxPageHeight - section.Margins.Vertical
-            : section.Trim.Height - section.Margins.Vertical;
+        float availableHeight = largest.Height - section.Margins.Vertical;
 
         if (availableHeight <= 0)
             throw new OversetException(
-                $"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {section.Trim.Height:F1} points tall.");
+                $"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {largest.Height:F1} points tall.");
 
         Bands bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
         float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
@@ -136,19 +139,22 @@ internal static class Typesetter
             throw new OversetException(
                 $"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body.");
 
-        Extent contentSpace = new Extent(contentWidth, contentHeight);
-        Fit contentPlan = section.BodySlot.Plan(contentSpace, layout);
+        Extent bodySpace = new Extent(contentWidth, contentHeight);
+        Fit contentPlan = section.BodySlot.Plan(bodySpace, layout);
 
         if (contentPlan.IsDeferred)
             throw new OversetException(
                 "The body cannot be set even on an empty page, so no further page would help. " +
-                $"Space available: {contentSpace}. Reason: {contentPlan.DeferReason}");
+                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}");
 
-        Extent pageSize = section.Continuous
-            ? new Extent(
-                section.Trim.Width,
-                Math.Min(MaxPageHeight, section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight))
-            : section.Trim;
+        Extent pageSize = new Extent(
+            Clamp(section.Margins.Horizontal + Math.Max(contentPlan.Size.Width, bands.Width), smallest.Width, largest.Width),
+            Clamp(section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight, smallest.Height, largest.Height));
+
+        // The body is drawn in what the page leaves it, which is at least the room it measured.
+        Extent contentSpace = new Extent(
+            pageSize.Width - section.Margins.Horizontal,
+            pageSize.Height - section.Margins.Vertical - bands.HeadHeight - bands.FootHeight);
 
         try
         {
@@ -238,8 +244,11 @@ internal static class Typesetter
             throw new OversetException(
                 $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}");
 
-        return new Bands(headPlan.Size.Height, footPlan.Size.Height);
+        return new Bands(headPlan.Size.Height, footPlan.Size.Height, Math.Max(headPlan.Size.Width, footPlan.Size.Width));
     }
 
-    private readonly record struct Bands(float HeadHeight, float FootHeight);
+    private static float Clamp(float value, float smallest, float largest) => Math.Min(largest, Math.Max(smallest, value));
+
+    /// <summary>The height of the running head and foot, and the width the wider of them takes.</summary>
+    private readonly record struct Bands(float HeadHeight, float FootHeight, float Width);
 }

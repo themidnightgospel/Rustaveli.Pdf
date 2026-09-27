@@ -23,7 +23,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Page size, named sizes, landscape/portrait | `PageDescriptor.Size`, `PageSizes`, `PageSizeExtensions` | ✅ | — |
 | Margins, per side | `Margin*` | ✅ | — |
 | Continuous (single tall) page | `ContinuousSize` | ✅ | — |
-| Page size bounded by content (min/max) | `MinSize`, `MaxSize` | ❌ | 4 |
+| Page size bounded by content (min/max) | `MinSize`, `MaxSize` | ✅ | — |
 | Header, footer, content, background, foreground slots | `Header`, `Footer`, `Content`, `Background`, `Foreground` | ✅ | — |
 | Page colour | `PageColor` | ✅ | — |
 | Page-level default text style and direction | `DefaultTextStyle`, `ContentFrom*` | ✅ | — |
@@ -49,7 +49,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Padding, per side | `Padding*` | ✅ | — |
 | Width/height, min/max | `Width`, `MinWidth`, … | ✅ | — |
 | Extend to fill | `Extend*` | ✅ | — |
-| Shrink to content | `Shrink*`, `MinimalBox` | ❌ | 4 |
+| Shrink to content | `Shrink*`, `MinimalBox` | ✅ | — |
 | Aspect ratio | `AspectRatio` | ✅ | — |
 | Alignment, horizontal and vertical | `Align*` | 🟡 alignment expands to fill (README known limitation) | 4 |
 | Unconstrained | `Unconstrained` | ✅ | — |
