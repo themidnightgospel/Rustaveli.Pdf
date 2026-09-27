@@ -80,6 +80,31 @@ public static class PdfExport
         Export(document, stream, options);
     }
 
+    /// <summary>
+    /// Exports the document to a PDF in the temporary folder and opens it in the viewer the system uses for PDFs, for
+    /// a look while writing the document. Returns where the file was written.
+    /// </summary>
+    public static string ExportPdfAndOpen(this Document document, PdfExportOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        string path = Path.Combine(Path.GetTempPath(), $"{Name(document)}-{Guid.NewGuid().ToString("N").Substring(0, 8)}.pdf");
+        document.ExportPdf(path, options);
+        Open(path);
+        return path;
+    }
+
+    /// <summary>Opens a file in the application the system uses for its kind.</summary>
+    internal static Action<string> Open { get; set; } =
+        path => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
+
+    /// <summary>A file name from the document's title, keeping only letters, digits and dashes; "document" without one.</summary>
+    private static string Name(Document document)
+    {
+        string title = new string((document.Info.Title ?? string.Empty).Select(character => char.IsLetterOrDigit(character) ? character : '-').ToArray()).Trim('-');
+        return title.Length == 0 ? "document" : title.Substring(0, Math.Min(title.Length, 40));
+    }
+
     private static void Export(Document document, Stream stream, PdfExportOptions? options)
     {
         TypeShaper shaper = (options?.Typefaces ?? TypefaceLibrary.Shared).Shaper;
