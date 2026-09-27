@@ -26,7 +26,12 @@ public sealed class RunComposer
         return this;
     }
 
-    public RunComposer Typeface(string fontFamily) => Refine(style => style.WithTypeface(fontFamily));
+    /// <summary>
+    /// Sets the run in <paramref name="fontFamily"/>, falling back to <paramref name="fallbacks"/>, in order, for any
+    /// character it lacks.
+    /// </summary>
+    public RunComposer Typeface(string fontFamily, params string[] fallbacks) =>
+        Refine(style => style.WithTypeface(fontFamily, fallbacks));
 
     public RunComposer PointSize(float size) => Refine(style => style.WithPointSize(size));
 

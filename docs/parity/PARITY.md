@@ -110,7 +110,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 |---|---|---|---|
 | Spans with style; plain text; object text | `Text`, `Span`, `Line`, `EmptyLine` | ✅ | — |
 | Font family, size, colour, background | | ✅ | — |
-| Font family fallback list | `FontFamily(params string[])`, `Fallback` | 🟡 backend substitution only | 3 |
+| Font family fallback list | `FontFamily(params string[])`, `Fallback` | ✅ per style, then per library | — |
 | Weights Thin…Black | `Thin` … `Black` | ✅ | — |
 | Weight ExtraBlack (950) | `ExtraBlack` | ✅ | — |
 | Italic | `Italic` | ✅ | — |

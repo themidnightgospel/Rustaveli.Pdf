@@ -148,12 +148,12 @@ public class FontRegistrationTests
         OpenTypeFont primary = library.Shaper.Resolve(style);
         FontRequest request = new FontRequest(TestFonts.Sans);
 
-        OpenTypeFont first = library.Shaper.FaceFor(primary, request, '世');
-        OpenTypeFont second = library.Shaper.FaceFor(primary, request, '界');
+        OpenTypeFont first = library.Shaper.FaceFor(primary, request, TypefaceFallbacks.None, '世');
+        OpenTypeFont second = library.Shaper.FaceFor(primary, request, TypefaceFallbacks.None, '界');
 
         Assert.NotSame(primary, first);
         Assert.Same(first, second);
-        Assert.Same(first, library.Shaper.FaceFor(primary, request, '世'));
+        Assert.Same(first, library.Shaper.FaceFor(primary, request, TypefaceFallbacks.None, '世'));
         Assert.True(measurer.MeasureWidth("世界", style) > 0);
     }
 

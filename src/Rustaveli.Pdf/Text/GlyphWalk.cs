@@ -31,6 +31,7 @@ internal ref struct GlyphWalk
     private readonly float _pointSize;
     private readonly float _wordSpacing;
     private readonly TypeFeatures _features;
+    private readonly TypefaceFallbacks _fallbacks;
     private int _next;
     private int _plainEnd;
     private OpenTypeFont? _previousFace;
@@ -49,7 +50,8 @@ internal ref struct GlyphWalk
         ReadOnlySpan<char> text,
         float pointSize,
         float wordSpacing = 0f,
-        TypeFeatures? features = null)
+        TypeFeatures? features = null,
+        TypefaceFallbacks? fallbacks = null)
     {
         _shaper = shaper;
         _primary = primary;
@@ -58,6 +60,7 @@ internal ref struct GlyphWalk
         _pointSize = pointSize;
         _wordSpacing = wordSpacing;
         _features = features ?? TypeFeatures.None;
+        _fallbacks = fallbacks ?? TypefaceFallbacks.None;
         _next = 0;
         _plainEnd = 0;
         _previousFace = null;
@@ -93,7 +96,7 @@ internal ref struct GlyphWalk
 
         int start = _next;
         (int codepoint, int length) = Read(start);
-        OpenTypeFont face = _shaper.FaceFor(_primary, _request, codepoint);
+        OpenTypeFont face = _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
 
         if (start >= _plainEnd && face.Substitutions is not null && Shape(face, start, length))
         {
@@ -122,7 +125,7 @@ internal ref struct GlyphWalk
         {
             (int codepoint, int length) = Read(end);
 
-            if (!ReferenceEquals(_shaper.FaceFor(_primary, _request, codepoint), face))
+            if (!ReferenceEquals(_shaper.FaceFor(_primary, _request, _fallbacks, codepoint), face))
                 break;
 
             end += length;

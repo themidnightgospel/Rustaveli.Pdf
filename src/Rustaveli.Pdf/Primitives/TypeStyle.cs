@@ -48,6 +48,11 @@ public sealed record TypeStyle
     /// <summary>The OpenType features turned on or off beyond the defaults every face is set with.</summary>
     internal TypeFeatures Features { get; init; } = TypeFeatures.None;
 
+    /// <summary>The typefaces tried, in order, for characters <see cref="Typeface"/> lacks.</summary>
+    public IReadOnlyList<string> Fallbacks => FallbackTypefaces.Names;
+
+    internal TypefaceFallbacks FallbackTypefaces { get; init; } = TypefaceFallbacks.None;
+
     /// <summary>How underlines, strike-throughs and overlines are drawn.</summary>
     public StrokeStyle StrokeStyle { get; init; } = StrokeStyle.Solid;
 
@@ -90,11 +95,19 @@ public sealed record TypeStyle
 
     private const float SuperscriptOffsetRatio = 0.33f;
 
-    public TypeStyle WithTypeface(string fontFamily)
+    /// <summary>
+    /// A copy set in <paramref name="fontFamily"/>, falling back to <paramref name="fallbacks"/>, in order, for any
+    /// character it lacks — before the library's own fallbacks, and before any installed face that has it.
+    /// </summary>
+    /// <remarks>Naming the typeface again replaces the fallbacks too: with none given, the style has none.</remarks>
+    public TypeStyle WithTypeface(string fontFamily, params string[] fallbacks)
     {
+        ArgumentNullException.ThrowIfNull(fallbacks);
+
         return this with
         {
-            Typeface = fontFamily
+            Typeface = fontFamily,
+            FallbackTypefaces = TypefaceFallbacks.Of(fallbacks)
         };
     }
 

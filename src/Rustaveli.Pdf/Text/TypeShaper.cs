@@ -35,8 +35,8 @@ internal sealed class TypeShaper
     private readonly FontCatalog _catalog;
     private readonly IReadOnlyList<string> _fallbackTypefaces;
     private readonly ConcurrentDictionary<FontRequest, OpenTypeFont> _faces = new(FontCatalog.FamilyIgnoringCase.Instance);
-    private readonly ConcurrentDictionary<(OpenTypeFont Primary, int Codepoint), OpenTypeFont> _fallbacks = new();
-    private readonly ConcurrentDictionary<OpenTypeFont, OpenTypeFont[]> _discovered = new();
+    private readonly ConcurrentDictionary<(OpenTypeFont Primary, TypefaceFallbacks Fallbacks, int Codepoint), OpenTypeFont> _fallbacks = new();
+    private readonly ConcurrentDictionary<(OpenTypeFont Primary, TypefaceFallbacks Fallbacks), OpenTypeFont[]> _discovered = new();
     private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups = new();
 
     [ThreadStatic]
@@ -61,7 +61,8 @@ internal sealed class TypeShaper
     public GlyphWalk Walk(ReadOnlySpan<char> text, TypeStyle style)
     {
         FontRequest request = RequestFor(style);
-        return new GlyphWalk(this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing, style.Features);
+        return new GlyphWalk(
+            this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces);
     }
 
     /// <summary>
@@ -109,17 +110,17 @@ internal sealed class TypeShaper
     }
 
     /// <summary>The face that sets <paramref name="codepoint"/>: the primary when it has the character.</summary>
-    internal OpenTypeFont FaceFor(OpenTypeFont primary, FontRequest request, int codepoint)
+    internal OpenTypeFont FaceFor(OpenTypeFont primary, FontRequest request, TypefaceFallbacks fallbacks, int codepoint)
     {
         if (primary.HasGlyph(codepoint))
             return primary;
 
-        (OpenTypeFont, int) key = (primary, codepoint);
+        (OpenTypeFont, TypefaceFallbacks, int) key = (primary, fallbacks, codepoint);
 
         if (_fallbacks.TryGetValue(key, out OpenTypeFont? known))
             return known;
 
-        return _fallbacks.GetOrAdd(key, FindFallback(primary, request, codepoint));
+        return _fallbacks.GetOrAdd(key, FindFallback(primary, request, fallbacks, codepoint));
     }
 
     private OpenTypeFont Resolve(FontRequest request) =>
@@ -170,9 +171,9 @@ internal sealed class TypeShaper
 
     private static FontFaceInfo? Embeddable(FontFaceInfo? face) => face is { IsEmbeddable: true } ? face : null;
 
-    private OpenTypeFont FindFallback(OpenTypeFont primary, FontRequest request, int codepoint)
+    private OpenTypeFont FindFallback(OpenTypeFont primary, FontRequest request, TypefaceFallbacks fallbacks, int codepoint)
     {
-        OpenTypeFont[] known = _discovered.GetOrAdd(primary, static _ => []);
+        OpenTypeFont[] known = _discovered.GetOrAdd((primary, fallbacks), static _ => []);
 
         foreach (OpenTypeFont candidate in known)
         {
@@ -180,7 +181,9 @@ internal sealed class TypeShaper
                 return candidate;
         }
 
-        OpenTypeFont? found = _catalog.FindFallback(codepoint, request, _fallbackTypefaces)
+        // The style's own fallbacks come first, then the library's.
+        IReadOnlyList<string> families = fallbacks.Names.Count == 0 ? _fallbackTypefaces : [.. fallbacks.Names, .. _fallbackTypefaces];
+        OpenTypeFont? found = _catalog.FindFallback(codepoint, request, families)
             ?? BundledTypefaces.Covering(codepoint, request.Style);
 
         // No face anywhere has the character, so the primary sets it as its missing-glyph box.
@@ -190,9 +193,9 @@ internal sealed class TypeShaper
         // Rare and cheap next to the search above, so a lock is simpler than a lock-free swap.
         lock (_discovered)
         {
-            OpenTypeFont[] faces = _discovered.GetOrAdd(primary, static _ => []);
+            OpenTypeFont[] faces = _discovered.GetOrAdd((primary, fallbacks), static _ => []);
             if (!faces.Contains(found))
-                _discovered[primary] = [.. faces, found];
+                _discovered[(primary, fallbacks)] = [.. faces, found];
         }
 
         return found;
