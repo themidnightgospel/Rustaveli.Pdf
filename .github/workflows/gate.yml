@@ -107,6 +107,10 @@ jobs:
               --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
               --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
             mutate: --mutate "**/Output/PdfSurface.cs"
+          - name: shaping
+            project: --project Rustaveli.Pdf.Shaping.csproj
+            tests: --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/*.cs"
           - name: typesetting
             fonts: true
             tests: >-
@@ -138,7 +142,7 @@ jobs:
       - name: Mutation testing
         run: >
           dotnet stryker --config-file stryker-config.json --concurrency 4
-          ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
+          ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
         if: always()
