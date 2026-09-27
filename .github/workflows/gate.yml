@@ -151,10 +151,11 @@ jobs:
         if: matrix.shard.fonts
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk
 
-      # Four test runners: the hosted runner has four cores, and Stryker's default of half the cores leaves two idle.
+      # Three test runners, two where the integration tests run too: four, one a core, ran the hosted runner out of
+      # memory as they started, and it was shut down mid-run.
       - name: Mutation testing
         run: >
-          dotnet stryker --config-file stryker-config.json --concurrency 4
+          dotnet stryker --config-file stryker-config.json --concurrency ${{ matrix.shard.fonts && 2 || 3 }}
           ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
