@@ -11,9 +11,12 @@ internal static class BracketPairs
     /// </summary>
     public const int MaxOpenBrackets = 63;
 
+    /// <summary>What <see cref="Find"/> records at a position that opens no pair.</summary>
+    public const int Unpaired = -1;
+
     /// <summary>
     /// Pairs the brackets of a sequence, recording at each opening bracket's position the position of its closing
-    /// bracket, and -1 at every other position.
+    /// bracket, and <see cref="Unpaired"/> at every other position.
     /// </summary>
     /// <param name="types">The sequence's current types: only a bracket still of type ON can pair (BD14, BD15).</param>
     /// <param name="indices">Where each position of the sequence is in the paragraph.</param>
@@ -30,7 +33,7 @@ internal static class BracketPairs
         Span<int> expected = stackalloc int[MaxOpenBrackets];
         int open = 0;
 
-        closings.Fill(-1);
+        closings.Fill(Unpaired);
 
         for (int position = 0; position < types.Length; position++)
         {
@@ -42,7 +45,7 @@ internal static class BracketPairs
 
             if (bracket == BidiBracketType.Open)
             {
-                if (open == MaxOpenBrackets)
+                if (open >= MaxOpenBrackets)
                     return false;
 
                 openings[open] = position;

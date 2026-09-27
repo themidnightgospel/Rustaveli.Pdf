@@ -18,7 +18,10 @@ internal static class ExplicitLevels
     /// override to its direction.
     /// </summary>
     /// <param name="classes">The characters' own classes, which rule X5c reads to decide the direction of an FSI.</param>
-    /// <param name="isolates">For each isolate initiator, its matching PDI, or -1 (BD9); empty when there are none.</param>
+    /// <param name="isolates">
+    /// For each isolate initiator, its matching PDI, or the paragraph's length when it has none (BD9); empty when there
+    /// are no isolates.
+    /// </param>
     /// <param name="types">The classes being resolved: read, and reset inside overrides.</param>
     /// <param name="levels">Receives the levels.</param>
     /// <param name="paragraphLevel">The paragraph embedding level.</param>
@@ -83,8 +86,10 @@ internal static class ExplicitLevels
                     if (stackOverrides[top] != BidiClass.ON)
                         types[index] = stackOverrides[top];
 
+                    // X5c: an FSI takes the direction of the first strong character between it and its matching PDI.
                     bool rightToLeft = type == BidiClass.RLI ||
-                                       (type == BidiClass.FSI && FirstStrongInside(classes, isolates, index) == BidiClass.R);
+                                       (type == BidiClass.FSI &&
+                                        FirstStrong(classes, isolates, index + 1, isolates[index]) == BidiClass.R);
                     int level = NextLevel(stackLevels[top], rightToLeft);
 
                     if (level <= MaxDepth && overflowIsolates == 0 && overflowEmbeddings == 0)
@@ -182,23 +187,13 @@ internal static class ExplicitLevels
                 case BidiClass.LRI:
                 case BidiClass.RLI:
                 case BidiClass.FSI:
-                    // An isolate without a matching PDI runs to the end of the paragraph, and so does the search.
-                    if (isolates[index] < 0)
-                        return BidiClass.ON;
-
+                    // On past the isolate: to its matching PDI, or the end of the paragraph when it has none.
                     index = isolates[index];
                     break;
             }
         }
 
         return BidiClass.ON;
-    }
-
-    // X5c: an FSI takes the direction of the first strong character between it and its matching PDI.
-    private static BidiClass FirstStrongInside(ReadOnlySpan<BidiClass> classes, ReadOnlySpan<int> isolates, int initiator)
-    {
-        int end = isolates[initiator] < 0 ? classes.Length : isolates[initiator];
-        return FirstStrong(classes, isolates, initiator + 1, end);
     }
 
     // The least odd level above the current one for a right-to-left scope, the least even level for a left-to-right one.

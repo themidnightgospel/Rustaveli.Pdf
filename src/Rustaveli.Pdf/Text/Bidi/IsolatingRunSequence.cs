@@ -117,7 +117,7 @@ internal static class IsolatingRunSequence
         for (int opening = 0; opening < types.Length; opening++)
         {
             int closing = closings[opening];
-            if (closing < 0)
+            if (closing == BracketPairs.Unpaired)
                 continue;
 
             BidiClass direction = PairDirection(types, opening, closing, sos, embedding);

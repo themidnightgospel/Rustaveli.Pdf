@@ -188,12 +188,11 @@ internal sealed class BidiParagraph
             if (character < FirstRightToLeftCandidate)
                 continue;
 
-            int codepoint = character;
-            if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
-            {
-                codepoint = char.ConvertToUtf32(character, text[index + 1]);
-                index++;
-            }
+            // The low half of a pair is looked at again on its own, as a lone surrogate, which is left-to-right.
+            int codepoint = char.IsHighSurrogate(character) && index + 1 < text.Length &&
+                            char.IsLowSurrogate(text[index + 1])
+                ? char.ConvertToUtf32(character, text[index + 1])
+                : character;
 
             if (!StaysLeftToRight(BidiCharacter.ClassOf(codepoint)))
                 return false;
@@ -292,8 +291,9 @@ internal sealed class BidiParagraph
         return (paragraphLevel, levels);
     }
 
-    // BD9: each isolate initiator's matching PDI, and each matched PDI's initiator; -1 where there is none. Empty when
-    // the paragraph has no isolate controls, since nothing reads it then.
+    // BD9: each isolate initiator's matching PDI, or the paragraph's length for one without, which makes the isolate
+    // run to the end of the paragraph; and each PDI's initiator, or -1 for one without. Empty when the paragraph has no
+    // isolate controls, since nothing reads it then.
     private static int[] MatchIsolates(ReadOnlySpan<BidiClass> classes)
     {
         int[]? matches = null;
@@ -324,6 +324,9 @@ internal sealed class BidiParagraph
                 matches[index] = initiator;
             }
         }
+
+        while (depth > 0)
+            matches![open![--depth]] = classes.Length;
 
         return matches ?? [];
     }
@@ -361,8 +364,11 @@ internal sealed class BidiParagraph
 
             // An isolate initiator ending the run carries the sequence on to the run its matching PDI starts. Both
             // always hold for a matched initiator unless a paragraph separator inside the isolate breaks its level.
-            if (!IsIsolateInitiator(classes[last]) || isolates[last] < 0 || !StartsRun(types, explicitLevels, isolates[last]))
+            if (!IsIsolateInitiator(classes[last]) || isolates[last] >= types.Length ||
+                !StartsRun(types, explicitLevels, isolates[last]))
+            {
                 return count;
+            }
 
             start = isolates[last];
         }

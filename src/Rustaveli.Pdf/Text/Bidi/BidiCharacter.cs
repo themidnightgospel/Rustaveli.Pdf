@@ -70,13 +70,12 @@ internal static class BidiCharacter
             int middle = (low + high) >> 1;
             int found = ReadUInt16(records, middle * recordSize);
 
-            if (found == codepoint)
-                return middle * recordSize;
-
             if (found < codepoint)
                 low = middle + 1;
-            else
+            else if (found > codepoint)
                 high = middle - 1;
+            else
+                return middle * recordSize;
         }
 
         return -1;

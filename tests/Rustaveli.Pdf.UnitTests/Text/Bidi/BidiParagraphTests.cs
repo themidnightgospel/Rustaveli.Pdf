@@ -45,6 +45,17 @@ public class BidiParagraphTests
     public void RecognisesLeftToRightTextThatNeededResolving(string text) =>
         Assert.True(new BidiParagraph(text.AsSpan()).IsLeftToRightOnly);
 
+    [Theory]
+    [InlineData("a\u0590")] // Unassigned, but in a block kept for right-to-left scripts.
+    [InlineData("a\u05D0")]
+    [InlineData("a\u0661")] // An Arabic-Indic digit: an Arabic number.
+    [InlineData("a\u202Ab")]
+    [InlineData("a\u202Bb")]
+    [InlineData("a\u2066b\u2069")]
+    [InlineData("a\U00010900")]
+    public void ResolvesTextWithAnyRightToLeftCharacterOrControl(string text) =>
+        Assert.False(new BidiParagraph(text.AsSpan()).IsLeftToRightOnly);
+
     [Fact]
     public void SetsMixedLatinAndArabicTextInRunsOfEachDirection()
     {
@@ -158,19 +169,22 @@ public class BidiParagraphTests
         Assert.True(allocated <= 64, $"{allocated} bytes allocated for {text.Length} characters.");
     }
 
-    [Fact]
-    public void ReordersAShortLineWithoutAllocating()
+    [Theory]
+    [InlineData(19)]
+    [InlineData(256)]
+    public void ReordersALineOfUpTo256CharactersWithoutAllocating(int length)
     {
-        BidiParagraph paragraph = Paragraph("abc DEF ghi JKL mno");
-        List<BidiRun> runs = new List<BidiRun>(8);
-        paragraph.GetVisualRuns(0, paragraph.Length, runs);
+        string text = string.Concat(Enumerable.Repeat("abc DEF ghi JKL mno ", 13)).Substring(0, length);
+        BidiParagraph paragraph = Paragraph(text);
+        List<BidiRun> runs = new List<BidiRun>(128);
+        paragraph.GetVisualRuns(0, length, runs);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        paragraph.GetVisualRuns(0, paragraph.Length, runs);
+        paragraph.GetVisualRuns(0, length, runs);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal(0, allocated);
-        Assert.Equal(5, runs.Count);
+        Assert.Equal(length, runs.Sum(run => run.Length));
     }
 #endif
 }
