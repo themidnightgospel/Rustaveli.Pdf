@@ -73,8 +73,14 @@ internal sealed class FontNames
     /// from — which claims every code point but draws each as a box naming its block. Set in one, text loses its
     /// letters, and every character of a block shares a glyph, so it cannot be read back out of the PDF either.
     /// </summary>
-    public bool IsLastResort =>
-        string.Equals(PreferredFamily.Replace(" ", string.Empty), "LastResort", StringComparison.OrdinalIgnoreCase);
+    /// <remarks>
+    /// Recognised by its family or PostScript name with everything but letters ignored, since Apple writes its system
+    /// fonts' names with a leading dot, as ".LastResort".
+    /// </remarks>
+    public bool IsLastResort => IsLastResortName(PreferredFamily) || IsLastResortName(PostScriptName);
+
+    private static bool IsLastResortName(string name) =>
+        string.Equals(new string(name.Where(char.IsLetter).ToArray()), "LastResort", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The names of <see cref="PreferredFamily"/> in every language.</summary>
     public IReadOnlyList<string> PreferredFamilyAliases =>

@@ -96,6 +96,7 @@ public class FontDiscoveryTests
     [InlineData("LastResort")]
     [InlineData("Last Resort")]
     [InlineData("lastresort")]
+    [InlineData(".LastResort")]
     public void NeverFallsBackToALastResortFont(string family)
     {
         // Sorted by family, the last-resort font would come first; it claims the character but only draws a box.
