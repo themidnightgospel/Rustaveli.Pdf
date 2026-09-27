@@ -84,9 +84,9 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Inset(...)`, `InsetLeft/Top/Right/Bottom/Horizontal/Vertical` | method | Space inside a frame's edge. InDesign calls it the *text frame inset*. | InDesign | `Padding*` |
-| `Fill(Ink)` | method | Paints the frame's whole area. | InDesign | `Background` |
+| `Fill(Ink)`, `Fill(Gradient)` | method | Paints the frame's whole area, in an ink or a gradient. | InDesign | `Background`, `BackgroundLinearGradient` |
 | `Stroke(float)`, `StrokeLeft/Top/Right/Bottom` | method | A line around the frame's edge, of a given weight. | InDesign | `Border*` |
-| `StrokeInk(Ink)` | method | The ink a stroke is drawn in. | InDesign | `BorderColor` |
+| `StrokeInk(Ink)`, `StrokeInk(Gradient)` | method | The ink a stroke is drawn in, or a gradient laid across all it covers. | InDesign | `BorderColor`, `BorderLinearGradient` |
 | `RoundCorners(float)`, `RoundCorners(topLeft, topRight, bottomRight, bottomLeft)` | method | Rounds the frame's corners, alike or each on its own. | InDesign ("corner options") | `CornerRadius*` |
 | `AlignStroke(StrokeAlignment)` | method | Whether the stroke just set lies inside the frame's edge, centred on it or outside it. | InDesign ("align stroke") | `BorderAlignment*` |
 | `Width`, `Height`, `MinWidth`, `MaxWidth`, `MinHeight`, `MaxHeight` | method | Size constraints. | plain | same |
@@ -124,7 +124,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
-| `Rule(float, Ink?, StrokeStyle)`, `Rule(float, Ink, IReadOnlyList<float>)` | method | A horizontal line, solid, in a stroke style, or in dashes and gaps of the lengths given. | print | `LineHorizontal`, `LineDashPattern` |
+| `Rule(float, Ink?, StrokeStyle)`, `Rule(float, Ink, IReadOnlyList<float>)` | method | A horizontal line, solid, in a stroke style, or in dashes and gaps of the lengths given; each also takes a `Gradient` in place of the ink. | print | `LineHorizontal`, `LineDashPattern` |
 | `VerticalRule(float, Ink?, StrokeStyle)`, `VerticalRule(float, Ink, IReadOnlyList<float>)` | method | A vertical line — between columns, say — styled as a rule is. | print | `LineVertical` |
 | `Link(string url)` | method | Makes the frame a link to a URL. | plain | `Hyperlink` |
 | `Anchor(string name)` | method | Names a place others can refer to. | print, InDesign ("text anchor") | `Section` |
@@ -176,6 +176,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
+| `Gradient` | class | A linear blend of inks at an angle, clockwise from left to right: `Across`, `Down`, or any angle. | InDesign ("gradient swatch") | `BackgroundLinearGradient`'s arguments |
 | `Ink` | struct | A colour as print thinks of it: RGB, CMYK process colour, or a named spot ink with a process fallback ([ADR 0004](adr/0004-ink-colour-model.md)). | print | `Color` |
 | `Ink.Rgb`, `Ink.Cmyk`, `Ink.Spot`, `Ink.Hex` | method | Creates an ink. | print | `Color.FromArgb`, `Color.ParseHex` |
 | `Ink.Tint(float)` | method | A percentage of the ink, as a printer lays down less of it. | print | — |

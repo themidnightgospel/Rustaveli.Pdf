@@ -48,6 +48,9 @@ internal sealed class PdfSurface : IPageSink
     private PdfPage? _page;
     private State _state;
 
+    /// <summary>The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.</summary>
+    private (PdfName Pattern, float Opacity)? _gradient;
+
     public PdfSurface(PdfDocumentWriter writer, TypeShaper shaper)
     {
         _writer = writer;
@@ -77,6 +80,7 @@ internal sealed class PdfSurface : IPageSink
     {
         _writer.EndPage(Page);
         _page = null;
+        _gradient = null;
     }
 
     /// <summary>Writes the fonts, now that every page has been drawn, and completes the file.</summary>
@@ -485,8 +489,29 @@ internal sealed class PdfSurface : IPageSink
         pending = 0;
     }
 
+    public void BeginGradient(Gradient gradient, Offset position, Extent size)
+    {
+        (Offset start, Offset end) = gradient.Axis(position, size);
+        PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix));
+
+        _gradient = (Page.Resources.GetPatternName(pattern), gradient.Opacity);
+    }
+
+    public void EndGradient() => _gradient = null;
+
     private void SetFill(Ink ink)
     {
+        if (_gradient is { } gradient)
+        {
+            Content.SetFillColorSpace(PdfNames.Pattern);
+            Content.SetFillColorN([], gradient.Pattern);
+
+            // The pattern replaced whatever colour was set, so the next ink is written again.
+            _state.Fill = null;
+            SetOpacity(gradient.Opacity, _state.StrokeAlpha);
+            return;
+        }
+
         Ink color = ink.WithOpacity(1);
         if (_state.Fill != color)
         {
@@ -499,6 +524,15 @@ internal sealed class PdfSurface : IPageSink
 
     private void SetStroke(Ink ink)
     {
+        if (_gradient is { } gradient)
+        {
+            Content.SetStrokeColorSpace(PdfNames.Pattern);
+            Content.SetStrokeColorN([], gradient.Pattern);
+            _state.Stroke = null;
+            SetOpacity(_state.FillAlpha, gradient.Opacity);
+            return;
+        }
+
         Ink color = ink.WithOpacity(1);
         if (_state.Stroke != color)
         {

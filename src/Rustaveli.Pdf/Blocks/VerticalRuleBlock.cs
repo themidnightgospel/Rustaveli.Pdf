@@ -16,7 +16,10 @@ internal sealed class VerticalRuleBlock : Block
     /// <summary>Lengths of dash and gap, alternating, in place of <see cref="Style"/> when set.</summary>
     public IReadOnlyList<float>? Dashes { get; set; }
 
-    private RuleStroke Stroke => new RuleStroke(Weight, Ink, Style, Dashes);
+    /// <summary>Painted in place of <see cref="Ink"/> when set, along the rule's length.</summary>
+    public Gradient? Gradient { get; set; }
+
+    private RuleStroke Stroke => new RuleStroke(Weight, Ink, Style, Dashes, Gradient);
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
@@ -27,16 +30,6 @@ internal sealed class VerticalRuleBlock : Block
             : Fit.Complete(new Extent(breadth, availableSpace.Height));
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
-    {
-        if (Dashes is null && Style == StrokeStyle.Solid)
-        {
-            context.Surface.DrawRectangle(Offset.Zero, new Extent(Weight, availableSpace.Height), Ink);
-            return;
-        }
-
-        RuleStroke stroke = Stroke;
-        float middle = stroke.Breadth / 2;
-        stroke.Draw(context.Surface, new Offset(middle, 0), new Offset(middle, availableSpace.Height));
-    }
+    public override void Render(Extent availableSpace, RenderContext context) =>
+        Stroke.Draw(context.Surface, new Extent(Stroke.Breadth, availableSpace.Height), across: false);
 }

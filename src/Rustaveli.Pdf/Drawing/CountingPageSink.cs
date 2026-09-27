@@ -58,6 +58,14 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
+    public void BeginGradient(Gradient gradient, Offset position, Extent size)
+    {
+    }
+
+    public void EndGradient()
+    {
+    }
+
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
     }

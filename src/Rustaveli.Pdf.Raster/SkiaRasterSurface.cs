@@ -22,6 +22,9 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
     private readonly List<byte[]> _pages = [];
     private SKSurface? _surface;
 
+    /// <summary>The shader shapes are painted with instead of their ink, while a gradient is set.</summary>
+    private SKShader? _gradient;
+
     public IReadOnlyList<byte[]> Pages => _pages;
 
     private SKCanvas Canvas => _surface?.Canvas
@@ -47,6 +50,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
     {
         SKSurface surface = _surface ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
         _surface = null;
+        EndGradient();
 
         using (surface)
         {
@@ -73,7 +77,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
 
-        using SKPaint paint = Paint(color);
+        using SKPaint paint = ShapePaint(color);
         Canvas.DrawRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), paint);
     }
 
@@ -82,7 +86,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
 
-        using SKPaint paint = Paint(color);
+        using SKPaint paint = ShapePaint(color);
 
         if (strokeWidth > 0)
         {
@@ -109,7 +113,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         if (color.IsTransparent || thickness <= 0)
             return;
 
-        using SKPaint paint = Paint(color);
+        using SKPaint paint = ShapePaint(color);
         paint.Style = SKPaintStyle.Stroke;
         paint.StrokeWidth = thickness;
 
@@ -159,7 +163,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         for (int index = 0; index < intervals.Length; index++)
             intervals[index] = pattern[index % pattern.Count];
 
-        using SKPaint paint = Paint(color);
+        using SKPaint paint = ShapePaint(color);
         paint.Style = SKPaintStyle.Stroke;
         paint.StrokeWidth = thickness;
 
@@ -297,6 +301,43 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         PageImageFormat.Webp => SKEncodedImageFormat.Webp,
         _ => SKEncodedImageFormat.Png,
     };
+
+    public void BeginGradient(Gradient gradient, Offset position, Extent size)
+    {
+        (Offset start, Offset end) = gradient.Axis(position, size);
+        IReadOnlyList<Ink> inks = gradient.Inks;
+        SKColor[] colors = new SKColor[inks.Count];
+
+        for (int index = 0; index < colors.Length; index++)
+        {
+            (float red, float green, float blue) = inks[index].ToRgb();
+            colors[index] = new SKColor(ToByte(red), ToByte(green), ToByte(blue), ToByte(inks[index].Opacity));
+        }
+
+        _gradient?.Dispose();
+        _gradient = SKShader.CreateLinearGradient(new SKPoint(start.X, start.Y), new SKPoint(end.X, end.Y), colors, null, SKShaderTileMode.Clamp);
+    }
+
+    public void EndGradient()
+    {
+        _gradient?.Dispose();
+        _gradient = null;
+    }
+
+    /// <summary>The paint for a rectangle, line or outline: its ink, or the gradient set in its place.</summary>
+    private SKPaint ShapePaint(Ink ink)
+    {
+        SKPaint paint = Paint(ink);
+
+        if (_gradient is not null)
+        {
+            // The shader's colours carry the blend's opacity; the paint's own colour would multiply it again.
+            paint.Color = SKColors.White;
+            paint.Shader = _gradient;
+        }
+
+        return paint;
+    }
 
     private static SKPaint Paint(Ink ink)
     {

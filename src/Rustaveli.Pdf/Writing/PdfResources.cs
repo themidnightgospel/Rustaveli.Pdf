@@ -3,13 +3,13 @@ using System.Globalization;
 namespace Rustaveli.Pdf.Writing;
 
 /// <summary>
-/// The resource dictionary of one content stream: the fonts, XObjects, graphics states and colour spaces it uses,
+/// The resource dictionary of one content stream: the fonts, XObjects, graphics states, colour spaces and patterns it uses,
 /// each under a short name the stream's operators refer to.
 /// </summary>
 /// <remarks>
 /// Asking for the same object twice returns the same name, so callers can ask on every use instead of keeping their
 /// own map. Names are assigned in order of first use per category — <c>/F1</c>, <c>/F2</c> for fonts, <c>/X1</c>
-/// for XObjects, <c>/GS1</c> for graphics states, <c>/CS1</c> for colour spaces — and are local to this dictionary:
+/// for XObjects, <c>/GS1</c> for graphics states, <c>/CS1</c> for colour spaces, <c>/P1</c> for patterns — and are local to this dictionary:
 /// the same font may be <c>/F1</c> on one page and <c>/F2</c> on another.
 /// </remarks>
 internal sealed class PdfResources
@@ -18,8 +18,9 @@ internal sealed class PdfResources
     private readonly Category _xObjects = new Category(PdfNames.XObject, "X");
     private readonly Category _graphicsStates = new Category(PdfNames.ExtGState, "GS");
     private readonly Category _colorSpaces = new Category(PdfNames.ColorSpace, "CS");
+    private readonly Category _patterns = new Category(PdfNames.Pattern, "P");
 
-    public bool IsEmpty => _fonts.IsEmpty && _xObjects.IsEmpty && _graphicsStates.IsEmpty && _colorSpaces.IsEmpty;
+    public bool IsEmpty => _fonts.IsEmpty && _xObjects.IsEmpty && _graphicsStates.IsEmpty && _colorSpaces.IsEmpty && _patterns.IsEmpty;
 
     public PdfName GetFontName(PdfReference font) => _fonts.NameFor(font);
 
@@ -34,14 +35,18 @@ internal sealed class PdfResources
     /// </summary>
     public PdfName GetColorSpaceName(PdfReference colorSpace) => _colorSpaces.NameFor(colorSpace);
 
+    /// <summary>The name for a pattern, such as the shading a gradient is painted with.</summary>
+    public PdfName GetPatternName(PdfReference pattern) => _patterns.NameFor(pattern);
+
     /// <summary>The <c>/Resources</c> dictionary, with a sub-dictionary for each category in use.</summary>
     public PdfDictionary ToDictionary()
     {
-        PdfDictionary resources = new PdfDictionary(4);
+        PdfDictionary resources = new PdfDictionary(5);
         _fonts.AddTo(resources);
         _xObjects.AddTo(resources);
         _graphicsStates.AddTo(resources);
         _colorSpaces.AddTo(resources);
+        _patterns.AddTo(resources);
         return resources;
     }
 

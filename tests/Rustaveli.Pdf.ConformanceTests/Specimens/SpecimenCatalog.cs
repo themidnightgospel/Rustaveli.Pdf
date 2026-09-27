@@ -308,8 +308,8 @@ public static class SpecimenCatalog
     }));
 
     /// <summary>
-    /// Frames rounded corner by corner and stroked inside, on or outside their edge; content turned by any angle; and
-    /// rules in every stroke style and in a pattern of dashes.
+    /// Frames rounded corner by corner and stroked inside, on or outside their edge; content turned by any angle;
+    /// gradients filling frames, strokes and rules; and rules in every stroke style and in a pattern of dashes.
     /// </summary>
     private static Document FramesAndRules() => Page(content => content.Stack(stack =>
     {
@@ -332,6 +332,17 @@ public static class SpecimenCatalog
             columns.Fixed(80f).Rotate(90f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("90°");
         });
 
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(16f);
+            columns.Fixed(100f).Height(50f).Fill(Gradient.Across(TestInks.TealLighten3, TestInks.AmberLighten3, TestInks.PinkLighten3)).Centered().Middle().Text("across");
+            columns.Fixed(100f).Height(50f).Fill(new Gradient(45f, TestInks.TealLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("45°");
+            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Down(TestInks.PinkLighten3, TestInks.Grey)).Centered().Middle().Text("stroke");
+            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Across(TestInks.PinkLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("rounded");
+        });
+
+        stack.Add().Rule(4f, Gradient.Across(TestInks.TealLighten3, TestInks.PinkLighten3));
+        stack.Add().Rule(3f, Gradient.Across(TestInks.PinkLighten3, TestInks.Grey), [9, 3]);
         stack.Add().Rule(2f, TestInks.Grey, StrokeStyle.Dashed);
         stack.Add().Rule(2f, TestInks.Grey, StrokeStyle.Dotted);
         stack.Add().Rule(3f, TestInks.Grey, StrokeStyle.Double);

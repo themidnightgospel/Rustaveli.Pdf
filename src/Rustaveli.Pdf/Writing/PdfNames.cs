@@ -3,6 +3,9 @@ namespace Rustaveli.Pdf.Writing;
 /// <summary>The names the writer itself emits, created once rather than on every use.</summary>
 internal static class PdfNames
 {
+    /// <summary>The resource category of patterns, and the colour space that paints with one.</summary>
+    public static readonly PdfName Pattern = new PdfName("Pattern");
+
     public static readonly PdfName A = new PdfName("A");
     public static readonly PdfName Annot = new PdfName("Annot");
     public static readonly PdfName Annots = new PdfName("Annots");

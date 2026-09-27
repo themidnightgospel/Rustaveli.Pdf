@@ -52,6 +52,16 @@ internal interface ISurface
     /// </summary>
     void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern);
 
+    /// <summary>
+    /// Paints the rectangles, lines and outlines that follow in <paramref name="gradient"/> instead of their own ink,
+    /// laid across the box at <paramref name="position"/> of <paramref name="size"/>, until <see cref="EndGradient"/>.
+    /// Their ink still decides whether they are drawn at all. Text is not drawn meanwhile.
+    /// </summary>
+    void BeginGradient(Gradient gradient, Offset position, Extent size);
+
+    /// <summary>Returns to painting in each shape's own ink.</summary>
+    void EndGradient();
+
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
     /// <param name="text">The text, in logical order.</param>
     /// <param name="baselineStart">Where the run begins, on the baseline.</param>

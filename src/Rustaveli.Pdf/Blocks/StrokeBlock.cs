@@ -17,6 +17,9 @@ internal sealed class StrokeBlock : EnclosingBlock
 
     public Ink Ink { get; set; } = Ink.Black;
 
+    /// <summary>Painted in place of <see cref="Ink"/> when set, across the whole outer box of the stroke.</summary>
+    public Gradient? Gradient { get; set; }
+
     /// <summary>
     /// The rounding of each corner. Only honoured when every side has the same width, since a rounded corner has no
     /// meaningful shape where two different thicknesses meet.
@@ -51,16 +54,36 @@ internal sealed class StrokeBlock : EnclosingBlock
 
         Child?.Render(availableSpace, context);
 
-        if (Ink.IsTransparent)
+        if (Gradient is null && Ink.IsTransparent)
             return;
 
         // Drawn around the whole box this element occupies (ADR 0012), not around its content's natural extent.
         Extent size = availableSpace;
         ISurface surface = context.Surface;
+        float beyond = Beyond;
 
+        if (Gradient is null)
+        {
+            Draw(surface, size, Ink);
+            return;
+        }
+
+        // One blend across everything the stroke covers, rather than one per side.
+        Offset outer = new Offset(-Weight.Left * beyond, -Weight.Top * beyond);
+        Extent outerSize = new Extent(
+            size.Width + ((Weight.Left + Weight.Right) * beyond),
+            size.Height + ((Weight.Top + Weight.Bottom) * beyond));
+
+        surface.BeginGradient(Gradient, outer, outerSize);
+        Draw(surface, size, Ink.Black);
+        surface.EndGradient();
+    }
+
+    private void Draw(ISurface surface, Extent size, Ink ink)
+    {
         if (Corners.IsRounded && HasUniformWeight)
         {
-            DrawRounded(surface, size);
+            DrawRounded(surface, size, ink);
             return;
         }
 
@@ -75,16 +98,16 @@ internal sealed class StrokeBlock : EnclosingBlock
         float width = size.Width + left + right;
 
         if (Weight.Left > 0)
-            surface.DrawRectangle(new Offset(-left, -top), new Extent(Weight.Left, height), Ink);
+            surface.DrawRectangle(new Offset(-left, -top), new Extent(Weight.Left, height), ink);
 
         if (Weight.Top > 0)
-            surface.DrawRectangle(new Offset(-left, -top), new Extent(width, Weight.Top), Ink);
+            surface.DrawRectangle(new Offset(-left, -top), new Extent(width, Weight.Top), ink);
 
         if (Weight.Right > 0)
-            surface.DrawRectangle(new Offset(size.Width + right - Weight.Right, -top), new Extent(Weight.Right, height), Ink);
+            surface.DrawRectangle(new Offset(size.Width + right - Weight.Right, -top), new Extent(Weight.Right, height), ink);
 
         if (Weight.Bottom > 0)
-            surface.DrawRectangle(new Offset(-left, size.Height + bottom - Weight.Bottom), new Extent(width, Weight.Bottom), Ink);
+            surface.DrawRectangle(new Offset(-left, size.Height + bottom - Weight.Bottom), new Extent(width, Weight.Bottom), ink);
     }
 
     /// <summary>
@@ -92,7 +115,7 @@ internal sealed class StrokeBlock : EnclosingBlock
     /// moved by as much as the line: aligned inside, the stroke's outer arc lands on the requested radius and
     /// coincides with a rounded background of the same value; centred, the centre line does; outside, the inner arc.
     /// </summary>
-    private void DrawRounded(ISurface surface, Extent size)
+    private void DrawRounded(ISurface surface, Extent size, Ink ink)
     {
         float weight = Weight.Left;
         float inset = (weight / 2) - (weight * Beyond);
@@ -106,7 +129,7 @@ internal sealed class StrokeBlock : EnclosingBlock
         Corners radii = new Corners(Moved(corners.TopLeft), Moved(corners.TopRight), Moved(corners.BottomRight), Moved(corners.BottomLeft))
             .FittedTo(outline);
 
-        surface.DrawRoundedRectangle(new Offset(inset, inset), outline, radii, Ink, weight);
+        surface.DrawRoundedRectangle(new Offset(inset, inset), outline, radii, ink, weight);
 
         // A square corner stays square wherever the stroke lies.
         float Moved(float radius) => radius > 0 ? Math.Max(0, radius - inset) : 0f;

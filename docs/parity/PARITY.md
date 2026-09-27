@@ -88,16 +88,16 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
 | Solid background | `Background` | ✅ | — |
-| Linear-gradient background | `BackgroundLinearGradient` | ❌ | 4 |
+| Linear-gradient background | `BackgroundLinearGradient` | ✅ | — |
 | Borders per side, colour | `Border*`, `BorderColor` | ✅ | — |
 | Border alignment inside/middle/outside | `BorderAlignment*` | ✅ | — |
-| Linear-gradient border | `BorderLinearGradient` | ❌ | 4 |
+| Linear-gradient border | `BorderLinearGradient` | ✅ | — |
 | Corner radius, uniform | `CornerRadius` | ✅ | — |
 | Corner radius per corner | `CornerRadiusTopLeft`, … | ✅ | — |
 | Box shadow (blur, spread, offset, colour) | `Shadow`, `BoxShadowStyle` | ❌ | 4 |
 | Lines: thickness | `LineHorizontal/Vertical` | ✅ | — |
 | Lines: colour, dash pattern | `LineDescriptor` | ✅ | — |
-| Lines: gradient | `LineDescriptor.LineGradient` | ❌ | 4 |
+| Lines: gradient | `LineDescriptor.LineGradient` | ✅ | — |
 | Colour: RGB(A), hex | `Color` | ✅ | — |
 | Colour: CMYK and spot inks, tints | — | ✅ ours only: process colour, separations with a fallback | — |
 | Colour palette | `Colors` (Material) | ➖ replaced by `Ink` basics ([ADR 0004](../adr/0004-ink-colour-model.md)) | 1 |

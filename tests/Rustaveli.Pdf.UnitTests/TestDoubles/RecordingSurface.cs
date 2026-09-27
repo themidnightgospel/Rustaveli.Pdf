@@ -88,6 +88,16 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color, StrokeStyle.Solid, pattern));
     }
 
+    public void BeginGradient(Gradient gradient, Offset position, Extent size)
+    {
+        Current.Operations.Add(new GradientOperation(Resolve(position), size, gradient, ResolveBounds(position, size)));
+    }
+
+    public void EndGradient()
+    {
+        Current.Operations.Add(new GradientEndOperation());
+    }
+
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         Current.Operations.Add(new TextOperation(Resolve(baselineStart), text, style, rightToLeft));

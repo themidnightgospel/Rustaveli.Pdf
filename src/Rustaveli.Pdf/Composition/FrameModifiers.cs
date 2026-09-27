@@ -49,6 +49,10 @@ public static class FrameModifiers
     public static IFrame Fill(this IFrame parent, string hex) =>
         parent.Fill(Ink.Hex(hex));
 
+    /// <summary>Paints a gradient behind the content, across the whole frame.</summary>
+    public static IFrame Fill(this IFrame parent, Gradient gradient) =>
+        Attach(parent, new FillBlock { Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)) });
+
     public static IFrame Stroke(this IFrame parent, float weight) =>
         Attach(parent, new StrokeBlock { Weight = Sides.All(weight) });
 
@@ -78,6 +82,20 @@ public static class FrameModifiers
 
     public static IFrame StrokeInk(this IFrame parent, string hex) =>
         parent.StrokeInk(Ink.Hex(hex));
+
+    /// <summary>
+    /// Paints the stroke this directly follows in a gradient, laid across everything the stroke covers.
+    /// </summary>
+    public static IFrame StrokeInk(this IFrame parent, Gradient gradient)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+
+        if (parent is not StrokeBlock stroke)
+            throw new CompositionException("StrokeInk must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
+
+        stroke.Gradient = gradient;
+        return stroke;
+    }
 
     /// <summary>
     /// Rounds the corners of the fill or stroke this directly follows.
@@ -339,6 +357,14 @@ public static class FrameModifiers
     public static void Rule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
         Attach(parent, new RuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
 
+    /// <summary>Draws a horizontal rule across the available width in a gradient along its length.</summary>
+    public static void Rule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new RuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+
+    /// <summary>Draws a horizontal rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    public static void Rule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
+        Attach(parent, new RuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
+
     /// <summary>Draws a vertical rule down the available height, solid unless <paramref name="style"/> says otherwise.</summary>
     public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
         Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink ?? Ink.Black, Style = style });
@@ -346,6 +372,14 @@ public static class FrameModifiers
     /// <summary>Draws a vertical rule down the available height in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
     public static void VerticalRule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
         Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
+
+    /// <summary>Draws a vertical rule down the available height in a gradient along its length.</summary>
+    public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+
+    /// <summary>Draws a vertical rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
 
     /// <summary>
     /// A copy of a dash pattern, checked now rather than when the page is drawn: a pattern of no lengths, a negative

@@ -16,7 +16,10 @@ internal sealed class RuleBlock : Block
     /// <summary>Lengths of dash and gap, alternating, in place of <see cref="Style"/> when set.</summary>
     public IReadOnlyList<float>? Dashes { get; set; }
 
-    private RuleStroke Stroke => new RuleStroke(Weight, Ink, Style, Dashes);
+    /// <summary>Painted in place of <see cref="Ink"/> when set, along the rule's length.</summary>
+    public Gradient? Gradient { get; set; }
+
+    private RuleStroke Stroke => new RuleStroke(Weight, Ink, Style, Dashes, Gradient);
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
@@ -27,17 +30,6 @@ internal sealed class RuleBlock : Block
             : Fit.Complete(new Extent(availableSpace.Width, breadth));
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
-    {
-        // A solid rule is a filled bar, which is exact at any weight; anything else is stroked along its centre.
-        if (Dashes is null && Style == StrokeStyle.Solid)
-        {
-            context.Surface.DrawRectangle(Offset.Zero, new Extent(availableSpace.Width, Weight), Ink);
-            return;
-        }
-
-        RuleStroke stroke = Stroke;
-        float middle = stroke.Breadth / 2;
-        stroke.Draw(context.Surface, new Offset(0, middle), new Offset(availableSpace.Width, middle));
-    }
+    public override void Render(Extent availableSpace, RenderContext context) =>
+        Stroke.Draw(context.Surface, new Extent(availableSpace.Width, Stroke.Breadth), across: true);
 }
