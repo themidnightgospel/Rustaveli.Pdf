@@ -599,6 +599,54 @@ public class FrameModifiersTests
         Assert.Equal((Ink)TestInks.Red, block.Ink);
     }
 
+    [Fact]
+    public void APlaceholderSaysWhatWillGoThereCentredInGrey()
+    {
+        RecordedPage page = LayoutHarness.Draw(LayoutHarness.Build(container => container.Placeholder("Logo", TestInks.Red)), Space);
+
+        Assert.Equal((Ink)TestInks.Red, Assert.Single(page.Operations.OfType<RectangleOperation>()).Ink);
+
+        TextOperation label = Assert.Single(page.Operations.OfType<TextOperation>());
+        Assert.Equal("Logo", label.Text);
+        Assert.Equal(Ink.Rgb(0x75, 0x75, 0x75), label.Style.Ink);
+
+        // "Logo" is four characters at half the size each: 24 wide at 12 points, centred in the 200 by 100 space.
+        Approximately.Equal(88f, label.Position.X);
+        Assert.InRange(label.Position.Y, 45f, 55f);
+    }
+
+    [Fact]
+    public void APlaceholderTooSmallForItsLabelShowsTheBoxAlone()
+    {
+        RecordedPage page = LayoutHarness.Draw(LayoutHarness.Build(container => container.Placeholder("Logo")), new Extent(200, 1));
+
+        Assert.Single(page.Operations.OfType<RectangleOperation>());
+        Assert.Empty(page.Operations.OfType<TextOperation>());
+    }
+
+    [Fact]
+    public void APlaceholderShowsItsLabelOnEveryPageItIsDrawnOn()
+    {
+        PlaceholderBlock block = new PlaceholderBlock("Chart");
+        RenderContext context = new RenderContext(new RecordingSurface(), LayoutHarness.Context());
+
+        Assert.Equal("Chart", block.Label);
+        Assert.Null(new PlaceholderBlock().Label);
+        Assert.Single(block.GetChildren());
+
+        RecordingSurface surface = (RecordingSurface)context.Surface;
+        surface.BeginPage(Space);
+        block.Render(Space, context);
+        block.Render(Space, context);
+        surface.EndPage();
+
+        Assert.Equal(2, surface.Pages[0].Operations.OfType<TextOperation>().Count());
+    }
+
+    [Fact]
+    public void APlaceholderLabelIsNeverNull() =>
+        Assert.Throws<ArgumentNullException>(() => LayoutHarness.Build(container => container.Placeholder((string)null!)));
+
     // ---- Links ---------------------------------------------------------------------------------------------
 
     // Like the painting methods, these assert the target and that the content is still drawn, not the extent of

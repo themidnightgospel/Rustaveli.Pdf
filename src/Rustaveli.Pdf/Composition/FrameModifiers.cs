@@ -457,6 +457,13 @@ public static class FrameModifiers
     public static void Placeholder(this IFrame parent, Ink? ink = null) =>
         Attach(parent, new PlaceholderBlock { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
 
+    /// <summary>Fills the available space with a block standing in for unwritten content, saying what will go there.</summary>
+    public static void Placeholder(this IFrame parent, string label, Ink? ink = null)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+        Attach(parent, new PlaceholderBlock(label) { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+    }
+
     // ---- Links ---------------------------------------------------------------------------------------------
 
     public static IFrame Link(this IFrame parent, string url)
