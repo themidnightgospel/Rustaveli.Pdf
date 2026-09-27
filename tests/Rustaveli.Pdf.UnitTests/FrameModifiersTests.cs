@@ -321,11 +321,11 @@ public class FrameModifiersTests
     // ---- Alignment -----------------------------------------------------------------------------------------
 
     [Fact]
-    public void FlushLeftClaimsTheWidthAndKeepsContentAtTheLeft()
+    public void FlushLeftMeasuresAsItsContentAndKeepsItAtTheLeft()
     {
         Block root = Compose(container => container.FlushLeft());
 
-        Approximately.Equal(new Extent(200, 20), Measure(root));
+        Approximately.Equal(new Extent(50, 20), Measure(root));
         Approximately.Equal(new Offset(0, 0), Content(root).Position);
     }
 
@@ -338,11 +338,11 @@ public class FrameModifiersTests
         Approximately.Equal(new Offset(150, 0), Content(Compose(container => container.FlushRight())).Position);
 
     [Fact]
-    public void FlushTopClaimsTheHeightAndKeepsContentAtTheTop()
+    public void FlushTopMeasuresAsItsContentAndKeepsItAtTheTop()
     {
         Block root = Compose(container => container.FlushTop());
 
-        Approximately.Equal(new Extent(50, 100), Measure(root));
+        Approximately.Equal(new Extent(50, 20), Measure(root));
         Approximately.Equal(new Offset(0, 0), Content(root).Position);
     }
 

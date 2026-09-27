@@ -384,9 +384,9 @@ public static class SpecimenCatalog
         stack.Add().Height(70f).Columns(columns =>
         {
             columns.Gutter(24f);
-            columns.Fixed(80f).Rotate(15f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("15°");
-            columns.Fixed(80f).Rotate(-30f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("-30°");
-            columns.Fixed(80f).Rotate(90f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("90°");
+            columns.Fixed(80f).Height(70f).Rotate(15f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("15°");
+            columns.Fixed(80f).Height(70f).Rotate(-30f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("-30°");
+            columns.Fixed(80f).Height(70f).Rotate(90f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("90°");
         });
 
         stack.Add().Columns(columns =>

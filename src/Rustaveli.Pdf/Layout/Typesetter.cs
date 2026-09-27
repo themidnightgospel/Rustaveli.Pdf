@@ -248,8 +248,8 @@ internal static class Typesetter
         if (remaining.Height <= Extent.Epsilon)
             throw new OversetException(
                 $"The running head took all {available.Height:F1} points available, leaving no room for the body or the running foot. " +
-                "This usually means it holds content that expands to fill the space offered to it, such as Middle, " +
-                "FlushBottom or Expand. Give the running head an explicit Height, or remove the expanding content.");
+                "This usually means it holds content that expands to fill the space offered to it, such as " +
+                "Expand. Give the running head an explicit Height, or remove the expanding content.");
 
         Fit footPlan = section.RunningFootSlot.Plan(remaining, layout);
 

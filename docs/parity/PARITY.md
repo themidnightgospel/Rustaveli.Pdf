@@ -51,7 +51,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Extend to fill | `Extend*` | ✅ | — |
 | Shrink to content | `Shrink*`, `MinimalBox` | ✅ | — |
 | Aspect ratio | `AspectRatio` | ✅ | — |
-| Alignment, horizontal and vertical | `Align*` | 🟡 alignment expands to fill (README known limitation) | 4 |
+| Alignment, horizontal and vertical | `Align*` | ✅ `FlushLeft`, `Centered`, `FlushRight`, `FlushTop`, `Middle`, `FlushBottom`: measured as their content, placed in the room granted | — |
 | Unconstrained | `Unconstrained` | ✅ | — |
 | Z-order | `ZIndex` | ✅ | — |
 

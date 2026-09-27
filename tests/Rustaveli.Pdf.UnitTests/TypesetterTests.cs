@@ -662,8 +662,8 @@ public class TypesetterTests
 
         Assert.Equal(
             "The running head took all 80.0 points available, leaving no room for the body or the running foot. " +
-            "This usually means it holds content that expands to fill the space offered to it, such as Middle, " +
-            "FlushBottom or Expand. Give the running head an explicit Height, or remove the expanding content.",
+            "This usually means it holds content that expands to fill the space offered to it, such as " +
+            "Expand. Give the running head an explicit Height, or remove the expanding content.",
             exception.Message);
     }
 
