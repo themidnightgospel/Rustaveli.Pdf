@@ -224,7 +224,7 @@ internal sealed class PdfSurface : IPageSink
         content.Stroke();
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         float size = style.EffectivePointSize;
         if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
@@ -243,7 +243,7 @@ internal sealed class PdfSurface : IPageSink
         float previousExtra = 0f;
         bool first = true;
 
-        foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style, rightToLeft))
         {
             // Beyond the widths and character spacing a reader applies itself: kerning, and word spacing after a space.
             float adjustment = glyph.Kerning + previousExtra;

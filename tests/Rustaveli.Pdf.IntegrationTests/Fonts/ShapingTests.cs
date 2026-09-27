@@ -133,6 +133,66 @@ public class ShapingTests
         Assert.Equal("small caps", page.Text);
     }
 
+    private static List<ShapedGlyph> ShapeRightToLeft(string text, TypeStyle style)
+    {
+        List<ShapedGlyph> glyphs = [];
+
+        foreach (ShapedGlyph glyph in Library.Shaper.Walk(text.AsSpan(), style, rightToLeft: true))
+            glyphs.Add(glyph);
+
+        return glyphs;
+    }
+
+    [Fact]
+    public void RightToLeftTextIsHandedOutLastFirst()
+    {
+        List<ShapedGlyph> forward = Shape("AVo", Sans);
+        List<ShapedGlyph> backward = ShapeRightToLeft("AVo", Sans);
+
+        Assert.Equal(forward.Select(glyph => glyph.Glyph).Reverse(), backward.Select(glyph => glyph.Glyph));
+        Assert.Equal([2, 1, 0], backward.Select(glyph => glyph.Start));
+    }
+
+    [Fact]
+    public void KerningMovesToThePairAsItIsDisplayed()
+    {
+        // Forward, the kerning between A and V is carried by V; displayed right to left, V comes first and A after it.
+        List<ShapedGlyph> forward = Shape("AV", Sans);
+        List<ShapedGlyph> backward = ShapeRightToLeft("AV", Sans);
+
+        Assert.NotEqual(0f, forward[1].Kerning);
+        Assert.Equal(0f, backward[0].Kerning);
+        Assert.Equal(forward[1].Kerning, backward[1].Kerning);
+    }
+
+    [Fact]
+    public void AMarkStaysAfterTheLetterItSitsOn()
+    {
+        List<ShapedGlyph> backward = ShapeRightToLeft("aé", Sans.Ligatures(false).WithFeature("ccmp", 0));
+
+        // e and its acute keep their order; the a that came before them is displayed after them.
+        Assert.Equal([1, 2, 0], backward.Select(glyph => glyph.Start));
+    }
+
+    [Fact]
+    public void BracketsReadingRightToLeftAreMirrored()
+    {
+        ushort opening = Shape("(", Sans).Single().Glyph;
+        ushort closing = Shape(")", Sans).Single().Glyph;
+
+        // The closing bracket, read last, is displayed first — mirrored into an opening one — and the opening last.
+        Assert.Equal([opening, closing], ShapeRightToLeft("(x)", Sans).Where(glyph => glyph.Codepoint != 'x').Select(glyph => glyph.Glyph));
+        Assert.Equal(closing, ShapeRightToLeft("(", Sans).Single().Glyph);
+    }
+
+    [Fact]
+    public void RightToLeftTextReadsBackInLogicalOrder()
+    {
+        Page page = Export(text => text.Run("abc ").RightToLeft());
+
+        Assert.Contains("abc", page.Text);
+    }
+
     [Fact]
     public void AWalkLeftEarlyLeavesTheNextWalkItsBuffer()
     {

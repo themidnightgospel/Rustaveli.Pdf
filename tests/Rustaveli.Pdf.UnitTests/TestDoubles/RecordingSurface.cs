@@ -83,9 +83,9 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color, style));
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
-        Current.Operations.Add(new TextOperation(Resolve(baselineStart), text, style));
+        Current.Operations.Add(new TextOperation(Resolve(baselineStart), text, style, rightToLeft));
     }
 
     public void DrawImage(IImage image, Extent size)

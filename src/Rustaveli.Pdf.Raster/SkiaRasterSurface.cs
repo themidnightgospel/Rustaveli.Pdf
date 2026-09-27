@@ -140,7 +140,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         float size = style.EffectivePointSize;
         if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
@@ -154,7 +154,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         float previousStep = 0f;
         bool first = true;
 
-        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style, rightToLeft))
         {
             // The glyph before moved the pen by its advance and any word spacing it carries; tracking and kerning
             // fall between the two.

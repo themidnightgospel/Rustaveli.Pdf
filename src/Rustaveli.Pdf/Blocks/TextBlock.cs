@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
@@ -268,7 +267,7 @@ internal sealed class TextBlock : Block
             if (!style.Highlight.IsTransparent)
                 surface.DrawRectangle(new Offset(x, runTop), runSize, style.Highlight);
 
-            surface.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style);
+            surface.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style, run.RightToLeft);
 
             if (style.HasUnderline || style.HasStrikeThrough || style.HasOverline)
                 DrawStrokes(surface, style, metrics, x, run.Width, baseline + style.BaselineOffset);
@@ -383,15 +382,21 @@ internal sealed class TextBlock : Block
         return joined;
     }
 
+    /// <summary>
+    /// The joined text, in logical order: pieces of right-to-left text arrive in display order, last read first, so
+    /// they are joined from the end.
+    /// </summary>
     private static string Concatenate(List<TextRun> runs, int start, int end, int length)
     {
         char[] characters = new char[length];
         int at = 0;
+        bool backwards = runs[start].RightToLeft;
 
-        for (int index = start; index < end; index++)
+        for (int step = 0; step < end - start; step++)
         {
-            runs[index].Text.CopyTo(0, characters, at, runs[index].Text.Length);
-            at += runs[index].Text.Length;
+            string text = runs[backwards ? end - 1 - step : start + step].Text;
+            text.CopyTo(0, characters, at, text.Length);
+            at += text.Length;
         }
 
         return new string(characters);
@@ -403,7 +408,8 @@ internal sealed class TextBlock : Block
         && previous.Style.Tracking == 0
         && (ReferenceEquals(previous.Style, next.Style) || previous.Style.Equals(next.Style))
         && previous.Url == next.Url
-        && previous.Destination == next.Destination;
+        && previous.Destination == next.Destination
+        && previous.RightToLeft == next.RightToLeft;
 
     /// <summary>How many code units a run takes in its paragraph's text: an inline frame stands in for one.</summary>
     private static int LogicalLength(TextRun run) => run.Inline is null ? run.Text.Length : 1;
@@ -425,34 +431,7 @@ internal sealed class TextBlock : Block
             ? run.Width
             : IsWordGap(run) ? run.Width * length / run.Text.Length : measurer.MeasureWidth(text, run.Style);
 
-        return run with { Text = rightToLeft ? RightToLeft(text) : text, Width = width };
-    }
-
-    /// <summary>
-    /// Text as it is set right to left: its characters in reverse order, each keeping its combining marks after it,
-    /// and a character with a mirror image — a bracket, a less-than sign — drawn as that image (rule L4).
-    /// </summary>
-    private static string RightToLeft(string text)
-    {
-        List<string> elements = [];
-        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
-
-        while (enumerator.MoveNext())
-            elements.Add(enumerator.GetTextElement());
-
-        StringBuilder reversed = new StringBuilder(text.Length);
-
-        for (int index = elements.Count - 1; index >= 0; index--)
-        {
-            string element = elements[index];
-            int codepoint = char.ConvertToUtf32(element, 0);
-            int width = char.IsSurrogatePair(element, 0) ? 2 : 1;
-            int mirror = BidiCharacter.Mirror(codepoint);
-
-            reversed.Append(mirror == codepoint ? element : char.ConvertFromUtf32(mirror) + element.Substring(width));
-        }
-
-        return reversed.ToString();
+        return run with { Text = text, Width = width, RightToLeft = rightToLeft };
     }
 
     /// <summary>
@@ -941,7 +920,8 @@ internal sealed class TextBlock : Block
         Block? Inline = null,
         float Height = 0f,
         InlinePosition Position = InlinePosition.OnBaseline,
-        int Offset = -1);
+        int Offset = -1,
+        bool RightToLeft = false);
 
     private sealed class TextLine
     {

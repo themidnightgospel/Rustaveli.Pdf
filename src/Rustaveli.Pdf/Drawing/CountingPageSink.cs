@@ -54,7 +54,7 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
     }
 

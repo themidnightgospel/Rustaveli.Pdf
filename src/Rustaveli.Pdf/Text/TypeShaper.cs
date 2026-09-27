@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Fonts.Substitution;
+using Rustaveli.Pdf.Text.Bidi;
 
 namespace Rustaveli.Pdf.Text;
 
@@ -57,12 +59,98 @@ internal sealed class TypeShaper
     /// <summary>The face a style's text is set in, before any fallback.</summary>
     public OpenTypeFont Resolve(TypeStyle style) => Resolve(RequestFor(style));
 
-    /// <summary>Walks <paramref name="text"/> as glyphs set in <paramref name="style"/>.</summary>
-    public GlyphWalk Walk(ReadOnlySpan<char> text, TypeStyle style)
+    /// <summary>
+    /// Walks <paramref name="text"/> as glyphs set in <paramref name="style"/>, in the order they are displayed from
+    /// left to right.
+    /// </summary>
+    /// <param name="text">The text, in logical order.</param>
+    /// <param name="style">The type it is set in.</param>
+    /// <param name="rightToLeft">
+    /// Whether the text reads right to left. It is still shaped in logical order — joining and ligatures depend on
+    /// it — with each character that has a mirror image, such as a bracket, taken as that image (UAX #9, rule L4);
+    /// then its glyphs are handed out last first.
+    /// </param>
+    public GlyphWalk Walk(ReadOnlySpan<char> text, TypeStyle style, bool rightToLeft = false)
     {
         FontRequest request = RequestFor(style);
-        return new GlyphWalk(
-            this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces);
+        OpenTypeFont primary = Resolve(request);
+
+        if (!rightToLeft)
+            return new GlyphWalk(this, primary, request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces);
+
+        string mirrored = Mirrored(text);
+        List<ShapedGlyph> glyphs = [];
+
+        foreach (ShapedGlyph glyph in new GlyphWalk(
+            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces))
+        {
+            glyphs.Add(glyph);
+        }
+
+        return GlyphWalk.Replaying(InDisplayOrder(glyphs));
+    }
+
+    /// <summary>
+    /// Glyphs shaped in logical order, put in the order a right-to-left run displays them: cluster by cluster, last
+    /// first, each cluster — a character, the marks that combine with it and any glyphs made of them — kept in its
+    /// own order, so a mark still follows the letter it sits on.
+    /// </summary>
+    /// <remarks>
+    /// A glyph's kerning is with the glyph before it in logical order. Between clusters that neighbour now follows it,
+    /// so the kerning a cluster's first glyph carries moves to the first glyph of the cluster before it.
+    /// </remarks>
+    private static List<ShapedGlyph> InDisplayOrder(List<ShapedGlyph> logical)
+    {
+        List<(int Start, int Count)> clusters = [];
+
+        for (int index = 0; index < logical.Count; index++)
+        {
+            if (clusters.Count > 0 && Continues(logical[index]))
+                clusters[^1] = (clusters[^1].Start, clusters[^1].Count + 1);
+            else
+                clusters.Add((index, 1));
+        }
+
+        List<ShapedGlyph> display = new List<ShapedGlyph>(logical.Count);
+
+        for (int cluster = clusters.Count - 1; cluster >= 0; cluster--)
+        {
+            (int start, int count) = clusters[cluster];
+            float kerning = cluster + 1 < clusters.Count ? logical[clusters[cluster + 1].Start].Kerning : 0f;
+
+            display.Add(logical[start] with { Kerning = kerning });
+
+            for (int index = start + 1; index < start + count; index++)
+                display.Add(logical[index]);
+        }
+
+        return display;
+    }
+
+    /// <summary>
+    /// Whether a glyph belongs with the one before it: a further glyph of the same character, or a combining mark.
+    /// </summary>
+    private static bool Continues(ShapedGlyph glyph) =>
+        glyph.Length == 0
+        || (glyph.Codepoint <= char.MaxValue
+            && CharUnicodeInfo.GetUnicodeCategory((char)glyph.Codepoint)
+                is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or UnicodeCategory.SpacingCombiningMark);
+
+    /// <summary>The text with each character that has a mirror image replaced by it.</summary>
+    private static string Mirrored(ReadOnlySpan<char> text)
+    {
+        char[] characters = text.ToArray();
+
+        for (int index = 0; index < characters.Length; index++)
+        {
+            // Every mirrored pair lies in the Basic Multilingual Plane.
+            int mirror = BidiCharacter.Mirror(characters[index]);
+
+            if (mirror != characters[index] && mirror <= char.MaxValue)
+                characters[index] = (char)mirror;
+        }
+
+        return new string(characters);
     }
 
     /// <summary>

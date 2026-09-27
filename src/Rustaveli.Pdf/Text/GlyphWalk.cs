@@ -42,6 +42,8 @@ internal ref struct GlyphWalk
     private int _bufferIndex;
     private int _runStart;
     private int _runLength;
+    private List<ShapedGlyph>? _replay;
+    private int _replayed;
 
     internal GlyphWalk(
         TypeShaper shaper,
@@ -78,8 +80,25 @@ internal ref struct GlyphWalk
 
     public readonly GlyphWalk GetEnumerator() => this;
 
+    /// <summary>A walk handing out glyphs already shaped and put in order, as right-to-left text is.</summary>
+    internal static GlyphWalk Replaying(List<ShapedGlyph> glyphs)
+    {
+        GlyphWalk walk = default;
+        walk._replay = glyphs;
+        return walk;
+    }
+
     public bool MoveNext()
     {
+        if (_replay is not null)
+        {
+            if (_replayed == _replay.Count)
+                return false;
+
+            Current = _replay[_replayed++];
+            return true;
+        }
+
         if (_buffer is not null)
         {
             if (_bufferIndex < _buffer.Count)

@@ -23,7 +23,27 @@ public class BidirectionalTextTests
         return LayoutHarness.Draw(element, new Extent(width, 500), context);
     }
 
-    private static List<string> Drawn(RecordedPage page) => page.Texts.Select(text => text.Text).ToList();
+    /// <summary>Each piece of text drawn, as it shows from left to right.</summary>
+    private static List<string> Drawn(RecordedPage page) => page.Texts.Select(Shown).ToList();
+
+    /// <summary>
+    /// A piece of text as it shows: text drawn right to left, which the surface is given in logical order, reversed
+    /// character by character with its brackets mirrored.
+    /// </summary>
+    private static string Shown(TextOperation operation)
+    {
+        if (!operation.RightToLeft)
+            return operation.Text;
+
+        List<string> elements = [];
+        System.Globalization.TextElementEnumerator enumerator = System.Globalization.StringInfo.GetTextElementEnumerator(operation.Text);
+
+        while (enumerator.MoveNext())
+            elements.Add(enumerator.GetTextElement() switch { "(" => ")", ")" => "(", string element => element });
+
+        elements.Reverse();
+        return string.Concat(elements);
+    }
 
     [Fact]
     public void AHebrewWordIsDrawnRightToLeft()
@@ -39,8 +59,8 @@ public class BidirectionalTextTests
     {
         RecordedPage page = Draw(text => text.Run($"abc {Shalom} def"));
 
-        Assert.Equal([$"abc {ShalomDrawn} def"], Drawn(page));
-        Approximately.Equal(0f, page.Texts.Single().Position.X);
+        Assert.Equal(["abc ", ShalomDrawn, " def"], Drawn(page));
+        Assert.Equal([0f, 24f, 48f], page.Texts.Select(text => text.Position.X));
     }
 
     [Fact]
@@ -49,7 +69,7 @@ public class BidirectionalTextTests
         RecordedPage page = Draw(text => text.Run($"{Shalom} abc"), ReadingDirection.RightToLeft, width: 100);
 
         // The English word comes second in reading, so it sits to the left; the line is flush right.
-        Assert.Equal([$"abc {ShalomDrawn}"], Drawn(page));
+        Assert.Equal(["abc", $" {ShalomDrawn}"], Drawn(page));
         Approximately.Equal(52f, page.Texts.First().Position.X);
     }
 
@@ -76,8 +96,8 @@ public class BidirectionalTextTests
     {
         RecordedPage page = Draw(text => text.Run($"abc{Shalom}"));
 
-        Assert.Equal([$"abc{ShalomDrawn}"], Drawn(page));
-        Approximately.Equal(0f, page.Texts.Single().Position.X);
+        Assert.Equal(["abc", ShalomDrawn], Drawn(page));
+        Assert.Equal([0f, 18f], page.Texts.Select(text => text.Position.X));
     }
 
     [Fact]
@@ -92,7 +112,8 @@ public class BidirectionalTextTests
         TextOperation bold = page.Texts.Single(operation => operation.Style.Weight == TypeWeight.Bold);
 
         // The bold word is read second, so it is drawn first, at the left.
-        Assert.Equal("דג", bold.Text);
+        Assert.Equal("דג", Shown(bold));
+        Assert.True(bold.RightToLeft);
         Approximately.Equal(0f, bold.Position.X);
     }
 
@@ -126,7 +147,7 @@ public class BidirectionalTextTests
             ReadingDirection.RightToLeft,
             width: 40);
 
-        Assert.Equal([$"…{ShalomDrawn}"], Drawn(page));
+        Assert.Equal(["…", ShalomDrawn], Drawn(page));
     }
 
     [Fact]
@@ -150,7 +171,7 @@ public class BidirectionalTextTests
 
         // Latin words keep their order even so — the space between two of them reads left to right — but the "!"
         // ending the run ends it on the left, where a right-to-left run ends.
-        Assert.Equal(["abc ", "!def ghi"], Drawn(page));
+        Assert.Equal(["abc ", "!", "def ghi"], Drawn(page));
     }
 
     [Fact]
@@ -167,7 +188,7 @@ public class BidirectionalTextTests
             },
             ReadingDirection.RightToLeft);
 
-        Assert.Equal([$"!abc {ShalomDrawn}"], Drawn(unset));
+        Assert.Equal(["!", "abc", $" {ShalomDrawn}"], Drawn(unset));
         Assert.Equal(["abc!", $" {ShalomDrawn}"], Drawn(isolated));
     }
 
@@ -176,7 +197,7 @@ public class BidirectionalTextTests
     {
         RecordedPage page = Draw(text => text.Run("ab!\ncd!").RightToLeft());
 
-        Assert.Equal(["!ab", "!cd"], Drawn(page));
+        Assert.Equal(["!", "ab", "!", "cd"], Drawn(page));
     }
 
     [Fact]
@@ -205,6 +226,6 @@ public class BidirectionalTextTests
 
         // The first line, "אבג דהו זחט" (66pt), fills 80pt: its first word at the right edge, its last at the left.
         Approximately.Equal(0f, page.Texts.First().Position.X);
-        Approximately.Equal(62f, page.Texts.Single(operation => operation.Text == "גבא").Position.X);
+        Approximately.Equal(62f, page.Texts.Single(operation => Shown(operation) == "גבא").Position.X);
     }
 }

@@ -47,7 +47,14 @@ internal interface ISurface
     void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid);
 
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
-    void DrawText(string text, Offset baselineStart, TypeStyle style);
+    /// <param name="text">The text, in logical order.</param>
+    /// <param name="baselineStart">Where the run begins, on the baseline.</param>
+    /// <param name="style">The type it is set in.</param>
+    /// <param name="rightToLeft">
+    /// Whether the run reads right to left: shaped in logical order, then set with its first character at the right,
+    /// and characters with a mirror image, such as brackets, drawn as that image.
+    /// </param>
+    void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false);
 
     void DrawImage(IImage image, Extent size);
 
