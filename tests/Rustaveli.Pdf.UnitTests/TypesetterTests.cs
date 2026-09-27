@@ -225,11 +225,15 @@ public class TypesetterTests
         });
         OversetException ex = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
-        // The space quoted is what an empty page has left once the header is placed, not the whole sheet.
+        // The space quoted is what an empty page has left once the header is placed, not the whole sheet; the trace
+        // follows the refusal down from the body to the frame that could not fit.
         Assert.Equal(
             "The body cannot be set even on an empty page, so no further page would help. " +
             "Space available: (Width: 200.000, Height: 150.000). Reason: The block requires " +
-            "(Width: 10.000, Height: 500.000) but only (Width: 200.000, Height: 150.000) is available.",
+            "(Width: 10.000, Height: 500.000) but only (Width: 200.000, Height: 150.000) is available." +
+            "\nWhere it did not fit, from the page down:" +
+            "\n  Fixed, offered 200 × 150: does not fit — The block requires (Width: 10.000, Height: 500.000) but only " +
+            "(Width: 200.000, Height: 150.000) is available.",
             ex.Message);
     }
 
@@ -273,9 +277,10 @@ public class TypesetterTests
         OversetException ex = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         // The footer is offered only what the header left over.
-        Assert.Equal(
+        Assert.StartsWith(
             "The running foot does not fit in (Width: 200.000, Height: 40.000). Reason: The block requires " +
-            "(Width: 10.000, Height: 60.000) but only (Width: 200.000, Height: 40.000) is available.",
+            "(Width: 10.000, Height: 60.000) but only (Width: 200.000, Height: 40.000) is available." +
+            "\nWhere it did not fit, from the page down:\n  Fixed, offered 200 × 40: does not fit",
             ex.Message);
     }
 
@@ -623,9 +628,10 @@ public class TypesetterTests
         OversetException exception =
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
-        Assert.Equal(
+        Assert.StartsWith(
             "The running head does not fit in (Width: 200.000, Height: 100.000). Reason: The block requires " +
-            "(Width: 10.000, Height: 150.000) but only (Width: 200.000, Height: 100.000) is available.",
+            "(Width: 10.000, Height: 150.000) but only (Width: 200.000, Height: 100.000) is available." +
+            "\nWhere it did not fit, from the page down:\n  Fixed, offered 200 × 100: does not fit",
             exception.Message);
     }
 

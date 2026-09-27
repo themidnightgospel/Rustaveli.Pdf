@@ -9,7 +9,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </remarks>
 internal sealed class OversizedBlock(float width, float height) : Block
 {
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(width, height);
 
     public override void Render(Extent availableSpace, RenderContext context)

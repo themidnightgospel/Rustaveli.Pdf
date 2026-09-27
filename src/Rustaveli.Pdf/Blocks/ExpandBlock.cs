@@ -11,7 +11,7 @@ internal sealed class ExpandBlock : EnclosingBlock
 
     public bool Vertically { get; set; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         Fit childPlan = Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
 

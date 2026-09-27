@@ -9,8 +9,8 @@ internal sealed class DefaultTypeBlock : EnclosingBlock
 {
     public Func<TypeStyle, TypeStyle> Refinement { get; set; } = style => style;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
-        WithStyle(context, () => base.Plan(availableSpace, context));
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
+        WithStyle(context, () => base.PlanCore(availableSpace, context));
 
     public override void Render(Extent availableSpace, RenderContext context) =>
         WithStyle(context.Planning, () =>

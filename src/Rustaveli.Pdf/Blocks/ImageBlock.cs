@@ -11,7 +11,7 @@ internal sealed class ImageBlock : Block
 
     public ImageFitting Fit { get; set; } = ImageFitting.FitWidth;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (Image is null)
             return Layout.Fit.Complete(Extent.Zero);

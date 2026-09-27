@@ -31,7 +31,7 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
     // finer probing buys nothing visible and every probe costs a full measurement of the subtree.
     private const int ProbeCount = 8;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (Child is null)
             return Fit.Complete(Extent.Zero);
@@ -41,7 +41,7 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
         // Content that can only ever render in instalments cannot be made to fit at any scale. Refusing it would
         // abort the whole document, so it is passed through instead and paginates as it would have unscaled.
         if (scale is null)
-            return base.Plan(availableSpace, context);
+            return base.PlanCore(availableSpace, context);
 
         Fit plan = Child.Plan(Unscale(availableSpace, scale.Value), context);
 

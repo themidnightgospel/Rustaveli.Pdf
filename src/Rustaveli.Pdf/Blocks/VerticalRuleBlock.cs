@@ -21,7 +21,7 @@ internal sealed class VerticalRuleBlock : Block
 
     private RuleStroke Stroke => new RuleStroke(Weight, Ink, Style, Dashes, Gradient);
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         float breadth = Stroke.Breadth;
 

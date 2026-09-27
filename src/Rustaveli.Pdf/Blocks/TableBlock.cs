@@ -109,7 +109,7 @@ internal sealed class TableBlock : Block
     protected override void RestoreOwnProgress(object progress) =>
         (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection) = ((int, TableLayout?, float, ReadingDirection))progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         TableLayout? layout = BuildLayout(availableSpace, context);
 

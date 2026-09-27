@@ -12,7 +12,7 @@ internal sealed class ProportionBlock : EnclosingBlock
 
     public ProportionFit Fit { get; set; } = ProportionFit.Width;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (Ratio <= 0)
             return Layout.Fit.Defer("The proportion must be greater than zero.");

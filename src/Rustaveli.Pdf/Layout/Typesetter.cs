@@ -172,7 +172,7 @@ internal static class Typesetter
         if (contentPlan.IsDeferred)
             throw new OversetException(
                 "The body cannot be set even on an empty page, so no further page would help. " +
-                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}");
+                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}" + Trace(section.BodySlot, bodySpace, layout));
 
         Extent pageSize = new Extent(
             Clamp(section.Margins.Horizontal + Math.Max(contentPlan.Size.Width, bands.Width), smallest.Width, largest.Width),
@@ -268,7 +268,7 @@ internal static class Typesetter
 
         if (headPlan.IsDeferred)
             throw new OversetException(
-                $"The running head does not fit in {available}. Reason: {headPlan.DeferReason}");
+                $"The running head does not fit in {available}. Reason: {headPlan.DeferReason}" + Trace(section.RunningHeadSlot, available, layout));
 
         Extent remaining = new Extent(available.Width, available.Height - headPlan.Size.Height);
 
@@ -287,9 +287,30 @@ internal static class Typesetter
 
         if (footPlan.IsDeferred)
             throw new OversetException(
-                $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}");
+                $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}" + Trace(section.RunningFootSlot, remaining, layout));
 
         return new Bands(headPlan.Size.Height, footPlan.Size.Height, Math.Max(headPlan.Size.Width, footPlan.Size.Width));
+    }
+
+    /// <summary>
+    /// Measures <paramref name="slot"/> again, recording every measurement, and describes the path down to the frame
+    /// that could not fit. Measuring changes nothing, so doing it again only to explain is safe.
+    /// </summary>
+    private static string Trace(Block slot, Extent space, PlanContext layout)
+    {
+        PlanTrace trace = new PlanTrace();
+        layout.Trace = trace;
+
+        try
+        {
+            slot.Plan(space, layout);
+        }
+        finally
+        {
+            layout.Trace = null;
+        }
+
+        return trace.Describe();
     }
 
     private static float Clamp(float value, float smallest, float largest) => Math.Min(largest, Math.Max(smallest, value));

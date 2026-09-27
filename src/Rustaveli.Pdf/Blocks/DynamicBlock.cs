@@ -30,7 +30,7 @@ internal sealed class DynamicBlock<TState>(IDynamicContent<TState> content) : Bl
         _composed = null;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (_done)
             return Fit.Nothing();

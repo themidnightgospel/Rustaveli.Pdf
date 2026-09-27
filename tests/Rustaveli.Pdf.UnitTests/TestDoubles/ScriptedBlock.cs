@@ -26,7 +26,7 @@ internal sealed class ScriptedBlock(Fit plan) : Block
         _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, "Expected Defer or Nothing."),
     };
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) => plan;
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) => plan;
 
     public override void Render(Extent availableSpace, RenderContext context) => DrawnWith.Add(availableSpace);
 }

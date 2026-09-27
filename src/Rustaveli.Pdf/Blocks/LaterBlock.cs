@@ -38,7 +38,7 @@ internal sealed class LaterBlock : Block
 
     protected override void RestoreOwnProgress(object progress) => (_content, _done) = ((Frame?, bool))progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         _done ? Fit.Nothing() : Content().Plan(availableSpace, context);
 
     public override void Render(Extent availableSpace, RenderContext context)

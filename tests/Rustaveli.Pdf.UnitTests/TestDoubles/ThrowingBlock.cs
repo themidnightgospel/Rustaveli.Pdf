@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// </summary>
 internal sealed class ThrowingBlock(Exception exception) : Block
 {
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(10, 10);
 
     public override void Render(Extent availableSpace, RenderContext context) => throw exception;

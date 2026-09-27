@@ -18,7 +18,7 @@ internal sealed class LayersBlock : Block
         return Layers;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         return Layers.FirstOrDefault(layer => layer.IsBase)?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
     }

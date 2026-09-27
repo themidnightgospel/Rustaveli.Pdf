@@ -15,7 +15,7 @@ internal sealed class NewPageBlock : Block
 
     protected override void RestoreOwnProgress(object progress) => _hasBroken = (bool)progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         _hasBroken
             ? Fit.Nothing()
             // Claiming the full remaining height forces the parent to treat the page as finished, and reporting

@@ -16,16 +16,16 @@ internal sealed class KeepTogetherBlock : EnclosingBlock
     /// </summary>
     public bool WherePossible { get; init; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        Fit childPlan = base.Plan(availableSpace, context);
+        Fit childPlan = base.PlanCore(availableSpace, context);
 
         if (!childPlan.IsPartial)
             return childPlan;
 
         // Moved to a fresh page, would it fit whole there? Only then is moving it worth a page; content longer than
         // any page is split where it is, as it would be anyway.
-        if (WherePossible && (availableSpace.Height >= context.PageBody.Height - Extent.Epsilon || !base.Plan(new Extent(availableSpace.Width, context.PageBody.Height), context).IsComplete))
+        if (WherePossible && (availableSpace.Height >= context.PageBody.Height - Extent.Epsilon || !base.PlanCore(new Extent(availableSpace.Width, context.PageBody.Height), context).IsComplete))
             return childPlan;
 
         return Fit.Defer("The content is kept together and does not fit in the remaining space.");

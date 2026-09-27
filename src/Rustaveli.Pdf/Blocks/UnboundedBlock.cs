@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class UnboundedBlock : EnclosingBlock
 {
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         Fit childPlan = Child?.Plan(Extent.Max, context) ?? Fit.Complete(Extent.Zero);
 

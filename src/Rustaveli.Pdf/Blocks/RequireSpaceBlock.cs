@@ -23,7 +23,7 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
 
     protected override void RestoreOwnProgress(object progress) => _hasStarted = (bool)progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (!_hasStarted && availableSpace.Height + Extent.Epsilon < MinHeight)
         {
@@ -31,7 +31,7 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
                 $"Only {availableSpace.Height:F1} points remain but {MinHeight:F1} was required before this content may start.");
         }
 
-        return base.Plan(availableSpace, context);
+        return base.PlanCore(availableSpace, context);
     }
 
     public override void Render(Extent availableSpace, RenderContext context)

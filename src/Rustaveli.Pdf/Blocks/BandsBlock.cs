@@ -25,7 +25,7 @@ internal sealed class BandsBlock : Block
         yield return Foot;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context);
 

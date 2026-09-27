@@ -21,8 +21,8 @@ internal sealed class OnceBlock : EnclosingBlock
 
     protected override void RestoreOwnProgress(object progress) => _hasRendered = (bool)progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
-        _hasRendered ? Fit.Nothing() : base.Plan(availableSpace, context);
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
+        _hasRendered ? Fit.Nothing() : base.PlanCore(availableSpace, context);
 
     public override void Render(Extent availableSpace, RenderContext context)
     {

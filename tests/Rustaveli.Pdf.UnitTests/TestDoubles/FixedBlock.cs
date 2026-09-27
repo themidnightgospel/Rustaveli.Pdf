@@ -19,7 +19,7 @@ internal sealed class FixedBlock(Extent size, Ink? color = null) : Block
 
     public Ink Color { get; } = color ?? TestInks.Black;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         size.FitsIn(availableSpace)
             ? Fit.Complete(size)
             : Fit.Defer($"The block requires {size} but only {availableSpace} is available.");

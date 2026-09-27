@@ -17,7 +17,7 @@ internal sealed class PlacementBlock : EnclosingBlock
 
     public VerticalPlacement? Vertical { get; set; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
 
     public override void Render(Extent availableSpace, RenderContext context)

@@ -22,7 +22,7 @@ internal sealed class TurnBlock : EnclosingBlock
 
     private bool SwapsAxes => QuarterTurns is 1 or 3;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         Extent innerSpace = SwapsAxes
             ? new Extent(availableSpace.Height, availableSpace.Width)

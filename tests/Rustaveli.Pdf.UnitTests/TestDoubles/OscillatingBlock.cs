@@ -21,7 +21,7 @@ internal sealed class OscillatingBlock : Block
         Passes++;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         _pagesDrawn + 1 < PagesNeeded(context.Pagination)
             ? Fit.Partial(10, 10)
             : Fit.Complete(10, 10);

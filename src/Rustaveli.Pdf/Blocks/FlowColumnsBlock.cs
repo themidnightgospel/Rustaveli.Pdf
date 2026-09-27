@@ -35,7 +35,7 @@ internal sealed class FlowColumnsBlock : Block
         yield return Between;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (Story is null)
             return Fit.Complete(Extent.Zero);

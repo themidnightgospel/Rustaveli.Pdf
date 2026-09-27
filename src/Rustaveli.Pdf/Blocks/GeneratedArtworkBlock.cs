@@ -13,7 +13,7 @@ internal sealed class GeneratedArtworkBlock : Block
 {
     public required Func<Extent, Artwork?> Generate { get; init; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) => Fit.Complete(availableSpace);
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) => Fit.Complete(availableSpace);
 
     public override void Render(Extent availableSpace, RenderContext context)
     {

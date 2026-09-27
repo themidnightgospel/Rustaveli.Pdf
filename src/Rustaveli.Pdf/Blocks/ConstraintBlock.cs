@@ -19,7 +19,7 @@ internal sealed class ConstraintBlock : EnclosingBlock
 
     public float? MaxHeight { get; set; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (MinWidth > availableSpace.Width + Extent.Epsilon)
             return Fit.Defer($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1}).");

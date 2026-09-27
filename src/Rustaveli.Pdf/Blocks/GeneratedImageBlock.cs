@@ -15,7 +15,7 @@ internal sealed class GeneratedImageBlock : Block
 {
     public required Func<ImageRequest, byte[]?> Generate { get; init; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) => Fit.Complete(availableSpace);
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) => Fit.Complete(availableSpace);
 
     public override void Render(Extent availableSpace, RenderContext context)
     {

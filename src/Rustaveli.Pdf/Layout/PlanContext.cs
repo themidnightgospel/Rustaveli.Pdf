@@ -32,6 +32,9 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
     /// </summary>
     public Extent PageBody { get; internal set; } = Extent.Max;
 
+    /// <summary>Where measurements are recorded while a layout failure is being explained; null otherwise.</summary>
+    internal PlanTrace? Trace { get; set; }
+
     /// <summary>
     /// Runs <paramref name="action" /> with a different content direction in force, restoring the previous one
     /// afterwards even if it throws.

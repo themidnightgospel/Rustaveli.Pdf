@@ -9,7 +9,7 @@ internal sealed class InsetBlock : EnclosingBlock
 {
     public Sides Inset { get; set; } = Sides.Zero;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         Extent innerSpace = new Extent(
             availableSpace.Width - Inset.Horizontal,

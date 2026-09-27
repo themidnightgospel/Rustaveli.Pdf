@@ -56,7 +56,7 @@ internal sealed class ColumnsBlock : Block
         return _completed;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (Items.Count == 0)
             return Fit.Complete(Extent.Zero);

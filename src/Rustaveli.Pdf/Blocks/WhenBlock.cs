@@ -13,8 +13,8 @@ internal sealed class WhenBlock : EnclosingBlock
     /// <summary>Asked of every page, in addition to <see cref="Condition"/>, when set.</summary>
     public Func<PageFacts, bool>? OnPage { get; set; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
-        Holds(context.Pagination) ? base.Plan(availableSpace, context) : Fit.Complete(Extent.Zero);
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
+        Holds(context.Pagination) ? base.PlanCore(availableSpace, context) : Fit.Complete(Extent.Zero);
 
     public override void Render(Extent availableSpace, RenderContext context)
     {

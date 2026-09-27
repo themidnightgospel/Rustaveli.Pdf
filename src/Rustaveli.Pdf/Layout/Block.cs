@@ -26,7 +26,31 @@ internal abstract class Block
     /// Reports what this element would do if given <paramref name="availableSpace" />, without drawing anything.
     /// Must not mutate state, because the engine measures speculatively and may discard the result.
     /// </summary>
-    public abstract Fit Plan(Extent availableSpace, PlanContext context);
+    /// <remarks>
+    /// While the context is tracing — to explain a layout failure — each measurement is recorded, nested within the one
+    /// that asked for it.
+    /// </remarks>
+    public Fit Plan(Extent availableSpace, PlanContext context)
+    {
+        if (context.Trace is not { } trace)
+            return PlanCore(availableSpace, context);
+
+        PlanTrace.Node node = trace.Enter(this, availableSpace);
+
+        try
+        {
+            Fit fit = PlanCore(availableSpace, context);
+            node.Result = fit;
+            return fit;
+        }
+        finally
+        {
+            trace.Leave(node);
+        }
+    }
+
+    /// <summary>What <see cref="Plan"/> reports for this kind of element.</summary>
+    protected abstract Fit PlanCore(Extent availableSpace, PlanContext context);
 
     /// <summary>
     /// Draws the element and advances any internal position so that a subsequent call continues where this one

@@ -11,7 +11,7 @@ internal sealed class ArtworkBlock : Block
 
     public ImageFitting Fit { get; init; } = ImageFitting.FitWidth;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         Extent size = ResolveSize(availableSpace);
 
