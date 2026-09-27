@@ -98,13 +98,18 @@ jobs:
             mutate: --mutate "**/Fonts/[O-R]*.cs"
           - name: fonts-s-z
             mutate: --mutate "**/Fonts/[S-Z]*.cs" --mutate "!**/Fonts/TypefaceLibrary.cs"
+          # Decoding tests hold whole images in memory; three runners over them ran the hosted runner out of it.
           - name: images-a-i
+            runners: 2
             mutate: --mutate "**/Images/[A-I]*.cs"
           - name: images-jpeg-png-a-h
+            runners: 2
             mutate: --mutate "**/Images/[J-O]*.cs" --mutate "**/Images/Png[A-H]*.cs"
           - name: images-png-i-z
+            runners: 2
             mutate: --mutate "**/Images/Png[I-Z]*.cs"
           - name: images-r-z
+            runners: 2
             mutate: --mutate "**/Images/[Q-Z]*.cs"
           # The PDF surface, shaping and the typeface library are checked by reading real files back, so these
           # shards run the integration tests too — and those need the system's fallback fonts.
@@ -151,11 +156,12 @@ jobs:
         if: matrix.shard.fonts
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk
 
-      # Three test runners, two where the integration tests run too: four, one a core, ran the hosted runner out of
-      # memory as they started, and it was shut down mid-run.
+      # Three test runners, two where the integration tests run too or a shard says so: four, one a core, ran the
+      # hosted runner out of memory as they started, and it was shut down mid-run.
       - name: Mutation testing
         run: >
-          dotnet stryker --config-file stryker-config.json --concurrency ${{ matrix.shard.fonts && 2 || 3 }}
+          dotnet stryker --config-file stryker-config.json
+          --concurrency ${{ matrix.shard.runners || (matrix.shard.fonts && 2 || 3) }}
           ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
