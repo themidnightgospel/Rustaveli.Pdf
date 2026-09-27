@@ -23,6 +23,8 @@ namespace Rustaveli.Pdf;
 public static class PdfExport
 {
     /// <summary>Exports the document as PDF, returning the file's bytes.</summary>
+    private static readonly PdfName Lang = new PdfName("Lang");
+
     public static byte[] ExportPdf(this Document document, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -88,6 +90,9 @@ public static class PdfExport
 
         using PdfDocumentWriter writer = new PdfDocumentWriter(stream, writing);
         CopyInfo(document.Info, writer.Info);
+
+        if (!string.IsNullOrWhiteSpace(document.Info.Language))
+            writer.Catalog[Lang] = PdfString.FromText(document.Info.Language!.Trim());
 
         using PdfSurface surface = new PdfSurface(writer, shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);

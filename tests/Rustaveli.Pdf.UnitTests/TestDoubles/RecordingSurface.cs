@@ -160,6 +160,11 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new DestinationOperation(Resolve(Offset.Zero), destinationName));
     }
 
+    public void DrawBookmark(string title, int level)
+    {
+        Current.Operations.Add(new BookmarkOperation(Resolve(Offset.Zero), title, level));
+    }
+
     private Offset Resolve(Offset position)
     {
         Vector2 vector = Vector2.Transform(new Vector2(position.X, position.Y), _transform);

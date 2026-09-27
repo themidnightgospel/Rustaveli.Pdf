@@ -13,6 +13,12 @@ public sealed class DocumentInfo
 
     public string? Keywords { get; set; }
 
+    /// <summary>
+    /// The language the document is written in, as a BCP 47 tag such as <c>en-GB</c> or <c>ka</c>: what screen
+    /// readers speak it in, and what accessible PDF requires.
+    /// </summary>
+    public string? Language { get; set; }
+
     public string? Creator { get; set; }
 
     public string? Producer { get; set; } = "Rustaveli.Pdf";

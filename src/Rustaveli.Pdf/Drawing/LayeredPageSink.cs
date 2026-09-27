@@ -138,6 +138,8 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
 
     public void DrawDestination(string destinationName) => Hold(surface => surface.DrawDestination(destinationName));
 
+    public void DrawBookmark(string title, int level) => Hold(surface => surface.DrawBookmark(title, level));
+
     /// <summary>The pages beneath are the caller's, and closed by the caller.</summary>
     public void Dispose()
     {

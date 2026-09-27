@@ -29,7 +29,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Page-level default text style and direction | `DefaultTextStyle`, `ContentFrom*` | ✅ | — |
 | Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | ✅ plus pica | — |
 | Metadata: title, author, subject, keywords, creator, producer, dates | `DocumentMetadata` | ✅ | — |
-| Document language | `DocumentMetadata.Language` | ❌ | 6 |
+| Document language | `DocumentMetadata.Language` | ✅ `DocumentInfo.Language` | — |
 | Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ❌ | 7 |
 
 ## Layout
@@ -146,7 +146,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Internal link to a named section | `SectionLink`, `InternalLink` | ✅ | — |
 | Named destinations | `Section`, `Location` | ✅ | — |
 | Links to captured locations from text | `ExternalLocation`, `InternalLocation` | ✅ `TextComposer.Link`, `CrossReference` (their former names for `Hyperlink`, `SectionLink`) | — |
-| Outline / bookmarks | — (derived from semantic tags) | ❌ | 6 |
+| Outline / bookmarks | — (derived from semantic tags) | ✅ `Bookmark(title, level)` | — |
 
 ## Images and vector graphics
 

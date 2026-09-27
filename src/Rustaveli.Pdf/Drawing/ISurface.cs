@@ -109,4 +109,10 @@ internal interface ISurface
 
     /// <summary>Registers a named destination at the current origin so internal links can target it.</summary>
     void DrawDestination(string destinationName);
+
+    /// <summary>
+    /// Adds a bookmark to the document's outline, titled <paramref name="title"/> at <paramref name="level"/> from 1
+    /// for the outermost, leading to the current origin.
+    /// </summary>
+    void DrawBookmark(string title, int level);
 }

@@ -103,6 +103,10 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
+    public void DrawBookmark(string title, int level)
+    {
+    }
+
     public void Dispose()
     {
     }

@@ -21,6 +21,11 @@ internal sealed class PdfDocumentWriter : IDisposable
 {
     private readonly PdfPageTree _pages;
     private readonly HashSet<PdfPage> _openPages = new HashSet<PdfPage>();
+    private static readonly PdfName Outlines = new PdfName("Outlines");
+    private static readonly PdfName PageMode = new PdfName("PageMode");
+    private static readonly PdfName UseOutlines = new PdfName("UseOutlines");
+
+    private readonly List<(string Title, int Level, PdfArray Destination)> _outline = [];
     private readonly Dictionary<string, PdfArray> _destinations =
         new Dictionary<string, PdfArray>(StringComparer.Ordinal);
 
@@ -124,6 +129,22 @@ internal sealed class PdfDocumentWriter : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Adds a bookmark to the outline, at <paramref name="level"/> from 1 for the outermost, leading to the point
+    /// (<paramref name="left"/>, <paramref name="top"/>) of <paramref name="page"/>. Bookmarks are listed in the order
+    /// they are added, each under the nearest one before it of a shallower level.
+    /// </summary>
+    public void AddOutlineEntry(string title, int level, PdfReference page, double left, double top)
+    {
+        ArgumentNullException.ThrowIfNull(title);
+        ThrowIfFinished();
+
+        if (level < 1)
+            throw new ArgumentOutOfRangeException(nameof(level), level, "Outline levels start at 1.");
+
+        _outline.Add((title, level, new PdfArray(5) { page, PdfNames.XYZ, left, top, PdfValue.Null }));
+    }
+
     /// <summary>A graphics state applying one opacity to fills and strokes alike.</summary>
     public PdfReference GetOpacityState(double alpha) => GetOpacityState(alpha, alpha);
 
@@ -180,8 +201,15 @@ internal sealed class PdfDocumentWriter : IDisposable
             catalog[PdfNames.Names] = new PdfDictionary { [PdfNames.Dests] = tree.Write(File) };
         }
 
+        if (_outline.Count > 0)
+        {
+            // A document with bookmarks opens with them showing.
+            catalog[Outlines] = PdfOutline.Write(File, _outline);
+            catalog[PageMode] = UseOutlines;
+        }
+
         foreach (KeyValuePair<PdfName, PdfValue> entry in Catalog)
-            catalog.Add(entry.Key, entry.Value);
+            catalog[entry.Key] = entry.Value;
 
         PdfReference root = File.Write(catalog);
         PdfReference? info = Info.IsEmpty ? null : File.Write(Info.ToDictionary());

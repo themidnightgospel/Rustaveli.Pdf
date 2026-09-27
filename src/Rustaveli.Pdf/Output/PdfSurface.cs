@@ -519,6 +519,12 @@ internal sealed class PdfSurface : IPageSink
         _writer.AddNamedDestination(destinationName, Page.Reference, x, y);
     }
 
+    public void DrawBookmark(string title, int level)
+    {
+        (double x, double y) = _state.Matrix.Apply(0, 0);
+        _writer.AddOutlineEntry(title, level, Page.Reference, x, y);
+    }
+
     /// <summary>
     /// Ends a page still open. A render that fails part-way unwinds with one begun; ending it keeps the writer
     /// consistent for whatever the caller does next.

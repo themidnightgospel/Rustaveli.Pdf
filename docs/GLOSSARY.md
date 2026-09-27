@@ -32,7 +32,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Section.RunningFoot()` | method | Repeated at the bottom of every page. | print | `PageDescriptor.Footer()` |
 | `Section.Underlay()` | method | Drawn beneath everything, ignoring margins — watermarks, page furniture. | print | `PageDescriptor.Background()` |
 | `Section.Overlay()` | method | Drawn above everything, ignoring margins. | print | `PageDescriptor.Foreground()` |
-| `DocumentInfo` | class | Title, author, subject, keywords, creator, producer, dates. Named for the PDF *document information dictionary*. | PDF | `DocumentMetadata` |
+| `DocumentInfo` | class | Title, author, subject, keywords, language, creator, producer, dates. Named for the PDF *document information dictionary*. | PDF | `DocumentMetadata` |
 | `Document.Info` | property | The document's `DocumentInfo`. | PDF | `Document.Metadata` |
 | `ExportPdf()` | method | Writes the document as PDF, to bytes, a stream or a file. *Export* is what InDesign calls it. | InDesign | `GeneratePdf` |
 | `PdfExportOptions` | class | Options for export: the `Typefaces` to set text in, whether to `Compress` streams, and whether to `RequireEveryGlyph`. | InDesign | `PdfGenerationOptions` |
@@ -146,6 +146,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `VerticalRule(float, Ink?, StrokeStyle)`, `VerticalRule(float, Ink, IReadOnlyList<float>)` | method | A vertical line — between columns, say — styled as a rule is. | print | `LineVertical` |
 | `Link(string url)` | method | Makes the frame a link to a URL. | plain | `Hyperlink` |
 | `Anchor(string name)` | method | Names a place others can refer to. | print, InDesign ("text anchor") | `Section` |
+| `Bookmark(string, int)` | method | An entry in the document's outline, nested by level, leading to where the content starts. | print ("bookmark") | outline from `Section` |
 | `CrossReference(string anchor)` | method | Makes the frame a link to an anchor. | print | `SectionLink` |
 | `Placeholder(Ink?)` | method | A box standing in for content not there yet. | print | `Placeholder` |
 | `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |

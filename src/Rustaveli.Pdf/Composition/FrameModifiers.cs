@@ -482,6 +482,21 @@ public static class FrameModifiers
         return Attach(parent, new AnchorBlock { Name = name });
     }
 
+    /// <summary>
+    /// Adds a bookmark to the document's outline, the list of contents a viewer shows beside the pages, leading to
+    /// where this content starts. <paramref name="level"/> nests it: 1 for a chapter, 2 for a section within it, and so
+    /// on, each under the nearest bookmark before it of a shallower level.
+    /// </summary>
+    public static IFrame Bookmark(this IFrame parent, string title, int level = 1)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+
+        if (level < 1)
+            throw new ArgumentOutOfRangeException(nameof(level), level, "Bookmark levels start at 1.");
+
+        return Attach(parent, new BookmarkBlock { Title = title, Level = level });
+    }
+
     public static IFrame CrossReference(this IFrame parent, string anchor)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
