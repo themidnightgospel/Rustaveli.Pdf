@@ -230,6 +230,9 @@ internal sealed class PdfByteWriter : IDisposable
             case PdfValueKind.Integer:
                 WriteInteger(value.AsInteger());
                 break;
+            case PdfValueKind.Real when value.RealText is { } text:
+                WriteKeyword(text);
+                break;
             case PdfValueKind.Real:
                 WriteReal(value.AsReal());
                 break;

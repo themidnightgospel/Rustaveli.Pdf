@@ -52,6 +52,19 @@ internal readonly struct PdfValue
         return new PdfValue(PdfValueKind.Reference, value.ObjectNumber, null);
     }
 
+    /// <summary>
+    /// The text a real was read as, when it was read from a file, so it is written back exactly rather than at the
+    /// precision the writer gives the reals it formats itself.
+    /// </summary>
+    public byte[]? RealText => Kind == PdfValueKind.Real ? _object as byte[] : null;
+
+    /// <summary>A real read from a file as <paramref name="text"/>, written back as it was read.</summary>
+    public static PdfValue ReadReal(double value, byte[] text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return new PdfValue(PdfValueKind.Real, BitConverter.DoubleToInt64Bits(value), text);
+    }
+
     public bool AsBoolean() => Kind == PdfValueKind.Boolean ? _bits != 0 : throw Mismatch(PdfValueKind.Boolean);
 
     public long AsInteger() => Kind == PdfValueKind.Integer ? _bits : throw Mismatch(PdfValueKind.Integer);

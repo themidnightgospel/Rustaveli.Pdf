@@ -285,6 +285,7 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | `MissingGlyphException` | class | Characters no typeface has, when an export requires every glyph; `Characters` lists them. A layout application flags a *missing glyph* rather than let it go to press. | InDesign | `Settings.CheckIfAllTextGlyphsAreAvailable` |
 | `RenderingException` | class | A failure while drawing a page, carrying the page number. | plain | `DocumentDrawingException` |
 | `CompositionException` | class | A failure while composing the document, before layout. | print | `DocumentComposeException` |
+| `UnreadableFileException` | class | A file that cannot be read as a PDF: not one, or damaged past repair. | plain | qpdf's errors |
 
 ## Inside the engine
 

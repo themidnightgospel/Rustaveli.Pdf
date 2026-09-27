@@ -69,6 +69,9 @@ jobs:
               --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/[X-Z]*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
           - name: tagging
             mutate: --mutate "**/Tagging/**/*.cs"
+          - name: operations-reading
+            project: --project Rustaveli.Pdf.Operations.csproj
+            mutate: --mutate "**/Reading/**/*.cs"
           - name: writing-files
             mutate: --mutate "**/Writing/Pdf[D-F]*.cs"
           - name: writing-objects
