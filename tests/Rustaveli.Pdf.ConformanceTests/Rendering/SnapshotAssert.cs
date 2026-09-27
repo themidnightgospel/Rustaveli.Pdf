@@ -69,9 +69,12 @@ internal static class SnapshotAssert
         }
 
         // A page that matches has nothing to approve: an image left from an earlier failure would otherwise be
-        // promoted over the approved one by the next approval run, unseen.
-        File.Delete(Path.Combine(RepositoryPaths.ReceivedSnapshots, $"{name}.received.png"));
-        File.Delete(Path.Combine(RepositoryPaths.ReceivedSnapshots, $"{name}.diff.png"));
+        // promoted over the approved one by the next approval run, unseen. A fresh checkout has no folder for them.
+        if (Directory.Exists(RepositoryPaths.ReceivedSnapshots))
+        {
+            File.Delete(Path.Combine(RepositoryPaths.ReceivedSnapshots, $"{name}.received.png"));
+            File.Delete(Path.Combine(RepositoryPaths.ReceivedSnapshots, $"{name}.diff.png"));
+        }
     }
 
     private static string WriteReceived(string name, SKBitmap received)
