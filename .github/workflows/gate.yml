@@ -51,6 +51,14 @@ jobs:
           # The generated character tables are data, not logic: Stryker skips files marked auto-generated.
           - name: line-breaking
             mutate: --mutate "**/Text/LineBreaking/**/*.cs"
+          - name: bidi-paragraph
+            mutate: >-
+              --mutate "**/Text/Bidi/Bidi*.cs" --mutate "**/Text/Bidi/LineReordering.cs"
+              --mutate "!**/Text/Bidi/BidiCharacterTables.cs"
+          - name: bidi-resolution
+            mutate: >-
+              --mutate "**/Text/Bidi/ExplicitLevels.cs" --mutate "**/Text/Bidi/IsolatingRunSequence.cs"
+              --mutate "**/Text/Bidi/BracketPairs.cs"
           - name: primitives
             mutate: --mutate "**/Primitives/**/*.cs"
           - name: composition-drawing

@@ -1,6 +1,9 @@
+using System.Globalization;
+using System.Text;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
 using Rustaveli.Pdf.Text;
+using Rustaveli.Pdf.Text.Bidi;
 using Rustaveli.Pdf.Text.LineBreaking;
 
 namespace Rustaveli.Pdf.Blocks;
@@ -213,6 +216,7 @@ internal sealed class TextBlock : Block
         };
 
         float x = Math.Max(0, offset);
+        List<TextRun> runs = new List<TextRun>(line.Runs.Count);
 
         for (int index = 0; index < line.Runs.Count; index++)
         {
@@ -222,6 +226,14 @@ internal sealed class TextBlock : Block
             if (stretch > 0 && index > firstWord && index < lastWord && IsWordGap(run))
                 run = run with { Width = run.Width + (stretch * run.Text.Length) };
 
+            runs.Add(run);
+        }
+
+        if (line.Bidi is not null)
+            runs = InDisplayOrder(runs, line.Bidi, context.Measurer);
+
+        foreach (TextRun run in runs)
+        {
             if (run.Inline is not null)
             {
                 Extent inlineSize = new Extent(run.Width, run.Height);
@@ -271,6 +283,113 @@ internal sealed class TextBlock : Block
 
             x += run.Width;
         }
+    }
+
+    /// <summary>
+    /// Puts a line's runs in the order they are displayed from left to right (UAX #9, rules L1 to L4): split where the
+    /// direction changes, runs of right-to-left text reversed, and each piece of it set last character first with
+    /// mirrored brackets. Text from outside the paragraph — an ellipsis — ends the line, which is its left end when
+    /// the paragraph reads right to left.
+    /// </summary>
+    private static List<TextRun> InDisplayOrder(List<TextRun> runs, BidiParagraph bidi, ITypeMeasurer measurer)
+    {
+        int start = int.MaxValue;
+        int end = 0;
+        List<TextRun> outside = [];
+
+        foreach (TextRun run in runs)
+        {
+            if (run.Offset < 0)
+            {
+                outside.Add(run);
+                continue;
+            }
+
+            start = Math.Min(start, run.Offset);
+            end = Math.Max(end, run.Offset + LogicalLength(run));
+        }
+
+        List<TextRun> ordered = new List<TextRun>(runs.Count + 2);
+
+        if (start < end)
+        {
+            List<BidiRun> levels = [];
+            bidi.GetVisualRuns(start, end - start, levels);
+
+            foreach (BidiRun level in levels)
+            {
+                int first = ordered.Count;
+
+                foreach (TextRun run in runs)
+                {
+                    int from = Math.Max(run.Offset, level.Start);
+                    int to = Math.Min(run.Offset + LogicalLength(run), level.Start + level.Length);
+
+                    if (run.Offset >= 0 && from < to)
+                        ordered.Add(Piece(run, from - run.Offset, to - from, level.IsRightToLeft, measurer));
+                }
+
+                if (level.IsRightToLeft)
+                    ordered.Reverse(first, ordered.Count - first);
+            }
+        }
+
+        if (bidi.ParagraphLevel == 1)
+            ordered.InsertRange(0, outside);
+        else
+            ordered.AddRange(outside);
+
+        return ordered;
+    }
+
+    /// <summary>How many code units a run takes in its paragraph's text: an inline frame stands in for one.</summary>
+    private static int LogicalLength(TextRun run) => run.Inline is null ? run.Text.Length : 1;
+
+    /// <summary>
+    /// The part of a run from <paramref name="start"/> for <paramref name="length"/> code units, measured afresh unless
+    /// it is the whole run, and set right to left when <paramref name="rightToLeft"/>.
+    /// </summary>
+    private static TextRun Piece(TextRun run, int start, int length, bool rightToLeft, ITypeMeasurer measurer)
+    {
+        if (run.Inline is not null)
+            return run;
+
+        bool whole = start == 0 && length == run.Text.Length;
+        string text = whole ? run.Text : run.Text.Substring(start, length);
+
+        // Spaces share a stretched width evenly; anything else is measured on its own.
+        float width = whole
+            ? run.Width
+            : IsWordGap(run) ? run.Width * length / run.Text.Length : measurer.MeasureWidth(text, run.Style);
+
+        return run with { Text = rightToLeft ? RightToLeft(text) : text, Width = width };
+    }
+
+    /// <summary>
+    /// Text as it is set right to left: its characters in reverse order, each keeping its combining marks after it,
+    /// and a character with a mirror image — a bracket, a less-than sign — drawn as that image (rule L4).
+    /// </summary>
+    private static string RightToLeft(string text)
+    {
+        List<string> elements = [];
+        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
+
+        while (enumerator.MoveNext())
+            elements.Add(enumerator.GetTextElement());
+
+        StringBuilder reversed = new StringBuilder(text.Length);
+
+        for (int index = elements.Count - 1; index >= 0; index--)
+        {
+            string element = elements[index];
+            int codepoint = char.ConvertToUtf32(element, 0);
+            int width = char.IsSurrogatePair(element, 0) ? 2 : 1;
+            int mirror = BidiCharacter.Mirror(codepoint);
+
+            reversed.Append(mirror == codepoint ? element : char.ConvertFromUtf32(mirror) + element.Substring(width));
+        }
+
+        return reversed.ToString();
     }
 
     /// <summary>
@@ -351,6 +470,33 @@ internal sealed class TextBlock : Block
             current = new TextLine { StartsParagraph = force };
         }
 
+        // Each paragraph's text is gathered as its lines are built, every run recording where it falls in it, so the
+        // bidirectional algorithm can resolve the paragraph whole — a character's direction can depend on text
+        // lines away — and each line can then be put in display order.
+        StringBuilder paragraph = new StringBuilder();
+        int paragraphStart = 0;
+        BidiDirection direction = context.ReadingDirection == ReadingDirection.RightToLeft
+            ? BidiDirection.RightToLeft
+            : BidiDirection.LeftToRight;
+
+        void CloseParagraph()
+        {
+            if (lines.Count > paragraphStart && paragraph.Length > 0)
+            {
+                BidiParagraph bidi = new BidiParagraph(paragraph.ToString().AsSpan(), direction);
+
+                // Text that is left to right throughout is drawn as it is stored, and needs nothing more.
+                if (!bidi.IsLeftToRightOnly)
+                {
+                    for (int index = paragraphStart; index < lines.Count; index++)
+                        lines[index].Bidi = bidi;
+                }
+            }
+
+            paragraph.Clear();
+            paragraphStart = lines.Count;
+        }
+
         // Past the limit, nothing more is shown, so nothing more is measured: a long text clamped to a line or
         // two costs no more than those lines, and an inline frame beyond them is never asked to plan. The limit is
         // passed once its last line is complete and something follows it.
@@ -389,6 +535,9 @@ internal sealed class TextBlock : Block
                 if (current.Runs.Count > 0 && current.Width + inlinePlan.Size.Width > lineBudget + Extent.Epsilon)
                     FlushLine(force: false);
 
+                // The frame stands in the paragraph's text as an object replacement character: a neutral, so it takes
+                // the direction of the text around it.
+                paragraph.Append(ObjectReplacement);
                 current.Add(new TextRun(
                     string.Empty,
                     span.ResolveStyle(blockStyle),
@@ -397,7 +546,8 @@ internal sealed class TextBlock : Block
                     span.Anchor,
                     span.Inline,
                     inlinePlan.Size.Height,
-                    span.InlinePosition));
+                    span.InlinePosition,
+                    paragraph.Length - 1));
 
                 continue;
             }
@@ -417,8 +567,12 @@ internal sealed class TextBlock : Block
                 if (segment == "\n")
                 {
                     FlushLine(force: true);
+                    CloseParagraph();
                     continue;
                 }
+
+                int offset = paragraph.Length;
+                paragraph.Append(segment);
 
                 bool isWhitespace = IsBreakableWhitespace(segment[0]);
                 float segmentWidth = context.Measurer.MeasureWidth(segment, style);
@@ -426,7 +580,7 @@ internal sealed class TextBlock : Block
 
                 if (current.Width + segmentWidth <= lineWidth + Extent.Epsilon)
                 {
-                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Anchor));
+                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Anchor, Offset: offset));
                     continue;
                 }
 
@@ -440,7 +594,7 @@ internal sealed class TextBlock : Block
                 // Type that may break anywhere fills the line it is on before going on to the next.
                 if (style.BreaksAnywhere)
                 {
-                    BreakWord(segment, span, style, width, indent, context, current, lines);
+                    BreakWord(segment, span, style, width, indent, context, offset, current, lines);
                     continue;
                 }
 
@@ -453,11 +607,11 @@ internal sealed class TextBlock : Block
 
                 if (segmentWidth <= lineWidth + Extent.Epsilon)
                 {
-                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Anchor));
+                    current.Add(new TextRun(segment, style, segmentWidth, span.Url, span.Anchor, Offset: offset));
                     continue;
                 }
 
-                BreakWord(segment, span, style, width, indent, context, current, lines);
+                BreakWord(segment, span, style, width, indent, context, offset, current, lines);
             }
         }
 
@@ -469,6 +623,8 @@ internal sealed class TextBlock : Block
             current.Finalise(context.Measurer, blockStyle);
             lines.Add(current);
         }
+
+        CloseParagraph();
 
         if (lines.Count > limit)
         {
@@ -535,6 +691,7 @@ internal sealed class TextBlock : Block
         float width,
         float indent,
         PlanContext context,
+        int offset,
         TextLine current,
         List<TextLine> lines)
     {
@@ -563,7 +720,7 @@ internal sealed class TextBlock : Block
             string chunk = remaining[..fitting];
             float chunkWidth = context.Measurer.MeasureWidth(chunk, style);
 
-            current.Add(new TextRun(chunk, style, chunkWidth, span.Url, span.Anchor));
+            current.Add(new TextRun(chunk, style, chunkWidth, span.Url, span.Anchor, Offset: offset + word.Length - remaining.Length));
             remaining = remaining[fitting..];
 
             if (remaining.Length == 0)
@@ -638,6 +795,9 @@ internal sealed class TextBlock : Block
 
     private const char LineSeparator = (char)0x2028;
 
+    /// <summary>What an inline frame stands as in its paragraph's text.</summary>
+    private const char ObjectReplacement = (char)0xFFFC;
+
     private const char ParagraphSeparator = (char)0x2029;
 
     /// <summary>
@@ -651,7 +811,8 @@ internal sealed class TextBlock : Block
         string? Destination,
         Block? Inline = null,
         float Height = 0f,
-        InlinePosition Position = InlinePosition.OnBaseline);
+        InlinePosition Position = InlinePosition.OnBaseline,
+        int Offset = -1);
 
     private sealed class TextLine
     {
@@ -694,6 +855,12 @@ internal sealed class TextBlock : Block
 
         /// <summary>How far the type on the line reaches below the baseline, not counting inline frames.</summary>
         public float TypeDescent { get; private set; }
+
+        /// <summary>
+        /// The resolved paragraph the line belongs to, which puts its runs in display order; null for a paragraph that
+        /// is left to right throughout, whose runs are displayed as they are stored.
+        /// </summary>
+        public BidiParagraph? Bidi { get; set; }
 
         public void Add(TextRun run)
         {

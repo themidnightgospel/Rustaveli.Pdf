@@ -127,7 +127,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | First-line indent, paragraph spacing | `ParagraphFirstLineIndentation`, `ParagraphSpacing` | ✅ | — |
 | Break anywhere | `WrapAnywhere` | ✅ | — |
 | Unicode line breaking (UAX #14) | — | ✅ Unicode 16, default rules | — |
-| Per-span direction; bidi reordering | `Direction*` | ❌ | 3 (`Shaping` package) |
+| Per-span direction; bidi reordering | `Direction*` | 🟡 reordering by UAX #9; per-run direction pending | 3 |
 | OpenType features (ligatures, small caps, figures, …) | `EnableFontFeature`, `FontFeatures` | ❌ | 3 |
 | Complex-script shaping | — (built in) | ❌ | 3 (`Shaping` package) |
 | Inline elements in a paragraph, with vertical alignment | `Element(TextInjectedElementAlignment)` | ✅ | — |
