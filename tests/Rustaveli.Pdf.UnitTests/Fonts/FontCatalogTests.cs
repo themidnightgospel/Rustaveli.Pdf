@@ -24,12 +24,14 @@ public class FontCatalogTests
             new[]
             {
                 "NotoSans-Bold", "NotoSans-Italic", "NotoSans-Regular", "NotoSansGeorgian-Regular",
-                "SpecimenCff-Regular", "SpecimenSans-Regular", "SpecimenSans-SemiBold", "SpecimenSans-Italic"
+                "SpecimenCff-Regular", "SpecimenLayout-Regular", "SpecimenSans-Regular", "SpecimenSans-SemiBold",
+                "SpecimenSans-Italic"
             },
             index.Faces.Select(face => face.Names.PostScriptName));
         Assert.All(index.Faces, face => Assert.False(face.IsLoaded));
         Assert.Equal(
-            new[] { "Noto Sans", "Noto Sans Georgian", "Specimen Cff", "Specimen Sans" }, index.Families.Families);
+            new[] { "Noto Sans", "Noto Sans Georgian", "Specimen Cff", "Specimen Layout", "Specimen Sans" },
+            index.Families.Families);
         Assert.Equal(new[] { TestFonts.Directory }, index.Directories);
     }
 

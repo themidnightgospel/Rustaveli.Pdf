@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Fonts.Substitution;
+
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
@@ -31,6 +33,8 @@ internal sealed class OpenTypeFont
     private readonly Lazy<GlyphTable?> _glyphs;
     private readonly Lazy<CompactFontTable?> _cff;
     private readonly Lazy<KerningSource?> _kerning;
+    private readonly Lazy<GlyphDefinitionTable?> _glyphDefinitions;
+    private readonly Lazy<GlyphSubstitutionTable?> _substitutions;
     private readonly Lazy<FaceStyle> _style;
     private readonly Lazy<LineMetrics> _lineMetrics;
     private readonly Lazy<FontDescriptorInfo> _descriptor;
@@ -67,6 +71,11 @@ internal sealed class OpenTypeFont
         _cff = new Lazy<CompactFontTable?>(
             () => Optional(TableTag.Cff, static data => new CompactFontTable(data)), Mode);
         _kerning = new Lazy<KerningSource?>(ReadKerning, Mode);
+        _glyphDefinitions = new Lazy<GlyphDefinitionTable?>(
+            () => Optional(TableTag.Gdef, static data => new GlyphDefinitionTable(data)), Mode);
+        _substitutions = new Lazy<GlyphSubstitutionTable?>(
+            () => Optional(TableTag.Gsub, data => new GlyphSubstitutionTable(data, GlyphDefinitions, GlyphCount)),
+            Mode);
         _style = new Lazy<FaceStyle>(() => FaceStyle.From(Os2, Head), Mode);
         _lineMetrics = new Lazy<LineMetrics>(() => LineMetrics.Choose(HorizontalHeader, Os2), Mode);
         _descriptor = new Lazy<FontDescriptorInfo>(() => FontDescriptorInfo.Create(this), Mode);
@@ -112,6 +121,15 @@ internal sealed class OpenTypeFont
     /// <c>kern</c> table, as shapers choose. Null when the font kerns nothing.
     /// </summary>
     public KerningSource? Kerning => _kerning.Value;
+
+    /// <summary>The glyph classes and mark sets of the <c>GDEF</c> table; null when the font has none.</summary>
+    public GlyphDefinitionTable? GlyphDefinitions => _glyphDefinitions.Value;
+
+    /// <summary>
+    /// The font's glyph substitutions — ligatures, contextual and stylistic forms — from its <c>GSUB</c> table; null
+    /// when it has none.
+    /// </summary>
+    public GlyphSubstitutionTable? Substitutions => _substitutions.Value;
 
     public FaceStyle Style => _style.Value;
 

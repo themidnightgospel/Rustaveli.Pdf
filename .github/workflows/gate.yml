@@ -75,8 +75,18 @@ jobs:
             mutate: --mutate "**/Fonts/[A-C]*.cs"
           - name: fonts-d-f
             mutate: --mutate "**/Fonts/[D-F]*.cs"
-          - name: fonts-g-n
-            mutate: --mutate "**/Fonts/[G-N]*.cs"
+          - name: fonts-g
+            mutate: --mutate "**/Fonts/G*.cs"
+          - name: fonts-h-n
+            mutate: --mutate "**/Fonts/[H-N]*.cs"
+          - name: substitution-engine
+            mutate: >-
+              --mutate "**/Fonts/Substitution/GlyphSubstitutionTable.cs" --mutate "**/Fonts/Substitution/GlyphBuffer.cs"
+              --mutate "**/Fonts/Substitution/Substitution[LSU]*.cs" --mutate "**/Fonts/Substitution/*Tag.cs"
+              --mutate "**/Fonts/Substitution/FeatureSetting.cs"
+          - name: substitution-lookups
+            mutate: >-
+              --mutate "**/Fonts/Substitution/*Substitution.cs" --mutate "**/Fonts/Substitution/Context*.cs"
           - name: fonts-o-r
             mutate: --mutate "**/Fonts/[O-R]*.cs"
           - name: fonts-s-z
