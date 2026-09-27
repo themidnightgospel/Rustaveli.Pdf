@@ -24,7 +24,7 @@ internal static class Typesetter
     /// </summary>
     private const int MaxCountingPasses = 5;
 
-    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer)
+    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pages);
@@ -41,7 +41,7 @@ internal static class Typesetter
         {
             using CountingPageSink probe = new CountingPageSink();
 
-            RunPass(document, probe, measurer, pageContext);
+            RunPass(document, probe, measurer, pageContext, resolution);
 
             if (probe.PageCount == total)
                 break;
@@ -51,17 +51,17 @@ internal static class Typesetter
             pageContext.IsPageCountKnown = true;
         }
 
-        RunPass(document, pages, measurer, pageContext);
+        RunPass(document, pages, measurer, pageContext, resolution);
     }
 
-    private static void RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext)
+    private static void RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution)
     {
         pageContext.ResetForNewPass();
 
         foreach (Block? slot in document.Sections.SelectMany(section => section.Slots()))
             slot.ResetState();
 
-        PlanContext layout = new PlanContext(measurer, pageContext);
+        PlanContext layout = new PlanContext(measurer, pageContext) { Resolution = resolution };
         RenderContext direct = new RenderContext(pages, layout);
         int pageNumber = 0;
 

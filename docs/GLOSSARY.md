@@ -150,6 +150,10 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Placeholder(Ink?)` | method | A box standing in for content not there yet. | print | `Placeholder` |
 | `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |
 | `Image(IImage, ImageFitting)` | method | Places an image. | plain | `Image` |
+| `Image(Func<ImageRequest, byte[]?>)` | method | An image generated for the box it fills, at the resolution images are generated at. | plain | `Image(GenerateDynamicImageDelegate)` |
+| `ImageRequest` | struct | What a generated image is asked for: its `Size`, `PixelWidth`, `PixelHeight` and `Resolution`. | plain | `GenerateDynamicImageDelegatePayload` |
+| `Artwork(Func<Extent, Artwork?>)` | method | Artwork generated for the box it fills — an SVG written for that size, say. | plain | `Svg(Func<Size, string>)` |
+| `PdfExportOptions.ImageResolution` | property | The resolution generated images are asked for, 288 pixels an inch unless set. | plain | `Settings.ImageRasterDpi` |
 | `Artwork(Artwork, ImageFitting)` | method | Places vector artwork, fitted as an image is and kept vector in the PDF. | print ("artwork") | `Svg`, `Canvas` |
 | `Artwork` | class | Vector artwork of a size of its own, made by `Draw(width, height, ...)` or read by `FromSvg` and `FromSvgFile`. | print | `SvgImage`, `DrawOnCanvas` |
 | `TextAnchor` | enum | `Start`, `Middle`, `End`: which part of a line of artwork text sits at its point. | SVG | `text-anchor` |

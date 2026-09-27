@@ -23,7 +23,8 @@ public static class ImageExport
 
         using SkiaRasterSurface surface = new SkiaRasterSurface(shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
-        Typesetter.Render(document, surface, measurer);
+        // Images generated at their final size are generated at the page's own resolution.
+        Typesetter.Render(document, surface, measurer, options.Resolution);
 
         if (options.RequireEveryGlyph && measurer.MissingCodepoints.Count > 0)
             throw new MissingGlyphException(measurer.MissingCodepoints);

@@ -91,7 +91,7 @@ public static class PdfExport
 
         using PdfSurface surface = new PdfSurface(writer, shaper);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
-        Typesetter.Render(document, surface, measurer);
+        Typesetter.Render(document, surface, measurer, options?.ImageResolution ?? 288);
 
         if (options?.RequireEveryGlyph == true && measurer.MissingCodepoints.Count > 0)
             throw new MissingGlyphException(measurer.MissingCodepoints);

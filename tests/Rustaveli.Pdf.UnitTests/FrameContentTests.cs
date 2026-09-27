@@ -38,7 +38,7 @@ public class FrameContentTests
     {
         Frame container = new Frame();
 
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => container.Image(null!));
+        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => container.Image((IImage)null!));
 
         Assert.Equal("image", exception.ParamName);
         Assert.Null(container.Slot().Child);

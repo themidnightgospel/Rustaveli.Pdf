@@ -11,6 +11,9 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
 
     public Pagination Pagination { get; } = page;
 
+    /// <summary>The resolution images generated at their final size are generated at, in pixels per inch.</summary>
+    public float Resolution { get; internal set; } = 288;
+
     /// <summary>
     /// The style text inherits when it specifies none of its own. Set per page run before rendering, which lets
     /// a document establish a typeface once rather than at every span.

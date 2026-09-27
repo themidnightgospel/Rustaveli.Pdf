@@ -20,4 +20,22 @@ public sealed class PdfExportOptions
     /// drawn as a missing-glyph box; on, the export fails with <see cref="MissingGlyphException"/> naming them all.
     /// </summary>
     public bool RequireEveryGlyph { get; set; }
+
+    /// <summary>
+    /// The resolution images generated at their final size are generated at, in pixels per inch: 288 unless set,
+    /// sharp in print.
+    /// </summary>
+    public float ImageResolution
+    {
+        get => _imageResolution;
+        set
+        {
+            if (!(value > 0) || float.IsInfinity(value))
+                throw new ArgumentOutOfRangeException(nameof(value), value, "A resolution is a finite number of pixels per inch above nothing.");
+
+            _imageResolution = value;
+        }
+    }
+
+    private float _imageResolution = 288;
 }
