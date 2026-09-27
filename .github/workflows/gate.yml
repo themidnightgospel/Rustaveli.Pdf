@@ -99,6 +99,8 @@ jobs:
             mutate: --mutate "**/Images/Png[I-Z]*.cs"
           - name: images-r-z
             mutate: --mutate "**/Images/[Q-Z]*.cs"
+          - name: svg
+            mutate: --mutate "**/Svg/**/*.cs"
           # The PDF surface, shaping and the typeface library are checked by reading real files back, so these
           # shards run the integration tests too — and those need the system's fallback fonts.
           - name: output-surface
