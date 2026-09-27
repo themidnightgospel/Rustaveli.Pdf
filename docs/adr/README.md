@@ -21,6 +21,8 @@ so the history of *why* survives.
 | [0013](0013-span-compatibility-package.md) | Spans on .NET Framework come from System.Memory | Accepted |
 | [0014](0014-text-is-shaped-once.md) | Text is shaped once, in the core, for measuring and drawing alike | Accepted |
 | [0015](0015-text-engine-layers.md) | The text engine in layers: Unicode rules in the core, complex shaping by opt-in | Accepted |
+| [0016](0016-drawing-ahead.md) | Layout may draw ahead, and return | Accepted |
+| [0017](0017-draw-order.md) | Draw order holds a page back | Accepted |
 
 A new record has three sections: **Context** (the forces at play), **Decision** (what we will do) and
 **Consequences** (what becomes easier, what becomes harder, what we now owe).
