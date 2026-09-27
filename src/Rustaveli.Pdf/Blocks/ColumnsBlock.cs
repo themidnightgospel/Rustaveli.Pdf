@@ -114,7 +114,9 @@ internal sealed class ColumnsBlock : Block
 
         for (int index = 0; index < Items.Count; index++)
         {
-            if (!completed[index])
+            // A repeated column finished on an earlier page is drawn again beside the columns still going, at their
+            // height; it takes no part in deciding that height, so it never keeps the row going by itself.
+            if (!completed[index] || Items[index].Repeats)
             {
                 Fit itemPlan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context.Planning);
 

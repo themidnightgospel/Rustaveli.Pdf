@@ -17,6 +17,12 @@ internal abstract class Block
     protected virtual bool TracksDocumentProgress => false;
 
     /// <summary>
+    /// True for content drawn again on every page its container continues onto, rather than only until it is used
+    /// up. Containers whose children share a page, such as a row's columns, draw such content beside the rest.
+    /// </summary>
+    internal virtual bool Repeats => false;
+
+    /// <summary>
     /// Reports what this element would do if given <paramref name="availableSpace" />, without drawing anything.
     /// Must not mutate state, because the engine measures speculatively and may discard the result.
     /// </summary>

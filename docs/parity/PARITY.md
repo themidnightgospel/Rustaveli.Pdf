@@ -72,12 +72,12 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 |---|---|---|---|
 | Page break | `PageBreak` | ✅ | — |
 | Show if (static condition) | `ShowIf(bool)` | ✅ | — |
-| Show if (per page: page number, total pages) | `ShowIf(Predicate<ShowIfContext>)` | ❌ | 4 |
+| Show if (per page: page number, total pages) | `ShowIf(Predicate<ShowIfContext>)` | ✅ | — |
 | Show once, skip once | `ShowOnce`, `SkipOnce` | ✅ | — |
 | Keep together / never split | `ShowEntire`, `PreventPageBreak` | 🟡 `ShowEntire` only | 4 |
 | Ensure space | `EnsureSpace` | ✅ | — |
-| Repeat on every page | `Repeat` | ❌ | 4 |
-| Stop paging (draw first page only) | `StopPaging` | ❌ | 4 |
+| Repeat on every page | `Repeat` | ✅ | — |
+| Stop paging (draw first page only) | `StopPaging` | ✅ | — |
 | Lazy composition for very large documents, optionally cached | `Lazy`, `LazyWithCache` | ❌ | 4 |
 | Reusable components | `IComponent`, `Component` | ✅ | — |
 | Dynamic components with state, per-page composition | `IDynamicComponent`, `Dynamic`, `DynamicContext` | ❌ | 4 |

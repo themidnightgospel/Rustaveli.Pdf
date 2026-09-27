@@ -248,6 +248,30 @@ public static class FrameModifiers
     public static IFrame When(this IFrame parent, bool condition) =>
         Attach(parent, new WhenBlock { Condition = condition });
 
+    /// <summary>
+    /// Shows the content only on pages <paramref name="condition"/> accepts, such as odd pages or all but the first.
+    /// </summary>
+    /// <remarks>
+    /// The page count is null until the engine has counted the pages. Content shown or hidden by it can change that
+    /// count, so it suits content of a fixed size, such as a mark in a margin, rather than content in the flow.
+    /// </remarks>
+    public static IFrame When(this IFrame parent, Func<PageFacts, bool> condition) =>
+        Attach(parent, new WhenBlock { OnPage = condition ?? throw new ArgumentNullException(nameof(condition)) });
+
+    /// <summary>
+    /// Draws the content again on every page its container continues onto: a row's column is drawn afresh beside
+    /// the columns still going, instead of being left empty once its content is used up.
+    /// </summary>
+    public static IFrame RepeatOnEachPage(this IFrame parent) =>
+        Attach(parent, new RepeatBlock());
+
+    /// <summary>
+    /// Draws as much of the content as fits where it first appears and discards the overset, the rest that does not
+    /// fit, instead of continuing it on the next page. Content that fits nowhere takes no room.
+    /// </summary>
+    public static IFrame DiscardOverset(this IFrame parent) =>
+        Attach(parent, new DiscardOversetBlock());
+
     public static IFrame Once(this IFrame parent) =>
         Attach(parent, new OnceBlock());
 

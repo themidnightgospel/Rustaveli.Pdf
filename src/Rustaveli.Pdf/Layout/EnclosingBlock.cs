@@ -8,6 +8,9 @@ internal abstract class EnclosingBlock : Block, IFrameSlot
 {
     public Block? Child { get; set; }
 
+    // A wrapper around repeated content, such as a fill behind it, repeats with it.
+    internal override bool Repeats => Child?.Repeats ?? false;
+
     public override IEnumerable<Block?> GetChildren()
     {
         yield return Child;

@@ -113,6 +113,10 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `KeepTogether()` | method | Never splits the frame across pages. | print | `ShowEntire` |
 | `RequireSpace(float)` | method | Starts a new page unless at least this much space remains. | plain | `EnsureSpace` |
 | `When(bool)` | method | Includes the frame only when the condition holds. | plain | `ShowIf` |
+| `When(Func<PageFacts, bool>)` | method | Includes the frame only on the pages the condition accepts. | plain | `ShowIf(Predicate<ShowIfContext>)` |
+| `PageFacts` | struct | The page being laid out: its `Folio`, the `PageCount` once known, `IsFirst`, `IsLast`, `IsOdd`. | print | `ShowIfContext` |
+| `RepeatOnEachPage()` | method | Drawn afresh on every page its container continues onto. | plain | `Repeat` |
+| `DiscardOverset()` | method | Keeps what fits where the frame first appears and discards the rest. *Overset* is the typesetter's word for content that does not fit. | InDesign ("overset text") | `StopPaging` |
 | `Once()` | method | Drawn only the first time, even in a repeating band. | plain | `ShowOnce` |
 | `SkipFirst()` | method | Drawn every time but the first — "continued" labels. | plain | `SkipOnce` |
 
