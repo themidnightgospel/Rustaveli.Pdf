@@ -62,6 +62,12 @@ internal interface ISurface
     /// <summary>Returns to painting in each shape's own ink.</summary>
     void EndGradient();
 
+    /// <summary>
+    /// Draws the shadow a rectangle at <paramref name="position"/> of <paramref name="size"/>, rounded to
+    /// <paramref name="corners"/>, casts: moved, grown and blurred as <paramref name="shadow"/> says.
+    /// </summary>
+    void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow);
+
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
     /// <param name="text">The text, in logical order.</param>
     /// <param name="baselineStart">Where the run begins, on the baseline.</param>

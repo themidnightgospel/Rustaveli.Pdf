@@ -98,7 +98,28 @@ public static class FrameModifiers
     }
 
     /// <summary>
-    /// Rounds the corners of the fill or stroke this directly follows.
+    /// Casts a shadow from the frame onto what lies beneath it. Round its corners with <see cref="RoundCorners(IFrame, float)"/>
+    /// directly after, to match a rounded fill.
+    /// </summary>
+    public static IFrame DropShadow(this IFrame parent, Shadow shadow)
+    {
+        if (!(shadow.Blur >= 0) || float.IsInfinity(shadow.Blur))
+            throw new ArgumentOutOfRangeException(nameof(shadow), shadow.Blur, "A shadow's blur is a finite number of points, not negative.");
+
+        if (!IsFinite(shadow.Spread) || !IsFinite(shadow.Offset.X) || !IsFinite(shadow.Offset.Y))
+            throw new ArgumentOutOfRangeException(nameof(shadow), "A shadow's offset and spread are finite numbers of points.");
+
+        static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+        return Attach(parent, new ShadowBlock { Shadow = shadow });
+    }
+
+    /// <summary>Casts a shadow of <paramref name="ink"/>, blurred by <paramref name="blur"/> and moved by the offset.</summary>
+    public static IFrame DropShadow(this IFrame parent, Ink ink, float blur, float offsetX = 0, float offsetY = 0, float spread = 0) =>
+        parent.DropShadow(new Shadow(ink, blur, new Offset(offsetX, offsetY), spread));
+
+    /// <summary>
+    /// Rounds the corners of the fill, stroke or shadow this directly follows.
     /// </summary>
     public static IFrame RoundCorners(this IFrame parent, float radius) => parent.RoundCorners(Corners.All(radius));
 
@@ -109,12 +130,13 @@ public static class FrameModifiers
     public static IFrame RoundCorners(this IFrame parent, float topLeft, float topRight, float bottomRight, float bottomLeft) =>
         parent.RoundCorners(new Corners(topLeft, topRight, bottomRight, bottomLeft));
 
-    /// <summary>Rounds each corner of the fill or stroke this directly follows to its radius in <paramref name="corners"/>.</summary>
+    /// <summary>Rounds each corner of the fill, stroke or shadow this directly follows to its radius in <paramref name="corners"/>.</summary>
     public static IFrame RoundCorners(this IFrame parent, Corners corners) => parent switch
     {
         FillBlock fill => Assign(fill, corners),
         StrokeBlock stroke => Assign(stroke, corners),
-        _ => throw new CompositionException("RoundCorners must directly follow Fill or a Stroke method.")
+        ShadowBlock shadow => Assign(shadow, corners),
+        _ => throw new CompositionException("RoundCorners must directly follow Fill, DropShadow or a Stroke method.")
     };
 
     /// <summary>
@@ -134,6 +156,12 @@ public static class FrameModifiers
     {
         fill.Corners = corners;
         return fill;
+    }
+
+    private static IFrame Assign(ShadowBlock shadow, Corners corners)
+    {
+        shadow.Corners = corners;
+        return shadow;
     }
 
     private static IFrame Assign(StrokeBlock stroke, Corners corners)

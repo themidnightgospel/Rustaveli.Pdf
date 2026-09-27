@@ -309,7 +309,8 @@ public static class SpecimenCatalog
 
     /// <summary>
     /// Frames rounded corner by corner and stroked inside, on or outside their edge; content turned by any angle;
-    /// gradients filling frames, strokes and rules; and rules in every stroke style and in a pattern of dashes.
+    /// gradients filling frames, strokes and rules; shadows soft, sharp, spread and shrunk; and rules in every stroke
+    /// style and in a pattern of dashes.
     /// </summary>
     private static Document FramesAndRules() => Page(content => content.Stack(stack =>
     {
@@ -339,6 +340,15 @@ public static class SpecimenCatalog
             columns.Fixed(100f).Height(50f).Fill(new Gradient(45f, TestInks.TealLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("45°");
             columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Down(TestInks.PinkLighten3, TestInks.Grey)).Centered().Middle().Text("stroke");
             columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Across(TestInks.PinkLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("rounded");
+        });
+
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(24f);
+            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 8f, 4f, 4f).Fill(Ink.White).Centered().Middle().Text("soft");
+            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 0f, 6f, 6f).Fill(Ink.White).Centered().Middle().Text("sharp");
+            columns.Fixed(100f).Height(50f).DropShadow(new Shadow(TestInks.PinkLighten3, 16f, Spread: 4f)).RoundCorners(12).Fill(Ink.White).RoundCorners(12).Centered().Middle().Text("glow");
+            columns.Fixed(100f).Height(50f).DropShadow(new Shadow(Ink.Black.WithOpacity(0.4f), 6f, new Offset(0, 8), -4f)).Fill(TestInks.AmberLighten3).Centered().Middle().Text("lifted");
         });
 
         stack.Add().Rule(4f, Gradient.Across(TestInks.TealLighten3, TestInks.PinkLighten3));

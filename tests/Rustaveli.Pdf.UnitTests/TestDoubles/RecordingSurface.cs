@@ -98,6 +98,11 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new GradientEndOperation());
     }
 
+    public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+        Current.Operations.Add(new ShadowOperation(Resolve(position), size, corners, shadow, ResolveBounds(position, size)));
+    }
+
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         Current.Operations.Add(new TextOperation(Resolve(baselineStart), text, style, rightToLeft));

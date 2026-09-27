@@ -182,7 +182,7 @@ public class FrameModifiersTests
         CompositionException exception = Assert.Throws<CompositionException>(() =>
             Compose(container => container.Inset(2).RoundCorners(4)));
 
-        Assert.Equal("RoundCorners must directly follow Fill or a Stroke method.", exception.Message);
+        Assert.Equal("RoundCorners must directly follow Fill, DropShadow or a Stroke method.", exception.Message);
     }
 
     [Fact]

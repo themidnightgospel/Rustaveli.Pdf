@@ -94,7 +94,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Linear-gradient border | `BorderLinearGradient` | ✅ | — |
 | Corner radius, uniform | `CornerRadius` | ✅ | — |
 | Corner radius per corner | `CornerRadiusTopLeft`, … | ✅ | — |
-| Box shadow (blur, spread, offset, colour) | `Shadow`, `BoxShadowStyle` | ❌ | 4 |
+| Box shadow (blur, spread, offset, colour) | `Shadow`, `BoxShadowStyle` | ✅ | — |
 | Lines: thickness | `LineHorizontal/Vertical` | ✅ | — |
 | Lines: colour, dash pattern | `LineDescriptor` | ✅ | — |
 | Lines: gradient | `LineDescriptor.LineGradient` | ✅ | — |

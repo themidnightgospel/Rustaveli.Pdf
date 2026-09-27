@@ -87,7 +87,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Fill(Ink)`, `Fill(Gradient)` | method | Paints the frame's whole area, in an ink or a gradient. | InDesign | `Background`, `BackgroundLinearGradient` |
 | `Stroke(float)`, `StrokeLeft/Top/Right/Bottom` | method | A line around the frame's edge, of a given weight. | InDesign | `Border*` |
 | `StrokeInk(Ink)`, `StrokeInk(Gradient)` | method | The ink a stroke is drawn in, or a gradient laid across all it covers. | InDesign | `BorderColor`, `BorderLinearGradient` |
-| `RoundCorners(float)`, `RoundCorners(topLeft, topRight, bottomRight, bottomLeft)` | method | Rounds the frame's corners, alike or each on its own. | InDesign ("corner options") | `CornerRadius*` |
+| `DropShadow(Shadow)`, `DropShadow(Ink, blur, offsetX, offsetY, spread)` | method | Casts a soft shadow from the frame onto what lies beneath it. | InDesign ("drop shadow") | `Shadow` |
+| `RoundCorners(float)`, `RoundCorners(topLeft, topRight, bottomRight, bottomLeft)` | method | Rounds the frame's corners, alike or each on its own; after `DropShadow`, the shadow's. | InDesign ("corner options") | `CornerRadius*` |
 | `AlignStroke(StrokeAlignment)` | method | Whether the stroke just set lies inside the frame's edge, centred on it or outside it. | InDesign ("align stroke") | `BorderAlignment*` |
 | `Width`, `Height`, `MinWidth`, `MaxWidth`, `MinHeight`, `MaxHeight` | method | Size constraints. | plain | same |
 | `Expand()`, `ExpandHorizontally()`, `ExpandVertically()` | method | Claims all the space offered. | plain | `Extend*` |
@@ -176,6 +177,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
+| `Shadow` | struct | A shadow's `Ink`, `Blur`, `Offset` and `Spread`, in points, as CSS measures a box shadow. | InDesign ("drop shadow") | `BoxShadowStyle` |
 | `Gradient` | class | A linear blend of inks at an angle, clockwise from left to right: `Across`, `Down`, or any angle. | InDesign ("gradient swatch") | `BackgroundLinearGradient`'s arguments |
 | `Ink` | struct | A colour as print thinks of it: RGB, CMYK process colour, or a named spot ink with a process fallback ([ADR 0004](adr/0004-ink-colour-model.md)). | print | `Color` |
 | `Ink.Rgb`, `Ink.Cmyk`, `Ink.Spot`, `Ink.Hex` | method | Creates an ink. | print | `Color.FromArgb`, `Color.ParseHex` |

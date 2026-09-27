@@ -66,6 +66,10 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
+    public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+    }
+
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
     }

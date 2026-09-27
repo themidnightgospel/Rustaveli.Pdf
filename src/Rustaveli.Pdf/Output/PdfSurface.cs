@@ -43,6 +43,7 @@ internal sealed class PdfSurface : IPageSink
     private readonly FontEmbedder _fonts;
     private readonly ImageEmbedder _images;
     private readonly Dictionary<(string Name, InkModel Model, (float, float, float, float) Components), PdfReference> _separations = [];
+    private readonly Dictionary<(Extent Size, Corners Corners, float Deviation, Ink Ink), (PdfReference Image, ShadowMask Mask)> _shadows = [];
     private readonly Stack<State> _saved = new Stack<State>();
     private byte[] _codes = new byte[128];
     private PdfPage? _page;
@@ -337,6 +338,47 @@ internal sealed class PdfSurface : IPageSink
         content.SaveState();
         content.Transform(placement.A, placement.B, placement.C, placement.D, placement.E, placement.F);
         content.PaintXObject(name);
+        content.RestoreState();
+    }
+
+    public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+        if (shadow.Ink.IsTransparent)
+            return;
+
+        (Offset at, Extent grown, Corners radii) = shadow.Shape(position, size, corners);
+
+        if (grown.Width <= 0 || grown.Height <= 0)
+            return;
+
+        float deviation = shadow.Deviation;
+
+        if (deviation <= 0)
+        {
+            DrawRoundedRectangle(at, grown, radii, shadow.Ink);
+            return;
+        }
+
+        // PDF has no blur, so the shadow is an image in its ink, seen through a soft mask of its blurred coverage.
+        // Identical shadows, such as those of a table's cells, share one image.
+        Ink colour = shadow.Ink.WithOpacity(1);
+        (Extent Size, Corners Corners, float Deviation, Ink Ink) key = (grown, radii, deviation, colour);
+
+        if (!_shadows.TryGetValue(key, out (PdfReference Image, ShadowMask Mask) cast))
+        {
+            ShadowMask mask = ShadowMask.Create(grown, radii, deviation);
+            cast = (ShadowImage.Write(_writer.File, mask, colour), mask);
+            _shadows.Add(key, cast);
+        }
+
+        SetOpacity(shadow.Ink.Opacity, _state.StrokeAlpha);
+
+        Extent span = cast.Mask.Size;
+        float margin = cast.Mask.Margin;
+        ContentStreamBuilder content = Content;
+        content.SaveState();
+        content.Transform(span.Width, 0, 0, -span.Height, at.X - margin, at.Y - margin + span.Height);
+        content.PaintXObject(Page.Resources.GetXObjectName(cast.Image));
         content.RestoreState();
     }
 

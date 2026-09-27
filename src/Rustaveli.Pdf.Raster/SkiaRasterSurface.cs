@@ -95,16 +95,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         }
 
         // Fitted as the PDF surface fits them, so both draw the same shape.
-        Corners radii = corners.FittedTo(size);
-        using SKRoundRect shape = new SKRoundRect();
-        shape.SetRectRadii(
-            SKRect.Create(position.X, position.Y, size.Width, size.Height),
-            [
-                new SKPoint(radii.TopLeft, radii.TopLeft),
-                new SKPoint(radii.TopRight, radii.TopRight),
-                new SKPoint(radii.BottomRight, radii.BottomRight),
-                new SKPoint(radii.BottomLeft, radii.BottomLeft)
-            ]);
+        using SKRoundRect shape = RoundRect(position, size, corners.FittedTo(size));
         Canvas.DrawRoundRect(shape, paint);
     }
 
@@ -322,6 +313,43 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
     {
         _gradient?.Dispose();
         _gradient = null;
+    }
+
+    public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+        if (shadow.Ink.IsTransparent)
+            return;
+
+        (Offset at, Extent grown, Corners radii) = shadow.Shape(position, size, corners);
+
+        if (grown.Width <= 0 || grown.Height <= 0)
+            return;
+
+        using SKPaint paint = Paint(shadow.Ink);
+        float deviation = shadow.Deviation;
+
+        if (deviation > 0)
+            paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, deviation);
+
+        using SKRoundRect shape = RoundRect(at, grown, radii);
+
+        using (paint.MaskFilter)
+            Canvas.DrawRoundRect(shape, paint);
+    }
+
+    private static SKRoundRect RoundRect(Offset position, Extent size, Corners radii)
+    {
+        SKRoundRect shape = new SKRoundRect();
+        shape.SetRectRadii(
+            SKRect.Create(position.X, position.Y, size.Width, size.Height),
+            [
+                new SKPoint(radii.TopLeft, radii.TopLeft),
+                new SKPoint(radii.TopRight, radii.TopRight),
+                new SKPoint(radii.BottomRight, radii.BottomRight),
+                new SKPoint(radii.BottomLeft, radii.BottomLeft)
+            ]);
+
+        return shape;
     }
 
     /// <summary>The paint for a rectangle, line or outline: its ink, or the gradient set in its place.</summary>
