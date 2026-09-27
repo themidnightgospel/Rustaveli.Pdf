@@ -72,9 +72,9 @@ internal sealed class OpenTypeFont
             () => Optional(TableTag.Cff, static data => new CompactFontTable(data)), Mode);
         _kerning = new Lazy<KerningSource?>(ReadKerning, Mode);
         _glyphDefinitions = new Lazy<GlyphDefinitionTable?>(
-            () => Optional(TableTag.Gdef, static data => new GlyphDefinitionTable(data)), Mode);
+            () => Refinement(TableTag.Gdef, static data => new GlyphDefinitionTable(data)), Mode);
         _substitutions = new Lazy<GlyphSubstitutionTable?>(
-            () => Optional(TableTag.Gsub, data => new GlyphSubstitutionTable(data, GlyphDefinitions, GlyphCount)),
+            () => Refinement(TableTag.Gsub, data => new GlyphSubstitutionTable(data, GlyphDefinitions, GlyphCount)),
             Mode);
         _style = new Lazy<FaceStyle>(() => FaceStyle.From(Os2, Head), Mode);
         _lineMetrics = new Lazy<LineMetrics>(() => LineMetrics.Choose(HorizontalHeader, Os2), Mode);
@@ -377,6 +377,23 @@ internal sealed class OpenTypeFont
     private T? Optional<T>(uint tag, Func<ReadOnlyMemory<byte>, T> read)
         where T : class =>
         TryGetTable(tag, out ReadOnlyMemory<byte> data) ? read(data) : null;
+
+    /// <summary>
+    /// A table that refines how text is set rather than what it shows, such as substitutions: one the face gets wrong
+    /// is left out, as shapers leave it, so the text is still set, only without what the table would have added.
+    /// </summary>
+    private T? Refinement<T>(uint tag, Func<ReadOnlyMemory<byte>, T> read)
+        where T : class
+    {
+        try
+        {
+            return Optional(tag, read);
+        }
+        catch (FontFormatException)
+        {
+            return null;
+        }
+    }
 
     private FontNames ReadNames() =>
         Optional(TableTag.Name, static data => NameTable.Read(data.Span)) ?? FontNames.None;
