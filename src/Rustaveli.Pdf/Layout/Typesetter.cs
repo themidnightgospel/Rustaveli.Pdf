@@ -15,9 +15,6 @@ namespace Rustaveli.Pdf.Layout;
 /// </remarks>
 internal static class Typesetter
 {
-    /// <summary>Upper bound on pages per run, so a layout that never terminates fails loudly instead of hanging.</summary>
-    private const int MaxPagesPerRun = 10_000;
-
     /// <summary>
     /// How many times the page count may be recomputed before the result is accepted as-is. Documents settle in
     /// two passes in practice; the cap stops a pathological one that oscillates from looping forever.
@@ -76,11 +73,17 @@ internal static class Typesetter
             layout.DefaultType = section.DefaultType;
             layout.ReadingDirection = section.ReadingDirection;
 
-            int renderedInRun = 0;
-
             while (true)
             {
-                pageNumber++;
+                // A layout that never stops asking for another page fails loudly, rather than hanging, once the
+                // document has as many pages as it allows.
+                if (++pageNumber > document.PageLimit)
+                {
+                    throw new OversetException(
+                        $"The document exceeded {document.PageLimit} pages, which usually means some content reports more to come " +
+                        "but never takes any space. A document that really is longer can raise its PageLimit.");
+                }
+
                 pageContext.Folio = pageNumber;
 
                 // Until the real total is known, quote the page count as the current page so that dynamic text
@@ -92,13 +95,6 @@ internal static class Typesetter
 
                 if (!hasMore)
                     break;
-
-                // Counts pages that still left content over, so reaching the cap means the run needs more than
-                // MaxPagesPerRun pages. Testing with > would let one extra page through.
-                if (++renderedInRun >= MaxPagesPerRun)
-                    throw new OversetException(
-                        $"The document exceeded {MaxPagesPerRun} pages in a single section, which usually means some content " +
-                        "reports more to come but never takes any space.");
             }
         }
     }

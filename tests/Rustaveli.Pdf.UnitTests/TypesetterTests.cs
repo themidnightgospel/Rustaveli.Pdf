@@ -751,8 +751,8 @@ public class TypesetterTests
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.Equal(
-            "The document exceeded 10000 pages in a single section, which usually means some content reports " +
-            "more to come but never takes any space.",
+            "The document exceeded 10000 pages, which usually means some content reports more to come but never takes " +
+            "any space. A document that really is longer can raise its PageLimit.",
             exception.Message);
     }
 
@@ -780,8 +780,42 @@ public class TypesetterTests
         OversetException exception =
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
-        Assert.StartsWith("The document exceeded 10000 pages in a single section", exception.Message);
+        Assert.StartsWith("The document exceeded 10000 pages", exception.Message);
     }
+
+    [Fact]
+    public void ThePageLimitCountsEverySectionAndCanBeSet()
+    {
+        Document document = Document.Compose(composition =>
+        {
+            composition.Section(page =>
+            {
+                page.Trim = new Extent(20, 10);
+                page.Body().Compose(container => container.Slot().Child = new SplittableBlock(3, 10f));
+            });
+            composition.Section(page =>
+            {
+                page.Trim = new Extent(20, 10);
+                page.Body().Compose(container => container.Slot().Child = new SplittableBlock(2, 10f));
+            });
+        });
+
+        document.PageLimit = 5;
+        Assert.Equal(5, LayoutHarness.Render(document).Pages.Count);
+
+        document.PageLimit = 4;
+        OversetException exception = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
+        Assert.StartsWith("The document exceeded 4 pages", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void APageLimitAllowsAPageAtLeast(int limit) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => Build(page => page.Body().Text("x")).PageLimit = limit);
+
+    [Fact]
+    public void ThePageLimitIsTenThousandUnlessSet() => Assert.Equal(10_000, Build(page => page.Body().Text("x")).PageLimit);
 
     [Fact]
     public void CountsPagesQuotingEachAsTheLastThenDrawsWithTheSettledTotal()

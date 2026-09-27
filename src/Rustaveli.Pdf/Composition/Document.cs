@@ -14,7 +14,23 @@ public sealed class Document : IComposition
 {
     private readonly List<Section> _pages = new List<Section>();
 
+    private int _pageLimit = 10_000;
+
     public DocumentInfo Info { get; } = new DocumentInfo();
+
+    /// <summary>
+    /// The most pages the document may take, 10,000 unless set. Content that never stops asking for another page —
+    /// a frame that reports more to come but takes no room — fails once it passes this, rather than running forever.
+    /// </summary>
+    public int PageLimit
+    {
+        get => _pageLimit;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            _pageLimit = value;
+        }
+    }
 
     internal IReadOnlyList<Section> Sections => _pages;
 

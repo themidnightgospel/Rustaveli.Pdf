@@ -206,7 +206,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Layout errors raised with explanation | `DocumentLayoutException` | ✅ | — |
 | Visual debug areas and pointers | `DebugArea`, `DebugPointer` | ❌ | 8 |
 | Debug mode with element-tree trace of a layout failure | `Settings.EnableDebugging` | ❌ | 8 |
-| Layout exception threshold | `DocumentLayoutExceptionThreshold` | 🟡 fixed page cap | 4 |
+| Layout exception threshold | `DocumentLayoutExceptionThreshold` | ✅ `Document.PageLimit` | — |
 | Caching switch | `Settings.EnableCaching` | ➖ no global switch; caching is internal | 2 |
 | Live previewer with hot reload, element inspector, source navigation | `ShowInCompanion`, `ShowInPreviewer` | ❌ | 8 |
 | Licence selection | `Settings.License`, `LicenseType` | ➖ MIT, nothing to select | — |
