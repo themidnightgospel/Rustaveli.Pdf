@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Layout;
 #if NETFRAMEWORK
@@ -218,7 +219,13 @@ public class PreviewTests
     [Fact]
     public async Task AGivenPortIsUsed()
     {
-        int port = new Random().Next(40_000, 50_000);
+        // A port the system has just handed out is free, and never one it reserves — as Windows reserves ranges
+        // for Hyper-V — where a port picked at random might be.
+        TcpListener probe = new TcpListener(IPAddress.Loopback, 0);
+        probe.Start();
+        int port = ((IPEndPoint)probe.LocalEndpoint).Port;
+        probe.Stop();
+
         using PreviewSession session = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
 
         Assert.Equal(port, session.Url.Port);
