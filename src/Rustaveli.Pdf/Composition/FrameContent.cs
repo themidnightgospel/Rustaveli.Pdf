@@ -125,6 +125,17 @@ public static class FrameContent
         handler(parent);
     }
 
+    /// <summary>
+    /// Composes the frame's content only when layout first reaches it, and lets it go once it is drawn in full, so a
+    /// very large document holds only the content of the pages being drawn. Kept, the content is composed once and
+    /// held instead, which is quicker when the same content is laid out again in every pass over the document.
+    /// </summary>
+    public static void ComposeLater(this IFrame parent, Action<IFrame> handler, bool keep = false)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        FrameAttachment.Attach(parent, new LaterBlock { Compose = handler, Keep = keep });
+    }
+
     /// <summary>Composes a reusable component into this container.</summary>
     public static void Snippet(this IFrame parent, ISnippet snippet)
     {

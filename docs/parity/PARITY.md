@@ -78,7 +78,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Ensure space | `EnsureSpace` | ✅ | — |
 | Repeat on every page | `Repeat` | ✅ | — |
 | Stop paging (draw first page only) | `StopPaging` | ✅ | — |
-| Lazy composition for very large documents, optionally cached | `Lazy`, `LazyWithCache` | ❌ | 4 |
+| Lazy composition for very large documents, optionally cached | `Lazy`, `LazyWithCache` | ✅ | — |
 | Reusable components | `IComponent`, `Component` | ✅ | — |
 | Dynamic components with state, per-page composition | `IDynamicComponent`, `Dynamic`, `DynamicContext` | ❌ | 4 |
 | Capture a content position; query it later | `CaptureContentPosition`, `GetContentCapturedPositions` | ❌ | 4 |

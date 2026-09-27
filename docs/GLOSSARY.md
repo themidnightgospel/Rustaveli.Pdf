@@ -45,6 +45,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `ISnippet` | interface | A reusable piece of composition, `Compose(IFrame)`. InDesign calls reusable content *snippets*. | InDesign | `IComponent` |
 | `Snippet(ISnippet)` / `Snippet<T>()` | method | Places a snippet. | InDesign | `Component` |
 | `Compose(Action<IFrame>)` | method | Composes into a frame with a method of your own. | print | `Element` |
+| `ComposeLater(Action<IFrame>, bool keep)` | method | Composes only when layout reaches the frame, letting the content go once drawn unless kept. | plain | `Lazy`, `LazyWithCache` |
 | `Blank()` | method | Places nothing. | print | `Empty` |
 | `FrameContent` | class | The methods that set content into a frame, and so end a chain: `Text`, `Image`, `Stack`, `Columns`, `Table`, `List`, `Layered`, `Banded`, `Compose`, `Snippet`, `Blank`. | plain | `ContentExtensions` |
 | `FrameModifiers` | class | The methods that wrap a frame in another and return the inner one: every method under *Modifying a frame*, *Flow across pages* and *Rules, links and placeholders* below. | plain | `LayoutExtensions` |
