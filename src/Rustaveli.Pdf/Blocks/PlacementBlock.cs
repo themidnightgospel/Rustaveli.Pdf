@@ -3,11 +3,13 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Claims the full space on any axis it aligns, then positions its child within that space.
+/// Positions its child within the space it is drawn in: measured as its child is, and placed against an edge or
+/// centred in whatever room its parent grants — a stack's width, a row's height, a frame of fixed size.
 /// </summary>
 /// <remarks>
-/// An axis with no alignment set is left untouched and collapses to the child's own size, so
-/// <c>AlignRight</c> alone stretches horizontally while remaining vertically snug.
+/// Measuring as the child does keeps natural sizing natural: a placed frame in a column sized to its content takes
+/// its content's width, not the page's. Where the parent grants no more room than the child needs, placement moves
+/// nothing.
 /// </remarks>
 internal sealed class PlacementBlock : EnclosingBlock
 {
@@ -15,22 +17,8 @@ internal sealed class PlacementBlock : EnclosingBlock
 
     public VerticalPlacement? Vertical { get; set; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
-    {
-        Fit childPlan = Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
-
-        if (childPlan.IsDeferred)
-            return childPlan;
-
-        if (childPlan.IsNothing)
-            return Fit.Nothing();
-
-        Extent size = new Extent(
-            Horizontal.HasValue ? availableSpace.Width : childPlan.Size.Width,
-            Vertical.HasValue ? availableSpace.Height : childPlan.Size.Height);
-
-        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
-    }
+    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+        Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
 
     public override void Render(Extent availableSpace, RenderContext context)
     {

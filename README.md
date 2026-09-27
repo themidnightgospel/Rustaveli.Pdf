@@ -239,12 +239,6 @@ so the comparison is behavioural throughout.
 single `Document` instance carries the layout cursors in its block tree, so it must not be exported from two
 threads at once. Compose one document per thread, or export them one after another.
 
-**Placement expands to fill.** `Middle` and `FlushBottom` claim the whole height offered, and any placement claims
-the whole width. Inside a running head or foot that means claiming the rest of the page; inside a `Natural` column
-it defeats the point of natural sizing and starves the neighbouring columns. Both cases fail with an explanatory
-error rather than producing silent garbage, but the general fix — resolving natural size before placing within it —
-is not implemented. Constrain the size explicitly when placing.
-
 **Text is set glyph by glyph, with pair kerning but no other OpenType features.** There are no ligatures or other
 `GSUB` substitutions, no mark positioning, no complex-script shaping and no bidi reordering yet — the text engine of
 phase 3. `ReadingDirection` mirrors *layout* — the order of columns and table columns, and the default text

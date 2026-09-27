@@ -27,6 +27,12 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
     public ReadingDirection ReadingDirection { get; internal set; } = ReadingDirection.LeftToRight;
 
     /// <summary>
+    /// The room the body of the page being set offers from its top: what content moved to a fresh page would have.
+    /// Unbounded until a page is set.
+    /// </summary>
+    public Extent PageBody { get; internal set; } = Extent.Max;
+
+    /// <summary>
     /// Runs <paramref name="action" /> with a different content direction in force, restoring the previous one
     /// afterwards even if it throws.
     /// </summary>
