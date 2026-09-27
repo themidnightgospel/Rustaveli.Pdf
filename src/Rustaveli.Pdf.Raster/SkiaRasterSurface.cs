@@ -171,7 +171,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
 
             face = glyph.Face;
             glyphs.Add(glyph.Glyph);
-            positions.Add(new SKPoint(pen, baselineStart.Y));
+            positions.Add(new SKPoint(pen + glyph.XOffset, baselineStart.Y - glyph.YOffset));
             previousStep = glyph.Advance + glyph.Extra;
             first = false;
         }

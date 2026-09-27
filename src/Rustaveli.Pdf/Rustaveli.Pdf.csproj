@@ -32,6 +32,7 @@
 
     <!-- Backends ship in lockstep with the core, so they may use its engine seams without making them public. -->
     <InternalsVisibleTo Include="Rustaveli.Pdf.Raster" />
+    <InternalsVisibleTo Include="Rustaveli.Pdf.Shaping" />
   </ItemGroup>
 
   <!--

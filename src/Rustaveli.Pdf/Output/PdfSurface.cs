@@ -241,29 +241,36 @@ internal sealed class PdfSurface : IPageSink
         double pen = baselineStart.X;
         float previousAdvance = 0f;
         float previousExtra = 0f;
+        float previousShortfall = 0f;
         bool first = true;
+        bool placed = false;
 
         foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style, rightToLeft))
         {
-            // Beyond the widths and character spacing a reader applies itself: kerning, and word spacing after a space.
-            float adjustment = glyph.Kerning + previousExtra;
+            // Beyond the widths and character spacing a reader applies itself: kerning, word spacing after a space,
+            // and any difference between the advance the glyph was set with and the width the font declares for it.
+            float adjustment = glyph.Kerning + previousExtra + previousShortfall;
 
             if (!first)
-                pen += previousAdvance + style.Tracking + adjustment;
+                pen += previousAdvance + style.Tracking + glyph.Kerning + previousExtra;
 
             EmbeddedFont font = _fonts.For(glyph.Face);
+            bool displaced = glyph.XOffset != 0 || glyph.YOffset != 0;
 
-            if (!ReferenceEquals(font, current))
+            // A face change, and a glyph set off its pen position — a mark placed on its letter — or the glyph after
+            // one, starts a new array placed exactly, so nothing drifts from where layout put it.
+            if (!ReferenceEquals(font, current) || displaced || placed)
             {
-                // A face change starts a new array placed at the pen, so a fallback run cannot drift from layout.
                 if (current is not null)
                 {
                     Flush(content, ref pending);
                     content.EndTextArray();
                 }
 
-                content.SetFont(Page.Resources.GetFontName(font.Reference), size);
-                content.SetTextMatrix(1, 0, 0, -1, pen, baselineStart.Y);
+                if (!ReferenceEquals(font, current))
+                    content.SetFont(Page.Resources.GetFontName(font.Reference), size);
+
+                content.SetTextMatrix(1, 0, 0, -1, pen + glyph.XOffset, baselineStart.Y - glyph.YOffset);
                 content.BeginTextArray();
                 current = font;
             }
@@ -278,6 +285,8 @@ internal sealed class PdfSurface : IPageSink
 
             previousAdvance = glyph.Advance;
             previousExtra = glyph.Extra;
+            previousShortfall = glyph.Advance - glyph.Face.GetAdvance(glyph.Glyph, size);
+            placed = displaced;
             first = false;
         }
 

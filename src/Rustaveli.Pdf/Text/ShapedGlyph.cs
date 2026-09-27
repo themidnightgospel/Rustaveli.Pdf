@@ -25,6 +25,8 @@ namespace Rustaveli.Pdf.Text;
 /// What the glyph stands for when that is not just <paramref name="Codepoint"/>: a ligature's characters, or empty
 /// for a glyph standing for none. Null otherwise, which is almost always.
 /// </param>
+/// <param name="XOffset">How far the glyph is drawn to the right of the pen, in points, without moving it.</param>
+/// <param name="YOffset">How far the glyph is drawn above the baseline, in points: a mark placed on its letter.</param>
 internal readonly record struct ShapedGlyph(
     OpenTypeFont Face,
     ushort Glyph,
@@ -34,7 +36,9 @@ internal readonly record struct ShapedGlyph(
     float Advance,
     float Kerning,
     float Extra = 0f,
-    string? Text = null)
+    string? Text = null,
+    float XOffset = 0f,
+    float YOffset = 0f)
 {
     /// <summary>
     /// The text the glyph stands for when read back: <see cref="Codepoint"/> for most glyphs, every character of a

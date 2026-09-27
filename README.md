@@ -100,6 +100,8 @@ ISurface              The single seam to any backend, fed glyphs by one shaper f
       │
       ├─▶ PDF             the managed writer: Type 0 font subsets, images as encoded, separations
       └─▶ Page images     Rustaveli.Pdf.Raster: PNG, JPEG or WebP through SkiaSharp
+
+      Complex scripts   Rustaveli.Pdf.Shaping: HarfBuzz behind the same shaper, by opt-in
 ```
 
 Only the composition layer is public. Blocks, the typesetter and the drawing seam are internal, so the engine can
@@ -168,9 +170,12 @@ orientation; CMYK process colour, spot inks as separations with a process fallba
 cross-references to anchors and document information. Exports run in parallel. Page images — PNG, JPEG or WebP at
 any resolution — come from the `Rustaveli.Pdf.Raster` package, drawn from the same layout and glyphs.
 
-**Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with named
-fallbacks and per-character fallback for anything a face lacks, pair kerning, substitution for a typeface nobody
-has, and bundled Noto Sans for a machine with no fonts at all.
+**Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with fallback
+typefaces per style and per library and per-character fallback for anything a face lacks; OpenType substitutions
+(ligatures, small capitals, figure styles and any feature by tag) and pair kerning; substitution for a typeface
+nobody has, bundled Noto Sans for a machine with no fonts at all, and an optional check that every glyph exists.
+Complex scripts — Arabic, Hebrew points, Indic and South-East Asian scripts — are shaped by HarfBuzz once the
+`Rustaveli.Pdf.Shaping` package is added and `ShapeComplexScripts()` called on the library.
 
 ## Testing
 

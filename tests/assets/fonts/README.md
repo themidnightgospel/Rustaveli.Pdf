@@ -8,6 +8,8 @@ glyph, different line breaks, different page breaks — and passes or fails depe
 |---|---|---|
 | `NotoSans-Regular.ttf`, `-Bold.ttf`, `-Italic.ttf` | Latin, Greek, Cyrillic | [notofonts/latin-greek-cyrillic](https://github.com/notofonts/latin-greek-cyrillic) |
 | `NotoSansGeorgian-Regular.ttf` | Georgian — a script Noto Sans lacks, for fallback tests | [notofonts/georgian](https://github.com/notofonts/georgian) |
+| `NotoSansArabic-Regular.ttf` | Arabic — joining, ligatures and marks, for complex-script shaping | [notofonts/arabic](https://github.com/notofonts/arabic) |
+| `NotoSansDevanagari-Regular.ttf` | Devanagari — reordering and conjuncts, for complex-script shaping | [notofonts/devanagari](https://github.com/notofonts/devanagari) |
 | `SpecimenSans.ttc` | A font collection of three TrueType faces, for the font parser | Derived from Noto Sans by `derive.py` |
 | `SpecimenCff-Regular.otf` | CFF (PostScript) outlines, for the font parser | Derived from Noto Sans by `derive.py` |
 | `SpecimenLayout-Regular.otf` | Every kind of glyph substitution, for the GSUB engine | Derived from Noto Sans by `derive.py` |

@@ -117,7 +117,7 @@ internal ref struct GlyphWalk
         (int codepoint, int length) = Read(start);
         OpenTypeFont face = _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
 
-        if (start >= _plainEnd && face.Substitutions is not null && Shape(face, start, length))
+        if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) && Shape(face, start, length))
         {
             EmitShaped();
             return true;
@@ -151,7 +151,13 @@ internal ref struct GlyphWalk
         }
 
         ReadOnlySpan<char> run = _text.Slice(start, end - start);
-        IReadOnlyList<(int Index, int Value)> lookups = _shaper.LookupsFor(face, ScriptDetection.Of(run), _features);
+
+        if (_shaper.Complex is IComplexShaper complex && complex.Handles(run))
+            return ShapeComplex(complex, face, start, run);
+
+        IReadOnlyList<(int Index, int Value)> lookups = face.Substitutions is null
+            ? []
+            : _shaper.LookupsFor(face, ScriptDetection.Of(run), _features);
 
         if (lookups.Count == 0)
         {
@@ -162,6 +168,7 @@ internal ref struct GlyphWalk
         ShapingScratch scratch = TypeShaper.RentScratch();
         GlyphBuffer buffer = scratch.Buffer;
         buffer.Load(face, run);
+        scratch.Placements.Clear();
 
         try
         {
@@ -185,6 +192,34 @@ internal ref struct GlyphWalk
     }
 
     /// <summary>
+    /// Hands a run to the complex shaper, which places its glyphs itself — advances with any kerning, and offsets for
+    /// marks — and loads what it sets into the buffer, so they are handed out cluster by cluster as substituted glyphs
+    /// are.
+    /// </summary>
+    private bool ShapeComplex(IComplexShaper complex, OpenTypeFont face, int start, ReadOnlySpan<char> run)
+    {
+        ShapingScratch scratch = TypeShaper.RentScratch();
+        GlyphBuffer buffer = scratch.Buffer;
+        List<ComplexGlyph> placements = scratch.Placements;
+
+        placements.Clear();
+        complex.Shape(face, run, _pointSize, _features, placements);
+        buffer.Load(face, ReadOnlySpan<char>.Empty);
+
+        foreach (ComplexGlyph placed in placements)
+            buffer.Add(placed.Glyph, placed.Cluster);
+
+        _scratch = scratch;
+        _buffer = buffer;
+        _bufferFace = face;
+        _bufferIndex = 0;
+        _runStart = start;
+        _runLength = run.Length;
+        _next = start + run.Length;
+        return true;
+    }
+
+    /// <summary>
     /// The next glyph of the shaped run. The first glyph of a cluster stands for its characters; any further glyphs
     /// of the cluster, from a substitution that made several of one, stand for none, so text read back is not doubled.
     /// </summary>
@@ -202,19 +237,24 @@ internal ref struct GlyphWalk
             : length > single ? _text.Slice(start, length).ToString()
             : null;
 
-        Emit(_bufferFace!, buffer.Glyphs[index], codepoint, start, length, text);
+        List<ComplexGlyph> placements = _scratch!.Placements;
+        ComplexGlyph? placed = placements.Count > 0 ? placements[index] : null;
+
+        Emit(_bufferFace!, buffer.Glyphs[index], codepoint, start, length, text, placed);
     }
 
-    private void Emit(OpenTypeFont face, ushort glyph, int codepoint, int start, int length, string? text)
+    private void Emit(OpenTypeFont face, ushort glyph, int codepoint, int start, int length, string? text, ComplexGlyph? placed = null)
     {
-        float advance = face.GetAdvance(glyph, _pointSize);
-        float kerning = ReferenceEquals(face, _previousFace) ? face.GetKerning(_previousGlyph, glyph, _pointSize) : 0f;
+        // A glyph a complex shaper placed moves the pen as it said, kerning included, and is drawn where it said.
+        float advance = placed?.Advance ?? face.GetAdvance(glyph, _pointSize);
+        float kerning = placed is null && ReferenceEquals(face, _previousFace) ? face.GetKerning(_previousGlyph, glyph, _pointSize) : 0f;
 
         // Word spacing widens the spaces between words, the no-break space among them; it is carried by the space
         // itself, so a space measured on its own is as wide as it will be set.
         float extra = text is null && codepoint is ' ' or NoBreakSpace ? _wordSpacing : 0f;
 
-        Current = new ShapedGlyph(face, glyph, codepoint, start, length, advance, kerning, extra, text);
+        Current = new ShapedGlyph(
+            face, glyph, codepoint, start, length, advance, kerning, extra, text, placed?.XOffset ?? 0f, placed?.YOffset ?? 0f);
         _previousFace = face;
         _previousGlyph = glyph;
     }

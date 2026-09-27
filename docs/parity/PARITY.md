@@ -129,7 +129,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Unicode line breaking (UAX #14) | — | ✅ Unicode 16, default rules | — |
 | Per-span direction; bidi reordering | `Direction*` | ✅ UAX #9, runs isolated in their own direction | — |
 | OpenType features (ligatures, small caps, figures, …) | `EnableFontFeature`, `FontFeatures` | ✅ every GSUB lookup type, per script | — |
-| Complex-script shaping | — (built in) | ❌ | 3 (`Shaping` package) |
+| Complex-script shaping | — (built in) | ✅ `Shaping` package (HarfBuzz) | — |
 | Inline elements in a paragraph, with vertical alignment | `Element(TextInjectedElementAlignment)` | ✅ | — |
 | Current page, total pages | `CurrentPageNumber`, `TotalPages` | ✅ | — |
 | Page number formatting (roman, custom) | `TextPageNumberDescriptor.Format` | ✅ | — |

@@ -47,14 +47,18 @@ internal sealed class TypeShaper
     // Held rather than converted from the method group on every call: text is measured on the hot path.
     private readonly Func<FontRequest, OpenTypeFont> _find;
 
-    public TypeShaper(FontCatalog catalog, IReadOnlyList<string>? fallbackTypefaces = null)
+    public TypeShaper(FontCatalog catalog, IReadOnlyList<string>? fallbackTypefaces = null, IComplexShaper? complex = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
 
         _catalog = catalog;
         _fallbackTypefaces = fallbackTypefaces ?? [];
+        Complex = complex;
         _find = Find;
     }
+
+    /// <summary>The shaper runs in complex scripts are handed to; null to set them glyph for glyph.</summary>
+    public IComplexShaper? Complex { get; }
 
     /// <summary>The face a style's text is set in, before any fallback.</summary>
     public OpenTypeFont Resolve(TypeStyle style) => Resolve(RequestFor(style));

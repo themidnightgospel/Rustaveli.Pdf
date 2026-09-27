@@ -17,6 +17,8 @@ internal static class TestFonts
         foreach (string file in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "fonts"), "*.ttf"))
             TypefaceLibrary.Shared.RegisterFile(file);
 
+        // Arabic and Devanagari specimens need their scripts shaped; nothing else holds such characters.
+        TypefaceLibrary.Shared.ShapeComplexScripts();
         return true;
     }
 }

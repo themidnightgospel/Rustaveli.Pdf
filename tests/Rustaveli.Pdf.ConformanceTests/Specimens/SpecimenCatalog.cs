@@ -17,7 +17,8 @@ public static class SpecimenCatalog
         new Specimen("layers-and-decoration", LayersAndDecoration),
         new Specimen("long-flow", LongFlow),
         new Specimen("text-strokes", TextStrokes),
-        new Specimen("paragraphs", Paragraphs)
+        new Specimen("paragraphs", Paragraphs),
+        new Specimen("complex-scripts", ComplexScripts)
     ];
 
     public static TheoryData<Specimen> Cases()
@@ -37,6 +38,41 @@ public static class SpecimenCatalog
             configure?.Invoke(section);
             content(section.Body());
         }));
+
+    /// <summary>
+    /// Scripts shaped by HarfBuzz: Arabic joining with its marks placed, right to left among English, and Devanagari
+    /// conjuncts and reordered vowel signs.
+    /// </summary>
+    private static Document ComplexScripts() => Page(content => content.Stack(stack =>
+    {
+        stack.SpaceBetween(14f);
+
+        stack.Add().RightToLeft().Text(text =>
+        {
+            text.DefaultType(type => type.WithTypeface("Noto Sans Arabic").WithPointSize(22f));
+            text.Run("السلام عليكم ورحمة الله. ");
+            text.Run("بَبُبِ");
+        });
+
+        stack.Add().Text(text =>
+        {
+            text.DefaultType(type => type.WithTypeface(TestFonts.Sans, "Noto Sans Arabic").WithPointSize(16f));
+            text.Run("English with Arabic, العربية, in the middle of a sentence.");
+        });
+
+        stack.Add().Text(text =>
+        {
+            text.DefaultType(type => type.WithTypeface("Noto Sans Devanagari").WithPointSize(22f));
+            text.Run("नमस्ते दुनिया। किताब, हिन्दी, क्षत्रिय।");
+        });
+
+        stack.Add().Width(260f).Stroke(0.5f).StrokeInk(TestInks.Grey).Inset(6f).RightToLeft().Text(text =>
+        {
+            text.Justified();
+            text.DefaultType(type => type.WithTypeface("Noto Sans Arabic").WithPointSize(14f));
+            text.Run("هذا نص عربي طويل بما يكفي ليلتف على عدة أسطر ويضبط من الجانبين، ليظهر أن الكلمات تبقى متصلة.");
+        });
+    }));
 
     /// <summary>Paragraph settings: justification, alignment by direction, line limits, breaking anywhere, inline frames.</summary>
     private static Document Paragraphs() => Page(content => content.Stack(stack =>

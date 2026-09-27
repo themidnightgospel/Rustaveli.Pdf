@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Rustaveli.Pdf.Raster/Rustaveli.Pdf.Raster.csproj" />
+    <Project Path="src/Rustaveli.Pdf.Shaping/Rustaveli.Pdf.Shaping.csproj" />
     <Project Path="src/Rustaveli.Pdf/Rustaveli.Pdf.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -25,6 +25,7 @@ public sealed class TypefaceLibrary
     private readonly object _lock = new object();
     private IReadOnlyList<string> _fallbacks = [];
     private TypeShaper _shaper;
+    private IComplexShaper? _complex;
 
     /// <summary>A library of the installed typefaces, to which more can be registered.</summary>
     public TypefaceLibrary()
@@ -61,12 +62,29 @@ public sealed class TypefaceLibrary
             lock (_lock)
             {
                 _fallbacks = value.ToArray();
-                Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks));
+                Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
             }
         }
     }
 
     internal TypeShaper Shaper => Volatile.Read(ref _shaper);
+
+    /// <summary>
+    /// The shaper for complex scripts, which the Rustaveli.Pdf.Shaping package installs; null until then, when such
+    /// text is set glyph for glyph.
+    /// </summary>
+    internal IComplexShaper? ComplexShaper
+    {
+        get => _complex;
+        set
+        {
+            lock (_lock)
+            {
+                _complex = value;
+                Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
+            }
+        }
+    }
 
     /// <summary>Registers every face in a font file: TrueType or OpenType, single or a collection.</summary>
     /// <exception cref="ArgumentException">The data is not a font this library can read.</exception>
@@ -106,7 +124,7 @@ public sealed class TypefaceLibrary
             }
 
             // Faces resolved before now may be shadowed by what was just registered.
-            Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks));
+            Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
         }
     }
 }
