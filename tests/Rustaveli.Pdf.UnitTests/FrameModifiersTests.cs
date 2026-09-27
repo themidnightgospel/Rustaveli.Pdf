@@ -457,6 +457,18 @@ public class FrameModifiersTests
         Approximately.Equal(new Extent(20, 50), new Extent(content.Bounds.Width, content.Bounds.Height));
     }
 
+    [Fact]
+    public void RotateTurnsAboutTheCentreWithoutChangingTheLayout()
+    {
+        Block root = Compose(container => container.Rotate(180));
+        RectangleOperation content = ContentInItsOwnBox(root);
+
+        // A half turn about the centre lands the content back over its own box, drawn from the far corner.
+        Approximately.Equal(new Extent(50, 20), Measure(root));
+        Approximately.Equal(new Offset(50, 20), content.Position);
+        Approximately.Equal(new Offset(0, 0), new Offset(content.Bounds.Left, content.Bounds.Top));
+    }
+
     // ---- Flow control --------------------------------------------------------------------------------------
 
     [Fact]

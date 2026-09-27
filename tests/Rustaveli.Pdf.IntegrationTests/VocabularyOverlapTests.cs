@@ -20,7 +20,7 @@ public class VocabularyOverlapTests
 
         // Layout.
         "Cell", "Columns", "Compose", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",
-        "MinWidth", "Placeholder", "Portrait", "Scale", "Section", "Stack", "Table", "Width",
+        "MinWidth", "Placeholder", "Portrait", "Rotate", "Scale", "Section", "Stack", "Table", "Width",
 
         // Typography.
         "Bold", "Italic", "Line", "Overline", "Style", "Subscript", "Superscript", "Text", "Underline", "Weight",

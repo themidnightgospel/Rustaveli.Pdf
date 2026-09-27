@@ -158,4 +158,70 @@ public class TransformRenderingTests
         Assert.Equal(0f, bounds.Left, 2);
         Assert.Equal(0f, bounds.Top, 2);
     }
+
+    [Theory]
+    [InlineData(90f, 55f, -45f)]
+    [InlineData(180f, 100f, 10f)]
+    [InlineData(270f, 45f, 55f)]
+    [InlineData(360f, 0f, 0f)]
+    public void ARotationTurnsTheContentAboutTheCentreOfItsBox(float degrees, float x, float y)
+    {
+        RotateBlock element = new RotateBlock { Degrees = degrees, Child = new FixedBlock(100, 10) };
+
+        RectangleOperation content = LayoutHarness.Draw(element, new Extent(100, 10)).Operations.OfType<RectangleOperation>().Single();
+
+        // The content's top-left corner, swung about the box's centre at (50, 5).
+        Approximately.Equal(new Offset(x, y), content.Position);
+    }
+
+    [Fact]
+    public void ANegativeAngleTurnsAnticlockwise()
+    {
+        RotateBlock element = new RotateBlock { Degrees = -90, Child = new FixedBlock(100, 10) };
+
+        RectangleOperation content = LayoutHarness.Draw(element, new Extent(100, 10)).Operations.OfType<RectangleOperation>().Single();
+
+        Approximately.Equal(new Offset(45, 55), content.Position);
+    }
+
+    [Fact]
+    public void AnyAngleIsHonoured()
+    {
+        RotateBlock element = new RotateBlock { Degrees = 45, Child = new FixedBlock(20, 20) };
+
+        RectangleOperation content = LayoutHarness.Draw(element, new Extent(20, 20)).Operations.OfType<RectangleOperation>().Single();
+
+        // A square turned an eighth about its centre stands on its corner: the top-left corner rises to the top.
+        Approximately.Equal(new Offset(10, 10 - (10 * (float)Math.Sqrt(2))), content.Position);
+    }
+
+    [Fact]
+    public void ARotationLeavesLayoutAlone()
+    {
+        RotateBlock element = new RotateBlock { Degrees = 30, Child = new FixedBlock(100, 10) };
+
+        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
+
+        Approximately.Equal(new Extent(100, 10), plan.Size);
+    }
+
+    [Fact]
+    public void ARotationWithNothingInsideDrawsNothing()
+    {
+        RotateBlock element = new RotateBlock { Degrees = 30 };
+
+        Assert.Empty(LayoutHarness.Draw(element, new Extent(100, 10)).Operations);
+    }
+
+    [Fact]
+    public void ARotationDoesNotTurnWhatFollows()
+    {
+        StackBlock stack = new StackBlock();
+        stack.Items.Add(new RotateBlock { Degrees = 90, Child = new FixedBlock(100, 10) });
+        stack.Items.Add(new FixedBlock(100, 10));
+
+        RectangleOperation after = LayoutHarness.Draw(stack, new Extent(100, 100)).Operations.OfType<RectangleOperation>().Last();
+
+        Assert.Equal(new Bounds(0, 10, 100, 20), after.Bounds);
+    }
 }

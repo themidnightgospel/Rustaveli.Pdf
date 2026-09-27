@@ -710,6 +710,26 @@ public class PdfSurfaceTests
     }
 
     [Fact]
+    public void RotateTakesAnyAngle()
+    {
+        // An eighth of a turn is written as its own matrix, inside the page's Y-down flip, so it turns clockwise on
+        // the page. PdfPig bounds a rectangle by two of its corners, so the matrix is what is checked.
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.Translate(new Offset(100, 100));
+            canvas.Rotate(45);
+            canvas.DrawRectangle(Offset.Zero, new Extent(20, 20), Brick);
+        });
+
+        string content = System.Text.Encoding.ASCII.GetString(parsed.GetPage(1).Operations
+            .Select(operation => { using MemoryStream buffer = new MemoryStream(); operation.Write(buffer); return buffer.ToArray(); })
+            .SelectMany(bytes => bytes.Append((byte)'\n'))
+            .ToArray());
+
+        Assert.Matches(@"1 0 0 1 100 100 cm\s+0\.70711 0\.70711 -0\.70711 0\.70711 0 0 cm\s+", content);
+    }
+
+    [Fact]
     public void ClipRectangleConfinesDrawingToAnAreaAtTheCurrentOrigin()
     {
         // Clipped content stays in the file, hidden, so the clip itself is what is checked: a rectangle at the

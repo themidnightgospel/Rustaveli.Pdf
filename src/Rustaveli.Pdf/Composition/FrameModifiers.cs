@@ -235,6 +235,14 @@ public static class FrameModifiers
     public static IFrame TurnRight(this IFrame parent) =>
         Attach(parent, new TurnBlock { QuarterTurns = 1 });
 
+    /// <summary>
+    /// Rotates by any angle in degrees, clockwise, about the centre of the frame. Layout is unaffected: the content
+    /// keeps the room it was given and may reach past it. For quarter turns that swap the layout axes, use
+    /// <see cref="TurnLeft"/> or <see cref="TurnRight"/>.
+    /// </summary>
+    public static IFrame Rotate(this IFrame parent, float degrees) =>
+        Attach(parent, new RotateBlock { Degrees = degrees });
+
     // ---- Flow control --------------------------------------------------------------------------------------
 
     public static IFrame When(this IFrame parent, bool condition) =>

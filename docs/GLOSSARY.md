@@ -100,6 +100,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Scale(...)` | method | Scales content. | print | `Scale` |
 | `ShrinkToFit(float)` | method | Scales content down until it fits. | Word | `ScaleToFit` |
 | `TurnLeft()`, `TurnRight()` | method | A quarter turn. | plain | `RotateLeft/Right` |
+| `Rotate(float)` | method | Any angle, clockwise about the frame's centre, leaving layout alone. | plain | same |
 | `MirrorHorizontal()`, `MirrorVertical()`, `MirrorBoth()` | method | Reflects content. | print | `FlipHorizontal/Vertical/Over` |
 | `LeftToRight()`, `RightToLeft()`, `Reading(ReadingDirection)` | method | Reading direction for the frame and its content. | print | `ContentFrom` |
 | `DefaultType(Func<TypeStyle, TypeStyle>)` | method | Refines the type style content inherits. | print | `DefaultTextStyle` |

@@ -63,7 +63,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Scale, uniform and per axis | `Scale`, `ScaleHorizontal/Vertical` | ✅ | — |
 | Scale to fit | `ScaleToFit` | ✅ | — |
 | Quarter-turn rotation | `RotateLeft/Right` | ✅ | — |
-| Arbitrary-angle rotation | `Rotate(angle)` | ❌ | 4 |
+| Arbitrary-angle rotation | `Rotate(angle)` | ✅ | — |
 | Flip | `Flip*` | ✅ | — |
 
 ## Flow control and pagination
