@@ -4,7 +4,7 @@
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <RootNamespace>Rustaveli.Pdf.Preview</RootNamespace>
     <PackageId>Rustaveli.Pdf.Preview</PackageId>
-    <Description>Shows a Rustaveli.Pdf document in the browser as it is written, redrawn on every hot reload under dotnet watch, with layout failures explained on the page.</Description>
+    <Description>Shows a Rustaveli.Pdf document in the browser as it is written, redrawn on every hot reload under dotnet watch, with layout failures explained on the page and an inspector that leads from any frame to the line of code that made it.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
     <!-- See the core project: without this the doc comments reach no consumer. -->

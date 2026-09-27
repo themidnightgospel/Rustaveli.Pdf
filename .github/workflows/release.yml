@@ -1,0 +1,74 @@
+# Publishes the packages when a version tag is pushed: tag v1.2.3 publishes 1.2.3. The tag must name the version
+# Directory.Build.props already carries, so a release is always a commit that says what it is. Everything is built
+# and tested again on Windows, where both runtimes and every validator run, before anything leaves.
+#
+# Needs the repository secret NUGET_API_KEY: a nuget.org key allowed to push the Rustaveli.Pdf* packages.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  publish:
+    name: build, test, pack and publish
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Check the tag names the version being built
+        shell: bash
+        run: |
+          version=$(dotnet msbuild src/Rustaveli.Pdf/Rustaveli.Pdf.csproj -getProperty:Version)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the version in Directory.Build.props ($version)."
+            exit 1
+          fi
+
+      - name: Fetch validators (qpdf, veraPDF and its Java)
+        run: dotnet run eng/tools.cs
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build Rustaveli.Pdf.slnx -c Release
+
+      - name: Test on both runtimes
+        run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build
+
+      - name: Pack
+        run: dotnet pack Rustaveli.Pdf.slnx -c Release --no-build -o artifacts/packages
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages
+          retention-days: 90
+
+      # The symbol packages go up with them.
+      - name: Publish to nuget.org
+        shell: bash
+        run: >
+          dotnet nuget push "artifacts/packages/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create the GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The release notes are the changelog's section for this version.
+          awk -v heading="## ${GITHUB_REF_NAME#v}" 'index($0, heading) == 1 { found = 1; next } found && /^## / { exit } found' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" artifacts/packages/*.nupkg --title "$GITHUB_REF_NAME" --notes-file notes.md
