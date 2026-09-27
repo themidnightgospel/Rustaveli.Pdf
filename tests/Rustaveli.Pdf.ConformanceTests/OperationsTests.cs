@@ -79,7 +79,7 @@ public class OperationsTests
     }
 
     /// <summary>The Factur-X description of an invoice attached to a PDF/A-3 file, with the schema PDF/A needs to know it by.</summary>
-    private static readonly string FacturX =
+    internal static readonly string FacturX =
         "<rdf:Description rdf:about=\"\" xmlns:fx=\"urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#\">"
         + "<fx:DocumentType>INVOICE</fx:DocumentType><fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>"
         + "<fx:Version>1.0</fx:Version><fx:ConformanceLevel>EN 16931</fx:ConformanceLevel></rdf:Description>"

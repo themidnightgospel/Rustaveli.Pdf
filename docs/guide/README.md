@@ -1,7 +1,7 @@
 # Guides
 
-How to write documents with Rustaveli.Pdf, task by task. Every example here is compiled and run by the test suite,
-so what you copy works.
+How to write documents with Rustaveli.Pdf, task by task. Every example here is compiled by the test suite, and all
+but the one that waits for Ctrl+C are run and their output checked, so what you copy works.
 
 | Guide | Covers |
 |---|---|
