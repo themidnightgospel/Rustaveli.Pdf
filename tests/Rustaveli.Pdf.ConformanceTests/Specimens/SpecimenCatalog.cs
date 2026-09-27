@@ -13,6 +13,7 @@ public static class SpecimenCatalog
         new Specimen("gallery", Gallery),
         new Specimen("transforms", Transforms),
         new Specimen("frames-and-rules", FramesAndRules),
+        new Specimen("flow-and-columns", FlowAndColumns),
         new Specimen("images", Images),
         new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
@@ -305,6 +306,61 @@ public static class SpecimenCatalog
         stack.Add().Width(160f).Height(24f).ShrinkToFit().Text("Scaled down until this whole sentence fits the box it was given.");
 
         stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
+    }));
+
+    /// <summary>
+    /// Items flowing into lines, cells in a grid, a story running through balanced columns with a rule between them,
+    /// frames fitted to their content, and content drawn over what follows it.
+    /// </summary>
+    private static Document FlowAndColumns() => Page(content => content.Stack(stack =>
+    {
+        stack.SpaceBetween(16f);
+
+        stack.Add().Flow(flow =>
+        {
+            flow.Gutter(6f);
+            flow.SpaceBetweenLines(6f);
+            flow.Centered();
+            flow.Middle();
+
+            foreach (string tag in new[] { "layout", "typesetting", "columns", "grid", "flow", "rules", "shadows", "gradients", "draw order", "PDF", "pages" })
+                flow.Add().Fill(TestInks.TealLighten3).RoundCorners(8).InsetHorizontal(8f).InsetVertical(tag.Length % 3 == 0 ? 6f : 3f).Text(tag);
+        });
+
+        stack.Add().Grid(grid =>
+        {
+            grid.Columns(4);
+            grid.Gutter(8f);
+            grid.SpaceBetweenRows(8f);
+            grid.Centered();
+
+            for (int index = 1; index <= 7; index++)
+                grid.Cell(index == 3 ? 2 : 1).Fill(TestInks.AmberLighten3).Inset(6f).Text("cell " + index);
+        });
+
+        stack.Add().FlowColumns(columns =>
+        {
+            columns.Columns(3);
+            columns.Gutter(18f);
+            columns.Balanced();
+            columns.Between().Centered().VerticalRule(0.5f, TestInks.Grey);
+            columns.Story().Text(string.Join(" ", Enumerable.Repeat(
+                "A story set in columns runs down the first, on into the next, and ends level across all three.", 5)));
+        });
+
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(12f);
+            columns.Share().FitToContent().Fill(TestInks.PinkLighten3).Inset(6f).Text("fitted");
+            columns.Share().FitWidthToContent().Fill(TestInks.PinkLighten3).Inset(6f).Text("fitted across");
+            columns.Share().Height(40f).FitHeightToContent().Fill(TestInks.PinkLighten3).Inset(6f).Text("fitted down");
+        });
+
+        stack.Add().Height(40f).Layered(layers =>
+        {
+            layers.BaseLayer().DrawOrder(1).ShiftAcross(20f).ShiftDown(10f).Width(120f).Height(24f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("drawn over");
+            layers.Layer().Width(120f).Height(24f).Fill(TestInks.TealLighten3).Centered().Middle().Text("drawn after");
+        });
     }));
 
     /// <summary>

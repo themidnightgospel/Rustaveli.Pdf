@@ -82,6 +82,43 @@ public class GridTests
     }
 
     [Fact]
+    public void ColumnsLineUpFromRowToRow()
+    {
+        List<RectangleOperation> cells = Cells(grid =>
+        {
+            grid.Columns(4);
+            grid.Gutter(8);
+            Filled(grid.Cell());
+            Filled(grid.Cell());
+            Filled(grid.Cell(2));
+
+            for (int index = 0; index < 4; index++)
+                Filled(grid.Cell());
+        });
+
+        // Columns of 24 with gutters of 8: the wide cell covers the last two columns and the gutter between them.
+        Assert.Equal(new Bounds(0, 0, 24, 10), cells[0].Bounds);
+        Assert.Equal(new Bounds(64, 0, 120, 10), cells[2].Bounds);
+        Assert.Equal(new Bounds(0, 10, 24, 20), cells[3].Bounds);
+        Assert.Equal(new Bounds(64, 10, 88, 20), cells[5].Bounds);
+        Assert.Equal(new Bounds(96, 10, 120, 20), cells[6].Bounds);
+    }
+
+    [Fact]
+    public void ACentredRowStaysOnTheColumns()
+    {
+        List<RectangleOperation> cells = Cells(grid =>
+        {
+            grid.Columns(4);
+            grid.Gutter(8);
+            grid.Centered();
+            Filled(grid.Cell(2));
+        });
+
+        Assert.Equal(new Bounds(32, 0, 88, 10), Assert.Single(cells).Bounds);
+    }
+
+    [Fact]
     public void EveryCellInARowIsAsTallAsTheTallest()
     {
         List<RectangleOperation> fills = LayoutHarness.Draw(frame => frame.Grid(grid =>

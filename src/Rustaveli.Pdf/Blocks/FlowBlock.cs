@@ -32,6 +32,10 @@ internal sealed class FlowBlock : Block
 
     protected override void ResetOwnState() => _placed = 0;
 
+    protected override object? SaveOwnProgress() => _placed;
+
+    protected override void RestoreOwnProgress(object progress) => _placed = (int)progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (_placed >= Items.Count)

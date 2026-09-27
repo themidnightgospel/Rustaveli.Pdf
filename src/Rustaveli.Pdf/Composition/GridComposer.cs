@@ -75,7 +75,7 @@ public sealed class GridComposer
             if (row is null || used + span > _columns)
             {
                 Close(row, used);
-                row = new ColumnsBlock { Gutter = _gutter };
+                row = new ColumnsBlock { Gutter = _gutter, GridColumns = _columns };
                 stack.Items.Add(row);
                 used = 0;
             }

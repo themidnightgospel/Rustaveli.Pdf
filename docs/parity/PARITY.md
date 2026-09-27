@@ -42,7 +42,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Table: stretch last cells to table bottom | `ExtendLastCellsToTableBottom` | ❌ | 4 |
 | Uniform grid | `Grid` | ✅ | — |
 | Flow of inline items with wrapping, alignment, baseline | `Inlined` | ✅ | — |
-| Newspaper columns, balanced | `MultiColumn` | ❌ | 4 |
+| Newspaper columns, balanced | `MultiColumn` | ✅ | — |
 | Stacked layers, one primary | `Layers` | ✅ | — |
 | Content with repeating before/after bands | `Decoration` | ✅ | — |
 | Bulleted, numbered, lettered and roman lists | — | ✅ ours only | — |

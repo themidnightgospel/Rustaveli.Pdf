@@ -19,6 +19,10 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
 
     protected override void ResetOwnState() => _hasStarted = false;
 
+    protected override object? SaveOwnProgress() => _hasStarted;
+
+    protected override void RestoreOwnProgress(object progress) => _hasStarted = (bool)progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         if (!_hasStarted && availableSpace.Height + Extent.Epsilon < MinHeight)

@@ -50,6 +50,16 @@ public static class FrameContent
     }
 
     /// <summary>
+    /// Adds columns a story flows through as a newspaper's does: down one, on into the next, and on to the next page.
+    /// </summary>
+    public static void FlowColumns(this IFrame parent, Action<FlowColumnsComposer> handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        FlowColumnsBlock element = FrameAttachment.Attach(parent, new FlowColumnsBlock());
+        handler(new FlowColumnsComposer(element));
+    }
+
+    /// <summary>
     /// Adds a flow of items set side by side as words are, wrapping on to a new line wherever the next would not fit.
     /// </summary>
     public static void Flow(this IFrame parent, Action<FlowComposer> handler)

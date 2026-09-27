@@ -49,6 +49,41 @@ internal abstract class Block
     }
 
     /// <summary>
+    /// A copy of how far this element alone has progressed — what <see cref="ResetOwnState"/> clears — or null for
+    /// an element that remembers nothing. Every element that overrides <see cref="ResetOwnState"/> overrides this.
+    /// </summary>
+    protected virtual object? SaveOwnProgress() => null;
+
+    /// <summary>Returns this element to progress <see cref="SaveOwnProgress"/> copied.</summary>
+    protected virtual void RestoreOwnProgress(object progress)
+    {
+    }
+
+    /// <summary>
+    /// How far this element and everything beneath it have progressed, so that layout can draw ahead to find where
+    /// content would end and then return to where it was.
+    /// </summary>
+    internal Progress SaveProgress()
+    {
+        List<(Block Block, object Progress)> saved = [];
+
+        foreach (Block block in Traverse())
+        {
+            if (block.SaveOwnProgress() is { } progress)
+                saved.Add((block, progress));
+        }
+
+        return new Progress(saved);
+    }
+
+    /// <summary>Returns this element and everything beneath it to <paramref name="progress"/>.</summary>
+    internal void RestoreProgress(Progress progress)
+    {
+        foreach ((Block block, object saved) in progress.Saved)
+            block.RestoreOwnProgress(saved);
+    }
+
+    /// <summary>
     /// Resets this element and everything beneath it.
     /// </summary>
     /// <param name="includeDocumentProgress">

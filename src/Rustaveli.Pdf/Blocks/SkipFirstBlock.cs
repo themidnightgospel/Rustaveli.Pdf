@@ -17,6 +17,10 @@ internal sealed class SkipFirstBlock : EnclosingBlock
 
     protected override void ResetOwnState() => _hasSkipped = false;
 
+    protected override object? SaveOwnProgress() => _hasSkipped;
+
+    protected override void RestoreOwnProgress(object progress) => _hasSkipped = (bool)progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context) =>
         _hasSkipped ? base.Plan(availableSpace, context) : Fit.Complete(Extent.Zero);
 

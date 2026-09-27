@@ -11,6 +11,10 @@ internal sealed class NewPageBlock : Block
 
     protected override void ResetOwnState() => _hasBroken = false;
 
+    protected override object? SaveOwnProgress() => _hasBroken;
+
+    protected override void RestoreOwnProgress(object progress) => _hasBroken = (bool)progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context) =>
         _hasBroken
             ? Fit.Nothing()

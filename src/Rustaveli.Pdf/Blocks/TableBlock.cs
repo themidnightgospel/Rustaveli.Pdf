@@ -92,6 +92,11 @@ internal sealed class TableBlock : Block
         _cachedWidth = float.NaN;
     }
 
+    protected override object? SaveOwnProgress() => (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection);
+
+    protected override void RestoreOwnProgress(object progress) =>
+        (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection) = ((int, TableLayout?, float, ReadingDirection))progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         TableLayout? layout = BuildLayout(availableSpace, context);

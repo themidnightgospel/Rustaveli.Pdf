@@ -90,6 +90,12 @@ internal sealed class TextBlock : Block
         _pinnedWrapping = null;
     }
 
+    // The pinned wrapping is replaced whole, never changed, so it is kept rather than copied.
+    protected override object? SaveOwnProgress() => (_completedLines, _pinnedWidth, _pinnedWrapping);
+
+    protected override void RestoreOwnProgress(object progress) =>
+        (_completedLines, _pinnedWidth, _pinnedWrapping) = ((int, float, List<TextLine>?))progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         // Without usable width there is no wrapping that could succeed. Reporting a wrap sends the paragraph to
