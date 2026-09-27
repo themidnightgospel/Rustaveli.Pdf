@@ -23,6 +23,7 @@ so the history of *why* survives.
 | [0015](0015-text-engine-layers.md) | The text engine in layers: Unicode rules in the core, complex shaping by opt-in | Accepted |
 | [0016](0016-drawing-ahead.md) | Layout may draw ahead, and return | Accepted |
 | [0017](0017-draw-order.md) | Draw order holds a page back | Accepted |
+| [0018](0018-tagged-structure.md) | Structure is recorded as content is drawn | Accepted |
 
 A new record has three sections: **Context** (the forces at play), **Decision** (what we will do) and
 **Consequences** (what becomes easier, what becomes harder, what we now owe).

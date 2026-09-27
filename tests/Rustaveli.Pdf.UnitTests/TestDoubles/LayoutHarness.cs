@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Tagging;
+
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
 /// <summary>
@@ -53,6 +55,36 @@ internal static class LayoutHarness
 
     public static RecordedPage Draw(Action<IFrame> compose, Extent availableSpace) =>
         Draw(Build(compose), availableSpace);
+
+    /// <summary>
+    /// Draws composed content tagged, on as many pages as it takes, and returns the document element it was drawn in and
+    /// the pages.
+    /// </summary>
+    public static (StructureElement Root, RecordingSurface Pages) DrawTagged(Action<IFrame> compose, Extent availableSpace, int pages = 1)
+    {
+        Block element = Build(compose);
+        RecordingSurface canvas = new RecordingSurface();
+        StructureElement root = new StructureElement("Document", null);
+        RenderContext context = new RenderContext(canvas, Context(), root);
+
+        for (int page = 0; page < pages; page++)
+        {
+            canvas.BeginPage(availableSpace);
+            element.Render(availableSpace, context);
+            canvas.EndPage();
+        }
+
+        Assert.Same(root, context.Tags.Current);
+        return (root, canvas);
+    }
+
+    /// <summary>Renders a whole document tagged, returning its structure and every page it produced.</summary>
+    public static (StructureElement Root, RecordingSurface Pages) RenderTagged(Document document)
+    {
+        RecordingSurface canvas = new RecordingSurface();
+        Typesetter.Render(document, canvas, Measurer, tagged: true);
+        return (canvas.Root!, canvas);
+    }
 
     /// <summary>Renders a whole document, returning every page it produced.</summary>
     public static RecordingSurface Render(Document document)

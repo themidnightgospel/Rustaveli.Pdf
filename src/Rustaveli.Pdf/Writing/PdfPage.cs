@@ -50,25 +50,36 @@ internal sealed class PdfPage
     /// Makes <paramref name="area"/> a link that opens <paramref name="uri"/>. PDF requires URIs in 7-bit ASCII, so
     /// anything else — international domain text, spaces — is percent-encoded as UTF-8.
     /// </summary>
-    public void AddUriLink(PdfRectangle area, string uri)
+    /// <param name="area">Where the link is, in the page's own space.</param>
+    /// <param name="uri">What it opens.</param>
+    /// <param name="entries">Further entries for the annotation, such as its place in the structure.</param>
+    /// <returns>The annotation.</returns>
+    public PdfReference AddUriLink(PdfRectangle area, string uri, PdfDictionary? entries = null)
     {
         ArgumentNullException.ThrowIfNull(uri);
-        AddLink(area, new PdfDictionary
-        {
-            [PdfNames.S] = PdfNames.URI,
-            [PdfNames.URI] = new PdfString(EncodeUri(uri)),
-        });
+        return AddLink(
+            area,
+            new PdfDictionary
+            {
+                [PdfNames.S] = PdfNames.URI,
+                [PdfNames.URI] = new PdfString(EncodeUri(uri)),
+            },
+            entries);
     }
 
     /// <summary>Makes <paramref name="area"/> a link to the named destination <paramref name="destination"/>.</summary>
-    public void AddDestinationLink(PdfRectangle area, string destination)
+    /// <returns>The annotation.</returns>
+    public PdfReference AddDestinationLink(PdfRectangle area, string destination, PdfDictionary? entries = null)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        AddLink(area, new PdfDictionary
-        {
-            [PdfNames.S] = PdfNames.GoTo,
-            [PdfNames.D] = PdfString.FromText(destination),
-        });
+        return AddLink(
+            area,
+            new PdfDictionary
+            {
+                [PdfNames.S] = PdfNames.GoTo,
+                [PdfNames.D] = PdfString.FromText(destination),
+            },
+            entries);
     }
 
     /// <summary>Lists an annotation the caller wrote itself in the page's <c>/Annots</c>.</summary>
@@ -101,11 +112,11 @@ internal sealed class PdfPage
         return encoded.ToArray();
     }
 
-    private void AddLink(PdfRectangle area, PdfDictionary action)
+    private PdfReference AddLink(PdfRectangle area, PdfDictionary action, PdfDictionary? entries)
     {
         // A zero-width border: without it, viewers following the specification's default draw a black box
         // around every link.
-        _annotations.Add(_file.Write(new PdfDictionary
+        PdfDictionary annotation = new PdfDictionary
         {
             [PdfNames.Type] = PdfNames.Annot,
             [PdfNames.Subtype] = PdfNames.Link,
@@ -115,6 +126,16 @@ internal sealed class PdfPage
 
             // Printed with the page, as PDF/A requires of every annotation.
             [Flags] = 4,
-        }));
+        };
+
+        if (entries is not null)
+        {
+            foreach (KeyValuePair<PdfName, PdfValue> entry in entries)
+                annotation[entry.Key] = entry.Value;
+        }
+
+        PdfReference reference = _file.Write(annotation);
+        _annotations.Add(reference);
+        return reference;
     }
 }

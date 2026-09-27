@@ -170,9 +170,22 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `IImageProcessor` | interface | Re-encodes images for embedding when a quality or maximum resolution asks for it. | plain | — |
 | `ImageProcessing` | struct | What a processor is asked: the `Source`, the `PixelWidth` and `PixelHeight` to make, and the `Quality`. | plain | — |
 | `PdfExportOptions.ImageQuality`, `MaximumImageResolution`, `ImageProcessor` | property | Document-wide image quality and resolution, and what processes images to meet them. | plain | `Settings.ImageCompressionQuality`, `ImageRasterDpi` |
-| `PdfAConformance` | enum | The part and level of PDF/A a document is written to: `None`, `PdfA2B`, `PdfA2U`, `PdfA3B` or `PdfA3U`. | ISO 19005 | `PDFA_Conformance` |
-| `PdfExportOptions.Conformance` | property | The PDF/A part and level to write: XMP metadata, an sRGB output intent, inks in RGB and every glyph found. | ISO 19005 | `Settings.PDFA_Conformance` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |
+
+## Structure and standards
+
+| Name | Kind | Meaning | Source | Replaces |
+|---|---|---|---|---|
+| `ContentTag` | class | The part content plays in a tagged document, named in words and written as PDF's standard structure types: `Section`, `Article`, `Division`, `BlockQuote`, `Caption`, `Index`, `Contents`, `ContentsEntry`, `Paragraph`, `List`, `ListItem`, `ListLabel`, `ListBody`, `Table`, `Quote`, `Code`, `Note`, `Span`, and made by `Heading(int)`, `Abbreviation(string)`, `Figure(string)`, `Formula(string)`. | ISO 32000 ("standard structure types"), InDesign ("tags") | `SemanticSection`, `SemanticHeader1`–`6`, `SemanticFigure`, … |
+| `Tagged(ContentTag)` | method | Tags a frame's content with the part it plays. Text nothing else tags is a paragraph; lists and links are tagged without asking. | InDesign ("tag") | `Semantic…` |
+| `Untagged()` | method | Leaves a frame's content out of the structure, as decoration no screen reader reads. | print ("artifact") | `SemanticIgnore` |
+| `Language(string)` | method | The language a frame's content is in, where it differs from the document's. | plain | `SemanticLanguage` |
+| `CellFrame.RowHeading()` | method | Makes a cell the heading of its row in a tagged table, as header rows head their columns. | plain | `AsSemanticHorizontalHeader` |
+| `PdfExportOptions.Tagged` | property | Whether the PDF records the document's structure and reading order. | ISO 32000 ("tagged PDF") | implied by `PDFUA_Conformance` |
+| `PdfUAConformance` | enum | The part of PDF/UA a document claims: `None` or `PdfUA1`. | ISO 14289 | `PDFUA_Conformance` |
+| `PdfExportOptions.Accessibility` | property | The PDF/UA part to claim: tagged, titled, in a named language, every glyph found. | ISO 14289 | `Settings.PDFUA_Conformance` |
+| `PdfAConformance` | enum | The part and level of PDF/A a document is written to: `None`, `PdfA2B`, `PdfA2U`, `PdfA2A`, `PdfA3B`, `PdfA3U` or `PdfA3A`. | ISO 19005 | `PDFA_Conformance` |
+| `PdfExportOptions.Conformance` | property | The PDF/A part and level to write: XMP metadata, an sRGB output intent, inks in RGB, every glyph found, and at the `A` levels the structure. | ISO 19005 | `Settings.PDFA_Conformance` |
 
 ## Text
 

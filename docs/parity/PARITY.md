@@ -185,8 +185,9 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Stream compression switch | `DocumentSettings.CompressDocument` | ✅ `PdfExportOptions.Compress` | — |
 | PDF/A-2b | `PDFA_Conformance.PDFA_2B` | ✅ `PdfAConformance.PdfA2B` | — |
 | PDF/A-2u, 3b, 3u | `PDFA_Conformance` | ✅ `PdfA2U`, `PdfA3B`, `PdfA3U` | — |
-| PDF/A-2a, 3a (tagged) | `PDFA_Conformance` | ❌ needs the structure tree | 6 |
-| PDF/UA-1 with semantic tagging (headings, lists, tables, figures, alt text, language, artifacts) | `PDFUA_Conformance`, `Semantic*`, `AsSemanticHorizontalHeader` | ❌ | 6 |
+| PDF/A-2a, 3a (tagged) | `PDFA_Conformance` | ✅ `PdfA2A`, `PdfA3A` | — |
+| PDF/UA-1 with semantic tagging (headings, lists, tables, figures, alt text, language, artifacts) | `PDFUA_Conformance`, `Semantic*`, `AsSemanticHorizontalHeader` | ✅ `PdfUAConformance.PdfUA1`, `Tagged(ContentTag)`, `Untagged`, `Language`, `RowHeading`; paragraphs, lists and links tagged without asking | — |
+| Every standard checked by the reference validator | — | ✅ veraPDF over every specimen at 2b, 3u, 2a with UA-1, and UA-1 alone | — |
 
 ## Document operations
 

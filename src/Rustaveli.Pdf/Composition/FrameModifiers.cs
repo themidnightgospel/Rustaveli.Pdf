@@ -497,6 +497,36 @@ public static class FrameModifiers
         return Attach(parent, new BookmarkBlock { Title = title, Level = level });
     }
 
+    // ---- Structure -----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Tags this content with the part it plays in the document's structure — a heading, a figure — for screen readers,
+    /// reflow and search, when the export is tagged.
+    /// </summary>
+    public static IFrame Tagged(this IFrame parent, ContentTag tag)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+
+        return Attach(parent, new TagBlock { Tag = tag });
+    }
+
+    /// <summary>
+    /// Leaves this content out of the document's structure, as decoration no screen reader reads: a rule, a
+    /// watermark, a flourish.
+    /// </summary>
+    public static IFrame Untagged(this IFrame parent) => Attach(parent, new UntaggedBlock());
+
+    /// <summary>
+    /// Sets the language of this content, as a tag such as <c>en-GB</c> or <c>ka</c>, where it differs from the
+    /// document's, so screen readers pronounce it right.
+    /// </summary>
+    public static IFrame Language(this IFrame parent, string language)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
+
+        return Attach(parent, new LanguageBlock { Language = language.Trim() });
+    }
+
     public static IFrame CrossReference(this IFrame parent, string anchor)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(anchor);

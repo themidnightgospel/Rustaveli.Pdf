@@ -36,11 +36,17 @@ internal sealed class ContentStreamBuilder : IDisposable
 
     public bool InTextObject { get; private set; }
 
-    /// <summary>Throws unless every saved state has been restored and every text object ended.</summary>
+    /// <summary>How many marked sequences are waiting for their <c>EMC</c>.</summary>
+    public int MarkedDepth { get; private set; }
+
+    /// <summary>Throws unless every saved state has been restored, every text object ended and every marked sequence closed.</summary>
     public void EnsureComplete()
     {
         if (InTextObject)
             throw new InvalidOperationException("A text object is still open; call EndText.");
+
+        if (MarkedDepth != 0)
+            throw new InvalidOperationException($"{MarkedDepth} marked sequence(s) were never ended.");
 
         if (StateDepth != 0)
             throw new InvalidOperationException($"{StateDepth} saved graphics state(s) were never restored.");
@@ -452,6 +458,40 @@ internal sealed class ContentStreamBuilder : IDisposable
         _writer.WriteByte((byte)']');
         _inTextArray = false;
         Operator("TJ"u8);
+    }
+
+    // Marked content.
+
+    /// <summary><c>BMC</c>: begins a sequence of content marked with <paramref name="tag"/> alone.</summary>
+    public void BeginMarkedContent(PdfName tag)
+    {
+        WriteName(tag);
+        Operator("BMC"u8);
+        MarkedDepth++;
+    }
+
+    /// <summary>
+    /// <c>BDC</c>: begins a sequence of content marked with <paramref name="tag"/> and numbered
+    /// <paramref name="identifier"/>, by which the structure tree finds it.
+    /// </summary>
+    public void BeginMarkedContent(PdfName tag, int identifier)
+    {
+        WriteName(tag);
+        _writer.Write("<</MCID "u8);
+        _writer.WriteInteger(identifier);
+        _writer.Write(">>"u8);
+        Operator("BDC"u8);
+        MarkedDepth++;
+    }
+
+    /// <summary><c>EMC</c>: ends the marked sequence most recently begun.</summary>
+    public void EndMarkedContent()
+    {
+        if (MarkedDepth == 0)
+            throw new InvalidOperationException("EMC without a matching BMC or BDC.");
+
+        MarkedDepth--;
+        Operator("EMC"u8);
     }
 
     private void WriteCodes(ReadOnlySpan<byte> codes)

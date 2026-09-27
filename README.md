@@ -180,7 +180,8 @@ Complex scripts — Arabic, Hebrew points, Indic and South-East Asian scripts �
 ## Testing
 
 ```bash
-dotnet run eng/tools.cs       # once, on Windows: fetches the pinned, checksum-verified qpdf (elsewhere: apt/brew install qpdf)
+dotnet run eng/tools.cs       # once: fetches pinned, checksum-verified veraPDF, and on Windows qpdf and a Java runtime
+                              # (elsewhere: apt/brew install qpdf, and a Java runtime for veraPDF)
 dotnet test                   # every suite, on net10.0 and (on Windows) net48
 dotnet run eng/coverage.cs    # both suites with coverage, enforcing the floors in eng/coverage-thresholds.json
 dotnet stryker                # mutation testing of the engine, failing below 80%
@@ -209,7 +210,9 @@ structural validator, and render every page with PDFium — a renderer that shar
 compare against approved snapshots in `tests/Rustaveli.Pdf.ConformanceTests/Snapshots`. A deliberate visual
 change is approved with `dotnet run eng/approve-snapshots.cs` after inspecting the received and diff images. The
 same specimens are exported as page images through Skia and compared with PDFium's rendering of the PDF: two
-renderers that share no code agree within half a percent of pixels.
+renderers that share no code agree within half a percent of pixels. Every specimen is also written as PDF/A-2b,
+PDF/A-3u, PDF/A-2a with PDF/UA-1, and PDF/UA-1 alone, and each file checked against every standard it claims by
+[veraPDF](https://verapdf.org), the reference validator for both.
 
 **Benchmarks** (`benchmarks/Rustaveli.Pdf.Benchmarks`) measure throughput, allocations, parallel scaling and file
 size against QuestPDF on a fixed set of documents, against the targets in

@@ -48,6 +48,20 @@ jobs:
       - name: Install validators and fallback fonts
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qpdf fonts-noto-core fonts-noto-cjk
 
+      # veraPDF validates PDF/A and PDF/UA output; it runs on Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/cache@v4
+        with:
+          path: artifacts/tools
+          key: tools-${{ runner.os }}-${{ hashFiles('eng/tools.cs') }}
+
+      - name: Fetch validators (veraPDF)
+        run: dotnet run eng/tools.cs
+
       - name: Build (Release, warnings are errors)
         run: dotnet build Rustaveli.Pdf.slnx -c Release
 
@@ -93,7 +107,12 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: Fetch validators (qpdf)
+      - uses: actions/cache@v4
+        with:
+          path: artifacts/tools
+          key: tools-${{ runner.os }}-${{ hashFiles('eng/tools.cs') }}
+
+      - name: Fetch validators (qpdf, veraPDF and its Java)
         run: dotnet run eng/tools.cs
 
       - name: Build (Release, warnings are errors)

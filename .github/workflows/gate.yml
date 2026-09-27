@@ -66,7 +66,9 @@ jobs:
               --mutate "**/Composition/**/*.cs" --mutate "**/Drawing/**/*.cs" --mutate "**/Exceptions/**/*.cs"
           - name: writing-values
             mutate: >-
-              --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/Z*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
+              --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/[X-Z]*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
+          - name: tagging
+            mutate: --mutate "**/Tagging/**/*.cs"
           - name: writing-files
             mutate: --mutate "**/Writing/Pdf[D-F]*.cs"
           - name: writing-objects
@@ -218,6 +220,15 @@ jobs:
       # No portable qpdf build exists for macOS; Homebrew's is the upstream release.
       - name: Install validators (qpdf)
         run: brew install qpdf
+
+      # veraPDF validates PDF/A and PDF/UA output; it runs on Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Fetch validators (veraPDF)
+        run: dotnet run eng/tools.cs
 
       - name: Build (Release, warnings are errors)
         run: dotnet build Rustaveli.Pdf.slnx -c Release

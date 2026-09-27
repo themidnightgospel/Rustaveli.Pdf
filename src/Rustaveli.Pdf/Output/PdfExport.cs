@@ -22,9 +22,11 @@ namespace Rustaveli.Pdf;
 /// </remarks>
 public static class PdfExport
 {
-    /// <summary>Exports the document as PDF, returning the file's bytes.</summary>
     private static readonly PdfName Lang = new PdfName("Lang");
+    private static readonly PdfName ViewerPreferences = new PdfName("ViewerPreferences");
+    private static readonly PdfName DisplayDocTitle = new PdfName("DisplayDocTitle");
 
+    /// <summary>Exports the document as PDF, returning the file's bytes.</summary>
     public static byte[] ExportPdf(this Document document, PdfExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -113,23 +115,45 @@ public static class PdfExport
             CompressionLevel = options?.Compress == false ? CompressionLevel.NoCompression : CompressionLevel.Optimal,
         };
 
+        PdfAConformance conformance = options?.Conformance ?? PdfAConformance.None;
+        PdfUAConformance accessibility = options?.Accessibility ?? PdfUAConformance.None;
+
+        // A reader announces the document by its title, and reads it in its language; PDF/UA leaves neither to chance.
+        if (accessibility != PdfUAConformance.None
+            && (string.IsNullOrWhiteSpace(document.Info.Title) || string.IsNullOrWhiteSpace(document.Info.Language)))
+        {
+            throw new InvalidOperationException(
+                "PDF/UA needs the document's title and language: set Title and Language on the document's Info.");
+        }
+
         using PdfDocumentWriter writer = new PdfDocumentWriter(stream, writing);
         CopyInfo(document.Info, writer.Info);
 
         if (!string.IsNullOrWhiteSpace(document.Info.Language))
             writer.Catalog[Lang] = PdfString.FromText(document.Info.Language!.Trim());
 
-        PdfAConformance conformance = options?.Conformance ?? PdfAConformance.None;
-
         if (conformance != PdfAConformance.None)
-            PdfAArchive.Declare(writer, conformance);
+            PdfAArchive.Declare(writer);
+
+        if (conformance != PdfAConformance.None || accessibility != PdfUAConformance.None)
+        {
+            XmpPacket.Write(
+                writer,
+                conformance != PdfAConformance.None ? PdfAArchive.Of(conformance) : null,
+                accessibility == PdfUAConformance.PdfUA1 ? 1 : null);
+        }
+
+        if (accessibility != PdfUAConformance.None)
+            writer.Catalog[ViewerPreferences] = new PdfDictionary { [DisplayDocTitle] = true };
 
         using PdfSurface surface = new PdfSurface(writer, shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
-        Typesetter.Render(document, surface, measurer, options?.ImageResolution ?? 288);
+        Typesetter.Render(document, surface, measurer, options?.ImageResolution ?? 288, options?.WritesStructure == true);
 
-        // PDF/A forbids drawing the missing glyph, so every character must be found under it.
-        bool everyGlyph = options?.RequireEveryGlyph == true || conformance != PdfAConformance.None;
+        // PDF/A and PDF/UA forbid drawing the missing glyph, so every character must be found under them.
+        bool everyGlyph = options?.RequireEveryGlyph == true
+            || conformance != PdfAConformance.None
+            || accessibility != PdfUAConformance.None;
 
         if (everyGlyph && measurer.MissingCodepoints.Count > 0)
             throw new MissingGlyphException(measurer.MissingCodepoints);

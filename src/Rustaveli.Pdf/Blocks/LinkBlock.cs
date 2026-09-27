@@ -1,4 +1,5 @@
 using Rustaveli.Pdf.Layout;
+using Rustaveli.Pdf.Tagging;
 
 namespace Rustaveli.Pdf.Blocks;
 
@@ -16,6 +17,8 @@ internal sealed class LinkBlock : EnclosingBlock
         if (plan.IsDeferred || plan.IsNothing)
             return;
 
+        // The content is a link in the structure, which the link itself belongs to.
+        using TagStack.Scope scope = context.Tags.Enter(context.Tags.Create("Link"));
         base.Render(availableSpace, context);
 
         if (!string.IsNullOrEmpty(Url))

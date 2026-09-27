@@ -1,5 +1,6 @@
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Images;
+using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
 using Rustaveli.Pdf.Writing;
 
@@ -34,6 +35,10 @@ internal sealed class PdfSurface : IPageSink
     private static readonly PdfName Domain = new PdfName("Domain");
     private static readonly PdfName C0 = new PdfName("C0");
     private static readonly PdfName C1 = new PdfName("C1");
+    private static readonly PdfName Artifact = new PdfName("Artifact");
+    private static readonly PdfName StructParents = new PdfName("StructParents");
+    private static readonly PdfName StructParent = new PdfName("StructParent");
+    private static readonly PdfName Tabs = new PdfName("Tabs");
 
     /// <summary>Control-point distance, as a fraction of the radius, of a cubic Bézier approximating a quarter circle.</summary>
     private const double Kappa = 0.5522847498307936;
@@ -44,8 +49,11 @@ internal sealed class PdfSurface : IPageSink
     private readonly ImageEmbedder _images;
     private readonly ImageAdjuster _adjuster;
 
-    /// <summary>Whether every ink is written as RGB, as PDF/A's sRGB output intent needs.</summary>
-    private readonly bool _rgbOnly;
+    /// <summary>
+    /// Whether the file is PDF/A: every ink is written as RGB, as its sRGB output intent needs, and nothing asks a viewer
+    /// to smooth an image.
+    /// </summary>
+    private readonly bool _archival;
     private readonly Dictionary<(string Name, InkModel Model, (float, float, float, float) Components), PdfReference> _separations = [];
     private readonly Dictionary<(Extent Size, Corners Corners, float Deviation, Ink Ink), (PdfReference Image, ShadowMask Mask)> _shadows = [];
     private readonly Stack<State> _saved = new Stack<State>();
@@ -57,6 +65,30 @@ internal sealed class PdfSurface : IPageSink
     /// <summary>The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.</summary>
     private (PdfName Pattern, float Opacity)? _gradient;
 
+    /// <summary>Whether content is marked for the structure tree, as a tagged PDF needs.</summary>
+    private readonly bool _tagging;
+    private readonly Dictionary<string, PdfName> _roles = new Dictionary<string, PdfName>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// What leads back from content to its element: each page's elements by marked-content number, and each
+    /// annotation's element, under keys shared between them.
+    /// </summary>
+    private readonly Dictionary<int, object> _parents = [];
+    private int _nextParentKey;
+
+    /// <summary>The document every element descends from, once content has been tagged.</summary>
+    private StructureElement? _root;
+
+    /// <summary>The element what is drawn next belongs to, or null for decoration.</summary>
+    private StructureElement? _tag;
+
+    /// <summary>Whether a marked sequence is open, and the element it marks, null for decoration.</summary>
+    private bool _marking;
+    private StructureElement? _markedFor;
+
+    /// <summary>The open page's elements, by the number its marked content is known by.</summary>
+    private List<StructureElement>? _pageMarks;
+
     public PdfSurface(PdfDocumentWriter writer, TypeShaper shaper, PdfExportOptions? options = null)
     {
         _writer = writer;
@@ -64,7 +96,8 @@ internal sealed class PdfSurface : IPageSink
         _fonts = new FontEmbedder(writer.File);
         _images = new ImageEmbedder(writer.File);
         _adjuster = new ImageAdjuster(options);
-        _rgbOnly = options?.Conformance is { } conformance && conformance != PdfAConformance.None;
+        _archival = options?.Conformance is { } conformance && conformance != PdfAConformance.None;
+        _tagging = options?.WritesStructure == true;
     }
 
     private PdfPage Page => _page ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
@@ -87,28 +120,151 @@ internal sealed class PdfSurface : IPageSink
 
     public void EndPage()
     {
-        _writer.EndPage(Page);
+        PdfPage page = Page;
+        EndMark();
+
+        if (_tagging)
+        {
+            if (_pageMarks is { Count: > 0 } marks)
+            {
+                page.Entries[StructParents] = _nextParentKey;
+                _parents.Add(_nextParentKey++, marks);
+            }
+
+            // Links are visited in the order they are read.
+            page.Entries[Tabs] = PdfNames.S;
+            _pageMarks = null;
+        }
+
+        _writer.EndPage(page);
         _page = null;
         _gradient = null;
     }
 
-    /// <summary>Writes the fonts, now that every page has been drawn, and completes the file.</summary>
+    /// <summary>Writes the fonts and the structure, now that every page has been drawn, and completes the file.</summary>
     public void Finish()
     {
         _fonts.WriteAll();
+
+        if (_tagging && _root is not null)
+            StructureTree.Write(_writer, _root, _parents, _nextParentKey);
+
         _writer.Finish();
     }
 
+    // A marked sequence never straddles the states blocks save and restore, so each nests properly within them.
     public void Save()
+    {
+        EndMark();
+        Push();
+    }
+
+    public void Restore()
+    {
+        EndMark();
+        Pop();
+    }
+
+    public void Tag(StructureElement? element)
+    {
+        _tag = element;
+
+        if (_root is null && element is not null)
+        {
+            StructureElement root = element;
+            while (root.Parent is { } parent)
+                root = parent;
+
+            _root = root;
+        }
+    }
+
+    private void Push()
     {
         Content.SaveState();
         _saved.Push(_state);
     }
 
-    public void Restore()
+    private void Pop()
     {
         Content.RestoreState();
         _state = _saved.Pop();
+    }
+
+    /// <summary>
+    /// Marks what is about to be drawn: as the content of the element in force, for text, or for anything in an
+    /// illustration; as decoration otherwise. A sequence already open for the same owner goes on.
+    /// </summary>
+    private void Mark(bool text)
+    {
+        if (!_tagging)
+            return;
+
+        StructureElement? owner = _tag is { } element && (text || element.IsIllustration) ? element : null;
+
+        if (_marking && ReferenceEquals(owner, _markedFor))
+            return;
+
+        EndMark();
+        ContentStreamBuilder content = Content;
+
+        if (owner is null)
+        {
+            content.BeginMarkedContent(Artifact);
+        }
+        else
+        {
+            List<StructureElement> marks = _pageMarks ??= [];
+            int identifier = marks.Count;
+            marks.Add(owner);
+            owner.Kids.Add(new MarkedContentReference(Page.Reference, identifier));
+
+            if (!_roles.TryGetValue(owner.Role, out PdfName? role))
+            {
+                role = new PdfName(owner.Role);
+                _roles.Add(owner.Role, role);
+            }
+
+            content.BeginMarkedContent(role, identifier);
+        }
+
+        _marking = true;
+        _markedFor = owner;
+    }
+
+    private void EndMark()
+    {
+        if (!_marking)
+            return;
+
+        Content.EndMarkedContent();
+        _marking = false;
+    }
+
+    /// <summary>
+    /// Entries placing a link annotation in the structure, in the link element it belongs to — the one in force, or a new
+    /// one — or null when the document is not tagged.
+    /// </summary>
+    private (PdfDictionary Entries, StructureElement Link)? LinkEntries(string description)
+    {
+        if (!_tagging || _root is null)
+            return null;
+
+        StructureElement link = _tag is { Role: "Link" } current ? current : new StructureElement("Link", _tag ?? _root);
+
+        if (!ReferenceEquals(link, _tag))
+            link.Parent!.Kids.Add(link);
+
+        int key = _nextParentKey++;
+        _parents.Add(key, link);
+
+        PdfDictionary entries = new PdfDictionary
+        {
+            [StructParent] = key,
+            [PdfNames.Contents] = PdfString.FromText(description),
+        };
+
+        return (entries, link);
     }
 
     // Blocks translate by their offsets whether or not those are zero; writing the identity would only add bytes.
@@ -144,6 +300,8 @@ internal sealed class PdfSurface : IPageSink
         if (ink.IsTransparent || path.IsEmpty)
             return;
 
+        Mark(text: false);
+
         SetFill(ink);
         AppendPath(path);
 
@@ -158,10 +316,12 @@ internal sealed class PdfSurface : IPageSink
         if (ink.IsTransparent || path.IsEmpty || style.Weight <= 0)
             return;
 
+        Mark(text: false);
+
         SetStroke(ink);
 
         // Caps, joins and dashes are graphics state that nothing else sets, so they are scoped to this stroke.
-        Save();
+        Push();
         ContentStreamBuilder content = Content;
         SetLineWidth(style.Weight);
 
@@ -185,7 +345,7 @@ internal sealed class PdfSurface : IPageSink
 
         AppendPath(path);
         content.Stroke();
-        Restore();
+        Pop();
     }
 
     public void ClipPath(VectorPath path, FillRule rule)
@@ -251,6 +411,8 @@ internal sealed class PdfSurface : IPageSink
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
 
+        Mark(text: false);
+
         SetFill(color);
         Content.Rectangle(position.X, position.Y, size.Width, size.Height);
         Content.Fill();
@@ -260,6 +422,8 @@ internal sealed class PdfSurface : IPageSink
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
+
+        Mark(text: false);
 
         if (strokeWidth > 0)
         {
@@ -284,6 +448,8 @@ internal sealed class PdfSurface : IPageSink
         if (color.IsTransparent || thickness <= 0)
             return;
 
+        Mark(text: false);
+
         SetStroke(color);
         ContentStreamBuilder content = Content;
 
@@ -298,7 +464,7 @@ internal sealed class PdfSurface : IPageSink
 
             case StrokeStyle.Dotted or StrokeStyle.Dashed:
                 // Caps and dashes are graphics state that nothing else sets, so they are scoped to this line.
-                Save();
+                Push();
                 SetLineWidth(thickness);
 
                 if (style == StrokeStyle.Dotted)
@@ -313,7 +479,7 @@ internal sealed class PdfSurface : IPageSink
                 }
 
                 StrokeSegment(from, to);
-                Restore();
+                Pop();
                 break;
 
             case StrokeStyle.Wavy:
@@ -337,6 +503,8 @@ internal sealed class PdfSurface : IPageSink
         if (color.IsTransparent || thickness <= 0)
             return;
 
+        Mark(text: false);
+
         double[] dashes = new double[pattern.Count];
         for (int index = 0; index < dashes.Length; index++)
             dashes[index] = pattern[index];
@@ -344,11 +512,11 @@ internal sealed class PdfSurface : IPageSink
         SetStroke(color);
 
         // The dash pattern is graphics state that nothing else sets, so it is scoped to this line.
-        Save();
+        Push();
         SetLineWidth(thickness);
         Content.SetDashPattern(dashes, 0);
         StrokeSegment(from, to);
-        Restore();
+        Pop();
     }
 
     private void StrokeSegment(Offset from, Offset to)
@@ -364,6 +532,8 @@ internal sealed class PdfSurface : IPageSink
         float size = style.EffectivePointSize;
         if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
             return;
+
+        Mark(text: true);
 
         SetFill(style.Ink);
 
@@ -444,6 +614,8 @@ internal sealed class PdfSurface : IPageSink
         if (size.Width <= 0 || size.Height <= 0)
             return;
 
+        Mark(text: false);
+
         raster = _adjuster.Adjust(raster, size);
         PdfName name = Page.Resources.GetXObjectName(_images.Reference(raster));
         Transform placement = Placement(raster.Orientation, size.Width, size.Height);
@@ -465,6 +637,8 @@ internal sealed class PdfSurface : IPageSink
         if (grown.Width <= 0 || grown.Height <= 0)
             return;
 
+        Mark(text: false);
+
         float deviation = shadow.Deviation;
 
         if (deviation <= 0)
@@ -481,7 +655,7 @@ internal sealed class PdfSurface : IPageSink
         if (!_shadows.TryGetValue(key, out (PdfReference Image, ShadowMask Mask) cast))
         {
             ShadowMask mask = ShadowMask.Create(grown, radii, deviation);
-            cast = (ShadowImage.Write(_writer.File, mask, colour, _rgbOnly), mask);
+            cast = (ShadowImage.Write(_writer.File, mask, colour, _archival), mask);
             _shadows.Add(key, cast);
         }
 
@@ -501,7 +675,9 @@ internal sealed class PdfSurface : IPageSink
         if (string.IsNullOrEmpty(url))
             return;
 
-        Page.AddUriLink(PageArea(size), url);
+        (PdfDictionary Entries, StructureElement Link)? tagged = LinkEntries(url);
+        PdfReference annotation = Page.AddUriLink(PageArea(size), url, tagged?.Entries);
+        tagged?.Link.Kids.Add(new ObjectReference(annotation, Page.Reference));
     }
 
     public void DrawInternalLink(string destinationName, Extent size)
@@ -509,7 +685,9 @@ internal sealed class PdfSurface : IPageSink
         if (string.IsNullOrEmpty(destinationName))
             return;
 
-        Page.AddDestinationLink(PageArea(size), destinationName);
+        (PdfDictionary Entries, StructureElement Link)? tagged = LinkEntries(destinationName);
+        PdfReference annotation = Page.AddDestinationLink(PageArea(size), destinationName, tagged?.Entries);
+        tagged?.Link.Kids.Add(new ObjectReference(annotation, Page.Reference));
     }
 
     public void DrawDestination(string destinationName)
@@ -654,7 +832,7 @@ internal sealed class PdfSurface : IPageSink
     public void BeginGradient(Gradient gradient, Offset position, Extent size)
     {
         (Offset start, Offset end) = gradient.Axis(position, size);
-        PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix, _rgbOnly));
+        PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix, _archival));
 
         _gradient = (Page.Resources.GetPatternName(pattern), gradient.Opacity);
     }
@@ -738,7 +916,7 @@ internal sealed class PdfSurface : IPageSink
         ContentStreamBuilder content = Content;
 
         // Under PDF/A every ink is written as the sRGB its output intent names; the model is kept only otherwise.
-        switch (_rgbOnly ? InkModel.Rgb : ink.Model)
+        switch (_archival ? InkModel.Rgb : ink.Model)
         {
             case InkModel.Cmyk:
                 (float cyan, float magenta, float yellow, float black) = ink.ToCmyk();

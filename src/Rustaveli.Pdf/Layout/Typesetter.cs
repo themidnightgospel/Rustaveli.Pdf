@@ -1,5 +1,6 @@
 using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Drawing;
+using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
 
 namespace Rustaveli.Pdf.Layout;
@@ -24,7 +25,12 @@ internal static class Typesetter
     /// </summary>
     private const int MaxCountingPasses = 5;
 
-    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288)
+    /// <param name="document">The document to set.</param>
+    /// <param name="pages">Where the final pass draws.</param>
+    /// <param name="measurer">What measures text.</param>
+    /// <param name="resolution">The resolution generated images are asked for.</param>
+    /// <param name="tagged">Whether the final pass records the document's structure, for a tagged PDF.</param>
+    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288, bool tagged = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pages);
@@ -51,10 +57,10 @@ internal static class Typesetter
             pageContext.IsPageCountKnown = true;
         }
 
-        RunPass(document, pages, measurer, pageContext, resolution);
+        RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null);
     }
 
-    private static void RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution)
+    private static void RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null)
     {
         pageContext.ResetForNewPass();
 
@@ -62,7 +68,7 @@ internal static class Typesetter
             slot.ResetState();
 
         PlanContext layout = new PlanContext(measurer, pageContext) { Resolution = resolution };
-        RenderContext direct = new RenderContext(pages, layout);
+        RenderContext direct = new RenderContext(pages, layout, structure);
         int pageNumber = 0;
 
         foreach (Section section in document.Sections)
@@ -71,7 +77,7 @@ internal static class Typesetter
             // away, so they need no order.
             bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
             IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
-            RenderContext context = ordered ? new RenderContext(sink, layout) : direct;
+            RenderContext context = ordered ? new RenderContext(sink, layout, structure) : direct;
 
             layout.DefaultType = section.DefaultType;
             layout.ReadingDirection = section.ReadingDirection;
@@ -192,23 +198,31 @@ internal static class Typesetter
 
         pages.BeginPage(pageSize);
 
-        if (!section.Paper.IsTransparent)
+        // Only the body is the document's content; paper, underlay, running head and foot and overlay are the page's,
+        // repeated on every one, and left out of its structure.
+        using (context.Tags.Untag())
         {
-            // The paper lies beneath everything, even content drawn beneath the rest.
-            LayeredPageSink? layers = pages as LayeredPageSink;
-            layers?.Order = int.MinValue;
-            surface.DrawRectangle(Offset.Zero, pageSize, section.Paper);
-            layers?.Order = 0;
-        }
+            if (!section.Paper.IsTransparent)
+            {
+                // The paper lies beneath everything, even content drawn beneath the rest.
+                LayeredPageSink? layers = pages as LayeredPageSink;
+                layers?.Order = int.MinValue;
+                surface.DrawRectangle(Offset.Zero, pageSize, section.Paper);
+                layers?.Order = 0;
+            }
 
-        // Background and foreground deliberately ignore margins so watermarks can bleed to the page edge.
-        section.UnderlaySlot.Render(pageSize, context);
+            // Background and foreground deliberately ignore margins so watermarks can bleed to the page edge.
+            section.UnderlaySlot.Render(pageSize, context);
+        }
 
         Offset origin = new Offset(margin.Left, margin.Top);
         surface.Translate(origin);
 
         if (bands.HeadHeight > 0)
-            section.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeadHeight), context);
+        {
+            using (context.Tags.Untag())
+                section.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeadHeight), context);
+        }
 
         surface.Translate(new Offset(0, bands.HeadHeight));
         section.BodySlot.Render(contentSpace, context);
@@ -219,13 +233,17 @@ internal static class Typesetter
             // The footer sits against the bottom margin rather than immediately after the content.
             float footTop = pageSize.Height - margin.Vertical - bands.FootHeight;
             surface.Translate(new Offset(0, footTop));
-            section.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FootHeight), context);
+
+            using (context.Tags.Untag())
+                section.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FootHeight), context);
+
             surface.Translate(new Offset(0, -footTop));
         }
 
         surface.Translate(origin.Reverse());
 
-        section.OverlaySlot.Render(pageSize, context);
+        using (context.Tags.Untag())
+            section.OverlaySlot.Render(pageSize, context);
 
         pages.EndPage();
     }

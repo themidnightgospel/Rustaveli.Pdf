@@ -1,6 +1,7 @@
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Images;
+using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
@@ -339,6 +340,11 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
     /// <summary>A page image has no outline to add to.</summary>
     public void DrawBookmark(string title, int level)
+    {
+    }
+
+    /// <summary>A page image has no structure to record.</summary>
+    public void Tag(StructureElement? element)
     {
     }
 

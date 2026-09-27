@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Tagging;
+
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
@@ -11,13 +13,13 @@ namespace Rustaveli.Pdf.Drawing;
 /// </remarks>
 internal interface ISurface
 {
-    /// <summary>Pushes the current transform and clip onto a stack.</summary>
     /// <summary>
     /// Where the current origin lies on the page, in points from the page's top left with Y running down, after
     /// every translation, scale and turn in force.
     /// </summary>
     Offset Origin { get; }
 
+    /// <summary>Pushes the current transform and clip onto a stack.</summary>
     void Save();
 
     /// <summary>Restores the transform and clip most recently pushed by <see cref="Save"/>.</summary>
@@ -115,4 +117,10 @@ internal interface ISurface
     /// for the outermost, leading to the current origin.
     /// </summary>
     void DrawBookmark(string title, int level);
+
+    /// <summary>
+    /// Makes what is drawn from here on the content of <paramref name="element"/> in a tagged document, or, for null,
+    /// decoration outside its structure. Surfaces that write no structure ignore it.
+    /// </summary>
+    void Tag(StructureElement? element);
 }

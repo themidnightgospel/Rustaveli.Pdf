@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Tagging;
+
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
@@ -104,6 +106,10 @@ internal sealed class CountingPageSink : IPageSink
     }
 
     public void DrawBookmark(string title, int level)
+    {
+    }
+
+    public void Tag(StructureElement? element)
     {
     }
 
