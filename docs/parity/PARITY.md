@@ -40,7 +40,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Horizontal sequence: constant, relative, auto items, spacing | `Row` | ✅ | — |
 | Tables: constant/relative columns, auto and explicit placement, spans, header/footer bands | `Table` | ✅ | — |
 | Table: stretch last cells to table bottom | `ExtendLastCellsToTableBottom` | ❌ | 4 |
-| Uniform grid | `Grid` | ❌ | 4 |
+| Uniform grid | `Grid` | ✅ | — |
 | Flow of inline items with wrapping, alignment, baseline | `Inlined` | ❌ | 4 |
 | Newspaper columns, balanced | `MultiColumn` | ❌ | 4 |
 | Stacked layers, one primary | `Layers` | ✅ | — |

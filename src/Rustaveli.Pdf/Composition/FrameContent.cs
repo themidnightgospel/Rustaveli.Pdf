@@ -49,6 +49,18 @@ public static class FrameContent
         handler(new ColumnsComposer(element));
     }
 
+    /// <summary>
+    /// Adds a grid of cells flowing into rows of equal columns, each cell spanning one or more.
+    /// </summary>
+    public static void Grid(this IFrame parent, Action<GridComposer> handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        StackBlock element = FrameAttachment.Attach(parent, new StackBlock());
+        GridComposer grid = new GridComposer();
+        handler(grid);
+        grid.Build(element);
+    }
+
     /// <summary>Adds a grid with sized columns and optional repeating bands.</summary>
     public static void Table(this IFrame parent, Action<TableComposer> handler)
     {

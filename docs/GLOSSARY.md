@@ -57,6 +57,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `StackComposer.Add()` | method | Adds the next frame to the stack. | plain | `ColumnDescriptor.Item` |
 | `StackComposer.SpaceBetween(float)` | method | Vertical space between stacked frames. | print ("space between") | `ColumnDescriptor.Spacing` |
 | `Columns(Action<ColumnsComposer>)` | method | Frames side by side. In page layout, content set side by side is set in columns. | print | `Row` |
+| `Grid(Action<GridComposer>)` | method | Cells flowing into rows of equal columns. | print ("layout grid") | `Grid` |
+| `GridComposer` | class | Builds a grid: `Columns`, `Gutter`, `SpaceBetweenRows`, `FlushLeft`, `Centered`, `FlushRight`, and `Cell(span)` for each cell. | print | `GridDescriptor` |
 | `ColumnsComposer.Share(float)` | method | A column taking a share of the width left over, in proportion to its weight. | plain | `RowDescriptor.RelativeItem` |
 | `ColumnsComposer.Fixed(float)` | method | A column of a fixed width. | plain | `RowDescriptor.ConstantItem` |
 | `ColumnsComposer.Natural()` | method | A column as wide as its content. | plain | `RowDescriptor.AutoItem` |
