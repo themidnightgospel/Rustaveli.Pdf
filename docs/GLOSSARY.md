@@ -45,6 +45,12 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `ISnippet` | interface | A reusable piece of composition, `Compose(IFrame)`. InDesign calls reusable content *snippets*. | InDesign | `IComponent` |
 | `Snippet(ISnippet)` / `Snippet<T>()` | method | Places a snippet. | InDesign | `Component` |
 | `Compose(Action<IFrame>)` | method | Composes into a frame with a method of your own. | print | `Element` |
+| `ComposePerPage<TState>(IDynamicContent<TState>)` | method | Composes content afresh for every page it reaches, from the state it got to. | plain | `Dynamic` |
+| `IDynamicContent<TState>` | interface | Content composed page by page: an `Initial` state, and `Compose(DynamicPage, TState)`. | plain | `IDynamicComponent` |
+| `DynamicPart<TState>` | record | What dynamic content draws on a page: its `Content`, the `Next` state, and whether it `HasMore`. | plain | `DynamicComponentComposeResult` |
+| `DynamicPage` | class | The page dynamic content is composed for: `Facts`, `Room`, `ReadingDirection`, `DefaultType`, `Measure` and `PositionsOf`. | plain | `DynamicContext` |
+| `CapturePosition(string)` | method | Records where content is drawn, page by page, for dynamic content to look up. | plain | `CaptureContentPosition` |
+| `CapturedPosition` | struct | Where captured content was drawn: its `Folio`, `Position` and `Size`. | plain | `PageElementLocation` |
 | `ComposeLater(Action<IFrame>, bool keep)` | method | Composes only when layout reaches the frame, letting the content go once drawn unless kept. | plain | `Lazy`, `LazyWithCache` |
 | `Blank()` | method | Places nothing. | print | `Empty` |
 | `FrameContent` | class | The methods that set content into a frame, and so end a chain: `Text`, `Image`, `Stack`, `Columns`, `Table`, `List`, `Layered`, `Banded`, `Compose`, `Snippet`, `Blank`. | plain | `ContentExtensions` |

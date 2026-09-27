@@ -7,6 +7,19 @@ internal readonly record struct Transform(double A, double B, double C, double D
 {
     public static Transform Identity { get; } = new Transform(1, 0, 0, 1, 0, 0);
 
+    public static Transform Translation(double x, double y) => new Transform(1, 0, 0, 1, x, y);
+
+    public static Transform Scaling(double x, double y) => new Transform(x, 0, 0, y, 0, 0);
+
+    /// <summary>A turn by <paramref name="degrees"/>, clockwise in the engine's Y-down space.</summary>
+    public static Transform Rotation(double degrees)
+    {
+        double radians = degrees * Math.PI / 180;
+        double cos = Math.Cos(radians);
+        double sin = Math.Sin(radians);
+        return new Transform(cos, sin, -sin, cos, 0, 0);
+    }
+
     /// <summary>
     /// The transform that applies <paramref name="first"/> and then this one: what the current transformation
     /// matrix becomes when a content stream concatenates <paramref name="first"/> with <c>cm</c>.

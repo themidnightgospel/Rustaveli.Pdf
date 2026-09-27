@@ -13,16 +13,20 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
 {
     private readonly SortedDictionary<int, List<Held>> _orders = [];
     private readonly Stack<Change?> _saved = new Stack<Change?>();
+    private readonly TransformTracker _transform = new TransformTracker();
     private Change? _state;
 
     /// <summary>The draw order drawings are held under, zero unless content says otherwise.</summary>
     public int Order { get; set; }
+
+    public Offset Origin => _transform.Origin;
 
     public void BeginPage(Extent size)
     {
         pages.BeginPage(size);
         _orders.Clear();
         _saved.Clear();
+        _transform.Reset();
         _state = null;
         Order = 0;
     }
@@ -58,15 +62,35 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
         pages.EndPage();
     }
 
-    public void Save() => _saved.Push(_state);
+    public void Save()
+    {
+        _saved.Push(_state);
+        _transform.Save();
+    }
 
-    public void Restore() => _state = _saved.Pop();
+    public void Restore()
+    {
+        _state = _saved.Pop();
+        _transform.Restore();
+    }
 
-    public void Translate(Offset offset) => _state = new Change(_state, surface => surface.Translate(offset));
+    public void Translate(Offset offset)
+    {
+        _state = new Change(_state, surface => surface.Translate(offset));
+        _transform.Translate(offset);
+    }
 
-    public void Scale(float scaleX, float scaleY) => _state = new Change(_state, surface => surface.Scale(scaleX, scaleY));
+    public void Scale(float scaleX, float scaleY)
+    {
+        _state = new Change(_state, surface => surface.Scale(scaleX, scaleY));
+        _transform.Scale(scaleX, scaleY);
+    }
 
-    public void Rotate(float degrees) => _state = new Change(_state, surface => surface.Rotate(degrees));
+    public void Rotate(float degrees)
+    {
+        _state = new Change(_state, surface => surface.Rotate(degrees));
+        _transform.Rotate(degrees);
+    }
 
     public void ClipRectangle(Extent size) => _state = new Change(_state, surface => surface.ClipRectangle(size));
 

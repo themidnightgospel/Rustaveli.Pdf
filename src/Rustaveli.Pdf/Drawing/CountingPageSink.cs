@@ -10,33 +10,32 @@ namespace Rustaveli.Pdf.Drawing;
 /// </remarks>
 internal sealed class CountingPageSink : IPageSink
 {
+    // Nothing is drawn, but where content lands is still recorded, so the transforms are followed.
+    private readonly TransformTracker _transform = new TransformTracker();
+
     public int PageCount { get; private set; }
 
-    public void BeginPage(Extent size) => PageCount++;
+    public Offset Origin => _transform.Origin;
+
+    public void BeginPage(Extent size)
+    {
+        PageCount++;
+        _transform.Reset();
+    }
 
     public void EndPage()
     {
     }
 
-    public void Save()
-    {
-    }
+    public void Save() => _transform.Save();
 
-    public void Restore()
-    {
-    }
+    public void Restore() => _transform.Restore();
 
-    public void Translate(Offset offset)
-    {
-    }
+    public void Translate(Offset offset) => _transform.Translate(offset);
 
-    public void Scale(float scaleX, float scaleY)
-    {
-    }
+    public void Scale(float scaleX, float scaleY) => _transform.Scale(scaleX, scaleY);
 
-    public void Rotate(float degrees)
-    {
-    }
+    public void Rotate(float degrees) => _transform.Rotate(degrees);
 
     public void ClipRectangle(Extent size)
     {

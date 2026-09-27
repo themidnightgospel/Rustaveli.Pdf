@@ -136,6 +136,16 @@ public static class FrameContent
         FrameAttachment.Attach(parent, new LaterBlock { Compose = handler, Keep = keep });
     }
 
+    /// <summary>
+    /// Composes the frame's content afresh for every page it reaches, knowing the page and the room left on it, from
+    /// the state it got to on the page before.
+    /// </summary>
+    public static void ComposePerPage<TState>(this IFrame parent, IDynamicContent<TState> content)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        FrameAttachment.Attach(parent, new DynamicBlock<TState>(content));
+    }
+
     /// <summary>Composes a reusable component into this container.</summary>
     public static void Snippet(this IFrame parent, ISnippet snippet)
     {

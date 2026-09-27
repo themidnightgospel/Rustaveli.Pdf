@@ -25,6 +25,9 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
     /// <summary>The shader shapes are painted with instead of their ink, while a gradient is set.</summary>
     private SKShader? _gradient;
 
+    /// <summary>How many pixels make a point across and down the page being drawn.</summary>
+    private SKPoint _pixelsPerPoint = new SKPoint(1, 1);
+
     public IReadOnlyList<byte[]> Pages => _pages;
 
     private SKCanvas Canvas => _surface?.Canvas
@@ -43,7 +46,8 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
 
         // The page fills the whole pixel grid, as a viewer rendering it at this resolution fills it: scaling by the
         // resolution alone would leave the rounding of the size to drift across the page.
-        Canvas.Scale(info.Width / size.Width, info.Height / size.Height);
+        _pixelsPerPoint = new SKPoint(info.Width / size.Width, info.Height / size.Height);
+        Canvas.Scale(_pixelsPerPoint.X, _pixelsPerPoint.Y);
     }
 
     public void EndPage()
@@ -57,6 +61,16 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             using SKImage snapshot = surface.Snapshot();
             using SKData data = snapshot.Encode(Encoding(options.Format), options.Quality);
             _pages.Add(data.ToArray());
+        }
+    }
+
+    public Offset Origin
+    {
+        get
+        {
+            // The canvas maps points to pixels; the page's own scale is taken back off.
+            SKMatrix matrix = Canvas.TotalMatrix;
+            return new Offset(matrix.TransX / _pixelsPerPoint.X, matrix.TransY / _pixelsPerPoint.Y);
         }
     }
 

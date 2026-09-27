@@ -47,6 +47,7 @@ internal sealed class PdfSurface : IPageSink
     private readonly Stack<State> _saved = new Stack<State>();
     private byte[] _codes = new byte[128];
     private PdfPage? _page;
+    private float _pageHeight;
     private State _state;
 
     /// <summary>The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.</summary>
@@ -70,6 +71,7 @@ internal sealed class PdfSurface : IPageSink
             throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
 
         _page = _writer.BeginPage(size.Width, size.Height);
+        _pageHeight = size.Height;
         _saved.Clear();
 
         Transform flip = new Transform(1, 0, 0, -1, 0, size.Height);
@@ -104,26 +106,30 @@ internal sealed class PdfSurface : IPageSink
     }
 
     // Blocks translate by their offsets whether or not those are zero; writing the identity would only add bytes.
+    public Offset Origin
+    {
+        get
+        {
+            // The page's own space runs Y up from the bottom; the engine's runs down from the top.
+            (double x, double y) = _state.Matrix.Apply(0, 0);
+            return new Offset((float)x, (float)(_pageHeight - y));
+        }
+    }
+
     public void Translate(Offset offset)
     {
         if (offset.X != 0 || offset.Y != 0)
-            Concatenate(new Transform(1, 0, 0, 1, offset.X, offset.Y));
+            Concatenate(Transform.Translation(offset.X, offset.Y));
     }
 
     public void Scale(float scaleX, float scaleY)
     {
         if (scaleX != 1 || scaleY != 1)
-            Concatenate(new Transform(scaleX, 0, 0, scaleY, 0, 0));
+            Concatenate(Transform.Scaling(scaleX, scaleY));
     }
 
-    public void Rotate(float degrees)
-    {
-        // In the flipped, Y-down space the engine draws in, this matrix turns clockwise.
-        double radians = degrees * Math.PI / 180;
-        double cos = Math.Cos(radians);
-        double sin = Math.Sin(radians);
-        Concatenate(new Transform(cos, sin, -sin, cos, 0, 0));
-    }
+    // In the flipped, Y-down space the engine draws in, this matrix turns clockwise.
+    public void Rotate(float degrees) => Concatenate(Transform.Rotation(degrees));
 
     public void ClipRectangle(Extent size)
     {

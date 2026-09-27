@@ -39,6 +39,8 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         _current = null;
     }
 
+    public Offset Origin => Resolve(Offset.Zero);
+
     public void Save()
     {
         _saved.Push(_transform);

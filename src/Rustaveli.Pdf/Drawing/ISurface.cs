@@ -12,6 +12,12 @@ namespace Rustaveli.Pdf.Drawing;
 internal interface ISurface
 {
     /// <summary>Pushes the current transform and clip onto a stack.</summary>
+    /// <summary>
+    /// Where the current origin lies on the page, in points from the page's top left with Y running down, after
+    /// every translation, scale and turn in force.
+    /// </summary>
+    Offset Origin { get; }
+
     void Save();
 
     /// <summary>Restores the transform and clip most recently pushed by <see cref="Save"/>.</summary>

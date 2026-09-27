@@ -461,6 +461,17 @@ public static class FrameModifiers
         return Attach(parent, new LinkBlock { Url = url });
     }
 
+    /// <summary>
+    /// Records where the content is drawn, on every page it is drawn on, under <paramref name="name"/>, for content
+    /// composed page by page to look up.
+    /// </summary>
+    public static IFrame CapturePosition(this IFrame parent, string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return Attach(parent, new CaptureBlock { Name = name });
+    }
+
     /// <summary>Marks this content as a named destination that <see cref="CrossReference"/> can target.</summary>
     public static IFrame Anchor(this IFrame parent, string name)
     {
