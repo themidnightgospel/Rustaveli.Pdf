@@ -16,6 +16,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Document` | class | A composed document, ready to export. | — | `Document` |
+| `StyleSheet` | class | A document's named styles — `DefineType`, `DefineParagraph`, `DefineFrame` — each able to build on another `basedOn` it; the document's is `Document.Styles`, also `IComposition.Styles` while composing. | InDesign ("character, paragraph and object styles") | — |
+| `Style(string)` | method | Applies a named style: a type style to a run, a paragraph style to a block of text, a frame style to a frame. | InDesign | — |
 | `Document.PageLimit` | property | The most pages a document may take before content that never stops asking for another is taken to be a fault. | plain | `Settings.DocumentLayoutExceptionThreshold` |
 | `Document.Compose(Action<IComposition>)` | method | Builds a document. *Composition* is the old word for typesetting: compositors composed type into pages. | print | `Document.Create` |
 | `IComposition` | interface | What a document is composed of: a sequence of sections. | print | `IDocumentContainer` |

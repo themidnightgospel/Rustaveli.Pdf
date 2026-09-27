@@ -27,6 +27,8 @@ internal static class Typesetter
         ArgumentNullException.ThrowIfNull(pages);
         ArgumentNullException.ThrowIfNull(measurer);
 
+        // Content composed as pages are set — per page, or later — names styles as content composed up front does.
+        using StyleSheet.Scope styles = document.Styles.Use();
         Pagination pageContext = new Pagination();
         int total = 0;
 

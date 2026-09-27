@@ -18,6 +18,9 @@ public sealed class Document : IComposition
 
     public DocumentInfo Info { get; } = new DocumentInfo();
 
+    /// <summary>The document's named type, paragraph and frame styles.</summary>
+    public StyleSheet Styles { get; } = new StyleSheet();
+
     /// <summary>
     /// The most pages the document may take, 10,000 unless set. Content that never stops asking for another page —
     /// a frame that reports more to come but takes no room — fails once it passes this, rather than running forever.
@@ -47,7 +50,8 @@ public sealed class Document : IComposition
         Document document = new Document();
         try
         {
-            compose(document);
+            using (document.Styles.Use())
+                compose(document);
         }
         catch (Exception ex) when (!(ex is CompositionException))
         {

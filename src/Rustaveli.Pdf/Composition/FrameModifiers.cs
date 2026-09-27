@@ -379,6 +379,13 @@ public static class FrameModifiers
     public static IFrame Unbounded(this IFrame parent) =>
         Attach(parent, new UnboundedBlock());
 
+    /// <summary>Gives the frame the document's frame style named <paramref name="name"/>, returning the frame content goes in.</summary>
+    public static IFrame Style(this IFrame parent, string name)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        return StyleSheet.InForce.Frame(name)(parent);
+    }
+
     /// <summary>
     /// Prevents content from being split across pages, moving it whole to the next page instead.
     /// </summary>
