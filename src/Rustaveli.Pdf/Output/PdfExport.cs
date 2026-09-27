@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using Rustaveli.Pdf.Layout;
 using Rustaveli.Pdf.Output;
+using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Text;
 using Rustaveli.Pdf.Writing;
 
@@ -110,9 +111,13 @@ public static class PdfExport
     private static void Export(Document document, Stream stream, PdfExportOptions? options)
     {
         TypeShaper shaper = (options?.Typefaces ?? TypefaceLibrary.Shared).Shaper;
+        if (options?.Protection is not null && options.Conformance != PdfAConformance.None)
+            throw new InvalidOperationException("PDF/A forbids encryption: a document cannot be both protected and archival.");
+
         PdfWriterOptions writing = new PdfWriterOptions
         {
             CompressionLevel = options?.Compress == false ? CompressionLevel.NoCompression : CompressionLevel.Optimal,
+            Encryption = options?.Protection is { } protection ? PdfEncryption.Create(protection) : null,
         };
 
         PdfAConformance conformance = options?.Conformance ?? PdfAConformance.None;

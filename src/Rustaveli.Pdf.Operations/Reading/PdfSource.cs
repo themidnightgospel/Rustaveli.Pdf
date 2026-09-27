@@ -1,3 +1,4 @@
+using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Operations.Reading;
@@ -17,6 +18,7 @@ namespace Rustaveli.Pdf.Operations.Reading;
 internal sealed class PdfSource
 {
     private static readonly PdfName Root = new PdfName("Root");
+    private static readonly PdfName Encrypt = new PdfName("Encrypt");
     private static readonly PdfName Prev = new PdfName("Prev");
     private static readonly PdfName XRefStm = new PdfName("XRefStm");
     private static readonly PdfName Index = new PdfName("Index");
@@ -41,6 +43,7 @@ internal sealed class PdfSource
     private readonly HashSet<int> _loading = [];
     private readonly HashSet<int> _pageTree = [];
     private IReadOnlyList<SourcePage>? _pages;
+    private int _encryptNumber;
     private bool _rebuilt;
 
     private PdfSource(byte[] data)
@@ -65,7 +68,12 @@ internal sealed class PdfSource
     /// <summary>The object numbers the file holds, in order.</summary>
     public IEnumerable<int> ObjectNumbers => _entries.Keys.OrderBy(number => number);
 
-    public static PdfSource Open(byte[] data)
+    /// <summary>How the file is encrypted, when it is, opened with the password it was given.</summary>
+    public PdfEncryption? Encryption { get; private set; }
+
+    /// <summary>Reads a file, opening it with <paramref name="password"/> if it is protected.</summary>
+    /// <exception cref="IncorrectPasswordException">The file is protected, and the password does not open it.</exception>
+    public static PdfSource Open(byte[] data, string? password = null)
     {
         ArgumentNullException.ThrowIfNull(data);
 
@@ -77,8 +85,78 @@ internal sealed class PdfSource
         if (!source.TryReadCrossReferences() || !source.Trailer.ContainsKey(Root))
             source.Rebuild();
 
+        source.Unlock(password);
         _ = source.Catalog;
         return source;
+    }
+
+    private void Unlock(string? password)
+    {
+        if (!Trailer.TryGetValue(Encrypt, out PdfValue encrypt))
+            return;
+
+        if (encrypt.Kind == PdfValueKind.Reference)
+            _encryptNumber = encrypt.AsReference().ObjectNumber;
+
+        PdfDictionary dictionary = Resolve(encrypt) is { Kind: PdfValueKind.Dictionary } found
+            ? found.AsDictionary()
+            : throw new UnreadableFileException("The file is not a PDF this library can read: its encryption dictionary is missing.");
+
+        byte[] id = Trailer.TryGetValue(PdfNames.ID, out PdfValue ids) && Resolve(ids) is { Kind: PdfValueKind.Array } pair
+            && pair.AsArray().Count > 0 && pair.AsArray()[0].Kind == PdfValueKind.String
+            ? pair.AsArray()[0].AsString().Bytes.ToArray()
+            : [];
+
+        Encryption = PdfEncryption.Open(dictionary, id, password ?? string.Empty, Resolve) ?? throw new IncorrectPasswordException(
+            password is null ? "The file is protected by a password, and was opened without one." : "The password given does not open the file.");
+
+        // Whatever was read to find the encryption was read before it could be decrypted.
+        _objects.Clear();
+        _objectStreams.Clear();
+        _pages = null;
+    }
+
+    /// <summary>An object read from its own place in the file, its strings and stream decrypted.</summary>
+    private object Decrypt(int number, object read)
+    {
+        if (read is SourceStream stream)
+        {
+            if (stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(XRef))
+                return stream;
+
+            PdfDictionary dictionary = Decrypt(number, stream.Dictionary).AsDictionary();
+            byte[] data = Encryption!.Covers(dictionary) ? Encryption.DecryptStream(number, stream.Data) : stream.Data;
+            return new SourceStream(dictionary, data);
+        }
+
+        return Decrypt(number, (PdfValue)read);
+    }
+
+    private PdfValue Decrypt(int number, PdfValue value)
+    {
+        switch (value.Kind)
+        {
+            case PdfValueKind.String:
+                PdfString text = value.AsString();
+                return new PdfString(Encryption!.DecryptString(number, text.Bytes.ToArray()), text.Form);
+
+            case PdfValueKind.Array:
+                PdfArray array = new PdfArray(value.AsArray().Count);
+                foreach (PdfValue item in value.AsArray())
+                    array.Add(Decrypt(number, item));
+
+                return array;
+
+            case PdfValueKind.Dictionary:
+                PdfDictionary dictionary = new PdfDictionary(value.AsDictionary().Count);
+                foreach (KeyValuePair<PdfName, PdfValue> entry in value.AsDictionary())
+                    dictionary[entry.Key] = Decrypt(number, entry.Value);
+
+                return dictionary;
+
+            default:
+                return value;
+        }
     }
 
     /// <summary>
@@ -217,7 +295,13 @@ internal sealed class PdfSource
         if (!_entries.TryGetValue(number, out SourceEntry entry))
             return PdfValue.Null;
 
-        return entry.IsCompressed ? LoadCompressed(number, entry) : ReadAt(entry.Offset, number);
+        if (entry.IsCompressed)
+            return LoadCompressed(number, entry);
+
+        object read = ReadAt(entry.Offset, number);
+
+        // Objects in object streams were decrypted with their stream; the encryption dictionary never is.
+        return Encryption is null || number == _encryptNumber || ReferenceEquals(read, Misplaced) ? read : Decrypt(number, read);
     }
 
     /// <summary>The object at <paramref name="offset"/>, which must say it is <paramref name="number"/>.</summary>

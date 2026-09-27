@@ -112,9 +112,17 @@ internal sealed class PdfByteWriter : IDisposable
         Write(" 0 R"u8);
     }
 
+    /// <summary>
+    /// What strings are encrypted with as they are written, for the object being written, or null to write them as
+    /// they are. Encrypted strings are written in hexadecimal.
+    /// </summary>
+    public Func<byte[], byte[]>? StringCipher { get; set; }
+
     public void WriteString(PdfString value)
     {
-        if (value.Form == PdfStringForm.Hex)
+        if (StringCipher is { } cipher)
+            WriteHexString(cipher(value.Bytes.ToArray()));
+        else if (value.Form == PdfStringForm.Hex)
             WriteHexString(value.Bytes);
         else
             WriteLiteralString(value.Bytes);

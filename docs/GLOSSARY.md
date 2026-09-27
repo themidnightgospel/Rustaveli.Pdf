@@ -183,6 +183,12 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `FileAttachment` | class | A file to attach: its `Name` and `Content`, `MediaType`, `Description`, dates and `Relationship`; `FromFile` reads one from disk. | plain | `DocumentAttachment` |
 | `AttachmentRelationship` | enum | How an attachment relates to the document: `Unspecified`, `Source`, `Data`, `Alternative`, `Supplement`. | ISO 32000-2 | `DocumentAttachmentRelationship` |
 | `PdfFile.AddMetadata(string)` | method | Adds XMP descriptions — an electronic invoice's, say — to the file's metadata. | plain | `ExtendMetadata` |
+| `PdfFile.Open(..., string? password)` | method | Opens a file, protected ones with the owner's or the user's password. | plain | `LoadFile(path, password)` |
+| `PdfFile.Protect(Protection)`, `Unprotect()` | method | Saves the file protected anew, or unprotected; otherwise it keeps the protection it had. | Acrobat ("protect") | `Encrypt`, `Decrypt` |
+| `PdfFile.LiftRestrictions()` | method | Drops the restrictions a signature places on the file. | plain | `RemoveRestrictions` |
+| `Protection` | class | Password protection: `UserPassword`, `OwnerPassword`, `Encryption`, and what a reader may do — `AllowPrinting`, `AllowCopying` and the rest. Also `PdfExportOptions.Protection`. | Acrobat ("password security") | `Encryption40Bit`, `Encryption128Bit`, `Encryption256Bit` |
+| `EncryptionLevel` | enum | `Rc4With40Bits`, `Rc4With128Bits`, `AesWith128Bits`, `AesWith256Bits`. | Acrobat ("encryption level") | the `Encryption*` classes |
+| `IncorrectPasswordException` | class | A protected file opened without its password, or with a wrong one. | plain | qpdf's errors |
 | `PdfFile.Overlay(...)`, `Underlay(...)` | method | Draws another file's pages over these, as a stamp, or beneath them, as a letterhead, in turn onto the pages named. | print ("overlay", "letterhead") | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` |
 
 ## Structure and standards

@@ -43,6 +43,42 @@ internal static class Qpdf
         }
     }
 
+    /// <summary>
+    /// Runs qpdf with <paramref name="arguments"/> around an input file holding <paramref name="pdf"/> and an output file,
+    /// written in their places as <c>{input}</c> and <c>{output}</c>; returns its exit code, what it printed, and the
+    /// output file if it wrote one.
+    /// </summary>
+    public static (int ExitCode, string Output, byte[]? File) Run(byte[] pdf, params string[] arguments)
+    {
+        string input = Path.Combine(Path.GetTempPath(), $"qpdf-in-{Guid.NewGuid():N}.pdf");
+        string output = Path.Combine(Path.GetTempPath(), $"qpdf-out-{Guid.NewGuid():N}.pdf");
+        File.WriteAllBytes(input, pdf);
+
+        try
+        {
+            ProcessStartInfo start = new ProcessStartInfo(Executable.Value)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+
+            foreach (string argument in arguments)
+                start.ArgumentList.Add(argument.Replace("{input}", input, StringComparison.Ordinal).Replace("{output}", output, StringComparison.Ordinal));
+
+            using Process process = Process.Start(start)!;
+            string printed = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            return (process.ExitCode, printed, File.Exists(output) ? File.ReadAllBytes(output) : null);
+        }
+        finally
+        {
+            File.Delete(input);
+            File.Delete(output);
+        }
+    }
+
     private static string Locate()
     {
         string name = OperatingSystem.IsWindows() ? "qpdf.exe" : "qpdf";

@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Rustaveli.Pdf.Operations.Reading;
+using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Operations.Assembly;
@@ -19,6 +20,7 @@ internal static class FileAssembler
     private static readonly PdfName StructParents = new PdfName("StructParents");
     private static readonly PdfName EmbeddedFiles = new PdfName("EmbeddedFiles");
     private static readonly PdfName Associated = new PdfName("AF");
+    private static readonly PdfName Perms = new PdfName("Perms");
     private static readonly PdfName Metadata = new PdfName("Metadata");
     private static readonly PdfName Xml = new PdfName("XML");
 
@@ -38,6 +40,9 @@ internal static class FileAssembler
         {
             CompressionLevel = CompressionLevel.Optimal,
             CrossReferenceFormat = PdfCrossReferenceFormat.Stream,
+            Encryption = settings.Protection is { } protection
+                ? PdfEncryption.Create(protection)
+                : settings.KeepProtection ? first.Encryption : null,
         });
 
         ObjectCopier copier = new ObjectCopier(writer.File);
@@ -193,7 +198,8 @@ internal static class FileAssembler
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in catalog)
         {
-            if (entry.Key.Equals(PdfNames.Type) || entry.Key.Equals(PdfNames.Pages) || entry.Key.Equals(PdfNames.Names) || entry.Key.Equals(Associated))
+            if (entry.Key.Equals(PdfNames.Type) || entry.Key.Equals(PdfNames.Pages) || entry.Key.Equals(PdfNames.Names) || entry.Key.Equals(Associated)
+                || (settings.LiftRestrictions && entry.Key.Equals(Perms)))
                 continue;
 
             if (whole || Array.IndexOf(Always, entry.Key) >= 0)

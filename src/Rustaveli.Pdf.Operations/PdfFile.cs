@@ -33,29 +33,38 @@ public sealed class PdfFile
     /// <summary>How many pages the file has now.</summary>
     public int PageCount => _pages.Count;
 
-    /// <summary>Opens the PDF file at <paramref name="path"/>.</summary>
-    public static PdfFile Open(string path)
+    /// <summary>
+    /// Opens the PDF file at <paramref name="path"/>, with <paramref name="password"/> — the owner's or the user's —
+    /// if it is protected.
+    /// </summary>
+    /// <exception cref="IncorrectPasswordException">The file is protected, and the password does not open it.</exception>
+    /// <exception cref="UnreadableFileException">The file is not a PDF, or is damaged past repair.</exception>
+    public static PdfFile Open(string path, string? password = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
-        return Open(File.ReadAllBytes(path));
+        return Open(File.ReadAllBytes(path), password);
     }
 
-    /// <summary>Opens a PDF file held in memory.</summary>
-    public static PdfFile Open(byte[] data)
+    /// <inheritdoc cref="Open(string, string?)"/>
+    public static PdfFile Open(byte[] data, string? password = null)
     {
         ArgumentNullException.ThrowIfNull(data);
-        return new PdfFile(PdfSource.Open(data));
+        return new PdfFile(PdfSource.Open(data, password));
     }
 
     /// <summary>Opens a PDF file read from <paramref name="stream"/>, which is read to its end and not closed.</summary>
-    public static PdfFile Open(Stream stream)
+    /// <inheritdoc cref="Open(string, string?)"/>
+    public static PdfFile Open(Stream stream, string? password = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
         using MemoryStream copy = new MemoryStream();
         stream.CopyTo(copy);
-        return Open(copy.ToArray());
+        return Open(copy.ToArray(), password);
     }
+
+    /// <summary>Whether the file was protected by a password when it was opened.</summary>
+    public bool WasProtected => _first.Encryption is not null;
 
     /// <summary>Keeps only the pages <paramref name="pages"/> names, in the order it names them.</summary>
     public PdfFile KeepPages(string pages)
@@ -120,6 +129,33 @@ public sealed class PdfFile
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xmp);
         _settings.Metadata.Add(xmp);
+        return this;
+    }
+
+    /// <summary>Saves the file protected as <paramref name="protection"/> says, in place of any protection it had.</summary>
+    public PdfFile Protect(Protection protection)
+    {
+        ArgumentNullException.ThrowIfNull(protection);
+        _settings.Protection = protection;
+        _settings.KeepProtection = false;
+        return this;
+    }
+
+    /// <summary>
+    /// Saves the file without protection. A protected file keeps its protection, as it had it, unless this or
+    /// <see cref="Protect"/> says otherwise.
+    /// </summary>
+    public PdfFile Unprotect()
+    {
+        _settings.Protection = null;
+        _settings.KeepProtection = false;
+        return this;
+    }
+
+    /// <summary>Drops the restrictions a signature places on the file — what its <c>/Perms</c> allow — so it can be changed freely.</summary>
+    public PdfFile LiftRestrictions()
+    {
+        _settings.LiftRestrictions = true;
         return this;
     }
 
