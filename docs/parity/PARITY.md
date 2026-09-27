@@ -199,7 +199,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Overlay and underlay with page mapping | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` | ✅ `PdfFile.Overlay`, `Underlay` with `onto` and `from` pages | — |
 | Attachments with relationship (ZUGFeRD / Factur-X) | `AddAttachment`, `DocumentAttachment` | ✅ `PdfFile.Attach(FileAttachment)`; a Factur-X PDF/A-3 file passes veraPDF | — |
 | Encrypt 40/128/256-bit with permissions; decrypt; remove restrictions | `Encrypt`, `Decrypt`, `RemoveRestrictions` | ✅ `Protect`, `Unprotect`, `LiftRestrictions`, and `PdfExportOptions.Protection` when generating; checked against qpdf both ways | — |
-| Linearise (fast web view) | `Linearize` | ❌ | 7 |
+| Linearise (fast web view) | `Linearize` | ✅ `PdfFile.OptimizeForWeb`, hint tables and outline included; qpdf finds no linearization errors | — |
 | Extend XMP metadata | `ExtendMetadata` | ✅ `PdfFile.AddMetadata` | — |
 
 ## Diagnostics and tooling

@@ -16,4 +16,7 @@ internal sealed class SaveSettings
 
     /// <summary>Whether the restrictions a signature places on the file, its <c>/Perms</c>, are dropped.</summary>
     public bool LiftRestrictions { get; set; }
+
+    /// <summary>Whether the file is written for viewing over the web as it downloads.</summary>
+    public bool Linearize { get; set; }
 }

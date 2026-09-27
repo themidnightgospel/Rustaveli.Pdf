@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Rustaveli.Pdf.Operations.Linearization;
 using Rustaveli.Pdf.Operations.Reading;
 using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Writing;
@@ -36,13 +37,29 @@ internal static class FileAssembler
         if (pages.Count == 0)
             throw new InvalidOperationException("A PDF needs at least one page; every page has been left out.");
 
+        PdfEncryption? encryption = settings.Protection is { } protection
+            ? PdfEncryption.Create(protection)
+            : settings.KeepProtection ? first.Encryption : null;
+
+        if (!settings.Linearize)
+        {
+            Write(pages, first, output, settings, encryption);
+            return;
+        }
+
+        // Linearizing lays the finished file out anew, so it is finished plain first and encrypted as it is laid out.
+        using MemoryStream plain = new MemoryStream();
+        Write(pages, first, plain, settings, encryption: null);
+        Linearizer.Write(plain.ToArray(), encryption, output);
+    }
+
+    private static void Write(IReadOnlyList<PageEntry> pages, PdfSource first, Stream output, SaveSettings settings, PdfEncryption? encryption)
+    {
         using PdfDocumentWriter writer = new PdfDocumentWriter(output, new PdfWriterOptions
         {
             CompressionLevel = CompressionLevel.Optimal,
             CrossReferenceFormat = PdfCrossReferenceFormat.Stream,
-            Encryption = settings.Protection is { } protection
-                ? PdfEncryption.Create(protection)
-                : settings.KeepProtection ? first.Encryption : null,
+            Encryption = encryption,
         });
 
         ObjectCopier copier = new ObjectCopier(writer.File);

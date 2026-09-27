@@ -164,6 +164,33 @@ public class PdfFileTests
     }
 
     [Fact]
+    public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
+    {
+        byte[] linear = PdfFile.Open(Pages("One", "Two", "Three")).Overlay(PdfFile.Open(Layer("Stamp")), onto: "2").OptimizeForWeb().ToArray();
+        string start = System.Text.Encoding.ASCII.GetString(linear, 0, 200);
+
+        Assert.Matches(@"^%PDF-1\.7\n%....\n\d+ 0 obj\n<</Linearized 1/L 0*" + linear.Length + "/", start);
+        Assert.Contains("/N 0000000003", start, StringComparison.Ordinal);
+        Assert.Equal(["One", "Two Stamp", "Three"], Read(linear));
+
+        using PdfDocument document = PdfDocument.Open(linear);
+        Assert.True(document.TryGetBookmarks(out Bookmarks? bookmarks));
+        Assert.Equal(3, bookmarks!.Roots.Count);
+    }
+
+    [Fact]
+    public void AProtectedFileOptimizedForTheWebOpensWithItsPassword()
+    {
+        byte[] linear = PdfFile.Open(Pages("One", "Two"))
+            .Protect(new Protection { UserPassword = "web", Encryption = EncryptionLevel.AesWith256Bits })
+            .OptimizeForWeb()
+            .ToArray();
+
+        Assert.Throws<IncorrectPasswordException>(() => PdfFile.Open(linear));
+        Assert.Equal(["One", "Two"], Read(PdfFile.Open(linear, "web").Unprotect().ToArray()));
+    }
+
+    [Fact]
     public void LayingAFileOfNoPagesChangesNothing()
     {
         string empty = "%PDF-1.7\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";

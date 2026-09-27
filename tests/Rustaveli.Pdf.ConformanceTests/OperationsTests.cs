@@ -26,6 +26,29 @@ public class OperationsTests
         Assert.Contains("No syntax or stream encoding errors found", Qpdf.Check(assembled), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [MemberData(nameof(SpecimenCatalog.Cases), MemberType = typeof(SpecimenCatalog))]
+    public void FilesOptimizedForTheWebPassQpdfsLinearizationCheck(Specimen specimen)
+    {
+        TestFonts.EnsureRegistered();
+        byte[] pdf = specimen.Build().ExportPdf();
+        byte[] other = SpecimenCatalog.All[0].Build().ExportPdf();
+
+        byte[] linear = PdfFile.Open(pdf).Append(PdfFile.Open(other)).Append(PdfFile.Open(pdf)).OptimizeForWeb().ToArray();
+        byte[] protectedLinear = PdfFile.Open(pdf).Protect(new Protection { UserPassword = "web", Encryption = EncryptionLevel.Rc4With128Bits }).OptimizeForWeb().ToArray();
+
+        foreach ((byte[] file, string password) in new[] { (linear, string.Empty), (protectedLinear, "web") })
+        {
+            (int code, string report, _) = Qpdf.Run(file, $"--password={password}", "--check-linearization", "{input}");
+            Assert.True(code == 0, report);
+            Assert.Contains("no linearization errors", report, StringComparison.Ordinal);
+
+            (int checkCode, string check, _) = Qpdf.Run(file, $"--password={password}", "--check", "{input}");
+            Assert.True(checkCode == 0, check);
+            Assert.Contains("File is linearized", check, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void AFileSavedUnchangedStillMeetsItsStandards()
     {

@@ -159,6 +159,16 @@ public sealed class PdfFile
         return this;
     }
 
+    /// <summary>
+    /// Saves the file for viewing over the web as it downloads — Acrobat's fast web view — its first page first, then
+    /// each other page with what it alone needs, with hints saying where everything lies.
+    /// </summary>
+    public PdfFile OptimizeForWeb()
+    {
+        _settings.Linearize = true;
+        return this;
+    }
+
     public byte[] ToArray()
     {
         using MemoryStream output = new MemoryStream();
