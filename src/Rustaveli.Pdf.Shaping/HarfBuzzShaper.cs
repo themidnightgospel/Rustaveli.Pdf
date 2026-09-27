@@ -98,9 +98,8 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         using Blob blob = Blob.FromStream(new MemoryStream(face.FileData.ToArray()));
         using Face harfBuzzFace = new Face(blob, face.FaceIndex);
 
-        Font font = new Font(harfBuzzFace);
-        font.SetScale(face.UnitsPerEm, face.UnitsPerEm);
-        return font;
+        // A new font is scaled to its face's units per em, the units the positions are read back in.
+        return new Font(harfBuzzFace);
     }
 
     private static Feature[] FeaturesOf(TypeFeatures features) =>
