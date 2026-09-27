@@ -1,6 +1,7 @@
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
 using Rustaveli.Pdf.Text;
+using Rustaveli.Pdf.Text.LineBreaking;
 
 namespace Rustaveli.Pdf.Blocks;
 
@@ -585,48 +586,59 @@ internal sealed class TextBlock : Block
     private static bool IsWordGap(TextRun run) =>
         run.Inline is null && run.Text.Length > 0 && run.Text.All(IsBreakableWhitespace);
 
-    /// <summary>Splits text into newlines, breakable whitespace runs and word runs, preserving all characters.</summary>
-    private static IEnumerable<string> Tokenise(string text)
+    /// <summary>
+    /// Splits text at the places a line may end, by the Unicode line breaking rules: after spaces, after hyphens,
+    /// between ideographs and so on. Each piece becomes the text before it may break, then the breakable whitespace
+    /// that ends it, then "\n" where the line must end — so every character is kept but the line ending itself, and
+    /// whitespace stays separate from the words for trimming and justification to find.
+    /// </summary>
+    private static List<string> Tokenise(string text)
     {
-        int index = 0;
+        List<string> tokens = [];
+        int start = 0;
 
-        while (index < text.Length)
+        foreach (LineBreak opportunity in LineBreaker.Enumerate(text.AsSpan()))
         {
-            char character = text[index];
+            int end = opportunity.Position;
+            int content = end;
+            bool endsLine = opportunity.IsMandatory && end > start && IsLineTerminator(text[end - 1]);
 
-            if (character == '\n')
+            if (endsLine)
             {
-                yield return "\n";
-                index++;
-                continue;
+                // A carriage return and line feed together are one line ending.
+                content--;
+
+                if (text[content] == '\n' && content > start && text[content - 1] == '\r')
+                    content--;
             }
 
-            if (character == '\r')
-            {
-                // A lone carriage return is still a line break; only the pair counts as one.
-                index++;
+            int word = content;
 
-                if (index < text.Length && text[index] == '\n')
-                    index++;
+            while (word > start && IsBreakableWhitespace(text[word - 1]))
+                word--;
 
-                yield return "\n";
-                continue;
-            }
+            if (word > start)
+                tokens.Add(text[start..word]);
 
-            int start = index;
-            bool isWhitespace = IsBreakableWhitespace(character);
+            if (content > word)
+                tokens.Add(text[word..content]);
 
-            while (index < text.Length
-                   && text[index] != '\n'
-                   && text[index] != '\r'
-                   && IsBreakableWhitespace(text[index]) == isWhitespace)
-            {
-                index++;
-            }
+            if (endsLine)
+                tokens.Add("\n");
 
-            yield return text[start..index];
+            start = end;
         }
+
+        return tokens;
     }
+
+    /// <summary>The characters that end a line wherever they fall: the mandatory breaks of UAX #14.</summary>
+    private static bool IsLineTerminator(char character) =>
+        character is '\n' or '\r' or '\u000B' or '\u000C' or '\u0085' or LineSeparator or ParagraphSeparator;
+
+    private const char LineSeparator = (char)0x2028;
+
+    private const char ParagraphSeparator = (char)0x2029;
 
     /// <summary>
     /// One piece of a line: either a stretch of text, or an element sitting inline among the words.

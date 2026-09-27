@@ -126,7 +126,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Clamp to N lines with ellipsis | `ClampLines` | ✅ | — |
 | First-line indent, paragraph spacing | `ParagraphFirstLineIndentation`, `ParagraphSpacing` | ✅ | — |
 | Break anywhere | `WrapAnywhere` | ✅ | — |
-| Unicode line breaking (UAX #14) | — | ❌ | 3 |
+| Unicode line breaking (UAX #14) | — | ✅ Unicode 16, default rules | — |
 | Per-span direction; bidi reordering | `Direction*` | ❌ | 3 (`Shaping` package) |
 | OpenType features (ligatures, small caps, figures, …) | `EnableFontFeature`, `FontFeatures` | ❌ | 3 |
 | Complex-script shaping | — (built in) | ❌ | 3 (`Shaping` package) |

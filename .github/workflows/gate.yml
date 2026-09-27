@@ -46,8 +46,11 @@ jobs:
               --mutate "**/Blocks/[M-Z]*.cs" --mutate "!**/Blocks/TextBlock.cs" --mutate "!**/Blocks/TableBlock.cs"
           - name: layout-text
             mutate: >-
-              --mutate "**/Layout/**/*.cs" --mutate "**/Text/**/*.cs" --mutate "!**/Text/TypeShaper.cs"
+              --mutate "**/Layout/**/*.cs" --mutate "**/Text/*.cs" --mutate "!**/Text/TypeShaper.cs"
               --mutate "!**/Text/GlyphWalk.cs" --mutate "!**/Text/OpenTypeMeasurer.cs"
+          # The generated character tables are data, not logic: Stryker skips files marked auto-generated.
+          - name: line-breaking
+            mutate: --mutate "**/Text/LineBreaking/**/*.cs"
           - name: primitives
             mutate: --mutate "**/Primitives/**/*.cs"
           - name: composition-drawing

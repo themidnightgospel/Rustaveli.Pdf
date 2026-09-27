@@ -58,6 +58,71 @@ public class TextBlockTests
         Approximately.Equal(2 * LineHeight, plan.Size.Height);
     }
 
+    [Theory]
+    [InlineData(0x000A)]
+    [InlineData(0x000B)]
+    [InlineData(0x000C)]
+    [InlineData(0x000D)]
+    [InlineData(0x0085)]
+    [InlineData(0x2028)]
+    [InlineData(0x2029)]
+    public void EveryUnicodeLineEndingEndsTheLine(int ending)
+    {
+        TextBlock element = Text(text => text.Run($"a{(char)ending}b"));
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
+
+        // The ending itself is not drawn, and "b" starts the next line.
+        Assert.Equal("ab", page.Content);
+        Approximately.Equal(9.6f + LineHeight, page.Texts.Single(text => text.Text == "b").Position.Y);
+    }
+
+    [Fact]
+    public void ACarriageReturnAndLineFeedTogetherEndOneLine()
+    {
+        TextBlock element = Text(text => text.Run("a\r\nb"));
+
+        Approximately.Equal(2 * LineHeight, LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height);
+    }
+
+    [Fact]
+    public void ALineMayBreakAfterAHyphen()
+    {
+        // "well-known" is 60pt; at 36pt it breaks after the hyphen rather than inside a word.
+        TextBlock element = Text(text => text.Run("well-known"));
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(36, 500)).Texts.ToList();
+
+        Assert.Equal(["well-", "known"], texts.Select(text => text.Text));
+        Approximately.Equal(texts[0].Position.Y + LineHeight, texts[1].Position.Y);
+    }
+
+    [Fact]
+    public void ALineMayBreakBetweenIdeographs()
+    {
+        // Chinese has no spaces: the line takes as many characters as fit and continues on the next.
+        TextBlock element = Text(text => text.Run("ab 世界你好"));
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(30, 500)).Texts.ToList();
+
+        Assert.Equal(["ab", " ", "世", "界", "你", "好"], texts.Select(text => text.Text));
+        Approximately.Equal(18f, texts[2].Position.X);
+        Approximately.Equal(texts[0].Position.Y, texts[3].Position.Y);
+        Approximately.Equal(0f, texts[4].Position.X);
+        Approximately.Equal(texts[0].Position.Y + LineHeight, texts[4].Position.Y);
+    }
+
+    [Fact]
+    public void ALineDoesNotBreakBeforeClosingPunctuation()
+    {
+        // "(aa)" and "bb" are 24pt and 12pt; at 30pt a break before the bracket would fit, but is not allowed.
+        TextBlock element = Text(text => text.Run("bb (aa)"));
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(30, 500)).Texts.ToList();
+
+        Assert.Equal(["bb", "(aa)"], texts.Select(text => text.Text));
+    }
+
     [Fact]
     public void LineAppendsABreakAfterTheText()
     {

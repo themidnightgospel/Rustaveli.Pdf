@@ -151,7 +151,7 @@ flush and centred placement, shifting, scaling, shrink-to-fit, quarter turns, mi
 
 **Text** — styled runs, weight, italic, ink, highlight, underline, strike-through and overline (solid, double,
 dotted, dashed or wavy, in their own ink and weight), leading, tracking, word spacing,
-subscript and superscript, alignment, line breaking, mid-word breaking, non-breaking spaces, first-line indent,
+subscript and superscript, alignment, Unicode line breaking (UAX #14), mid-word breaking, non-breaking spaces, first-line indent,
 space between paragraphs, flow across pages, folios in any numerals, page counts, cross-references and page numbers
 within anchored content, and default type inherited from the section.
 
