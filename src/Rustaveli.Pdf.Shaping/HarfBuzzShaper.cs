@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using HarfBuzzSharp;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Text;
@@ -95,11 +96,19 @@ internal sealed class HarfBuzzShaper : IComplexShaper
 
     private static Font Create(OpenTypeFont face)
     {
-        using Blob blob = Blob.FromStream(new MemoryStream(face.FileData.ToArray()));
+        // HarfBuzz reads the file for as long as the font lives, so it is given memory the garbage collector cannot
+        // move, freed when HarfBuzz lets the file go. A blob over a managed array would point at wherever the array
+        // used to be after the next compaction.
+        byte[] file = face.FileData.ToArray();
+        IntPtr memory = Marshal.AllocHGlobal(file.Length);
+        Marshal.Copy(file, 0, memory, file.Length);
+
+        using Blob blob = new Blob(memory, file.Length, MemoryMode.ReadOnly, () => Marshal.FreeHGlobal(memory));
         using Face harfBuzzFace = new Face(blob, face.FaceIndex);
 
-        // A new font is scaled to its face's units per em, the units the positions are read back in.
-        return new Font(harfBuzzFace);
+        Font font = new Font(harfBuzzFace);
+        font.SetScale(face.UnitsPerEm, face.UnitsPerEm);
+        return font;
     }
 
     private static Feature[] FeaturesOf(TypeFeatures features) =>
