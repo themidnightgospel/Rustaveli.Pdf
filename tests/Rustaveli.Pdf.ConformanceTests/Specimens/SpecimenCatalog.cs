@@ -16,7 +16,8 @@ public static class SpecimenCatalog
         new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
         new Specimen("long-flow", LongFlow),
-        new Specimen("text-strokes", TextStrokes)
+        new Specimen("text-strokes", TextStrokes),
+        new Specimen("paragraphs", Paragraphs)
     ];
 
     public static TheoryData<Specimen> Cases()
@@ -36,6 +37,60 @@ public static class SpecimenCatalog
             configure?.Invoke(section);
             content(section.Body());
         }));
+
+    /// <summary>Paragraph settings: justification, alignment by direction, line limits, breaking anywhere, inline frames.</summary>
+    private static Document Paragraphs() => Page(content => content.Stack(stack =>
+    {
+        const string Prose = "Typesetting is the composition of text by means of arranging physical type or its digital "
+            + "equivalents. Stored letters and other symbols are retrieved and ordered according to a language's "
+            + "orthography for visual display.";
+
+        stack.SpaceBetween(14f);
+
+        stack.Add().Width(260f).Stroke(0.5f).StrokeInk(TestInks.Grey).Inset(6f).Text(text =>
+        {
+            text.Justified();
+            text.FirstLineIndent(12f);
+            text.Run(Prose);
+            text.Run("\nThe last line of each paragraph sits flush against the start.");
+        });
+
+        stack.Add().Width(260f).Stroke(0.5f).StrokeInk(TestInks.Grey).Inset(6f).Text(text =>
+        {
+            text.FlushEnd();
+            text.Run("Flush against the end of the line.");
+        });
+
+        stack.Add().Width(260f).Stroke(0.5f).StrokeInk(TestInks.Grey).Inset(6f).RightToLeft().Text(text =>
+        {
+            text.Justified();
+            text.FirstLineIndent(12f);
+            text.Run(Prose);
+        });
+
+        stack.Add().Width(260f).Stroke(0.5f).StrokeInk(TestInks.Grey).Inset(6f).Text(text =>
+        {
+            text.MaxLines(2);
+            text.Run(Prose);
+        });
+
+        stack.Add().Width(260f).Stroke(0.5f).StrokeInk(TestInks.Grey).Inset(6f).Text(text =>
+        {
+            text.Run("An identifier: ");
+            text.Run("urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66/chapter/section/paragraph").BreakAnywhere();
+        });
+
+        stack.Add().Text(text =>
+        {
+            text.DefaultType(type => type.WithPointSize(14f));
+
+            foreach (InlinePosition position in new[] { InlinePosition.OnBaseline, InlinePosition.BelowBaseline, InlinePosition.TextTop, InlinePosition.TextBottom, InlinePosition.Middle })
+            {
+                text.Run(" " + position + " ");
+                text.Inline(frame => frame.Width(10f).Height(10f).Fill(TestInks.Teal), position);
+            }
+        });
+    }));
 
     /// <summary>Every stroke style under, through and over type, in the font's own weight and in others.</summary>
     private static Document TextStrokes() => Page(content => content.Stack(stack =>

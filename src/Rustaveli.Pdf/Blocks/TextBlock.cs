@@ -224,7 +224,7 @@ internal sealed class TextBlock : Block
             if (run.Inline is not null)
             {
                 Extent inlineSize = new Extent(run.Width, run.Height);
-                Offset inlineTop = new Offset(x, baseline - run.Height);
+                Offset inlineTop = new Offset(x, baseline + line.InlineTop(run));
 
                 surface.Translate(inlineTop);
                 run.Inline.Render(inlineSize, context);
@@ -395,7 +395,8 @@ internal sealed class TextBlock : Block
                     span.Url,
                     span.Anchor,
                     span.Inline,
-                    inlinePlan.Size.Height));
+                    inlinePlan.Size.Height,
+                    span.InlinePosition));
 
                 continue;
             }
@@ -637,7 +638,8 @@ internal sealed class TextBlock : Block
         string? Url,
         string? Destination,
         Block? Inline = null,
-        float Height = 0f);
+        float Height = 0f,
+        InlinePosition Position = InlinePosition.OnBaseline);
 
     private sealed class TextLine
     {
@@ -654,6 +656,8 @@ internal sealed class TextBlock : Block
             Ascent = source.Ascent;
             Descent = source.Descent;
             Height = source.Height;
+            TypeAscent = source.TypeAscent;
+            TypeDescent = source.TypeDescent;
         }
 
         public List<TextRun> Runs { get; } = [];
@@ -668,6 +672,16 @@ internal sealed class TextBlock : Block
         public float Descent { get; private set; }
 
         public float Height { get; private set; }
+
+        /// <summary>
+        /// How far the type on the line reaches above the baseline, not counting inline frames: what a frame set
+        /// level with the top of the type, or centred on it, is placed against. A line of frames alone has no type
+        /// and so none, which makes each frame on it a line of its own height wherever it is placed.
+        /// </summary>
+        public float TypeAscent { get; private set; }
+
+        /// <summary>How far the type on the line reaches below the baseline, not counting inline frames.</summary>
+        public float TypeDescent { get; private set; }
 
         public void Add(TextRun run)
         {
@@ -748,8 +762,8 @@ internal sealed class TextBlock : Block
             if (Runs.Count == 0)
             {
                 TypeMetrics fallback = measurer.GetMetrics(fallbackStyle);
-                Ascent = fallback.Ascent;
-                Descent = fallback.Descent;
+                Ascent = TypeAscent = fallback.Ascent;
+                Descent = TypeDescent = fallback.Descent;
                 Height = fallback.LineSpacing;
                 return;
             }
@@ -757,12 +771,7 @@ internal sealed class TextBlock : Block
             foreach (TextRun run in Runs)
             {
                 if (run.Inline is not null)
-                {
-                    // An inline element rests on the baseline, so its whole height sits above it.
-                    Ascent = Math.Max(Ascent, run.Height);
-                    Height = Math.Max(Height, run.Height);
                     continue;
-                }
 
                 TypeMetrics metrics = measurer.GetMetrics(run.Style);
                 float offset = run.Style.BaselineOffset;
@@ -773,7 +782,39 @@ internal sealed class TextBlock : Block
                 Height = Math.Max(Height, metrics.LineSpacing * run.Style.Leading);
             }
 
+            TypeAscent = Ascent;
+            TypeDescent = Descent;
+
+            // Frames go in once the type is known, since all but those on the baseline are placed against it.
+            foreach (TextRun run in Runs)
+            {
+                if (run.Inline is null)
+                    continue;
+
+                (float above, float below) = Reach(run);
+                Ascent = Math.Max(Ascent, above);
+                Descent = Math.Max(Descent, below);
+                Height = Math.Max(Height, run.Height);
+            }
+
             Height = Math.Max(Height, Ascent + Descent);
+        }
+
+        /// <summary>Where an inline frame's top sits, relative to the baseline; negative is above it.</summary>
+        public float InlineTop(TextRun run) => run.Position switch
+        {
+            InlinePosition.BelowBaseline => 0f,
+            InlinePosition.TextTop => -TypeAscent,
+            InlinePosition.TextBottom => TypeDescent - run.Height,
+            InlinePosition.Middle => (-(TypeAscent - TypeDescent) / 2) - (run.Height / 2),
+            _ => -run.Height,
+        };
+
+        /// <summary>How far an inline frame reaches above the baseline and below it; either may be negative.</summary>
+        private (float Above, float Below) Reach(TextRun run)
+        {
+            float top = InlineTop(run);
+            return (-top, top + run.Height);
         }
     }
 }

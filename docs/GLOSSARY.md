@@ -144,7 +144,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `TextComposer.PageCountOf(string anchor)` | method | How many pages an anchored frame's content spans. | plain | `TotalPagesWithinSection` |
 | `Numerals` | class | Writes numbers as folios and lists are set: `Arabic`, `UpperRoman`, `LowerRoman`, `UpperAlpha`, `LowerAlpha`, or in a list's `Format`. | print | `FormatAsRoman` and friends |
 | `TextComposer.Link(text, url)` / `CrossReference(text, anchor)` | method | Linked runs. | print | `Hyperlink` / `SectionLink` |
-| `TextComposer.Inline(Action<IFrame>)` | method | A frame set inline with the text. | print ("inline graphic") | `Element` |
+| `TextComposer.Inline(Action<IFrame>, InlinePosition)` | method | A frame set inline with the text. | print ("inline graphic") | `Element` |
+| `InlinePosition` | enum | `OnBaseline`, `BelowBaseline`, `TextTop`, `TextBottom`, `Middle`: where an inline frame sits against its line. | CSS (`vertical-align`) | `TextInjectedElementAlignment` |
 | `TextComposer.FlushLeft()`, `FlushRight()`, `Centered()` | method | Paragraph alignment. | print | `AlignLeft/Right/Center` |
 | `TextComposer.FlushStart()`, `FlushEnd()` | method | Paragraph alignment by reading direction: flush against the edge lines start from, or end at. | print | `AlignStart/End` |
 | `TextComposer.Justified()` | method | Stretches every line but a paragraph's last across the width by widening its word spaces. | print | `Justify` |

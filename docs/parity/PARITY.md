@@ -130,7 +130,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Per-span direction; bidi reordering | `Direction*` | ❌ | 3 (`Shaping` package) |
 | OpenType features (ligatures, small caps, figures, …) | `EnableFontFeature`, `FontFeatures` | ❌ | 3 |
 | Complex-script shaping | — (built in) | ❌ | 3 (`Shaping` package) |
-| Inline elements in a paragraph, with vertical alignment | `Element(TextInjectedElementAlignment)` | 🟡 no alignment options | 3 |
+| Inline elements in a paragraph, with vertical alignment | `Element(TextInjectedElementAlignment)` | ✅ | — |
 | Current page, total pages | `CurrentPageNumber`, `TotalPages` | ✅ | — |
 | Page number formatting (roman, custom) | `TextPageNumberDescriptor.Format` | ✅ | — |
 | Section page numbers: begin, end, within, total within | `BeginPageNumberOfSection`, … | ✅ | — |

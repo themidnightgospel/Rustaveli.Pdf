@@ -130,10 +130,12 @@ public sealed class TextComposer
     /// Places content inline among the words — an icon, a logo, a small chart.
     /// </summary>
     /// <remarks>
-    /// The element behaves as one unbreakable word: it rests on the baseline, moves to the next line whole if it
-    /// does not fit, and raises the line it lands on to accommodate its height.
+    /// The element behaves as one unbreakable word: it sits where <paramref name="position"/> puts it, moves to the
+    /// next line whole if it does not fit, and deepens the line it lands on to accommodate its height.
     /// </remarks>
-    public void Inline(Action<IFrame> handler)
+    /// <param name="handler">Composes the frame.</param>
+    /// <param name="position">Where the frame sits against the line; on the baseline unless told otherwise.</param>
+    public void Inline(Action<IFrame> handler, InlinePosition position = InlinePosition.OnBaseline)
     {
         ArgumentNullException.ThrowIfNull(handler);
         Frame container = new Frame();
@@ -142,7 +144,8 @@ public sealed class TextComposer
         {
             _block.Runs.Add(new TextRun
             {
-                Inline = container
+                Inline = container,
+                InlinePosition = position
             });
         }
     }
