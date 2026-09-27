@@ -135,7 +135,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Page number formatting (roman, custom) | `TextPageNumberDescriptor.Format` | ✅ | — |
 | Section page numbers: begin, end, within, total within | `BeginPageNumberOfSection`, … | ✅ | — |
 | Page number of a captured location | `PageNumberOfLocation` | ❌ | 4 |
-| Glyph-availability check | `Settings.CheckIfAllTextGlyphsAreAvailable` | ❌ | 3 |
+| Glyph-availability check | `Settings.CheckIfAllTextGlyphsAreAvailable` | ✅ per export | — |
 
 ## Links and navigation
 

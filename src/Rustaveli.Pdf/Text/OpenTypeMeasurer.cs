@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rustaveli.Pdf.Fonts;
 
 namespace Rustaveli.Pdf.Text;
@@ -11,6 +12,14 @@ namespace Rustaveli.Pdf.Text;
 /// </remarks>
 internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 {
+    private readonly HashSet<int> _missing = [];
+
+    /// <summary>
+    /// The characters measured that no face has, which are set as missing-glyph boxes. Layout measures every word it
+    /// sets, so after it these are all the document's; characters that need no glyph — controls, format characters
+    /// and line and paragraph separators — are left out.
+    /// </summary>
+    public IReadOnlyCollection<int> MissingCodepoints => _missing;
     public TypeMetrics GetMetrics(TypeStyle style)
     {
         OpenTypeFont font = shaper.Resolve(style);
@@ -47,10 +56,20 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         {
             width += Step(glyph, style.Tracking, first);
             first = false;
+
+            if (glyph.Glyph == 0 && NeedsGlyph(glyph.Codepoint))
+                _missing.Add(glyph.Codepoint);
         }
 
         return Math.Max(0f, width);
     }
+
+    /// <summary>Whether a character is drawn at all, so that a face without it shows a missing-glyph box.</summary>
+    private static bool NeedsGlyph(int codepoint) =>
+        codepoint > 0xFFFF
+        || CharUnicodeInfo.GetUnicodeCategory((char)codepoint) is not (
+            UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.LineSeparator
+            or UnicodeCategory.ParagraphSeparator or UnicodeCategory.Surrogate);
 
     public int MeasureCharactersFitting(string text, TypeStyle style, float maxWidth)
     {
