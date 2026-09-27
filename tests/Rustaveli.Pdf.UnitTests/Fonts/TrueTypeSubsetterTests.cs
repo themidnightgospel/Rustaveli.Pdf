@@ -375,12 +375,12 @@ public class TrueTypeSubsetterTests
         Assert.Equal(3, glyphs.Count);
         Assert.Equal(new ushort[] { 0, 57, 36 }, glyphs.OriginalGlyphIds);
 
-        Assert.True(glyphs.TryGetCodepoint(1, out int v));
-        Assert.Equal('V', v);
-        Assert.True(glyphs.TryGetCodepoint(2, out int a));
-        Assert.Equal('A', a);
-        Assert.False(glyphs.TryGetCodepoint(0, out _));
-        Assert.False(glyphs.TryGetCodepoint(9, out _));
+        Assert.True(glyphs.TryGetText(1, out string v));
+        Assert.Equal("V", v);
+        Assert.True(glyphs.TryGetText(2, out string a));
+        Assert.Equal("A", a);
+        Assert.False(glyphs.TryGetText(0, out _));
+        Assert.False(glyphs.TryGetText(9, out _));
 
         TrueTypeSubset subset = glyphs.Build();
         Assert.Equal(new ushort[] { 0, 57, 36 }, subset.OriginalGlyphIds);
@@ -392,7 +392,7 @@ public class TrueTypeSubsetterTests
         GlyphSubset glyphs = new GlyphSubset(TestFonts.Regular);
         glyphs.Add(36);
 
-        Assert.False(glyphs.TryGetCodepoint(1, out _));
+        Assert.False(glyphs.TryGetText(1, out _));
         Assert.Throws<ArgumentOutOfRangeException>(() => glyphs.Add(60000));
     }
 

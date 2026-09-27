@@ -81,6 +81,24 @@ public sealed class RunComposer
     /// </summary>
     public RunComposer RightToLeft() => Refine(style => style.WithDirection(ReadingDirection.RightToLeft));
 
+    /// <summary>
+    /// Sets the OpenType feature <paramref name="tag"/> — <c>"smcp"</c>, <c>"onum"</c>, <c>"ss01"</c> — to
+    /// <paramref name="value"/>: 0 off, 1 on, higher to choose among alternates.
+    /// </summary>
+    public RunComposer Feature(string tag, int value = 1) => Refine(style => style.WithFeature(tag, value));
+
+    /// <summary>Sets ligatures such as "fi" and "ffl", or not; they are on unless turned off.</summary>
+    public RunComposer Ligatures(bool value = true) => Refine(style => style.Ligatures(value));
+
+    /// <summary>Sets lowercase letters as small capitals, where the face has them.</summary>
+    public RunComposer SmallCapitals(bool value = true) => Refine(style => style.SmallCapitals(value));
+
+    /// <summary>Sets old-style figures, which rise and descend like lowercase letters, where the face has them.</summary>
+    public RunComposer OldstyleFigures(bool value = true) => Refine(style => style.OldstyleFigures(value));
+
+    /// <summary>Sets figures all one width, so columns of numbers align, where the face has them.</summary>
+    public RunComposer TabularFigures(bool value = true) => Refine(style => style.TabularFigures(value));
+
     /// <summary>Lets lines break between any two characters of the run, not only between words.</summary>
     public RunComposer BreakAnywhere(bool value = true) => Refine(style => style.BreakAnywhere(value));
 

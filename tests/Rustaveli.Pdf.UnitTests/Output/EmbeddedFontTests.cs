@@ -47,6 +47,17 @@ public class EmbeddedFontTests
     }
 
     [Fact]
+    public void TheToUnicodeMapWritesALigaturesCharactersAndAGlyphStandingForNone()
+    {
+        string map = Encoding.ASCII.GetString(EmbeddedFont.ToUnicodeMap([((ushort)1, "ffi"), ((ushort)2, string.Empty)]));
+
+        Assert.Contains("<0001> <006600660069>", map);
+
+        // An empty destination: the glyph reads back as nothing rather than as the font's own idea of it.
+        Assert.Contains("<0002> <>", map);
+    }
+
+    [Fact]
     public void TheToUnicodeMapSplitsIntoBlocksOfAHundred()
     {
         // A CMap's bfchar blocks may hold at most a hundred mappings each.

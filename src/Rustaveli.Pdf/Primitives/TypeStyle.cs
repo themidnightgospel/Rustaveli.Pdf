@@ -1,3 +1,6 @@
+using Rustaveli.Pdf.Fonts.Substitution;
+using Rustaveli.Pdf.Text;
+
 namespace Rustaveli.Pdf;
 
 /// <summary>
@@ -41,6 +44,9 @@ public sealed record TypeStyle
     /// where each character takes the direction its script gives it.
     /// </summary>
     public ReadingDirection? Direction { get; init; }
+
+    /// <summary>The OpenType features turned on or off beyond the defaults every face is set with.</summary>
+    internal TypeFeatures Features { get; init; } = TypeFeatures.None;
 
     /// <summary>How underlines, strike-throughs and overlines are drawn.</summary>
     public StrokeStyle StrokeStyle { get; init; } = StrokeStyle.Solid;
@@ -171,6 +177,43 @@ public sealed record TypeStyle
             BreaksAnywhere = value
         };
     }
+
+    /// <summary>
+    /// A copy with the OpenType feature <paramref name="tag"/> — <c>"smcp"</c>, <c>"onum"</c>, <c>"ss01"</c> — set to
+    /// <paramref name="value"/>: 0 turns it off, 1 on, and a higher value chooses among a feature's alternates.
+    /// </summary>
+    /// <remarks>
+    /// Every face is set with composition, localized forms, contextual alternates and standard, contextual and
+    /// required ligatures; a feature the face does not have does nothing.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="tag"/> is not four printable ASCII characters.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
+    public TypeStyle WithFeature(string tag, int value = 1)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+
+        if (tag.Length != 4 || tag.Any(character => character is < ' ' or > '~'))
+            throw new ArgumentException($"An OpenType feature tag is four printable ASCII characters, such as \"liga\"; \"{tag}\" is not.", nameof(tag));
+
+        return this with
+        {
+            Features = Features.With(FeatureTag.Parse(tag), value)
+        };
+    }
+
+    /// <summary>A copy with ligatures such as "fi" and "ffl" set, or not: the standard and contextual ones.</summary>
+    public TypeStyle Ligatures(bool value = true) =>
+        WithFeature("liga", value ? 1 : 0).WithFeature("clig", value ? 1 : 0);
+
+    /// <summary>A copy with lowercase letters set as small capitals, where the face has them.</summary>
+    public TypeStyle SmallCapitals(bool value = true) => WithFeature("smcp", value ? 1 : 0);
+
+    /// <summary>A copy with old-style figures, which rise and descend like lowercase letters, where the face has them.</summary>
+    public TypeStyle OldstyleFigures(bool value = true) => WithFeature("onum", value ? 1 : 0);
+
+    /// <summary>A copy with figures all one width, so columns of numbers align, where the face has them.</summary>
+    public TypeStyle TabularFigures(bool value = true) => WithFeature("tnum", value ? 1 : 0);
 
     /// <summary>A copy that reads in <paramref name="direction"/>, set apart from the text around it; null to follow it.</summary>
     public TypeStyle WithDirection(ReadingDirection? direction)

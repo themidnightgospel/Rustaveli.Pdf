@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Rustaveli.Pdf.Fonts;
+using Rustaveli.Pdf.Fonts.Substitution;
 
 namespace Rustaveli.Pdf.Text;
 
@@ -36,6 +37,10 @@ internal sealed class TypeShaper
     private readonly ConcurrentDictionary<FontRequest, OpenTypeFont> _faces = new(FontCatalog.FamilyIgnoringCase.Instance);
     private readonly ConcurrentDictionary<(OpenTypeFont Primary, int Codepoint), OpenTypeFont> _fallbacks = new();
     private readonly ConcurrentDictionary<OpenTypeFont, OpenTypeFont[]> _discovered = new();
+    private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups = new();
+
+    [ThreadStatic]
+    private static GlyphBuffer? _spareBuffer;
 
     // Held rather than converted from the method group on every call: text is measured on the hot path.
     private readonly Func<FontRequest, OpenTypeFont> _find;
@@ -56,7 +61,48 @@ internal sealed class TypeShaper
     public GlyphWalk Walk(ReadOnlySpan<char> text, TypeStyle style)
     {
         FontRequest request = RequestFor(style);
-        return new GlyphWalk(this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing);
+        return new GlyphWalk(this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing, style.Features);
+    }
+
+    /// <summary>
+    /// The substitution lookups a face applies to text in <paramref name="script"/> with <paramref name="features"/>
+    /// on top of the defaults, in the order they apply; empty for a face without any, which is set glyph for glyph.
+    /// </summary>
+    /// <remarks>
+    /// A face whose GSUB table cannot be read is set without substitutions: its text still reads, where refusing the
+    /// face would lose it.
+    /// </remarks>
+    internal IReadOnlyList<(int Index, int Value)> LookupsFor(OpenTypeFont face, ScriptTag script, TypeFeatures features)
+    {
+        if (face.Substitutions is null)
+            return [];
+
+        (OpenTypeFont, ScriptTag, TypeFeatures) key = (face, script, features);
+
+        return _lookups.TryGetValue(key, out (int Index, int Value)[]? known) ? known : _lookups.GetOrAdd(key, ResolveLookups);
+    }
+
+    /// <summary>A buffer to shape with, kept per thread so that measuring text allocates nothing once warm.</summary>
+    internal static GlyphBuffer RentBuffer()
+    {
+        GlyphBuffer? buffer = _spareBuffer;
+        _spareBuffer = null;
+        return buffer ?? new GlyphBuffer();
+    }
+
+    internal static void ReturnBuffer(GlyphBuffer buffer) => _spareBuffer = buffer;
+
+    private static (int Index, int Value)[] ResolveLookups((OpenTypeFont Face, ScriptTag Script, TypeFeatures Features) key)
+    {
+        try
+        {
+            FeatureSetting[] settings = [.. GlyphSubstitutionTable.DefaultFeatures, .. key.Features.Settings];
+            return [.. key.Face.Substitutions!.ResolveLookups(key.Script, LanguageTag.Default, settings)];
+        }
+        catch (FontFormatException)
+        {
+            return [];
+        }
     }
 
     /// <summary>The face that sets <paramref name="codepoint"/>: the primary when it has the character.</summary>

@@ -21,11 +21,9 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal sealed class GlyphSubset
 {
-    private const int NoCodepoint = -1;
-
     private readonly object _sync = new object();
     private readonly List<ushort> _glyphs = [0];
-    private readonly List<int> _codepoints = [NoCodepoint];
+    private readonly List<string?> _texts = [null];
     private readonly Dictionary<ushort, ushort> _numbers = new Dictionary<ushort, ushort> { [0] = 0 };
 
     public GlyphSubset(OpenTypeFont font)
@@ -57,17 +55,23 @@ internal sealed class GlyphSubset
     }
 
     /// <summary>Records a use of <paramref name="glyph"/> and returns its subset glyph id.</summary>
-    public ushort Add(ushort glyph) => Add(glyph, NoCodepoint);
+    public ushort Add(ushort glyph) => Add(glyph, (string?)null);
+
+    /// <summary>Records a use of <paramref name="glyph"/> to show <paramref name="codepoint"/>.</summary>
+    /// <remarks>A value that is no Unicode scalar value reads back as the replacement character, U+FFFD.</remarks>
+    public ushort Add(ushort glyph, int codepoint) => Add(glyph, TextOf(codepoint));
 
     /// <summary>
-    /// Records a use of <paramref name="glyph"/> to show <paramref name="codepoint"/>, and returns its subset glyph
-    /// id. The first character recorded for a glyph is kept.
+    /// Records a use of <paramref name="glyph"/> to show <paramref name="text"/> — one character, or all of a
+    /// ligature's — and returns its subset glyph id. The first text recorded for a glyph is kept. Empty text is a
+    /// glyph standing for none of its own, such as the accent of a letter set as two glyphs: it reads back as
+    /// nothing, rather than as whatever the font's character map says, until a use that shows text replaces it.
     /// </summary>
     /// <remarks>
     /// .notdef stands in for every character the font lacks, so it is never associated with one: a ToUnicode entry
     /// for it would turn every missing character into whichever happened to be missing first.
     /// </remarks>
-    public ushort Add(ushort glyph, int codepoint)
+    public ushort Add(ushort glyph, string? text)
     {
         if (glyph >= Font.GlyphCount)
             throw new ArgumentOutOfRangeException(nameof(glyph), glyph, $"The font has {Font.GlyphCount} glyphs.");
@@ -79,30 +83,39 @@ internal sealed class GlyphSubset
         {
             if (_numbers.TryGetValue(glyph, out ushort number))
             {
-                if (_codepoints[number] == NoCodepoint)
-                    _codepoints[number] = codepoint;
-
+                _texts[number] = Keep(_texts[number], text);
                 return number;
             }
 
             // At most one entry per glyph of a font whose glyph count is 16-bit, so the number always fits.
             number = (ushort)_glyphs.Count;
             _glyphs.Add(glyph);
-            _codepoints.Add(codepoint);
+            _texts.Add(text);
             _numbers.Add(glyph, number);
             return number;
         }
     }
 
-    /// <summary>The character a subset glyph was first used for; false for .notdef and glyphs added without.</summary>
-    public bool TryGetCodepoint(ushort subsetGlyphId, out int codepoint)
+    /// <summary>The text a subset glyph was first used for; false for .notdef and glyphs added without.</summary>
+    public bool TryGetText(ushort subsetGlyphId, out string text)
     {
         lock (_sync)
         {
-            codepoint = subsetGlyphId < _codepoints.Count ? _codepoints[subsetGlyphId] : NoCodepoint;
-            return codepoint != NoCodepoint;
+            text = (subsetGlyphId < _texts.Count ? _texts[subsetGlyphId] : null)!;
+            return text is not null;
         }
     }
+
+    /// <summary>
+    /// The text a glyph reads back as once it has also been used to show <paramref name="offered"/>: the first text
+    /// shown, where there is one, else the first recorded at all.
+    /// </summary>
+    internal static string? Keep(string? recorded, string? offered) =>
+        string.IsNullOrEmpty(recorded) && !string.IsNullOrEmpty(offered) ? offered : recorded ?? offered;
+
+    /// <summary>A code point as text; the replacement character for a value that is no Unicode scalar value.</summary>
+    internal static string TextOf(int codepoint) =>
+        char.ConvertFromUtf32(codepoint is >= 0 and <= 0x10FFFF and (< 0xD800 or > 0xDFFF) ? codepoint : 0xFFFD);
 
     /// <summary>Builds the subset font, keeping every subset glyph id handed out so far.</summary>
     public TrueTypeSubset Build() => TrueTypeSubsetter.SubsetInOrder(Font, OriginalGlyphIds);

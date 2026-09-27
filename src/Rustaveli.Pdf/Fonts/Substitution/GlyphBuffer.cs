@@ -50,8 +50,17 @@ internal sealed class GlyphBuffer
     /// </summary>
     public static GlyphBuffer FromText(OpenTypeFont font, ReadOnlySpan<char> text)
     {
-        ArgumentNullException.ThrowIfNull(font);
         GlyphBuffer buffer = new GlyphBuffer(text.Length);
+        buffer.Load(font, text);
+        return buffer;
+    }
+
+    /// <summary>Empties the buffer and fills it as <see cref="FromText"/> would, reusing its storage.</summary>
+    public void Load(OpenTypeFont font, ReadOnlySpan<char> text)
+    {
+        ArgumentNullException.ThrowIfNull(font);
+        _count = 0;
+        EnsureCapacity(text.Length);
         int index = 0;
 
         while (index < text.Length)
@@ -63,10 +72,8 @@ internal sealed class GlyphBuffer
             if (char.IsHighSurrogate(character) && index < text.Length && char.IsLowSurrogate(text[index]))
                 codepoint = char.ConvertToUtf32(character, text[index++]);
 
-            buffer.Add(font.GetGlyphId(codepoint), start);
+            Add(font.GetGlyphId(codepoint), start);
         }
-
-        return buffer;
     }
 
     public void Add(ushort glyph, int cluster)
