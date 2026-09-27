@@ -15,6 +15,7 @@ public static class SpecimenCatalog
         new Specimen("frames-and-rules", FramesAndRules),
         new Specimen("flow-and-columns", FlowAndColumns),
         new Specimen("artwork", ArtworkSpecimen),
+        new Specimen("svg", SvgSpecimen),
         new Specimen("images", Images),
         new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
@@ -307,6 +308,20 @@ public static class SpecimenCatalog
         stack.Add().Width(160f).Height(24f).ShrinkToFit().Text("Scaled down until this whole sentence fits the box it was given.");
 
         stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
+    }));
+
+    /// <summary>
+    /// An SVG read into vector artwork: styles from a style sheet, nested transforms, every basic shape, relative,
+    /// smooth and arc path commands, gradients in both unit systems, a clip path, a symbol used twice, a nested
+    /// viewport, dashes, opacity and anchored text; drawn at its own size and again smaller.
+    /// </summary>
+    private static Document SvgSpecimen() => Page(content => content.Stack(stack =>
+    {
+        Artwork svg = Artwork.FromSvgFile(Path.Combine(AppContext.BaseDirectory, "assets", "svg", "specimen.svg"));
+
+        stack.SpaceBetween(16f);
+        stack.Add().FlushLeft().Width(svg.Size.Width).Artwork(svg);
+        stack.Add().Width(180f).Artwork(svg);
     }));
 
     /// <summary>

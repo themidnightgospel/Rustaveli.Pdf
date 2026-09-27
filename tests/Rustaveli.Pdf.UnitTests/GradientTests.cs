@@ -82,6 +82,60 @@ public class GradientTests
         Approximately.Equal(new Offset(100, 100), end);
     }
 
+    [Fact]
+    public void EvenlySpacedInksLieFromStartToEnd() =>
+        Assert.Equal([0f, 0.5f, 1f], new Gradient(0, TestInks.Red, Blue, TestInks.Black).Positions);
+
+    [Fact]
+    public void StopsLieWhereTheySay()
+    {
+        Gradient gradient = new Gradient(45, new GradientStop(0.2f, TestInks.Red), new GradientStop(0.9f, Blue));
+
+        Assert.Equal([0.2f, 0.9f], gradient.Positions);
+        Assert.Equal([TestInks.Red, Blue], gradient.Inks);
+        Assert.Equal(45f, gradient.Angle);
+    }
+
+    public static TheoryData<GradientStop[]> UnusableStops => new TheoryData<GradientStop[]>
+    {
+        new[] { new GradientStop(0, TestInks.Red) },
+        new[] { new GradientStop(-0.1f, TestInks.Red), new GradientStop(1, Blue) },
+        new[] { new GradientStop(0, TestInks.Red), new GradientStop(1.5f, Blue) },
+        new[] { new GradientStop(0.6f, TestInks.Red), new GradientStop(0.4f, Blue) },
+        new[] { new GradientStop(float.NaN, TestInks.Red), new GradientStop(1, Blue) },
+        new[] { new GradientStop(0, TestInks.Red), new GradientStop(1, Blue.WithOpacity(0.5f)) },
+    };
+
+    [Theory]
+    [MemberData(nameof(UnusableStops))]
+    public void StopsMustLieInOrderWithinTheBlend(GradientStop[] stops) =>
+        Assert.Throws<ArgumentException>(() => new Gradient(0, stops));
+
+    [Fact]
+    public void StopsAreNeeded()
+    {
+        Assert.Throws<ArgumentNullException>(() => new Gradient(0, (GradientStop[])null!));
+        Assert.Throws<ArgumentException>(() => new Gradient(float.NaN, new GradientStop(0, TestInks.Red), new GradientStop(1, Blue)));
+    }
+
+    [Fact]
+    public void ABlendBetweenPointsOfTheBoxFollowsTheBox()
+    {
+        Gradient gradient = Gradient.Between(new Offset(0.5f, 0), new Offset(0.5f, 1), ofBox: true, [new GradientStop(0, TestInks.Red), new GradientStop(1, Blue)]);
+
+        Assert.Equal((new Offset(60, 20), new Offset(60, 70)), gradient.Axis(new Offset(10, 20), new Extent(100, 50)));
+    }
+
+    [Fact]
+    public void ABlendBetweenPointsInSpaceIgnoresTheBox()
+    {
+        Gradient gradient = Gradient.Between(new Offset(1, 2), new Offset(3, 4), ofBox: false, [new GradientStop(0, TestInks.Red), new GradientStop(1, Blue.WithOpacity(0.5f))]);
+
+        Assert.Equal((new Offset(1, 2), new Offset(3, 4)), gradient.Axis(new Offset(10, 20), new Extent(100, 50)));
+        Assert.Equal(0.75f, gradient.Opacity);
+        Assert.Throws<ArgumentException>(() => Gradient.Between(Offset.Zero, Offset.Zero, true, [new GradientStop(0, TestInks.Red)]));
+    }
+
     // ---- Painting with it --------------------------------------------------------------------------------------
 
     private static readonly Gradient Blend = Gradient.Across(TestInks.Red, Blue);

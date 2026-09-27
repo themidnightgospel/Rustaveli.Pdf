@@ -232,6 +232,46 @@ public sealed class VectorPath
     /// <summary>A circle centred at (<paramref name="centreX"/>, <paramref name="centreY"/>), as a closed figure.</summary>
     public VectorPath AddCircle(float centreX, float centreY, float radius) => AddEllipse(centreX, centreY, radius, radius);
 
+    /// <summary>
+    /// Adds every figure of <paramref name="path"/>, each point mapped (x, y) to (a·x + c·y + e, b·x + d·y + f): a
+    /// cubic mapped so is the cubic of the mapped points.
+    /// </summary>
+    internal VectorPath AddTransformed(VectorPath path, float a, float b, float c, float d, float e, float f)
+    {
+        int point = 0;
+
+        foreach (PathVerb verb in path._verbs)
+        {
+            switch (verb)
+            {
+                case PathVerb.Move:
+                    MoveTo(X(point), Y(point));
+                    point++;
+                    break;
+
+                case PathVerb.Line:
+                    LineTo(X(point), Y(point));
+                    point++;
+                    break;
+
+                case PathVerb.Cubic:
+                    CurveTo(X(point), Y(point), X(point + 1), Y(point + 1), X(point + 2), Y(point + 2));
+                    point += 3;
+                    break;
+
+                default:
+                    Close();
+                    break;
+            }
+        }
+
+        return this;
+
+        float X(int index) => (a * path._points[index].X) + (c * path._points[index].Y) + e;
+
+        float Y(int index) => (b * path._points[index].X) + (d * path._points[index].Y) + f;
+    }
+
     /// <summary>The box every point of the path, control points included, lies within; empty for an empty path.</summary>
     internal (Offset Position, Extent Size) Bounds()
     {

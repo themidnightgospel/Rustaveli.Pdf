@@ -405,7 +405,8 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         }
 
         _gradient?.Dispose();
-        _gradient = SKShader.CreateLinearGradient(new SKPoint(start.X, start.Y), new SKPoint(end.X, end.Y), colors, null, SKShaderTileMode.Clamp);
+        _gradient = SKShader.CreateLinearGradient(
+            new SKPoint(start.X, start.Y), new SKPoint(end.X, end.Y), colors, gradient.Positions.ToArray(), SKShaderTileMode.Clamp);
     }
 
     public void EndGradient()

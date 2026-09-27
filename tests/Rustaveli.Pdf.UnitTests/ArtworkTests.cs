@@ -123,6 +123,27 @@ public class ArtworkTests
     }
 
     [Fact]
+    public void AnImageIsStretchedToItsBox()
+    {
+        Artwork artwork = Artwork.Draw(100, 100, art => art.Image(new FakeImage(4, 2), 10, 20, 30, 40));
+
+        Assert.Equal(new Bounds(10, 20, 40, 60), Assert.IsType<ImageOperation>(Draw(artwork).Single()).Bounds);
+        Assert.Throws<ArgumentNullException>(() => Artwork.Draw(10, 10, art => art.Image(null!, 0, 0, 1, 1)));
+    }
+
+    [Theory]
+    [InlineData(TextAnchor.Start, 50f)]
+    [InlineData(TextAnchor.Middle, 45f)]
+    [InlineData(TextAnchor.End, 40f)]
+    public void TextIsAnchoredAtItsPoint(TextAnchor anchor, float x)
+    {
+        // Ten characters at 2 points: 10 points wide to the measurer used in tests.
+        Artwork artwork = Artwork.Draw(100, 100, art => art.Text("abcdefghij", 50, 20, TypeStyle.Default.WithPointSize(2), anchor));
+
+        Assert.Equal(x, Assert.IsType<TextOperation>(Draw(artwork).Single()).Position.X, 3);
+    }
+
+    [Fact]
     public void ARestoreNeedsASave() =>
         Assert.Throws<InvalidOperationException>(() => Artwork.Draw(10, 10, art => art.RestoreState()));
 

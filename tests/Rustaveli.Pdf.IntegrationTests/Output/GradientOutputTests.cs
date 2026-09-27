@@ -46,6 +46,17 @@ public class GradientOutputTests
     }
 
     [Fact]
+    public void StopsInsideTheBlendHoldTheirInkToTheEnds()
+    {
+        string pdf = Export(stack => stack.Add().Height(40).Fill(new Gradient(0, new GradientStop(0.25f, Red), new GradientStop(0.75f, Blue))));
+
+        // Red up to a quarter, the blend to three quarters, and blue from there.
+        Assert.Matches(@"/FunctionType 3\s*/Domain\s*\[0 1\]", pdf);
+        Assert.Matches(@"/Bounds\s*\[0\.25 0\.75\]\s*/Encode\s*\[0 1 0 1 0 1\]", pdf);
+        Assert.Matches(@"/C0\s*\[1 0 0\]\s*/C1\s*\[1 0 0\]", pdf);
+    }
+
+    [Fact]
     public void ProcessInksBlendInCmyk()
     {
         string pdf = Export(stack => stack.Add().Height(40).Fill(Gradient.Across(Ink.Cmyk(1, 0, 0, 0), Ink.Cmyk(0, 0, 0, 1))));

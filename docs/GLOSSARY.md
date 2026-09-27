@@ -151,8 +151,9 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |
 | `Image(IImage, ImageFitting)` | method | Places an image. | plain | `Image` |
 | `Artwork(Artwork, ImageFitting)` | method | Places vector artwork, fitted as an image is and kept vector in the PDF. | print ("artwork") | `Svg`, `Canvas` |
-| `Artwork` | class | Vector artwork of a size of its own, made by `Draw(width, height, ...)`. | print | `SvgImage`, `DrawOnCanvas` |
-| `ArtworkComposer` | class | Draws artwork: `Fill`, `Stroke`, `Clip`, `Text`, `SaveState`, `RestoreState`, `Translate`, `Scale`, `Rotate`, `Transform`. | print | a Skia canvas |
+| `Artwork` | class | Vector artwork of a size of its own, made by `Draw(width, height, ...)` or read by `FromSvg` and `FromSvgFile`. | print | `SvgImage`, `DrawOnCanvas` |
+| `TextAnchor` | enum | `Start`, `Middle`, `End`: which part of a line of artwork text sits at its point. | SVG | `text-anchor` |
+| `ArtworkComposer` | class | Draws artwork: `Fill`, `Stroke`, `Clip`, `Text`, `Image`, `SaveState`, `RestoreState`, `Translate`, `Scale`, `Rotate`, `Transform`. | print | a Skia canvas |
 | `VectorPath` | class | Straight and curved segments — `MoveTo`, `LineTo`, `CurveTo`, `QuadraticTo`, `ArcTo`, `Close` — and shapes: `AddRectangle`, `AddRoundedRectangle`, `AddEllipse`, `AddCircle`. | plain | `SKPath` |
 | `FillRule` | enum | `NonZero`, `EvenOdd`: what counts as inside a path that crosses itself. | plain | `SKPathFillType` |
 | `LineStyle` | struct | A stroke's `Weight`, `Cap`, `Join`, `MiterLimit`, `Dashes` and `DashOffset`. | plain | `SKPaint` stroke settings |
@@ -203,6 +204,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Shadow` | struct | A shadow's `Ink`, `Blur`, `Offset` and `Spread`, in points, as CSS measures a box shadow. | InDesign ("drop shadow") | `BoxShadowStyle` |
+| `GradientStop` | struct | An ink at a position along a gradient, from 0 to 1. | InDesign ("gradient stop") | — |
 | `Gradient` | class | A linear blend of inks at an angle, clockwise from left to right: `Across`, `Down`, or any angle. | InDesign ("gradient swatch") | `BackgroundLinearGradient`'s arguments |
 | `Ink` | struct | A colour as print thinks of it: RGB, CMYK process colour, or a named spot ink with a process fallback ([ADR 0004](adr/0004-ink-colour-model.md)). | print | `Color` |
 | `Ink.Rgb`, `Ink.Cmyk`, `Ink.Spot`, `Ink.Hex` | method | Creates an ink. | print | `Color.FromArgb`, `Color.ParseHex` |

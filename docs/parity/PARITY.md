@@ -157,7 +157,8 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Per-image compression quality and target DPI | `WithCompressionQuality`, `WithRasterDpi` | 🟡 document-wide only | 5 |
 | Keep original image bytes | `UseOriginalImage` | ✅ always, wherever PDF can carry the encoding | — |
 | Dynamic images generated at the final size | `GenerateDynamicImageDelegate` | ❌ | 5 |
-| SVG, static and dynamic | `Svg`, `SvgImage` | ❌ | 5 |
+| SVG, static | `Svg`, `SvgImage` | ✅ read into vector `Artwork`; radial gradients as their mean colour, no filters or masks | — |
+| SVG, dynamic (at the final size) | `Svg(Func<Size, string>)` | ❌ | 5 |
 | Custom vector drawing | `Canvas(DrawOnCanvas)` | ✅ `Artwork`, our own drawing API, vector in the PDF | — |
 
 ## Fonts

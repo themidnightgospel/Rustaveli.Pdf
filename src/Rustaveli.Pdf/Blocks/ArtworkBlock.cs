@@ -31,7 +31,7 @@ internal sealed class ArtworkBlock : Block
         context.Surface.Save();
         context.Surface.ClipRectangle(size);
         context.Surface.Scale(size.Width / own.Width, size.Height / own.Height);
-        Artwork.Render(context.Surface);
+        Artwork.Render(context.Surface, context.Measurer);
         context.Surface.Restore();
     }
 

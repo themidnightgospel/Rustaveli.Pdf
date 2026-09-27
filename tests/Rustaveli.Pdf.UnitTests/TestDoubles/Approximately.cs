@@ -27,4 +27,12 @@ internal static class Approximately
         Equal(expected.X, actual.X, "X coordinates differ.");
         Equal(expected.Y, actual.Y, "Y coordinates differ.");
     }
+
+    public static void Equal(Bounds expected, Bounds actual)
+    {
+        Equal(expected.Left, actual.Left, $"Left edges differ: expected {expected}, found {actual}.");
+        Equal(expected.Top, actual.Top, $"Top edges differ: expected {expected}, found {actual}.");
+        Equal(expected.Right, actual.Right, $"Right edges differ: expected {expected}, found {actual}.");
+        Equal(expected.Bottom, actual.Bottom, $"Bottom edges differ: expected {expected}, found {actual}.");
+    }
 }
