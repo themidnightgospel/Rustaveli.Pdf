@@ -25,6 +25,9 @@ internal sealed class Pagination
     /// <summary>False during the counting pass, true while drawing the final output.</summary>
     public bool IsPageCountKnown { get; internal set; }
 
+    /// <summary>How many pages each document merged into this one takes, once counted.</summary>
+    internal int[]? PartPageCounts { get; set; }
+
     /// <summary>
     /// Records that an anchor's content was drawn on <paramref name="folio"/>. Content that flows across pages is
     /// drawn once per page, so an anchor spans from the first page recorded in a pass to the last.

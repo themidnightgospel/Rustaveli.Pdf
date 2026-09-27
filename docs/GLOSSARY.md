@@ -16,6 +16,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Document` | class | A composed document, ready to export. | — | `Document` |
+| `Document.Merge(params Document[])` | method | One document of every page of several, numbered on from one to the next. | plain | `Document.Merge`, `MergedDocument` |
+| `Document.NumberPartsSeparately()` | method | Numbers each merged document's pages from 1, counting only its own. | print ("section numbering") | `UseOriginalPageNumbers` |
 | `Document.Compose(Action<IComposition>)` | method | Builds a document. *Composition* is the old word for typesetting: compositors composed type into pages. | print | `Document.Create` |
 | `IComposition` | interface | What a document is composed of: a sequence of sections. | print | `IDocumentContainer` |
 | `IComposition.Section(Action<Section>)` | method | Adds a section: a run of pages sharing one page setup and running heads, as in Word and InDesign. | Word, InDesign | `IDocumentContainer.Page` |

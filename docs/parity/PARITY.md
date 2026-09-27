@@ -30,7 +30,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | ✅ plus pica | — |
 | Metadata: title, author, subject, keywords, creator, producer, dates | `DocumentMetadata` | ✅ | — |
 | Document language | `DocumentMetadata.Language` | ✅ `DocumentInfo.Language` | — |
-| Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ❌ | 7 |
+| Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ✅ `Document.Merge`, `NumberPartsSeparately` | — |
 
 ## Layout
 
