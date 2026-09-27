@@ -22,6 +22,7 @@ public sealed class PdfFile
 {
     private readonly PdfSource _first;
     private readonly List<PageEntry> _pages;
+    private readonly SaveSettings _settings = new SaveSettings();
 
     private PdfFile(PdfSource source)
     {
@@ -100,6 +101,28 @@ public sealed class PdfFile
     public PdfFile Underlay(PdfFile layer, string? onto = null, string? from = null) => Lay(layer, onto, from, over: false);
 
     /// <summary>Writes the file, returning its bytes.</summary>
+    /// <summary>
+    /// Attaches a file, listed among the attachments readers show and, for PDF/A-3, associated with the document by
+    /// its relationship. The file's own attachments are kept whatever pages are.
+    /// </summary>
+    public PdfFile Attach(FileAttachment attachment)
+    {
+        ArgumentNullException.ThrowIfNull(attachment);
+        _settings.Attachments.Add(attachment);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds to the file's XMP metadata: each <c>rdf:Description</c> in <paramref name="xmp"/> — the description of an
+    /// electronic invoice, say, with the schema PDF/A needs to know it by — joins those already there.
+    /// </summary>
+    public PdfFile AddMetadata(string xmp)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(xmp);
+        _settings.Metadata.Add(xmp);
+        return this;
+    }
+
     public byte[] ToArray()
     {
         using MemoryStream output = new MemoryStream();
@@ -111,7 +134,7 @@ public sealed class PdfFile
     public void Save(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        FileAssembler.Write(_pages, _first, stream);
+        FileAssembler.Write(_pages, _first, stream, _settings);
     }
 
     /// <summary>

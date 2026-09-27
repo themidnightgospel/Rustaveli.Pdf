@@ -54,4 +54,48 @@ public class OperationsTests
 
         Assert.True(broken.Length == 0, "veraPDF found:\n" + string.Join("\n", broken));
     }
+
+    /// <summary>The Factur-X description of an invoice attached to a PDF/A-3 file, with the schema PDF/A needs to know it by.</summary>
+    private static readonly string FacturX =
+        "<rdf:Description rdf:about=\"\" xmlns:fx=\"urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#\">"
+        + "<fx:DocumentType>INVOICE</fx:DocumentType><fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>"
+        + "<fx:Version>1.0</fx:Version><fx:ConformanceLevel>EN 16931</fx:ConformanceLevel></rdf:Description>"
+        + "<rdf:Description rdf:about=\"\" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\""
+        + " xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\" xmlns:pdfaProperty=\"http://www.aiim.org/pdfa/ns/property#\">"
+        + "<pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType=\"Resource\">"
+        + "<pdfaSchema:schema>Factur-X PDFA Extension Schema</pdfaSchema:schema>"
+        + "<pdfaSchema:namespaceURI>urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#</pdfaSchema:namespaceURI>"
+        + "<pdfaSchema:prefix>fx</pdfaSchema:prefix><pdfaSchema:property><rdf:Seq>"
+        + Property("DocumentFileName", "The name of the embedded XML document")
+        + Property("DocumentType", "The type of the hybrid document in capital letters")
+        + Property("Version", "The actual version of the standard applying to the embedded XML document")
+        + Property("ConformanceLevel", "The conformance level of the embedded XML document")
+        + "</rdf:Seq></pdfaSchema:property></rdf:li></rdf:Bag></pdfaExtension:schemas></rdf:Description>";
+
+    private static string Property(string name, string description) =>
+        "<rdf:li rdf:parseType=\"Resource\">"
+        + $"<pdfaProperty:name>{name}</pdfaProperty:name><pdfaProperty:valueType>Text</pdfaProperty:valueType>"
+        + $"<pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>{description}</pdfaProperty:description>"
+        + "</rdf:li>";
+
+    [Fact]
+    public void AnInvoiceAttachedToAPdfA3FileKeepsItPdfA3()
+    {
+        TestFonts.EnsureRegistered();
+        byte[] archived = SpecimenCatalog.All[0].Build().ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA3B });
+
+        byte[] invoice = PdfFile.Open(archived)
+            .Attach(new FileAttachment("factur-x.xml", "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\"/>"u8.ToArray())
+            {
+                MediaType = "text/xml",
+                Description = "Factur-X invoice",
+                Relationship = AttachmentRelationship.Alternative,
+            })
+            .AddMetadata(FacturX)
+            .ToArray();
+
+        IReadOnlyList<string> broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["invoice"] = invoice })["invoice"];
+
+        Assert.True(broken.Count == 0, "veraPDF found:\n" + string.Join("\n", broken));
+    }
 }

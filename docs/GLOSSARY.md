@@ -179,6 +179,10 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `PdfFile` | class | A PDF file being put together from others, in `Rustaveli.Pdf.Operations`: `Open`, then `KeepPages`, `Append`, `Overlay`, `Underlay`, then `Save` or `ToArray`. | plain | `DocumentOperation` |
 | `PdfFile.KeepPages(string)` | method | Keeps the pages a list such as `"1-3, 5, 8-last"` names, in its order. | print dialogs ("pages") | `TakePages` |
 | `PdfFile.Append(...)` | method | Adds another file's pages, all or some, after these. | plain | `MergeFile` |
+| `PdfFile.Attach(FileAttachment)` | method | Carries a file inside the PDF, listed among its attachments and associated with it for PDF/A-3. | plain ("attach") | `AddAttachment` |
+| `FileAttachment` | class | A file to attach: its `Name` and `Content`, `MediaType`, `Description`, dates and `Relationship`; `FromFile` reads one from disk. | plain | `DocumentAttachment` |
+| `AttachmentRelationship` | enum | How an attachment relates to the document: `Unspecified`, `Source`, `Data`, `Alternative`, `Supplement`. | ISO 32000-2 | `DocumentAttachmentRelationship` |
+| `PdfFile.AddMetadata(string)` | method | Adds XMP descriptions — an electronic invoice's, say — to the file's metadata. | plain | `ExtendMetadata` |
 | `PdfFile.Overlay(...)`, `Underlay(...)` | method | Draws another file's pages over these, as a stamp, or beneath them, as a letterhead, in turn onto the pages named. | print ("overlay", "letterhead") | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` |
 
 ## Structure and standards

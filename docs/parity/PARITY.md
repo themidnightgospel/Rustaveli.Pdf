@@ -197,10 +197,10 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Merge files | `MergeFile` | ✅ `PdfFile.Append` | — |
 | Select pages | `TakePages` | ✅ `PdfFile.KeepPages("1-3, 5, 8-last")` | — |
 | Overlay and underlay with page mapping | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` | ✅ `PdfFile.Overlay`, `Underlay` with `onto` and `from` pages | — |
-| Attachments with relationship (ZUGFeRD / Factur-X) | `AddAttachment`, `DocumentAttachment` | ❌ | 7 |
+| Attachments with relationship (ZUGFeRD / Factur-X) | `AddAttachment`, `DocumentAttachment` | ✅ `PdfFile.Attach(FileAttachment)`; a Factur-X PDF/A-3 file passes veraPDF | — |
 | Encrypt 40/128/256-bit with permissions; decrypt; remove restrictions | `Encrypt`, `Decrypt`, `RemoveRestrictions` | ❌ | 7 |
 | Linearise (fast web view) | `Linearize` | ❌ | 7 |
-| Extend XMP metadata | `ExtendMetadata` | ❌ | 7 |
+| Extend XMP metadata | `ExtendMetadata` | ✅ `PdfFile.AddMetadata` | — |
 
 ## Diagnostics and tooling
 

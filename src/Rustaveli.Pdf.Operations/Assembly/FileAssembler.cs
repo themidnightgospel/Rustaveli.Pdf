@@ -18,15 +18,18 @@ internal static class FileAssembler
     private static readonly PdfName CropBox = new PdfName("CropBox");
     private static readonly PdfName StructParents = new PdfName("StructParents");
     private static readonly PdfName EmbeddedFiles = new PdfName("EmbeddedFiles");
+    private static readonly PdfName Associated = new PdfName("AF");
+    private static readonly PdfName Metadata = new PdfName("Metadata");
+    private static readonly PdfName Xml = new PdfName("XML");
 
     /// <summary>What a document says of itself whatever pages it keeps.</summary>
     private static readonly PdfName[] Always =
     [
         new PdfName("Metadata"), new PdfName("Lang"), new PdfName("OutputIntents"), new PdfName("ViewerPreferences"),
-        new PdfName("PageLayout"), new PdfName("Version"), new PdfName("Extensions"), new PdfName("AF"),
+        new PdfName("PageLayout"), new PdfName("Version"), new PdfName("Extensions"),
     ];
 
-    public static void Write(IReadOnlyList<PageEntry> pages, PdfSource first, Stream output)
+    public static void Write(IReadOnlyList<PageEntry> pages, PdfSource first, Stream output, SaveSettings settings)
     {
         if (pages.Count == 0)
             throw new InvalidOperationException("A PDF needs at least one page; every page has been left out.");
@@ -68,7 +71,7 @@ internal static class FileAssembler
         for (int index = 0; index < pages.Count; index++)
             WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first));
 
-        CopyDocument(writer, copier, first, whole);
+        CopyDocument(writer, copier, first, whole, settings);
         copier.Flush();
         writer.Finish();
     }
@@ -184,28 +187,76 @@ internal static class FileAssembler
         return writer.File.WriteStream(form, content.ToArray());
     }
 
-    private static void CopyDocument(PdfDocumentWriter writer, ObjectCopier copier, PdfSource first, bool whole)
+    private static void CopyDocument(PdfDocumentWriter writer, ObjectCopier copier, PdfSource first, bool whole, SaveSettings settings)
     {
         PdfDictionary catalog = first.Catalog;
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in catalog)
         {
-            if (entry.Key.Equals(PdfNames.Type) || entry.Key.Equals(PdfNames.Pages))
+            if (entry.Key.Equals(PdfNames.Type) || entry.Key.Equals(PdfNames.Pages) || entry.Key.Equals(PdfNames.Names) || entry.Key.Equals(Associated))
                 continue;
 
             if (whole || Array.IndexOf(Always, entry.Key) >= 0)
-            {
                 writer.Catalog[entry.Key] = copier.Copy(first, entry.Value);
-            }
-            else if (entry.Key.Equals(PdfNames.Names) && first.Resolve(entry.Value) is { Kind: PdfValueKind.Dictionary } names
-                && names.AsDictionary().TryGetValue(EmbeddedFiles, out PdfValue files))
+        }
+
+        // Attached files belong to no page, so they stay whatever pages are kept; the other name trees point at pages.
+        PdfDictionary? names = catalog.TryGetValue(PdfNames.Names, out PdfValue given) && first.Resolve(given) is { Kind: PdfValueKind.Dictionary } found
+            ? found.AsDictionary()
+            : null;
+
+        PdfDictionary written = whole && names is not null ? copier.CopyDictionary(first, names, EmbeddedFiles) : new PdfDictionary();
+        PdfNameTree files = new PdfNameTree();
+        HashSet<string> listed = new HashSet<string>(StringComparer.Ordinal);
+
+        if (names is not null && names.TryGetValue(EmbeddedFiles, out PdfValue tree))
+        {
+            foreach ((PdfString key, PdfValue value) in Assembly.EmbeddedFiles.Entries(first, tree))
             {
-                // Attached files belong to no page, so they stay whatever pages are kept.
-                writer.Catalog[PdfNames.Names] = new PdfDictionary { [EmbeddedFiles] = copier.Copy(first, files) };
+                if (listed.Add(Convert.ToBase64String(key.Bytes.ToArray())))
+                    files.Add(key, copier.Copy(first, value));
             }
         }
 
-        if (first.Trailer.TryGetValue(Info, out PdfValue info) && first.Resolve(info) is { Kind: PdfValueKind.Dictionary } found)
-            writer.InfoDictionary = copier.CopyDictionary(first, found.AsDictionary());
+        PdfArray associated = catalog.TryGetValue(Associated, out PdfValue af) && first.Resolve(af) is { Kind: PdfValueKind.Array } array
+            ? (PdfArray)copier.Copy(first, array).AsArray()
+            : new PdfArray();
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+
+        foreach (FileAttachment attachment in settings.Attachments)
+        {
+            PdfReference specification = Assembly.EmbeddedFiles.Write(writer.File, attachment, now);
+            string name = attachment.Name;
+
+            // Two attachments of one name are listed apart, as a reader lists them.
+            for (int copy = 2; !listed.Add(Convert.ToBase64String(PdfString.FromText(name).Bytes.ToArray())); copy++)
+                name = $"{attachment.Name} ({copy})";
+
+            files.Add(PdfString.FromText(name), specification);
+            associated.Add(specification);
+        }
+
+        if (files.Count > 0)
+            written[EmbeddedFiles] = files.Write(writer.File);
+
+        if (written.Count > 0)
+            writer.Catalog[PdfNames.Names] = written;
+
+        if (associated.Count > 0)
+            writer.Catalog[Associated] = associated;
+
+        if (settings.Metadata.Count > 0)
+        {
+            byte[]? existing = catalog.TryGetValue(Metadata, out PdfValue metadata) && first.Stream(metadata) is { } stream ? first.Decode(stream) : null;
+
+            writer.Catalog[Metadata] = writer.File.WriteStream(
+                new PdfDictionary { [PdfNames.Type] = Metadata, [PdfNames.Subtype] = Xml },
+                MetadataExtender.Extend(existing, settings.Metadata),
+                PdfStreamCompression.None);
+        }
+
+        if (first.Trailer.TryGetValue(Info, out PdfValue info) && first.Resolve(info) is { Kind: PdfValueKind.Dictionary } dictionary)
+            writer.InfoDictionary = copier.CopyDictionary(first, dictionary.AsDictionary());
     }
 }
