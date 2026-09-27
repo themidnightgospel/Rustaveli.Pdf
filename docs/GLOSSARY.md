@@ -199,8 +199,9 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `TypefaceLibrary` | class | The typefaces documents are set in: those registered with it, then those installed. `Shared` serves any export given no library of its own. | print ("type library") | `FontManager`, `SkiaFontProvider` |
-| `TypefaceLibrary.Register(...)` / `RegisterFile(string)` | method | Adds every face in a font file. A registered typeface shadows an installed one of the same name. | plain | `FontManager.RegisterFont` |
+| `TypefaceLibrary.Register(...)` / `RegisterFile(...)` / `RegisterResource(...)` | method | Adds every face in a font file, stream or embedded resource, under its own names and optionally a typeface name given. A registered typeface shadows an installed one of the same name. | plain | `FontManager.RegisterFont`, `RegisterFontWithCustomName`, `RegisterFontFromEmbeddedResource` |
 | `TypefaceLibrary.Fallbacks` | property | Typefaces tried in order for a character a run's own typeface lacks. | plain | `FallbackFamilies` |
+| `TypefaceLibrary.SearchFolder(string)` | method | Adds a folder searched for typefaces as installed ones are, after the registered ones. | plain | `Settings.FontDiscoveryPaths` |
 | `PdfExport` | class | The `ExportPdf` methods, to bytes, a stream or a file. | InDesign | `PdfGenerationExtensions` |
 | `ImageExport` | class | The `ExportImages` methods of the `Rustaveli.Pdf.Raster` package: every page as an image, drawn by SkiaSharp from the same layout and glyphs as the PDF. | InDesign ("Export JPEG") | `GenerateImages` |
 | `ComplexScripts` | class | `ShapeComplexScripts`, from the `Rustaveli.Pdf.Shaping` package: shapes Arabic, Hebrew points, Indic and South-East Asian scripts with HarfBuzz for the text a `TypefaceLibrary` sets. | typesetting ("complex scripts") | built in |

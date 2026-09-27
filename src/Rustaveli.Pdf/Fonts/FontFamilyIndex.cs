@@ -24,6 +24,10 @@ internal sealed class FontFamilyIndex
         {
             FontNames names = face.Names;
 
+            // A name the face was registered under is the name a document asked for it by: it comes first.
+            if (face.Alias is string registeredAs)
+                Add(_preferred, face, registeredAs);
+
             Add(_preferred, face, names.PreferredFamily);
 
             foreach (string alias in names.PreferredFamilyAliases)

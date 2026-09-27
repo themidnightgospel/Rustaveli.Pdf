@@ -22,6 +22,9 @@
     <ProjectReference Include="..\..\src\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
     <ProjectReference Include="..\..\src\Rustaveli.Pdf.Raster\Rustaveli.Pdf.Raster.csproj" />
     <ProjectReference Include="..\..\src\Rustaveli.Pdf.Shaping\Rustaveli.Pdf.Shaping.csproj" />
+
+    <!-- A font embedded in the test assembly, for registering typefaces from resources. -->
+    <EmbeddedResource Include="..\assets\fonts\NotoSansGeorgian-Regular.ttf" LogicalName="Fonts.Georgian.ttf" />
   </ItemGroup>
 
   <ItemGroup>

@@ -163,8 +163,8 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
-| Register fonts from stream, file, embedded resource, custom name | `FontManager.Register*` | 🟡 bytes, stream, file (`TypefaceLibrary`); custom name ❌ | 2, 4 |
-| System font discovery; extra discovery paths; opt out | `Settings.UseEnvironmentFonts`, `FontDiscoveryPaths` | 🟡 managed discovery; opt out per library; extra paths ❌ | 2, 4 |
+| Register fonts from stream, file, embedded resource, custom name | `FontManager.Register*` | ✅ | — |
+| System font discovery; extra discovery paths; opt out | `Settings.UseEnvironmentFonts`, `FontDiscoveryPaths` | ✅ per library | — |
 | Font subsetting | — (built in) | ✅ TrueType subset, CFF whole | — |
 | Bundled default font | Lato | ✅ Noto Sans subsets, Latin/Greek/Cyrillic | — |
 | Fallback per character | built in | ✅ named fallbacks, registered, installed, bundled | — |
