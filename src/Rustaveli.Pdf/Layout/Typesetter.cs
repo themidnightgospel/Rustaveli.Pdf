@@ -147,6 +147,7 @@ internal static class Typesetter
                 $"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body.");
 
         Extent bodySpace = new Extent(contentWidth, contentHeight);
+        layout.PageBody = bodySpace;
         Fit contentPlan = section.BodySlot.Plan(bodySpace, layout);
 
         if (contentPlan.IsDeferred)

@@ -386,6 +386,13 @@ public static class FrameModifiers
         Attach(parent, new KeepTogetherBlock());
 
     /// <summary>
+    /// Keeps the frame on one page where it can be: moved whole to the next page when it does not fit on this one but
+    /// would on a fresh one, and split like any other content when it is longer than a page.
+    /// </summary>
+    public static IFrame KeepTogetherWherePossible(this IFrame parent) =>
+        Attach(parent, new KeepTogetherBlock { WherePossible = true });
+
+    /// <summary>
     /// Defers the content to the next page unless at least <paramref name="minHeight"/> remains, so a heading
     /// or short block is never stranded at the bottom of a page.
     /// </summary>

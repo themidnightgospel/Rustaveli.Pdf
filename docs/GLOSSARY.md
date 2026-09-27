@@ -129,6 +129,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 |---|---|---|---|---|
 | `NewPage()` | method | Starts the next page. | print ("start on next page") | `PageBreak` |
 | `KeepTogether()` | method | Never splits the frame across pages. | print | `ShowEntire` |
+| `KeepTogetherWherePossible()` | method | Moves the frame whole to the next page when it would fit there, and splits it only when it is longer than a page. | print ("keep options") | `PreventPageBreak` |
 | `RequireSpace(float)` | method | Starts a new page unless at least this much space remains. | plain | `EnsureSpace` |
 | `When(bool)` | method | Includes the frame only when the condition holds. | plain | `ShowIf` |
 | `When(Func<PageFacts, bool>)` | method | Includes the frame only on the pages the condition accepts. | plain | `ShowIf(Predicate<ShowIfContext>)` |

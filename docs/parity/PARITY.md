@@ -74,7 +74,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Show if (static condition) | `ShowIf(bool)` | ✅ | — |
 | Show if (per page: page number, total pages) | `ShowIf(Predicate<ShowIfContext>)` | ✅ | — |
 | Show once, skip once | `ShowOnce`, `SkipOnce` | ✅ | — |
-| Keep together / never split | `ShowEntire`, `PreventPageBreak` | 🟡 `ShowEntire` only | 4 |
+| Keep together / never split | `ShowEntire`, `PreventPageBreak` | ✅ `KeepTogether`, `KeepTogetherWherePossible` | — |
 | Ensure space | `EnsureSpace` | ✅ | — |
 | Repeat on every page | `Repeat` | ✅ | — |
 | Stop paging (draw first page only) | `StopPaging` | ✅ | — |
