@@ -84,10 +84,12 @@ public class FontFallbackTests
     public void RendersCharactersTheRequestedFontDoesNotHave()
     {
         using PdfDocument parsed = PdfDocument.Open(Build($"{Latin} {Cjk}").ExportPdf());
-        string text = parsed.GetPage(1).Text;
+        Page page = parsed.GetPage(1);
 
-        Assert.Contains(Latin, text);
-        Assert.Contains(Cjk, text);
+        // The CJK face is the platform's, so a failure names it.
+        string faces = string.Join(", ", page.Letters.Select(letter => $"{letter.Value}={letter.FontName}"));
+        Assert.True(page.Text.Contains(Latin), $"The Latin text did not survive. Letters: {faces}");
+        Assert.True(page.Text.Contains(Cjk), $"The CJK text did not survive. Letters: {faces}");
     }
 
     [Fact]
