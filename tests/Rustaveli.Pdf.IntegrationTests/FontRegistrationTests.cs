@@ -194,6 +194,21 @@ public class FontRegistrationTests
         Assert.EndsWith("NotoSans-Regular", parsed.GetPage(1).Letters.Last().FontName);
     }
 
+    [Theory]
+    [InlineData("Noto Sans")]
+    [InlineData(" noto sans ")]
+    public void TheBundledTypefaceAskedForByNameIsSetInItselfWhereNoneIsRegisteredOrInstalled(string typeface)
+    {
+        // Without the bundled faces taking the name, the registered Georgian face would stand in for it.
+        TypefaceLibrary library = new TypefaceLibrary(includeInstalled: false);
+        library.RegisterFile(TestFonts.PathOf("NotoSansGeorgian-Regular.ttf"));
+        TypeStyle style = TypeStyle.Default.WithTypeface(typeface);
+
+        Assert.Equal("Noto Sans", library.Shaper.Resolve(style).Names.PreferredFamily);
+        Assert.Equal("Bold", library.Shaper.Resolve(style.Bold()).Names.PreferredSubfamily);
+        Assert.Equal("Noto Sans Georgian", library.Shaper.Resolve(TypeStyle.Default.WithTypeface("Helvetica")).Names.PreferredFamily);
+    }
+
     [Fact]
     public void FallbacksAreACopyOfTheListGiven()
     {
