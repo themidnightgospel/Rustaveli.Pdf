@@ -18,6 +18,9 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Document` | class | A composed document, ready to export. | — | `Document` |
 | `Document.Merge(params Document[])` | method | One document of every page of several, numbered on from one to the next. | plain | `Document.Merge`, `MergedDocument` |
 | `Document.NumberPartsSeparately()` | method | Numbers each merged document's pages from 1, counting only its own. | print ("section numbering") | `UseOriginalPageNumbers` |
+| `DocumentPreview` | class | Shows a document in the browser as it is written, in `Rustaveli.Pdf.Preview`: `Preview(compose)` until stopped, `StartPreview(compose)` for a `PreviewSession`. | plain ("preview") | `ShowInPreviewer`, `ShowInCompanion` |
+| `PreviewSession` | class | A document served for preview at its `Url`, composed again on `Refresh` or hot reload, until disposed. | plain | the companion app |
+| `PreviewOptions` | class | The preview's `Port`, drawing `Resolution`, whether to `OpenBrowser`, and `Typefaces`. | plain | — |
 | `ShowFrameEdges(string?, Ink?)` | method | Draws the frame's edges as a dashed outline over its content, labelled, to see where frames lie. | InDesign ("show frame edges") | `DebugArea` |
 | `Named(string)` | method | Names the frame, so a layout failure inside it says where by that name. | plain | `DebugPointer` |
 | `StyleSheet` | class | A document's named styles — `DefineType`, `DefineParagraph`, `DefineFrame` — each able to build on another `basedOn` it; the document's is `Document.Styles`, also `IComposition.Styles` while composing. | InDesign ("character, paragraph and object styles") | — |

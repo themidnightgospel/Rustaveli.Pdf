@@ -211,5 +211,5 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Debug mode with element-tree trace of a layout failure | `Settings.EnableDebugging` | ✅ always: a layout failure traces the frames down to the one that could not fit, named frames by name, at no cost until one fails | — |
 | Layout exception threshold | `DocumentLayoutExceptionThreshold` | ✅ `Document.PageLimit` | — |
 | Caching switch | `Settings.EnableCaching` | ➖ no global switch; caching is internal | 2 |
-| Live previewer with hot reload, element inspector, source navigation | `ShowInCompanion`, `ShowInPreviewer` | ❌ | 8 |
+| Live previewer with hot reload, element inspector, source navigation | `ShowInCompanion`, `ShowInPreviewer` | 🟡 `DocumentPreview.Preview` in the browser, redrawn on hot reload under `dotnet watch`, layout failures traced on the page; inspector to come | 8 |
 | Licence selection | `Settings.License`, `LicenseType` | ➖ MIT, nothing to select | — |
