@@ -19,12 +19,12 @@ internal sealed class FixedBlock(Extent size, Ink? color = null) : Block
 
     public Ink Color { get; } = color ?? TestInks.Black;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         size.FitsIn(availableSpace)
             ? Fit.Complete(size)
             : Fit.Defer($"The block requires {size} but only {availableSpace} is available.");
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (size.FitsIn(availableSpace))
             context.Surface.DrawRectangle(Offset.Zero, size, Color);

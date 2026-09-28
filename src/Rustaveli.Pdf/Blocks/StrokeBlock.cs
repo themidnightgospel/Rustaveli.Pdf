@@ -45,7 +45,7 @@ internal sealed class StrokeBlock : EnclosingBlock
         _ => 0f,
     };
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         Fit plan = Plan(availableSpace, context.Planning);
 

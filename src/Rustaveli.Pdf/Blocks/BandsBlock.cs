@@ -25,7 +25,7 @@ internal sealed class BandsBlock : Block
         yield return Foot;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context);
 
@@ -53,7 +53,7 @@ internal sealed class BandsBlock : Block
         return contentPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context.Planning);
 

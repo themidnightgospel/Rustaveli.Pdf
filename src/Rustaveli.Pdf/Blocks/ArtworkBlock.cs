@@ -11,7 +11,7 @@ internal sealed class ArtworkBlock : Block
 
     public ImageFitting Fit { get; init; } = ImageFitting.FitWidth;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         Extent size = ResolveSize(availableSpace);
 
@@ -20,7 +20,7 @@ internal sealed class ArtworkBlock : Block
             : Layout.Fit.Defer("The space available is too small for the artwork as fitted.");
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         Extent size = ResolveSize(availableSpace);
 

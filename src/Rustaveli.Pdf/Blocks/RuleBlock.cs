@@ -21,7 +21,7 @@ internal sealed class RuleBlock : Block
 
     private RuleStroke Stroke => new RuleStroke(Weight, Ink, Style, Dashes, Gradient);
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         float breadth = Stroke.Breadth;
 
@@ -30,6 +30,6 @@ internal sealed class RuleBlock : Block
             : Fit.Complete(new Extent(availableSpace.Width, breadth));
     }
 
-    public override void Render(Extent availableSpace, RenderContext context) =>
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
         Stroke.Draw(context.Surface, new Extent(availableSpace.Width, Stroke.Breadth), across: true);
 }

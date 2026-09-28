@@ -9,7 +9,7 @@ internal sealed class ShiftBlock : EnclosingBlock
 {
     public Offset Offset { get; set; } = Offset.Zero;
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         context.Surface.Translate(Offset);
         Child?.Render(availableSpace, context);

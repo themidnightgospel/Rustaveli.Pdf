@@ -14,7 +14,11 @@ namespace Rustaveli.Pdf;
 public static class ImageExport
 {
     /// <summary>Exports every page as an image, in page order.</summary>
-    public static IReadOnlyList<byte[]> ExportImages(this Document document, ImageExportOptions? options = null)
+    public static IReadOnlyList<byte[]> ExportImages(this Document document, ImageExportOptions? options = null) =>
+        ExportImages(document, options, inspection: null);
+
+    /// <summary>Exports every page as an image, recording every frame drawn in <paramref name="inspection"/>.</summary>
+    internal static IReadOnlyList<byte[]> ExportImages(Document document, ImageExportOptions? options, LayoutInspection? inspection)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -24,7 +28,7 @@ public static class ImageExport
         using SkiaRasterSurface surface = new SkiaRasterSurface(shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
         // Images generated at their final size are generated at the page's own resolution.
-        Typesetter.Render(document, surface, measurer, options.Resolution);
+        Typesetter.Render(document, surface, measurer, options.Resolution, inspection: inspection);
 
         if (options.RequireEveryGlyph && measurer.MissingCodepoints.Count > 0)
             throw new MissingGlyphException(measurer.MissingCodepoints);

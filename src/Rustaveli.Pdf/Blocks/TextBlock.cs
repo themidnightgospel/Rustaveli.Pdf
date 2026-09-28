@@ -102,7 +102,7 @@ internal sealed class TextBlock : Block
     protected override void RestoreOwnProgress(object progress) =>
         (_completedLines, _pinnedWidth, _pinnedWrapping) = ((int, float, List<TextLine>?))progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         // Without usable width there is no wrapping that could succeed. Reporting a wrap sends the paragraph to
         // a fresh page, where the engine will either find room or raise a layout error naming the cause —
@@ -142,7 +142,7 @@ internal sealed class TextBlock : Block
             : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // A blocker means Measure reported a wrap, so this paragraph should not have been asked to draw here.
         List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);

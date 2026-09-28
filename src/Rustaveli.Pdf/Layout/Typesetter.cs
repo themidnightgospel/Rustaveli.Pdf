@@ -27,7 +27,8 @@ internal static class Typesetter
     /// <param name="measurer">What measures text.</param>
     /// <param name="resolution">The resolution generated images are asked for.</param>
     /// <param name="tagged">Whether the final pass records the document's structure, for a tagged PDF.</param>
-    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288, bool tagged = false)
+    /// <param name="inspection">Where the final pass records every frame it draws, for a preview's inspector.</param>
+    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288, bool tagged = false, LayoutInspection? inspection = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pages);
@@ -57,16 +58,16 @@ internal static class Typesetter
             pageContext.IsPageCountKnown = true;
         }
 
-        RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null);
+        RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null, inspection);
     }
 
     /// <summary>Runs the document once through <paramref name="pages"/>; returns how many pages each merged document took.</summary>
-    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null)
+    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null, LayoutInspection? inspection = null)
     {
         pageContext.ResetForNewPass();
 
         PlanContext layout = new PlanContext(measurer, pageContext) { Resolution = resolution };
-        RenderContext direct = new RenderContext(pages, layout, structure);
+        RenderContext direct = new RenderContext(pages, layout, structure) { Inspection = inspection };
         int pageNumber = 0;
         int[] pagesByPart = new int[document.PartCount];
 
@@ -86,7 +87,7 @@ internal static class Typesetter
             // away, so they need no order.
             bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
             IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
-            RenderContext context = ordered ? new RenderContext(sink, layout, structure) : direct;
+            RenderContext context = ordered ? new RenderContext(sink, layout, structure) { Inspection = inspection } : direct;
 
             layout.DefaultType = section.DefaultType;
             layout.ReadingDirection = section.ReadingDirection;
@@ -172,7 +173,7 @@ internal static class Typesetter
         if (contentPlan.IsDeferred)
             throw new OversetException(
                 "The body cannot be set even on an empty page, so no further page would help. " +
-                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}");
+                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}" + Trace(section.BodySlot, bodySpace, layout));
 
         Extent pageSize = new Extent(
             Clamp(section.Margins.Horizontal + Math.Max(contentPlan.Size.Width, bands.Width), smallest.Width, largest.Width),
@@ -211,6 +212,7 @@ internal static class Typesetter
         Sides margin = section.Margins;
 
         pages.BeginPage(pageSize);
+        context.Inspection?.BeginPage();
 
         // Only the body is the document's content; paper, underlay, running head and foot and overlay are the page's,
         // repeated on every one, and left out of its structure.
@@ -268,7 +270,7 @@ internal static class Typesetter
 
         if (headPlan.IsDeferred)
             throw new OversetException(
-                $"The running head does not fit in {available}. Reason: {headPlan.DeferReason}");
+                $"The running head does not fit in {available}. Reason: {headPlan.DeferReason}" + Trace(section.RunningHeadSlot, available, layout));
 
         Extent remaining = new Extent(available.Width, available.Height - headPlan.Size.Height);
 
@@ -287,9 +289,30 @@ internal static class Typesetter
 
         if (footPlan.IsDeferred)
             throw new OversetException(
-                $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}");
+                $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}" + Trace(section.RunningFootSlot, remaining, layout));
 
         return new Bands(headPlan.Size.Height, footPlan.Size.Height, Math.Max(headPlan.Size.Width, footPlan.Size.Width));
+    }
+
+    /// <summary>
+    /// Measures <paramref name="slot"/> again, recording every measurement, and describes the path down to the frame
+    /// that could not fit. Measuring changes nothing, so doing it again only to explain is safe.
+    /// </summary>
+    private static string Trace(Block slot, Extent space, PlanContext layout)
+    {
+        PlanTrace trace = new PlanTrace();
+        layout.Trace = trace;
+
+        try
+        {
+            slot.Plan(space, layout);
+        }
+        finally
+        {
+            layout.Trace = null;
+        }
+
+        return trace.Describe();
     }
 
     private static float Clamp(float value, float smallest, float largest) => Math.Min(largest, Math.Max(smallest, value));

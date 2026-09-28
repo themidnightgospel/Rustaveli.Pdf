@@ -379,6 +379,24 @@ public static class FrameModifiers
     public static IFrame Unbounded(this IFrame parent) =>
         Attach(parent, new UnboundedBlock());
 
+    /// <summary>
+    /// Shows the frame's edges — the room it was given — as a dashed outline over its content, labelled in the top
+    /// corner if <paramref name="label"/> is given, in <paramref name="ink"/> or a strong red: for seeing where frames lie
+    /// while a document is laid out.
+    /// </summary>
+    public static IFrame ShowFrameEdges(this IFrame parent, string? label = null, Ink? ink = null) =>
+        Attach(parent, new FrameEdgesBlock(label, ink ?? Ink.Rgb(0xE5, 0x39, 0x35)));
+
+    /// <summary>
+    /// Names the frame, so a layout failure inside it says where by that name: "Invoice lines" rather than a chain of
+    /// stacks and tables.
+    /// </summary>
+    public static IFrame Named(this IFrame parent, string label)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(label);
+        return Attach(parent, new LabelBlock { Label = label });
+    }
+
     /// <summary>Gives the frame the document's frame style named <paramref name="name"/>, returning the frame content goes in.</summary>
     public static IFrame Style(this IFrame parent, string name)
     {

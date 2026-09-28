@@ -26,13 +26,64 @@ internal abstract class Block
     /// Reports what this element would do if given <paramref name="availableSpace" />, without drawing anything.
     /// Must not mutate state, because the engine measures speculatively and may discard the result.
     /// </summary>
-    public abstract Fit Plan(Extent availableSpace, PlanContext context);
+    /// <remarks>
+    /// While the context is tracing — to explain a layout failure — each measurement is recorded, nested within the one
+    /// that asked for it.
+    /// </remarks>
+    public Fit Plan(Extent availableSpace, PlanContext context)
+    {
+        if (context.Trace is not { } trace)
+            return PlanCore(availableSpace, context);
+
+        PlanTrace.Node node = trace.Enter(this, availableSpace);
+
+        try
+        {
+            Fit fit = PlanCore(availableSpace, context);
+            node.Result = fit;
+            return fit;
+        }
+        finally
+        {
+            trace.Leave(node);
+        }
+    }
+
+    /// <summary>What <see cref="Plan"/> reports for this kind of element.</summary>
+    protected abstract Fit PlanCore(Extent availableSpace, PlanContext context);
 
     /// <summary>
     /// Draws the element and advances any internal position so that a subsequent call continues where this one
     /// left off. Called at most once per page.
     /// </summary>
-    public abstract void Render(Extent availableSpace, RenderContext context);
+    public void Render(Extent availableSpace, RenderContext context)
+    {
+        if (context.Inspection is not { } inspection)
+        {
+            RenderCore(availableSpace, context);
+            return;
+        }
+
+        LayoutInspection.Node node = inspection.Enter(this, context.Surface.Origin, availableSpace);
+
+        try
+        {
+            RenderCore(availableSpace, context);
+        }
+        finally
+        {
+            inspection.Leave(node);
+        }
+    }
+
+    /// <summary>What <see cref="Render"/> draws for this kind of element.</summary>
+    protected abstract void RenderCore(Extent availableSpace, RenderContext context);
+
+    /// <summary>
+    /// Where in the code composing the document this element was made — a file and line — when that was being
+    /// recorded, for a preview to lead back to; null otherwise.
+    /// </summary>
+    internal string? Source { get; } = SourceCapture.Current();
 
     /// <summary>Direct children, used for tree traversal. Null entries are skipped by callers.</summary>
     public virtual IEnumerable<Block?> GetChildren()

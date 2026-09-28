@@ -14,7 +14,7 @@ internal sealed class RotateBlock : EnclosingBlock
     /// <summary>The angle in degrees, clockwise on the page.</summary>
     public float Degrees { get; set; }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;

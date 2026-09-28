@@ -18,6 +18,9 @@ internal sealed class RenderContext(ISurface surface, PlanContext layout, Struct
 
     public ITypeMeasurer Measurer => Planning.Measurer;
 
+    /// <summary>Where every frame drawn is recorded, for a preview's inspector; null when not inspecting.</summary>
+    public LayoutInspection? Inspection { get; init; }
+
     /// <summary>The structure being drawn inside, when the output is tagged.</summary>
     public TagStack Tags { get; } = new TagStack(surface, structure);
 }

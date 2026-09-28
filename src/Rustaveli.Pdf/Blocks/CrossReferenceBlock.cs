@@ -10,7 +10,7 @@ internal sealed class CrossReferenceBlock : EnclosingBlock
 {
     public string Anchor { get; set; } = string.Empty;
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         Fit plan = Plan(availableSpace, context.Planning);
 
@@ -19,7 +19,7 @@ internal sealed class CrossReferenceBlock : EnclosingBlock
 
         // The content is a link in the structure, which the link itself belongs to.
         using TagStack.Scope scope = context.Tags.Enter(context.Tags.Create("Link"));
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
 
         if (!string.IsNullOrEmpty(Anchor))
             context.Surface.DrawInternalLink(Anchor, availableSpace);

@@ -18,9 +18,9 @@ internal abstract class EnclosingBlock : Block, IFrameSlot
 
     // An absent child renders completely and occupies nothing, which is distinct from Empty: Empty means a
     // stateful child has exhausted its content and must not be given space again on continuation pages.
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
 
-    public override void Render(Extent availableSpace, RenderContext context) =>
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
         Child?.Render(availableSpace, context);
 }

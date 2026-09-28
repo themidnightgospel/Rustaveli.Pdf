@@ -21,7 +21,7 @@ internal sealed class BookmarkBlock : EnclosingBlock
 
     protected override void RestoreOwnProgress(object progress) => _added = (bool)progress;
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (!_added && !Plan(availableSpace, context.Planning).IsDeferred)
         {
@@ -29,6 +29,6 @@ internal sealed class BookmarkBlock : EnclosingBlock
             _added = true;
         }
 
-        base.Render(availableSpace, context);
+        base.RenderCore(availableSpace, context);
     }
 }

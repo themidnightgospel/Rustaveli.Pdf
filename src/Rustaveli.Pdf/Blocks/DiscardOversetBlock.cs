@@ -11,9 +11,9 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class DiscardOversetBlock : EnclosingBlock
 {
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        Fit plan = base.Plan(availableSpace, context);
+        Fit plan = base.PlanCore(availableSpace, context);
 
         if (plan.IsDeferred)
             return Fit.Complete(Extent.Zero);
@@ -21,7 +21,7 @@ internal sealed class DiscardOversetBlock : EnclosingBlock
         return plan.IsPartial ? Fit.Complete(plan.Size) : plan;
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Child is null || Child.Plan(availableSpace, context.Planning).IsDeferred)
             return;

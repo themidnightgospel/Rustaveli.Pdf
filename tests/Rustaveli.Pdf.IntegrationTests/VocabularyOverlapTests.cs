@@ -33,7 +33,7 @@ public class VocabularyOverlapTests
     };
 
     private static readonly Assembly[] Ours =
-        [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(UnreadableFileException).Assembly];
+        [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(UnreadableFileException).Assembly, typeof(DocumentPreview).Assembly];
 
     private static readonly Assembly Theirs = typeof(QuestPDF.Fluent.Document).Assembly;
 

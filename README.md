@@ -177,6 +177,12 @@ nobody has, bundled Noto Sans for a machine with no fonts at all, and an optiona
 Complex scripts — Arabic, Hebrew points, Indic and South-East Asian scripts — are shaped by HarfBuzz once the
 `Rustaveli.Pdf.Shaping` package is added and `ShapeComplexScripts()` called on the library.
 
+**Preview** — `DocumentPreview.Preview(Compose)` from the `Rustaveli.Pdf.Preview` package shows a document in the
+browser and draws it again whenever `dotnet watch` applies a code change; a layout failure is shown in its place,
+traced down to the frame that could not fit. Press <kbd>I</kbd> to inspect: the frame under the pointer is
+outlined, every frame drawn on the page is listed within the one that drew it, and each opens the line of code that
+made it in the editor. `ShowFrameEdges` and `Named` mark frames on the page itself.
+
 ## Testing
 
 ```bash

@@ -34,10 +34,10 @@ internal sealed class PlaceholderBlock : Block
         yield return _label;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(availableSpace);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         context.Surface.DrawRectangle(Offset.Zero, availableSpace, Ink);
 

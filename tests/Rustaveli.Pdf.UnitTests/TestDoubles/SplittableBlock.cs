@@ -20,7 +20,7 @@ internal sealed class SplittableBlock(int unitCount, float unitHeight, float wid
 
     protected override void RestoreOwnProgress(object progress) => _rendered = (int)progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (_rendered >= unitCount)
             return Fit.Nothing();
@@ -37,7 +37,7 @@ internal sealed class SplittableBlock(int unitCount, float unitHeight, float wid
             : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         int fitting = FittingUnits(availableSpace.Height);
 

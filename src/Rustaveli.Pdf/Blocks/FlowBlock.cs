@@ -36,7 +36,7 @@ internal sealed class FlowBlock : Block
 
     protected override void RestoreOwnProgress(object progress) => _placed = (int)progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (_placed >= Items.Count)
             return Fit.Nothing();
@@ -55,7 +55,7 @@ internal sealed class FlowBlock : Block
         return layout.Placed < Items.Count ? Fit.Partial(size) : Fit.Complete(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (_placed >= Items.Count)
             return;

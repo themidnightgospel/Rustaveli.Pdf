@@ -13,7 +13,7 @@ internal sealed class FitToContentBlock : EnclosingBlock
 
     public bool Down { get; set; } = true;
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Child is null)
             return;

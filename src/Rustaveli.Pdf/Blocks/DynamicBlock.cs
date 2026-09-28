@@ -30,7 +30,7 @@ internal sealed class DynamicBlock<TState>(IDynamicContent<TState> content) : Bl
         _composed = null;
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (_done)
             return Fit.Nothing();
@@ -45,7 +45,7 @@ internal sealed class DynamicBlock<TState>(IDynamicContent<TState> content) : Bl
         return composed.Part.HasMore ? Fit.Partial(size) : Fit.Complete(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (_done)
             return;

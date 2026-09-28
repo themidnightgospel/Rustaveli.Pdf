@@ -12,7 +12,7 @@ internal sealed class ScaleBlock : EnclosingBlock
 
     public float ScaleY { get; set; } = 1f;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (ScaleX == 0 || ScaleY == 0)
             return Fit.Defer("A scale factor of zero collapses the content entirely.");
@@ -38,7 +38,7 @@ internal sealed class ScaleBlock : EnclosingBlock
         return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (Child is null || ScaleX == 0 || ScaleY == 0)
             return;

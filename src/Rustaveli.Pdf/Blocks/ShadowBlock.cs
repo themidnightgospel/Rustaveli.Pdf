@@ -12,7 +12,7 @@ internal sealed class ShadowBlock : EnclosingBlock
     /// <summary>The rounding of the box casting the shadow.</summary>
     public Corners Corners { get; set; }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         Fit plan = Plan(availableSpace, context.Planning);
 

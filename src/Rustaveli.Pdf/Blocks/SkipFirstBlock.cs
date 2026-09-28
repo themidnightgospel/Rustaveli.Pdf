@@ -21,14 +21,14 @@ internal sealed class SkipFirstBlock : EnclosingBlock
 
     protected override void RestoreOwnProgress(object progress) => _hasSkipped = (bool)progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) =>
-        _hasSkipped ? base.Plan(availableSpace, context) : Fit.Complete(Extent.Zero);
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
+        _hasSkipped ? base.PlanCore(availableSpace, context) : Fit.Complete(Extent.Zero);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (_hasSkipped)
         {
-            base.Render(availableSpace, context);
+            base.RenderCore(availableSpace, context);
             return;
         }
 

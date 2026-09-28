@@ -28,14 +28,14 @@ internal sealed class StackBlock : Block
 
     protected override void RestoreOwnProgress(object progress) => _completedItems = (int)progress;
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         LayoutResult result = Layout(availableSpace, context, static (_, _, _) => { });
 
         return result.ToSpacePlan();
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         ISurface surface = context.Surface;
         float offset = 0f;

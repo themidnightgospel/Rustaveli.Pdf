@@ -97,13 +97,13 @@ internal sealed class ListBlock : Block
         }
     }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context)
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         EnsureBuilt();
         return _list.Plan(availableSpace, context);
     }
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         EnsureBuilt();
         _list.Render(availableSpace, context);

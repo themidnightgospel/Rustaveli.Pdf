@@ -13,9 +13,9 @@ internal sealed class GeneratedArtworkBlock : Block
 {
     public required Func<Extent, Artwork?> Generate { get; init; }
 
-    public override Fit Plan(Extent availableSpace, PlanContext context) => Fit.Complete(availableSpace);
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) => Fit.Complete(availableSpace);
 
-    public override void Render(Extent availableSpace, RenderContext context)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (context.Surface is CountingPageSink || availableSpace.Width <= 0 || availableSpace.Height <= 0)
             return;
