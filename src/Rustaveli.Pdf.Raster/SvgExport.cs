@@ -14,8 +14,7 @@ public static class SvgExport
     /// <summary>Exports every page as an SVG document, in page order.</summary>
     public static IReadOnlyList<string> ExportSvg(this Document document, VectorExportOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(document);
-
+        // Typesetting refuses a missing document before anything is drawn.
         options ??= new VectorExportOptions();
         TypeShaper shaper = (options.Typefaces ?? TypefaceLibrary.Shared).Shaper;
 
@@ -32,7 +31,6 @@ public static class SvgExport
     /// <summary>Exports every page as an SVG file, at the path <paramref name="pathOfPage"/> gives its number, from 1.</summary>
     public static void ExportSvg(this Document document, Func<int, string> pathOfPage, VectorExportOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pathOfPage);
 
         IReadOnlyList<string> pages = document.ExportSvg(options);

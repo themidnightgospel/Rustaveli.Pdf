@@ -36,7 +36,6 @@ public static class XpsExport
     /// <exception cref="PlatformNotSupportedException">Not running on Windows.</exception>
     public static void ExportXps(this Document document, string path, VectorExportOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrEmpty(path);
 
         File.WriteAllBytes(path, document.ExportXps(options));

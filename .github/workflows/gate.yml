@@ -30,8 +30,11 @@ jobs:
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.shard.os || 'ubuntu-latest' }}
     timeout-minutes: 300
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -147,6 +150,16 @@ jobs:
               --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
               --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
             mutate: --mutate "**/Output/PdfSurface.cs"
+          # Page images are checked against PDFium's rendering of the same page, in the conformance tests, which need
+          # the validators; XPS is written only on Windows, so this shard runs there.
+          - name: raster
+            os: windows-latest
+            tools: true
+            project: --project Rustaveli.Pdf.Raster.csproj
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+              --test-project tests/Rustaveli.Pdf.ConformanceTests/Rustaveli.Pdf.ConformanceTests.csproj
+            mutate: --mutate "**/*.cs"
           - name: shaping
             project: --project Rustaveli.Pdf.Shaping.csproj
             tests: --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
@@ -183,6 +196,10 @@ jobs:
       - name: Install fallback fonts
         if: matrix.shard.fonts
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk
+
+      - name: Fetch validators (qpdf, veraPDF and its Java)
+        if: matrix.shard.tools
+        run: dotnet run eng/tools.cs
 
       # Three test runners, two where the integration tests run too or a shard says so: four, one a core, ran the
       # hosted runner out of memory as they started, and it was shut down mid-run. A mutant that removes a size guard
