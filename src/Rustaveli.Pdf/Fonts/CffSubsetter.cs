@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Rustaveli.Pdf.Fonts;
@@ -47,11 +48,17 @@ internal static class CffSubsetter
     /// A subset of the CFF table <paramref name="table"/> holding .notdef as CID 0 and each glyph of
     /// <paramref name="glyphs"/> as its CID; null when the font cannot be subset, and is to be embedded whole.
     /// </summary>
-    public static byte[]? TrySubset(ReadOnlyMemory<byte> table, IEnumerable<(ushort Cid, ushort Glyph)> glyphs)
+    /// <param name="table">The font's CFF table.</param>
+    /// <param name="unitsPerEm">
+    /// The font's units per em, from its <c>head</c> table: a CFF table with no font matrix of its own is scaled by
+    /// it inside an OpenType font, but by a thousand once it stands alone, so the subset is given the matrix.
+    /// </param>
+    /// <param name="glyphs">The glyphs to keep, each with the CID it is to have.</param>
+    public static byte[]? TrySubset(ReadOnlyMemory<byte> table, int unitsPerEm, IEnumerable<(ushort Cid, ushort Glyph)> glyphs)
     {
         try
         {
-            return Subset(table.ToArray(), glyphs);
+            return Subset(table.ToArray(), unitsPerEm, glyphs);
         }
         catch (Exception exception) when (exception is NotSupportedException or FontFormatException)
         {
@@ -59,7 +66,7 @@ internal static class CffSubsetter
         }
     }
 
-    private static byte[] Subset(byte[] cff, IEnumerable<(ushort Cid, ushort Glyph)> glyphs)
+    private static byte[] Subset(byte[] cff, int unitsPerEm, IEnumerable<(ushort Cid, ushort Glyph)> glyphs)
     {
         if (cff.Length < 4 || cff[0] != 1)
             throw new NotSupportedException("Only CFF version 1 is subset.");
@@ -127,7 +134,7 @@ internal static class CffSubsetter
             outlines.Add(CharStringFlattener.Flatten(cff, start, length, globalSubrs, fonts[selection[index]].LocalSubrs));
         }
 
-        return Write(cff.AsSpan(nameStart, nameLength).ToArray(), top, topEntries, fonts, kept, outlines, selection);
+        return Write(cff.AsSpan(nameStart, nameLength).ToArray(), top, topEntries, unitsPerEm, fonts, kept, outlines, selection);
     }
 
     /// <summary>
@@ -193,6 +200,7 @@ internal static class CffSubsetter
         byte[] name,
         byte[] top,
         List<CffDictEntry> topEntries,
+        int unitsPerEm,
         List<FontDict> fonts,
         List<(ushort Cid, ushort Glyph)> kept,
         List<byte[]> outlines,
@@ -210,6 +218,18 @@ internal static class CffSubsetter
 
             foreach (CffDictEntry entry in topEntries.Where(entry => entry.Operator is FontBBox or FontMatrix))
                 dict.Bytes(top.AsSpan(entry.Start, entry.Length));
+
+            if (unitsPerEm != 1000 && Find(topEntries, FontMatrix) is null)
+            {
+                double scale = 1d / unitsPerEm;
+                Real(dict, scale);
+                Integer(dict, 0);
+                Integer(dict, 0);
+                Real(dict, scale);
+                Integer(dict, 0);
+                Integer(dict, 0);
+                Operator(dict, FontMatrix);
+            }
 
             Integer(dict, kept.Max(glyph => glyph.Cid) + 1);
             Operator(dict, CidCount);
@@ -318,6 +338,45 @@ internal static class CffSubsetter
                 Offset(dict, value);
                 break;
         }
+    }
+
+    /// <summary>
+    /// A real number in a DICT, packed in nibbles as its round-tripping decimal is written: a positive one below one,
+    /// such as a font matrix scales by, whose exponent, if written, is negative.
+    /// </summary>
+    private static void Real(FontDataWriter dict, double value)
+    {
+        // Seventeen digits round-trip on every runtime; "R" does not on .NET Framework.
+        string text = value.ToString("G17", CultureInfo.InvariantCulture);
+        List<int> nibbles = new List<int>(text.Length + 2);
+
+        for (int index = 0; index < text.Length; index++)
+        {
+            switch (text[index])
+            {
+                case '.':
+                    nibbles.Add(0xA);
+                    break;
+                case 'E':
+                    // Written "E-05": the minus is part of the exponent's one nibble.
+                    nibbles.Add(0xC);
+                    index++;
+                    break;
+                default:
+                    nibbles.Add(text[index] - '0');
+                    break;
+            }
+        }
+
+        nibbles.Add(0xF);
+
+        if (nibbles.Count % 2 == 1)
+            nibbles.Add(0xF);
+
+        dict.UInt8(30);
+
+        for (int index = 0; index < nibbles.Count; index += 2)
+            dict.UInt8((nibbles[index] << 4) | nibbles[index + 1]);
     }
 
     /// <summary>An integer in five bytes, however small, so a DICT's size does not depend on the offsets in it.</summary>

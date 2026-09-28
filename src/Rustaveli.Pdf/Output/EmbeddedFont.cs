@@ -169,7 +169,7 @@ internal sealed class EmbeddedFont
         // Cut down to the glyphs shown when the font allows it, by the codes they are shown with; embedded whole when
         // it does not.
         byte[]? subset = Face.TryGetTable(TableTag.Cff, out ReadOnlyMemory<byte> table)
-            ? CffSubsetter.TrySubset(table, shown.Select(entry => (entry.Key, entry.Value.Glyph)))
+            ? CffSubsetter.TrySubset(table, Face.UnitsPerEm, shown.Select(entry => (entry.Key, entry.Value.Glyph)))
             : null;
 
         if (subset is not null)

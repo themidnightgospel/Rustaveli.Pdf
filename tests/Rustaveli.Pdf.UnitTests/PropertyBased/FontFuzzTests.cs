@@ -184,7 +184,7 @@ public class FontFuzzTests
             // A damaged font either cannot be subset, and is embedded whole, or its subset is this library's own
             // output, and must read back cleanly.
             if (font.TryGetTable(TableTag.Cff, out ReadOnlyMemory<byte> table)
-                && CffSubsetter.TrySubset(table, shown.DistinctBy(glyph => glyph.Cid)) is { } cffSubset)
+                && CffSubsetter.TrySubset(table, font.UnitsPerEm, shown.DistinctBy(glyph => glyph.Cid)) is { } cffSubset)
             {
                 CompactFontTable cffReread = new CompactFontTable(cffSubset);
                 _ = cffReread.GetCid((ushort)(cffReread.GlyphCount - 1));
