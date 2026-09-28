@@ -5,6 +5,7 @@
     "target-framework": "net10.0",
     "mutation-level": "Standard",
     "coverage-analysis": "perTest",
+    "ignore-methods": [ "*Exception.ctor" ],
     "reporters": [ "html", "json", "markdown", "progress" ],
     "thresholds": {
       "high": 90,

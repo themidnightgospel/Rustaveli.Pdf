@@ -1,12 +1,18 @@
 # Tier 2: the expensive checks, run once a pull request is labelled ready-to-merge (and again on any push after
 # that). A PR merges only when both this and ci.yml are green. Split out because mutation testing, benchmarks and
 # macOS minutes cost too much to spend on every intermediate push.
+#
+# On a pull request, mutation testing covers only the source files it changes against main, so a gate takes minutes
+# rather than hours. Every night the whole engine is mutation-tested on main, and a shard that falls below the floor
+# opens an issue — a change that weakened the tests of code it did not touch is found by the next morning.
 
 name: gate
 
 on:
   pull_request:
     types: [labeled, synchronize, reopened]
+  schedule:
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -29,7 +35,9 @@ jobs:
   # "File.cs{0..23000}" — a span counting characters, not lines; shards beyond the concurrent-job limit simply queue.
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+      || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
     runs-on: ${{ matrix.shard.os || 'ubuntu-latest' }}
     timeout-minutes: 300
     defaults:
@@ -179,7 +187,10 @@ jobs:
               --mutate "**/Fonts/TypefaceLibrary.cs" --mutate "**/Text/TypeShaper.cs" --mutate "**/Text/GlyphWalk.cs"
               --mutate "**/Text/OpenTypeMeasurer.cs"
     steps:
+      # The whole history, so that a pull request can be compared with main.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -214,6 +225,7 @@ jobs:
           dotnet stryker --config-file stryker-config.json
           --reporter progress --reporter markdown --reporter html
           --concurrency ${{ matrix.shard.runners || (matrix.shard.fonts && 2 || 3) }}
+          ${{ github.event_name == 'pull_request' && '--since:origin/main' || '' }}
           ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
@@ -303,3 +315,28 @@ jobs:
 
       - name: Test
         run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build
+
+  # A shard of the nightly run below the floor is work for the next pull request, so it is filed as an issue — one,
+  # kept open until fixed, however many nights it fails.
+  nightly-report:
+    name: report a failed nightly run
+    needs: mutation
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open an issue unless one is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Nightly mutation testing failed"
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq length)
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$open" = "0" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" \
+              --body "A mutation shard fell below the 80% floor, or failed, on main: $run. Its report is attached to the run."
+          else
+            number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "Failed again: $run"
+          fi
