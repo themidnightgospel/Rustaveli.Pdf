@@ -38,7 +38,7 @@ UNICODES = (
     + [0x2248, 0x2260, 0x2264, 0x2265, 0x25CA, 0xFB01, 0xFB02, 0xFFFD]
 )
 
-FACES = ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf"]
+FACES = ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf", "NotoSans-BoldItalic.ttf"]
 
 
 def main():

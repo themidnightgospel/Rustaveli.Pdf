@@ -21,6 +21,7 @@ public class FontParserSkiaTests
         { "NotoSans-Regular.ttf", 0 },
         { "NotoSans-Bold.ttf", 0 },
         { "NotoSans-Italic.ttf", 0 },
+        { "NotoSans-BoldItalic.ttf", 0 },
         { "NotoSansGeorgian-Regular.ttf", 0 },
         { "SpecimenSans.ttc", 1 },
         { "SpecimenCff-Regular.otf", 0 }

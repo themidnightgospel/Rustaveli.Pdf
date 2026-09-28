@@ -168,7 +168,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Register fonts from stream, file, embedded resource, custom name | `FontManager.Register*` | ✅ | — |
 | System font discovery; extra discovery paths; opt out | `Settings.UseEnvironmentFonts`, `FontDiscoveryPaths` | ✅ per library | — |
 | Font subsetting | — (built in) | ✅ TrueType subset, CFF whole | — |
-| Bundled default font | Lato | ✅ Noto Sans, the default typeface: Latin, Greek and Cyrillic in regular, bold and italic, the same on every machine | — |
+| Bundled default font | Lato | ✅ Noto Sans, the default typeface: Latin, Greek and Cyrillic in regular, bold, italic and bold italic, the same on every machine | — |
 | Fallback per character | built in | ✅ named fallbacks, registered, installed, bundled | — |
 | Pair kerning | built in (HarfBuzz) | ✅ `GPOS` and `kern` | — |
 
