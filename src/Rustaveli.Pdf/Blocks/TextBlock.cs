@@ -90,6 +90,12 @@ internal sealed class TextBlock : Block
         _pinnedWrapping = null;
     }
 
+    // The pinned wrapping is replaced whole, never changed, so it is kept rather than copied.
+    protected override object? SaveOwnProgress() => (_completedLines, _pinnedWidth, _pinnedWrapping);
+
+    protected override void RestoreOwnProgress(object progress) =>
+        (_completedLines, _pinnedWidth, _pinnedWrapping) = ((int, float, List<TextLine>?))progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         // Without usable width there is no wrapping that could succeed. Reporting a wrap sends the paragraph to
@@ -118,7 +124,7 @@ internal sealed class TextBlock : Block
             // at point sizes, so name the real cause.
             return Fit.Defer(lines[_completedLines].Runs.Any(run => run.Inline is not null)
                 ? "A line holding an inline frame is taller than the space available. Content that expands to "
-                  + "fill the space offered to it, such as Middle, FlushBottom or Expand, claims the whole page "
+                  + "fill the space offered to it, such as Expand, claims the whole page "
                   + "when set inline — give it an explicit Height instead."
                 : "The available height is not sufficient for even a single line of text.");
         }

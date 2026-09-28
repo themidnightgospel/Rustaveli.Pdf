@@ -49,7 +49,7 @@ public class RoundCornersTests
         StrokeBlock element = new StrokeBlock
         {
             Weight = new Sides(1, 4, 1, 1),
-            CornerRadius = 5,
+            Corners = Corners.All(5),
             Ink = TestInks.Black,
             Child = new FixedBlock(50, 20, TestInks.White)
         };

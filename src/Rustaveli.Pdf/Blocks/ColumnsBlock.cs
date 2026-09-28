@@ -23,6 +23,12 @@ internal sealed class ColumnsBlock : Block
     /// <summary>Horizontal gap inserted between consecutive items.</summary>
     public float Gutter { get; set; }
 
+    /// <summary>
+    /// When above zero, the row is a row of a grid of this many columns, and each item's value is how many of them
+    /// it spans rather than a sizing of its own.
+    /// </summary>
+    public int GridColumns { get; set; }
+
     /// <summary>Overrides the inherited flow direction. Null follows the surrounding context.</summary>
     public ReadingDirection? ReadingDirection { get; set; }
 
@@ -34,6 +40,12 @@ internal sealed class ColumnsBlock : Block
         _cachedWidths = null;
         _cachedAvailableWidth = float.NaN;
     }
+
+    // The completion flags change in place, so they are copied; the widths are replaced whole, never changed.
+    protected override object? SaveOwnProgress() => (_completed?.ToArray(), _cachedWidths, _cachedAvailableWidth);
+
+    protected override void RestoreOwnProgress(object progress) =>
+        (_completed, _cachedWidths, _cachedAvailableWidth) = ((bool[]?, float[]?, float))progress;
 
     /// <summary>Lazily sizes the per-item completion flags to the current item count.</summary>
     private bool[] Completion()
@@ -114,7 +126,9 @@ internal sealed class ColumnsBlock : Block
 
         for (int index = 0; index < Items.Count; index++)
         {
-            if (!completed[index])
+            // A repeated column finished on an earlier page is drawn again beside the columns still going, at their
+            // height; it takes no part in deciding that height, so it never keeps the row going by itself.
+            if (!completed[index] || Items[index].Repeats)
             {
                 Fit itemPlan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context.Planning);
 
@@ -155,6 +169,21 @@ internal sealed class ColumnsBlock : Block
         }
 
         float[] widths = new float[Items.Count];
+
+        if (GridColumns > 0)
+        {
+            // A cell spans whole columns of the grid and the gutters between them, whatever else shares its row, so
+            // the columns line up from one row to the next.
+            float column = (availableSpace.Width - (Gutter * (GridColumns - 1))) / GridColumns;
+
+            for (int index = 0; index < Items.Count; index++)
+                widths[index] = Math.Max(0f, (Items[index].Value * column) + ((Items[index].Value - 1) * Gutter));
+
+            _cachedWidths = widths;
+            _cachedAvailableWidth = availableSpace.Width;
+            return widths;
+        }
+
         float totalSpacing = Gutter * Math.Max(0, Items.Count - 1);
         float available = Math.Max(0f, availableSpace.Width - totalSpacing);
         float consumed = 0f;

@@ -1,16 +1,20 @@
+using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Paints a solid colour behind its child, covering exactly the area the child occupies.
+/// Paints a solid colour or a gradient behind its child, covering exactly the area the child occupies.
 /// </summary>
 internal sealed class FillBlock : EnclosingBlock
 {
     public Ink Ink { get; set; } = Ink.Transparent;
 
-    /// <summary>Radius of the corner rounding. Zero draws square corners.</summary>
-    public float CornerRadius { get; set; }
+    /// <summary>The rounding of each corner. Zero draws square corners.</summary>
+    public Corners Corners { get; set; }
+
+    /// <summary>Painted in place of <see cref="Ink"/> when set.</summary>
+    public Gradient? Gradient { get; set; }
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
@@ -22,14 +26,27 @@ internal sealed class FillBlock : EnclosingBlock
 
         // The size given is the size this box occupies (ADR 0012), so the background fills all of it — a table
         // cell's full width and row height, not merely the extent of the text inside.
-        if (!Ink.IsTransparent)
+        ISurface surface = context.Surface;
+
+        if (Gradient is not null)
         {
-            if (CornerRadius > 0)
-                context.Surface.DrawRoundedRectangle(Offset.Zero, availableSpace, CornerRadius, Ink);
-            else
-                context.Surface.DrawRectangle(Offset.Zero, availableSpace, Ink);
+            surface.BeginGradient(Gradient, Offset.Zero, availableSpace);
+            Paint(surface, availableSpace, Ink.Black);
+            surface.EndGradient();
+        }
+        else if (!Ink.IsTransparent)
+        {
+            Paint(surface, availableSpace, Ink);
         }
 
         Child?.Render(availableSpace, context);
+    }
+
+    private void Paint(ISurface surface, Extent size, Ink ink)
+    {
+        if (Corners.IsRounded)
+            surface.DrawRoundedRectangle(Offset.Zero, size, Corners, ink);
+        else
+            surface.DrawRectangle(Offset.Zero, size, ink);
     }
 }

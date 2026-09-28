@@ -49,6 +49,38 @@ public static class FrameContent
         handler(new ColumnsComposer(element));
     }
 
+    /// <summary>
+    /// Adds columns a story flows through as a newspaper's does: down one, on into the next, and on to the next page.
+    /// </summary>
+    public static void FlowColumns(this IFrame parent, Action<FlowColumnsComposer> handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        FlowColumnsBlock element = FrameAttachment.Attach(parent, new FlowColumnsBlock());
+        handler(new FlowColumnsComposer(element));
+    }
+
+    /// <summary>
+    /// Adds a flow of items set side by side as words are, wrapping on to a new line wherever the next would not fit.
+    /// </summary>
+    public static void Flow(this IFrame parent, Action<FlowComposer> handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        FlowBlock element = FrameAttachment.Attach(parent, new FlowBlock());
+        handler(new FlowComposer(element));
+    }
+
+    /// <summary>
+    /// Adds a grid of cells flowing into rows of equal columns, each cell spanning one or more.
+    /// </summary>
+    public static void Grid(this IFrame parent, Action<GridComposer> handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        StackBlock element = FrameAttachment.Attach(parent, new StackBlock());
+        GridComposer grid = new GridComposer();
+        handler(grid);
+        grid.Build(element);
+    }
+
     /// <summary>Adds a grid with sized columns and optional repeating bands.</summary>
     public static void Table(this IFrame parent, Action<TableComposer> handler)
     {
@@ -91,6 +123,27 @@ public static class FrameContent
     {
         ArgumentNullException.ThrowIfNull(handler);
         handler(parent);
+    }
+
+    /// <summary>
+    /// Composes the frame's content only when layout first reaches it, and lets it go once it is drawn in full, so a
+    /// very large document holds only the content of the pages being drawn. Kept, the content is composed once and
+    /// held instead, which is quicker when the same content is laid out again in every pass over the document.
+    /// </summary>
+    public static void ComposeLater(this IFrame parent, Action<IFrame> handler, bool keep = false)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        FrameAttachment.Attach(parent, new LaterBlock { Compose = handler, Keep = keep });
+    }
+
+    /// <summary>
+    /// Composes the frame's content afresh for every page it reaches, knowing the page and the room left on it, from
+    /// the state it got to on the page before.
+    /// </summary>
+    public static void ComposePerPage<TState>(this IFrame parent, IDynamicContent<TState> content)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        FrameAttachment.Attach(parent, new DynamicBlock<TState>(content));
     }
 
     /// <summary>Composes a reusable component into this container.</summary>

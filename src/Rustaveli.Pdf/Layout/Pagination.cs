@@ -13,6 +13,8 @@ internal sealed class Pagination
 {
     private readonly Dictionary<string, AnchorPages> _known = [];
     private Dictionary<string, AnchorPages> _recording = [];
+    private Dictionary<string, List<CapturedPosition>> _knownPositions = [];
+    private Dictionary<string, List<CapturedPosition>> _recordingPositions = [];
 
     /// <summary>The one-based number of the page being laid out.</summary>
     public int Folio { get; internal set; } = 1;
@@ -31,6 +33,27 @@ internal sealed class Pagination
         _recording[name] = _recording.TryGetValue(name, out AnchorPages pages)
             ? new AnchorPages(Math.Min(pages.First, folio), Math.Max(pages.Last, folio))
             : new AnchorPages(folio, folio);
+
+    /// <summary>Records that content captured under <paramref name="name"/> was drawn where <paramref name="position"/> says.</summary>
+    internal void RegisterPosition(string name, CapturedPosition position)
+    {
+        if (!_recordingPositions.TryGetValue(name, out List<CapturedPosition>? positions))
+        {
+            positions = [];
+            _recordingPositions.Add(name, positions);
+        }
+
+        positions.Add(position);
+    }
+
+    /// <summary>
+    /// Everywhere content captured under <paramref name="name"/> was drawn: as the last complete pass found it, or as
+    /// far as this pass has got when no pass has finished.
+    /// </summary>
+    public IReadOnlyList<CapturedPosition> PositionsOf(string name) =>
+        _knownPositions.TryGetValue(name, out List<CapturedPosition>? known) ? known
+        : _recordingPositions.TryGetValue(name, out List<CapturedPosition>? recording) ? recording
+        : [];
 
     /// <summary>The page an anchor begins on, or null if it has not been seen yet.</summary>
     public int? FolioOf(string name) => Find(name)?.First;
@@ -53,6 +76,12 @@ internal sealed class Pagination
             _known[anchor.Key] = anchor.Value;
 
         _recording = [];
+
+        // A pass that has recorded positions has seen the whole document, so it replaces what was known outright.
+        if (_recordingPositions.Count > 0)
+            _knownPositions = _recordingPositions;
+
+        _recordingPositions = [];
         Folio = 1;
     }
 

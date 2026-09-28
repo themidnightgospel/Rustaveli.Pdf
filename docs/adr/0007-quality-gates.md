@@ -12,7 +12,11 @@ Every phase must pass, before merge:
 
 - **Coverage** of the shipped assemblies, both suites combined: ≥ 95% line, ≥ 90% branch, never decreasing.
   Enforced by `dotnet run eng/coverage.cs`. Exclusions need `[ExcludeFromCodeCoverage(Justification = ...)]`.
-- **Mutation testing** (Stryker.NET): score ≥ 80%, proving the tests detect wrong behaviour.
+- **Mutation testing** (Stryker.NET): score ≥ 80% in every shard, proving the tests detect wrong behaviour. Every
+  night the whole engine is mutated on `main`, and a shard below the floor opens an issue for the next pull request
+  to fix. Pull requests are not mutation-tested while the phases' large pull requests land — mutating the areas
+  each rewrites held merges for hours — and will be again, mutating only the files each changes, once pull requests
+  are small. Arguments to exception constructors — the words of an error message — are not mutated.
 - **Unit tests** against a deterministic fake measurer and a recording canvas, so expected values are computable by
   hand.
 - **Integration tests** reading real output back with PdfPig.
@@ -23,5 +27,7 @@ Every phase must pass, before merge:
 - **Equivalence** with the QuestPDF oracle for features both libraries share.
 
 ## Consequences
-- Slower phases, far fewer regressions. The expensive gates (mutation, benchmarks, macOS) run once per pull request
-  when it is ready to merge rather than on every push. See [0011](0011-delivery-workflow.md).
+- Slower phases, far fewer regressions. The expensive gates (benchmarks, macOS) run once per pull request when it
+  is ready to merge rather than on every push. See [0011](0011-delivery-workflow.md).
+- A change that weakens the tests passes its own gate and is caught by the next nightly run — a day's delay,
+  accepted for merges that do not wait hours.

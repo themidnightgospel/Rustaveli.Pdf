@@ -29,6 +29,67 @@ public class PaperSizesTests
         Approximately.Equal(new Extent(522f, 756f), PaperSizes.Executive);
     }
 
+    public static TheoryData<string, float, float, LengthUnit> Definitions => new TheoryData<string, float, float, LengthUnit>
+    {
+        { nameof(PaperSizes.A7), 74, 105, LengthUnit.Millimetre },
+        { nameof(PaperSizes.A8), 52, 74, LengthUnit.Millimetre },
+        { nameof(PaperSizes.A9), 37, 52, LengthUnit.Millimetre },
+        { nameof(PaperSizes.A10), 26, 37, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B0), 1000, 1414, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B1), 707, 1000, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B2), 500, 707, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B3), 353, 500, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B4), 250, 353, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B5), 176, 250, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B6), 125, 176, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B7), 88, 125, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B8), 62, 88, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B9), 44, 62, LengthUnit.Millimetre },
+        { nameof(PaperSizes.B10), 31, 44, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C0), 917, 1297, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C1), 648, 917, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C2), 458, 648, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C3), 324, 458, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C4), 229, 324, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C5), 162, 229, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C6), 114, 162, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C7), 81, 114, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C8), 57, 81, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C9), 40, 57, LengthUnit.Millimetre },
+        { nameof(PaperSizes.C10), 28, 40, LengthUnit.Millimetre },
+        { nameof(PaperSizes.EnvelopeDL), 110, 220, LengthUnit.Millimetre },
+        { nameof(PaperSizes.EnvelopeNo10), 4.125f, 9.5f, LengthUnit.Inch },
+        { nameof(PaperSizes.Postcard), 100, 148, LengthUnit.Millimetre },
+        { nameof(PaperSizes.Ledger), 17, 11, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchA), 9, 12, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchB), 12, 18, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchC), 18, 24, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchD), 24, 36, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchE), 36, 48, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchE1), 30, 42, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchE2), 26, 38, LengthUnit.Inch },
+        { nameof(PaperSizes.ArchE3), 27, 39, LengthUnit.Inch },
+    };
+
+    [Theory]
+    [MemberData(nameof(Definitions))]
+    public void EachSizeMatchesItsStandard(string name, float width, float height, LengthUnit unit)
+    {
+        Extent size = (Extent)typeof(PaperSizes).GetProperty(name)!.GetValue(null)!;
+
+        Approximately.Equal(new Extent(width.ToPoints(unit), height.ToPoints(unit)), size);
+    }
+
+    [Fact]
+    public void AnEnvelopeOfTheCSeriesTakesTheSheetOfItsNumber()
+    {
+        Assert.True(PaperSizes.C4.Width > PaperSizes.A4.Width && PaperSizes.C4.Height > PaperSizes.A4.Height);
+        Assert.True(PaperSizes.C5.Width > PaperSizes.A5.Width && PaperSizes.C5.Height > PaperSizes.A5.Height);
+    }
+
+    [Fact]
+    public void LedgerIsTabloidTurnedOnItsSide() => Assert.Equal(PaperSizes.Tabloid.Landscape(), PaperSizes.Ledger);
+
     [Fact]
     public void LandscapeSwapsTheAxes()
     {

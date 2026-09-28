@@ -11,7 +11,9 @@ ends in one pull request. Two pipelines validate it:
 
 - `ci.yml`, on every push: Release build with warnings as errors, both suites with the coverage gate on Linux, and
   the net10.0 and net48 legs on Windows.
-- `gate.yml`, once the pull request is labelled `ready-to-merge`: mutation testing, benchmarks and macOS.
+- `gate.yml`, once the pull request is labelled `ready-to-merge`: benchmarks and macOS. The same workflow
+  mutation-tests the whole engine on `main` every night; see [0007](0007-quality-gates.md) for when pull requests
+  are mutation-tested too.
 
 A phase merges only when both are green. Phases, in order: groundwork; vocabulary; managed writer; text engine;
 layout and styling parity; images and SVG; output formats and conformance; document operations; preview tool;

@@ -19,12 +19,12 @@ public class VocabularyOverlapTests
         "<Clone>$", "Dispose", "Equals", "Format", "FromFile", "FromStream", "GetHashCode", "ToString",
 
         // Layout.
-        "Cell", "Columns", "Compose", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",
-        "MinWidth", "Placeholder", "Portrait", "Scale", "Section", "Stack", "Table", "Width",
+        "Cell", "Columns", "Compose", "Grid", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",
+        "MinWidth", "Placeholder", "Portrait", "Rotate", "Scale", "Section", "Stack", "Table", "Width",
 
         // Typography.
-        "Bold", "Italic", "Line", "Overline", "Style", "Subscript", "Superscript", "Text", "Underline", "Weight",
-        "WordSpacing",
+        "Bold", "Italic", "Line", "Overline", "Paragraph", "Paragraphs", "Sentence", "Style", "Subscript",
+        "Superscript", "Text", "Underline", "Weight", "WordSpacing",
     };
 
     private static readonly HashSet<string> SharedTypesAllowed = new HashSet<string>(StringComparer.Ordinal)

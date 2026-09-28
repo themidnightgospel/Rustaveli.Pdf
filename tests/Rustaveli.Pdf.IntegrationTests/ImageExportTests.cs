@@ -48,6 +48,49 @@ public class ImageExportTests
         Assert.Equal((144, 72), (small.Width, small.Height));
     }
 
+    private static SKBitmap Single(Extent trim, Action<IFrame> compose) =>
+        Decode(Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = trim;
+            section.Margins = Sides.All(0);
+            compose(section.Body());
+        })).ExportImages(new ImageExportOptions { Resolution = 72, Format = PageImageFormat.Png })[0]);
+
+    [Fact]
+    public void AGradientBlendsAcrossTheFrame()
+    {
+        using SKBitmap page = Single(new Extent(100, 40), body => body.Fill(Gradient.Across(Ink.Rgb(255, 0, 0), Ink.Rgb(0, 0, 255))).Blank());
+
+        Assert.True(IsNear(page.GetPixel(0, 20), new SKColor(255, 0, 0), 8), page.GetPixel(0, 20).ToString());
+        Assert.True(IsNear(page.GetPixel(50, 20), new SKColor(128, 0, 128), 8), page.GetPixel(50, 20).ToString());
+        Assert.True(IsNear(page.GetPixel(99, 20), new SKColor(0, 0, 255), 8), page.GetPixel(99, 20).ToString());
+    }
+
+    [Fact]
+    public void ShapesAfterAGradientAreInTheirOwnInk()
+    {
+        using SKBitmap page = Single(new Extent(100, 40), body => body.Stack(stack =>
+        {
+            stack.Add().Height(20).Fill(Gradient.Across(Ink.Rgb(0, 0, 255), Ink.Rgb(0, 0, 255)));
+            stack.Add().Height(20).Fill(Red);
+        }));
+
+        Assert.True(IsNear(page.GetPixel(50, 30), new SKColor(220, 20, 20), 2), page.GetPixel(50, 30).ToString());
+    }
+
+    [Theory]
+    [InlineData(new float[] { 10, 10 })]
+    [InlineData(new float[] { 10 })]
+    public void ADashedRuleLeavesItsGapsBlank(float[] dashes)
+    {
+        // A pattern of one length is dash and gap alike, as in the PDF.
+        using SKBitmap page = Single(new Extent(100, 10), body => body.Rule(4, Red, dashes));
+
+        Assert.True(IsNear(page.GetPixel(5, 2), new SKColor(220, 20, 20), 8), page.GetPixel(5, 2).ToString());
+        Assert.True(IsNear(page.GetPixel(15, 2), SKColors.White, 8), page.GetPixel(15, 2).ToString());
+        Assert.True(IsNear(page.GetPixel(25, 2), new SKColor(220, 20, 20), 8), page.GetPixel(25, 2).ToString());
+    }
+
     [Fact]
     public void DrawsEachFillWhereLayoutPutIt()
     {

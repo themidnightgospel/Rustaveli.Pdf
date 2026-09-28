@@ -39,6 +39,8 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         _current = null;
     }
 
+    public Offset Origin => Resolve(Offset.Zero);
+
     public void Save()
     {
         _saved.Push(_transform);
@@ -73,14 +75,34 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new RectangleOperation(Resolve(position), size, color, ResolveBounds(position, size)));
     }
 
-    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
     {
-        Current.Operations.Add(new RoundedRectangleOperation(Resolve(position), size, cornerRadius, color, strokeWidth, ResolveBounds(position, size)));
+        Current.Operations.Add(new RoundedRectangleOperation(Resolve(position), size, corners, color, strokeWidth, ResolveBounds(position, size)));
     }
 
     public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
     {
         Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color, style));
+    }
+
+    public void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern)
+    {
+        Current.Operations.Add(new LineOperation(Resolve(from), Resolve(to), thickness, color, StrokeStyle.Solid, pattern));
+    }
+
+    public void BeginGradient(Gradient gradient, Offset position, Extent size)
+    {
+        Current.Operations.Add(new GradientOperation(Resolve(position), size, gradient, ResolveBounds(position, size)));
+    }
+
+    public void EndGradient()
+    {
+        Current.Operations.Add(new GradientEndOperation());
+    }
+
+    public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+        Current.Operations.Add(new ShadowOperation(Resolve(position), size, corners, shadow, ResolveBounds(position, size)));
     }
 
     public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)

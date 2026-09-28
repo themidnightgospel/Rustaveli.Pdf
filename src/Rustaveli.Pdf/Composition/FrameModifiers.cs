@@ -9,8 +9,9 @@ namespace Rustaveli.Pdf;
 /// <remarks>
 /// Most methods attach one element to the container they are called on and return that element as the next
 /// container, so a chain such as <c>.Inset(10).Fill(...)</c> nests rather than accumulating flags. The
-/// exceptions are the configurators — <c>BorderColor</c> and <c>CornerRadius</c> — which attach nothing and
-/// return the element they just adjusted, and the alignment methods, which fold into an adjacent empty aligner.
+/// exceptions are the configurators — <c>StrokeInk</c>, <c>AlignStroke</c> and <c>RoundCorners</c> — which attach
+/// nothing and return the element they just adjusted, and the alignment methods, which fold into an adjacent empty
+/// aligner.
 /// </remarks>
 public static class FrameModifiers
 {
@@ -48,6 +49,10 @@ public static class FrameModifiers
     public static IFrame Fill(this IFrame parent, string hex) =>
         parent.Fill(Ink.Hex(hex));
 
+    /// <summary>Paints a gradient behind the content, across the whole frame.</summary>
+    public static IFrame Fill(this IFrame parent, Gradient gradient) =>
+        Attach(parent, new FillBlock { Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)) });
+
     public static IFrame Stroke(this IFrame parent, float weight) =>
         Attach(parent, new StrokeBlock { Weight = Sides.All(weight) });
 
@@ -79,33 +84,98 @@ public static class FrameModifiers
         parent.StrokeInk(Ink.Hex(hex));
 
     /// <summary>
-    /// Rounds the corners of the fill or stroke this directly follows.
+    /// Paints the stroke this directly follows in a gradient, laid across everything the stroke covers.
     /// </summary>
-    public static IFrame RoundCorners(this IFrame parent, float radius) => parent switch
+    public static IFrame StrokeInk(this IFrame parent, Gradient gradient)
     {
-        FillBlock fill => Assign(fill, radius),
-        StrokeBlock stroke => Assign(stroke, radius),
-        _ => throw new CompositionException("RoundCorners must directly follow Fill or a Stroke method.")
+        ArgumentNullException.ThrowIfNull(gradient);
+
+        if (parent is not StrokeBlock stroke)
+            throw new CompositionException("StrokeInk must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
+
+        stroke.Gradient = gradient;
+        return stroke;
+    }
+
+    /// <summary>
+    /// Casts a shadow from the frame onto what lies beneath it. Round its corners with <see cref="RoundCorners(IFrame, float)"/>
+    /// directly after, to match a rounded fill.
+    /// </summary>
+    public static IFrame DropShadow(this IFrame parent, Shadow shadow)
+    {
+        if (!(shadow.Blur >= 0) || float.IsInfinity(shadow.Blur))
+            throw new ArgumentOutOfRangeException(nameof(shadow), shadow.Blur, "A shadow's blur is a finite number of points, not negative.");
+
+        if (!IsFinite(shadow.Spread) || !IsFinite(shadow.Offset.X) || !IsFinite(shadow.Offset.Y))
+            throw new ArgumentOutOfRangeException(nameof(shadow), "A shadow's offset and spread are finite numbers of points.");
+
+        static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+        return Attach(parent, new ShadowBlock { Shadow = shadow });
+    }
+
+    /// <summary>Casts a shadow of <paramref name="ink"/>, blurred by <paramref name="blur"/> and moved by the offset.</summary>
+    public static IFrame DropShadow(this IFrame parent, Ink ink, float blur, float offsetX = 0, float offsetY = 0, float spread = 0) =>
+        parent.DropShadow(new Shadow(ink, blur, new Offset(offsetX, offsetY), spread));
+
+    /// <summary>
+    /// Rounds the corners of the fill, stroke or shadow this directly follows.
+    /// </summary>
+    public static IFrame RoundCorners(this IFrame parent, float radius) => parent.RoundCorners(Corners.All(radius));
+
+    /// <summary>
+    /// Rounds each corner of the fill or stroke this directly follows to its own radius, clockwise from the top left;
+    /// zero leaves a corner square.
+    /// </summary>
+    public static IFrame RoundCorners(this IFrame parent, float topLeft, float topRight, float bottomRight, float bottomLeft) =>
+        parent.RoundCorners(new Corners(topLeft, topRight, bottomRight, bottomLeft));
+
+    /// <summary>Rounds each corner of the fill, stroke or shadow this directly follows to its radius in <paramref name="corners"/>.</summary>
+    public static IFrame RoundCorners(this IFrame parent, Corners corners) => parent switch
+    {
+        FillBlock fill => Assign(fill, corners),
+        StrokeBlock stroke => Assign(stroke, corners),
+        ShadowBlock shadow => Assign(shadow, corners),
+        _ => throw new CompositionException("RoundCorners must directly follow Fill, DropShadow or a Stroke method.")
     };
 
-    private static IFrame Assign(FillBlock fill, float radius)
+    /// <summary>
+    /// Sets where the stroke this directly follows lies against the frame's edge: inside it, the default, centred
+    /// on it, or outside it.
+    /// </summary>
+    public static IFrame AlignStroke(this IFrame parent, StrokeAlignment alignment)
     {
-        fill.CornerRadius = radius;
+        if (parent is not StrokeBlock stroke)
+            throw new CompositionException("AlignStroke must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
+
+        stroke.Alignment = alignment;
+        return stroke;
+    }
+
+    private static IFrame Assign(FillBlock fill, Corners corners)
+    {
+        fill.Corners = corners;
         return fill;
     }
 
-    private static IFrame Assign(StrokeBlock stroke, float radius)
+    private static IFrame Assign(ShadowBlock shadow, Corners corners)
+    {
+        shadow.Corners = corners;
+        return shadow;
+    }
+
+    private static IFrame Assign(StrokeBlock stroke, Corners corners)
     {
         // A rounded corner has no shape where two different weights meet, so the block ignores the radius unless
         // every side matches. Saying so here beats accepting the call and quietly drawing square corners.
-        if (radius > 0 && !stroke.HasUniformWeight)
+        if (corners.IsRounded && !stroke.HasUniformWeight)
         {
             throw new CompositionException(
                 "RoundCorners needs a stroke of one weight on every side, greater than zero. Use Stroke(weight) " +
                 "rather than StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
         }
 
-        stroke.CornerRadius = radius;
+        stroke.Corners = corners;
         return stroke;
     }
 
@@ -137,6 +207,21 @@ public static class FrameModifiers
 
     public static IFrame ExpandVertically(this IFrame parent) =>
         Attach(parent, new ExpandBlock { Vertically = true });
+
+    /// <summary>
+    /// Fits the frame to its content: whatever follows is given the content's own size rather than all the room
+    /// there is, so a fill or stroke hugs it. Across, the content starts where the reading direction does.
+    /// </summary>
+    public static IFrame FitToContent(this IFrame parent) =>
+        Attach(parent, new FitToContentBlock());
+
+    /// <summary>Fits the frame's width to its content, keeping all the height there is.</summary>
+    public static IFrame FitWidthToContent(this IFrame parent) =>
+        Attach(parent, new FitToContentBlock { Down = false });
+
+    /// <summary>Fits the frame's height to its content, keeping all the width there is.</summary>
+    public static IFrame FitHeightToContent(this IFrame parent) =>
+        Attach(parent, new FitToContentBlock { Across = false });
 
     public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit fit = ProportionFit.Width) =>
         Attach(parent, new ProportionBlock { Ratio = ratio, Fit = fit });
@@ -211,10 +296,50 @@ public static class FrameModifiers
     public static IFrame TurnRight(this IFrame parent) =>
         Attach(parent, new TurnBlock { QuarterTurns = 1 });
 
+    /// <summary>
+    /// Rotates by any angle in degrees, clockwise, about the centre of the frame. Layout is unaffected: the content
+    /// keeps the room it was given and may reach past it. For quarter turns that swap the layout axes, use
+    /// <see cref="TurnLeft"/> or <see cref="TurnRight"/>.
+    /// </summary>
+    public static IFrame Rotate(this IFrame parent, float degrees) =>
+        Attach(parent, new RotateBlock { Degrees = degrees });
+
+    /// <summary>
+    /// Sets the order the frame is drawn in: content of a higher order is drawn over content of a lower one wherever
+    /// it sits on the page, whatever order it comes in. Everything is of order zero unless it, or a frame around
+    /// it, says otherwise; negative orders are drawn beneath.
+    /// </summary>
+    public static IFrame DrawOrder(this IFrame parent, int order) =>
+        Attach(parent, new DrawOrderBlock { Order = order });
+
     // ---- Flow control --------------------------------------------------------------------------------------
 
     public static IFrame When(this IFrame parent, bool condition) =>
         Attach(parent, new WhenBlock { Condition = condition });
+
+    /// <summary>
+    /// Shows the content only on pages <paramref name="condition"/> accepts, such as odd pages or all but the first.
+    /// </summary>
+    /// <remarks>
+    /// The page count is null until the engine has counted the pages. Content shown or hidden by it can change that
+    /// count, so it suits content of a fixed size, such as a mark in a margin, rather than content in the flow.
+    /// </remarks>
+    public static IFrame When(this IFrame parent, Func<PageFacts, bool> condition) =>
+        Attach(parent, new WhenBlock { OnPage = condition ?? throw new ArgumentNullException(nameof(condition)) });
+
+    /// <summary>
+    /// Draws the content again on every page its container continues onto: a row's column is drawn afresh beside
+    /// the columns still going, instead of being left empty once its content is used up.
+    /// </summary>
+    public static IFrame RepeatOnEachPage(this IFrame parent) =>
+        Attach(parent, new RepeatBlock());
+
+    /// <summary>
+    /// Draws as much of the content as fits where it first appears and discards the overset, the rest that does not
+    /// fit, instead of continuing it on the next page. Content that fits nowhere takes no room.
+    /// </summary>
+    public static IFrame DiscardOverset(this IFrame parent) =>
+        Attach(parent, new DiscardOversetBlock());
 
     public static IFrame Once(this IFrame parent) =>
         Attach(parent, new OnceBlock());
@@ -254,11 +379,25 @@ public static class FrameModifiers
     public static IFrame Unbounded(this IFrame parent) =>
         Attach(parent, new UnboundedBlock());
 
+    /// <summary>Gives the frame the document's frame style named <paramref name="name"/>, returning the frame content goes in.</summary>
+    public static IFrame Style(this IFrame parent, string name)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        return StyleSheet.InForce.Frame(name)(parent);
+    }
+
     /// <summary>
     /// Prevents content from being split across pages, moving it whole to the next page instead.
     /// </summary>
     public static IFrame KeepTogether(this IFrame parent) =>
         Attach(parent, new KeepTogetherBlock());
+
+    /// <summary>
+    /// Keeps the frame on one page where it can be: moved whole to the next page when it does not fit on this one but
+    /// would on a fresh one, and split like any other content when it is longer than a page.
+    /// </summary>
+    public static IFrame KeepTogetherWherePossible(this IFrame parent) =>
+        Attach(parent, new KeepTogetherBlock { WherePossible = true });
 
     /// <summary>
     /// Defers the content to the next page unless at least <paramref name="minHeight"/> remains, so a heading
@@ -269,17 +408,68 @@ public static class FrameModifiers
 
     // ---- Rules and placeholders ----------------------------------------------------------------------------
 
-    /// <summary>Draws a horizontal rule across the available width.</summary>
-    public static void Rule(this IFrame parent, float weight = 1f, Ink? ink = null) =>
-        Attach(parent, new RuleBlock { Weight = weight, Ink = ink ?? Ink.Black });
+    /// <summary>
+    /// Draws a horizontal rule across the available width, solid unless <paramref name="style"/> says otherwise. A
+    /// wavy rule takes three times its weight, the wave swinging a weight either side of its centre.
+    /// </summary>
+    public static void Rule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new RuleBlock { Weight = weight, Ink = ink ?? Ink.Black, Style = style });
 
-    /// <summary>Draws a vertical rule down the available height.</summary>
-    public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null) =>
-        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink ?? Ink.Black });
+    /// <summary>
+    /// Draws a horizontal rule across the available width in dashes and gaps of the lengths in
+    /// <paramref name="dashes"/>, alternating and starting with a dash: <c>[4, 2]</c> is dashes of 4 points 2 apart.
+    /// </summary>
+    public static void Rule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
+        Attach(parent, new RuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
+
+    /// <summary>Draws a horizontal rule across the available width in a gradient along its length.</summary>
+    public static void Rule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new RuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+
+    /// <summary>Draws a horizontal rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    public static void Rule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
+        Attach(parent, new RuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
+
+    /// <summary>Draws a vertical rule down the available height, solid unless <paramref name="style"/> says otherwise.</summary>
+    public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink ?? Ink.Black, Style = style });
+
+    /// <summary>Draws a vertical rule down the available height in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    public static void VerticalRule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
+
+    /// <summary>Draws a vertical rule down the available height in a gradient along its length.</summary>
+    public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+
+    /// <summary>Draws a vertical rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
+        Attach(parent, new VerticalRuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
+
+    /// <summary>
+    /// A copy of a dash pattern, checked now rather than when the page is drawn: a pattern of no lengths, a negative
+    /// length, or only gaps of nothing would draw no dash at all.
+    /// </summary>
+    private static float[] Checked(IReadOnlyList<float> dashes)
+    {
+        ArgumentNullException.ThrowIfNull(dashes);
+
+        if (dashes.Count == 0 || dashes.Any(length => !(length >= 0) || float.IsInfinity(length)) || dashes.All(length => length == 0))
+            throw new ArgumentException("A dash pattern needs lengths that are finite, none negative and not all zero.", nameof(dashes));
+
+        return dashes.ToArray();
+    }
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
     public static void Placeholder(this IFrame parent, Ink? ink = null) =>
         Attach(parent, new PlaceholderBlock { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+
+    /// <summary>Fills the available space with a block standing in for unwritten content, saying what will go there.</summary>
+    public static void Placeholder(this IFrame parent, string label, Ink? ink = null)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+        Attach(parent, new PlaceholderBlock(label) { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+    }
 
     // ---- Links ---------------------------------------------------------------------------------------------
 
@@ -290,6 +480,17 @@ public static class FrameModifiers
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
 
         return Attach(parent, new LinkBlock { Url = url });
+    }
+
+    /// <summary>
+    /// Records where the content is drawn, on every page it is drawn on, under <paramref name="name"/>, for content
+    /// composed page by page to look up.
+    /// </summary>
+    public static IFrame CapturePosition(this IFrame parent, string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return Attach(parent, new CaptureBlock { Name = name });
     }
 
     /// <summary>Marks this content as a named destination that <see cref="CrossReference"/> can target.</summary>

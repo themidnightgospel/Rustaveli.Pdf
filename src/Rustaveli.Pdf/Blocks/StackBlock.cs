@@ -24,6 +24,10 @@ internal sealed class StackBlock : Block
 
     protected override void ResetOwnState() => _completedItems = 0;
 
+    protected override object? SaveOwnProgress() => _completedItems;
+
+    protected override void RestoreOwnProgress(object progress) => _completedItems = (int)progress;
+
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         LayoutResult result = Layout(availableSpace, context, static (_, _, _) => { });

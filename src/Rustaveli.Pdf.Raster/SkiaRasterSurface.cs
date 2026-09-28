@@ -22,6 +22,12 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
     private readonly List<byte[]> _pages = [];
     private SKSurface? _surface;
 
+    /// <summary>The shader shapes are painted with instead of their ink, while a gradient is set.</summary>
+    private SKShader? _gradient;
+
+    /// <summary>How many pixels make a point across and down the page being drawn.</summary>
+    private SKPoint _pixelsPerPoint = new SKPoint(1, 1);
+
     public IReadOnlyList<byte[]> Pages => _pages;
 
     private SKCanvas Canvas => _surface?.Canvas
@@ -40,19 +46,31 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
 
         // The page fills the whole pixel grid, as a viewer rendering it at this resolution fills it: scaling by the
         // resolution alone would leave the rounding of the size to drift across the page.
-        Canvas.Scale(info.Width / size.Width, info.Height / size.Height);
+        _pixelsPerPoint = new SKPoint(info.Width / size.Width, info.Height / size.Height);
+        Canvas.Scale(_pixelsPerPoint.X, _pixelsPerPoint.Y);
     }
 
     public void EndPage()
     {
         SKSurface surface = _surface ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
         _surface = null;
+        EndGradient();
 
         using (surface)
         {
             using SKImage snapshot = surface.Snapshot();
             using SKData data = snapshot.Encode(Encoding(options.Format), options.Quality);
             _pages.Add(data.ToArray());
+        }
+    }
+
+    public Offset Origin
+    {
+        get
+        {
+            // The canvas maps points to pixels; the page's own scale is taken back off.
+            SKMatrix matrix = Canvas.TotalMatrix;
+            return new Offset(matrix.TransX / _pixelsPerPoint.X, matrix.TransY / _pixelsPerPoint.Y);
         }
     }
 
@@ -73,16 +91,16 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
 
-        using SKPaint paint = Paint(color);
+        using SKPaint paint = ShapePaint(color);
         Canvas.DrawRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), paint);
     }
 
-    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
 
-        using SKPaint paint = Paint(color);
+        using SKPaint paint = ShapePaint(color);
 
         if (strokeWidth > 0)
         {
@@ -90,9 +108,9 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             paint.StrokeWidth = strokeWidth;
         }
 
-        // A radius beyond half the shorter side has no shape, so it is clamped, as the PDF surface clamps it.
-        float radius = Math.Max(0, Math.Min(cornerRadius, Math.Min(size.Width, size.Height) / 2));
-        Canvas.DrawRoundRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), radius, radius, paint);
+        // Fitted as the PDF surface fits them, so both draw the same shape.
+        using SKRoundRect shape = RoundRect(position, size, corners.FittedTo(size));
+        Canvas.DrawRoundRect(shape, paint);
     }
 
     public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
@@ -100,7 +118,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         if (color.IsTransparent || thickness <= 0)
             return;
 
-        using SKPaint paint = Paint(color);
+        using SKPaint paint = ShapePaint(color);
         paint.Style = SKPaintStyle.Stroke;
         paint.StrokeWidth = thickness;
 
@@ -137,6 +155,24 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         }
 
         using (paint.PathEffect)
+            Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
+    }
+
+    public void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern)
+    {
+        if (color.IsTransparent || thickness <= 0)
+            return;
+
+        // Skia needs an even number of intervals; a pattern of odd length repeats twice over to make one, as PDF's does.
+        float[] intervals = new float[pattern.Count % 2 == 0 ? pattern.Count : pattern.Count * 2];
+        for (int index = 0; index < intervals.Length; index++)
+            intervals[index] = pattern[index % pattern.Count];
+
+        using SKPaint paint = ShapePaint(color);
+        paint.Style = SKPaintStyle.Stroke;
+        paint.StrokeWidth = thickness;
+
+        using (paint.PathEffect = SKPathEffect.CreateDash(intervals, 0))
             Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
@@ -270,6 +306,80 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         PageImageFormat.Webp => SKEncodedImageFormat.Webp,
         _ => SKEncodedImageFormat.Png,
     };
+
+    public void BeginGradient(Gradient gradient, Offset position, Extent size)
+    {
+        (Offset start, Offset end) = gradient.Axis(position, size);
+        IReadOnlyList<Ink> inks = gradient.Inks;
+        SKColor[] colors = new SKColor[inks.Count];
+
+        for (int index = 0; index < colors.Length; index++)
+        {
+            (float red, float green, float blue) = inks[index].ToRgb();
+            colors[index] = new SKColor(ToByte(red), ToByte(green), ToByte(blue), ToByte(inks[index].Opacity));
+        }
+
+        _gradient?.Dispose();
+        _gradient = SKShader.CreateLinearGradient(new SKPoint(start.X, start.Y), new SKPoint(end.X, end.Y), colors, null, SKShaderTileMode.Clamp);
+    }
+
+    public void EndGradient()
+    {
+        _gradient?.Dispose();
+        _gradient = null;
+    }
+
+    public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+        if (shadow.Ink.IsTransparent)
+            return;
+
+        (Offset at, Extent grown, Corners radii) = shadow.Shape(position, size, corners);
+
+        if (grown.Width <= 0 || grown.Height <= 0)
+            return;
+
+        using SKPaint paint = Paint(shadow.Ink);
+        float deviation = shadow.Deviation;
+
+        if (deviation > 0)
+            paint.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, deviation);
+
+        using SKRoundRect shape = RoundRect(at, grown, radii);
+
+        using (paint.MaskFilter)
+            Canvas.DrawRoundRect(shape, paint);
+    }
+
+    private static SKRoundRect RoundRect(Offset position, Extent size, Corners radii)
+    {
+        SKRoundRect shape = new SKRoundRect();
+        shape.SetRectRadii(
+            SKRect.Create(position.X, position.Y, size.Width, size.Height),
+            [
+                new SKPoint(radii.TopLeft, radii.TopLeft),
+                new SKPoint(radii.TopRight, radii.TopRight),
+                new SKPoint(radii.BottomRight, radii.BottomRight),
+                new SKPoint(radii.BottomLeft, radii.BottomLeft)
+            ]);
+
+        return shape;
+    }
+
+    /// <summary>The paint for a rectangle, line or outline: its ink, or the gradient set in its place.</summary>
+    private SKPaint ShapePaint(Ink ink)
+    {
+        SKPaint paint = Paint(ink);
+
+        if (_gradient is not null)
+        {
+            // The shader's colours carry the blend's opacity; the paint's own colour would multiply it again.
+            paint.Color = SKColors.White;
+            paint.Shader = _gradient;
+        }
+
+        return paint;
+    }
 
     private static SKPaint Paint(Ink ink)
     {

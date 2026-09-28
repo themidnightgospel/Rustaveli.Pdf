@@ -12,6 +12,8 @@ public static class SpecimenCatalog
     [
         new Specimen("gallery", Gallery),
         new Specimen("transforms", Transforms),
+        new Specimen("frames-and-rules", FramesAndRules),
+        new Specimen("flow-and-columns", FlowAndColumns),
         new Specimen("images", Images),
         new Specimen("image-sources", ImageSources),
         new Specimen("layers-and-decoration", LayersAndDecoration),
@@ -304,6 +306,123 @@ public static class SpecimenCatalog
         stack.Add().Width(160f).Height(24f).ShrinkToFit().Text("Scaled down until this whole sentence fits the box it was given.");
 
         stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
+    }));
+
+    /// <summary>
+    /// Items flowing into lines, cells in a grid, a story running through balanced columns with a rule between them,
+    /// frames fitted to their content, and content drawn over what follows it.
+    /// </summary>
+    private static Document FlowAndColumns() => Page(content => content.Stack(stack =>
+    {
+        stack.SpaceBetween(16f);
+
+        stack.Add().Flow(flow =>
+        {
+            flow.Gutter(6f);
+            flow.SpaceBetweenLines(6f);
+            flow.Centered();
+            flow.Middle();
+
+            foreach (string tag in new[] { "layout", "typesetting", "columns", "grid", "flow", "rules", "shadows", "gradients", "draw order", "PDF", "pages" })
+                flow.Add().Fill(TestInks.TealLighten3).RoundCorners(8).InsetHorizontal(8f).InsetVertical(tag.Length % 3 == 0 ? 6f : 3f).Text(tag);
+        });
+
+        stack.Add().Grid(grid =>
+        {
+            grid.Columns(4);
+            grid.Gutter(8f);
+            grid.SpaceBetweenRows(8f);
+            grid.Centered();
+
+            for (int index = 1; index <= 7; index++)
+                grid.Cell(index == 3 ? 2 : 1).Fill(TestInks.AmberLighten3).Inset(6f).Text("cell " + index);
+        });
+
+        stack.Add().FlowColumns(columns =>
+        {
+            columns.Columns(3);
+            columns.Gutter(18f);
+            columns.Balanced();
+            columns.Between().Centered().VerticalRule(0.5f, TestInks.Grey);
+            columns.Story().Text(string.Join(" ", Enumerable.Repeat(
+                "A story set in columns runs down the first, on into the next, and ends level across all three.", 5)));
+        });
+
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(12f);
+            columns.Share().FitToContent().Fill(TestInks.PinkLighten3).Inset(6f).Text("fitted");
+            columns.Share().FitWidthToContent().Fill(TestInks.PinkLighten3).Inset(6f).Text("fitted across");
+            columns.Share().Height(40f).FitHeightToContent().Fill(TestInks.PinkLighten3).Inset(6f).Text("fitted down");
+        });
+
+        stack.Add().Height(40f).Layered(layers =>
+        {
+            layers.BaseLayer().DrawOrder(1).ShiftAcross(20f).ShiftDown(10f).Width(120f).Height(24f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("drawn over");
+            layers.Layer().Width(120f).Height(24f).Fill(TestInks.TealLighten3).Centered().Middle().Text("drawn after");
+        });
+    }));
+
+    /// <summary>
+    /// Frames rounded corner by corner and stroked inside, on or outside their edge; content turned by any angle;
+    /// gradients filling frames, strokes and rules; shadows soft, sharp, spread and shrunk; and rules in every stroke
+    /// style and in a pattern of dashes.
+    /// </summary>
+    private static Document FramesAndRules() => Page(content => content.Stack(stack =>
+    {
+        stack.SpaceBetween(16f);
+
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(16f);
+            columns.Fixed(100f).Height(50f).Fill(TestInks.TealLighten3).RoundCorners(0, 12, 24, 6).Centered().Middle().Text("corners");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Inside).Fill(TestInks.AmberLighten3).Centered().Middle().Text("inside");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Center).Fill(TestInks.AmberLighten3).Centered().Middle().Text("centred");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Outside).RoundCorners(10).Fill(TestInks.AmberLighten3).RoundCorners(10).Centered().Middle().Text("outside");
+        });
+
+        stack.Add().Height(70f).Columns(columns =>
+        {
+            columns.Gutter(24f);
+            columns.Fixed(80f).Height(70f).Rotate(15f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("15°");
+            columns.Fixed(80f).Height(70f).Rotate(-30f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("-30°");
+            columns.Fixed(80f).Height(70f).Rotate(90f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("90°");
+        });
+
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(16f);
+            columns.Fixed(100f).Height(50f).Fill(Gradient.Across(TestInks.TealLighten3, TestInks.AmberLighten3, TestInks.PinkLighten3)).Centered().Middle().Text("across");
+            columns.Fixed(100f).Height(50f).Fill(new Gradient(45f, TestInks.TealLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("45°");
+            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Down(TestInks.PinkLighten3, TestInks.Grey)).Centered().Middle().Text("stroke");
+            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Across(TestInks.PinkLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("rounded");
+        });
+
+        stack.Add().Columns(columns =>
+        {
+            columns.Gutter(24f);
+            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 8f, 4f, 4f).Fill(Ink.White).Centered().Middle().Text("soft");
+            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 0f, 6f, 6f).Fill(Ink.White).Centered().Middle().Text("sharp");
+            columns.Fixed(100f).Height(50f).DropShadow(new Shadow(TestInks.PinkLighten3, 16f, Spread: 4f)).RoundCorners(12).Fill(Ink.White).RoundCorners(12).Centered().Middle().Text("glow");
+            columns.Fixed(100f).Height(50f).DropShadow(new Shadow(Ink.Black.WithOpacity(0.4f), 6f, new Offset(0, 8), -4f)).Fill(TestInks.AmberLighten3).Centered().Middle().Text("lifted");
+        });
+
+        stack.Add().Rule(4f, Gradient.Across(TestInks.TealLighten3, TestInks.PinkLighten3));
+        stack.Add().Rule(3f, Gradient.Across(TestInks.PinkLighten3, TestInks.Grey), [9, 3]);
+        stack.Add().Rule(2f, TestInks.Grey, StrokeStyle.Dashed);
+        stack.Add().Rule(2f, TestInks.Grey, StrokeStyle.Dotted);
+        stack.Add().Rule(3f, TestInks.Grey, StrokeStyle.Double);
+        stack.Add().Rule(1.5f, TestInks.Grey, StrokeStyle.Wavy);
+        stack.Add().Rule(2f, TestInks.Grey, [8, 3, 2, 3]);
+        stack.Add().Rule(2f, TestInks.Grey, [6]);
+
+        stack.Add().Height(60f).Columns(columns =>
+        {
+            columns.Share().Text("dashed on the left");
+            columns.Fixed(20f).Centered().VerticalRule(2f, TestInks.Grey, [4, 2]);
+            columns.Share().Text("wavy on the right");
+            columns.Fixed(20f).Centered().VerticalRule(1.5f, TestInks.Grey, StrokeStyle.Wavy);
+        });
     }));
 
     /// <summary>

@@ -16,6 +16,9 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Document` | class | A composed document, ready to export. | — | `Document` |
+| `StyleSheet` | class | A document's named styles — `DefineType`, `DefineParagraph`, `DefineFrame` — each able to build on another `basedOn` it; the document's is `Document.Styles`, also `IComposition.Styles` while composing. | InDesign ("character, paragraph and object styles") | — |
+| `Style(string)` | method | Applies a named style: a type style to a run, a paragraph style to a block of text, a frame style to a frame. | InDesign | — |
+| `Document.PageLimit` | property | The most pages a document may take before content that never stops asking for another is taken to be a fault. | plain | `Settings.DocumentLayoutExceptionThreshold` |
 | `Document.Compose(Action<IComposition>)` | method | Builds a document. *Composition* is the old word for typesetting: compositors composed type into pages. | print | `Document.Create` |
 | `IComposition` | interface | What a document is composed of: a sequence of sections. | print | `IDocumentContainer` |
 | `IComposition.Section(Action<Section>)` | method | Adds a section: a run of pages sharing one page setup and running heads, as in Word and InDesign. | Word, InDesign | `IDocumentContainer.Page` |
@@ -26,6 +29,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Section.ReadingDirection` | property | Left-to-right or right-to-left. | print | `PageDescriptor.Direction` |
 | `Section.DefaultType` | property | The type style text inherits unless told otherwise. | print ("body type") | `PageDescriptor.DefaultTextStyle` |
 | `Section.Continuous` | property | One page that grows to fit its content, instead of paginating. | plain | `PageDescriptor.IsContinuous` |
+| `Section.MinimumTrim`, `Section.MaximumTrim` | property | Bounds a page sized by its content: no smaller than the one, no larger than the other. | print | `PageDescriptor.MinSize`, `MaxSize` |
 | `Section.RunningHead()` | method | Repeated at the top of every page. | print | `PageDescriptor.Header()` |
 | `Section.Body()` | method | The main text area, flowing across pages. | print ("body text") | `PageDescriptor.Content()` |
 | `Section.RunningFoot()` | method | Repeated at the bottom of every page. | print | `PageDescriptor.Footer()` |
@@ -44,6 +48,13 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `ISnippet` | interface | A reusable piece of composition, `Compose(IFrame)`. InDesign calls reusable content *snippets*. | InDesign | `IComponent` |
 | `Snippet(ISnippet)` / `Snippet<T>()` | method | Places a snippet. | InDesign | `Component` |
 | `Compose(Action<IFrame>)` | method | Composes into a frame with a method of your own. | print | `Element` |
+| `ComposePerPage<TState>(IDynamicContent<TState>)` | method | Composes content afresh for every page it reaches, from the state it got to. | plain | `Dynamic` |
+| `IDynamicContent<TState>` | interface | Content composed page by page: an `Initial` state, and `Compose(DynamicPage, TState)`. | plain | `IDynamicComponent` |
+| `DynamicPart<TState>` | record | What dynamic content draws on a page: its `Content`, the `Next` state, and whether it `HasMore`. | plain | `DynamicComponentComposeResult` |
+| `DynamicPage` | class | The page dynamic content is composed for: `Facts`, `Room`, `ReadingDirection`, `DefaultType`, `Measure` and `PositionsOf`. | plain | `DynamicContext` |
+| `CapturePosition(string)` | method | Records where content is drawn, page by page, for dynamic content to look up. | plain | `CaptureContentPosition` |
+| `CapturedPosition` | struct | Where captured content was drawn: its `Folio`, `Position` and `Size`. | plain | `PageElementLocation` |
+| `ComposeLater(Action<IFrame>, bool keep)` | method | Composes only when layout reaches the frame, letting the content go once drawn unless kept. | plain | `Lazy`, `LazyWithCache` |
 | `Blank()` | method | Places nothing. | print | `Empty` |
 | `FrameContent` | class | The methods that set content into a frame, and so end a chain: `Text`, `Image`, `Stack`, `Columns`, `Table`, `List`, `Layered`, `Banded`, `Compose`, `Snippet`, `Blank`. | plain | `ContentExtensions` |
 | `FrameModifiers` | class | The methods that wrap a frame in another and return the inner one: every method under *Modifying a frame*, *Flow across pages* and *Rules, links and placeholders* below. | plain | `LayoutExtensions` |
@@ -56,6 +67,12 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `StackComposer.Add()` | method | Adds the next frame to the stack. | plain | `ColumnDescriptor.Item` |
 | `StackComposer.SpaceBetween(float)` | method | Vertical space between stacked frames. | print ("space between") | `ColumnDescriptor.Spacing` |
 | `Columns(Action<ColumnsComposer>)` | method | Frames side by side. In page layout, content set side by side is set in columns. | print | `Row` |
+| `FlowColumns(Action<FlowColumnsComposer>)` | method | Columns a story flows through as a newspaper's does, on to the next page when full. | print ("threaded frames") | `MultiColumn` |
+| `FlowColumnsComposer` | class | Builds flowing columns: `Columns`, `Gutter`, `Balanced`, `Story` for the content that flows, and `Between` for what is drawn in each gutter. *Story* is InDesign's word for text that flows from frame to frame. | print | `MultiColumnDescriptor` |
+| `Flow(Action<FlowComposer>)` | method | Items set side by side as words are, wrapping on to new lines. | print ("inline") | `Inlined` |
+| `FlowComposer` | class | Builds a flow: `Gutter`, `SpaceBetweenLines`, `FlushLeft`, `Centered`, `FlushRight`, `Justified`, `SpacedAround`, `FlushTop`, `Middle`, `FlushBottom`, and `Add` for each item. | print | `InlinedDescriptor` |
+| `Grid(Action<GridComposer>)` | method | Cells flowing into rows of equal columns. | print ("layout grid") | `Grid` |
+| `GridComposer` | class | Builds a grid: `Columns`, `Gutter`, `SpaceBetweenRows`, `FlushLeft`, `Centered`, `FlushRight`, and `Cell(span)` for each cell. | print | `GridDescriptor` |
 | `ColumnsComposer.Share(float)` | method | A column taking a share of the width left over, in proportion to its weight. | plain | `RowDescriptor.RelativeItem` |
 | `ColumnsComposer.Fixed(float)` | method | A column of a fixed width. | plain | `RowDescriptor.ConstantItem` |
 | `ColumnsComposer.Natural()` | method | A column as wide as its content. | plain | `RowDescriptor.AutoItem` |
@@ -65,6 +82,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `TableColumns.Fixed(float)` / `Share(float)` | method | A fixed-width or proportional column. | plain | `ConstantColumn` / `RelativeColumn` |
 | `TableComposer.Cell()` | method | The next cell, placed automatically or explicitly. | print | `Cell` |
 | `TableComposer.HeaderRows(...)` / `FooterRows(...)` | method | Rows repeated at the top or bottom of every page the table spans. | InDesign | `Header` / `Footer` |
+| `TableComposer.ExtendLastCellsToBottom()` | method | Stretches the last cell of every column to the bottom of the table on each page. | plain | `ExtendLastCellsToTableBottom` |
 | `TableBand` | class | The cells of a header or footer band. | print | `TableBandDescriptor` |
 | `CellFrame` | class | A cell's frame, with its placement: `AtRow`, `AtColumn`, `SpanRows`, `SpanColumns`. | print | `TableCellDescriptor` |
 | `List(Action<ListComposer>)` | method | A bulleted or numbered list. | print | `List` |
@@ -84,10 +102,12 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Inset(...)`, `InsetLeft/Top/Right/Bottom/Horizontal/Vertical` | method | Space inside a frame's edge. InDesign calls it the *text frame inset*. | InDesign | `Padding*` |
-| `Fill(Ink)` | method | Paints the frame's whole area. | InDesign | `Background` |
+| `Fill(Ink)`, `Fill(Gradient)` | method | Paints the frame's whole area, in an ink or a gradient. | InDesign | `Background`, `BackgroundLinearGradient` |
 | `Stroke(float)`, `StrokeLeft/Top/Right/Bottom` | method | A line around the frame's edge, of a given weight. | InDesign | `Border*` |
-| `StrokeInk(Ink)` | method | The ink a stroke is drawn in. | InDesign | `BorderColor` |
-| `RoundCorners(float)` | method | Rounds the frame's corners. | InDesign ("corner options") | `CornerRadius` |
+| `StrokeInk(Ink)`, `StrokeInk(Gradient)` | method | The ink a stroke is drawn in, or a gradient laid across all it covers. | InDesign | `BorderColor`, `BorderLinearGradient` |
+| `DropShadow(Shadow)`, `DropShadow(Ink, blur, offsetX, offsetY, spread)` | method | Casts a soft shadow from the frame onto what lies beneath it. | InDesign ("drop shadow") | `Shadow` |
+| `RoundCorners(float)`, `RoundCorners(topLeft, topRight, bottomRight, bottomLeft)` | method | Rounds the frame's corners, alike or each on its own; after `DropShadow`, the shadow's. | InDesign ("corner options") | `CornerRadius*` |
+| `AlignStroke(StrokeAlignment)` | method | Whether the stroke just set lies inside the frame's edge, centred on it or outside it. | InDesign ("align stroke") | `BorderAlignment*` |
 | `Width`, `Height`, `MinWidth`, `MaxWidth`, `MinHeight`, `MaxHeight` | method | Size constraints. | plain | same |
 | `Expand()`, `ExpandHorizontally()`, `ExpandVertically()` | method | Claims all the space offered. | plain | `Extend*` |
 | `Proportion(float, ProportionFit)` | method | Holds a width-to-height ratio. | print | `AspectRatio` |
@@ -98,7 +118,10 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `ShiftAcross(float)`, `ShiftDown(float)` | method | Moves drawn content without affecting layout. | InDesign ("shift") | `TranslateX/Y` |
 | `Scale(...)` | method | Scales content. | print | `Scale` |
 | `ShrinkToFit(float)` | method | Scales content down until it fits. | Word | `ScaleToFit` |
+| `FitToContent()`, `FitWidthToContent()`, `FitHeightToContent()` | method | Gives what follows only the content's own size, so a fill or stroke hugs it. | InDesign ("fit frame to content") | `Shrink`, `ShrinkHorizontal`, `ShrinkVertical` |
 | `TurnLeft()`, `TurnRight()` | method | A quarter turn. | plain | `RotateLeft/Right` |
+| `DrawOrder(int)` | method | Content of a higher order is drawn over content of a lower one wherever it sits on the page. | InDesign ("arrange") | `ZIndex` |
+| `Rotate(float)` | method | Any angle, clockwise about the frame's centre, leaving layout alone. | plain | same |
 | `MirrorHorizontal()`, `MirrorVertical()`, `MirrorBoth()` | method | Reflects content. | print | `FlipHorizontal/Vertical/Over` |
 | `LeftToRight()`, `RightToLeft()`, `Reading(ReadingDirection)` | method | Reading direction for the frame and its content. | print | `ContentFrom` |
 | `DefaultType(Func<TypeStyle, TypeStyle>)` | method | Refines the type style content inherits. | print | `DefaultTextStyle` |
@@ -109,8 +132,13 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 |---|---|---|---|---|
 | `NewPage()` | method | Starts the next page. | print ("start on next page") | `PageBreak` |
 | `KeepTogether()` | method | Never splits the frame across pages. | print | `ShowEntire` |
+| `KeepTogetherWherePossible()` | method | Moves the frame whole to the next page when it would fit there, and splits it only when it is longer than a page. | print ("keep options") | `PreventPageBreak` |
 | `RequireSpace(float)` | method | Starts a new page unless at least this much space remains. | plain | `EnsureSpace` |
 | `When(bool)` | method | Includes the frame only when the condition holds. | plain | `ShowIf` |
+| `When(Func<PageFacts, bool>)` | method | Includes the frame only on the pages the condition accepts. | plain | `ShowIf(Predicate<ShowIfContext>)` |
+| `PageFacts` | struct | The page being laid out: its `Folio`, the `PageCount` once known, `IsFirst`, `IsLast`, `IsOdd`. | print | `ShowIfContext` |
+| `RepeatOnEachPage()` | method | Drawn afresh on every page its container continues onto. | plain | `Repeat` |
+| `DiscardOverset()` | method | Keeps what fits where the frame first appears and discards the rest. *Overset* is the typesetter's word for content that does not fit. | InDesign ("overset text") | `StopPaging` |
 | `Once()` | method | Drawn only the first time, even in a repeating band. | plain | `ShowOnce` |
 | `SkipFirst()` | method | Drawn every time but the first — "continued" labels. | plain | `SkipOnce` |
 
@@ -118,12 +146,13 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
-| `Rule(float, Ink?)` | method | A horizontal line. | print | `LineHorizontal` |
-| `VerticalRule(float, Ink?)` | method | A vertical line — between columns, say. | print | `LineVertical` |
+| `Rule(float, Ink?, StrokeStyle)`, `Rule(float, Ink, IReadOnlyList<float>)` | method | A horizontal line, solid, in a stroke style, or in dashes and gaps of the lengths given; each also takes a `Gradient` in place of the ink. | print | `LineHorizontal`, `LineDashPattern` |
+| `VerticalRule(float, Ink?, StrokeStyle)`, `VerticalRule(float, Ink, IReadOnlyList<float>)` | method | A vertical line — between columns, say — styled as a rule is. | print | `LineVertical` |
 | `Link(string url)` | method | Makes the frame a link to a URL. | plain | `Hyperlink` |
 | `Anchor(string name)` | method | Names a place others can refer to. | print, InDesign ("text anchor") | `Section` |
 | `CrossReference(string anchor)` | method | Makes the frame a link to an anchor. | print | `SectionLink` |
-| `Placeholder(Ink?)` | method | A box standing in for content not there yet. | print | `Placeholder` |
+| `Placeholder(Ink?)`, `Placeholder(string, Ink?)` | method | A box standing in for content not there yet, saying what will go there if given words. | print | `Placeholder` |
+| `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |
 | `Image(IImage, ImageFitting)` | method | Places an image. | plain | `Image` |
 | `IImage` | interface | An image a frame can place, with its size in pixels the right way up. | plain | `IImage` |
 | `RasterImage` | class | A JPEG or PNG, loaded with `FromBytes`, `FromStream` or `FromFile` and embedded as it was encoded wherever PDF allows. *Raster*, as prepress distinguishes pixel images from vector art. | print | `Image` |
@@ -164,12 +193,14 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Highlight` | term | A colour behind a run of text. | plain | `BackgroundColor` |
 | `TypeWeight` | enum | `Thin` … `Black`, `ExtraBlack`. | print | `FontWeight` |
 | `ScriptPosition` | enum | `Normal`, `Subscript`, `Superscript`. | print | `FontPosition` |
-| `StrokeStyle` | enum | `Solid`, `Double`, `Dotted`, `Dashed`, `Wavy`: how a text stroke (underline, strike-through, overline) is drawn. | print | `TextStyle.Decoration*` |
+| `StrokeStyle` | enum | `Solid`, `Double`, `Dotted`, `Dashed`, `Wavy`: how a text stroke (underline, strike-through, overline) or a rule is drawn. | print | `TextStyle.Decoration*` |
 
 ## Colour
 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
+| `Shadow` | struct | A shadow's `Ink`, `Blur`, `Offset` and `Spread`, in points, as CSS measures a box shadow. | InDesign ("drop shadow") | `BoxShadowStyle` |
+| `Gradient` | class | A linear blend of inks at an angle, clockwise from left to right: `Across`, `Down`, or any angle. | InDesign ("gradient swatch") | `BackgroundLinearGradient`'s arguments |
 | `Ink` | struct | A colour as print thinks of it: RGB, CMYK process colour, or a named spot ink with a process fallback ([ADR 0004](adr/0004-ink-colour-model.md)). | print | `Color` |
 | `Ink.Rgb`, `Ink.Cmyk`, `Ink.Spot`, `Ink.Hex` | method | Creates an ink. | print | `Color.FromArgb`, `Color.ParseHex` |
 | `Ink.Tint(float)` | method | A percentage of the ink, as a printer lays down less of it. | print | — |
@@ -185,9 +216,11 @@ The Material Design palette (`Colors.Red.Lighten3` and friends) is removed: user
 | `Extent` | struct | A width and a height, in points. | plain | `Size` |
 | `Offset` | struct | A displacement or position, in points. | plain | `Position` |
 | `Sides` | struct | Four values, one per side — margins, insets, stroke weights. | plain | `Edges` |
+| `Corners` | struct | Four radii, one per corner, clockwise from the top left. | plain | — |
+| `StrokeAlignment` | enum | `Inside`, `Center`, `Outside`: where a stroke lies against the edge. | InDesign | `BorderAlignment*` |
 | `PaperSizes` | class | ISO A, B and C series, US and architectural sizes, envelopes. | print | `PageSizes` |
 | `Landscape()` / `Portrait()` | method | An extent turned to its wide or tall orientation. | print | same |
-| `LengthUnit` | enum | `Point`, `Millimetre`, `Centimetre`, `Metre`, `Inch`, `Foot`. | plain | `Unit` |
+| `LengthUnit` | enum | `Point`, `Millimetre`, `Centimetre`, `Metre`, `Inch`, `Foot`, `Mil`, `Pica`. | plain | `Unit` |
 | `Lengths` | class | Conversions such as `20.Millimetres()`. | plain | `UnitExtensions` |
 | `ReadingDirection` | enum | `LeftToRight`, `RightToLeft`. | print | `ContentDirection` |
 

@@ -72,6 +72,9 @@ internal sealed class TableBlock : Block
 
     public List<TableColumnSpec> Columns { get; } = [];
 
+    /// <summary>Whether the last body cell of each column reaches the bottom of the rows drawn on each page.</summary>
+    public bool ExtendLastCells { get; set; }
+
     public List<CellBlock> Cells { get; } = new List<CellBlock>();
 
     /// <summary>Rows repeated at the top of every page the table spans.</summary>
@@ -91,6 +94,11 @@ internal sealed class TableBlock : Block
         _cachedLayout = null;
         _cachedWidth = float.NaN;
     }
+
+    protected override object? SaveOwnProgress() => (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection);
+
+    protected override void RestoreOwnProgress(object progress) =>
+        (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection) = ((int, TableLayout?, float, ReadingDirection))progress;
 
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
@@ -141,7 +149,7 @@ internal sealed class TableBlock : Block
             top += layout.HeaderHeight;
         }
 
-        DrawBand(Cells, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context);
+        DrawBand(Cells, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, ExtendLastCells);
         top += takenHeight;
 
         if (layout.FooterHeights.Length != 0)
@@ -220,12 +228,16 @@ internal sealed class TableBlock : Block
         int firstRow,
         int lastRow,
         float bandTop,
-        RenderContext context)
+        RenderContext context,
+        bool extendLastCells = false)
     {
         foreach (CellBlock cell in cells)
         {
             if (cell.Row < firstRow || cell.Row > lastRow)
                 continue;
+
+            // The last cell of its columns reaches down to the last row drawn here.
+            int bottomRow = extendLastCells && IsLastInItsColumns(cell, cells) ? lastRow : cell.LastRow;
 
             float cellTop = bandTop;
 
@@ -236,7 +248,7 @@ internal sealed class TableBlock : Block
             // drawn so a span reaching past this page does not overflow it.
             float cellHeight = 0f;
 
-            for (int row = cell.Row; row <= Math.Min(cell.LastRow, lastRow); row++)
+            for (int row = cell.Row; row <= Math.Min(bottomRow, lastRow); row++)
                 cellHeight += rowHeights[row - 1];
 
             Extent cellSpace = new Extent(layout.SpanWidth(cell), cellHeight);
@@ -246,6 +258,18 @@ internal sealed class TableBlock : Block
             cell.Render(cellSpace, context);
             context.Surface.Translate(offset.Reverse());
         }
+    }
+
+    /// <summary>Whether no other cell starts below <paramref name="cell"/> in any column it covers.</summary>
+    private static bool IsLastInItsColumns(CellBlock cell, List<CellBlock> cells)
+    {
+        foreach (CellBlock other in cells)
+        {
+            if (other.Row > cell.LastRow && other.Column <= cell.LastColumn && other.LastColumn >= cell.Column)
+                return false;
+        }
+
+        return true;
     }
 
     /// <summary>

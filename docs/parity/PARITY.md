@@ -20,14 +20,14 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
 | Build a document from pages; reusable document classes | `Document.Create`, `IDocument` | ✅ | — |
-| Page size, named sizes, landscape/portrait | `PageDescriptor.Size`, `PageSizes`, `PageSizeExtensions` | 🟡 A0–A6, Letter, Legal, Tabloid, Executive; missing A7–A10, B, C, ARCH, envelopes, postcard | 4 |
+| Page size, named sizes, landscape/portrait | `PageDescriptor.Size`, `PageSizes`, `PageSizeExtensions` | ✅ | — |
 | Margins, per side | `Margin*` | ✅ | — |
 | Continuous (single tall) page | `ContinuousSize` | ✅ | — |
-| Page size bounded by content (min/max) | `MinSize`, `MaxSize` | ❌ | 4 |
+| Page size bounded by content (min/max) | `MinSize`, `MaxSize` | ✅ | — |
 | Header, footer, content, background, foreground slots | `Header`, `Footer`, `Content`, `Background`, `Foreground` | ✅ | — |
 | Page colour | `PageColor` | ✅ | — |
 | Page-level default text style and direction | `DefaultTextStyle`, `ContentFrom*` | ✅ | — |
-| Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | 🟡 pt, mm, cm, inch | 4 |
+| Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | ✅ plus pica | — |
 | Metadata: title, author, subject, keywords, creator, producer, dates | `DocumentMetadata` | ✅ | — |
 | Document language | `DocumentMetadata.Language` | ❌ | 6 |
 | Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ❌ | 7 |
@@ -39,21 +39,21 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Vertical sequence with spacing | `Column`, `Stack` | ✅ | — |
 | Horizontal sequence: constant, relative, auto items, spacing | `Row` | ✅ | — |
 | Tables: constant/relative columns, auto and explicit placement, spans, header/footer bands | `Table` | ✅ | — |
-| Table: stretch last cells to table bottom | `ExtendLastCellsToTableBottom` | ❌ | 4 |
-| Uniform grid | `Grid` | ❌ | 4 |
-| Flow of inline items with wrapping, alignment, baseline | `Inlined` | ❌ | 4 |
-| Newspaper columns, balanced | `MultiColumn` | ❌ | 4 |
+| Table: stretch last cells to table bottom | `ExtendLastCellsToTableBottom` | ✅ | — |
+| Uniform grid | `Grid` | ✅ | — |
+| Flow of inline items with wrapping, alignment, baseline | `Inlined` | ✅ | — |
+| Newspaper columns, balanced | `MultiColumn` | ✅ | — |
 | Stacked layers, one primary | `Layers` | ✅ | — |
 | Content with repeating before/after bands | `Decoration` | ✅ | — |
 | Bulleted, numbered, lettered and roman lists | — | ✅ ours only | — |
 | Padding, per side | `Padding*` | ✅ | — |
 | Width/height, min/max | `Width`, `MinWidth`, … | ✅ | — |
 | Extend to fill | `Extend*` | ✅ | — |
-| Shrink to content | `Shrink*`, `MinimalBox` | ❌ | 4 |
+| Shrink to content | `Shrink*`, `MinimalBox` | ✅ | — |
 | Aspect ratio | `AspectRatio` | ✅ | — |
-| Alignment, horizontal and vertical | `Align*` | 🟡 alignment expands to fill (README known limitation) | 4 |
+| Alignment, horizontal and vertical | `Align*` | ✅ `FlushLeft`, `Centered`, `FlushRight`, `FlushTop`, `Middle`, `FlushBottom`: measured as their content, placed in the room granted | — |
 | Unconstrained | `Unconstrained` | ✅ | — |
-| Z-order | `ZIndex` | ❌ | 4 |
+| Z-order | `ZIndex` | ✅ | — |
 
 ## Transforms
 
@@ -63,7 +63,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Scale, uniform and per axis | `Scale`, `ScaleHorizontal/Vertical` | ✅ | — |
 | Scale to fit | `ScaleToFit` | ✅ | — |
 | Quarter-turn rotation | `RotateLeft/Right` | ✅ | — |
-| Arbitrary-angle rotation | `Rotate(angle)` | ❌ | 4 |
+| Arbitrary-angle rotation | `Rotate(angle)` | ✅ | — |
 | Flip | `Flip*` | ✅ | — |
 
 ## Flow control and pagination
@@ -72,37 +72,38 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 |---|---|---|---|
 | Page break | `PageBreak` | ✅ | — |
 | Show if (static condition) | `ShowIf(bool)` | ✅ | — |
-| Show if (per page: page number, total pages) | `ShowIf(Predicate<ShowIfContext>)` | ❌ | 4 |
+| Show if (per page: page number, total pages) | `ShowIf(Predicate<ShowIfContext>)` | ✅ | — |
 | Show once, skip once | `ShowOnce`, `SkipOnce` | ✅ | — |
-| Keep together / never split | `ShowEntire`, `PreventPageBreak` | 🟡 `ShowEntire` only | 4 |
+| Keep together / never split | `ShowEntire`, `PreventPageBreak` | ✅ `KeepTogether`, `KeepTogetherWherePossible` | — |
 | Ensure space | `EnsureSpace` | ✅ | — |
-| Repeat on every page | `Repeat` | ❌ | 4 |
-| Stop paging (draw first page only) | `StopPaging` | ❌ | 4 |
-| Lazy composition for very large documents, optionally cached | `Lazy`, `LazyWithCache` | ❌ | 4 |
+| Repeat on every page | `Repeat` | ✅ | — |
+| Stop paging (draw first page only) | `StopPaging` | ✅ | — |
+| Lazy composition for very large documents, optionally cached | `Lazy`, `LazyWithCache` | ✅ | — |
 | Reusable components | `IComponent`, `Component` | ✅ | — |
-| Dynamic components with state, per-page composition | `IDynamicComponent`, `Dynamic`, `DynamicContext` | ❌ | 4 |
-| Capture a content position; query it later | `CaptureContentPosition`, `GetContentCapturedPositions` | ❌ | 4 |
+| Dynamic components with state, per-page composition | `IDynamicComponent`, `Dynamic`, `DynamicContext` | ✅ state handed from page to page | — |
+| Capture a content position; query it later | `CaptureContentPosition`, `GetContentCapturedPositions` | ✅ | — |
 
 ## Styling
 
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
 | Solid background | `Background` | ✅ | — |
-| Linear-gradient background | `BackgroundLinearGradient` | ❌ | 4 |
+| Linear-gradient background | `BackgroundLinearGradient` | ✅ | — |
 | Borders per side, colour | `Border*`, `BorderColor` | ✅ | — |
-| Border alignment inside/middle/outside | `BorderAlignment*` | ❌ | 4 |
-| Linear-gradient border | `BorderLinearGradient` | ❌ | 4 |
+| Border alignment inside/middle/outside | `BorderAlignment*` | ✅ | — |
+| Linear-gradient border | `BorderLinearGradient` | ✅ | — |
 | Corner radius, uniform | `CornerRadius` | ✅ | — |
-| Corner radius per corner | `CornerRadiusTopLeft`, … | ❌ | 4 |
-| Box shadow (blur, spread, offset, colour) | `Shadow`, `BoxShadowStyle` | ❌ | 4 |
+| Corner radius per corner | `CornerRadiusTopLeft`, … | ✅ | — |
+| Box shadow (blur, spread, offset, colour) | `Shadow`, `BoxShadowStyle` | ✅ | — |
 | Lines: thickness | `LineHorizontal/Vertical` | ✅ | — |
-| Lines: colour, dash pattern, gradient | `LineDescriptor` | ❌ | 4 |
+| Lines: colour, dash pattern | `LineDescriptor` | ✅ | — |
+| Lines: gradient | `LineDescriptor.LineGradient` | ✅ | — |
 | Colour: RGB(A), hex | `Color` | ✅ | — |
 | Colour: CMYK and spot inks, tints | — | ✅ ours only: process colour, separations with a fallback | — |
 | Colour palette | `Colors` (Material) | ➖ replaced by `Ink` basics ([ADR 0004](../adr/0004-ink-colour-model.md)) | 1 |
-| Named style sheets | — | ❌ ours only ([ADR 0003](../adr/0003-api-shape-and-style-sheets.md)) | 4 |
-| Placeholder box | `Placeholder` | 🟡 no label text | 4 |
-| Sample data for prototyping | `Placeholders` (lorem ipsum, dates, prices, …) | ❌ | 4 |
+| Named style sheets | — | ✅ ours only ([ADR 0003](../adr/0003-api-shape-and-style-sheets.md)): `StyleSheet` of type, paragraph and frame styles, `basedOn`, `Style(name)` | — |
+| Placeholder box | `Placeholder` | ✅ `Placeholder(label)` | — |
+| Sample data for prototyping | `Placeholders` (lorem ipsum, dates, prices, …) | ✅ seeded, so the same every time | — |
 
 ## Text
 
@@ -134,7 +135,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Current page, total pages | `CurrentPageNumber`, `TotalPages` | ✅ | — |
 | Page number formatting (roman, custom) | `TextPageNumberDescriptor.Format` | ✅ | — |
 | Section page numbers: begin, end, within, total within | `BeginPageNumberOfSection`, … | ✅ | — |
-| Page number of a captured location | `PageNumberOfLocation` | ❌ | 4 |
+| Page number of a captured location | `PageNumberOfLocation` | ✅ `FolioOf` (their former name for `BeginPageNumberOfSection`) | — |
 | Glyph-availability check | `Settings.CheckIfAllTextGlyphsAreAvailable` | ✅ per export | — |
 
 ## Links and navigation
@@ -144,7 +145,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | External hyperlink on a region or text | `Hyperlink`, `ExternalLink` | ✅ | — |
 | Internal link to a named section | `SectionLink`, `InternalLink` | ✅ | — |
 | Named destinations | `Section`, `Location` | ✅ | — |
-| Links to captured locations from text | `ExternalLocation`, `InternalLocation` | ❌ | 4 |
+| Links to captured locations from text | `ExternalLocation`, `InternalLocation` | ✅ `TextComposer.Link`, `CrossReference` (their former names for `Hyperlink`, `SectionLink`) | — |
 | Outline / bookmarks | — (derived from semantic tags) | ❌ | 6 |
 
 ## Images and vector graphics
@@ -205,7 +206,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Layout errors raised with explanation | `DocumentLayoutException` | ✅ | — |
 | Visual debug areas and pointers | `DebugArea`, `DebugPointer` | ❌ | 8 |
 | Debug mode with element-tree trace of a layout failure | `Settings.EnableDebugging` | ❌ | 8 |
-| Layout exception threshold | `DocumentLayoutExceptionThreshold` | 🟡 fixed page cap | 4 |
+| Layout exception threshold | `DocumentLayoutExceptionThreshold` | ✅ `Document.PageLimit` | — |
 | Caching switch | `Settings.EnableCaching` | ➖ no global switch; caching is internal | 2 |
 | Live previewer with hot reload, element inspector, source navigation | `ShowInCompanion`, `ShowInPreviewer` | ❌ | 8 |
 | Licence selection | `Settings.License`, `LicenseType` | ➖ MIT, nothing to select | — |

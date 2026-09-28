@@ -40,7 +40,7 @@ public class CountingPageSinkTests
         canvas.Rotate(90);
         canvas.ClipRectangle(new Extent(10, 10));
         canvas.DrawRectangle(Offset.Zero, new Extent(10, 10), TestInks.Red);
-        canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), 2, TestInks.Red, 1);
+        canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), TestInks.Red, 1);
         canvas.DrawLine(Offset.Zero, new Offset(10, 10), 1, TestInks.Red);
         canvas.DrawText("text", Offset.Zero, TypeStyle.Default);
         canvas.DrawImage(new FakeImage(10, 10), new Extent(10, 10));

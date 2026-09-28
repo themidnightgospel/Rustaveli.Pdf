@@ -1,3 +1,4 @@
+using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Text;
 
@@ -14,12 +15,6 @@ namespace Rustaveli.Pdf.Layout;
 /// </remarks>
 internal static class Typesetter
 {
-    /// <summary>Upper bound on pages per run, so a layout that never terminates fails loudly instead of hanging.</summary>
-    private const int MaxPagesPerRun = 10_000;
-
-    /// <summary>The tallest page PDF permits, in points.</summary>
-    private const float MaxPageHeight = 14_400f;
-
     /// <summary>
     /// How many times the page count may be recomputed before the result is accepted as-is. Documents settle in
     /// two passes in practice; the cap stops a pathological one that oscillates from looping forever.
@@ -32,6 +27,8 @@ internal static class Typesetter
         ArgumentNullException.ThrowIfNull(pages);
         ArgumentNullException.ThrowIfNull(measurer);
 
+        // Content composed as pages are set — per page, or later — names styles as content composed up front does.
+        using StyleSheet.Scope styles = document.Styles.Use();
         Pagination pageContext = new Pagination();
         int total = 0;
 
@@ -64,19 +61,31 @@ internal static class Typesetter
             slot.ResetState();
 
         PlanContext layout = new PlanContext(measurer, pageContext);
-        RenderContext context = new RenderContext(pages, layout);
+        RenderContext direct = new RenderContext(pages, layout);
         int pageNumber = 0;
 
         foreach (Section section in document.Sections)
         {
+            // Pages whose content sets a draw order are held back and drawn in that order; counted pages are thrown
+            // away, so they need no order.
+            bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
+            IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
+            RenderContext context = ordered ? new RenderContext(sink, layout) : direct;
+
             layout.DefaultType = section.DefaultType;
             layout.ReadingDirection = section.ReadingDirection;
 
-            int renderedInRun = 0;
-
             while (true)
             {
-                pageNumber++;
+                // A layout that never stops asking for another page fails loudly, rather than hanging, once the
+                // document has as many pages as it allows.
+                if (++pageNumber > document.PageLimit)
+                {
+                    throw new OversetException(
+                        $"The document exceeded {document.PageLimit} pages, which usually means some content reports more to come " +
+                        "but never takes any space. A document that really is longer can raise its PageLimit.");
+                }
+
                 pageContext.Folio = pageNumber;
 
                 // Until the real total is known, quote the page count as the current page so that dynamic text
@@ -84,17 +93,10 @@ internal static class Typesetter
                 if (!pageContext.IsPageCountKnown)
                     pageContext.PageCount = pageNumber;
 
-                bool hasMore = RenderPage(section, pages, context, layout);
+                bool hasMore = RenderPage(section, sink, context, layout);
 
                 if (!hasMore)
                     break;
-
-                // Counts pages that still left content over, so reaching the cap means the run needs more than
-                // MaxPagesPerRun pages. Testing with > would let one extra page through.
-                if (++renderedInRun >= MaxPagesPerRun)
-                    throw new OversetException(
-                        $"The document exceeded {MaxPagesPerRun} pages in a single section, which usually means some content " +
-                        "reports more to come but never takes any space.");
             }
         }
     }
@@ -109,23 +111,29 @@ internal static class Typesetter
         section.UnderlaySlot.ResetState(includeDocumentProgress: false);
         section.OverlaySlot.ResetState(includeDocumentProgress: false);
 
-        if (section.Trim.Width <= 0 || section.Trim.Height <= 0)
-            throw new OversetException(
-                $"The trim size {section.Trim} cannot be drawn. Both dimensions must be greater than zero.");
+        // A page is sized by its content between these bounds; a fixed page is one whose bounds are equal.
+        Extent smallest = section.SmallestTrim;
+        Extent largest = section.LargestTrim;
 
-        float contentWidth = section.Trim.Width - section.Margins.Horizontal;
+        if (largest.Width <= 0 || largest.Height <= 0)
+            throw new OversetException(
+                $"The trim size {largest} cannot be drawn. Both dimensions must be greater than zero.");
+
+        if (smallest.Width > largest.Width || smallest.Height > largest.Height)
+            throw new OversetException(
+                $"The smallest trim {smallest} is larger than the largest {largest}.");
+
+        float contentWidth = largest.Width - section.Margins.Horizontal;
 
         if (contentWidth <= 0)
             throw new OversetException(
-                $"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {section.Trim.Width:F1} points wide.");
+                $"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {largest.Width:F1} points wide.");
 
-        float availableHeight = section.Continuous
-            ? MaxPageHeight - section.Margins.Vertical
-            : section.Trim.Height - section.Margins.Vertical;
+        float availableHeight = largest.Height - section.Margins.Vertical;
 
         if (availableHeight <= 0)
             throw new OversetException(
-                $"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {section.Trim.Height:F1} points tall.");
+                $"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {largest.Height:F1} points tall.");
 
         Bands bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
         float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
@@ -136,19 +144,23 @@ internal static class Typesetter
             throw new OversetException(
                 $"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body.");
 
-        Extent contentSpace = new Extent(contentWidth, contentHeight);
-        Fit contentPlan = section.BodySlot.Plan(contentSpace, layout);
+        Extent bodySpace = new Extent(contentWidth, contentHeight);
+        layout.PageBody = bodySpace;
+        Fit contentPlan = section.BodySlot.Plan(bodySpace, layout);
 
         if (contentPlan.IsDeferred)
             throw new OversetException(
                 "The body cannot be set even on an empty page, so no further page would help. " +
-                $"Space available: {contentSpace}. Reason: {contentPlan.DeferReason}");
+                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}");
 
-        Extent pageSize = section.Continuous
-            ? new Extent(
-                section.Trim.Width,
-                Math.Min(MaxPageHeight, section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight))
-            : section.Trim;
+        Extent pageSize = new Extent(
+            Clamp(section.Margins.Horizontal + Math.Max(contentPlan.Size.Width, bands.Width), smallest.Width, largest.Width),
+            Clamp(section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight, smallest.Height, largest.Height));
+
+        // The body is drawn in what the page leaves it, which is at least the room it measured.
+        Extent contentSpace = new Extent(
+            pageSize.Width - section.Margins.Horizontal,
+            pageSize.Height - section.Margins.Vertical - bands.HeadHeight - bands.FootHeight);
 
         try
         {
@@ -180,7 +192,13 @@ internal static class Typesetter
         pages.BeginPage(pageSize);
 
         if (!section.Paper.IsTransparent)
+        {
+            // The paper lies beneath everything, even content drawn beneath the rest.
+            LayeredPageSink? layers = pages as LayeredPageSink;
+            layers?.Order = int.MinValue;
             surface.DrawRectangle(Offset.Zero, pageSize, section.Paper);
+            layers?.Order = 0;
+        }
 
         // Background and foreground deliberately ignore margins so watermarks can bleed to the page edge.
         section.UnderlaySlot.Render(pageSize, context);
@@ -229,8 +247,8 @@ internal static class Typesetter
         if (remaining.Height <= Extent.Epsilon)
             throw new OversetException(
                 $"The running head took all {available.Height:F1} points available, leaving no room for the body or the running foot. " +
-                "This usually means it holds content that expands to fill the space offered to it, such as Middle, " +
-                "FlushBottom or Expand. Give the running head an explicit Height, or remove the expanding content.");
+                "This usually means it holds content that expands to fill the space offered to it, such as " +
+                "Expand. Give the running head an explicit Height, or remove the expanding content.");
 
         Fit footPlan = section.RunningFootSlot.Plan(remaining, layout);
 
@@ -238,8 +256,11 @@ internal static class Typesetter
             throw new OversetException(
                 $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}");
 
-        return new Bands(headPlan.Size.Height, footPlan.Size.Height);
+        return new Bands(headPlan.Size.Height, footPlan.Size.Height, Math.Max(headPlan.Size.Width, footPlan.Size.Width));
     }
 
-    private readonly record struct Bands(float HeadHeight, float FootHeight);
+    private static float Clamp(float value, float smallest, float largest) => Math.Min(largest, Math.Max(smallest, value));
+
+    /// <summary>The height of the running head and foot, and the width the wider of them takes.</summary>
+    private readonly record struct Bands(float HeadHeight, float FootHeight, float Width);
 }

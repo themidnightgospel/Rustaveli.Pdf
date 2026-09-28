@@ -10,5 +10,11 @@ public enum LengthUnit
     Centimetre,
     Metre,
     Inch,
-    Foot
+    Foot,
+
+    /// <summary>A thousandth of an inch, as circuit boards and film thicknesses are measured.</summary>
+    Mil,
+
+    /// <summary>Twelve points, the printer's unit for column widths and indents.</summary>
+    Pica
 }

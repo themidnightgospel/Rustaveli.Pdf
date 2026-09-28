@@ -12,6 +12,12 @@ namespace Rustaveli.Pdf.Drawing;
 internal interface ISurface
 {
     /// <summary>Pushes the current transform and clip onto a stack.</summary>
+    /// <summary>
+    /// Where the current origin lies on the page, in points from the page's top left with Y running down, after
+    /// every translation, scale and turn in force.
+    /// </summary>
+    Offset Origin { get; }
+
     void Save();
 
     /// <summary>Restores the transform and clip most recently pushed by <see cref="Save"/>.</summary>
@@ -34,10 +40,10 @@ internal interface ISurface
     /// </summary>
     /// <param name="position">Top-left corner of the shape, relative to the current origin.</param>
     /// <param name="size">Outer extent of the shape.</param>
-    /// <param name="cornerRadius">Corner rounding. Backends clamp anything larger than half the shorter side.</param>
+    /// <param name="corners">Each corner's rounding, fitted to the shape as CSS fits it: radii that would overlap are scaled down together.</param>
     /// <param name="color">Fill or stroke colour, depending on <paramref name="strokeWidth"/>.</param>
     /// <param name="strokeWidth">Zero or less fills the shape; a positive value strokes an outline of that width.</param>
-    void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f);
+    void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f);
 
     /// <summary>
     /// Strokes a line from <paramref name="from"/> to <paramref name="to"/>. A double line is two strokes a third of
@@ -45,6 +51,28 @@ internal interface ISurface
     /// swings a thickness either side of the line.
     /// </summary>
     void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid);
+
+    /// <summary>
+    /// Strokes a line in dashes and gaps of the lengths in <paramref name="pattern"/>, alternating and starting with a
+    /// dash, repeated along its length. The lengths are never negative and not all zero.
+    /// </summary>
+    void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern);
+
+    /// <summary>
+    /// Paints the rectangles, lines and outlines that follow in <paramref name="gradient"/> instead of their own ink,
+    /// laid across the box at <paramref name="position"/> of <paramref name="size"/>, until <see cref="EndGradient"/>.
+    /// Their ink still decides whether they are drawn at all. Text is not drawn meanwhile.
+    /// </summary>
+    void BeginGradient(Gradient gradient, Offset position, Extent size);
+
+    /// <summary>Returns to painting in each shape's own ink.</summary>
+    void EndGradient();
+
+    /// <summary>
+    /// Draws the shadow a rectangle at <paramref name="position"/> of <paramref name="size"/>, rounded to
+    /// <paramref name="corners"/>, casts: moved, grown and blurred as <paramref name="shadow"/> says.
+    /// </summary>
+    void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow);
 
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
     /// <param name="text">The text, in logical order.</param>

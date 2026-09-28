@@ -219,6 +219,9 @@ public sealed class TextComposer
         _block.Alignment = LineAlignment.Justified;
     }
 
+    /// <summary>Sets the text in the document's paragraph style named <paramref name="name"/>.</summary>
+    public void Style(string name) => StyleSheet.InForce.Paragraph(name)(this);
+
     /// <summary>Adjusts the style inherited by every span in this paragraph.</summary>
     public void DefaultType(Func<TypeStyle, TypeStyle> refinement)
     {

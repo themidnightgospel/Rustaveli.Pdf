@@ -33,6 +33,8 @@ public class LengthUnitTests
     [InlineData(LengthUnit.Metre, 5669.291f)]
     [InlineData(LengthUnit.Inch, 144f)]
     [InlineData(LengthUnit.Foot, 1728f)]
+    [InlineData(LengthUnit.Mil, 0.144f)]
+    [InlineData(LengthUnit.Pica, 24f)]
     public void ConvertsTwoOfEachUnitToPoints(LengthUnit unit, float expectedPoints)
     {
         Approximately.Equal(expectedPoints, 2f.ToPoints(unit));
@@ -73,5 +75,25 @@ public class LengthUnitTests
     public void WholeNumberInchesConvertLikeTheirFractionalForm()
     {
         Approximately.Equal(144f, 2.Inches());
+    }
+
+    [Fact]
+    public void EveryUnitHasItsOwnConversionForWholeAndFractionalNumbers()
+    {
+        Approximately.Equal(2f.ToPoints(LengthUnit.Metre), 2f.Metres());
+        Approximately.Equal(2f.ToPoints(LengthUnit.Metre), 2.Metres());
+        Approximately.Equal(2f.ToPoints(LengthUnit.Foot), 2f.Feet());
+        Approximately.Equal(2f.ToPoints(LengthUnit.Foot), 2.Feet());
+        Approximately.Equal(2f.ToPoints(LengthUnit.Mil), 2f.Mils());
+        Approximately.Equal(2f.ToPoints(LengthUnit.Mil), 2.Mils());
+        Approximately.Equal(2f.ToPoints(LengthUnit.Pica), 2f.Picas());
+        Approximately.Equal(2f.ToPoints(LengthUnit.Pica), 2.Picas());
+    }
+
+    [Fact]
+    public void APicaIsTwelvePointsAndSixToTheInch()
+    {
+        Approximately.Equal(12f, 1.Picas());
+        Approximately.Equal(1f.Inches(), 6.Picas());
     }
 }

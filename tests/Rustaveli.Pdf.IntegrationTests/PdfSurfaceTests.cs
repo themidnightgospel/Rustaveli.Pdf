@@ -43,8 +43,9 @@ public class PdfSurfaceTests
         ["Rotate"] = canvas => canvas.Rotate(90),
         ["ClipRectangle"] = canvas => canvas.ClipRectangle(new Extent(10, 10)),
         ["DrawRectangle"] = canvas => canvas.DrawRectangle(Offset.Zero, new Extent(10, 10), Brick),
-        ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), 2, Brick),
+        ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), Brick),
         ["DrawLine"] = canvas => canvas.DrawLine(Offset.Zero, new Offset(10, 0), 1, Brick),
+        ["DrawDashedLine"] = canvas => canvas.DrawDashedLine(Offset.Zero, new Offset(10, 0), 1, Brick, [2, 1]),
         ["DrawText"] = canvas => canvas.DrawText("Text", new Offset(10, 30), Style),
         ["DrawImage"] = canvas =>
         {
@@ -139,6 +140,7 @@ public class PdfSurfaceTests
     [InlineData("DrawRectangle")]
     [InlineData("DrawRoundedRectangle")]
     [InlineData("DrawLine")]
+    [InlineData("DrawDashedLine")]
     [InlineData("DrawText")]
     [InlineData("DrawImage")]
     [InlineData("DrawExternalLink")]
@@ -220,7 +222,7 @@ public class PdfSurfaceTests
     public void DrawRoundedRectangleFillsAShapeWithCurvedCorners()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(10), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -238,7 +240,7 @@ public class PdfSurfaceTests
     public void AnOversizedRadiusIsClampedToHalfTheShorterSide()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 500, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(500), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -255,7 +257,7 @@ public class PdfSurfaceTests
     public void APositiveStrokeWidthOutlinesTheRoundedRectangleInstead()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Ocean, strokeWidth: 3));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(10), Ocean, strokeWidth: 3));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -271,7 +273,7 @@ public class PdfSurfaceTests
     public void AStrokeWidthOfZeroOrLessFillsTheRoundedRectangle(float strokeWidth)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), 10, Brick, strokeWidth));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(10), Brick, strokeWidth));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -285,7 +287,7 @@ public class PdfSurfaceTests
     public void ARadiusOfZeroOrLessDrawsSquareCorners(float radius)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), radius, Brick));
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), Corners.All(radius), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -302,7 +304,7 @@ public class PdfSurfaceTests
     public void DrawRoundedRectangleDrawsNothingThatCouldNotBeSeen(float width, float height, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRoundedRectangle(new Offset(100, 100), new Extent(width, height), 5, Brick.WithOpacity(alpha / 255f)));
+            canvas.DrawRoundedRectangle(new Offset(100, 100), new Extent(width, height), Corners.All(5), Brick.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -375,6 +377,45 @@ public class PdfSurfaceTests
 
         Assert.Equal(LineCapStyle.Butt, path.LineCapStyle);
         Assert.Equal([6d, 4d], path.LineDashPattern!.Value.Array);
+    }
+
+    [Fact]
+    public void ADashedLineTakesThePatternGiven()
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawDashedLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, [5, 1, 0.5f, 1]));
+
+        PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
+
+        Assert.True(path.IsStroked);
+        Assert.Equal(2, path.LineWidth, 0.01);
+        Assert.Equal([5d, 1d, 0.5d, 1d], path.LineDashPattern!.Value.Array);
+        AssertBounds(path.GetBoundingRectangle(), left: 10, top: 20, width: 100, height: 0);
+        AssertColour(Ocean, path.StrokeColor);
+    }
+
+    [Fact]
+    public void AStrokeDrawnAfterADashedLineIsSolid()
+    {
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.DrawDashedLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, [4, 2]);
+            canvas.DrawLine(new Offset(10, 40), new Offset(110, 40), 2, Ocean);
+        });
+
+        Assert.Empty(parsed.GetPage(1).Paths[1].LineDashPattern?.Array ?? []);
+    }
+
+    [Theory]
+    [InlineData(2, 0)]
+    [InlineData(0, 255)]
+    [InlineData(-1, 255)]
+    public void ADashedLineDrawsNothingThatCouldNotBeSeen(float thickness, byte alpha)
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawDashedLine(new Offset(10, 20), new Offset(110, 20), thickness, Ocean.WithOpacity(alpha / 255f), [4, 2]));
+
+        Assert.Empty(parsed.GetPage(1).Paths);
     }
 
     [Theory]
@@ -707,6 +748,26 @@ public class PdfSurfaceTests
         });
 
         AssertBounds(Assert.Single(parsed.GetPage(1).Paths).GetBoundingRectangle(), left: 90, top: 100, width: 10, height: 40);
+    }
+
+    [Fact]
+    public void RotateTakesAnyAngle()
+    {
+        // An eighth of a turn is written as its own matrix, inside the page's Y-down flip, so it turns clockwise on
+        // the page. PdfPig bounds a rectangle by two of its corners, so the matrix is what is checked.
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.Translate(new Offset(100, 100));
+            canvas.Rotate(45);
+            canvas.DrawRectangle(Offset.Zero, new Extent(20, 20), Brick);
+        });
+
+        string content = System.Text.Encoding.ASCII.GetString(parsed.GetPage(1).Operations
+            .Select(operation => { using MemoryStream buffer = new MemoryStream(); operation.Write(buffer); return buffer.ToArray(); })
+            .SelectMany(bytes => bytes.Append((byte)'\n'))
+            .ToArray());
+
+        Assert.Matches(@"1 0 0 1 100 100 cm\s+0\.70711 0\.70711 -0\.70711 0\.70711 0 0 cm\s+", content);
     }
 
     [Fact]

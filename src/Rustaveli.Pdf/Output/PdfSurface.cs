@@ -43,10 +43,15 @@ internal sealed class PdfSurface : IPageSink
     private readonly FontEmbedder _fonts;
     private readonly ImageEmbedder _images;
     private readonly Dictionary<(string Name, InkModel Model, (float, float, float, float) Components), PdfReference> _separations = [];
+    private readonly Dictionary<(Extent Size, Corners Corners, float Deviation, Ink Ink), (PdfReference Image, ShadowMask Mask)> _shadows = [];
     private readonly Stack<State> _saved = new Stack<State>();
     private byte[] _codes = new byte[128];
     private PdfPage? _page;
+    private float _pageHeight;
     private State _state;
+
+    /// <summary>The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.</summary>
+    private (PdfName Pattern, float Opacity)? _gradient;
 
     public PdfSurface(PdfDocumentWriter writer, TypeShaper shaper)
     {
@@ -66,6 +71,7 @@ internal sealed class PdfSurface : IPageSink
             throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
 
         _page = _writer.BeginPage(size.Width, size.Height);
+        _pageHeight = size.Height;
         _saved.Clear();
 
         Transform flip = new Transform(1, 0, 0, -1, 0, size.Height);
@@ -77,6 +83,7 @@ internal sealed class PdfSurface : IPageSink
     {
         _writer.EndPage(Page);
         _page = null;
+        _gradient = null;
     }
 
     /// <summary>Writes the fonts, now that every page has been drawn, and completes the file.</summary>
@@ -99,26 +106,30 @@ internal sealed class PdfSurface : IPageSink
     }
 
     // Blocks translate by their offsets whether or not those are zero; writing the identity would only add bytes.
+    public Offset Origin
+    {
+        get
+        {
+            // The page's own space runs Y up from the bottom; the engine's runs down from the top.
+            (double x, double y) = _state.Matrix.Apply(0, 0);
+            return new Offset((float)x, (float)(_pageHeight - y));
+        }
+    }
+
     public void Translate(Offset offset)
     {
         if (offset.X != 0 || offset.Y != 0)
-            Concatenate(new Transform(1, 0, 0, 1, offset.X, offset.Y));
+            Concatenate(Transform.Translation(offset.X, offset.Y));
     }
 
     public void Scale(float scaleX, float scaleY)
     {
         if (scaleX != 1 || scaleY != 1)
-            Concatenate(new Transform(scaleX, 0, 0, scaleY, 0, 0));
+            Concatenate(Transform.Scaling(scaleX, scaleY));
     }
 
-    public void Rotate(float degrees)
-    {
-        // In the flipped, Y-down space the engine draws in, this matrix turns clockwise.
-        double radians = degrees * Math.PI / 180;
-        double cos = Math.Cos(radians);
-        double sin = Math.Sin(radians);
-        Concatenate(new Transform(cos, sin, -sin, cos, 0, 0));
-    }
+    // In the flipped, Y-down space the engine draws in, this matrix turns clockwise.
+    public void Rotate(float degrees) => Concatenate(Transform.Rotation(degrees));
 
     public void ClipRectangle(Extent size)
     {
@@ -138,7 +149,7 @@ internal sealed class PdfSurface : IPageSink
         Content.Fill();
     }
 
-    public void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f)
+    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
     {
         if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
@@ -153,9 +164,7 @@ internal sealed class PdfSurface : IPageSink
             SetFill(color);
         }
 
-        // A radius beyond half the shorter side has no shape, so it is clamped.
-        double radius = Math.Max(0, Math.Min(cornerRadius, Math.Min(size.Width, size.Height) / 2));
-        AppendRoundedRectangle(position.X, position.Y, size.Width, size.Height, radius);
+        AppendRoundedRectangle(position.X, position.Y, size.Width, size.Height, corners.FittedTo(size));
 
         if (strokeWidth > 0)
             Content.Stroke();
@@ -214,6 +223,25 @@ internal sealed class PdfSurface : IPageSink
                 StrokeSegment(from, to);
                 break;
         }
+    }
+
+    public void DrawDashedLine(Offset from, Offset to, float thickness, Ink color, IReadOnlyList<float> pattern)
+    {
+        if (color.IsTransparent || thickness <= 0)
+            return;
+
+        double[] dashes = new double[pattern.Count];
+        for (int index = 0; index < dashes.Length; index++)
+            dashes[index] = pattern[index];
+
+        SetStroke(color);
+
+        // The dash pattern is graphics state that nothing else sets, so it is scoped to this line.
+        Save();
+        SetLineWidth(thickness);
+        Content.SetDashPattern(dashes, 0);
+        StrokeSegment(from, to);
+        Restore();
     }
 
     private void StrokeSegment(Offset from, Offset to)
@@ -319,6 +347,47 @@ internal sealed class PdfSurface : IPageSink
         content.RestoreState();
     }
 
+    public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+        if (shadow.Ink.IsTransparent)
+            return;
+
+        (Offset at, Extent grown, Corners radii) = shadow.Shape(position, size, corners);
+
+        if (grown.Width <= 0 || grown.Height <= 0)
+            return;
+
+        float deviation = shadow.Deviation;
+
+        if (deviation <= 0)
+        {
+            DrawRoundedRectangle(at, grown, radii, shadow.Ink);
+            return;
+        }
+
+        // PDF has no blur, so the shadow is an image in its ink, seen through a soft mask of its blurred coverage.
+        // Identical shadows, such as those of a table's cells, share one image.
+        Ink colour = shadow.Ink.WithOpacity(1);
+        (Extent Size, Corners Corners, float Deviation, Ink Ink) key = (grown, radii, deviation, colour);
+
+        if (!_shadows.TryGetValue(key, out (PdfReference Image, ShadowMask Mask) cast))
+        {
+            ShadowMask mask = ShadowMask.Create(grown, radii, deviation);
+            cast = (ShadowImage.Write(_writer.File, mask, colour), mask);
+            _shadows.Add(key, cast);
+        }
+
+        SetOpacity(shadow.Ink.Opacity, _state.StrokeAlpha);
+
+        Extent span = cast.Mask.Size;
+        float margin = cast.Mask.Margin;
+        ContentStreamBuilder content = Content;
+        content.SaveState();
+        content.Transform(span.Width, 0, 0, -span.Height, at.X - margin, at.Y - margin + span.Height);
+        content.PaintXObject(Page.Resources.GetXObjectName(cast.Image));
+        content.RestoreState();
+    }
+
     public void DrawExternalLink(string url, Extent size)
     {
         if (string.IsNullOrEmpty(url))
@@ -406,29 +475,48 @@ internal sealed class PdfSurface : IPageSink
             Math.Max(Math.Max(y0, y1), Math.Max(y2, y3)));
     }
 
-    private void AppendRoundedRectangle(double x, double y, double width, double height, double radius)
+    /// <summary>
+    /// A rectangle with each corner rounded to its own radius, as a quarter ellipse approximated by a cubic; square
+    /// where a radius is zero, and a plain rectangle where all are.
+    /// </summary>
+    private void AppendRoundedRectangle(double x, double y, double width, double height, Corners radii)
     {
         ContentStreamBuilder content = Content;
 
-        if (radius <= 0)
+        if (!radii.IsRounded)
         {
             content.Rectangle(x, y, width, height);
             return;
         }
 
-        double k = radius * Kappa;
         double right = x + width;
         double bottom = y + height;
+        double topLeft = radii.TopLeft;
+        double topRight = radii.TopRight;
+        double bottomRight = radii.BottomRight;
+        double bottomLeft = radii.BottomLeft;
 
-        content.MoveTo(x + radius, y);
-        content.LineTo(right - radius, y);
-        content.CurveTo(right - radius + k, y, right, y + radius - k, right, y + radius);
-        content.LineTo(right, bottom - radius);
-        content.CurveTo(right, bottom - radius + k, right - radius + k, bottom, right - radius, bottom);
-        content.LineTo(x + radius, bottom);
-        content.CurveTo(x + radius - k, bottom, x, bottom - radius + k, x, bottom - radius);
-        content.LineTo(x, y + radius);
-        content.CurveTo(x, y + radius - k, x + radius - k, y, x + radius, y);
+        content.MoveTo(x + topLeft, y);
+        content.LineTo(right - topRight, y);
+
+        if (topRight > 0)
+            content.CurveTo(right - topRight + (topRight * Kappa), y, right, y + topRight - (topRight * Kappa), right, y + topRight);
+
+        content.LineTo(right, bottom - bottomRight);
+
+        if (bottomRight > 0)
+            content.CurveTo(right, bottom - bottomRight + (bottomRight * Kappa), right - bottomRight + (bottomRight * Kappa), bottom, right - bottomRight, bottom);
+
+        content.LineTo(x + bottomLeft, bottom);
+
+        if (bottomLeft > 0)
+            content.CurveTo(x + bottomLeft - (bottomLeft * Kappa), bottom, x, bottom - bottomLeft + (bottomLeft * Kappa), x, bottom - bottomLeft);
+
+        content.LineTo(x, y + topLeft);
+
+        if (topLeft > 0)
+            content.CurveTo(x, y + topLeft - (topLeft * Kappa), x + topLeft - (topLeft * Kappa), y, x + topLeft, y);
+
         content.ClosePath();
     }
 
@@ -449,8 +537,29 @@ internal sealed class PdfSurface : IPageSink
         pending = 0;
     }
 
+    public void BeginGradient(Gradient gradient, Offset position, Extent size)
+    {
+        (Offset start, Offset end) = gradient.Axis(position, size);
+        PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix));
+
+        _gradient = (Page.Resources.GetPatternName(pattern), gradient.Opacity);
+    }
+
+    public void EndGradient() => _gradient = null;
+
     private void SetFill(Ink ink)
     {
+        if (_gradient is { } gradient)
+        {
+            Content.SetFillColorSpace(PdfNames.Pattern);
+            Content.SetFillColorN([], gradient.Pattern);
+
+            // The pattern replaced whatever colour was set, so the next ink is written again.
+            _state.Fill = null;
+            SetOpacity(gradient.Opacity, _state.StrokeAlpha);
+            return;
+        }
+
         Ink color = ink.WithOpacity(1);
         if (_state.Fill != color)
         {
@@ -463,6 +572,15 @@ internal sealed class PdfSurface : IPageSink
 
     private void SetStroke(Ink ink)
     {
+        if (_gradient is { } gradient)
+        {
+            Content.SetStrokeColorSpace(PdfNames.Pattern);
+            Content.SetStrokeColorN([], gradient.Pattern);
+            _state.Stroke = null;
+            SetOpacity(_state.FillAlpha, gradient.Opacity);
+            return;
+        }
+
         Ink color = ink.WithOpacity(1);
         if (_state.Stroke != color)
         {
