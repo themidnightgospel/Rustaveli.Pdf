@@ -22,7 +22,8 @@ public static class SpecimenCatalog
         new Specimen("long-flow", LongFlow),
         new Specimen("text-strokes", TextStrokes),
         new Specimen("paragraphs", Paragraphs),
-        new Specimen("complex-scripts", ComplexScripts)
+        new Specimen("complex-scripts", ComplexScripts),
+        new Specimen("cff-fonts", CffFonts)
     ];
 
     public static TheoryData<Specimen> Cases()
@@ -42,6 +43,35 @@ public static class SpecimenCatalog
             configure?.Invoke(section);
             content(section.Body());
         }));
+
+    /// <summary>
+    /// Text in CFF fonts, each embedded as a subset: a name-keyed face whose glyphs call local and global subroutines,
+    /// a CID-keyed Chinese face whose glyphs come from several font dicts, and a face with no subroutines at all.
+    /// </summary>
+    private static Document CffFonts() => Page(content => content.Stack(stack =>
+    {
+        stack.SpaceBetween(14f);
+
+        stack.Add().Text(text =>
+        {
+            text.DefaultType(type => type.WithTypeface("Specimen Subrs").WithPointSize(16f));
+            text.Run("Subroutines, written out: the quick brown fox jumps over the lazy dog. ÅÉÎÕÜ åéîõü ©®±¼ 0123456789");
+        });
+
+        stack.Add().Text(text =>
+        {
+            text.DefaultType(type => type.WithTypeface("Specimen Cjk").WithPointSize(18f));
+            text.Line("中国人的一是不了，我在有他这中大来上。");
+            text.Line("「你好」『世上』《书》：あいうえお、アイウエオ。");
+            text.Run("CID-keyed, several font dicts: 永鬱龘");
+        });
+
+        stack.Add().Text(text =>
+        {
+            text.DefaultType(type => type.WithTypeface("Specimen Cff").WithPointSize(14f));
+            text.Run("No subroutines at all: Hello, world. Å é ©");
+        });
+    }));
 
     /// <summary>
     /// Scripts shaped by HarfBuzz: Arabic joining with its marks placed, right to left among English, and Devanagari

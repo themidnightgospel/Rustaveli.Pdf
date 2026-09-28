@@ -12,6 +12,19 @@ internal sealed class FontDataWriter
 
     public int Length { get; private set; }
 
+    public void UInt8(int value)
+    {
+        Reserve(1);
+        _buffer[Length++] = (byte)value;
+    }
+
+    /// <summary>An unsigned integer in <paramref name="size"/> bytes, 1 to 4, as CFF writes its offsets.</summary>
+    public void UIntOfSize(uint value, int size)
+    {
+        for (int shift = (size - 1) * 8; shift >= 0; shift -= 8)
+            UInt8((int)(value >> shift));
+    }
+
     public void UInt16(int value)
     {
         Reserve(2);

@@ -84,7 +84,7 @@ public class InkAndFontOutputTests
     }
 
     [Fact]
-    public void ACffFaceIsEmbeddedWholeAndReadsBack()
+    public void ACffFaceIsEmbeddedAsASubsetAndReadsBack()
     {
         string path = FontPath("SpecimenCff-Regular.otf");
         OpenTypeFont face = OpenTypeFont.LoadFile(path);
@@ -102,9 +102,11 @@ public class InkAndFontOutputTests
         string raw = Encoding.Latin1.GetString(bytes);
 
         Assert.Equal("Compact fonts read back", pdf.GetPage(1).Text);
-        Assert.Matches(@"/Subtype\s*/CIDFontType0", raw);
+        Assert.Matches(@"/Subtype\s*/CIDFontType0\b", raw);
         Assert.Matches(@"/FontFile3", raw);
-        Assert.Matches(@"/Subtype\s*/OpenType", raw);
+        Assert.Matches(@"/Subtype\s*/CIDFontType0C", raw);
+        Assert.DoesNotMatch(@"/Subtype\s*/OpenType", raw);
+        Assert.Matches(@"/FontName\s*/[A-Z]{6}\+SpecimenCff-Regular", raw);
     }
 
     [Fact]
