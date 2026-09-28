@@ -46,8 +46,8 @@ public sealed class PreviewSession : IDisposable
         lock (Sessions)
             Sessions.Add(new WeakReference<PreviewSession>(this));
 
-        Thread serving = new Thread(Serve) { IsBackground = true, Name = "Rustaveli.Pdf preview" };
-        serving.Start();
+        // A thread of its own, as a background thread, so a program that ends is not held open by it.
+        Task.Factory.StartNew(Serve, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     /// <summary>Where the preview is served.</summary>
@@ -186,15 +186,11 @@ public sealed class PreviewSession : IDisposable
             {
                 Send(response, "application/json", Encoding.UTF8.GetBytes(State()));
             }
-            else if (path.StartsWith("/pages/", StringComparison.Ordinal)
-                && int.TryParse(path.Substring("/pages/".Length), NumberStyles.None, CultureInfo.InvariantCulture, out int number)
-                && Draw().Pages is { } pages && number >= 1 && number <= pages.Count)
+            else if (PageNumber(path, "/pages/") is int number && Draw().Pages is { } pages && number >= 1 && number <= pages.Count)
             {
                 Send(response, "image/png", pages[number - 1]);
             }
-            else if (path.StartsWith("/frames/", StringComparison.Ordinal)
-                && int.TryParse(path.Substring("/frames/".Length), NumberStyles.None, CultureInfo.InvariantCulture, out int page)
-                && Draw().Frames.Pages is { } drawn && page >= 1 && page <= drawn.Count)
+            else if (PageNumber(path, "/frames/") is int page && Draw().Frames.Pages is { } drawn && page >= 1 && page <= drawn.Count)
             {
                 Send(response, "application/json", Encoding.UTF8.GetBytes(Frames(drawn[page - 1])));
             }
@@ -220,6 +216,13 @@ public sealed class PreviewSession : IDisposable
             }
         }
     }
+
+    /// <summary>The number after <paramref name="prefix"/> in <paramref name="path"/>, or null when there is none.</summary>
+    internal static int? PageNumber(string path, string prefix) =>
+        path.StartsWith(prefix, StringComparison.Ordinal)
+        && int.TryParse(path.Substring(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out int number)
+            ? number
+            : null;
 
     /// <summary>The state the page polls: the version, each page's size on screen, and any failure.</summary>
     private string State()

@@ -141,11 +141,94 @@ public class PreviewTests
         LayoutInspection.Node node = inspection.Enter(new StackBlock(), new Offset(1.234f, 2), new Extent(3, 4));
         inspection.Leave(inspection.Enter(new NewPageBlock(), Offset.Zero, Extent.Zero));
         inspection.Leave(node);
+        inspection.Leave(inspection.Enter(new NewPageBlock(), new Offset(5, 6), new Extent(7, 8)));
 
         Assert.Equal(
             "[{\"name\":\"Stack\",\"source\":null,\"x\":1.23,\"y\":2,\"width\":3,\"height\":4,\"children\":"
-            + "[{\"name\":\"NewPage\",\"source\":null,\"x\":0,\"y\":0,\"width\":0,\"height\":0,\"children\":[]}]}]",
+            + "[{\"name\":\"NewPage\",\"source\":null,\"x\":0,\"y\":0,\"width\":0,\"height\":0,\"children\":[]}]},"
+            + "{\"name\":\"NewPage\",\"source\":null,\"x\":5,\"y\":6,\"width\":7,\"height\":8,\"children\":[]}]",
             PreviewSession.Frames(inspection.Pages[0]));
+    }
+
+    [Fact]
+    public async Task EachAnswerSaysWhatItIsAndIsNeverCached()
+    {
+        using PreviewSession session = Start(() => Pages(2));
+
+        foreach ((string path, string type) in new[]
+        {
+            ("/", "text/html; charset=utf-8"),
+            ("/state", "application/json"),
+            ("/pages/1", "image/png"),
+            ("/frames/1", "application/json"),
+            ("/frames/2", "application/json"),
+            ("/elsewhere", "text/plain"),
+        })
+        {
+            using HttpResponseMessage response = await Client.GetAsync(new Uri(session.Url, path));
+
+            Assert.Equal(type, response.Content.Headers.ContentType!.ToString());
+            Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+        }
+
+        using HttpResponseMessage missing = await Client.GetAsync(new Uri(session.Url, "/pages/9"));
+        Assert.Equal("Not found", await missing.Content.ReadAsStringAsync());
+    }
+
+    [Theory]
+    [InlineData("/pages/12", "/pages/", 12)]
+    [InlineData("/frames/1", "/frames/", 1)]
+    [InlineData("/pages/", "/pages/", null)]
+    [InlineData("/pages/-1", "/pages/", null)]
+    [InlineData("/frames/1", "/pages/", null)]
+    [InlineData("/pagesx/1", "/pages/", null)]
+    public void APageNumberIsReadAfterItsPrefix(string path, string prefix, int? number) =>
+        Assert.Equal(number, PreviewSession.PageNumber(path, prefix));
+
+    [Fact]
+    public async Task APreviewRunsUntilItIsToldToStop()
+    {
+        StringWriter output = new StringWriter();
+        Action? stop = null;
+        bool undone = false;
+        Thread previewing = new Thread(() => DocumentPreview.Preview(
+            () => Pages(1),
+            new PreviewOptions { OpenBrowser = false },
+            output,
+            action =>
+            {
+                stop = action;
+                return new Undo(() => undone = true);
+            }));
+
+        previewing.Start();
+        SpinWait.SpinUntil(() => output.ToString().Contains("Previewing at", StringComparison.Ordinal), TimeSpan.FromSeconds(30));
+
+        string said = output.ToString();
+        Uri url = new Uri(said.Substring("Previewing at ".Length, said.IndexOf(" — ", StringComparison.Ordinal) - "Previewing at ".Length));
+        Assert.EndsWith("press Ctrl+C to stop." + Environment.NewLine, said, StringComparison.Ordinal);
+        Assert.Contains("\"version\":1", await Client.GetStringAsync(new Uri(url, "/state")), StringComparison.Ordinal);
+        Assert.True(previewing.IsAlive);
+        Assert.False(undone);
+
+        stop!();
+
+        Assert.True(previewing.Join(TimeSpan.FromSeconds(30)));
+        Assert.True(undone);
+        await Assert.ThrowsAnyAsync<Exception>(() => Client.GetStringAsync(new Uri(url, "/state")));
+    }
+
+    [Fact]
+    public void ADisposedPreviewIsNoLongerRefreshedWhenCodeChanges()
+    {
+        using PreviewSession open = Start(() => Pages(1));
+        PreviewSession closed = Start(() => Pages(1));
+        closed.Dispose();
+
+        Rustaveli.Pdf.Preview.HotReload.UpdateApplication(null);
+
+        Assert.Equal(1, closed.Version);
+        Assert.True(open.Version >= 2);
     }
 
     [Theory]
@@ -200,7 +283,23 @@ public class PreviewTests
         Assert.Equal("\"q\\\"b\\\\n\\n\\r\\t\\u0001é\"", PreviewSession.Quote("q\"b\\n\n\r\t\u0001é"));
 
     [Fact]
-    public void AnImageTooShortForAHeaderHasNoSize() => Assert.Equal((0, 0), PreviewSession.PngSize(new byte[10]));
+    public void AnImageTooShortForAHeaderHasNoSize() => Assert.Equal((0, 0), PreviewSession.PngSize(new byte[23]));
+
+    [Fact]
+    public void AnImageSizeIsReadFromEveryByteOfItsHeader()
+    {
+        byte[] header = new byte[24];
+        header[16] = 0x01;
+        header[17] = 0x02;
+        header[18] = 0x03;
+        header[19] = 0x04;
+        header[20] = 0x05;
+        header[21] = 0x06;
+        header[22] = 0x07;
+        header[23] = 0x08;
+
+        Assert.Equal((0x01020304, 0x05060708), PreviewSession.PngSize(header));
+    }
 
     [Fact]
     public void OptionsHaveSensibleDefaultsAndRefuseNonsense()
@@ -211,7 +310,7 @@ public class PreviewTests
         Assert.Equal(144f, options.Resolution);
         Assert.True(options.OpenBrowser);
         Assert.Null(options.Typefaces);
-        Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = 0);
+        Assert.Contains("pixels per inch", Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = 0).Message, StringComparison.Ordinal);
         Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = float.PositiveInfinity);
         Assert.Throws<ArgumentNullException>(() => DocumentPreview.StartPreview(null!));
     }
@@ -230,5 +329,11 @@ public class PreviewTests
 
         Assert.Equal(port, session.Url.Port);
         Assert.Contains("\"version\":1", await Get(session, "/state"), StringComparison.Ordinal);
+    }
+
+    /// <summary>Runs an action when disposed.</summary>
+    private sealed class Undo(Action action) : IDisposable
+    {
+        public void Dispose() => action();
     }
 }
