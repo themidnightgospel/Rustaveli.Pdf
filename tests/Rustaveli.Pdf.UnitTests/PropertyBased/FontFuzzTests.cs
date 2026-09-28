@@ -100,7 +100,9 @@ public class FontFuzzTests
     /// <summary>Runs the action, allowing only <see cref="FontFormatException"/>, in bounded time and memory.</summary>
     private static void Survive(Func<long> action, int inputLength)
     {
-        Task<long> run = Task.Run(() =>
+        // A thread of its own: the fuzzer's workers block waiting on it, and on a busy runner a pool thread may not
+        // come free within the patience allowed, failing a font that takes milliseconds.
+        Task<long> run = Task.Factory.StartNew(() =>
         {
             long before = GC.GetAllocatedBytesForCurrentThread();
 
@@ -114,7 +116,7 @@ public class FontFuzzTests
             }
 
             return GC.GetAllocatedBytesForCurrentThread() - before;
-        });
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         Assert.True(run.Wait(Patience), "Using the damaged font did not finish.");
 
