@@ -4,7 +4,11 @@ namespace Rustaveli.Pdf.Fonts;
 /// An OpenType layout coverage table: the glyphs a subtable applies to, each with an index into the subtable's
 /// arrays. Format 1 lists glyphs; format 2 lists ranges.
 /// </summary>
-internal sealed class CoverageTable
+/// <remarks>
+/// A struct, so that a contextual rule can read a coverage table where its rule names one, glyph after glyph, without
+/// allocating.
+/// </remarks>
+internal readonly struct CoverageTable
 {
     private readonly ReadOnlyMemory<byte> _data;
     private readonly int _format;

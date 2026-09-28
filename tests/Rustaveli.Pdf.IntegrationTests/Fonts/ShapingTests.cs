@@ -201,4 +201,29 @@ public class ShapingTests
 
         Assert.Equal(4, Shape("office", Sans).Count);
     }
+
+#if NET
+    [Fact]
+    public void MeasuringTextSetWithSubstitutionsAllocatesNothingOnceWarm()
+    {
+        // Every word of a document is measured, through the face's ligature and contextual lookups; once the lookups
+        // are known, measuring again must cost nothing. (A ligature that forms carries the characters it stands for
+        // as a string of its own, which the text read back from a PDF needs; none forms here.)
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        const string Text = "The quick fjord, 1/2 and 3/4.";
+        float width = measurer.MeasureWidth(Text, Sans);
+        measurer.MeasureWidth(Text, Sans);
+        float[] again = new float[10];
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int round = 0; round < again.Length; round++)
+            again[round] = measurer.MeasureWidth(Text, Sans);
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
+        Assert.All(again, measured => Assert.Equal(width, measured));
+    }
+#endif
 }

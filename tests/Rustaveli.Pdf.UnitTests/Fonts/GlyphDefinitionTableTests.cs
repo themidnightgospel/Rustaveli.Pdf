@@ -51,9 +51,9 @@ public class GlyphDefinitionTableTests
             null, null, [SyntheticLayout.CoverageFormat1(3), SyntheticLayout.CoverageFormat1(4, 9)]));
 
         Assert.Equal(2, definitions.MarkGlyphSetCount);
-        Assert.Equal(0, definitions.GetMarkGlyphSet(0)!.IndexOf(3));
-        Assert.Equal(-1, definitions.GetMarkGlyphSet(0)!.IndexOf(4));
-        Assert.Equal(1, definitions.GetMarkGlyphSet(1)!.IndexOf(9));
+        Assert.Equal(0, definitions.GetMarkGlyphSet(0)!.Value.IndexOf(3));
+        Assert.Equal(-1, definitions.GetMarkGlyphSet(0)!.Value.IndexOf(4));
+        Assert.Equal(1, definitions.GetMarkGlyphSet(1)!.Value.IndexOf(9));
         Assert.Null(definitions.GetMarkGlyphSet(2));
     }
 
@@ -145,7 +145,7 @@ public class GlyphDefinitionTableTests
     public void FiltersMarksBySetAloneWhenASetIsUsed()
     {
         GlyphDefinitionTable definitions = Definitions();
-        CoverageTable set = definitions.GetMarkGlyphSet(0)!;
+        CoverageTable set = definitions.GetMarkGlyphSet(0)!.Value;
 
         // Mark 3 is in the set and seen; mark 4 is not and is passed over — whatever attachment type is named.
         Assert.False(definitions.Skips(Mark, LookupFlags.UseMarkFilteringSet | (LookupFlags)0x0200, set));
@@ -170,7 +170,7 @@ public class GlyphDefinitionTableTests
         Assert.Equal(GlyphClass.Ligature, definitions.ClassOf(1654));
         Assert.Equal(GlyphClass.Mark, definitions.ClassOf(2665));
         Assert.Equal(6, definitions.MarkGlyphSetCount);
-        Assert.True(definitions.GetMarkGlyphSet(0)!.IndexOf(2663) >= 0);
+        Assert.True(definitions.GetMarkGlyphSet(0)!.Value.IndexOf(2663) >= 0);
         Assert.Same(definitions, font.GlyphDefinitions);
     }
 

@@ -114,8 +114,11 @@ internal sealed class GlyphSubstitutionTable
     /// <summary>Applies lookups, each with the value of the feature that called for it, in the order given.</summary>
     public void Apply(SubstitutionSession session, IReadOnlyList<(int Index, int Value)> lookups)
     {
-        foreach ((int index, int value) in lookups)
+        // Indexed rather than enumerated: every run measured comes through here, and an enumerator each would add up.
+        for (int at = 0; at < lookups.Count; at++)
         {
+            (int index, int value) = lookups[at];
+
             if (GetLookup(index) is not SubstitutionLookup lookup)
                 continue;
 
