@@ -95,7 +95,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         Canvas.DrawRoundRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), radius, radius, paint);
     }
 
-    public void DrawLine(Offset from, Offset to, float thickness, Ink color)
+    public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
     {
         if (color.IsTransparent || thickness <= 0)
             return;
@@ -104,10 +104,43 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         paint.Style = SKPaintStyle.Stroke;
         paint.StrokeWidth = thickness;
 
-        Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
+        switch (style)
+        {
+            case StrokeStyle.Double:
+                Offset shift = StrokeGeometry.DoubleOffset(from, to, thickness);
+                Canvas.DrawLine(from.X + shift.X, from.Y + shift.Y, to.X + shift.X, to.Y + shift.Y, paint);
+                Canvas.DrawLine(from.X - shift.X, from.Y - shift.Y, to.X - shift.X, to.Y - shift.Y, paint);
+                return;
+
+            case StrokeStyle.Dotted:
+                // Skia draws no cap on a dash of no length, so the dot is a sliver just long enough to take one.
+                paint.StrokeCap = SKStrokeCap.Round;
+                paint.PathEffect = SKPathEffect.CreateDash([thickness / 1000, thickness * 2], 0);
+                break;
+
+            case StrokeStyle.Dashed:
+                paint.PathEffect = SKPathEffect.CreateDash([thickness * 3, thickness * 2], 0);
+                break;
+
+            case StrokeStyle.Wavy:
+                using (SKPathBuilder builder = new SKPathBuilder())
+                {
+                    builder.MoveTo(from.X, from.Y);
+                    foreach (CubicSegment segment in StrokeGeometry.Wave(from, to, thickness))
+                        builder.CubicTo(segment.Control1.X, segment.Control1.Y, segment.Control2.X, segment.Control2.Y, segment.End.X, segment.End.Y);
+
+                    using SKPath wave = builder.Detach();
+                    Canvas.DrawPath(wave, paint);
+                }
+
+                return;
+        }
+
+        using (paint.PathEffect)
+            Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         float size = style.EffectivePointSize;
         if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
@@ -118,13 +151,15 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
         List<SKPoint> positions = [];
         OpenTypeFont? face = null;
         float pen = baselineStart.X;
-        float previousAdvance = 0f;
+        float previousStep = 0f;
         bool first = true;
 
-        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style, rightToLeft))
         {
+            // The glyph before moved the pen by its advance and any word spacing it carries; tracking and kerning
+            // fall between the two.
             if (!first)
-                pen += previousAdvance + style.Tracking + glyph.Kerning;
+                pen += previousStep + style.Tracking + glyph.Kerning;
 
             // Each face is its own run, as each is its own font in the PDF.
             if (face is not null && !ReferenceEquals(face, glyph.Face))
@@ -136,8 +171,8 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
 
             face = glyph.Face;
             glyphs.Add(glyph.Glyph);
-            positions.Add(new SKPoint(pen, baselineStart.Y));
-            previousAdvance = glyph.Advance;
+            positions.Add(new SKPoint(pen + glyph.XOffset, baselineStart.Y - glyph.YOffset));
+            previousStep = glyph.Advance + glyph.Extra;
             first = false;
         }
 

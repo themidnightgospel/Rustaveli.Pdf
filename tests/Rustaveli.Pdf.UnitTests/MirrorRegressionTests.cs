@@ -8,7 +8,7 @@ public class MirrorRegressionTests
         // The child is mirrored about the box it is actually drawn into. Mirroring about a smaller reported size
         // while drawing into a larger one throws self-aligning content off the page.
         MirrorBlock element = new MirrorBlock { Horizontally = true };
-        TextBlock text = new TextBlock { Alignment = HorizontalPlacement.Right };
+        TextBlock text = new TextBlock { Alignment = LineAlignment.Right };
         text.Runs.Add(new Text.TextRun { Text = "hello" });
         element.Child = text;
 

@@ -22,7 +22,12 @@ public static class ImageExport
         TypeShaper shaper = (options.Typefaces ?? TypefaceLibrary.Shared).Shaper;
 
         using SkiaRasterSurface surface = new SkiaRasterSurface(shaper, options);
-        Typesetter.Render(document, surface, new OpenTypeMeasurer(shaper));
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
+        Typesetter.Render(document, surface, measurer);
+
+        if (options.RequireEveryGlyph && measurer.MissingCodepoints.Count > 0)
+            throw new MissingGlyphException(measurer.MissingCodepoints);
+
         return surface.Pages;
     }
 

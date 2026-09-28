@@ -21,7 +21,7 @@ namespace Rustaveli.Pdf.Fonts;
 internal sealed class FontCatalog
 {
     private readonly object _registrationLock = new object();
-    private State _state = new State(FontFamilyIndex.Empty);
+    private State _state = new State(FontFamilyIndex.Empty, []);
 
     /// <summary>A catalog over the fonts installed on this machine.</summary>
     public FontCatalog()
@@ -40,33 +40,52 @@ internal sealed class FontCatalog
 
     public IReadOnlyList<FontFaceInfo> RegisteredFaces => Volatile.Read(ref _state).Registered.Faces;
 
+    /// <summary>The folders searched for fonts besides the installed ones, in the order they were added.</summary>
+    public IReadOnlyList<SystemFontIndex> Folders => Volatile.Read(ref _state).Folders;
+
     /// <summary>A catalog of registered fonts only, whose output cannot depend on the machine.</summary>
     public static FontCatalog WithoutSystemFonts() => new FontCatalog(SystemFontIndex.Empty);
 
-    /// <summary>Registers every face of a font file held in memory.</summary>
+    /// <summary>Registers every face of a font file held in memory, also under <paramref name="alias"/> when given.</summary>
     /// <exception cref="FontFormatException">The data is not a font this library can read.</exception>
-    public IReadOnlyList<FontFaceInfo> Register(ReadOnlyMemory<byte> data) => Register(new FontFileSource(data));
+    public IReadOnlyList<FontFaceInfo> Register(ReadOnlyMemory<byte> data, string? alias = null) =>
+        Register(new FontFileSource(data), alias);
 
     /// <summary>Registers every face of a font read from a stream, which is read to its end.</summary>
     /// <exception cref="FontFormatException">The data is not a font this library can read.</exception>
-    public IReadOnlyList<FontFaceInfo> Register(Stream stream)
+    public IReadOnlyList<FontFaceInfo> Register(Stream stream, string? alias = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
         using MemoryStream copy = new MemoryStream();
         stream.CopyTo(copy);
-        return Register(copy.ToArray());
+        return Register(copy.ToArray(), alias);
     }
 
     /// <summary>Registers every face of a font file.</summary>
     /// <exception cref="FontFormatException">The file is not a font this library can read.</exception>
-    public IReadOnlyList<FontFaceInfo> RegisterFile(string path)
+    public IReadOnlyList<FontFaceInfo> RegisterFile(string path, string? alias = null)
     {
         ArgumentNullException.ThrowIfNull(path);
 
         FontFileSource source = new FontFileSource(path);
         _ = source.Data;
-        return Register(source);
+        return Register(source, alias);
+    }
+
+    /// <summary>
+    /// Adds a folder, and the folders inside it, to those searched for fonts: after the registered fonts, before the
+    /// installed ones, and as lazily — a face is read in full only once a document uses it.
+    /// </summary>
+    public void AddFolder(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        lock (_registrationLock)
+        {
+            State state = _state;
+            Volatile.Write(ref _state, new State(state.Registered, [.. state.Folders, new SystemFontIndex([path])]));
+        }
     }
 
     /// <summary>
@@ -82,6 +101,12 @@ internal sealed class FontCatalog
         return state.Matches.GetOrAdd(request, key =>
         {
             IReadOnlyList<FontFaceInfo> candidates = state.Registered.Find(key.Family);
+
+            foreach (SystemFontIndex folder in state.Folders)
+            {
+                if (candidates.Count == 0)
+                    candidates = folder.Families.Find(key.Family);
+            }
 
             if (candidates.Count == 0)
                 candidates = System.Families.Find(key.Family);
@@ -120,6 +145,12 @@ internal sealed class FontCatalog
                 return face;
         }
 
+        foreach (SystemFontIndex folder in state.Folders)
+        {
+            if (folder.FindCovering(codepoint, request.Style) is FontFaceInfo found)
+                return found;
+        }
+
         return System.FindCovering(codepoint, request.Style);
     }
 
@@ -128,23 +159,26 @@ internal sealed class FontCatalog
         int codepoint, FontRequest request, IReadOnlyList<string>? fallbackFamilies = null) =>
         FindFallbackFace(codepoint, request, fallbackFamilies)?.Load();
 
-    private IReadOnlyList<FontFaceInfo> Register(FontFileSource source)
+    private IReadOnlyList<FontFaceInfo> Register(FontFileSource source, string? alias)
     {
         IReadOnlyList<OpenTypeFont> fonts = OpenTypeFont.LoadAll(source.Data);
-        FontFaceInfo[] faces = fonts.Select(font => FontFaceInfo.FromFont(source, font, registered: true)).ToArray();
+        string? name = string.IsNullOrWhiteSpace(alias) ? null : alias!.Trim();
+        FontFaceInfo[] faces = fonts.Select(font => FontFaceInfo.FromFont(source, font, registered: true, name)).ToArray();
 
         lock (_registrationLock)
         {
             FontFaceInfo[] all = [.. _state.Registered.Faces, .. faces];
-            Volatile.Write(ref _state, new State(new FontFamilyIndex(all)));
+            Volatile.Write(ref _state, new State(new FontFamilyIndex(all), _state.Folders));
         }
 
         return faces;
     }
 
     /// <summary>The registered fonts and every cache computed from them, replaced together on registration.</summary>
-    private sealed class State(FontFamilyIndex registered)
+    private sealed class State(FontFamilyIndex registered, IReadOnlyList<SystemFontIndex> folders)
     {
+        public IReadOnlyList<SystemFontIndex> Folders { get; } = folders;
+
         private readonly ConcurrentDictionary<FaceStyle, FontFaceInfo[]> _registeredByStyle = new();
 
         public FontFamilyIndex Registered { get; } = registered;

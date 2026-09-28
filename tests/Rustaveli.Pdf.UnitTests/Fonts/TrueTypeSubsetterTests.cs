@@ -1,4 +1,5 @@
 using Rustaveli.Pdf.Fonts;
+using Rustaveli.Pdf.Output;
 
 namespace Rustaveli.Pdf.UnitTests.Fonts;
 
@@ -370,20 +371,98 @@ public class TrueTypeSubsetterTests
         Assert.Equal(1, glyphs.Add(font.GetGlyphId('V'), 'V'));
         Assert.Equal(2, glyphs.Add(font.GetGlyphId('A')));
         Assert.Equal(2, glyphs.Add(font.GetGlyphId('A'), 'A'));
-        Assert.Equal(1, glyphs.Add(font.GetGlyphId('V'), 'W'));
+        Assert.Equal(1, glyphs.Add(font.GetGlyphId('V')));
         Assert.Equal(0, glyphs.Add(0, 'X'));
         Assert.Equal(3, glyphs.Count);
         Assert.Equal(new ushort[] { 0, 57, 36 }, glyphs.OriginalGlyphIds);
+        Assert.Empty(glyphs.SharedCodes);
 
-        Assert.True(glyphs.TryGetCodepoint(1, out int v));
-        Assert.Equal('V', v);
-        Assert.True(glyphs.TryGetCodepoint(2, out int a));
-        Assert.Equal('A', a);
-        Assert.False(glyphs.TryGetCodepoint(0, out _));
-        Assert.False(glyphs.TryGetCodepoint(9, out _));
+        Assert.True(glyphs.TryGetText(1, out string v));
+        Assert.Equal("V", v);
+        Assert.True(glyphs.TryGetText(2, out string a));
+        Assert.Equal("A", a);
+        Assert.False(glyphs.TryGetText(0, out _));
+        Assert.False(glyphs.TryGetText(9, out _));
 
         TrueTypeSubset subset = glyphs.Build();
         Assert.Equal(new ushort[] { 0, 57, 36 }, subset.OriginalGlyphIds);
+    }
+
+    [Fact]
+    public void AGlyphShownAsOtherTextGetsACodeOfItsOwn()
+    {
+        OpenTypeFont font = TestFonts.Regular;
+        GlyphSubset glyphs = new GlyphSubset(font);
+        ushort v = font.GetGlyphId('V');
+
+        // The V glyph, shown first as V, then as W twice and as a ligature's text: two further codes, each kept.
+        Assert.Equal(1, glyphs.Add(v, 'V'));
+        Assert.Equal(GlyphSubset.FirstSharedCode, glyphs.Add(v, 'W'));
+        Assert.Equal(GlyphSubset.FirstSharedCode, glyphs.Add(v, "W"));
+        Assert.Equal(GlyphSubset.FirstSharedCode + 1, glyphs.Add(v, "VV"));
+        Assert.Equal(1, glyphs.Add(v, 'V'));
+
+        Assert.Equal(2, glyphs.Count);
+        Assert.Equal([((ushort)1, "W"), ((ushort)1, "VV")], glyphs.SharedCodes);
+        Assert.True(glyphs.TryGetText(GlyphSubset.FirstSharedCode + 1, out string ligature));
+        Assert.Equal("VV", ligature);
+        Assert.False(glyphs.TryGetText(GlyphSubset.FirstSharedCode + 2, out _));
+    }
+
+    [Fact]
+    public void AGlyphStandingForNothingAndForItselfGetsACodeForEach()
+    {
+        OpenTypeFont font = TestFonts.Regular;
+        GlyphSubset glyphs = new GlyphSubset(font);
+        ushort acute = font.GetGlyphId('́');
+
+        // A combining acute first drawn as the second glyph of a decomposed letter, then typed on its own.
+        ushort silent = glyphs.Add(acute, string.Empty);
+        ushort typed = glyphs.Add(acute, '́');
+
+        Assert.NotEqual(silent, typed);
+        Assert.True(glyphs.TryGetText(silent, out string nothing));
+        Assert.Empty(nothing);
+        Assert.True(glyphs.TryGetText(typed, out string itself));
+        Assert.Equal("́", itself);
+        Assert.Equal(silent, glyphs.Add(acute, string.Empty));
+    }
+
+    [Fact]
+    public void AGlyphFirstUsedWithoutTextTakesTheFirstTextShown()
+    {
+        OpenTypeFont font = TestFonts.Regular;
+        GlyphSubset glyphs = new GlyphSubset(font);
+        ushort a = font.GetGlyphId('A');
+
+        Assert.Equal(1, glyphs.Add(a));
+        Assert.Equal(1, glyphs.Add(a, 'A'));
+        Assert.Empty(glyphs.SharedCodes);
+        Assert.True(glyphs.TryGetText(1, out string text));
+        Assert.Equal("A", text);
+    }
+
+    [Fact]
+    public void ACharacterBeyondTheBasicPlaneIsComparedWhole()
+    {
+        OpenTypeFont font = TestFonts.Regular;
+        GlyphSubset glyphs = new GlyphSubset(font);
+        ushort a = font.GetGlyphId('A');
+
+        Assert.Equal(1, glyphs.Add(a, 0x1D400));
+        Assert.Equal(1, glyphs.Add(a, 0x1D400));
+        Assert.Equal(GlyphSubset.FirstSharedCode, glyphs.Add(a, 'A'));
+    }
+
+    [Fact]
+    public void TheCodeMapSendsEachCodeToItsGlyph()
+    {
+        byte[] map = EmbeddedFont.CidToGidMapOf(3, [((ushort)1, "W"), ((ushort)2, "x")]);
+
+        Assert.Equal(2 * (GlyphSubset.FirstSharedCode + 2), map.Length);
+        Assert.Equal([0, 0, 0, 1, 0, 2], map.Take(6));
+        Assert.All(map.Skip(6).Take((2 * GlyphSubset.FirstSharedCode) - 6), value => Assert.Equal(0, value));
+        Assert.Equal([0, 1, 0, 2], map.Skip(2 * GlyphSubset.FirstSharedCode));
     }
 
     [Fact]
@@ -392,7 +471,7 @@ public class TrueTypeSubsetterTests
         GlyphSubset glyphs = new GlyphSubset(TestFonts.Regular);
         glyphs.Add(36);
 
-        Assert.False(glyphs.TryGetCodepoint(1, out _));
+        Assert.False(glyphs.TryGetText(1, out _));
         Assert.Throws<ArgumentOutOfRangeException>(() => glyphs.Add(60000));
     }
 

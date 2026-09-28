@@ -62,6 +62,12 @@ internal sealed class FontFaceInfo
     /// <summary>True for a face the user registered, which takes precedence over installed fonts.</summary>
     public bool IsRegistered { get; }
 
+    /// <summary>
+    /// A typeface name the face was registered under besides its own, which a document can name it by; null when it
+    /// goes by its own names only.
+    /// </summary>
+    public string? Alias { get; private init; }
+
     /// <summary>True when the face's outlines can be embedded in a PDF: TrueType or CFF.</summary>
     public bool IsEmbeddable => Outlines is OutlineFormat.TrueType or OutlineFormat.Cff;
 
@@ -69,8 +75,8 @@ internal sealed class FontFaceInfo
     public bool IsLoaded => _font.IsValueCreated;
 
     /// <summary>Describes a face already loaded, as a registered font is, keeping that very instance.</summary>
-    public static FontFaceInfo FromFont(FontFileSource source, OpenTypeFont font, bool registered) =>
-        new FontFaceInfo(source, font.FaceIndex, font.Names, font.Style, font.Outlines, registered, font);
+    public static FontFaceInfo FromFont(FontFileSource source, OpenTypeFont font, bool registered, string? alias = null) =>
+        new FontFaceInfo(source, font.FaceIndex, font.Names, font.Style, font.Outlines, registered, font) { Alias = alias };
 
     /// <summary>The font, loaded on first call and kept.</summary>
     /// <exception cref="FontFormatException">The file is not a font this library can read.</exception>

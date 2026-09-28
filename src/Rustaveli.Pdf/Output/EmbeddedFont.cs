@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
 using Rustaveli.Pdf.Fonts;
@@ -56,7 +57,7 @@ internal sealed class EmbeddedFont
     private static readonly PdfName ToUnicode = new PdfName("ToUnicode");
 
     private readonly GlyphSubset? _subset;
-    private readonly SortedDictionary<ushort, (ushort Glyph, int Codepoint)>? _shown;
+    private readonly SortedDictionary<ushort, (ushort Glyph, string? Text)>? _shown;
 
     public EmbeddedFont(OpenTypeFont face, PdfReference reference)
     {
@@ -66,7 +67,7 @@ internal sealed class EmbeddedFont
         if (face.Outlines == OutlineFormat.TrueType)
             _subset = new GlyphSubset(face);
         else
-            _shown = new SortedDictionary<ushort, (ushort, int)>();
+            _shown = new SortedDictionary<ushort, (ushort, string?)>();
     }
 
     public OpenTypeFont Face { get; }
@@ -78,13 +79,20 @@ internal sealed class EmbeddedFont
     public ushort CodeFor(ShapedGlyph glyph)
     {
         if (_subset is not null)
-            return _subset.Add(glyph.Glyph, glyph.Codepoint);
+            return _subset.Add(glyph.Glyph, glyph.Codepoint, glyph.Text);
 
         CompactFontTable cff = Face.Cff!;
         ushort code = cff.IsCidKeyed ? cff.GetCid(glyph.Glyph) : glyph.Glyph;
 
-        if (!_shown!.ContainsKey(code))
-            _shown.Add(code, (glyph.Glyph, glyph.Codepoint));
+        // As in a subset: the first text a glyph shows is kept, and .notdef, which stands for every missing character,
+        // reads as none of them.
+        bool known = _shown!.TryGetValue(code, out (ushort Glyph, string? Text) shown);
+
+        if (known && !string.IsNullOrEmpty(shown.Text))
+            return code;
+
+        string? text = glyph.Glyph == 0 ? null : glyph.ReadsAs;
+        _shown[code] = (glyph.Glyph, GlyphSubset.Keep(known ? shown.Text : null, text));
 
         return code;
     }
@@ -108,11 +116,30 @@ internal sealed class EmbeddedFont
         foreach (ushort original in font.OriginalGlyphIds)
             widths.Add(Width(original));
 
-        List<(ushort Code, int Codepoint)> characters = [];
+        List<(ushort Code, string Text)> characters = [];
         for (int code = 0; code < font.GlyphCount; code++)
         {
-            if (subset.TryGetCodepoint((ushort)code, out int codepoint))
-                characters.Add(((ushort)code, codepoint));
+            if (subset.TryGetText((ushort)code, out string text))
+                characters.Add(((ushort)code, text));
+        }
+
+        // Codes a glyph was given for other text than its first: each is mapped to its glyph, is as wide, and reads
+        // back as what it showed. Without them codes are glyph ids, and the mapping stays the identity.
+        IReadOnlyList<(ushort Glyph, string Text)> shared = subset.SharedCodes;
+        PdfArray widthRanges = new PdfArray(4) { 0, widths };
+
+        if (shared.Count > 0)
+        {
+            PdfArray sharedWidths = new PdfArray(shared.Count);
+
+            for (int index = 0; index < shared.Count; index++)
+            {
+                sharedWidths.Add(Width(font.OriginalGlyphIds[shared[index].Glyph]));
+                characters.Add(((ushort)(GlyphSubset.FirstSharedCode + index), shared[index].Text));
+            }
+
+            widthRanges.Add((int)GlyphSubset.FirstSharedCode);
+            widthRanges.Add(sharedWidths);
         }
 
         PdfReference cidFont = file.Write(new PdfDictionary
@@ -122,21 +149,21 @@ internal sealed class EmbeddedFont
             [BaseFont] = new PdfName(name),
             [CidSystemInfo] = SystemInfo(),
             [FontDescriptor] = WriteDescriptor(file, name, FontFile2, program),
-            [PdfNames.W] = new PdfArray(2) { 0, widths },
-            [CidToGidMap] = Identity,
+            [PdfNames.W] = widthRanges,
+            [CidToGidMap] = shared.Count == 0 ? Identity : file.WriteStream(new PdfDictionary(), CidToGidMapOf(font.GlyphCount, shared)),
         });
 
         WriteType0(file, name, cidFont, characters);
     }
 
-    private void WriteCompactFont(PdfFileWriter file, SortedDictionary<ushort, (ushort Glyph, int Codepoint)> shown)
+    private void WriteCompactFont(PdfFileWriter file, SortedDictionary<ushort, (ushort Glyph, string? Text)> shown)
     {
         string name = PostScriptName(Face);
 
         PdfReference program = file.WriteStream(new PdfDictionary { [PdfNames.Subtype] = OpenType }, Face.ToStandaloneFile());
 
         PdfArray widths = new PdfArray(shown.Count * 2);
-        foreach (KeyValuePair<ushort, (ushort Glyph, int Codepoint)> entry in shown)
+        foreach (KeyValuePair<ushort, (ushort Glyph, string? Text)> entry in shown)
         {
             widths.Add(entry.Key);
             widths.Add(new PdfArray(1) { Width(entry.Value.Glyph) });
@@ -152,10 +179,10 @@ internal sealed class EmbeddedFont
             [PdfNames.W] = widths,
         });
 
-        WriteType0(file, name, cidFont, shown.Select(entry => (entry.Key, entry.Value.Codepoint)).ToList());
+        WriteType0(file, name, cidFont, shown.Where(entry => entry.Value.Text is not null).Select(entry => (entry.Key, entry.Value.Text!)).ToList());
     }
 
-    private void WriteType0(PdfFileWriter file, string name, PdfReference cidFont, List<(ushort Code, int Codepoint)> characters)
+    private void WriteType0(PdfFileWriter file, string name, PdfReference cidFont, List<(ushort Code, string Text)> characters)
     {
         PdfDictionary type0 = new PdfDictionary
         {
@@ -232,8 +259,33 @@ internal sealed class EmbeddedFont
         return name.Length > 0 ? name.ToString() : "Font";
     }
 
+    /// <summary>
+    /// The glyph each code shows, two bytes per code from 0: codes below the subset's glyph count are the glyphs
+    /// themselves, codes from <see cref="GlyphSubset.FirstSharedCode"/> the glyphs they were given for, and the codes
+    /// between show .notdef. The long run of zeros costs next to nothing once the stream is compressed.
+    /// </summary>
+    internal static byte[] CidToGidMapOf(int glyphCount, IReadOnlyList<(ushort Glyph, string Text)> shared)
+    {
+        byte[] map = new byte[2 * (GlyphSubset.FirstSharedCode + shared.Count)];
+
+        for (int glyph = 0; glyph < glyphCount; glyph++)
+            BinaryPrimitives.WriteUInt16BigEndian(map.AsSpan(2 * glyph), (ushort)glyph);
+
+        for (int index = 0; index < shared.Count; index++)
+            BinaryPrimitives.WriteUInt16BigEndian(map.AsSpan(2 * (GlyphSubset.FirstSharedCode + index)), shared[index].Glyph);
+
+        return map;
+    }
+
     /// <summary>A CMap from each two-byte code to the UTF-16 of the character it shows.</summary>
-    internal static byte[] ToUnicodeMap(IReadOnlyList<(ushort Code, int Codepoint)> characters)
+    /// <remarks>A value that is no Unicode scalar value maps to the replacement character, U+FFFD.</remarks>
+    internal static byte[] ToUnicodeMap(IReadOnlyList<(ushort Code, int Codepoint)> characters) =>
+        ToUnicodeMap(characters.Select(character => (character.Code, GlyphSubset.TextOf(character.Codepoint))).ToList());
+
+    /// <summary>
+    /// A CMap from each two-byte code to the UTF-16 of the text it shows: one character, or all of a ligature's.
+    /// </summary>
+    internal static byte[] ToUnicodeMap(IReadOnlyList<(ushort Code, string Text)> characters)
     {
         StringBuilder map = new StringBuilder(256 + (characters.Count * 16));
         map.Append("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n");
@@ -249,10 +301,10 @@ internal sealed class EmbeddedFont
 
             for (int index = start; index < start + count; index++)
             {
-                (ushort code, int codepoint) = characters[index];
+                (ushort code, string text) = characters[index];
                 map.Append('<').Append(code.ToString("X4", CultureInfo.InvariantCulture)).Append("> <");
 
-                foreach (char unit in char.ConvertFromUtf32(IsScalar(codepoint) ? codepoint : 0xFFFD))
+                foreach (char unit in text)
                     map.Append(((int)unit).ToString("X4", CultureInfo.InvariantCulture));
 
                 map.Append(">\n");
@@ -265,5 +317,4 @@ internal sealed class EmbeddedFont
         return System.Text.Encoding.ASCII.GetBytes(map.ToString());
     }
 
-    private static bool IsScalar(int codepoint) => codepoint is >= 0 and <= 0x10FFFF and (< 0xD800 or > 0xDFFF);
 }

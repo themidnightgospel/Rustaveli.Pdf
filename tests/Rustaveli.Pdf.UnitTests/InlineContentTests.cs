@@ -109,6 +109,91 @@ public class InlineContentTests
         Approximately.Equal(9.6f - 6f, block.Position.Y);
     }
 
+    /// <summary>
+    /// Draws "ab" with a 6pt-tall frame after it, placed as given, and returns the frame's top and the baseline.
+    /// </summary>
+    private static (float FrameTop, float Baseline, float LineHeight) Place(InlinePosition position, float frameHeight)
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Run("ab");
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, frameHeight, TestInks.Red), position);
+        });
+
+        float height = LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height;
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
+        RectangleOperation block = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
+
+        return (block.Position.Y, Assert.Single(page.Texts).Position.Y, height);
+    }
+
+    [Theory]
+    [InlineData(InlinePosition.OnBaseline, 3.6f, 12f)]
+    [InlineData(InlinePosition.BelowBaseline, 9.6f, 15.6f)]
+    [InlineData(InlinePosition.TextTop, 0f, 12f)]
+    [InlineData(InlinePosition.TextBottom, 6f, 12f)]
+    [InlineData(InlinePosition.Middle, 3f, 12f)]
+    public void ASmallFrameSitsWhereItsPositionSays(InlinePosition position, float top, float lineHeight)
+    {
+        // The type reaches 9.6pt above the baseline and 2.4pt below it, so its middle is 3.6pt above.
+        (float frameTop, float baseline, float height) = Place(position, 6);
+
+        Approximately.Equal(9.6f, baseline);
+        Approximately.Equal(top, frameTop);
+        Approximately.Equal(lineHeight, height);
+    }
+
+    [Theory]
+    [InlineData(InlinePosition.OnBaseline, 40f, 42.4f)]
+    [InlineData(InlinePosition.BelowBaseline, 9.6f, 49.6f)]
+    [InlineData(InlinePosition.TextTop, 9.6f, 40f)]
+    [InlineData(InlinePosition.TextBottom, 37.6f, 40f)]
+    [InlineData(InlinePosition.Middle, 23.6f, 40f)]
+    public void ATallFrameDeepensTheLineOnTheSideItReachesPastTheType(InlinePosition position, float baseline, float lineHeight)
+    {
+        (float frameTop, float drawnBaseline, float height) = Place(position, 40);
+
+        Approximately.Equal(baseline, drawnBaseline);
+        Approximately.Equal(lineHeight, height);
+        Approximately.Equal(position == InlinePosition.BelowBaseline ? baseline : 0f, frameTop);
+    }
+
+    [Theory]
+    [InlineData(InlinePosition.OnBaseline)]
+    [InlineData(InlinePosition.BelowBaseline)]
+    [InlineData(InlinePosition.TextTop)]
+    [InlineData(InlinePosition.TextBottom)]
+    [InlineData(InlinePosition.Middle)]
+    public void AFrameAloneOnItsLineMakesALineOfItsOwnHeight(InlinePosition position)
+    {
+        TextBlock element = Text(text =>
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 6, TestInks.Red), position));
+
+        float height = LayoutHarness.Measure(element, new Extent(500, 500)).Size.Height;
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
+        RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        Approximately.Equal(0f, block.Position.Y);
+        Approximately.Equal(6f, height);
+    }
+
+    [Fact]
+    public void AFrameIsPlacedAgainstTheTallestTypeOnItsLine()
+    {
+        TextBlock element = Text(text =>
+        {
+            text.Run("a");
+            text.Run("B").PointSize(24);
+            text.Inline(inline => inline.Slot().Child = new FixedBlock(20, 6, TestInks.Red), InlinePosition.TextTop);
+        });
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(500, 500));
+        RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
+
+        Approximately.Equal(0f, block.Position.Y);
+        Approximately.Equal(19.2f, page.Texts.First().Position.Y);
+    }
+
     [Fact]
     public void ItMovesToTheNextLineWholeRatherThanBeingSplit()
     {

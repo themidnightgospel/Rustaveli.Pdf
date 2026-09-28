@@ -163,21 +163,68 @@ internal sealed class PdfSurface : IPageSink
             Content.Fill();
     }
 
-    public void DrawLine(Offset from, Offset to, float thickness, Ink color)
+    public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid)
     {
         if (color.IsTransparent || thickness <= 0)
             return;
 
         SetStroke(color);
-        SetLineWidth(thickness);
+        ContentStreamBuilder content = Content;
 
+        switch (style)
+        {
+            case StrokeStyle.Double:
+                Offset shift = StrokeGeometry.DoubleOffset(from, to, thickness);
+                SetLineWidth(thickness);
+                StrokeSegment(from + shift, to + shift);
+                StrokeSegment(from + shift.Reverse(), to + shift.Reverse());
+                break;
+
+            case StrokeStyle.Dotted or StrokeStyle.Dashed:
+                // Caps and dashes are graphics state that nothing else sets, so they are scoped to this line.
+                Save();
+                SetLineWidth(thickness);
+
+                if (style == StrokeStyle.Dotted)
+                {
+                    // A dash of no length with a round cap is a dot as wide as the stroke.
+                    content.SetLineCap(PdfLineCap.Round);
+                    content.SetDashPattern([0, thickness * 2], 0);
+                }
+                else
+                {
+                    content.SetDashPattern([thickness * 3, thickness * 2], 0);
+                }
+
+                StrokeSegment(from, to);
+                Restore();
+                break;
+
+            case StrokeStyle.Wavy:
+                SetLineWidth(thickness);
+                content.MoveTo(from.X, from.Y);
+                foreach (CubicSegment segment in StrokeGeometry.Wave(from, to, thickness))
+                    content.CurveTo(segment.Control1.X, segment.Control1.Y, segment.Control2.X, segment.Control2.Y, segment.End.X, segment.End.Y);
+
+                content.Stroke();
+                break;
+
+            default:
+                SetLineWidth(thickness);
+                StrokeSegment(from, to);
+                break;
+        }
+    }
+
+    private void StrokeSegment(Offset from, Offset to)
+    {
         ContentStreamBuilder content = Content;
         content.MoveTo(from.X, from.Y);
         content.LineTo(to.X, to.Y);
         content.Stroke();
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style)
+    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
     {
         float size = style.EffectivePointSize;
         if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
@@ -193,39 +240,53 @@ internal sealed class PdfSurface : IPageSink
         int pending = 0;
         double pen = baselineStart.X;
         float previousAdvance = 0f;
+        float previousExtra = 0f;
+        float previousShortfall = 0f;
         bool first = true;
+        bool placed = false;
 
-        foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style, rightToLeft))
         {
+            // Beyond the widths and character spacing a reader applies itself: kerning, word spacing after a space,
+            // and any difference between the advance the glyph was set with and the width the font declares for it.
+            float adjustment = glyph.Kerning + previousExtra + previousShortfall;
+
             if (!first)
-                pen += previousAdvance + style.Tracking + glyph.Kerning;
+                pen += previousAdvance + style.Tracking + glyph.Kerning + previousExtra;
 
             EmbeddedFont font = _fonts.For(glyph.Face);
+            bool displaced = glyph.XOffset != 0 || glyph.YOffset != 0;
 
-            if (!ReferenceEquals(font, current))
+            // A face change, and a glyph set off its pen position — a mark placed on its letter — or the glyph after
+            // one, starts a new array placed exactly, so nothing drifts from where layout put it.
+            if (!ReferenceEquals(font, current) || displaced || placed)
             {
-                // A face change starts a new array placed at the pen, so a fallback run cannot drift from layout.
                 if (current is not null)
                 {
                     Flush(content, ref pending);
                     content.EndTextArray();
                 }
 
-                content.SetFont(Page.Resources.GetFontName(font.Reference), size);
-                content.SetTextMatrix(1, 0, 0, -1, pen, baselineStart.Y);
+                if (!ReferenceEquals(font, current))
+                    content.SetFont(Page.Resources.GetFontName(font.Reference), size);
+
+                content.SetTextMatrix(1, 0, 0, -1, pen + glyph.XOffset, baselineStart.Y - glyph.YOffset);
                 content.BeginTextArray();
                 current = font;
             }
-            else if (glyph.Kerning != 0)
+            else if (adjustment != 0)
             {
                 Flush(content, ref pending);
-                content.AppendAdjustment(-glyph.Kerning * 1000.0 / size);
+                content.AppendAdjustment(-adjustment * 1000.0 / size);
             }
 
             ushort code = font.CodeFor(glyph);
             Buffer(ref pending, code);
 
             previousAdvance = glyph.Advance;
+            previousExtra = glyph.Extra;
+            previousShortfall = glyph.Advance - glyph.Face.GetAdvance(glyph.Glyph, size);
+            placed = displaced;
             first = false;
         }
 

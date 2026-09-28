@@ -16,14 +16,15 @@ public class VocabularyOverlapTests
     private static readonly HashSet<string> SharedMethodsAllowed = new HashSet<string>(StringComparer.Ordinal)
     {
         // Object, record and .NET conventions.
-        "<Clone>$", "Dispose", "Equals", "FromFile", "FromStream", "GetHashCode", "ToString",
+        "<Clone>$", "Dispose", "Equals", "Format", "FromFile", "FromStream", "GetHashCode", "ToString",
 
         // Layout.
         "Cell", "Columns", "Compose", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",
         "MinWidth", "Placeholder", "Portrait", "Scale", "Section", "Stack", "Table", "Width",
 
         // Typography.
-        "Bold", "Italic", "Line", "Style", "Subscript", "Superscript", "Text", "Underline", "Weight",
+        "Bold", "Italic", "Line", "Overline", "Style", "Subscript", "Superscript", "Text", "Underline", "Weight",
+        "WordSpacing",
     };
 
     private static readonly HashSet<string> SharedTypesAllowed = new HashSet<string>(StringComparer.Ordinal)

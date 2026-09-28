@@ -14,12 +14,14 @@ internal static class TestFonts
     public const string GeorgianFile = "NotoSansGeorgian-Regular.ttf";
     public const string CollectionFile = "SpecimenSans.ttc";
     public const string CffFile = "SpecimenCff-Regular.otf";
+    public const string LayoutFile = "SpecimenLayout-Regular.otf";
 
     private static readonly Lazy<OpenTypeFont> LazyRegular = new(() => Load(RegularFile));
     private static readonly Lazy<OpenTypeFont> LazyBold = new(() => Load(BoldFile));
     private static readonly Lazy<OpenTypeFont> LazyItalic = new(() => Load(ItalicFile));
     private static readonly Lazy<OpenTypeFont> LazyGeorgian = new(() => Load(GeorgianFile));
     private static readonly Lazy<OpenTypeFont> LazyCff = new(() => Load(CffFile));
+    private static readonly Lazy<OpenTypeFont> LazyLayout = new(() => Load(LayoutFile));
     private static readonly Lazy<IReadOnlyList<OpenTypeFont>> LazySpecimens =
         new(() => OpenTypeFont.LoadAll(Bytes(CollectionFile)));
 
@@ -34,6 +36,9 @@ internal static class TestFonts
     public static OpenTypeFont Georgian => LazyGeorgian.Value;
 
     public static OpenTypeFont Cff => LazyCff.Value;
+
+    /// <summary>Specimen Layout: a GSUB exercising every kind of substitution, one feature per kind.</summary>
+    public static OpenTypeFont Layout => LazyLayout.Value;
 
     /// <summary>Specimen Sans Regular: legacy kern table, extra composite glyphs at U+E000 to U+E003.</summary>
     public static OpenTypeFont SpecimenRegular => LazySpecimens.Value[0];

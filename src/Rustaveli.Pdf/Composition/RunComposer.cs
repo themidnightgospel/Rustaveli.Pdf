@@ -26,7 +26,12 @@ public sealed class RunComposer
         return this;
     }
 
-    public RunComposer Typeface(string fontFamily) => Refine(style => style.WithTypeface(fontFamily));
+    /// <summary>
+    /// Sets the run in <paramref name="fontFamily"/>, falling back to <paramref name="fallbacks"/>, in order, for any
+    /// character it lacks.
+    /// </summary>
+    public RunComposer Typeface(string fontFamily, params string[] fallbacks) =>
+        Refine(style => style.WithTypeface(fontFamily, fallbacks));
 
     public RunComposer PointSize(float size) => Refine(style => style.WithPointSize(size));
 
@@ -48,9 +53,59 @@ public sealed class RunComposer
 
     public RunComposer StrikeThrough(bool value = true) => Refine(style => style.StrikeThrough(value));
 
+    /// <summary>Draws a line above the run.</summary>
+    public RunComposer Overline(bool value = true) => Refine(style => style.Overline(value));
+
+    /// <summary>How the run's underline, strike-through and overline are drawn: solid, double, dotted, dashed or wavy.</summary>
+    public RunComposer StrokeStyle(StrokeStyle style) => Refine(current => current.WithStrokeStyle(style));
+
+    /// <summary>The ink of the run's underline, strike-through and overline, in place of the text's own.</summary>
+    public RunComposer StrokeInk(Ink ink) => Refine(style => style.WithStrokeInk(ink));
+
+    public RunComposer StrokeInk(string hex) => StrokeInk(Rustaveli.Pdf.Ink.Hex(hex));
+
+    /// <summary>The weight of the run's underline, strike-through and overline, in points, in place of the font's own.</summary>
+    public RunComposer StrokeWeight(float weight) => Refine(style => style.WithStrokeWeight(weight));
+
     public RunComposer Leading(float multiplier) => Refine(style => style.WithLeading(multiplier));
 
     public RunComposer Tracking(float spacing) => Refine(style => style.WithTracking(spacing));
+
+    /// <summary>Adds space to each space between words, in points; negative tightens.</summary>
+    public RunComposer WordSpacing(float spacing) => Refine(style => style.WithWordSpacing(spacing));
+
+    /// <summary>
+    /// Reads the run left to right, set apart from the text around it: an English phrase in a right-to-left paragraph
+    /// keeps its punctuation at its own end.
+    /// </summary>
+    public RunComposer LeftToRight() => Refine(style => style.WithDirection(ReadingDirection.LeftToRight));
+
+    /// <summary>
+    /// Reads the run right to left, set apart from the text around it: its words run from right to left even where
+    /// they are written in a left-to-right script.
+    /// </summary>
+    public RunComposer RightToLeft() => Refine(style => style.WithDirection(ReadingDirection.RightToLeft));
+
+    /// <summary>
+    /// Sets the OpenType feature <paramref name="tag"/> — <c>"smcp"</c>, <c>"onum"</c>, <c>"ss01"</c> — to
+    /// <paramref name="value"/>: 0 off, 1 on, higher to choose among alternates.
+    /// </summary>
+    public RunComposer Feature(string tag, int value = 1) => Refine(style => style.WithFeature(tag, value));
+
+    /// <summary>Sets ligatures such as "fi" and "ffl", or not; they are on unless turned off.</summary>
+    public RunComposer Ligatures(bool value = true) => Refine(style => style.Ligatures(value));
+
+    /// <summary>Sets lowercase letters as small capitals, where the face has them.</summary>
+    public RunComposer SmallCapitals(bool value = true) => Refine(style => style.SmallCapitals(value));
+
+    /// <summary>Sets old-style figures, which rise and descend like lowercase letters, where the face has them.</summary>
+    public RunComposer OldstyleFigures(bool value = true) => Refine(style => style.OldstyleFigures(value));
+
+    /// <summary>Sets figures all one width, so columns of numbers align, where the face has them.</summary>
+    public RunComposer TabularFigures(bool value = true) => Refine(style => style.TabularFigures(value));
+
+    /// <summary>Lets lines break between any two characters of the run, not only between words.</summary>
+    public RunComposer BreakAnywhere(bool value = true) => Refine(style => style.BreakAnywhere(value));
 
     public RunComposer Subscript() => Refine(style => style.Subscript());
 

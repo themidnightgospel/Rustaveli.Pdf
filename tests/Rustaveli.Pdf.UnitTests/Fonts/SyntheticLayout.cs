@@ -1,6 +1,6 @@
 namespace Rustaveli.Pdf.UnitTests.Fonts;
 
-/// <summary>Hand-built GPOS kerning structures and CFF tables.</summary>
+/// <summary>Hand-built GPOS kerning structures, GDEF tables and CFF tables.</summary>
 internal static class SyntheticLayout
 {
     /// <summary>XAdvance alone, the usual kerning value record.</summary>
@@ -148,6 +148,35 @@ internal static class SyntheticLayout
         return table.Bytes(secondClasses).ToArray();
     }
 
+    /// <summary>
+    /// A GDEF table of version 1.2, the first with mark glyph sets. Attachment points and ligature carets are left
+    /// out, as substitution does not read them.
+    /// </summary>
+    public static byte[] Gdef(byte[]? glyphClasses, byte[]? markAttachmentClasses = null, byte[][]? markSets = null)
+    {
+        FontBytes table = new FontBytes().U16(1).U16(2).U16(0).U16(0).U16(0).U16(0).U16(0);
+
+        if (glyphClasses is not null)
+        {
+            table.SetU16(4, table.Length);
+            table.Bytes(glyphClasses);
+        }
+
+        if (markAttachmentClasses is not null)
+        {
+            table.SetU16(10, table.Length);
+            table.Bytes(markAttachmentClasses);
+        }
+
+        if (markSets is not null)
+        {
+            table.SetU16(12, table.Length);
+            table.Bytes(MarkGlyphSets(markSets));
+        }
+
+        return table.ToArray();
+    }
+
     /// <summary>An extension subtable (lookup type 9) wrapping a subtable of another type.</summary>
     public static byte[] Extension(int type, byte[] subtable) =>
         new FontBytes().U16(1).U16(type).U32(8).Bytes(subtable).ToArray();
@@ -198,6 +227,23 @@ internal static class SyntheticLayout
         return table.ToArray();
     }
 
+    private static byte[] MarkGlyphSets(byte[][] sets)
+    {
+        FontBytes table = new FontBytes().U16(1).U16(sets.Length);
+        int offset = 4 + (4 * sets.Length);
+
+        foreach (byte[] set in sets)
+        {
+            table.U32(offset);
+            offset += set.Length;
+        }
+
+        foreach (byte[] set in sets)
+            table.Bytes(set);
+
+        return table.ToArray();
+    }
+
     private static byte[] ScriptList((string Tag, int[]? Features, int Required)[] scripts)
     {
         FontBytes list = new FontBytes().U16(scripts.Length);
@@ -227,7 +273,7 @@ internal static class SyntheticLayout
         return list.ToArray();
     }
 
-    private static byte[] FeatureList((string Tag, int[] Lookups)[] features)
+    public static byte[] FeatureList((string Tag, int[] Lookups)[] features)
     {
         FontBytes list = new FontBytes().U16(features.Length);
         int offset = 2 + (6 * features.Length);
@@ -279,7 +325,7 @@ internal static class SyntheticLayout
         return lookup.Bytes(subtable).ToArray();
     }
 
-    private static byte[] LookupList(byte[][] lookups)
+    public static byte[] LookupList(byte[][] lookups)
     {
         FontBytes list = new FontBytes().U16(lookups.Length);
         int offset = 2 + (2 * lookups.Length);

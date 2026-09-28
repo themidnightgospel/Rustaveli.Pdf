@@ -34,7 +34,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `DocumentInfo` | class | Title, author, subject, keywords, creator, producer, dates. Named for the PDF *document information dictionary*. | PDF | `DocumentMetadata` |
 | `Document.Info` | property | The document's `DocumentInfo`. | PDF | `Document.Metadata` |
 | `ExportPdf()` | method | Writes the document as PDF, to bytes, a stream or a file. *Export* is what InDesign calls it. | InDesign | `GeneratePdf` |
-| `PdfExportOptions` | class | Options for export: the `Typefaces` to set text in, and whether to `Compress` streams. | InDesign | `PdfGenerationOptions` |
+| `PdfExportOptions` | class | Options for export: the `Typefaces` to set text in, whether to `Compress` streams, and whether to `RequireEveryGlyph`. | InDesign | `PdfGenerationOptions` |
 
 ## Frames and composing into them
 
@@ -136,25 +136,35 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Text(string)` / `Text(Action<TextComposer>)` | method | A paragraph. | plain | `Text` |
 | `TextComposer.Run(string)` | method | A run of text in one style. | typography | `Span` |
 | `TextComposer.Line(string)` / `BlankLine()` | method | A run followed by a line break; an empty line. | plain | `Line` / `EmptyLine` |
-| `TextComposer.Folio()` | method | The current page number. | print | `CurrentPageNumber` |
+| `TextComposer.Folio()` | method | The current page number. *Folio* is the printer's word for a page number. Each folio method also takes a `Func<int, string>` that writes the number. | print | `CurrentPageNumber` |
 | `TextComposer.PageCount()` | method | The number of pages. | plain | `TotalPages` |
-| `TextComposer.FolioOf(string anchor)` | method | The page an anchor is on. | print | `PageNumberOfSection` |
+| `TextComposer.FolioOf(string anchor)` | method | The page an anchor begins on. | print | `PageNumberOfSection` |
+| `TextComposer.LastFolioOf(string anchor)` | method | The page an anchored frame's content ends on. | print | `EndPageNumberOfSection` |
+| `TextComposer.FolioWithin(string anchor)` | method | This page's number counted from the page an anchor begins on. | print | `PageNumberWithinSection` |
+| `TextComposer.PageCountOf(string anchor)` | method | How many pages an anchored frame's content spans. | plain | `TotalPagesWithinSection` |
+| `Numerals` | class | Writes numbers as folios and lists are set: `Arabic`, `UpperRoman`, `LowerRoman`, `UpperAlpha`, `LowerAlpha`, or in a list's `Format`. | print | `FormatAsRoman` and friends |
 | `TextComposer.Link(text, url)` / `CrossReference(text, anchor)` | method | Linked runs. | print | `Hyperlink` / `SectionLink` |
-| `TextComposer.Inline(Action<IFrame>)` | method | A frame set inline with the text. | print ("inline graphic") | `Element` |
+| `TextComposer.Inline(Action<IFrame>, InlinePosition)` | method | A frame set inline with the text. | print ("inline graphic") | `Element` |
+| `InlinePosition` | enum | `OnBaseline`, `BelowBaseline`, `TextTop`, `TextBottom`, `Middle`: where an inline frame sits against its line. | CSS (`vertical-align`) | `TextInjectedElementAlignment` |
 | `TextComposer.FlushLeft()`, `FlushRight()`, `Centered()` | method | Paragraph alignment. | print | `AlignLeft/Right/Center` |
+| `TextComposer.FlushStart()`, `FlushEnd()` | method | Paragraph alignment by reading direction: flush against the edge lines start from, or end at. | print | `AlignStart/End` |
+| `TextComposer.Justified()` | method | Stretches every line but a paragraph's last across the width by widening its word spaces. | print | `Justify` |
+| `TextComposer.MaxLines(int, string)` | method | Shows at most so many lines, the last cut back to end in an ellipsis. | plain | `ClampLines` |
 | `TextComposer.FirstLineIndent(float)` | method | Indents the first line of each paragraph. | print | same |
 | `TextComposer.SpaceBetweenParagraphs(float)` | method | Space after each paragraph but the last. | print | `ParagraphSpacing` |
 | `TextComposer.DefaultType(...)` | method | Refines the type style runs inherit. | print | `DefaultTextStyle` |
-| `RunComposer` | class | Styles a run: `Typeface`, `PointSize`, `Ink`, `Highlight`, `Weight`, `Bold`, `Italic`, `Underline`, `StrikeThrough`, `Leading`, `Tracking`, `Subscript`, `Superscript`, `Style`. | print | `TextSpanDescriptor` |
-| `TypeStyle` | class | How type is set: typeface, point size, weight, italic, ink, highlight, leading, tracking, script position, underline, strike-through. | print ("type style") | `TextStyle` |
-| `TypeStyle.WithTypeface`, `WithPointSize`, `WithInk`, … | method | A copy with one attribute changed. | plain | `FontFamilyOf`, `FontSizeOf`, `ColorOf`, … |
+| `RunComposer` | class | Styles a run: `Typeface`, `PointSize`, `Ink`, `Highlight`, `Weight`, `Bold`, `Italic`, `Underline`, `StrikeThrough`, `Overline`, `StrokeStyle`, `StrokeInk`, `StrokeWeight`, `Leading`, `Tracking`, `WordSpacing`, `BreakAnywhere`, `LeftToRight`, `RightToLeft`, `Feature`, `Ligatures`, `SmallCapitals`, `OldstyleFigures`, `TabularFigures`, `Subscript`, `Superscript`, `Style`. | print | `TextSpanDescriptor` |
+| `TypeStyle` | class | How type is set: typeface, point size, weight, italic, ink, highlight, leading, tracking, word spacing, script position, underline, strike-through, overline and how those strokes are drawn, whether lines may break anywhere within it, and the direction it reads in when set apart from the text around it. | print ("type style") | `TextStyle` |
+| `TypeStyle.WithTypeface`, `WithPointSize`, `WithInk`, … | method | A copy with one attribute changed; `WithTypeface` also names the typefaces to fall back to, in order. | plain | `FontFamilyOf`, `FontSizeOf`, `ColorOf`, … |
+| `TypeStyle.WithFeature(string, int)` | method | Turns an OpenType feature on, off or to an alternate by its four-letter tag; `Ligatures`, `SmallCapitals`, `OldstyleFigures` and `TabularFigures` name the common ones. | print (OpenType) | `EnableFontFeature` |
 | `Typeface` | term | A font family, such as Noto Sans. | print | `FontFamily` |
 | `PointSize` | term | Type size in points. | print | `FontSize` |
 | `Leading` | term | Line spacing, as a multiple of the point size. | print | `LineHeight` |
 | `Tracking` | term | Uniform extra space between letters. | print | `LetterSpacing` |
 | `Highlight` | term | A colour behind a run of text. | plain | `BackgroundColor` |
-| `TypeWeight` | enum | `Thin` … `Black`. | print | `FontWeight` |
+| `TypeWeight` | enum | `Thin` … `Black`, `ExtraBlack`. | print | `FontWeight` |
 | `ScriptPosition` | enum | `Normal`, `Subscript`, `Superscript`. | print | `FontPosition` |
+| `StrokeStyle` | enum | `Solid`, `Double`, `Dotted`, `Dashed`, `Wavy`: how a text stroke (underline, strike-through, overline) is drawn. | print | `TextStyle.Decoration*` |
 
 ## Colour
 
@@ -189,11 +199,13 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `TypefaceLibrary` | class | The typefaces documents are set in: those registered with it, then those installed. `Shared` serves any export given no library of its own. | print ("type library") | `FontManager`, `SkiaFontProvider` |
-| `TypefaceLibrary.Register(...)` / `RegisterFile(string)` | method | Adds every face in a font file. A registered typeface shadows an installed one of the same name. | plain | `FontManager.RegisterFont` |
+| `TypefaceLibrary.Register(...)` / `RegisterFile(...)` / `RegisterResource(...)` | method | Adds every face in a font file, stream or embedded resource, under its own names and optionally a typeface name given. A registered typeface shadows an installed one of the same name. | plain | `FontManager.RegisterFont`, `RegisterFontWithCustomName`, `RegisterFontFromEmbeddedResource` |
 | `TypefaceLibrary.Fallbacks` | property | Typefaces tried in order for a character a run's own typeface lacks. | plain | `FallbackFamilies` |
+| `TypefaceLibrary.SearchFolder(string)` | method | Adds a folder searched for typefaces as installed ones are, after the registered ones. | plain | `Settings.FontDiscoveryPaths` |
 | `PdfExport` | class | The `ExportPdf` methods, to bytes, a stream or a file. | InDesign | `PdfGenerationExtensions` |
 | `ImageExport` | class | The `ExportImages` methods of the `Rustaveli.Pdf.Raster` package: every page as an image, drawn by SkiaSharp from the same layout and glyphs as the PDF. | InDesign ("Export JPEG") | `GenerateImages` |
-| `ImageExportOptions` | class | The `Resolution` in pixels per inch, the `Format`, the `Quality` of lossy formats, and the `Typefaces`. | InDesign | `ImageGenerationSettings` |
+| `ComplexScripts` | class | `ShapeComplexScripts`, from the `Rustaveli.Pdf.Shaping` package: shapes Arabic, Hebrew points, Indic and South-East Asian scripts with HarfBuzz for the text a `TypefaceLibrary` sets. | typesetting ("complex scripts") | built in |
+| `ImageExportOptions` | class | The `Resolution` in pixels per inch, the `Format`, the `Quality` of lossy formats, the `Typefaces`, and whether to `RequireEveryGlyph`. | InDesign | `ImageGenerationSettings` |
 | `PageImageFormat` | enum | `Png`, `Jpeg`, `Webp`. | plain | `ImageFormat` |
 
 ## Failures
@@ -202,6 +214,7 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 |---|---|---|---|---|
 | `TypesettingException` | class | Base of every failure raised while typesetting. | print | — |
 | `OversetException` | class | Content that cannot fit, even on an empty page. In print, text that does not fit its frame is *overset*. | InDesign | `DocumentLayoutException` |
+| `MissingGlyphException` | class | Characters no typeface has, when an export requires every glyph; `Characters` lists them. A layout application flags a *missing glyph* rather than let it go to press. | InDesign | `Settings.CheckIfAllTextGlyphsAreAvailable` |
 | `RenderingException` | class | A failure while drawing a page, carrying the page number. | plain | `DocumentDrawingException` |
 | `CompositionException` | class | A failure while composing the document, before layout. | print | `DocumentComposeException` |
 

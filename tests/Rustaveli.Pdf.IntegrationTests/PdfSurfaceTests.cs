@@ -8,6 +8,7 @@ using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Graphics;
 using UglyToad.PdfPig.Graphics.Colors;
+using UglyToad.PdfPig.Graphics.Core;
 using UglyToad.PdfPig.Tokens;
 
 namespace Rustaveli.Pdf.IntegrationTests;
@@ -336,6 +337,98 @@ public class PdfSurfaceTests
         Assert.Empty(parsed.GetPage(1).Paths);
     }
 
+    [Fact]
+    public void ADoubleStrokeIsTwoLinesOfTheWeightEitherSideOfTheLine()
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 3, Ocean, StrokeStyle.Double));
+
+        List<PdfPath> paths = parsed.GetPage(1).Paths.ToList();
+
+        Assert.Equal(2, paths.Count);
+        Assert.All(paths, path => Assert.Equal(3, path.LineWidth, 0.01));
+        Assert.All(paths, path => AssertColour(Ocean, path.StrokeColor));
+        AssertBounds(paths[0].GetBoundingRectangle(), left: 10, top: 23, width: 100, height: 0);
+        AssertBounds(paths[1].GetBoundingRectangle(), left: 10, top: 17, width: 100, height: 0);
+    }
+
+    [Fact]
+    public void ADottedStrokeIsRoundDotsTwiceTheWeightApart()
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, StrokeStyle.Dotted));
+
+        PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
+
+        Assert.Equal(LineCapStyle.Round, path.LineCapStyle);
+        Assert.Equal([0d, 4d], path.LineDashPattern!.Value.Array);
+        Assert.Equal(2, path.LineWidth, 0.01);
+    }
+
+    [Fact]
+    public void ADashedStrokeIsDashesThreeTimesTheWeightWithGapsOfTwice()
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, StrokeStyle.Dashed));
+
+        PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
+
+        Assert.Equal(LineCapStyle.Butt, path.LineCapStyle);
+        Assert.Equal([6d, 4d], path.LineDashPattern!.Value.Array);
+    }
+
+    [Theory]
+    [InlineData(StrokeStyle.Dotted)]
+    [InlineData(StrokeStyle.Dashed)]
+    public void AStrokeDrawnAfterADottedOrDashedOneIsSolid(StrokeStyle first)
+    {
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, first);
+            canvas.DrawLine(new Offset(10, 40), new Offset(110, 40), 2, Ocean);
+        });
+
+        PdfPath solid = parsed.GetPage(1).Paths[1];
+
+        Assert.Equal(LineCapStyle.Butt, solid.LineCapStyle);
+        Assert.Empty(solid.LineDashPattern?.Array ?? []);
+        Assert.Equal(2, solid.LineWidth, 0.01);
+    }
+
+    [Fact]
+    public void AWavyStrokeIsOneCurvedPathAlongTheLine()
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean, StrokeStyle.Wavy));
+
+        PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
+        List<PdfSubpath.CubicBezierCurve> arches = path.SelectMany(subpath => subpath.Commands).OfType<PdfSubpath.CubicBezierCurve>().ToList();
+
+        // A hundred points in half-waves four points long.
+        Assert.Equal(25, arches.Count);
+        Assert.True(path.IsStroked);
+        Assert.Equal(2, path.LineWidth, 0.01);
+        Assert.Equal(10, arches[0].StartPoint.X, Tolerance);
+        Assert.Equal(110, arches[^1].EndPoint.X, Tolerance);
+        Assert.Equal(PageSide - 20, arches[^1].EndPoint.Y, Tolerance);
+    }
+
+    [Theory]
+    [InlineData(StrokeStyle.Double)]
+    [InlineData(StrokeStyle.Dotted)]
+    [InlineData(StrokeStyle.Dashed)]
+    [InlineData(StrokeStyle.Wavy)]
+    public void AStyledStrokeDrawsNothingThatCouldNotBeSeen(StrokeStyle style)
+    {
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 0, Ocean, style);
+            canvas.DrawLine(new Offset(10, 20), new Offset(110, 20), 2, Ocean.WithOpacity(0), style);
+        });
+
+        Assert.Empty(parsed.GetPage(1).Paths);
+    }
+
     // ---- Text --------------------------------------------------------------------------------------------------
 
     [Fact]
@@ -376,6 +469,19 @@ public class PdfSurfaceTests
 
         Assert.Equal(40 + measurer.MeasureWidth("Hello", Style), LetterOf(page, "世").StartBaseLine.X, Tolerance);
         Assert.Equal(40 + measurer.MeasureWidth("Hello世", Style), LetterOf(page, "界").StartBaseLine.X, Tolerance);
+    }
+
+    [Fact]
+    public void WordSpacingMovesTheWordsAfterEachSpace()
+    {
+        TypeStyle spaced = Style.WithWordSpacing(12);
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
+
+        using PdfDocument parsed = Render(canvas => canvas.DrawText("A B C", new Offset(20, 120), spaced));
+        Page page = parsed.GetPage(1);
+
+        Assert.Equal(20 + measurer.MeasureWidth("A ", spaced), LetterOf(page, "B").StartBaseLine.X, Tolerance);
+        Assert.Equal(20 + measurer.MeasureWidth("A B ", spaced), LetterOf(page, "C").StartBaseLine.X, Tolerance);
     }
 
     [Fact]

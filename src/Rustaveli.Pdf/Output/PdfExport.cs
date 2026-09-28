@@ -90,7 +90,12 @@ public static class PdfExport
         CopyInfo(document.Info, writer.Info);
 
         using PdfSurface surface = new PdfSurface(writer, shaper);
-        Typesetter.Render(document, surface, new OpenTypeMeasurer(shaper));
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
+        Typesetter.Render(document, surface, measurer);
+
+        if (options?.RequireEveryGlyph == true && measurer.MissingCodepoints.Count > 0)
+            throw new MissingGlyphException(measurer.MissingCodepoints);
+
         surface.Finish();
     }
 

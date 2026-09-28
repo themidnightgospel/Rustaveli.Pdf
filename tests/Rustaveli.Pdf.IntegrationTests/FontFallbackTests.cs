@@ -59,7 +59,7 @@ public class FontFallbackTests
             if (primary.HasGlyph(codepoint))
                 continue;
 
-            string automatic = shaper.FaceFor(primary, new FontRequest(TestFonts.Sans), codepoint).Names.PreferredFamily;
+            string automatic = shaper.FaceFor(primary, new FontRequest(TestFonts.Sans), TypefaceFallbacks.None, codepoint).Names.PreferredFamily;
 
             FontFaceInfo? alternative = SystemFontIndex.Current.Faces
                 .Where(face => face.IsEmbeddable && face.Style.Slant == FontSlant.Upright)
@@ -145,6 +145,73 @@ public class FontFallbackTests
         // Left to the shared library, which names no fallbacks, another face is chosen. That is what shows the
         // match above came from the explicit fallback, and from the library the options supplied.
         Assert.NotEqual(drawnDirectly, automatic);
+    }
+
+    /// <summary>
+    /// A library of the committed faces alone: Noto Sans (registered first), Noto Sans Georgian, which has no Latin
+    /// letters, and Specimen Sans, which has.
+    /// </summary>
+    private static TypefaceLibrary CommittedLibrary()
+    {
+        TypefaceLibrary library = TestFonts.NewLibrary(includeInstalled: false);
+        library.RegisterFile(Fonts.FontAssets.PathOf("NotoSansGeorgian-Regular.ttf"));
+        library.RegisterFile(Fonts.FontAssets.PathOf("SpecimenSans.ttc"));
+        return library;
+    }
+
+    private static string FamilyOf(TypefaceLibrary library, string text, TypeStyle style)
+    {
+        foreach (ShapedGlyph glyph in library.Shaper.Walk(text.AsSpan(), style))
+            return glyph.Face.Names.PreferredFamily;
+
+        throw new InvalidOperationException("Nothing was set.");
+    }
+
+    [Fact]
+    public void AStylesOwnFallbackIsTriedBeforeAnyOtherFace()
+    {
+        TypefaceLibrary library = CommittedLibrary();
+        TypeStyle georgian = TypeStyle.Default.WithTypeface("Noto Sans Georgian");
+
+        Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", georgian));
+        Assert.Equal("Specimen Sans", FamilyOf(library, "A", georgian.WithTypeface("Noto Sans Georgian", "Specimen Sans")));
+    }
+
+    [Fact]
+    public void AStylesFallbacksAreTriedInOrder()
+    {
+        TypefaceLibrary library = CommittedLibrary();
+        TypeStyle style = TypeStyle.Default.WithTypeface("Noto Sans Georgian", "Nobody Has This", "Specimen Sans", TestFonts.Sans);
+
+        // The first fallback nobody has is passed over; the next that has the letter sets it.
+        Assert.Equal("Specimen Sans", FamilyOf(library, "A", style));
+    }
+
+    [Fact]
+    public void StylesWithDifferentFallbacksDoNotShareWhatTheyFound()
+    {
+        TypefaceLibrary library = CommittedLibrary();
+        TypeStyle plain = TypeStyle.Default.WithTypeface("Noto Sans Georgian");
+
+        // The plain style finds Noto Sans for A first; a style naming Specimen Sans must still get Specimen Sans.
+        Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", plain));
+        Assert.Equal("Specimen Sans", FamilyOf(library, "A", plain.WithTypeface("Noto Sans Georgian", "Specimen Sans")));
+        Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", plain));
+    }
+
+    [Fact]
+    public void ARunNamesItsFallbacksWithItsTypeface()
+    {
+        TypefaceLibrary library = CommittedLibrary();
+
+        using PdfDocument parsed = PdfDocument.Open(Document.Compose(composition => composition.Section(section =>
+            section.Body().Text(text => text.Run("აA").Typeface("Noto Sans Georgian", "Specimen Sans"))))
+            .ExportPdf(new PdfExportOptions { Typefaces = library }));
+
+        Page page = parsed.GetPage(1);
+
+        Assert.Equal("აA", page.Text);
+        Assert.Contains("SpecimenSans", page.Letters.Single(letter => letter.Value == "A").FontName);
     }
 
     [Fact]

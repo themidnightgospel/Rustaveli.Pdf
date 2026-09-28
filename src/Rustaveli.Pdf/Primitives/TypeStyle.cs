@@ -1,3 +1,6 @@
+using Rustaveli.Pdf.Fonts.Substitution;
+using Rustaveli.Pdf.Text;
+
 namespace Rustaveli.Pdf;
 
 /// <summary>
@@ -27,11 +30,46 @@ public sealed record TypeStyle
 
     public bool HasStrikeThrough { get; init; }
 
+    public bool HasOverline { get; init; }
+
+    /// <summary>
+    /// Whether a line may break between any two characters of this type, not only between words, so a long
+    /// identifier or address fills each line rather than leaving it short.
+    /// </summary>
+    public bool BreaksAnywhere { get; init; }
+
+    /// <summary>
+    /// The direction the type reads in, set apart from the text around it: a right-to-left name in an English
+    /// sentence keeps its own word order and carries its punctuation with it. Null leaves the type to the paragraph,
+    /// where each character takes the direction its script gives it.
+    /// </summary>
+    public ReadingDirection? Direction { get; init; }
+
+    /// <summary>The OpenType features turned on or off beyond the defaults every face is set with.</summary>
+    internal TypeFeatures Features { get; init; } = TypeFeatures.None;
+
+    /// <summary>The typefaces tried, in order, for characters <see cref="Typeface"/> lacks.</summary>
+    public IReadOnlyList<string> Fallbacks => FallbackTypefaces.Names;
+
+    internal TypefaceFallbacks FallbackTypefaces { get; init; } = TypefaceFallbacks.None;
+
+    /// <summary>How underlines, strike-throughs and overlines are drawn.</summary>
+    public StrokeStyle StrokeStyle { get; init; } = StrokeStyle.Solid;
+
+    /// <summary>The ink of underlines, strike-throughs and overlines; the text's own ink when not set.</summary>
+    public Ink? StrokeInk { get; init; }
+
+    /// <summary>The weight of underlines, strike-throughs and overlines, in points; the font's own when not set.</summary>
+    public float? StrokeWeight { get; init; }
+
     /// <summary>Multiplier applied to the font's natural line height.</summary>
     public float Leading { get; init; } = 1f;
 
     /// <summary>Additional space inserted between characters, in points.</summary>
     public float Tracking { get; init; }
+
+    /// <summary>Additional space added to each space between words, in points; negative tightens.</summary>
+    public float WordSpacing { get; init; }
 
     public ScriptPosition Script { get; init; } = ScriptPosition.Normal;
 
@@ -57,11 +95,19 @@ public sealed record TypeStyle
 
     private const float SuperscriptOffsetRatio = 0.33f;
 
-    public TypeStyle WithTypeface(string fontFamily)
+    /// <summary>
+    /// A copy set in <paramref name="fontFamily"/>, falling back to <paramref name="fallbacks"/>, in order, for any
+    /// character it lacks — before the library's own fallbacks, and before any installed face that has it.
+    /// </summary>
+    /// <remarks>Naming the typeface again replaces the fallbacks too: with none given, the style has none.</remarks>
+    public TypeStyle WithTypeface(string fontFamily, params string[] fallbacks)
     {
+        ArgumentNullException.ThrowIfNull(fallbacks);
+
         return this with
         {
-            Typeface = fontFamily
+            Typeface = fontFamily,
+            FallbackTypefaces = TypefaceFallbacks.Of(fallbacks)
         };
     }
 
@@ -129,6 +175,94 @@ public sealed record TypeStyle
         };
     }
 
+    public TypeStyle Overline(bool value = true)
+    {
+        return this with
+        {
+            HasOverline = value
+        };
+    }
+
+    public TypeStyle BreakAnywhere(bool value = true)
+    {
+        return this with
+        {
+            BreaksAnywhere = value
+        };
+    }
+
+    /// <summary>
+    /// A copy with the OpenType feature <paramref name="tag"/> — <c>"smcp"</c>, <c>"onum"</c>, <c>"ss01"</c> — set to
+    /// <paramref name="value"/>: 0 turns it off, 1 on, and a higher value chooses among a feature's alternates.
+    /// </summary>
+    /// <remarks>
+    /// Every face is set with composition, localized forms, contextual alternates and standard, contextual and
+    /// required ligatures; a feature the face does not have does nothing.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="tag"/> is not four printable ASCII characters.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
+    public TypeStyle WithFeature(string tag, int value = 1)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+
+        if (tag.Length != 4 || tag.Any(character => character is < ' ' or > '~'))
+            throw new ArgumentException($"An OpenType feature tag is four printable ASCII characters, such as \"liga\"; \"{tag}\" is not.", nameof(tag));
+
+        return this with
+        {
+            Features = Features.With(FeatureTag.Parse(tag), value)
+        };
+    }
+
+    /// <summary>A copy with ligatures such as "fi" and "ffl" set, or not: the standard and contextual ones.</summary>
+    public TypeStyle Ligatures(bool value = true) =>
+        WithFeature("liga", value ? 1 : 0).WithFeature("clig", value ? 1 : 0);
+
+    /// <summary>A copy with lowercase letters set as small capitals, where the face has them.</summary>
+    public TypeStyle SmallCapitals(bool value = true) => WithFeature("smcp", value ? 1 : 0);
+
+    /// <summary>A copy with old-style figures, which rise and descend like lowercase letters, where the face has them.</summary>
+    public TypeStyle OldstyleFigures(bool value = true) => WithFeature("onum", value ? 1 : 0);
+
+    /// <summary>A copy with figures all one width, so columns of numbers align, where the face has them.</summary>
+    public TypeStyle TabularFigures(bool value = true) => WithFeature("tnum", value ? 1 : 0);
+
+    /// <summary>A copy that reads in <paramref name="direction"/>, set apart from the text around it; null to follow it.</summary>
+    public TypeStyle WithDirection(ReadingDirection? direction)
+    {
+        return this with
+        {
+            Direction = direction
+        };
+    }
+
+    public TypeStyle WithStrokeStyle(StrokeStyle style)
+    {
+        return this with
+        {
+            StrokeStyle = style
+        };
+    }
+
+    public TypeStyle WithStrokeInk(Ink ink)
+    {
+        return this with
+        {
+            StrokeInk = ink
+        };
+    }
+
+    public TypeStyle WithStrokeWeight(float weight)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(weight);
+
+        return this with
+        {
+            StrokeWeight = weight
+        };
+    }
+
     public TypeStyle WithLeading(float multiplier)
     {
         return this with
@@ -142,6 +276,14 @@ public sealed record TypeStyle
         return this with
         {
             Tracking = spacing
+        };
+    }
+
+    public TypeStyle WithWordSpacing(float spacing)
+    {
+        return this with
+        {
+            WordSpacing = spacing
         };
     }
 

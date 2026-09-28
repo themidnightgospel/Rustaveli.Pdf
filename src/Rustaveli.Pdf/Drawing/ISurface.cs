@@ -39,10 +39,22 @@ internal interface ISurface
     /// <param name="strokeWidth">Zero or less fills the shape; a positive value strokes an outline of that width.</param>
     void DrawRoundedRectangle(Offset position, Extent size, float cornerRadius, Ink color, float strokeWidth = 0f);
 
-    void DrawLine(Offset from, Offset to, float thickness, Ink color);
+    /// <summary>
+    /// Strokes a line from <paramref name="from"/> to <paramref name="to"/>. A double line is two strokes a third of
+    /// <paramref name="thickness"/> each, with a gap between them; dots and dashes are sized from the thickness; a wave
+    /// swings a thickness either side of the line.
+    /// </summary>
+    void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid);
 
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
-    void DrawText(string text, Offset baselineStart, TypeStyle style);
+    /// <param name="text">The text, in logical order.</param>
+    /// <param name="baselineStart">Where the run begins, on the baseline.</param>
+    /// <param name="style">The type it is set in.</param>
+    /// <param name="rightToLeft">
+    /// Whether the run reads right to left: shaped in logical order, then set with its first character at the right,
+    /// and characters with a mirror image, such as brackets, drawn as that image.
+    /// </param>
+    void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false);
 
     void DrawImage(IImage image, Extent size);
 

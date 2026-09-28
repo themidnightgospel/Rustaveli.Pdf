@@ -32,6 +32,8 @@ internal sealed class Os2Table
         WeightClass = BigEndian.UInt16(data, 4);
         WidthClass = BigEndian.UInt16(data, 6);
         FsType = BigEndian.UInt16(data, FsTypeOffset);
+        StrikeoutSize = BigEndian.Int16(data, 26);
+        StrikeoutPosition = BigEndian.Int16(data, 28);
         FamilyClass = BigEndian.Int16(data, 30);
         PanoseFamilyType = data[32];
         PanoseSerifStyle = data[33];
@@ -57,6 +59,12 @@ internal sealed class Os2Table
     }
 
     public ushort Version { get; }
+
+    /// <summary>The thickness of a strike-through line, in font units.</summary>
+    public short StrikeoutSize { get; }
+
+    /// <summary>The height of a strike-through line's top above the baseline, in font units.</summary>
+    public short StrikeoutPosition { get; }
 
     public short AverageCharWidth { get; }
 

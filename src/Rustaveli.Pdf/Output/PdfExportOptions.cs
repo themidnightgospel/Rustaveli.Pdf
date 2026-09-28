@@ -14,4 +14,10 @@ public sealed class PdfExportOptions
     /// Whether streams are compressed. On by default; off makes content streams readable in a text editor.
     /// </summary>
     public bool Compress { get; set; } = true;
+
+    /// <summary>
+    /// Whether every character must be found in some typeface. Off by default, when a character no typeface has is
+    /// drawn as a missing-glyph box; on, the export fails with <see cref="MissingGlyphException"/> naming them all.
+    /// </summary>
+    public bool RequireEveryGlyph { get; set; }
 }

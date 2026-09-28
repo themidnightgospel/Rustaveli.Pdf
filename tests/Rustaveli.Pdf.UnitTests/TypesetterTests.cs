@@ -412,6 +412,84 @@ public class TypesetterTests
         Assert.DoesNotContain("?", surface.Page(1).Content);
     }
 
+    /// <summary>
+    /// Page one is an introduction; a chapter anchored by the frame that holds it flows across pages two to four;
+    /// every page's running foot says where it stands within the chapter.
+    /// </summary>
+    private static RecordingSurface ChapterAcrossThreePages() => LayoutHarness.Render(Build(section =>
+    {
+        section.Trim = new Extent(200f, 200f);
+        section.RunningFoot().Text(text =>
+        {
+            text.Folio(Numerals.LowerRoman);
+            text.Run(" | ");
+            text.FolioOf("chapter");
+            text.Run("-");
+            text.LastFolioOf("chapter");
+            text.Run(" | ");
+            text.FolioWithin("chapter");
+            text.Run("/");
+            text.PageCountOf("chapter", Numerals.UpperRoman);
+        });
+        section.Body().Stack(stack =>
+        {
+            stack.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10f, 150f));
+            stack.Add().Anchor("chapter").Compose(inner => inner.Slot().Child = new SplittableBlock(3, 150f));
+        });
+    }));
+
+    [Fact]
+    public void AnAnchorFlowingAcrossPagesBeginsOnItsFirstPage()
+    {
+        // Content anchored across pages is drawn once per page; the anchor must keep the first of them.
+        RecordingSurface surface = ChapterAcrossThreePages();
+
+        Assert.Equal(4, surface.Pages.Count);
+        Assert.StartsWith("i | 2-4 |", surface.Page(1).Content);
+    }
+
+    [Fact]
+    public void RunningFeetKnowWhereTheyStandWithinAnAnchoredChapter()
+    {
+        RecordingSurface surface = ChapterAcrossThreePages();
+
+        // Before the chapter a page has no place within it, so its number there is counted from the chapter's start.
+        Assert.Equal("i | 2-4 | 0/III", surface.Page(1).Content);
+        Assert.Equal("ii | 2-4 | 1/III", surface.Page(2).Content);
+        Assert.Equal("iii | 2-4 | 2/III", surface.Page(3).Content);
+        Assert.Equal("iv | 2-4 | 3/III", surface.Page(4).Content);
+    }
+
+    [Fact]
+    public void AnchoredNumbersAreUnknownUntilTheAnchorIsReached()
+    {
+        RecordingSurface surface = LayoutHarness.Render(Build(section =>
+        {
+            section.Trim = new Extent(200f, 200f);
+            section.Body().Text(text =>
+            {
+                text.LastFolioOf("nowhere");
+                text.FolioWithin("nowhere");
+                text.PageCountOf("nowhere");
+            });
+        }));
+
+        Assert.Equal("???", surface.Page(1).Content);
+    }
+
+    [Fact]
+    public void AnchoredNumbersRefuseAMissingAnchorOrFormat()
+    {
+        // Composing wraps what the composing code threw, so the argument error is the cause.
+        static Exception Cause(Action<TextComposer> compose) =>
+            Assert.Throws<CompositionException>(() => Build(section => section.Body().Text(compose))).InnerException!;
+
+        Assert.IsType<ArgumentException>(Cause(text => text.FolioWithin(" ")));
+        Assert.IsType<ArgumentNullException>(Cause(text => text.LastFolioOf("a", null!)));
+        Assert.IsType<ArgumentNullException>(Cause(text => text.Folio(null!)));
+        Assert.IsType<ArgumentNullException>(Cause(text => text.PageCount(null!)));
+    }
+
     [Fact]
     public void WrapsComposeFailuresWithContext()
     {

@@ -100,6 +100,8 @@ ISurface              The single seam to any backend, fed glyphs by one shaper f
       │
       ├─▶ PDF             the managed writer: Type 0 font subsets, images as encoded, separations
       └─▶ Page images     Rustaveli.Pdf.Raster: PNG, JPEG or WebP through SkiaSharp
+
+      Complex scripts   Rustaveli.Pdf.Shaping: HarfBuzz behind the same shaper, by opt-in
 ```
 
 Only the composition layer is public. Blocks, the typesetter and the drawing seam are internal, so the engine can
@@ -149,10 +151,12 @@ row boundaries), `List` (bulleted, numbered, lettered, roman — numbering survi
 **Modifiers** — insets, fills, strokes, rounded corners, width and height constraints, expansion, proportion,
 flush and centred placement, shifting, scaling, shrink-to-fit, quarter turns, mirroring.
 
-**Text** — styled runs, weight, italic, ink, highlight, underline, strike-through, leading, tracking,
-subscript and superscript, alignment, line breaking, mid-word breaking, non-breaking spaces, first-line indent,
-space between paragraphs, flow across pages, folios, page counts and cross-references, and default type inherited
-from the section.
+**Text** — styled runs, weight, italic, ink, highlight, underline, strike-through and overline (solid, double,
+dotted, dashed or wavy, in their own ink and weight), leading, tracking, word spacing, subscript and superscript;
+paragraphs flush left, right, start or end, centred or justified, broken into lines by the Unicode rules (UAX #14)
+or anywhere, limited to a number of lines with an ellipsis, with non-breaking spaces, first-line indents, space
+between paragraphs and inline frames placed against the line; flow across pages, folios in any numerals, page
+counts, cross-references and page numbers within anchored content, and default type inherited from the section.
 
 **Flow** — `When`, `Once`, `SkipFirst`, `KeepTogether`, `RequireSpace`, `NewPage`, and reusable `ISnippet`s.
 
@@ -166,9 +170,12 @@ orientation; CMYK process colour, spot inks as separations with a process fallba
 cross-references to anchors and document information. Exports run in parallel. Page images — PNG, JPEG or WebP at
 any resolution — come from the `Rustaveli.Pdf.Raster` package, drawn from the same layout and glyphs.
 
-**Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with named
-fallbacks and per-character fallback for anything a face lacks, pair kerning, substitution for a typeface nobody
-has, and bundled Noto Sans for a machine with no fonts at all.
+**Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with fallback
+typefaces per style and per library and per-character fallback for anything a face lacks; OpenType substitutions
+(ligatures, small capitals, figure styles and any feature by tag) and pair kerning; substitution for a typeface
+nobody has, bundled Noto Sans for a machine with no fonts at all, and an optional check that every glyph exists.
+Complex scripts — Arabic, Hebrew points, Indic and South-East Asian scripts — are shaped by HarfBuzz once the
+`Rustaveli.Pdf.Shaping` package is added and `ShapeComplexScripts()` called on the library.
 
 ## Testing
 

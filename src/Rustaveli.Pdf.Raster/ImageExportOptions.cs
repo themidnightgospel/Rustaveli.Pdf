@@ -36,4 +36,10 @@ public sealed class ImageExportOptions
 
     /// <summary>The typefaces text is set in. <see cref="TypefaceLibrary.Shared"/> when not set.</summary>
     public TypefaceLibrary? Typefaces { get; set; }
+
+    /// <summary>
+    /// Whether every character must be found in some typeface. Off by default, when a character no typeface has is
+    /// drawn as a missing-glyph box; on, the export fails with <see cref="MissingGlyphException"/> naming them all.
+    /// </summary>
+    public bool RequireEveryGlyph { get; set; }
 }

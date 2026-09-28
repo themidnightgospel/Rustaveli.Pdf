@@ -11,6 +11,10 @@ SpecimenSans.ttc, a collection of three TrueType faces:
     1  Specimen Sans SemiBold  weight 600 with typographic family/subfamily names (IDs 16/17); GPOS kerning
     2  Specimen Sans Italic    names on the Macintosh platform only (Mac Roman)
 SpecimenCff-Regular.otf:     CFF outlines; GPOS kerning moved into extension lookups (type 9)
+SpecimenLayout-Regular.otf:  CFF outlines; a GSUB and GDEF compiled from LAYOUT_FEATURES below, whose features
+                             ss01..ss10 and salt each exercise one part of glyph substitution: ligatures past
+                             marks, glyph and class contexts, nested lookups that lengthen or shorten the input,
+                             reverse chaining, mark filtering sets, mark attachment types and extension lookups
 
 The names are changed so the derived faces never shadow the real Noto Sans family in matching tests.
 """
@@ -18,6 +22,7 @@ The names are changed so the derived faces never shadow the real Noto Sans famil
 import os
 
 from fontTools import subset
+from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.fontBuilder import FontBuilder
 from fontTools.ttLib import TTFont, newTable
@@ -33,7 +38,7 @@ LICENSE = ("This Font Software is licensed under the SIL Open Font License, Vers
            "This license is available with a FAQ at: https://scripts.sil.org/OFL")
 
 
-def load_subset(file_name):
+def load_subset(file_name, unicodes=None):
     font = TTFont(os.path.join(HERE, file_name))
     options = subset.Options()
     options.layout_features = ["kern"]
@@ -41,7 +46,7 @@ def load_subset(file_name):
     options.notdef_outline = True
     options.recalc_bounds = True
     subsetter = subset.Subsetter(options)
-    subsetter.populate(unicodes=UNICODES)
+    subsetter.populate(unicodes=unicodes or UNICODES)
     subsetter.subset(font)
     for tag in ("GSUB", "GDEF", "gasp", "DSIG"):
         if tag in font:
@@ -216,6 +221,111 @@ def wrap_pair_lookups_in_extensions(font):
         lookup.LookupType = 9
 
 
+# Marks are kept to those with no precomposed form after the letters they follow here, so a shaper that composes
+# characters before substituting glyphs sees the same glyphs as one that does not.
+LAYOUT_UNICODES = list(range(0x20, 0x7F)) + [0x131, 0x300, 0x301, 0x323, 0xFB00, 0xFB01, 0xFB02, 0xFB03]
+
+LAYOUT_FEATURES = """
+languagesystem DFLT dflt;
+languagesystem latn dflt;
+
+@LOWER = [a-z];
+@UPPER = [A-Z];
+@TOP = [gravecomb acutecomb];
+@VOWEL = [a e i o u];
+@CONSONANT = [b c d f g h j k l m n p q r s t v w x y z];
+
+table GDEF {
+    GlyphClassDef [A-Z a-z dotlessi], [f_f fi fl f_f_i], [gravecomb acutecomb dotbelowcomb], ;
+} GDEF;
+
+lookup UPPER { sub @LOWER by @UPPER; } UPPER;
+lookup DOUBLE { sub y by u v; } DOUBLE;
+lookup JOIN { sub s t by f_f; } JOIN;
+lookup DOTLESS { sub i by dotlessi; } DOTLESS;
+
+# Ligatures, longest first, formed past marks.
+feature ss01 {
+    lookupflag IgnoreMarks;
+    sub f f i by f_f_i;
+    sub f f by f_f;
+    sub f i by fi;
+    sub f l by fl;
+} ss01;
+
+# Glyph contexts: two glyphs before the input, two after, and a lookup at each input glyph.
+feature ss02 {
+    sub c d a' lookup UPPER b' lookup UPPER e f;
+    sub a' lookup UPPER x;
+} ss02;
+
+# Class contexts over several rules.
+feature ss03 {
+    sub @CONSONANT @VOWEL' lookup UPPER @CONSONANT;
+    sub @VOWEL @VOWEL' lookup UPPER;
+    sub @CONSONANT @CONSONANT' lookup UPPER @CONSONANT @VOWEL;
+    sub @VOWEL @CONSONANT' lookup UPPER @VOWEL;
+    sub @CONSONANT' lookup UPPER @VOWEL @VOWEL;
+} ss03;
+
+# A nested multiple substitution lengthens the input; the next lookup's index counts the glyph it added.
+feature ss04 {
+    sub y' lookup DOUBLE z' lookup UPPER;
+} ss04;
+
+# A nested ligature shortens the input.
+feature ss05 {
+    sub s' lookup JOIN t' k' lookup UPPER;
+    sub s' lookup JOIN t' lookup UPPER;
+} ss05;
+
+# Reverse chaining: each a before a b becomes a b, from the end of the text back.
+feature ss06 {
+    rsub a' b by b;
+    rsub x y c' by C;
+} ss06;
+
+# A mark filtering set: i becomes dotless before a top mark, passing over marks below.
+feature ss07 {
+    lookupflag UseMarkFilteringSet @TOP;
+    sub i' lookup DOTLESS @TOP;
+} ss07;
+
+# A mark attachment type: only top marks are seen.
+feature ss08 {
+    lookupflag MarkAttachmentType @TOP;
+    sub x' lookup UPPER acutecomb;
+} ss08;
+
+# Extension lookups.
+lookup EXTENDED_LIGATURE useExtension { sub f i by fi; } EXTENDED_LIGATURE;
+lookup EXTENDED_CONTEXT useExtension { sub a' lookup UPPER b; } EXTENDED_CONTEXT;
+feature ss09 {
+    lookup EXTENDED_LIGATURE;
+    lookup EXTENDED_CONTEXT;
+} ss09;
+
+# Ligatures passed over in a context.
+feature ss10 {
+    lookupflag IgnoreLigatures;
+    sub x' lookup UPPER y;
+} ss10;
+
+# Alternates, chosen by the feature's value.
+feature salt {
+    sub a from [A B C];
+} salt;
+"""
+
+
+def build_layout_specimen():
+    font = load_subset("NotoSans-Regular.ttf", LAYOUT_UNICODES)
+    set_names(font, "Specimen Layout", "Regular")
+    addOpenTypeFeaturesFromString(font, LAYOUT_FEATURES, tables=["GSUB", "GDEF"])
+    to_cff(font, "Specimen Layout", "Regular")
+    font.save(os.path.join(HERE, "SpecimenLayout-Regular.otf"))
+
+
 def main():
     regular = load_subset("NotoSans-Regular.ttf")
     set_names(regular, "Specimen Sans", "Regular")
@@ -240,6 +350,8 @@ def main():
     to_cff(cff, "Specimen Cff", "Regular")
     wrap_pair_lookups_in_extensions(cff)
     cff.save(os.path.join(HERE, "SpecimenCff-Regular.otf"))
+
+    build_layout_specimen()
 
 
 if __name__ == "__main__":
