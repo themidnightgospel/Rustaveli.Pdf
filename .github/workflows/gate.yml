@@ -2,9 +2,11 @@
 # that). A PR merges only when both this and ci.yml are green. Split out because mutation testing, benchmarks and
 # macOS minutes cost too much to spend on every intermediate push.
 #
-# On a pull request, mutation testing covers only the source files it changes against main, so a gate takes minutes
-# rather than hours. Every night the whole engine is mutation-tested on main, and a shard that falls below the floor
-# opens an issue — a change that weakened the tests of code it did not touch is found by the next morning.
+# Mutation testing runs every night on main, and on demand, but not on pull requests for now: each phase's pull
+# request rewrites whole areas, and mutating them held merges for hours even counting only the files changed. A
+# shard that falls below the floor at night opens an issue. Once pull requests are small again, add
+# `|| contains(github.event.pull_request.labels.*.name, 'ready-to-merge')` back to the mutation job's condition — a
+# pull request then mutates only the source files it changes against main.
 
 name: gate
 
@@ -35,9 +37,7 @@ jobs:
   # "File.cs{0..23000}" — a span counting characters, not lines; shards beyond the concurrent-job limit simply queue.
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
-    if: >-
-      github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-      || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ${{ matrix.shard.os || 'ubuntu-latest' }}
     timeout-minutes: 300
     defaults:
