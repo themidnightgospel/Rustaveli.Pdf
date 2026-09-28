@@ -94,6 +94,18 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
 
     public void ClipRectangle(Extent size) => _state = new Change(_state, surface => surface.ClipRectangle(size));
 
+    public void Concatenate(float a, float b, float c, float d, float e, float f)
+    {
+        _state = new Change(_state, surface => surface.Concatenate(a, b, c, d, e, f));
+        _transform.Concatenate(a, b, c, d, e, f);
+    }
+
+    public void ClipPath(VectorPath path, FillRule rule) => _state = new Change(_state, surface => surface.ClipPath(path, rule));
+
+    public void FillPath(VectorPath path, Ink ink, FillRule rule) => Hold(surface => surface.FillPath(path, ink, rule));
+
+    public void StrokePath(VectorPath path, Ink ink, LineStyle style) => Hold(surface => surface.StrokePath(path, ink, style));
+
     public void DrawRectangle(Offset position, Extent size, Ink color) =>
         Hold(surface => surface.DrawRectangle(position, size, color));
 

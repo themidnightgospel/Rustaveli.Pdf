@@ -40,6 +40,56 @@ public sealed class RasterImage : IImage
         _encoded = new Lazy<EncodedImage>(encode, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
+    /// <summary>The same image with other settings for how it is embedded; the pixels are shared, not copied.</summary>
+    private RasterImage(RasterImage original, int? quality, float? maximumResolution)
+    {
+        _source = original._source;
+        Format = original.Format;
+        StoredWidth = original.StoredWidth;
+        StoredHeight = original.StoredHeight;
+        Metadata = original.Metadata;
+        ContentHash = original.ContentHash;
+        _encoded = original._encoded;
+        Quality = quality;
+        MaximumResolution = maximumResolution;
+    }
+
+    /// <summary>
+    /// The quality, from 1 to 100, the image is compressed at when it is embedded, or null to keep its own
+    /// encoding unless the export asks otherwise.
+    /// </summary>
+    public int? Quality { get; }
+
+    /// <summary>
+    /// The most pixels per inch the image is embedded at where it is shown, or null to keep all its pixels unless the
+    /// export asks otherwise.
+    /// </summary>
+    public float? MaximumResolution { get; }
+
+    /// <summary>
+    /// The image, to be compressed at <paramref name="quality"/> from 1, smallest, to 100, finest, when embedded —
+    /// as JPEG, or losslessly where it has transparency. Needs an image processor at export.
+    /// </summary>
+    public RasterImage WithQuality(int quality)
+    {
+        if (quality is < 1 or > 100)
+            throw new ArgumentOutOfRangeException(nameof(quality), quality, "Quality runs from 1 to 100.");
+
+        return new RasterImage(this, quality, MaximumResolution);
+    }
+
+    /// <summary>
+    /// The image, embedded at no more than <paramref name="pixelsPerInch"/> where it is shown: an image placed smaller
+    /// than its pixels need is scaled down. Needs an image processor at export.
+    /// </summary>
+    public RasterImage WithMaximumResolution(float pixelsPerInch)
+    {
+        if (!(pixelsPerInch > 0) || float.IsInfinity(pixelsPerInch))
+            throw new ArgumentOutOfRangeException(nameof(pixelsPerInch), pixelsPerInch, "A resolution is a finite number of pixels per inch above nothing.");
+
+        return new RasterImage(this, Quality, pixelsPerInch);
+    }
+
     /// <summary>The width in pixels, the right way up: an EXIF orientation that turns the image is applied.</summary>
     public int PixelWidth => IsTurned ? StoredHeight : StoredWidth;
 

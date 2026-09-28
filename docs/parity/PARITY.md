@@ -154,11 +154,12 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 |---|---|---|---|
 | Image from bytes, stream, file; shared image object | `Image`, `Image.From*` | ✅ | — |
 | Fit width, height, area, unproportional | `ImageScaling`, `Fit*` | ✅ | — |
-| Per-image compression quality and target DPI | `WithCompressionQuality`, `WithRasterDpi` | 🟡 document-wide only | 5 |
+| Per-image compression quality and target DPI | `WithCompressionQuality`, `WithRasterDpi` | ✅ per image and per export, by `SkiaImageProcessor` from the Raster package | — |
 | Keep original image bytes | `UseOriginalImage` | ✅ always, wherever PDF can carry the encoding | — |
-| Dynamic images generated at the final size | `GenerateDynamicImageDelegate` | ❌ | 5 |
-| SVG, static and dynamic | `Svg`, `SvgImage` | ❌ | 5 |
-| Custom vector drawing | `Canvas(DrawOnCanvas)` | ❌ own drawing API, not a raw Skia canvas | 5 |
+| Dynamic images generated at the final size | `GenerateDynamicImageDelegate` | ✅ | — |
+| SVG, static | `Svg`, `SvgImage` | ✅ read into vector `Artwork`; radial gradients as their mean colour, no filters or masks | — |
+| SVG, dynamic (at the final size) | `Svg(Func<Size, string>)` | ✅ `Artwork(size => Artwork.FromSvg(...))` | — |
+| Custom vector drawing | `Canvas(DrawOnCanvas)` | ✅ `Artwork`, our own drawing API, vector in the PDF | — |
 
 ## Fonts
 

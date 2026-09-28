@@ -30,6 +30,12 @@ internal interface ISurface
     /// <summary>Rotates clockwise about the current origin.</summary>
     void Rotate(float degrees);
 
+    /// <summary>
+    /// Applies a general transform, mapping (x, y) to (a·x + c·y + e, b·x + d·y + f) in the space in force, as SVG's
+    /// <c>matrix(a b c d e f)</c> does.
+    /// </summary>
+    void Concatenate(float a, float b, float c, float d, float e, float f);
+
     /// <summary>Restricts subsequent drawing to a rectangle at the current origin.</summary>
     void ClipRectangle(Extent size);
 
@@ -73,6 +79,15 @@ internal interface ISurface
     /// <paramref name="corners"/>, casts: moved, grown and blurred as <paramref name="shadow"/> says.
     /// </summary>
     void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow);
+
+    /// <summary>Fills <paramref name="path"/>, deciding what is inside by <paramref name="rule"/>.</summary>
+    void FillPath(VectorPath path, Ink ink, FillRule rule);
+
+    /// <summary>Strokes <paramref name="path"/> as <paramref name="style"/> says.</summary>
+    void StrokePath(VectorPath path, Ink ink, LineStyle style);
+
+    /// <summary>Confines what is drawn after it, until the state is restored, to the inside of <paramref name="path"/>.</summary>
+    void ClipPath(VectorPath path, FillRule rule);
 
     /// <summary>Draws a single run of text with its left edge on the baseline at <paramref name="baselineStart"/>.</summary>
     /// <param name="text">The text, in logical order.</param>

@@ -42,7 +42,7 @@ internal static class GradientPattern
             [ShadingType] = 2,
             [ColorSpace] = cmyk ? DeviceCmyk : DeviceRgb,
             [Coords] = new PdfArray(4) { start.X, start.Y, end.X, end.Y },
-            [Function] = Blend(inks, cmyk),
+            [Function] = Blend(inks, gradient.Positions, cmyk),
             [Extend] = new PdfArray(2) { true, true },
         };
 
@@ -55,27 +55,36 @@ internal static class GradientPattern
     }
 
     /// <summary>
-    /// A function from 0 to 1 onto the inks: one interpolation for two inks, or one per neighbouring pair stitched
-    /// together at even intervals for more.
+    /// A function from 0 to 1 onto the inks at their positions: one interpolation for two inks at the ends, or one
+    /// per neighbouring pair stitched together where each ink lies. Before the first ink and after the last, the blend
+    /// holds that ink.
     /// </summary>
-    private static PdfDictionary Blend(IReadOnlyList<Ink> inks, bool cmyk)
+    private static PdfDictionary Blend(IReadOnlyList<Ink> inks, IReadOnlyList<float> positions, bool cmyk)
     {
-        if (inks.Count == 2)
-            return Between(inks[0], inks[1], cmyk);
+        List<(float Position, Ink Ink)> stops = inks.Select((ink, index) => (positions[index], ink)).ToList();
 
-        int pairs = inks.Count - 1;
+        if (stops[0].Position > 0)
+            stops.Insert(0, (0f, stops[0].Ink));
+
+        if (stops[stops.Count - 1].Position < 1)
+            stops.Add((1f, stops[stops.Count - 1].Ink));
+
+        if (stops.Count == 2)
+            return Between(stops[0].Ink, stops[1].Ink, cmyk);
+
+        int pairs = stops.Count - 1;
         PdfArray functions = new PdfArray(pairs);
         PdfArray bounds = new PdfArray(pairs - 1);
         PdfArray encode = new PdfArray(pairs * 2);
 
         for (int index = 0; index < pairs; index++)
         {
-            functions.Add(Between(inks[index], inks[index + 1], cmyk));
+            functions.Add(Between(stops[index].Ink, stops[index + 1].Ink, cmyk));
             encode.Add(0);
             encode.Add(1);
 
             if (index > 0)
-                bounds.Add((double)index / pairs);
+                bounds.Add(stops[index].Position);
         }
 
         return new PdfDictionary

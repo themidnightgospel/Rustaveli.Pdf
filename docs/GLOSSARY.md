@@ -154,8 +154,24 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Placeholder(Ink?)`, `Placeholder(string, Ink?)` | method | A box standing in for content not there yet, saying what will go there if given words. | print | `Placeholder` |
 | `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |
 | `Image(IImage, ImageFitting)` | method | Places an image. | plain | `Image` |
+| `Image(Func<ImageRequest, byte[]?>)` | method | An image generated for the box it fills, at the resolution images are generated at. | plain | `Image(GenerateDynamicImageDelegate)` |
+| `ImageRequest` | struct | What a generated image is asked for: its `Size`, `PixelWidth`, `PixelHeight` and `Resolution`. | plain | `GenerateDynamicImageDelegatePayload` |
+| `Artwork(Func<Extent, Artwork?>)` | method | Artwork generated for the box it fills — an SVG written for that size, say. | plain | `Svg(Func<Size, string>)` |
+| `PdfExportOptions.ImageResolution` | property | The resolution generated images are asked for, 288 pixels an inch unless set. | plain | `Settings.ImageRasterDpi` |
+| `Artwork(Artwork, ImageFitting)` | method | Places vector artwork, fitted as an image is and kept vector in the PDF. | print ("artwork") | `Svg`, `Canvas` |
+| `Artwork` | class | Vector artwork of a size of its own, made by `Draw(width, height, ...)` or read by `FromSvg` and `FromSvgFile`. | print | `SvgImage`, `DrawOnCanvas` |
+| `TextAnchor` | enum | `Start`, `Middle`, `End`: which part of a line of artwork text sits at its point. | SVG | `text-anchor` |
+| `ArtworkComposer` | class | Draws artwork: `Fill`, `Stroke`, `Clip`, `Text`, `Image`, `SaveState`, `RestoreState`, `Translate`, `Scale`, `Rotate`, `Transform`. | print | a Skia canvas |
+| `VectorPath` | class | Straight and curved segments — `MoveTo`, `LineTo`, `CurveTo`, `QuadraticTo`, `ArcTo`, `Close` — and shapes: `AddRectangle`, `AddRoundedRectangle`, `AddEllipse`, `AddCircle`. | plain | `SKPath` |
+| `FillRule` | enum | `NonZero`, `EvenOdd`: what counts as inside a path that crosses itself. | plain | `SKPathFillType` |
+| `LineStyle` | struct | A stroke's `Weight`, `Cap`, `Join`, `MiterLimit`, `Dashes` and `DashOffset`. | plain | `SKPaint` stroke settings |
+| `LineCap`, `LineJoin` | enum | How a stroke's ends (`Butt`, `Round`, `Square`) and corners (`Miter`, `Round`, `Bevel`) are finished. | plain | `SKStrokeCap`, `SKStrokeJoin` |
 | `IImage` | interface | An image a frame can place, with its size in pixels the right way up. | plain | `IImage` |
 | `RasterImage` | class | A JPEG or PNG, loaded with `FromBytes`, `FromStream` or `FromFile` and embedded as it was encoded wherever PDF allows. *Raster*, as prepress distinguishes pixel images from vector art. | print | `Image` |
+| `RasterImage.WithQuality(int)`, `WithMaximumResolution(float)` | method | The image, recompressed at a quality or scaled to the resolution it is shown at when embedded. | plain | `WithCompressionQuality`, `WithRasterDpi` |
+| `IImageProcessor` | interface | Re-encodes images for embedding when a quality or maximum resolution asks for it. | plain | — |
+| `ImageProcessing` | struct | What a processor is asked: the `Source`, the `PixelWidth` and `PixelHeight` to make, and the `Quality`. | plain | — |
+| `PdfExportOptions.ImageQuality`, `MaximumImageResolution`, `ImageProcessor` | property | Document-wide image quality and resolution, and what processes images to meet them. | plain | `Settings.ImageCompressionQuality`, `ImageRasterDpi` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |
 
 ## Text
@@ -200,6 +216,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Shadow` | struct | A shadow's `Ink`, `Blur`, `Offset` and `Spread`, in points, as CSS measures a box shadow. | InDesign ("drop shadow") | `BoxShadowStyle` |
+| `GradientStop` | struct | An ink at a position along a gradient, from 0 to 1. | InDesign ("gradient stop") | — |
 | `Gradient` | class | A linear blend of inks at an angle, clockwise from left to right: `Across`, `Down`, or any angle. | InDesign ("gradient swatch") | `BackgroundLinearGradient`'s arguments |
 | `Ink` | struct | A colour as print thinks of it: RGB, CMYK process colour, or a named spot ink with a process fallback ([ADR 0004](adr/0004-ink-colour-model.md)). | print | `Color` |
 | `Ink.Rgb`, `Ink.Cmyk`, `Ink.Spot`, `Ink.Hex` | method | Creates an ink. | print | `Color.FromArgb`, `Color.ParseHex` |
@@ -239,6 +256,7 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | `ImageExport` | class | The `ExportImages` methods of the `Rustaveli.Pdf.Raster` package: every page as an image, drawn by SkiaSharp from the same layout and glyphs as the PDF. | InDesign ("Export JPEG") | `GenerateImages` |
 | `ComplexScripts` | class | `ShapeComplexScripts`, from the `Rustaveli.Pdf.Shaping` package: shapes Arabic, Hebrew points, Indic and South-East Asian scripts with HarfBuzz for the text a `TypefaceLibrary` sets. | typesetting ("complex scripts") | built in |
 | `ImageExportOptions` | class | The `Resolution` in pixels per inch, the `Format`, the `Quality` of lossy formats, the `Typefaces`, and whether to `RequireEveryGlyph`. | InDesign | `ImageGenerationSettings` |
+| `SkiaImageProcessor` | class | Scales and recompresses images for PDF export with Skia, turning them the right way up. | plain | — |
 | `PageImageFormat` | enum | `Png`, `Jpeg`, `Webp`. | plain | `ImageFormat` |
 
 ## Failures

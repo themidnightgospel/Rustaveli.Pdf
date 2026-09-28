@@ -33,6 +33,33 @@ public static class FrameContent
         });
     }
 
+    /// <summary>
+    /// Adds an image generated for the box it fills, taking all the room there is, at the resolution images are
+    /// generated at: a chart drawn by another library, say. Returning nothing leaves the box empty.
+    /// </summary>
+    public static void Image(this IFrame parent, Func<ImageRequest, byte[]?> generate)
+    {
+        ArgumentNullException.ThrowIfNull(generate);
+        FrameAttachment.Attach(parent, new GeneratedImageBlock { Generate = generate });
+    }
+
+    /// <summary>
+    /// Adds artwork generated for the box it fills, taking all the room there is — an SVG written for exactly that
+    /// size, say — stretched to fill it. Returning nothing leaves the box empty.
+    /// </summary>
+    public static void Artwork(this IFrame parent, Func<Extent, Artwork?> generate)
+    {
+        ArgumentNullException.ThrowIfNull(generate);
+        FrameAttachment.Attach(parent, new GeneratedArtworkBlock { Generate = generate });
+    }
+
+    /// <summary>Adds vector artwork, scaled to the frame according to <paramref name="fit"/> and kept vector in the PDF.</summary>
+    public static void Artwork(this IFrame parent, Artwork artwork, ImageFitting fit = ImageFitting.FitWidth)
+    {
+        ArgumentNullException.ThrowIfNull(artwork);
+        FrameAttachment.Attach(parent, new ArtworkBlock { Artwork = artwork, Fit = fit });
+    }
+
     /// <summary>Stacks content vertically, flowing across pages when it does not fit.</summary>
     public static void Stack(this IFrame parent, Action<StackComposer> handler)
     {

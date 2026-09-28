@@ -37,6 +37,8 @@ internal sealed class CountingPageSink : IPageSink
 
     public void Rotate(float degrees) => _transform.Rotate(degrees);
 
+    public void Concatenate(float a, float b, float c, float d, float e, float f) => _transform.Concatenate(a, b, c, d, e, f);
+
     public void ClipRectangle(Extent size)
     {
     }
@@ -66,6 +68,18 @@ internal sealed class CountingPageSink : IPageSink
     }
 
     public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow)
+    {
+    }
+
+    public void FillPath(VectorPath path, Ink ink, FillRule rule)
+    {
+    }
+
+    public void StrokePath(VectorPath path, Ink ink, LineStyle style)
+    {
+    }
+
+    public void ClipPath(VectorPath path, FillRule rule)
     {
     }
 
