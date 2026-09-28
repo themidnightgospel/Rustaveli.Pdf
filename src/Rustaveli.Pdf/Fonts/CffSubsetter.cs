@@ -37,7 +37,6 @@ internal static class CffSubsetter
     private const int CidCount = (12 << 8) | 34;
     private const int FdArray = (12 << 8) | 36;
     private const int FdSelect = (12 << 8) | 37;
-    private const int FontName = (12 << 8) | 38;
 
     /// <summary>The first string ID a font's own strings take; below it are CFF's standard strings.</summary>
     private const int FirstCustomString = 391;
@@ -132,8 +131,9 @@ internal static class CffSubsetter
     }
 
     /// <summary>
-    /// A font dict as the subset keeps it: its entries but its private dict and its name, which is a string the
-    /// subset does not carry; its private dict less its subroutines; and those subroutines, to flatten its glyphs.
+    /// A font dict as the subset keeps it: its font matrix alone, since its other entries name strings the subset
+    /// does not carry or say nothing a PDF uses; its private dict less its subroutines; and those subroutines, to
+    /// flatten its glyphs.
     /// </summary>
     private static FontDict ReadFontDict(byte[] cff, byte[] dict, List<CffDictEntry> entries)
     {
@@ -148,8 +148,8 @@ internal static class CffSubsetter
             : default;
 
         return new FontDict(
-            Copy(dict, entries, Private, FontName),
-            Copy(privateDict, privateEntries, Subrs, Subrs),
+            Copy(dict, entries, op => op == FontMatrix),
+            Copy(privateDict, privateEntries, op => op != Subrs),
             localSubrs);
     }
 
@@ -278,12 +278,12 @@ internal static class CffSubsetter
         return charset.ToArray();
     }
 
-    /// <summary>The entries of <paramref name="dict"/> but those of two operators, exactly as they were written.</summary>
-    private static byte[] Copy(ReadOnlySpan<byte> dict, List<CffDictEntry> entries, int left, int alsoLeft)
+    /// <summary>The entries of <paramref name="dict"/> whose operators it keeps, exactly as they were written.</summary>
+    private static byte[] Copy(ReadOnlySpan<byte> dict, List<CffDictEntry> entries, Func<int, bool> keeps)
     {
         FontDataWriter copy = new FontDataWriter();
 
-        foreach (CffDictEntry entry in entries.Where(entry => entry.Operator != left && entry.Operator != alsoLeft))
+        foreach (CffDictEntry entry in entries.Where(entry => keeps(entry.Operator)))
             copy.Bytes(dict.Slice(entry.Start, entry.Length));
 
         return copy.ToArray();

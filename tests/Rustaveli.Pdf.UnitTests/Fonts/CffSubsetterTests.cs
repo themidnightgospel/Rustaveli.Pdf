@@ -58,6 +58,27 @@ public class CffSubsetterTests
     }
 
     [Fact]
+    public void AFontDictKeepsOnlyItsFontMatrixAndPrivateDict()
+    {
+        // The source's font dicts name themselves, by strings the subset does not carry.
+        byte[] source = CffOf(Cjk).ToArray();
+        Assert.Contains((12 << 8) | 38, FontDictOperators(source));
+
+        byte[] subset = CffSubsetter.TrySubset(CffOf(Cjk), Shown(Cjk, "中あA"))!;
+
+        Assert.Subset(new HashSet<int> { (12 << 8) | 7, 18 }, FontDictOperators(subset));
+        Assert.Contains(18, FontDictOperators(subset));
+    }
+
+    [Fact]
+    public void ANameKeyedFontsOneFontDictHoldsOnlyItsPrivateDict()
+    {
+        byte[] subset = CffSubsetter.TrySubset(CffOf(Subrs), Shown(Subrs, "Ab"))!;
+
+        Assert.Equal([18], FontDictOperators(subset));
+    }
+
+    [Fact]
     public void AGlyphShownTwiceIsKeptOnceAndNotdefIsAlwaysFirst()
     {
         OpenTypeFont font = Subrs;
@@ -89,6 +110,24 @@ public class CffSubsetterTests
         (int start, int length) = tops.GetItem(cff, 0);
         CffDictEntry fdArray = CffDict.Read(cff.AsSpan(start, length)).Single(entry => entry.Operator == ((12 << 8) | 36));
         return CffIndex.Read(cff, fdArray.Integer()).Count;
+    }
+
+    /// <summary>Every operator any font dict of <paramref name="cff"/> has, once each.</summary>
+    private static HashSet<int> FontDictOperators(byte[] cff)
+    {
+        CffIndex names = CffIndex.Read(cff, cff[2]);
+        CffIndex tops = CffIndex.Read(cff, names.End);
+        (int start, int length) = tops.GetItem(cff, 0);
+        CffIndex fdArray = CffIndex.Read(cff, CffDict.Read(cff.AsSpan(start, length)).Single(entry => entry.Operator == ((12 << 8) | 36)).Integer());
+        HashSet<int> operators = [];
+
+        for (int index = 0; index < fdArray.Count; index++)
+        {
+            (int fdStart, int fdLength) = fdArray.GetItem(cff, index);
+            operators.UnionWith(CffDict.Read(cff.AsSpan(fdStart, fdLength)).Select(entry => entry.Operator));
+        }
+
+        return operators;
     }
 
     /// <summary>No global subroutines, no private dict naming local ones, and no glyph calling either.</summary>

@@ -92,7 +92,7 @@ internal sealed class CharStringFlattener
 
             if (b0 is 28 or >= 32)
             {
-                position = Operand(position, b0);
+                position = Operand(position, b0, end);
                 continue;
             }
 
@@ -170,20 +170,31 @@ internal sealed class CharStringFlattener
         return false;
     }
 
-    /// <summary>Reads the operand at <paramref name="position"/> onto the stack; where the next token begins.</summary>
-    private int Operand(int position, int b0)
+    /// <summary>
+    /// Reads the operand at <paramref name="position"/> onto the stack; where the next token begins. An operand that
+    /// runs past <paramref name="end"/>, into whatever follows the program, is refused.
+    /// </summary>
+    private int Operand(int position, int b0, int end)
     {
-        (int length, double value) = b0 switch
+        int length = b0 switch
         {
-            28 => (3, (double)BigEndian.Int16(_cff, position + 1)),
-            <= 246 => (1, b0 - 139),
-            <= 250 => (2, ((b0 - 247) * 256) + BigEndian.UInt8(_cff, position + 1) + 108),
-            <= 254 => (2, -((b0 - 251) * 256) - BigEndian.UInt8(_cff, position + 1) - 108),
-            _ => (5, BigEndian.Int32(_cff, position + 1) / 65536d),
+            28 => 3,
+            <= 246 => 1,
+            <= 254 => 2,
+            _ => 5,
         };
 
-        if (position + length > _cff.Length)
+        if (position + length > end)
             throw FontFormatException.Truncated();
+
+        double value = b0 switch
+        {
+            28 => BigEndian.Int16(_cff, position + 1),
+            <= 246 => b0 - 139,
+            <= 250 => ((b0 - 247) * 256) + _cff[position + 1] + 108,
+            <= 254 => -((b0 - 251) * 256) - _cff[position + 1] - 108,
+            _ => BigEndian.Int32(_cff, position + 1) / 65536d,
+        };
 
         _pending.Add((position, length, value));
         _stack++;

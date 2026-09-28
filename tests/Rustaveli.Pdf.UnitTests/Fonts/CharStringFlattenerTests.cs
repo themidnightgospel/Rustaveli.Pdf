@@ -169,9 +169,23 @@ public class CharStringFlattenerTests
     [InlineData(new byte[] { 139 + 5, CallSubr, EndChar })]
     [InlineData(new byte[] { 139 + 1, 139 + 1, RLineTo })]
     [InlineData(new byte[] { 0, EndChar })]
-    [InlineData(new byte[] { 28, 0 })]
     [InlineData(new byte[] { 139 + 1, 139 + 1, HStem, HintMask })]
     [InlineData(new byte[] { 12 })]
     public void AMalformedGlyphIsRefused(byte[] glyph) =>
         Assert.Throws<FontFormatException>(() => Flatten(glyph, [[Return]]));
+
+    [Theory]
+    [InlineData(new byte[] { 28 })]
+    [InlineData(new byte[] { 28, 0 })]
+    [InlineData(new byte[] { 247 })]
+    [InlineData(new byte[] { 251 })]
+    [InlineData(new byte[] { 255, 0, 1, 0 })]
+    public void AnOperandRunningPastTheEndOfItsGlyphIsRefused(byte[] glyph)
+    {
+        // The subroutine INDEX the test writes after the glyph has bytes enough to finish the operand; they are not
+        // the glyph's to read.
+        FontFormatException refused = Assert.Throws<FontFormatException>(() => Flatten(glyph, [[Return], [Return], [Return]]));
+
+        Assert.Equal(FontFormatException.Truncated().Message, refused.Message);
+    }
 }
