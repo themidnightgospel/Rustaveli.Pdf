@@ -352,4 +352,31 @@ public class PdfExportTests
         Assert.InRange(Math.Abs((writtenCreated!.Value - created).TotalMinutes), 0, tolerance);
         Assert.InRange(Math.Abs((writtenModified!.Value - modified).TotalMinutes), 0, tolerance);
     }
+
+    [Fact]
+    public void FontsAreEmbeddedWithoutHintingUnlessAskedToKeepIt()
+    {
+        Document document = Document.Compose(container => container.Section(page =>
+        {
+            page.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            page.Body().Text("Hello, world");
+        }));
+
+        byte[] unhinted = document.ExportPdf();
+        byte[] hinted = document.ExportPdf(new PdfExportOptions { KeepFontHinting = true });
+
+        // Uncompressed, the font program lies in the file as it is, its table directory naming its tables.
+        byte[] fpgm = "fpgm"u8.ToArray();
+        Assert.False(Contains(document.ExportPdf(new PdfExportOptions { Compress = false }), fpgm));
+        Assert.True(Contains(document.ExportPdf(new PdfExportOptions { Compress = false, KeepFontHinting = true }), fpgm));
+
+        Assert.False(new PdfExportOptions().KeepFontHinting);
+        Assert.True(unhinted.Length < hinted.Length * 0.7, $"{unhinted.Length} bytes unhinted against {hinted.Length} hinted.");
+
+        // Either way the text is the same text.
+        using PdfDocument read = PdfDocument.Open(unhinted);
+        Assert.Equal("Hello, world", read.GetPage(1).Text);
+    }
+
+    private static bool Contains(byte[] data, byte[] part) => data.AsSpan().IndexOf(part) >= 0;
 }

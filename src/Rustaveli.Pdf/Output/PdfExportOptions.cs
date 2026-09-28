@@ -22,6 +22,14 @@ public sealed class PdfExportOptions
     public bool RequireEveryGlyph { get; set; }
 
     /// <summary>
+    /// Whether embedded TrueType fonts keep their hinting — the instructions that fit glyphs to a screen's pixel grid
+    /// at small sizes. Off by default: viewers mostly smooth type on their own, print is unaffected, and hinting is
+    /// often most of a small document's font data. On, fonts are embedded with it, for the crispest small text on
+    /// screens that honour it. The few fonts whose glyphs are unreadable without their hinting keep it either way.
+    /// </summary>
+    public bool KeepFontHinting { get; set; }
+
+    /// <summary>
     /// The resolution images generated at their final size are generated at, in pixels per inch: 288 unless set,
     /// sharp in print.
     /// </summary>

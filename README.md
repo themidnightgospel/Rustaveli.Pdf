@@ -254,10 +254,10 @@ size against QuestPDF on a fixed set of documents, against the targets in
 
 | Document | QuestPDF | This library | Ratio |
 |---|---:|---:|---:|
-| Invoice | 15,011 B | 11,451 B | 0.76× |
-| Report | 993,479 B | 671,147 B | 0.68× |
-| Large table | 1,063,132 B | 837,225 B | 0.79× |
-| Images | 3,581,499 B | 147,181 B | 0.04× |
+| Invoice | 15,011 B | 6,799 B | 0.45× |
+| Report | 993,479 B | 171,231 B | 0.17× |
+| Large table | 1,063,132 B | 581,890 B | 0.55× |
+| Images | 3,581,499 B | 142,133 B | 0.04× |
 
 Current agreement across text flow, header/footer pagination and multi-page tables: **identical page counts,
 identical word sequences, identical horizontal word positions and identical line spacing, with every line 0.24pt
@@ -280,8 +280,9 @@ masks, patterns and markers are left out.
 
 **XPS is written on Windows only**, as it relies on the platform's XPS support.
 
-**Small text-only documents are larger than they need be.** TrueType subsets keep their hinting instructions and CFF
-faces are embedded whole; stripping the one and subsetting the other is planned.
+**CFF faces are embedded whole.** TrueType faces are subset to the glyphs a document uses, and their hinting taken
+out unless `PdfExportOptions.KeepFontHinting` asks for it; a face with CFF outlines — most `.otf` files — is
+embedded entire. Subsetting CFF is planned.
 
 ## Roadmap
 

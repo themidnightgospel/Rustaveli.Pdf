@@ -12,10 +12,13 @@ namespace Rustaveli.Pdf.Fonts;
 /// </para>
 /// <para>
 /// The result holds the tables a PDF viewer needs to draw TrueType outlines — <c>head</c>, <c>hhea</c>,
-/// <c>maxp</c>, <c>hmtx</c>, <c>loca</c>, <c>glyf</c>, the hinting programs <c>cvt </c>, <c>fpgm</c> and
-/// <c>prep</c> — plus a <c>cmap</c> for the kept characters and a version 3 <c>post</c>, which validators and font
-/// tools expect. Names, layout tables, kerning, signatures and everything else are dropped: none of them are
-/// read from an embedded CIDFont, and the names alone can outweigh a small subset.
+/// <c>maxp</c>, <c>hmtx</c>, <c>loca</c>, <c>glyf</c> — plus a <c>cmap</c> for the kept characters and a version 3
+/// <c>post</c>, which validators and font tools expect. Names, layout tables, kerning, signatures and everything else
+/// are dropped: none of them are read from an embedded CIDFont, and the names alone can outweigh a small subset.
+/// </para>
+/// <para>
+/// Hinting is taken out unless asked to be kept — the programs <c>cvt </c>, <c>fpgm</c> and <c>prep</c>, and every
+/// glyph's instructions — save in the fonts that need it to be read at all (<see cref="GlyphHinting"/>).
 /// </para>
 /// <para>
 /// Only TrueType outlines are subset. CFF fonts are embedded whole.
@@ -28,12 +31,12 @@ internal static class TrueTypeSubsetter
     /// </summary>
     private const int ShortLocaLimit = 0xFFFF * 2;
 
-    private static readonly uint[] CopiedTables = [TableTag.Cvt, TableTag.Fpgm, TableTag.Prep];
+    private static readonly uint[] HintingTables = [TableTag.Cvt, TableTag.Fpgm, TableTag.Prep];
 
     /// <summary>
     /// A subset of <paramref name="glyphs"/> and the glyphs they need, numbered in their original order.
     /// </summary>
-    public static TrueTypeSubset Subset(OpenTypeFont font, IEnumerable<ushort> glyphs)
+    public static TrueTypeSubset Subset(OpenTypeFont font, IEnumerable<ushort> glyphs, bool keepHinting = false)
     {
         ArgumentNullException.ThrowIfNull(font);
         ArgumentNullException.ThrowIfNull(glyphs);
@@ -41,7 +44,7 @@ internal static class TrueTypeSubsetter
         List<ushort> order = WithComponents(font, [0, .. glyphs]);
         order.Sort();
 
-        return Build(font, order);
+        return Build(font, order, keepHinting);
     }
 
     /// <summary>
@@ -50,7 +53,8 @@ internal static class TrueTypeSubsetter
     /// </summary>
     /// <param name="font">The font to subset.</param>
     /// <param name="numbering">Original glyph ids in subset order; the first must be 0, and none may repeat.</param>
-    public static TrueTypeSubset SubsetInOrder(OpenTypeFont font, IReadOnlyList<ushort> numbering)
+    /// <param name="keepHinting">Whether the glyphs keep their hinting, which fonts that need it keep regardless.</param>
+    public static TrueTypeSubset SubsetInOrder(OpenTypeFont font, IReadOnlyList<ushort> numbering, bool keepHinting = false)
     {
         ArgumentNullException.ThrowIfNull(font);
         ArgumentNullException.ThrowIfNull(numbering);
@@ -61,7 +65,7 @@ internal static class TrueTypeSubsetter
         if (numbering.Distinct().Count() != numbering.Count)
             throw new ArgumentException("A glyph can have only one number in a subset.", nameof(numbering));
 
-        return Build(font, WithComponents(font, numbering));
+        return Build(font, WithComponents(font, numbering), keepHinting);
     }
 
     /// <summary>
@@ -112,15 +116,16 @@ internal static class TrueTypeSubsetter
         return order;
     }
 
-    private static TrueTypeSubset Build(OpenTypeFont font, List<ushort> order)
+    private static TrueTypeSubset Build(OpenTypeFont font, List<ushort> order, bool keepHinting)
     {
         GlyphTable glyphs = RequireTrueType(font);
         Dictionary<ushort, ushort> numbers = new Dictionary<ushort, ushort>(order.Count);
+        bool hinted = keepHinting || GlyphHinting.IsNeededBy(font.Names);
 
         for (int index = 0; index < order.Count; index++)
             numbers.Add(order[index], (ushort)index);
 
-        OutlineData outlines = WriteOutlines(font, glyphs, order, numbers);
+        OutlineData outlines = WriteOutlines(font, glyphs, order, numbers, hinted);
         bool longLoca = outlines.Glyf.Length > ShortLocaLimit;
 
         List<KeyValuePair<uint, byte[]>> tables =
@@ -135,9 +140,9 @@ internal static class TrueTypeSubsetter
             new(TableTag.Cmap, WriteCharacterMap(font, numbers))
         ];
 
-        foreach (uint tag in CopiedTables)
+        foreach (uint tag in HintingTables)
         {
-            if (font.TryGetTable(tag, out ReadOnlyMemory<byte> data))
+            if (hinted && font.TryGetTable(tag, out ReadOnlyMemory<byte> data))
                 tables.Add(new(tag, data.ToArray()));
         }
 
@@ -152,7 +157,7 @@ internal static class TrueTypeSubsetter
             $"Only TrueType outlines are subset; a font with {font.Outlines} outlines is embedded whole.");
 
     private static OutlineData WriteOutlines(
-        OpenTypeFont font, GlyphTable glyphs, List<ushort> order, Dictionary<ushort, ushort> numbers)
+        OpenTypeFont font, GlyphTable glyphs, List<ushort> order, Dictionary<ushort, ushort> numbers, bool hinted)
     {
         FontDataWriter glyf = new FontDataWriter();
         OutlineData result = new OutlineData(order.Count);
@@ -168,6 +173,9 @@ internal static class TrueTypeSubsetter
 
             if (data.IsEmpty)
                 continue;
+
+            if (!hinted)
+                data = GlyphHinting.Strip(data);
 
             int start = glyf.Length;
             glyf.Bytes(data);

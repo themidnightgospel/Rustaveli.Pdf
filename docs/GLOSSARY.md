@@ -46,7 +46,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Document.Info` | property | The document's `DocumentInfo`. | PDF | `Document.Metadata` |
 | `ExportPdf()` | method | Writes the document as PDF, to bytes, a stream or a file. *Export* is what InDesign calls it. | InDesign | `GeneratePdf` |
 | `ExportPdfAndOpen()` | method | Writes the document to a temporary PDF and opens it in the system's viewer. | plain | `GeneratePdfAndShow` |
-| `PdfExportOptions` | class | Options for export: the `Typefaces` to set text in, whether to `Compress` streams, and whether to `RequireEveryGlyph`. | InDesign | `PdfGenerationOptions` |
+| `PdfExportOptions` | class | Options for export: the `Typefaces` to set text in, whether to `Compress` streams, whether to `RequireEveryGlyph`, and whether to `KeepFontHinting`. | InDesign | `PdfGenerationOptions` |
 
 ## Frames and composing into them
 

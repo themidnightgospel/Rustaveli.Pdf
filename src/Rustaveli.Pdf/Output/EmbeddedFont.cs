@@ -59,10 +59,13 @@ internal sealed class EmbeddedFont
     private readonly GlyphSubset? _subset;
     private readonly SortedDictionary<ushort, (ushort Glyph, string? Text)>? _shown;
 
-    public EmbeddedFont(OpenTypeFont face, PdfReference reference)
+    private readonly bool _keepHinting;
+
+    public EmbeddedFont(OpenTypeFont face, PdfReference reference, bool keepHinting = false)
     {
         Face = face;
         Reference = reference;
+        _keepHinting = keepHinting;
 
         if (face.Outlines == OutlineFormat.TrueType)
             _subset = new GlyphSubset(face);
@@ -107,7 +110,7 @@ internal sealed class EmbeddedFont
 
     private void WriteTrueType(PdfFileWriter file, GlyphSubset subset)
     {
-        TrueTypeSubset font = subset.Build();
+        TrueTypeSubset font = subset.Build(_keepHinting);
         string name = font.Tag + "+" + PostScriptName(Face);
 
         PdfReference program = file.WriteStream(new PdfDictionary { [Length1] = font.FontData.Length }, font.FontData);

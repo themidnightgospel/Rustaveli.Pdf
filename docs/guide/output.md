@@ -8,6 +8,7 @@
 |---|---|---|
 | `Typefaces` | `TypefaceLibrary.Shared` | The typefaces text is set in — see [Text](text.md#typefaces) |
 | `RequireEveryGlyph` | off | Fail with `MissingGlyphException` rather than set a character no typeface has |
+| `KeepFontHinting` | off | Embed TrueType fonts with their hinting, for the crispest small text on screens that use it |
 | `Compress` | on | Compress content streams; off makes them readable, for debugging |
 | `ImageQuality`, `MaximumImageResolution`, `ImageProcessor` | none | Recompress and scale images — see [Images](images-and-artwork.md#size-and-quality) |
 | `ImageResolution` | 288 | The resolution images made for their box are asked for |
@@ -16,8 +17,9 @@
 | `Accessibility` | none | Claim PDF/UA |
 | `Protection` | none | Password-protect the file |
 
-Fonts are subset to the glyphs a document uses, images are embedded as they were encoded where PDF allows, and
-identical images and fonts are written once however often they appear. Pages are rendered in parallel.
+Fonts are subset to the glyphs a document uses — without their hinting unless `KeepFontHinting` asks for it, which
+often halves them — images are embedded as they were encoded where PDF allows, and identical images and fonts are
+written once however often they appear. Pages are rendered in parallel.
 
 ## Page images, SVG and XPS
 

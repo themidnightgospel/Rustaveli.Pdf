@@ -48,6 +48,10 @@ internal static class VeraPdf
             string report = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
 
+            // No report at all is veraPDF itself failing, not a file failing it: say what veraPDF said.
+            if (string.IsNullOrWhiteSpace(report))
+                throw new InvalidOperationException($"veraPDF wrote no report and exited with {process.ExitCode}:\n{errors.Result}");
+
             return Failures(XDocument.Parse(report), errors.Result);
         }
         finally
