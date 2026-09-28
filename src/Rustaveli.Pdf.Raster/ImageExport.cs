@@ -42,7 +42,6 @@ public static class ImageExport
     /// </summary>
     public static void ExportImages(this Document document, Func<int, string> pathOfPage, ImageExportOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pathOfPage);
 
         IReadOnlyList<byte[]> pages = document.ExportImages(options);

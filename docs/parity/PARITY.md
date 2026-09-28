@@ -179,7 +179,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | PDF to bytes, stream, file | `GeneratePdf` | ✅ | — |
 | Generate and open in the default viewer | `GeneratePdfAndShow` | ✅ `ExportPdfAndOpen` | — |
 | Page images: PNG, JPEG, WebP, DPI, quality | `GenerateImages`, `ImageGenerationSettings` | ✅ `ExportImages` in `Rustaveli.Pdf.Raster` | — |
-| Parallel generation | built in | ✅ no process-wide lock | — |
+| Parallel generation | built in | ✅ no process-wide lock; one document exported from many threads at once, each export after the first composing its own copy | — |
 | SVG pages | `GenerateSvg` | ✅ `ExportSvg`, text as outlines | — |
 | XPS | `GenerateXps` | ✅ `ExportXps`, Windows only as theirs is | — |
 | Stream compression switch | `DocumentSettings.CompressDocument` | ✅ `PdfExportOptions.Compress` | — |

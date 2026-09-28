@@ -34,6 +34,10 @@ internal static class Typesetter
         ArgumentNullException.ThrowIfNull(pages);
         ArgumentNullException.ThrowIfNull(measurer);
 
+        // The document's own tree, or a copy composed afresh while another export is laying the tree out.
+        using Document.ExportLease lease = document.ForExport();
+        document = lease.Document;
+
         // Content composed as pages are set — per page, or later — names styles as content composed up front does.
         using StyleSheet.Scope styles = document.Styles.Use();
         Pagination pageContext = new Pagination();

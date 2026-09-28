@@ -2,9 +2,9 @@
 
 A free, open source, fluent PDF generation library for .NET.
 
-> **Status: pre-release (0.x).** The layout engine, the composing API in its own print vocabulary and a managed PDF
-> writer — font subsetting, pass-through images, CMYK and spot inks — are implemented and tested on `net10.0` and
-> `netstandard2.0` (.NET Framework 4.6.2+), with page images through SkiaSharp. See [Roadmap](#roadmap).
+> **Version 1.0.** Every capability of QuestPDF's last MIT release, tooling included — see the
+> [parity checklist](docs/parity/PARITY.md) — on `net10.0` and `netstandard2.0` (.NET Framework 4.7.2+). The
+> [guides](docs/guide/README.md) show how to use it.
 
 ## Why this exists
 
@@ -82,6 +82,15 @@ you set content into can be modified first — inset, filled, stroked, placed, t
 chain. The [glossary](docs/GLOSSARY.md) lists every word the API uses and where it comes from. This example is
 compiled and run by `QuickStartTests`, so it stays correct.
 
+## Documentation
+
+The [guides](docs/guide/README.md) go through the library task by task — [getting started](docs/guide/getting-started.md),
+[layout](docs/guide/layout.md), [text](docs/guide/text.md), [images and artwork](docs/guide/images-and-artwork.md),
+[output](docs/guide/output.md), [existing files](docs/guide/existing-files.md) and
+[preview and debugging](docs/guide/preview-and-debugging.md) — and [coming from QuestPDF](docs/guide/coming-from-questpdf.md)
+maps its names to these. Every example in them is compiled by the tests, as this README's is. The packages carry
+XML documentation for every public member, and the [glossary](docs/GLOSSARY.md) lists every name the API uses.
+
 ## Architecture
 
 The library is split so that layout never depends on how pixels or PDF operators are produced.
@@ -146,10 +155,14 @@ made table header rows silently vanish after page one — a defect the QuestPDF 
 **Layout** — sections with running heads and feet, underlays and overlays, fixed and continuous pages, margins,
 `Columns` (fixed, shared and natural widths, right-to-left), `Stack`, `Table` (fixed and shared columns, automatic
 and explicit cell placement, row and column spanning, header and footer rows repeated on every page, pagination at
-row boundaries), `List` (bulleted, numbered, lettered, roman — numbering survives new pages), `Layered`, `Banded`.
+row boundaries, last cells extended to the bottom), `List` (bulleted, numbered, lettered, roman — numbering survives
+new pages), `Layered`, `Banded`, `Grid`, `Flow` (items wrapping as words do) and `FlowColumns` (newspaper columns,
+balanced or not); content composed per page from state, or only when layout reaches it; draw order across the page;
+named type, paragraph and frame styles in a style sheet, each able to build on another.
 
-**Modifiers** — insets, fills, strokes, rounded corners, width and height constraints, expansion, proportion,
-flush and centred placement, shifting, scaling, shrink-to-fit, quarter turns, mirroring.
+**Modifiers** — insets, fills and strokes in inks or gradients, stroke alignment, rounded corners alike or each on
+its own, drop shadows, width and height constraints, expansion, fitting to content, proportion, flush and centred
+placement, shifting, scaling, shrink-to-fit, rotation by any angle, quarter turns, mirroring.
 
 **Text** — styled runs, weight, italic, ink, highlight, underline, strike-through and overline (solid, double,
 dotted, dashed or wavy, in their own ink and weight), leading, tracking, word spacing, subscript and superscript;
@@ -158,7 +171,9 @@ or anywhere, limited to a number of lines with an ellipsis, with non-breaking sp
 between paragraphs and inline frames placed against the line; flow across pages, folios in any numerals, page
 counts, cross-references and page numbers within anchored content, and default type inherited from the section.
 
-**Flow** — `When`, `Once`, `SkipFirst`, `KeepTogether`, `RequireSpace`, `NewPage`, and reusable `ISnippet`s.
+**Flow** — `When` (a condition, or the pages a condition accepts), `Once`, `SkipFirst`, `KeepTogether`,
+`KeepTogetherWherePossible`, `RequireSpace`, `NewPage`, `RepeatOnEachPage`, `DiscardOverset`, a document-wide page
+limit, and reusable `ISnippet`s.
 
 **Ink** — RGB, CMYK process colour and named spot inks with a process fallback, tints and opacity
 ([ADR 0004](docs/adr/0004-ink-colour-model.md)). There is no built-in palette: a document brings its own colours.
@@ -167,13 +182,26 @@ counts, cross-references and page numbers within anchored content, and default t
 each searchable through a ToUnicode map; JPEGs and most PNGs embedded as they were encoded, with palettes, alpha,
 colour keys, sixteen bits and ICC profiles kept, images shared by content and turned upright by their EXIF
 orientation; CMYK process colour, spot inks as separations with a process fallback, and opacity; links,
-cross-references to anchors and document information. Exports run in parallel. Page images — PNG, JPEG or WebP at
-any resolution — come from the `Rustaveli.Pdf.Raster` package, drawn from the same layout and glyphs.
+cross-references to anchors, bookmarks and document information. Exports run in parallel. PDF/A-2 and PDF/A-3 at
+levels B, U and A; tagged PDF and PDF/UA-1, with headings, lists, tables, figures and their alternative text, and
+languages; password protection from RC4 to AES-256 — all checked by veraPDF and qpdf in the tests. Page images —
+PNG, JPEG or WebP at any resolution — SVG pages and XPS come from the `Rustaveli.Pdf.Raster` package, drawn from the
+same layout and glyphs.
+
+**Images and artwork** — JPEG and PNG images fitted four ways, recompressed and scaled to their shown size on
+request; vector artwork read from SVG or drawn from paths, text and images, and kept vector in the PDF; images and
+artwork made for the exact box they fill.
+
+**Existing files** — the `Rustaveli.Pdf.Operations` package reads PDF files in managed code, repairing what it can,
+and keeps and reorders pages, appends other files, lays them over or under as stamps and letterheads, attaches files
+for PDF/A-3 and electronic invoices, extends the metadata, protects and unprotects, and linearises for the web.
 
 **Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with fallback
 typefaces per style and per library and per-character fallback for anything a face lacks; OpenType substitutions
-(ligatures, small capitals, figure styles and any feature by tag) and pair kerning; substitution for a typeface
-nobody has, bundled Noto Sans for a machine with no fonts at all, and an optional check that every glyph exists.
+(ligatures, small capitals, figure styles and any feature by tag) and pair kerning; text in both directions ordered
+by the Unicode bidirectional algorithm; substitution for a typeface nobody has; Noto Sans carried in the package, so
+a document set in it looks the same on every machine and one with no fonts at all still has type; and an optional
+check that every glyph exists.
 Complex scripts — Arabic, Hebrew points, Indic and South-East Asian scripts — are shaped by HarfBuzz once the
 `Rustaveli.Pdf.Shaping` package is added and `ShapeComplexScripts()` called on the library.
 
@@ -244,23 +272,24 @@ so the comparison is behavioural throughout.
 
 ## Known limitations
 
-**A document is exported from one thread at a time.** Documents export in parallel, each with its own writer, but a
-single `Document` instance carries the layout cursors in its block tree, so it must not be exported from two
-threads at once. Compose one document per thread, or export them one after another.
+**Complex scripts need the Shaping package.** Without `Rustaveli.Pdf.Shaping`, Arabic, Hebrew points and Indic and
+South-East Asian scripts are set without their shaping rules: letters unjoined, marks unplaced.
 
-**Text is set glyph by glyph, with pair kerning but no other OpenType features.** There are no ligatures or other
-`GSUB` substitutions, no mark positioning, no complex-script shaping and no bidi reordering yet — the text engine of
-phase 3. `ReadingDirection` mirrors *layout* — the order of columns and table columns, and the default text
-alignment — but does not reorder characters within a string. Arabic, Hebrew and Indic text will not render
-correctly. CJK will render but without proper line-breaking rules.
+**SVG is read as drawing tools write it.** Radial gradients are drawn in the mean of their colours, and filters,
+masks, patterns and markers are left out.
+
+**XPS is written on Windows only**, as it relies on the platform's XPS support.
+
+**Small text-only documents are larger than they need be.** TrueType subsets keep their hinting instructions and CFF
+faces are embedded whole; stripping the one and subsetting the other is planned.
 
 ## Roadmap
 
-The goal is every capability of QuestPDF — including its tooling — in a vocabulary of our own, and faster. The
-[parity checklist](docs/parity/PARITY.md) tracks each capability against the phase that delivers it, and the
-[architecture decision records](docs/adr/README.md) explain the choices behind the plan.
+1.0 delivers every capability of QuestPDF — including its tooling — in a vocabulary of our own. The
+[parity checklist](docs/parity/PARITY.md) tracks each capability against the phase that delivered it, and the
+[architecture decision records](docs/adr/README.md) explain the choices behind the plan. Every phase below is done.
 
-| Phase | Delivers |
+| Phase | Delivered |
 |---|---|
 | 0 | Groundwork: quality gates, pipelines, conformance and property tests, benchmarks |
 | 1 | The print and typesetting vocabulary ([ADR 0002](docs/adr/0002-print-vocabulary.md)); `Ink` colour |
@@ -277,8 +306,9 @@ The goal is every capability of QuestPDF — including its tooling — in a voca
 
 MIT. See [LICENSE](LICENSE).
 
-The core package carries Latin, Greek and Cyrillic subsets of [Noto Sans](https://notofonts.github.io/), set only when
-nothing registered or installed can set a document's text. They are distributed under the SIL Open Font License
+The core package carries Latin, Greek and Cyrillic subsets of [Noto Sans](https://notofonts.github.io/), set for
+text in Noto Sans where no Noto Sans is registered or installed, and for text nothing registered or installed can
+set. They are distributed under the SIL Open Font License
 1.1, which travels with them in the package (`licenses/NotoSans-OFL.txt`) and is in
 [`src/Rustaveli.Pdf/Fonts/Bundled`](src/Rustaveli.Pdf/Fonts/Bundled/OFL.txt).
 

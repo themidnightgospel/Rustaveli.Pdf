@@ -247,6 +247,10 @@ internal sealed class TypeShaper
         if (Embeddable(_catalog.FindFace(request)) is FontFaceInfo face)
             return face.Load();
 
+        // The typeface the package carries, asked for by name, is the one wanted — not a stand-in for it.
+        if (BundledTypefaces.Named(request.Family, request.Style) is OpenTypeFont bundled)
+            return bundled;
+
         foreach (string substitute in SubstitutesFor(request.Family))
         {
             if (Embeddable(_catalog.FindFace(request with { Family = substitute })) is FontFaceInfo stand)
