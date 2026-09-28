@@ -27,7 +27,8 @@ public class FontFuzzTests
 
     private static readonly string[] SeedFiles =
     [
-        "NotoSansGeorgian-Regular.ttf", "SpecimenSans.ttc", "SpecimenCff-Regular.otf", "NotoSans-Italic.ttf"
+        "NotoSansGeorgian-Regular.ttf", "SpecimenSans.ttc", "SpecimenCff-Regular.otf", "NotoSans-Italic.ttf",
+        "SpecimenSubrs-Regular.otf", "SpecimenCjk-Regular.otf"
     ];
 
     private static readonly Lazy<(byte[] Font, IReadOnlyList<(int Offset, int Length)> Tables)[]> Seeds = new(() =>
@@ -175,8 +176,19 @@ public class FontFuzzTests
 
         if (font.Cff is CompactFontTable cff)
         {
+            List<(ushort Cid, ushort Glyph)> shown = [];
+
             for (int glyph = 0; glyph < Math.Min(cff.GlyphCount, 32); glyph++)
-                _ = cff.GetCid((ushort)glyph);
+                shown.Add((cff.GetCid((ushort)glyph), (ushort)glyph));
+
+            // A damaged font either cannot be subset, and is embedded whole, or its subset is this library's own
+            // output, and must read back cleanly.
+            if (font.TryGetTable(TableTag.Cff, out ReadOnlyMemory<byte> table)
+                && CffSubsetter.TrySubset(table, shown.DistinctBy(glyph => glyph.Cid)) is { } cffSubset)
+            {
+                CompactFontTable cffReread = new CompactFontTable(cffSubset);
+                _ = cffReread.GetCid((ushort)(cffReread.GlyphCount - 1));
+            }
         }
 
         if (font.Glyphs is null)

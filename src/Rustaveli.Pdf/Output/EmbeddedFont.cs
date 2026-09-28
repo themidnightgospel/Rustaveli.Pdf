@@ -17,8 +17,9 @@ namespace Rustaveli.Pdf.Output;
 /// is written when the document finishes, once every glyph is known.
 /// </para>
 /// <para>
-/// CFF faces are embedded whole, as OpenType, and shown by glyph index — or by CID for a CID-keyed font, which is
-/// how PDF addresses its glyphs.
+/// CFF faces are shown by glyph index — or by CID for a CID-keyed font, which is how PDF addresses its glyphs — and
+/// subset to a CID-keyed CFF whose CIDs are those codes (<see cref="CffSubsetter"/>). A face that cannot be subset is
+/// embedded whole, as OpenType.
 /// </para>
 /// <para>
 /// Every glyph remembers the character it was first used for, written out as a ToUnicode map so the text can be
@@ -41,6 +42,7 @@ internal sealed class EmbeddedFont
     private static readonly PdfName FontFile3 = new PdfName("FontFile3");
     private static readonly PdfName Length1 = new PdfName("Length1");
     private static readonly PdfName OpenType = new PdfName("OpenType");
+    private static readonly PdfName CidFontType0C = new PdfName("CIDFontType0C");
     private static readonly PdfName BaseFont = new PdfName("BaseFont");
     private static readonly PdfName Type0 = new PdfName("Type0");
     private static readonly PdfName CidFontType0 = new PdfName("CIDFontType0");
@@ -162,8 +164,23 @@ internal sealed class EmbeddedFont
     private void WriteCompactFont(PdfFileWriter file, SortedDictionary<ushort, (ushort Glyph, string? Text)> shown)
     {
         string name = PostScriptName(Face);
+        PdfReference program;
 
-        PdfReference program = file.WriteStream(new PdfDictionary { [PdfNames.Subtype] = OpenType }, Face.ToStandaloneFile());
+        // Cut down to the glyphs shown when the font allows it, by the codes they are shown with; embedded whole when
+        // it does not.
+        byte[]? subset = Face.TryGetTable(TableTag.Cff, out ReadOnlyMemory<byte> table)
+            ? CffSubsetter.TrySubset(table, shown.Select(entry => (entry.Key, entry.Value.Glyph)))
+            : null;
+
+        if (subset is not null)
+        {
+            name = TrueTypeSubsetter.SubsetTag(name, shown.Keys) + "+" + name;
+            program = file.WriteStream(new PdfDictionary { [PdfNames.Subtype] = CidFontType0C }, subset);
+        }
+        else
+        {
+            program = file.WriteStream(new PdfDictionary { [PdfNames.Subtype] = OpenType }, Face.ToStandaloneFile());
+        }
 
         PdfArray widths = new PdfArray(shown.Count * 2);
         foreach (KeyValuePair<ushort, (ushort Glyph, string? Text)> entry in shown)

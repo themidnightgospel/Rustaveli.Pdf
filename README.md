@@ -178,8 +178,8 @@ limit, and reusable `ISnippet`s.
 **Ink** — RGB, CMYK process colour and named spot inks with a process fallback, tints and opacity
 ([ADR 0004](docs/adr/0004-ink-colour-model.md)). There is no built-in palette: a document brings its own colours.
 
-**Output** — PDF written in managed code: TrueType faces subset to the glyphs used and CFF faces embedded whole,
-each searchable through a ToUnicode map; JPEGs and most PNGs embedded as they were encoded, with palettes, alpha,
+**Output** — PDF written in managed code: TrueType and CFF faces subset to the glyphs used — a Chinese face's 16 MB
+to a few kilobytes — each searchable through a ToUnicode map; JPEGs and most PNGs embedded as they were encoded, with palettes, alpha,
 colour keys, sixteen bits and ICC profiles kept, images shared by content and turned upright by their EXIF
 orientation; CMYK process colour, spot inks as separations with a process fallback, and opacity; links,
 cross-references to anchors, bookmarks and document information. Exports run in parallel. PDF/A-2 and PDF/A-3 at
@@ -279,10 +279,6 @@ South-East Asian scripts are set without their shaping rules: letters unjoined, 
 masks, patterns and markers are left out.
 
 **XPS is written on Windows only**, as it relies on the platform's XPS support.
-
-**CFF faces are embedded whole.** TrueType faces are subset to the glyphs a document uses, and their hinting taken
-out unless `PdfExportOptions.KeepFontHinting` asks for it; a face with CFF outlines — most `.otf` files — is
-embedded entire. Subsetting CFF is planned.
 
 ## Roadmap
 

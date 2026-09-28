@@ -31,7 +31,7 @@ OpenType features and kerning, and Noto Sans carried in the package.
 **Images and artwork** — JPEG and PNG embedded as encoded, SVG and drawn artwork kept vector, and images and
 artwork made for the box they fill.
 
-**Output** — PDF with subset fonts, their hinting left out unless kept, CMYK and spot inks, links and bookmarks; PDF/A-2 and PDF/A-3 at levels B, U and
+**Output** — PDF with TrueType and CFF fonts subset, their hinting left out unless kept, CMYK and spot inks, links and bookmarks; PDF/A-2 and PDF/A-3 at levels B, U and
 A; tagged PDF and PDF/UA-1; password protection; page images, SVG and XPS. Pages render in parallel, and a document
 can be exported from many threads at once.
 
