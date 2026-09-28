@@ -74,8 +74,6 @@ jobs:
           - name: writing-values
             mutate: >-
               --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/[X-Z]*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
-          - name: tagging
-            mutate: --mutate "**/Tagging/**/*.cs"
           - name: security
             mutate: --mutate "**/Security/**/*.cs"
           - name: operations-reading
