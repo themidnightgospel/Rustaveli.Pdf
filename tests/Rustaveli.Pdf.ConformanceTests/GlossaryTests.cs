@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.ConformanceTests;
 /// </summary>
 public class GlossaryTests
 {
-    private static readonly Assembly[] Packages = [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(ComplexScripts).Assembly];
+    private static readonly Assembly[] Packages = [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(ComplexScripts).Assembly, typeof(UnreadableFileException).Assembly];
 
     private static readonly string Glossary =
         File.ReadAllText(Path.Combine(RepositoryPaths.Root, "docs", "GLOSSARY.md"));

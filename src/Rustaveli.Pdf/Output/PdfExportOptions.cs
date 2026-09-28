@@ -97,6 +97,12 @@ public sealed class PdfExportOptions
     /// </summary>
     public PdfUAConformance Accessibility { get; set; }
 
+    /// <summary>
+    /// The password protection the PDF is written with, or null, the default, for none. PDF/A forbids encryption, so
+    /// the two cannot be asked for together.
+    /// </summary>
+    public Protection? Protection { get; set; }
+
     /// <summary>Whether the structure is written: asked for, or needed by the standard claimed.</summary>
     internal bool WritesStructure =>
         Tagged || Accessibility != PdfUAConformance.None || Conformance is PdfAConformance.PdfA2A or PdfAConformance.PdfA3A;

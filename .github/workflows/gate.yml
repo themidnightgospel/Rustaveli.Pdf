@@ -82,8 +82,25 @@ jobs:
           - name: writing-values
             mutate: >-
               --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/[X-Z]*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
-          - name: tagging
-            mutate: --mutate "**/Tagging/**/*.cs"
+          - name: security
+            mutate: --mutate "**/Security/**/*.cs"
+          - name: operations-reading
+            project: --project Rustaveli.Pdf.Operations.csproj
+            mutate: --mutate "**/Reading/**/*.cs"
+          - name: operations-assembly
+            project: --project Rustaveli.Pdf.Operations.csproj
+            fonts: true
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/Assembly/**/*.cs" --mutate "**/PdfFile.cs"
+          - name: operations-linearization
+            project: --project Rustaveli.Pdf.Operations.csproj
+            fonts: true
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/Linearization/**/*.cs"
           - name: writing-files
             mutate: --mutate "**/Writing/Pdf[D-F]*.cs"
           - name: writing-objects

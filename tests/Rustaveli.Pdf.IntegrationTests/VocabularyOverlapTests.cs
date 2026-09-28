@@ -16,11 +16,11 @@ public class VocabularyOverlapTests
     private static readonly HashSet<string> SharedMethodsAllowed = new HashSet<string>(StringComparer.Ordinal)
     {
         // Object, record and .NET conventions.
-        "<Clone>$", "Dispose", "Equals", "Format", "FromFile", "FromStream", "GetHashCode", "ToString",
+        "<Clone>$", "Dispose", "Equals", "Format", "FromFile", "FromStream", "GetHashCode", "Save", "ToString",
 
         // Layout.
         "Cell", "Columns", "Compose", "Grid", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",
-        "MinWidth", "Placeholder", "Portrait", "Rotate", "Scale", "Section", "Stack", "Table", "Width",
+        "Merge", "MinWidth", "Placeholder", "Portrait", "Rotate", "Scale", "Section", "Stack", "Table", "Width",
 
         // Typography.
         "Bold", "Italic", "Line", "Overline", "Paragraph", "Paragraphs", "Sentence", "Style", "Subscript",
@@ -32,7 +32,8 @@ public class VocabularyOverlapTests
         "Document",
     };
 
-    private static readonly Assembly[] Ours = [typeof(Document).Assembly, typeof(ImageExport).Assembly];
+    private static readonly Assembly[] Ours =
+        [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(UnreadableFileException).Assembly];
 
     private static readonly Assembly Theirs = typeof(QuestPDF.Fluent.Document).Assembly;
 

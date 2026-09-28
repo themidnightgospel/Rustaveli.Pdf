@@ -36,7 +36,7 @@ internal static class Typesetter
         // Content composed as pages are set — per page, or later — names styles as content composed up front does.
         using StyleSheet.Scope styles = document.Styles.Use();
         Pagination pageContext = new Pagination();
-        int total = 0;
+        int[] counted = [];
 
         // Counting is repeated until it settles. Feeding the total back in can change the answer: "of 9" is
         // narrower than "of 10", so learning the real total can wrap a footer onto a second line, shrink the
@@ -46,32 +46,42 @@ internal static class Typesetter
         {
             using CountingPageSink probe = new CountingPageSink();
 
-            RunPass(document, probe, measurer, pageContext, resolution);
+            int[] pagesByPart = RunPass(document, probe, measurer, pageContext, resolution);
 
-            if (probe.PageCount == total)
+            if (pagesByPart.SequenceEqual(counted))
                 break;
 
-            total = probe.PageCount;
-            pageContext.PageCount = total;
+            counted = pagesByPart;
+            pageContext.PageCount = counted.Sum();
+            pageContext.PartPageCounts = counted;
             pageContext.IsPageCountKnown = true;
         }
 
         RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null);
     }
 
-    private static void RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null)
+    /// <summary>Runs the document once through <paramref name="pages"/>; returns how many pages each merged document took.</summary>
+    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null)
     {
         pageContext.ResetForNewPass();
-
-        foreach (Block? slot in document.Sections.SelectMany(section => section.Slots()))
-            slot.ResetState();
 
         PlanContext layout = new PlanContext(measurer, pageContext) { Resolution = resolution };
         RenderContext direct = new RenderContext(pages, layout, structure);
         int pageNumber = 0;
+        int[] pagesByPart = new int[document.PartCount];
 
-        foreach (Section section in document.Sections)
+        for (int index = 0; index < document.Sections.Count; index++)
         {
+            Section section = document.Sections[index];
+            int part = document.PartOf(index);
+
+            // A section starts afresh: one merged in twice is set twice, the second time from its beginning.
+            foreach (Block? slot in section.Slots())
+                slot.ResetState();
+
+            // Content composed as its pages are set names styles from the document it came from.
+            using StyleSheet.Scope styles = document.StylesOf(part).Use();
+
             // Pages whose content sets a draw order are held back and drawn in that order; counted pages are thrown
             // away, so they need no order.
             bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
@@ -92,12 +102,15 @@ internal static class Typesetter
                         "but never takes any space. A document that really is longer can raise its PageLimit.");
                 }
 
-                pageContext.Folio = pageNumber;
+                pagesByPart[part]++;
+                pageContext.Folio = document.NumbersPartsApart ? pagesByPart[part] : pageNumber;
 
                 // Until the real total is known, quote the page count as the current page so that dynamic text
                 // such as "3 of 3" occupies a realistic width and does not shift the layout on the second pass.
                 if (!pageContext.IsPageCountKnown)
-                    pageContext.PageCount = pageNumber;
+                    pageContext.PageCount = pageContext.Folio;
+                else if (document.NumbersPartsApart && pageContext.PartPageCounts is { } counts && part < counts.Length)
+                    pageContext.PageCount = counts[part];
 
                 bool hasMore = RenderPage(section, sink, context, layout);
 
@@ -105,6 +118,8 @@ internal static class Typesetter
                     break;
             }
         }
+
+        return pagesByPart;
     }
 
     /// <summary>Draws one page and reports whether content remains for a following page.</summary>

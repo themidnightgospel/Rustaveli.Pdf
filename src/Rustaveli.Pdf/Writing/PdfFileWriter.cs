@@ -45,9 +45,12 @@ internal sealed class PdfFileWriter : IDisposable
     /// <summary>Pending output is handed to the stream once it passes this size.</summary>
     private const int FlushThreshold = 64 * 1024;
 
+    private static readonly PdfName Encrypt = new PdfName("Encrypt");
+
     private readonly Stream _output;
     private readonly CompressionLevel _compressionLevel;
     private readonly byte[]? _fixedId;
+    private readonly Security.PdfEncryption? _encryption;
     private readonly IncrementalHash? _hash;
     private readonly PdfByteWriter _pending = new PdfByteWriter(2 * FlushThreshold);
     private readonly PdfByteWriter _compressed = new PdfByteWriter(4096);
@@ -69,7 +72,10 @@ internal sealed class PdfFileWriter : IDisposable
 
         _output = output;
         _compressionLevel = options.CompressionLevel;
-        _fixedId = options.DocumentId?.ToArray();
+        _encryption = options.Encryption;
+
+        // An encrypted file keeps the identifier its key was made with.
+        _fixedId = options.Encryption?.DocumentId.ToArray() ?? options.DocumentId?.ToArray();
         _hash = _fixedId == null ? IncrementalHash.CreateHash(HashAlgorithmName.SHA256) : null;
         _objectStream = options.CrossReferenceFormat == PdfCrossReferenceFormat.Stream
             ? new ObjectStreamBuilder()
@@ -123,12 +129,26 @@ internal sealed class PdfFileWriter : IDisposable
             return;
         }
 
+        WriteDirect(reference, value, encrypted: true);
+    }
+
+    /// <summary>
+    /// Writes an object at its own offset, never in an object stream, its strings encrypted unless
+    /// <paramref name="encrypted"/> is false — as the encryption dictionary must be written.
+    /// </summary>
+    private void WriteDirect(PdfReference reference, PdfValue value, bool encrypted)
+    {
         long offset = BeginObject(reference);
+        _pending.StringCipher = encrypted ? StringCipher(reference) : null;
         _pending.WriteValue(value);
+        _pending.StringCipher = null;
         _pending.Write("\nendobj\n"u8);
         _entries[reference.ObjectNumber] = CrossReferenceEntry.AtOffset(offset);
         FlushIfFull();
     }
+
+    private Func<byte[], byte[]>? StringCipher(PdfReference reference) =>
+        _encryption is { } encryption ? data => encryption.EncryptString(reference.ObjectNumber, data) : null;
 
     /// <summary>Writes a stream as a new indirect object and returns its reference.</summary>
     public PdfReference WriteStream(
@@ -169,7 +189,19 @@ internal sealed class PdfFileWriter : IDisposable
             compress = _compressed.Length < data.Length;
         }
 
-        WriteStreamObject(reference, dictionary, compress ? _compressed.WrittenSpan : data, compress);
+        ReadOnlySpan<byte> body = compress ? _compressed.WrittenSpan : data;
+
+        if (_encryption is { } encryption)
+        {
+            // Data is compressed first and encrypted after: encrypted data does not compress.
+            byte[] encrypted = encryption.Covers(dictionary) ? encryption.EncryptStream(reference.ObjectNumber, body) : body.ToArray();
+            _pending.StringCipher = StringCipher(reference);
+            WriteStreamObject(reference, dictionary, encrypted, compress);
+            _pending.StringCipher = null;
+            return;
+        }
+
+        WriteStreamObject(reference, dictionary, body, compress);
     }
 
     /// <summary>
@@ -183,6 +215,15 @@ internal sealed class PdfFileWriter : IDisposable
         if (_objectStream is { Count: > 0 })
             WriteObjectStream();
 
+        // The encryption dictionary is what a reader decrypts everything else with, so it is itself left plain.
+        PdfReference? encrypt = null;
+
+        if (_encryption is { } encryption)
+        {
+            encrypt = Reserve();
+            WriteDirect(encrypt.Value, encryption.Dictionary, encrypted: false);
+        }
+
         for (int number = 1; number < _entries.Count; number++)
         {
             if (!_entries[number].IsWritten)
@@ -195,9 +236,9 @@ internal sealed class PdfFileWriter : IDisposable
 
         byte[] id = DocumentId();
         if (_objectStream != null)
-            WriteCrossReferenceStream(root, info, id);
+            WriteCrossReferenceStream(root, info, id, encrypt);
         else
-            WriteCrossReferenceTable(root, info, id);
+            WriteCrossReferenceTable(root, info, id, encrypt);
 
         Flush();
         _output.Flush();
@@ -224,7 +265,7 @@ internal sealed class PdfFileWriter : IDisposable
         return width;
     }
 
-    private static PdfDictionary Trailer(int size, PdfReference root, PdfReference? info, byte[] id)
+    private static PdfDictionary Trailer(int size, PdfReference root, PdfReference? info, byte[] id, PdfReference? encrypt)
     {
         PdfDictionary trailer = new PdfDictionary
         {
@@ -234,6 +275,9 @@ internal sealed class PdfFileWriter : IDisposable
 
         if (info is PdfReference infoReference)
             trailer[PdfNames.Info] = infoReference;
+
+        if (encrypt is PdfReference encryptReference)
+            trailer[Encrypt] = encryptReference;
 
         PdfString idString = new PdfString(id, PdfStringForm.Hex);
         trailer[PdfNames.ID] = new PdfArray { idString, idString };
@@ -287,7 +331,7 @@ internal sealed class PdfFileWriter : IDisposable
         _objectStream.Clear();
     }
 
-    private void WriteCrossReferenceTable(PdfReference root, PdfReference? info, byte[] id)
+    private void WriteCrossReferenceTable(PdfReference root, PdfReference? info, byte[] id, PdfReference? encrypt)
     {
         long start = Position();
         _pending.Write("xref\n0 "u8);
@@ -305,12 +349,12 @@ internal sealed class PdfFileWriter : IDisposable
         }
 
         _pending.Write("trailer\n"u8);
-        _pending.WriteDictionary(Trailer(_entries.Count, root, info, id));
+        _pending.WriteDictionary(Trailer(_entries.Count, root, info, id, encrypt));
         _pending.WriteByte((byte)'\n');
         WriteEnd(start);
     }
 
-    private void WriteCrossReferenceStream(PdfReference root, PdfReference? info, byte[] id)
+    private void WriteCrossReferenceStream(PdfReference root, PdfReference? info, byte[] id, PdfReference? encrypt)
     {
         PdfReference self = Reserve();
         long start = Position();
@@ -324,7 +368,7 @@ internal sealed class PdfFileWriter : IDisposable
         int rowLength = 1 + width + 2;
         bool compress = CompressionEnabled;
 
-        PdfDictionary dictionary = Trailer(_entries.Count, root, info, id);
+        PdfDictionary dictionary = Trailer(_entries.Count, root, info, id, encrypt);
         dictionary[PdfNames.Type] = PdfNames.XRef;
         dictionary[PdfNames.W] = new PdfArray { 1, width, 2 };
 

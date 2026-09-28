@@ -16,6 +16,8 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | Name | Kind | Meaning | Source | Replaces |
 |---|---|---|---|---|
 | `Document` | class | A composed document, ready to export. | — | `Document` |
+| `Document.Merge(params Document[])` | method | One document of every page of several, numbered on from one to the next. | plain | `Document.Merge`, `MergedDocument` |
+| `Document.NumberPartsSeparately()` | method | Numbers each merged document's pages from 1, counting only its own. | print ("section numbering") | `UseOriginalPageNumbers` |
 | `StyleSheet` | class | A document's named styles — `DefineType`, `DefineParagraph`, `DefineFrame` — each able to build on another `basedOn` it; the document's is `Document.Styles`, also `IComposition.Styles` while composing. | InDesign ("character, paragraph and object styles") | — |
 | `Style(string)` | method | Applies a named style: a type style to a run, a paragraph style to a block of text, a frame style to a frame. | InDesign | — |
 | `Document.PageLimit` | property | The most pages a document may take before content that never stops asking for another is taken to be a fault. | plain | `Settings.DocumentLayoutExceptionThreshold` |
@@ -176,6 +178,26 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `PdfExportOptions.ImageQuality`, `MaximumImageResolution`, `ImageProcessor` | property | Document-wide image quality and resolution, and what processes images to meet them. | plain | `Settings.ImageCompressionQuality`, `ImageRasterDpi` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |
 
+## Existing files
+
+| Name | Kind | Meaning | Source | Replaces |
+|---|---|---|---|---|
+| `PdfFile` | class | A PDF file being put together from others, in `Rustaveli.Pdf.Operations`: `Open`, then `KeepPages`, `Append`, `Overlay`, `Underlay`, then `Save` or `ToArray`. | plain | `DocumentOperation` |
+| `PdfFile.KeepPages(string)` | method | Keeps the pages a list such as `"1-3, 5, 8-last"` names, in its order. | print dialogs ("pages") | `TakePages` |
+| `PdfFile.Append(...)` | method | Adds another file's pages, all or some, after these. | plain | `MergeFile` |
+| `PdfFile.Attach(FileAttachment)` | method | Carries a file inside the PDF, listed among its attachments and associated with it for PDF/A-3. | plain ("attach") | `AddAttachment` |
+| `FileAttachment` | class | A file to attach: its `Name` and `Content`, `MediaType`, `Description`, dates and `Relationship`; `FromFile` reads one from disk. | plain | `DocumentAttachment` |
+| `AttachmentRelationship` | enum | How an attachment relates to the document: `Unspecified`, `Source`, `Data`, `Alternative`, `Supplement`. | ISO 32000-2 | `DocumentAttachmentRelationship` |
+| `PdfFile.AddMetadata(string)` | method | Adds XMP descriptions — an electronic invoice's, say — to the file's metadata. | plain | `ExtendMetadata` |
+| `PdfFile.Open(..., string? password)` | method | Opens a file, protected ones with the owner's or the user's password. | plain | `LoadFile(path, password)` |
+| `PdfFile.Protect(Protection)`, `Unprotect()` | method | Saves the file protected anew, or unprotected; otherwise it keeps the protection it had. | Acrobat ("protect") | `Encrypt`, `Decrypt` |
+| `PdfFile.OptimizeForWeb()` | method | Saves the file linearised, for viewing as it downloads. | Acrobat ("fast web view") | `Linearize` |
+| `PdfFile.LiftRestrictions()` | method | Drops the restrictions a signature places on the file. | plain | `RemoveRestrictions` |
+| `Protection` | class | Password protection: `UserPassword`, `OwnerPassword`, `Encryption`, and what a reader may do — `AllowPrinting`, `AllowCopying` and the rest. Also `PdfExportOptions.Protection`. | Acrobat ("password security") | `Encryption40Bit`, `Encryption128Bit`, `Encryption256Bit` |
+| `EncryptionLevel` | enum | `Rc4With40Bits`, `Rc4With128Bits`, `AesWith128Bits`, `AesWith256Bits`. | Acrobat ("encryption level") | the `Encryption*` classes |
+| `IncorrectPasswordException` | class | A protected file opened without its password, or with a wrong one. | plain | qpdf's errors |
+| `PdfFile.Overlay(...)`, `Underlay(...)` | method | Draws another file's pages over these, as a stamp, or beneath them, as a letterhead, in turn onto the pages named. | print ("overlay", "letterhead") | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` |
+
 ## Structure and standards
 
 | Name | Kind | Meaning | Source | Replaces |
@@ -289,6 +311,7 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | `MissingGlyphException` | class | Characters no typeface has, when an export requires every glyph; `Characters` lists them. A layout application flags a *missing glyph* rather than let it go to press. | InDesign | `Settings.CheckIfAllTextGlyphsAreAvailable` |
 | `RenderingException` | class | A failure while drawing a page, carrying the page number. | plain | `DocumentDrawingException` |
 | `CompositionException` | class | A failure while composing the document, before layout. | print | `DocumentComposeException` |
+| `UnreadableFileException` | class | A file that cannot be read as a PDF: not one, or damaged past repair. | plain | qpdf's errors |
 
 ## Inside the engine
 

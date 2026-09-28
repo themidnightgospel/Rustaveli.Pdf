@@ -18,4 +18,10 @@ internal sealed class PdfWriterOptions
     /// the file's content, so the same document still produces the same bytes on every run.
     /// </summary>
     public byte[]? DocumentId { get; init; }
+
+    /// <summary>
+    /// How the file is encrypted, if it is: every string and stream but the cross-reference stream's, and the file
+    /// identified as the encryption's key requires.
+    /// </summary>
+    public Security.PdfEncryption? Encryption { get; init; }
 }

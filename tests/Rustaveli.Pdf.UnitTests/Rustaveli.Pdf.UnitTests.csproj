@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
+    <ProjectReference Include="..\..\src\Rustaveli.Pdf.Operations\Rustaveli.Pdf.Operations.csproj" />
   </ItemGroup>
 
 </Project>

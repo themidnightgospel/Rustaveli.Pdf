@@ -11,6 +11,8 @@ namespace Rustaveli.Pdf.Writing;
 /// </remarks>
 internal sealed class PdfName : IEquatable<PdfName>
 {
+    private static readonly Encoding Strict = new UTF8Encoding(false, throwOnInvalidBytes: true);
+
     private readonly byte[] _encoded;
 
     /// <summary>
@@ -26,7 +28,34 @@ internal sealed class PdfName : IEquatable<PdfName>
         _encoded = Encode(Encoding.UTF8.GetBytes(value));
     }
 
+    private PdfName(string value, byte[] encoded)
+    {
+        Value = value;
+        _encoded = encoded;
+    }
+
     public string Value { get; }
+
+    /// <summary>
+    /// A name read from a file as <paramref name="bytes"/>, its escapes already undone, written back byte for byte. A
+    /// name in UTF-8 is the same name its text makes; any other bytes are taken one character each.
+    /// </summary>
+    public static PdfName FromBytes(ReadOnlySpan<byte> bytes)
+    {
+        byte[] raw = bytes.ToArray();
+
+        if (Array.IndexOf(raw, (byte)0) >= 0)
+            throw new ArgumentException("A PDF name cannot contain the null byte.", nameof(bytes));
+
+        try
+        {
+            return new PdfName(Strict.GetString(raw), Encode(raw));
+        }
+        catch (DecoderFallbackException)
+        {
+            return new PdfName(new string(raw.Select(value => (char)value).ToArray()), Encode(raw));
+        }
+    }
 
     /// <summary>
     /// The name as it appears in a file: the solidus, then each byte either as itself or as <c>#xx</c>.

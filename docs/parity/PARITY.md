@@ -30,7 +30,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | ✅ plus pica | — |
 | Metadata: title, author, subject, keywords, creator, producer, dates | `DocumentMetadata` | ✅ | — |
 | Document language | `DocumentMetadata.Language` | ✅ `DocumentInfo.Language` | — |
-| Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ❌ | 7 |
+| Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ✅ `Document.Merge`, `NumberPartsSeparately` | — |
 
 ## Layout
 
@@ -193,14 +193,14 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
-| Load an existing PDF, with password | `DocumentOperation.LoadFile` | ❌ | 7 |
-| Merge files | `MergeFile` | ❌ | 7 |
-| Select pages | `TakePages` | ❌ | 7 |
-| Overlay and underlay with page mapping | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` | ❌ | 7 |
-| Attachments with relationship (ZUGFeRD / Factur-X) | `AddAttachment`, `DocumentAttachment` | ❌ | 7 |
-| Encrypt 40/128/256-bit with permissions; decrypt; remove restrictions | `Encrypt`, `Decrypt`, `RemoveRestrictions` | ❌ | 7 |
-| Linearise (fast web view) | `Linearize` | ❌ | 7 |
-| Extend XMP metadata | `ExtendMetadata` | ❌ | 7 |
+| Load an existing PDF, with password | `DocumentOperation.LoadFile` | ✅ `PdfFile.Open(path, password)`, damaged files repaired | — |
+| Merge files | `MergeFile` | ✅ `PdfFile.Append` | — |
+| Select pages | `TakePages` | ✅ `PdfFile.KeepPages("1-3, 5, 8-last")` | — |
+| Overlay and underlay with page mapping | `OverlayFile`, `UnderlayFile`, `LayerConfiguration` | ✅ `PdfFile.Overlay`, `Underlay` with `onto` and `from` pages | — |
+| Attachments with relationship (ZUGFeRD / Factur-X) | `AddAttachment`, `DocumentAttachment` | ✅ `PdfFile.Attach(FileAttachment)`; a Factur-X PDF/A-3 file passes veraPDF | — |
+| Encrypt 40/128/256-bit with permissions; decrypt; remove restrictions | `Encrypt`, `Decrypt`, `RemoveRestrictions` | ✅ `Protect`, `Unprotect`, `LiftRestrictions`, and `PdfExportOptions.Protection` when generating; checked against qpdf both ways | — |
+| Linearise (fast web view) | `Linearize` | ✅ `PdfFile.OptimizeForWeb`, hint tables and outline included; qpdf finds no linearization errors | — |
+| Extend XMP metadata | `ExtendMetadata` | ✅ `PdfFile.AddMetadata` | — |
 
 ## Diagnostics and tooling
 
