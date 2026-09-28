@@ -11,6 +11,12 @@
     <TargetFrameworks>net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net10.0;net48</TargetFrameworks>
     <IsPackable>false</IsPackable>
+
+    <!--
+      Tests find the repository from their own source files' paths, which a CI build maps to "/_/" to make the
+      shipped packages reproducible. Tests ship nowhere, so they keep their real paths.
+    -->
+    <ContinuousIntegrationBuild>false</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>
