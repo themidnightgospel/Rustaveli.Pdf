@@ -13,9 +13,15 @@ glyph, different line breaks, different page breaks — and passes or fails depe
 | `SpecimenSans.ttc` | A font collection of three TrueType faces, for the font parser | Derived from Noto Sans by `derive.py` |
 | `SpecimenCff-Regular.otf` | CFF (PostScript) outlines, for the font parser | Derived from Noto Sans by `derive.py` |
 | `SpecimenLayout-Regular.otf` | Every kind of glyph substitution, for the GSUB engine | Derived from Noto Sans by `derive.py` |
+| `SpecimenSubrs-Regular.otf` | A name-keyed CFF whose glyphs call local and global subroutines, for CFF subsetting | Derived from [Source Sans 3](https://github.com/adobe-fonts/source-sans) by `derive-cff.py` |
+| `SpecimenCjk-Regular.otf` | A CID-keyed CFF with five font dicts, each with its own subroutines, and Chinese, kana and Latin glyphs, for CFF subsetting | Derived from [Noto Sans CJK SC](https://github.com/notofonts/noto-cjk) by `derive-cff.py` |
 
 All are licensed under the SIL Open Font License 1.1 ([OFL.txt](OFL.txt)), which permits redistribution with
 software, and modified versions under the same licence.
+
+`derive-cff.py` builds the two CFF subsetting specimens from their published sources, which are too large to commit
+— the Chinese font is 16 MB — and names the URLs to download them from. Subsetting keeps the subroutines the kept
+glyphs call; both fonts are renamed, since the sources' names are reserved by their licence.
 
 ## The Specimen fonts
 

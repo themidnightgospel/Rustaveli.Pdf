@@ -327,10 +327,10 @@ internal static class TrueTypeSubsetter
     }
 
     /// <summary>
-    /// Six letters from a hash of the font name and the kept glyphs. FNV-1a rather than
-    /// <see cref="string.GetHashCode()"/>, which is randomised per process.
+    /// Six letters from a hash of the font name and the kept glyphs, as a PDF prefixes a subset font's name. FNV-1a
+    /// rather than <see cref="string.GetHashCode()"/>, which is randomised per process.
     /// </summary>
-    private static string SubsetTag(string fontName, ushort[] glyphs)
+    internal static string SubsetTag(string fontName, IEnumerable<ushort> glyphs)
     {
         uint hash = 2166136261;
 

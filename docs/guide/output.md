@@ -17,9 +17,10 @@
 | `Accessibility` | none | Claim PDF/UA |
 | `Protection` | none | Password-protect the file |
 
-Fonts are subset to the glyphs a document uses — without their hinting unless `KeepFontHinting` asks for it, which
-often halves them — images are embedded as they were encoded where PDF allows, and identical images and fonts are
-written once however often they appear. Pages are rendered in parallel.
+Fonts are subset to the glyphs a document uses, TrueType and OpenType CFF alike — a sixteen-megabyte Chinese font
+becomes a few kilobytes — and TrueType fonts lose their hinting unless `KeepFontHinting` asks for it, which often
+halves them. Images are embedded as they were encoded where PDF allows, and identical images and fonts are written
+once however often they appear. Pages are rendered in parallel.
 
 ## Page images, SVG and XPS
 

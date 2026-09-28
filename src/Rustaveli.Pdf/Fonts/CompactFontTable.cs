@@ -6,8 +6,8 @@ namespace Rustaveli.Pdf.Fonts;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Charstrings are not interpreted, so glyph bounding boxes come from the font-wide box, and CFF fonts are embedded
-/// whole rather than subset.
+/// Charstrings are not interpreted, so glyph bounding boxes come from the font-wide box. A PDF embeds the font as a
+/// subset where <see cref="CffSubsetter"/> can make one.
 /// </para>
 /// <para>
 /// The CID matters when a CFF font is embedded as a PDF CIDFont. The PDF addresses glyphs by CID: in a name-keyed
@@ -20,9 +20,6 @@ internal sealed class CompactFontTable
     private const int CharsetOperator = 15;
     private const int CharStringsOperator = 17;
     private const int RegistryOrderingSupplementOperator = (12 << 8) | 30;
-
-    /// <summary>The operand stack depth CFF allows in a DICT.</summary>
-    private const int MaximumOperands = 48;
 
     private readonly ReadOnlyMemory<byte> _data;
     private readonly int _charset;
@@ -51,15 +48,15 @@ internal sealed class CompactFontTable
         int charStrings = -1;
         _charset = 0;
 
-        foreach ((int op, double operand) in ReadDict(cff.Slice(dictStart, dictLength)))
+        foreach (CffDictEntry entry in CffDict.Read(cff.Slice(dictStart, dictLength)))
         {
-            switch (op)
+            switch (entry.Operator)
             {
                 case CharStringsOperator:
-                    charStrings = (int)operand;
+                    charStrings = entry.Integer();
                     break;
                 case CharsetOperator:
-                    _charset = (int)operand;
+                    _charset = entry.Integer();
                     break;
                 case RegistryOrderingSupplementOperator:
                     IsCidKeyed = true;
@@ -146,70 +143,5 @@ internal sealed class CompactFontTable
         }
 
         return cids;
-    }
-
-    /// <summary>
-    /// The operators of a DICT with the last operand before each, which is all the operators read here need.
-    /// </summary>
-    private static List<(int Operator, double Operand)> ReadDict(ReadOnlySpan<byte> dict)
-    {
-        List<(int, double)> entries = new List<(int, double)>();
-        int operands = 0;
-        double last = 0;
-        int position = 0;
-
-        while (position < dict.Length)
-        {
-            int b0 = dict[position++];
-
-            if (b0 <= 21)
-            {
-                int op = b0 == 12 ? (12 << 8) | BigEndian.UInt8(dict, position++) : b0;
-                entries.Add((op, last));
-                operands = 0;
-                continue;
-            }
-
-            if (++operands > MaximumOperands)
-                throw new FontFormatException("A CFF DICT has more operands than CFF allows.");
-
-            switch (b0)
-            {
-                case 28:
-                    last = BigEndian.Int16(dict, position);
-                    position += 2;
-                    break;
-                case 29:
-                    last = BigEndian.Int32(dict, position);
-                    position += 4;
-                    break;
-                case 30:
-                    // A real number, packed in nibbles up to the first 0xF. Its value matters to none of the
-                    // operators read here, only where it ends.
-                    byte packed;
-
-                    do
-                    {
-                        packed = BigEndian.UInt8(dict, position++);
-                    }
-                    while ((packed >> 4) != 0x0F && (packed & 0x0F) != 0x0F);
-
-                    last = 0;
-                    break;
-                case >= 32 and <= 246:
-                    last = b0 - 139;
-                    break;
-                case >= 247 and <= 250:
-                    last = ((b0 - 247) * 256) + BigEndian.UInt8(dict, position++) + 108;
-                    break;
-                case >= 251 and <= 254:
-                    last = -((b0 - 251) * 256) - BigEndian.UInt8(dict, position++) - 108;
-                    break;
-                default:
-                    throw new FontFormatException($"Byte {b0} does not begin a CFF DICT operand.");
-            }
-        }
-
-        return entries;
     }
 }

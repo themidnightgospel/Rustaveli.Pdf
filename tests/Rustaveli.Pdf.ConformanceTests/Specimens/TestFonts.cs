@@ -14,7 +14,9 @@ internal static class TestFonts
 
     private static bool Register()
     {
-        foreach (string file in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "fonts"), "*.ttf"))
+        // TrueType and CFF faces both; none of the CFF ones covers a character any specimen sets in another face.
+        foreach (string file in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "fonts"))
+                     .Where(file => file.EndsWith(".ttf", StringComparison.Ordinal) || file.EndsWith(".otf", StringComparison.Ordinal)))
             TypefaceLibrary.Shared.RegisterFile(file);
 
         // Arabic and Devanagari specimens need their scripts shaped; nothing else holds such characters.

@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\assets\fonts\*.ttf" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\assets\fonts\*.ttf;..\assets\fonts\*.otf" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

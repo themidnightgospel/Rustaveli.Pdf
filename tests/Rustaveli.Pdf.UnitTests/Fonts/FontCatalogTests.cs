@@ -25,13 +25,17 @@ public class FontCatalogTests
             {
                 "NotoSans-Bold", "NotoSans-BoldItalic", "NotoSans-Italic", "NotoSans-Regular", "NotoSansArabic-Regular",
                 "NotoSansDevanagari-Regular", "NotoSansGeorgian-Regular",
-                "SpecimenCff-Regular", "SpecimenLayout-Regular", "SpecimenSans-Regular", "SpecimenSans-SemiBold",
-                "SpecimenSans-Italic"
+                "SpecimenCff-Regular", "SpecimenCjk-Regular", "SpecimenLayout-Regular", "SpecimenSans-Regular",
+                "SpecimenSans-SemiBold", "SpecimenSans-Italic", "SpecimenSubrs-Regular"
             },
             index.Faces.Select(face => face.Names.PostScriptName));
         Assert.All(index.Faces, face => Assert.False(face.IsLoaded));
         Assert.Equal(
-            new[] { "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Georgian", "Specimen Cff", "Specimen Layout", "Specimen Sans" },
+            new[]
+            {
+                "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Georgian", "Specimen Cff", "Specimen Cjk",
+                "Specimen Layout", "Specimen Sans", "Specimen Subrs"
+            },
             index.Families.Families);
         Assert.Equal(new[] { TestFonts.Directory }, index.Directories);
     }
@@ -219,10 +223,11 @@ public class FontCatalogTests
     {
         FontCatalog catalog = Catalog();
 
-        Assert.Null(catalog.FindFallbackFace(0x4E00, new FontRequest("Noto Sans")));
+        // A Hangul syllable: the committed fonts have Latin, Georgian, Arabic, Devanagari and some Chinese, but no Korean.
+        Assert.Null(catalog.FindFallbackFace(0xAC00, new FontRequest("Noto Sans")));
 
         // Remembered, and answered the same way again.
-        Assert.Null(catalog.FindFallback(0x4E00, new FontRequest("Noto Sans")));
+        Assert.Null(catalog.FindFallback(0xAC00, new FontRequest("Noto Sans")));
     }
 
     [Fact]
