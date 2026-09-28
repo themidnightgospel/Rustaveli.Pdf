@@ -147,6 +147,11 @@ jobs:
               --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
               --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
             mutate: --mutate "**/Output/PdfSurface.cs"
+          - name: preview
+            project: --project Rustaveli.Pdf.Preview.csproj
+            fonts: true
+            tests: --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/*.cs"
           - name: shaping
             project: --project Rustaveli.Pdf.Shaping.csproj
             tests: --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
