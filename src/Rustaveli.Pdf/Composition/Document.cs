@@ -4,11 +4,11 @@ namespace Rustaveli.Pdf;
 /// A composed document, ready to be rendered.
 /// </summary>
 /// <remarks>
-/// Despite reading like an immutable value, a document owns a mutable element tree. Rendering walks that tree
-/// and records progress in it — how many lines of a paragraph have been drawn, which table rows remain — so a
-/// single instance must not be rendered from two threads at once. Doing so interleaves those cursors and yields
-/// silently wrong output rather than an exception.
-/// Rendering the same instance repeatedly one after another is fine: each pass resets the tree before it starts.
+/// A document owns the element tree its composing built, and laying it out records progress in that tree — how many
+/// lines of a paragraph have been drawn, which table rows remain. An export uses the tree when no other export is,
+/// and each resets it before it starts. An export that begins while another is under way composes the document
+/// afresh for itself, running the composing code again, so one document may be exported from any number of threads
+/// at once.
 /// </remarks>
 public sealed class Document : IComposition
 {
@@ -20,7 +20,15 @@ public sealed class Document : IComposition
     /// <summary>The style sheet of each document merged into this one, in order; none for a document composed alone.</summary>
     private readonly List<StyleSheet> _partStyles = [];
 
+    /// <summary>Composes this document again from scratch: its composing code run anew, or its parts merged anew.</summary>
+    private readonly Func<Document> _recompose;
+
     private int _pageLimit = 10_000;
+
+    /// <summary>1 while an export is laying out this document's own tree; 0 otherwise.</summary>
+    private int _exporting;
+
+    private Document(Func<Document> recompose) => _recompose = recompose;
 
     public DocumentInfo Info { get; } = new DocumentInfo();
 
@@ -65,29 +73,30 @@ public sealed class Document : IComposition
         if (documents.Length == 0 || documents.Any(document => document is null))
             throw new ArgumentException("Merging needs one document or more, and no null among them.", nameof(documents));
 
-        Document merged = new Document();
+        Document[] parts = documents.ToArray();
+        return MergeOf(parts);
+    }
+
+    /// <summary>
+    /// Merges fresh copies of <paramref name="parts"/>, so that exporting the merged document never lays out a tree
+    /// an export of one of its parts is using.
+    /// </summary>
+    private static Document MergeOf(Document[] parts)
+    {
+        Document merged = new Document(() => MergeOf(parts));
         merged._partStarts.Clear();
 
-        foreach (Document document in documents)
+        foreach (Document part in parts)
         {
+            Document fresh = part.Recompose();
             merged._partStarts.Add(merged._pages.Count);
-            merged._partStyles.Add(document.Styles);
-            merged._pages.AddRange(document._pages);
+            merged._partStyles.Add(part.Styles);
+            merged._pages.AddRange(fresh._pages);
         }
 
         // Each document may take the pages it allows, so together they may take them all.
-        merged.PageLimit = (int)Math.Min(int.MaxValue, documents.Sum(document => (long)document.PageLimit));
-
-        DocumentInfo first = documents[0].Info;
-        merged.Info.Title = first.Title;
-        merged.Info.Author = first.Author;
-        merged.Info.Subject = first.Subject;
-        merged.Info.Keywords = first.Keywords;
-        merged.Info.Creator = first.Creator;
-        merged.Info.Producer = first.Producer;
-        merged.Info.CreationDate = first.CreationDate;
-        merged.Info.ModificationDate = first.ModificationDate;
-        merged.Info.Language = first.Language;
+        merged.PageLimit = (int)Math.Min(int.MaxValue, parts.Sum(part => (long)part.PageLimit));
+        CopyInfo(parts[0].Info, merged.Info);
         return merged;
     }
 
@@ -101,17 +110,59 @@ public sealed class Document : IComposition
         return this;
     }
 
-    private Document()
-    {
-    }
-
     /// <summary>
-    /// Builds a document by invoking <paramref name="compose" />, which declares one or more page runs.
+    /// Builds a document by invoking <paramref name="compose" />, which declares one or more page runs. It is invoked
+    /// again for an export that begins while another is laying the document out.
     /// </summary>
     public static Document Compose(Action<IComposition> compose)
     {
         ArgumentNullException.ThrowIfNull(compose);
-        Document document = new Document();
+        return ComposeWith(compose);
+    }
+
+    /// <summary>
+    /// This document, for one export to lay out — or, while another export is laying it out, a copy composed afresh.
+    /// Disposing the lease hands the document back.
+    /// </summary>
+    internal ExportLease ForExport() =>
+        Interlocked.CompareExchange(ref _exporting, 1, 0) == 0
+            ? new ExportLease(this, this)
+            : new ExportLease(Recompose(), null);
+
+    /// <summary>
+    /// A copy of this document composed afresh, with the settings made on this one since: its information, page
+    /// limit and numbering, and the style sheets its content names styles from.
+    /// </summary>
+    internal Document Recompose()
+    {
+        Document fresh = _recompose();
+        fresh.PageLimit = PageLimit;
+        fresh.NumbersPartsApart = NumbersPartsApart;
+        CopyInfo(Info, fresh.Info);
+
+        // Styles are only read while a document is laid out, so the copy reads this document's own sheets — those
+        // defined after composing among them.
+        fresh._partStyles.Clear();
+        fresh._partStyles.AddRange(_partStyles.Count > 0 ? _partStyles : [Styles]);
+        return fresh;
+    }
+
+    private static void CopyInfo(DocumentInfo from, DocumentInfo to)
+    {
+        to.Title = from.Title;
+        to.Author = from.Author;
+        to.Subject = from.Subject;
+        to.Keywords = from.Keywords;
+        to.Creator = from.Creator;
+        to.Producer = from.Producer;
+        to.CreationDate = from.CreationDate;
+        to.ModificationDate = from.ModificationDate;
+        to.Language = from.Language;
+    }
+
+    private static Document ComposeWith(Action<IComposition> compose)
+    {
+        Document document = new Document(() => ComposeWith(compose));
         try
         {
             using (document.Styles.Use())
@@ -130,5 +181,17 @@ public sealed class Document : IComposition
         Section pageDescriptor = new Section();
         handler(pageDescriptor);
         _pages.Add(pageDescriptor);
+    }
+
+    /// <summary>The document one export lays out; disposing it hands a document's own tree back for the next.</summary>
+    internal readonly struct ExportLease(Document document, Document? held) : IDisposable
+    {
+        public Document Document { get; } = document;
+
+        public void Dispose()
+        {
+            if (held is not null)
+                Volatile.Write(ref held._exporting, 0);
+        }
     }
 }

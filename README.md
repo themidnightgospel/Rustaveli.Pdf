@@ -272,10 +272,6 @@ so the comparison is behavioural throughout.
 
 ## Known limitations
 
-**A document is exported from one thread at a time.** Documents export in parallel, each with its own writer, but a
-single `Document` instance carries the layout cursors in its block tree, so it must not be exported from two
-threads at once. Compose one document per thread, or export them one after another.
-
 **Complex scripts need the Shaping package.** Without `Rustaveli.Pdf.Shaping`, Arabic, Hebrew points and Indic and
 South-East Asian scripts are set without their shaping rules: letters unjoined, marks unplaced.
 

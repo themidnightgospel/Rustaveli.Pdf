@@ -32,7 +32,8 @@ OpenType features and kerning, and Noto Sans carried in the package.
 artwork made for the box they fill.
 
 **Output** — PDF with subset fonts, CMYK and spot inks, links and bookmarks; PDF/A-2 and PDF/A-3 at levels B, U and
-A; tagged PDF and PDF/UA-1; password protection; page images, SVG and XPS.
+A; tagged PDF and PDF/UA-1; password protection; page images, SVG and XPS. Pages render in parallel, and a document
+can be exported from many threads at once.
 
 **Existing files** — merging, reordering, stamping and letterheads, attachments for electronic invoices, metadata,
 protection and linearisation.

@@ -127,8 +127,9 @@ document.Info.Author = "Rustaveli.Pdf";
 document.Info.Language = "en";
 ```
 
-Each export lays the document out afresh, so one document can be exported as often as needed, in any format.
-Separate documents can be composed and exported on separate threads at once.
+Each export lays the document out afresh, so one document can be exported as often as needed, in any format, and
+from any number of threads at once: an export that begins while another is under way runs the composing code again
+for a copy of its own, so keep that code free of side effects.
 
 [Output](output.md) covers the options: typefaces, image quality, PDF/A, PDF/UA, protection, and page images.
 
