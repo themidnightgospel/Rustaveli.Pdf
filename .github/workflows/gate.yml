@@ -74,8 +74,6 @@ jobs:
           - name: writing-values
             mutate: >-
               --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/[X-Z]*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
-          - name: tagging
-            mutate: --mutate "**/Tagging/**/*.cs"
           - name: security
             mutate: --mutate "**/Security/**/*.cs"
           - name: operations-reading
@@ -139,6 +137,8 @@ jobs:
             mutate: --mutate "**/Images/[Q-Z]*.cs"
           - name: svg
             mutate: --mutate "**/Svg/**/*.cs"
+          - name: tagging
+            mutate: --mutate "**/Tagging/**/*.cs"
           # The PDF surface, shaping and the typeface library are checked by reading real files back, so these
           # shards run the integration tests too — and those need the system's fallback fonts.
           - name: output-surface
