@@ -204,12 +204,15 @@ jobs:
       # Three test runners, two where the integration tests run too or a shard says so: four, one a core, ran the
       # hosted runner out of memory as they started, and it was shut down mid-run. A mutant that removes a size guard
       # can ask for more memory than the machine has, with the same result and every mutant's outcome lost, so each
-      # process's heap is capped: such a mutant meets an OutOfMemoryException its tests fail on, and is killed.
+      # process's heap is capped: such a mutant meets an OutOfMemoryException its tests fail on, and is killed. The
+      # cap must leave Stryker room to write its reports, which carry every file's source: 4 GB did not, so only the
+      # reports read here are written — the summary, and the HTML report uploaded below.
       - name: Mutation testing
         env:
-          DOTNET_GCHeapHardLimit: '0x100000000'
+          DOTNET_GCHeapHardLimit: '0x180000000'
         run: >
           dotnet stryker --config-file stryker-config.json
+          --reporter progress --reporter markdown --reporter html
           --concurrency ${{ matrix.shard.runners || (matrix.shard.fonts && 2 || 3) }}
           ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
