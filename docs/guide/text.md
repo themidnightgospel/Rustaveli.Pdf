@@ -106,9 +106,10 @@ Every folio method takes the `Numerals` to write the number in, or any `Func<int
 
 ## Typefaces
 
-Text is set in the typefaces of a `TypefaceLibrary`: those registered with it first, then those installed on the
-machine. `TypefaceLibrary.Shared` serves every export not given a library of its own; register the typefaces a
-document needs with it once, at start-up, or give an export a library of its own:
+Text names no typeface unless told to, and is then set in Noto Sans, which the package carries: a document that names
+none looks the same on every machine. Named typefaces come from a `TypefaceLibrary`: those registered with it first,
+then those installed on the machine. `TypefaceLibrary.Shared` serves every export not given a library of its own;
+register the typefaces a document needs with it once, at start-up, or give an export a library of its own:
 
 ```csharp
 TypefaceLibrary typefaces = new TypefaceLibrary();

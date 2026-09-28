@@ -194,6 +194,18 @@ public class FontRegistrationTests
         Assert.EndsWith("NotoSans-Regular", parsed.GetPage(1).Letters.Last().FontName);
     }
 
+    [Fact]
+    public void TextNamingNoTypefaceIsSetInTheBundledNotoSansWhateverTheMachineHas()
+    {
+        // No typeface named, none registered and none installed: the default is the package's own.
+        Document document = Document.Compose(composition => composition.Section(section => section.Body().Text("Default")));
+
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf(new PdfExportOptions { Typefaces = new TypefaceLibrary(includeInstalled: false) }));
+
+        Assert.Equal("Default", parsed.GetPage(1).Text);
+        Assert.All(parsed.GetPage(1).Letters, letter => Assert.EndsWith("+NotoSans-Regular", letter.FontName, StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("Noto Sans")]
     [InlineData(" noto sans ")]

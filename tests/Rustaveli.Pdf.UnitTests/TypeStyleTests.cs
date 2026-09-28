@@ -5,11 +5,11 @@ public class TypeStyleTests
     private static readonly TypeStyle Base = TypeStyle.Default;
 
     [Fact]
-    public void DefaultIsTwelvePointBlackHelveticaWithNoDecoration()
+    public void DefaultIsTwelvePointBlackNotoSansWithNoDecoration()
     {
         TypeStyle style = TypeStyle.Default;
 
-        Assert.Equal("Helvetica", style.Typeface);
+        Assert.Equal("Noto Sans", style.Typeface);
         Assert.Equal(12f, style.PointSize);
         Assert.Equal(TypeWeight.Normal, style.Weight);
         Assert.False(style.IsItalic);

@@ -14,7 +14,11 @@ public sealed record TypeStyle
 {
     public static TypeStyle Default { get; } = new TypeStyle();
 
-    public string Typeface { get; init; } = "Helvetica";
+    /// <summary>
+    /// The typeface text is set in, Noto Sans unless named: the package carries it, so a document that names none is
+    /// set the same on every machine, and the Noto faces other scripts fall back to share its design.
+    /// </summary>
+    public string Typeface { get; init; } = "Noto Sans";
 
     public float PointSize { get; init; } = 12f;
 

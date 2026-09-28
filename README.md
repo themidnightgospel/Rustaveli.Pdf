@@ -199,9 +199,9 @@ for PDF/A-3 and electronic invoices, extends the metadata, protects and unprotec
 **Typefaces** — a `TypefaceLibrary` of registered and installed typefaces, matched by weight and slant, with fallback
 typefaces per style and per library and per-character fallback for anything a face lacks; OpenType substitutions
 (ligatures, small capitals, figure styles and any feature by tag) and pair kerning; text in both directions ordered
-by the Unicode bidirectional algorithm; substitution for a typeface nobody has; Noto Sans carried in the package, so
-a document set in it looks the same on every machine and one with no fonts at all still has type; and an optional
-check that every glyph exists.
+by the Unicode bidirectional algorithm; substitution for a typeface nobody has; Noto Sans carried in the package and
+set by default, so a document that names no typeface looks the same on every machine and one with no fonts at all
+still has type; and an optional check that every glyph exists.
 Complex scripts — Arabic, Hebrew points, Indic and South-East Asian scripts — are shaped by HarfBuzz once the
 `Rustaveli.Pdf.Shaping` package is added and `ShapeComplexScripts()` called on the library.
 

@@ -52,6 +52,13 @@ The [glossary](../GLOSSARY.md) has every public name, and its *Replaces* column 
   not fit. `Named` gives a frame a name to be called by.
 - **No built-in colour palette.** A document brings its colours as `Ink`s — RGB, CMYK or named spot inks with a
   process fallback. `Tint` gives a percentage of any ink.
+- **The default typeface is Noto Sans, not Lato.** Both are carried in their packages, so a document that names no
+  typeface looks the same everywhere with either — but Noto Sans sets about 6% wider, with taller lowercase, so text
+  ported with its default type wraps a little differently and may take an extra line or page. For QuestPDF's exact
+  line breaks, register Lato — free under the Open Font License — with `TypefaceLibrary.Shared.RegisterFile` and set
+  it as the section's `DefaultType`: `TypeStyle.Default.WithTypeface("Lato")`.
+- **A typeface nobody has is substituted in kind**: a missing sans-serif by an installed sans-serif, a serif by a
+  serif, a monospace by a monospace, where QuestPDF sets all of them in Lato.
 - **The core package has no native dependencies.** PDF is written in managed code; SkiaSharp is needed only for page
   images and image recompression (`Rustaveli.Pdf.Raster`), HarfBuzz only for complex scripts
   (`Rustaveli.Pdf.Shaping`). The core runs anywhere .NET does, .NET Framework included.
