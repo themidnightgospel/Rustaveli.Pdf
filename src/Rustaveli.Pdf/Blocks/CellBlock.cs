@@ -17,6 +17,9 @@ internal sealed class CellBlock : EnclosingBlock
 
     public int ColumnSpan { get; set; } = 1;
 
+    /// <summary>Whether the cell heads its row, in a tagged table.</summary>
+    public bool HeadsRow { get; set; }
+
     /// <summary>Set when the caller pinned the row, which excludes this cell from automatic placement.</summary>
     internal bool HasExplicitRow { get; set; }
 

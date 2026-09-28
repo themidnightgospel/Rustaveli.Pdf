@@ -1,5 +1,6 @@
 using System.Numerics;
 using Rustaveli.Pdf.Drawing;
+using Rustaveli.Pdf.Tagging;
 
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
@@ -158,6 +159,29 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
     public void DrawDestination(string destinationName)
     {
         Current.Operations.Add(new DestinationOperation(Resolve(Offset.Zero), destinationName));
+    }
+
+    public void DrawBookmark(string title, int level)
+    {
+        Current.Operations.Add(new BookmarkOperation(Resolve(Offset.Zero), title, level));
+    }
+
+    /// <summary>The element content is drawn for, as last named, and whether one has been named at all.</summary>
+    public StructureElement? CurrentTag { get; private set; }
+
+    /// <summary>The document the first element named descends from.</summary>
+    public StructureElement? Root { get; private set; }
+
+    public void Tag(StructureElement? element)
+    {
+        CurrentTag = element;
+        _current?.Operations.Add(new TagOperation(Resolve(Offset.Zero), element));
+
+        for (StructureElement? ancestor = element; Root is null && ancestor is not null; ancestor = ancestor.Parent)
+        {
+            if (ancestor.Parent is null)
+                Root = ancestor;
+        }
     }
 
     private Offset Resolve(Offset position)

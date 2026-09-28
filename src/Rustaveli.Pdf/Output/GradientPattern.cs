@@ -32,10 +32,10 @@ internal static class GradientPattern
     private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
 
     /// <summary>The pattern dictionary for <paramref name="gradient"/> between two points of the drawing space.</summary>
-    public static PdfDictionary Create(Gradient gradient, Offset start, Offset end, Transform placement)
+    public static PdfDictionary Create(Gradient gradient, Offset start, Offset end, Transform placement, bool rgbOnly = false)
     {
         IReadOnlyList<Ink> inks = gradient.Inks;
-        bool cmyk = inks.All(ink => ink.Model == InkModel.Cmyk);
+        bool cmyk = !rgbOnly && inks.All(ink => ink.Model == InkModel.Cmyk);
 
         PdfDictionary shading = new PdfDictionary
         {

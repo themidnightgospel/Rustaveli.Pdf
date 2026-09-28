@@ -35,9 +35,10 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `Section.RunningFoot()` | method | Repeated at the bottom of every page. | print | `PageDescriptor.Footer()` |
 | `Section.Underlay()` | method | Drawn beneath everything, ignoring margins — watermarks, page furniture. | print | `PageDescriptor.Background()` |
 | `Section.Overlay()` | method | Drawn above everything, ignoring margins. | print | `PageDescriptor.Foreground()` |
-| `DocumentInfo` | class | Title, author, subject, keywords, creator, producer, dates. Named for the PDF *document information dictionary*. | PDF | `DocumentMetadata` |
+| `DocumentInfo` | class | Title, author, subject, keywords, language, creator, producer, dates. Named for the PDF *document information dictionary*. | PDF | `DocumentMetadata` |
 | `Document.Info` | property | The document's `DocumentInfo`. | PDF | `Document.Metadata` |
 | `ExportPdf()` | method | Writes the document as PDF, to bytes, a stream or a file. *Export* is what InDesign calls it. | InDesign | `GeneratePdf` |
+| `ExportPdfAndOpen()` | method | Writes the document to a temporary PDF and opens it in the system's viewer. | plain | `GeneratePdfAndShow` |
 | `PdfExportOptions` | class | Options for export: the `Typefaces` to set text in, whether to `Compress` streams, and whether to `RequireEveryGlyph`. | InDesign | `PdfGenerationOptions` |
 
 ## Frames and composing into them
@@ -150,6 +151,7 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `VerticalRule(float, Ink?, StrokeStyle)`, `VerticalRule(float, Ink, IReadOnlyList<float>)` | method | A vertical line — between columns, say — styled as a rule is. | print | `LineVertical` |
 | `Link(string url)` | method | Makes the frame a link to a URL. | plain | `Hyperlink` |
 | `Anchor(string name)` | method | Names a place others can refer to. | print, InDesign ("text anchor") | `Section` |
+| `Bookmark(string, int)` | method | An entry in the document's outline, nested by level, leading to where the content starts. | print ("bookmark") | outline from `Section` |
 | `CrossReference(string anchor)` | method | Makes the frame a link to an anchor. | print | `SectionLink` |
 | `Placeholder(Ink?)`, `Placeholder(string, Ink?)` | method | A box standing in for content not there yet, saying what will go there if given words. | print | `Placeholder` |
 | `SampleData` | class | Stand-in content from a seed, the same every time: dummy text (`Words`, `Heading`, `Sentence`, `Query`, `Paragraph`, `Paragraphs`), `PersonName`, `EmailAddress`, `WebAddress`, `TelephoneNumber`, `Number`, `DecimalNumber`, `Percentage`, `Amount`, `TimeOfDay`, `Date`, `WrittenDate`, `Timestamp`, `Ink`, `PaleInk` and `Image`. | print ("dummy text") | `Placeholders` |
@@ -173,6 +175,21 @@ Everything public lives in the `Rustaveli.Pdf` namespace: one `using` is enough 
 | `ImageProcessing` | struct | What a processor is asked: the `Source`, the `PixelWidth` and `PixelHeight` to make, and the `Quality`. | plain | — |
 | `PdfExportOptions.ImageQuality`, `MaximumImageResolution`, `ImageProcessor` | property | Document-wide image quality and resolution, and what processes images to meet them. | plain | `Settings.ImageCompressionQuality`, `ImageRasterDpi` |
 | `ImageFitting` | enum | `FitWidth`, `FitHeight`, `Proportionally`, `Stretch`, after InDesign's fitting options. | InDesign | `ImageFit` |
+
+## Structure and standards
+
+| Name | Kind | Meaning | Source | Replaces |
+|---|---|---|---|---|
+| `ContentTag` | class | The part content plays in a tagged document, named in words and written as PDF's standard structure types: `Section`, `Article`, `Division`, `BlockQuote`, `Caption`, `Index`, `Contents`, `ContentsEntry`, `Paragraph`, `List`, `ListItem`, `ListLabel`, `ListBody`, `Table`, `Quote`, `Code`, `Note`, `Span`, and made by `Heading(int)`, `Abbreviation(string)`, `Figure(string)`, `Formula(string)`. | ISO 32000 ("standard structure types"), InDesign ("tags") | `SemanticSection`, `SemanticHeader1`–`6`, `SemanticFigure`, … |
+| `Tagged(ContentTag)` | method | Tags a frame's content with the part it plays. Text nothing else tags is a paragraph; lists and links are tagged without asking. | InDesign ("tag") | `Semantic…` |
+| `Untagged()` | method | Leaves a frame's content out of the structure, as decoration no screen reader reads. | print ("artifact") | `SemanticIgnore` |
+| `Language(string)` | method | The language a frame's content is in, where it differs from the document's. | plain | `SemanticLanguage` |
+| `CellFrame.RowHeading()` | method | Makes a cell the heading of its row in a tagged table, as header rows head their columns. | plain | `AsSemanticHorizontalHeader` |
+| `PdfExportOptions.Tagged` | property | Whether the PDF records the document's structure and reading order. | ISO 32000 ("tagged PDF") | implied by `PDFUA_Conformance` |
+| `PdfUAConformance` | enum | The part of PDF/UA a document claims: `None` or `PdfUA1`. | ISO 14289 | `PDFUA_Conformance` |
+| `PdfExportOptions.Accessibility` | property | The PDF/UA part to claim: tagged, titled, in a named language, every glyph found. | ISO 14289 | `Settings.PDFUA_Conformance` |
+| `PdfAConformance` | enum | The part and level of PDF/A a document is written to: `None`, `PdfA2B`, `PdfA2U`, `PdfA2A`, `PdfA3B`, `PdfA3U` or `PdfA3A`. | ISO 19005 | `PDFA_Conformance` |
+| `PdfExportOptions.Conformance` | property | The PDF/A part and level to write: XMP metadata, an sRGB output intent, inks in RGB, every glyph found, and at the `A` levels the structure. | ISO 19005 | `Settings.PDFA_Conformance` |
 
 ## Text
 
@@ -257,6 +274,10 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 | `ComplexScripts` | class | `ShapeComplexScripts`, from the `Rustaveli.Pdf.Shaping` package: shapes Arabic, Hebrew points, Indic and South-East Asian scripts with HarfBuzz for the text a `TypefaceLibrary` sets. | typesetting ("complex scripts") | built in |
 | `ImageExportOptions` | class | The `Resolution` in pixels per inch, the `Format`, the `Quality` of lossy formats, the `Typefaces`, and whether to `RequireEveryGlyph`. | InDesign | `ImageGenerationSettings` |
 | `SkiaImageProcessor` | class | Scales and recompresses images for PDF export with Skia, turning them the right way up. | plain | — |
+| `ExportSvg()` | method | Writes every page as an SVG document, text as outlines and images within. | plain | `GenerateSvg` |
+| `ExportXps()` | method | Writes the document as one XPS document; Windows only. | plain | `GenerateXps` |
+| `VectorExportOptions` | class | For SVG and XPS: the `Typefaces`, whether to `RequireEveryGlyph`, and the `ImageResolution` generated images are asked for. | plain | `ImageGenerationSettings` |
+| `SvgExport`, `XpsExport` | class | Hold `ExportSvg` and `ExportXps`. | plain | — |
 | `PageImageFormat` | enum | `Png`, `Jpeg`, `Webp`. | plain | `ImageFormat` |
 
 ## Failures

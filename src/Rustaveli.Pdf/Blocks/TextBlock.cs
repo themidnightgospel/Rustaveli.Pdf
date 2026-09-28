@@ -1,6 +1,7 @@
 using System.Text;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
+using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
 using Rustaveli.Pdf.Text.Bidi;
 using Rustaveli.Pdf.Text.LineBreaking;
@@ -20,6 +21,9 @@ internal sealed class TextBlock : Block
     private int _completedLines;
     private float _pinnedWidth = float.NaN;
     private List<TextLine>? _pinnedWrapping;
+
+    /// <summary>The paragraph the text is, in a tagged document, where nothing else tags it.</summary>
+    private StructureElement? _paragraph;
 
     // Not reset between passes: the lines of the same text at the same width do not change.
     private BuiltLines? _built;
@@ -88,9 +92,11 @@ internal sealed class TextBlock : Block
         _completedLines = 0;
         _pinnedWidth = float.NaN;
         _pinnedWrapping = null;
+        _paragraph = null;
     }
 
-    // The pinned wrapping is replaced whole, never changed, so it is kept rather than copied.
+    // The pinned wrapping is replaced whole, never changed, so it is kept rather than copied. The paragraph element is
+    // who the text is, not how far it has got, so it is not progress.
     protected override object? SaveOwnProgress() => (_completedLines, _pinnedWidth, _pinnedWrapping);
 
     protected override void RestoreOwnProgress(object progress) =>
@@ -150,6 +156,13 @@ internal sealed class TextBlock : Block
         if (count == 0)
             return;
 
+        // Text set straight inside a section, a cell's row or the document itself is a paragraph of its own.
+        TagStack tags = context.Tags;
+
+        if (tags.Enabled && _paragraph is null && tags.Current.IsGrouping)
+            _paragraph = tags.Create(ContentTag.Paragraph);
+
+        using TagStack.Scope scope = tags.Enter(_paragraph);
         float top = 0f;
 
         for (int index = _completedLines; index < _completedLines + count; index++)
@@ -245,6 +258,11 @@ internal sealed class TextBlock : Block
 
         foreach (TextRun run in runs)
         {
+            // Linked words are a link in the structure, which the link itself belongs to.
+            using TagStack.Scope link = run.Url is null && run.Destination is null
+                ? default
+                : context.Tags.Enter(context.Tags.Create("Link"));
+
             if (run.Inline is not null)
             {
                 Extent inlineSize = new Extent(run.Width, run.Height);

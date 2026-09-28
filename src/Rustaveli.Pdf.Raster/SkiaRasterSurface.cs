@@ -1,6 +1,7 @@
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Images;
+using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
@@ -15,12 +16,18 @@ namespace Rustaveli.Pdf.Raster;
 /// image and a PDF page agree glyph for glyph. Images are decoded as stored and turned by their EXIF orientation
 /// here, as the PDF surface does, rather than by whatever the decoder happens to apply.
 /// </remarks>
-internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions options) : IPageSink
+internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget target) : IPageSink
 {
+    /// <summary>A surface drawing page images, as <paramref name="options"/> says.</summary>
+    public SkiaRasterSurface(TypeShaper shaper, ImageExportOptions options)
+        : this(shaper, new RasterPageTarget(options))
+    {
+    }
+
     private readonly Dictionary<OpenTypeFont, SKTypeface> _typefaces = [];
     private readonly Dictionary<RasterImage, SKImage> _images = [];
     private readonly List<byte[]> _pages = [];
-    private SKSurface? _surface;
+    private SKCanvas? _canvas;
 
     /// <summary>The shader shapes are painted with instead of their ink, while a gradient is set.</summary>
     private SKShader? _gradient;
@@ -30,38 +37,26 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
 
     public IReadOnlyList<byte[]> Pages => _pages;
 
-    private SKCanvas Canvas => _surface?.Canvas
+    private SKCanvas Canvas => _canvas
         ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
 
     public void BeginPage(Extent size)
     {
-        if (_surface is not null)
+        if (_canvas is not null)
             throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
 
-        float scale = options.Resolution / 72f;
-        SKImageInfo info = new SKImageInfo(Pixels(size.Width, scale), Pixels(size.Height, scale), SKColorType.Rgba8888, SKAlphaType.Premul);
-
-        _surface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Skia could not allocate a {info.Width}×{info.Height} page.");
-        Canvas.Clear(options.Format == PageImageFormat.Jpeg ? SKColors.White : SKColors.Transparent);
-
-        // The page fills the whole pixel grid, as a viewer rendering it at this resolution fills it: scaling by the
-        // resolution alone would leave the rounding of the size to drift across the page.
-        _pixelsPerPoint = new SKPoint(info.Width / size.Width, info.Height / size.Height);
-        Canvas.Scale(_pixelsPerPoint.X, _pixelsPerPoint.Y);
+        _canvas = target.Begin(size, out _pixelsPerPoint);
+        _canvas.Scale(_pixelsPerPoint.X, _pixelsPerPoint.Y);
     }
 
     public void EndPage()
     {
-        SKSurface surface = _surface ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
-        _surface = null;
-        EndGradient();
+        if (_canvas is null)
+            throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
 
-        using (surface)
-        {
-            using SKImage snapshot = surface.Snapshot();
-            using SKData data = snapshot.Encode(Encoding(options.Format), options.Quality);
-            _pages.Add(data.ToArray());
-        }
+        _canvas = null;
+        EndGradient();
+        _pages.Add(target.End());
     }
 
     public Offset Origin
@@ -268,6 +263,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             return;
 
         using SKTextBlobBuilder builder = new SKTextBlobBuilder();
+        using SKPaint paint = Paint(style.Ink);
         List<ushort> glyphs = [];
         List<SKPoint> positions = [];
         OpenTypeFont? face = null;
@@ -285,7 +281,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             // Each face is its own run, as each is its own font in the PDF.
             if (face is not null && !ReferenceEquals(face, glyph.Face))
             {
-                AddRun(builder, face, size, glyphs, positions);
+                AddRun(builder, paint, face, size, glyphs, positions);
                 glyphs.Clear();
                 positions.Clear();
             }
@@ -297,10 +293,9 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             first = false;
         }
 
-        AddRun(builder, face!, size, glyphs, positions);
+        AddRun(builder, paint, face!, size, glyphs, positions);
 
         using SKTextBlob? blob = builder.Build();
-        using SKPaint paint = Paint(style.Ink);
         if (blob is not null)
             Canvas.DrawText(blob, 0, 0, paint);
     }
@@ -343,10 +338,20 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
     {
     }
 
+    /// <summary>A page image has no outline to add to.</summary>
+    public void DrawBookmark(string title, int level)
+    {
+    }
+
+    /// <summary>A page image has no structure to record.</summary>
+    public void Tag(StructureElement? element)
+    {
+    }
+
     public void Dispose()
     {
-        _surface?.Dispose();
-        _surface = null;
+        target.Dispose();
+        _canvas = null;
 
         foreach (SKImage image in _images.Values)
             image.Dispose();
@@ -383,15 +388,6 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
     }
 
     // To the nearest pixel, as PDF viewers size a page at a resolution: A4 at 96 pixels per inch is 794 wide.
-    private static int Pixels(float points, float scale) => Math.Max(1, (int)Math.Round(points * scale, MidpointRounding.AwayFromZero));
-
-    private static SKEncodedImageFormat Encoding(PageImageFormat format) => format switch
-    {
-        PageImageFormat.Jpeg => SKEncodedImageFormat.Jpeg,
-        PageImageFormat.Webp => SKEncodedImageFormat.Webp,
-        _ => SKEncodedImageFormat.Png,
-    };
-
     public void BeginGradient(Gradient gradient, Offset position, Extent size)
     {
         (Offset start, Offset end) = gradient.Axis(position, size);
@@ -482,7 +478,11 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
 
     private static byte ToByte(float fraction) => (byte)Math.Round(fraction * 255);
 
-    private void AddRun(SKTextBlobBuilder builder, OpenTypeFont face, float size, List<ushort> glyphs, List<SKPoint> positions)
+    /// <summary>
+    /// Adds a run of glyphs in one face to the text being drawn, or, for a target that wants text as outlines, draws
+    /// each glyph's outline where it goes.
+    /// </summary>
+    private void AddRun(SKTextBlobBuilder builder, SKPaint paint, OpenTypeFont face, float size, List<ushort> glyphs, List<SKPoint> positions)
     {
         using SKFont font = new SKFont(TypefaceFor(face), size)
         {
@@ -492,7 +492,24 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ImageExportOptions op
             Edging = SKFontEdging.Antialias,
         };
 
-        builder.AddPositionedRun(glyphs.ToArray(), font, positions.ToArray());
+        if (!target.TextAsOutlines)
+        {
+            builder.AddPositionedRun(glyphs.ToArray(), font, positions.ToArray());
+            return;
+        }
+
+        for (int index = 0; index < glyphs.Count; index++)
+        {
+            using SKPath? outline = font.GetGlyphPath(glyphs[index]);
+
+            if (outline is null || outline.IsEmpty)
+                continue;
+
+            Canvas.Save();
+            Canvas.Translate(positions[index].X, positions[index].Y);
+            Canvas.DrawPath(outline, paint);
+            Canvas.Restore();
+        }
     }
 
     private SKTypeface TypefaceFor(OpenTypeFont face)

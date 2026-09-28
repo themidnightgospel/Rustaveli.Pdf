@@ -29,7 +29,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Page-level default text style and direction | `DefaultTextStyle`, `ContentFrom*` | ✅ | — |
 | Units: pt, mm, cm, inch, plus metre, feet, mil | `Unit` | ✅ plus pica | — |
 | Metadata: title, author, subject, keywords, creator, producer, dates | `DocumentMetadata` | ✅ | — |
-| Document language | `DocumentMetadata.Language` | ❌ | 6 |
+| Document language | `DocumentMetadata.Language` | ✅ `DocumentInfo.Language` | — |
 | Merge generated documents, continuous or original numbering | `Document.Merge`, `MergedDocument` | ❌ | 7 |
 
 ## Layout
@@ -146,7 +146,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Internal link to a named section | `SectionLink`, `InternalLink` | ✅ | — |
 | Named destinations | `Section`, `Location` | ✅ | — |
 | Links to captured locations from text | `ExternalLocation`, `InternalLocation` | ✅ `TextComposer.Link`, `CrossReference` (their former names for `Hyperlink`, `SectionLink`) | — |
-| Outline / bookmarks | — (derived from semantic tags) | ❌ | 6 |
+| Outline / bookmarks | — (derived from semantic tags) | ✅ `Bookmark(title, level)` | — |
 
 ## Images and vector graphics
 
@@ -177,15 +177,17 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 | Capability | Reference | Status | Phase |
 |---|---|---|---|
 | PDF to bytes, stream, file | `GeneratePdf` | ✅ | — |
-| Generate and open in the default viewer | `GeneratePdfAndShow` | ❌ | 6 |
+| Generate and open in the default viewer | `GeneratePdfAndShow` | ✅ `ExportPdfAndOpen` | — |
 | Page images: PNG, JPEG, WebP, DPI, quality | `GenerateImages`, `ImageGenerationSettings` | ✅ `ExportImages` in `Rustaveli.Pdf.Raster` | — |
 | Parallel generation | built in | ✅ no process-wide lock | — |
-| SVG pages | `GenerateSvg` | ❌ | 6 |
-| XPS | `GenerateXps` | ❌ | 6 |
+| SVG pages | `GenerateSvg` | ✅ `ExportSvg`, text as outlines | — |
+| XPS | `GenerateXps` | ✅ `ExportXps`, Windows only as theirs is | — |
 | Stream compression switch | `DocumentSettings.CompressDocument` | ✅ `PdfExportOptions.Compress` | — |
-| PDF/A-2b | `PDFA_Conformance.PDFA_2B` | 🟡 prerequisites only | 6 |
-| PDF/A-2a, 2u, 3a, 3b, 3u | `PDFA_Conformance` | ❌ | 6 |
-| PDF/UA-1 with semantic tagging (headings, lists, tables, figures, alt text, language, artifacts) | `PDFUA_Conformance`, `Semantic*`, `AsSemanticHorizontalHeader` | ❌ | 6 |
+| PDF/A-2b | `PDFA_Conformance.PDFA_2B` | ✅ `PdfAConformance.PdfA2B` | — |
+| PDF/A-2u, 3b, 3u | `PDFA_Conformance` | ✅ `PdfA2U`, `PdfA3B`, `PdfA3U` | — |
+| PDF/A-2a, 3a (tagged) | `PDFA_Conformance` | ✅ `PdfA2A`, `PdfA3A` | — |
+| PDF/UA-1 with semantic tagging (headings, lists, tables, figures, alt text, language, artifacts) | `PDFUA_Conformance`, `Semantic*`, `AsSemanticHorizontalHeader` | ✅ `PdfUAConformance.PdfUA1`, `Tagged(ContentTag)`, `Untagged`, `Language`, `RowHeading`; paragraphs, lists and links tagged without asking | — |
+| Every standard checked by the reference validator | — | ✅ veraPDF over every specimen at 2b, 3u, 2a with UA-1, and UA-1 alone | — |
 
 ## Document operations
 

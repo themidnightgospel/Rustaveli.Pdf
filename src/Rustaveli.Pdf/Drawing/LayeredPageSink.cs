@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Tagging;
+
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
@@ -15,6 +17,10 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
     private readonly Stack<Change?> _saved = new Stack<Change?>();
     private readonly TransformTracker _transform = new TransformTracker();
     private Change? _state;
+
+    /// <summary>The element drawings are made in, and whether any has been named: untagged output never names one.</summary>
+    private StructureElement? _tag;
+    private bool _tagged;
 
     /// <summary>The draw order drawings are held under, zero unless content says otherwise.</summary>
     public int Order { get; set; }
@@ -50,6 +56,10 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
                     applied = held.State;
                     open = true;
                 }
+
+                // Each drawing belongs to the element it was made in, whatever order it is drawn in.
+                if (_tagged)
+                    pages.Tag(held.Tag);
 
                 held.Draw(pages);
             }
@@ -138,6 +148,14 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
 
     public void DrawDestination(string destinationName) => Hold(surface => surface.DrawDestination(destinationName));
 
+    public void DrawBookmark(string title, int level) => Hold(surface => surface.DrawBookmark(title, level));
+
+    public void Tag(StructureElement? element)
+    {
+        _tag = element;
+        _tagged = true;
+    }
+
     /// <summary>The pages beneath are the caller's, and closed by the caller.</summary>
     public void Dispose()
     {
@@ -151,11 +169,11 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
             _orders.Add(Order, drawings);
         }
 
-        drawings.Add(new Held(_state, draw));
+        drawings.Add(new Held(_state, _tag, draw));
     }
 
-    /// <summary>A drawing, with the transforms and clips it was made under.</summary>
-    private readonly record struct Held(Change? State, Action<ISurface> Draw);
+    /// <summary>A drawing, with the transforms and clips it was made under and the element it belongs to.</summary>
+    private readonly record struct Held(Change? State, StructureElement? Tag, Action<ISurface> Draw);
 
     /// <summary>One transform or clip, after those before it.</summary>
     private sealed class Change(Change? before, Action<ISurface> change)

@@ -47,6 +47,8 @@ public class CountingPageSinkTests
         canvas.DrawExternalLink("https://example.com", new Extent(10, 10));
         canvas.DrawInternalLink("target", new Extent(10, 10));
         canvas.DrawDestination("target");
+        canvas.Tag(new Rustaveli.Pdf.Tagging.StructureElement("P", null));
+        canvas.Tag(null);
         canvas.Restore();
         canvas.EndPage();
 

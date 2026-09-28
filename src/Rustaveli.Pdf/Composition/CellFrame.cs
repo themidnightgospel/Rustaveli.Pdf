@@ -47,4 +47,14 @@ public sealed class CellFrame : IFrameSlot
         _cell.ColumnSpan = Math.Max(1, span);
         return this;
     }
+
+    /// <summary>
+    /// Makes the cell the heading of its row, as the cells of header rows head their columns, when a table tagged
+    /// <see cref="ContentTag.Table"/> is exported tagged.
+    /// </summary>
+    public CellFrame RowHeading()
+    {
+        _cell.HeadsRow = true;
+        return this;
+    }
 }

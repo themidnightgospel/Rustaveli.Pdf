@@ -15,6 +15,10 @@ internal sealed class ListBlock : Block
 {
     private readonly StackBlock _layout = new StackBlock();
 
+    private readonly TagBlock _list;
+
+    public ListBlock() => _list = new TagBlock { Tag = ContentTag.List, Child = _layout };
+
     private int _builtItemCount = -1;
 
     public List<ListEntry> Items { get; } = new List<ListEntry>();
@@ -32,7 +36,7 @@ internal sealed class ListBlock : Block
 
     public override IEnumerable<Block?> GetChildren()
     {
-        yield return _layout;
+        yield return _list;
     }
 
     /// <summary>
@@ -48,11 +52,6 @@ internal sealed class ListBlock : Block
             ListEntry listItem = Items[i];
             listItem.Marker = ListMarkers.Format(Numbering, i + 1);
             ColumnsBlock rowElement = new ColumnsBlock();
-            ColumnSlot rowItem = new ColumnSlot
-            {
-                Sizing = ColumnSizing.Fixed,
-                Value = MarkerIndent
-            };
             TextBlock textElement = new TextBlock
             {
                 DefaultTypeRefinement = MarkerType
@@ -61,16 +60,23 @@ internal sealed class ListBlock : Block
             {
                 Text = listItem.Marker
             });
-            rowItem.Child = textElement;
+
+            // A list is a list whoever reads it, so it is tagged as one without asking: each item its label and body.
+            ColumnSlot rowItem = new ColumnSlot
+            {
+                Sizing = ColumnSizing.Fixed,
+                Value = MarkerIndent,
+                Child = new TagBlock { Tag = ContentTag.ListLabel, Child = textElement }
+            };
             ColumnSlot item = new ColumnSlot
             {
                 Sizing = ColumnSizing.Share,
                 Value = 1f,
-                Child = listItem
+                Child = new TagBlock { Tag = ContentTag.ListBody, Child = listItem }
             };
             rowElement.Items.Add(rowItem);
             rowElement.Items.Add(item);
-            _layout.Items.Add(rowElement);
+            _layout.Items.Add(new TagBlock { Tag = ContentTag.ListItem, Child = rowElement });
         }
         _builtItemCount = Items.Count;
     }
@@ -94,12 +100,12 @@ internal sealed class ListBlock : Block
     public override Fit Plan(Extent availableSpace, PlanContext context)
     {
         EnsureBuilt();
-        return _layout.Plan(availableSpace, context);
+        return _list.Plan(availableSpace, context);
     }
 
     public override void Render(Extent availableSpace, RenderContext context)
     {
         EnsureBuilt();
-        _layout.Render(availableSpace, context);
+        _list.Render(availableSpace, context);
     }
 }

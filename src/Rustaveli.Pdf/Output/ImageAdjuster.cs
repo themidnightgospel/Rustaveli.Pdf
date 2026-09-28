@@ -18,7 +18,11 @@ internal sealed class ImageAdjuster(PdfExportOptions? options)
         int? quality = image.Quality ?? options?.ImageQuality;
         float? resolution = image.MaximumResolution ?? options?.MaximumImageResolution;
 
-        if (quality is null && resolution is null)
+        // PDF/A shows colours through an sRGB output intent, which a CMYK image with no profile of its own cannot be.
+        bool toRgb = options?.Conformance is { } conformance && conformance != PdfAConformance.None
+            && image.Encode().ColorSpace.Kind == ImageColorSpaceKind.DeviceCmyk;
+
+        if (quality is null && resolution is null && !toRgb)
             return image;
 
         int width = image.PixelWidth;
@@ -31,8 +35,12 @@ internal sealed class ImageAdjuster(PdfExportOptions? options)
         }
 
         // Fine enough already, and not to be recompressed: nothing to do.
-        if (quality is null && width == image.PixelWidth && height == image.PixelHeight)
+        if (quality is null && !toRgb && width == image.PixelWidth && height == image.PixelHeight)
             return image;
+
+        // A CMYK photograph becomes a JPEG in RGB, finely compressed unless asked otherwise.
+        if (toRgb)
+            quality ??= 95;
 
         (ImageContentHash, int, int, int?) key = (image.ContentHash, width, height, quality);
 
@@ -40,8 +48,8 @@ internal sealed class ImageAdjuster(PdfExportOptions? options)
             return adjusted;
 
         IImageProcessor processor = options?.ImageProcessor ?? throw new InvalidOperationException(
-            "An image asks for a quality or a maximum resolution, which needs PdfExportOptions.ImageProcessor: " +
-            "SkiaImageProcessor from the Rustaveli.Pdf.Raster package, for one.");
+            (toRgb ? "A CMYK image with no colour profile must become RGB under PDF/A" : "An image asks for a quality or a maximum resolution") +
+            ", which needs PdfExportOptions.ImageProcessor: SkiaImageProcessor from the Rustaveli.Pdf.Raster package, for one.");
 
         adjusted = RasterImage.Load(processor.Process(new ImageProcessing(image.Source, width, height, quality)));
         _adjusted.Add(key, adjusted);

@@ -1,4 +1,5 @@
 using Rustaveli.Pdf.Layout;
+using Rustaveli.Pdf.Tagging;
 
 namespace Rustaveli.Pdf.Blocks;
 
@@ -67,6 +68,12 @@ internal sealed class TableBlock : Block
 
     private ReadingDirection _cachedDirection;
 
+    /// <summary>The table's head, body and foot in a tagged document, once it has begun drawing.</summary>
+    private StructureElement?[]? _groups;
+
+    /// <summary>The element of each cell drawn tagged.</summary>
+    private Dictionary<CellBlock, StructureElement>? _cellTags;
+
     /// <summary>Overrides the inherited flow direction, reversing column order. Null follows the context.</summary>
     public ReadingDirection? ReadingDirection { get; set; }
 
@@ -93,6 +100,8 @@ internal sealed class TableBlock : Block
         _completedRows = 0;
         _cachedLayout = null;
         _cachedWidth = float.NaN;
+        _groups = null;
+        _cellTags = null;
     }
 
     protected override object? SaveOwnProgress() => (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection);
@@ -143,17 +152,42 @@ internal sealed class TableBlock : Block
 
         float top = 0f;
 
+        // Drawn straight inside a table tag, the table tags its rows and cells. The bands that repeat are read once,
+        // where they are first drawn, and are decoration on every page after.
+        TagStack tags = context.Tags;
+        bool tagging = tags.Enabled && !tags.IsUntagged && tags.Current.Role == "Table";
+        bool repeat = _completedRows > 0;
+
+        if (tagging && _groups is null)
+        {
+            _groups =
+            [
+                HeaderCells.Count > 0 ? tags.Create("THead") : null,
+                tags.Create("TBody"),
+                FooterCells.Count > 0 ? tags.Create("TFoot") : null,
+            ];
+        }
+
+        StructureElement? head = tagging && !repeat ? _groups![0] : null;
+        StructureElement? body = tagging ? _groups![1] : null;
+        StructureElement? foot = tagging && !repeat ? _groups![2] : null;
+
         if (layout.HeaderHeights.Length != 0)
         {
-            DrawBand(HeaderCells, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context);
+            using (TagStack.Scope scope = tagging && repeat ? tags.Untag() : default)
+                DrawBand(HeaderCells, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head, heads: true);
+
             top += layout.HeaderHeight;
         }
 
-        DrawBand(Cells, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, ExtendLastCells);
+        DrawBand(Cells, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, body, heads: false, ExtendLastCells);
         top += takenHeight;
 
         if (layout.FooterHeights.Length != 0)
-            DrawBand(FooterCells, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context);
+        {
+            using TagStack.Scope scope = tagging && repeat ? tags.Untag() : default;
+            DrawBand(FooterCells, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context, foot, heads: false);
+        }
 
         _completedRows = lastRow;
         ResetRepeatingBands();
@@ -229,12 +263,21 @@ internal sealed class TableBlock : Block
         int lastRow,
         float bandTop,
         RenderContext context,
+        StructureElement? group,
+        bool heads,
         bool extendLastCells = false)
     {
+        if (group is not null)
+            TagCells(cells, firstRow, lastRow, group, heads, context.Tags);
+
         foreach (CellBlock cell in cells)
         {
             if (cell.Row < firstRow || cell.Row > lastRow)
                 continue;
+
+            StructureElement? element = null;
+            _cellTags?.TryGetValue(cell, out element);
+            using TagStack.Scope scope = context.Tags.Enter(element);
 
             // The last cell of its columns reaches down to the last row drawn here.
             int bottomRow = extendLastCells && IsLastInItsColumns(cell, cells) ? lastRow : cell.LastRow;
@@ -257,6 +300,36 @@ internal sealed class TableBlock : Block
             context.Surface.Translate(offset);
             cell.Render(cellSpace, context);
             context.Surface.Translate(offset.Reverse());
+        }
+    }
+
+    /// <summary>
+    /// Creates the rows about to be drawn in <paramref name="group"/>, in order, and their cells in column order:
+    /// headings of their columns in a header band, of their rows where marked, data otherwise.
+    /// </summary>
+    private void TagCells(List<CellBlock> cells, int firstRow, int lastRow, StructureElement group, bool heads, TagStack tags)
+    {
+        _cellTags ??= [];
+        using TagStack.Scope inGroup = tags.Enter(group);
+
+        IEnumerable<IGrouping<int, CellBlock>> rows = cells
+            .Where(cell => cell.Row >= firstRow && cell.Row <= lastRow)
+            .OrderBy(cell => cell.Row)
+            .ThenBy(cell => cell.Column)
+            .GroupBy(cell => cell.Row);
+
+        foreach (IGrouping<int, CellBlock> row in rows)
+        {
+            using TagStack.Scope inRow = tags.Enter(tags.Create("TR"));
+
+            foreach (CellBlock cell in row)
+            {
+                StructureElement element = tags.Create(heads || cell.HeadsRow ? "TH" : "TD")!;
+                element.Scope = heads ? TableScope.Column : cell.HeadsRow ? TableScope.Row : null;
+                element.RowSpan = Math.Max(1, cell.RowSpan);
+                element.ColumnSpan = Math.Max(1, cell.ColumnSpan);
+                _cellTags[cell] = element;
+            }
         }
     }
 

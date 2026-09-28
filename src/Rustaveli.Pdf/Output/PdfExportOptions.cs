@@ -72,6 +72,35 @@ public sealed class PdfExportOptions
     /// <summary>What re-encodes images when a quality or maximum resolution asks for it.</summary>
     public IImageProcessor? ImageProcessor { get; set; }
 
+    /// <summary>
+    /// The PDF/A part and level the document is written to, <see cref="PdfAConformance.None"/> unless set. Under PDF/A
+    /// every glyph must be found, as if <see cref="RequireEveryGlyph"/> were on, and CMYK images without a colour profile
+    /// need an <see cref="ImageProcessor"/> to become RGB.
+    /// </summary>
+    public PdfAConformance Conformance { get; set; }
+
+    /// <summary>
+    /// Whether the PDF records the document's structure — its headings, paragraphs, lists, tables and figures, in
+    /// reading order — for screen readers, reflow and search. Off by default; PDF/UA and the accessible levels of PDF/A
+    /// turn it on.
+    /// </summary>
+    /// <remarks>
+    /// Text is tagged a paragraph where nothing else tags it, lists and links are tagged without asking, and
+    /// <see cref="FrameModifiers.Tagged"/> tags the rest. Running heads and feet, and images and drawings outside a
+    /// figure, are decoration outside the structure.
+    /// </remarks>
+    public bool Tagged { get; set; }
+
+    /// <summary>
+    /// The accessibility standard the document claims to meet, <see cref="PdfUAConformance.None"/> unless set. PDF/UA
+    /// tags the document, and needs its <see cref="DocumentInfo.Title"/> and <see cref="DocumentInfo.Language"/>.
+    /// </summary>
+    public PdfUAConformance Accessibility { get; set; }
+
+    /// <summary>Whether the structure is written: asked for, or needed by the standard claimed.</summary>
+    internal bool WritesStructure =>
+        Tagged || Accessibility != PdfUAConformance.None || Conformance is PdfAConformance.PdfA2A or PdfAConformance.PdfA3A;
+
     private int? _imageQuality;
 
     private float? _maximumImageResolution;
