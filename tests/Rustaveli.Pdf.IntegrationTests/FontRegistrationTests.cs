@@ -194,6 +194,34 @@ public class FontRegistrationTests
         Assert.EndsWith("NotoSans-Regular", parsed.GetPage(1).Letters.Last().FontName);
     }
 
+    [Fact]
+    public void TextNamingNoTypefaceIsSetInTheBundledNotoSansWhateverTheMachineHas()
+    {
+        // No typeface named, none registered and none installed: the default is the package's own.
+        Document document = Document.Compose(composition => composition.Section(section => section.Body().Text("Default")));
+
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf(new PdfExportOptions { Typefaces = new TypefaceLibrary(includeInstalled: false) }));
+
+        Assert.Equal("Default", parsed.GetPage(1).Text);
+        Assert.All(parsed.GetPage(1).Letters, letter => Assert.EndsWith("+NotoSans-Regular", letter.FontName, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false, false, "NotoSans-Regular")]
+    [InlineData(true, false, "NotoSans-Bold")]
+    [InlineData(false, true, "NotoSans-Italic")]
+    [InlineData(true, true, "NotoSans-BoldItalic")]
+    public void TheBundledTypefaceHasEveryCommonStyle(bool bold, bool italic, string face)
+    {
+        // Bold italic in particular: set in the italic alone, it would lose its weight.
+        Document document = Document.Compose(composition => composition.Section(section =>
+            section.Body().Text(text => text.Run("Styled").Style(style => bold ? style.Bold().Italic(italic) : style.Italic(italic)))));
+
+        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf(new PdfExportOptions { Typefaces = new TypefaceLibrary(includeInstalled: false) }));
+
+        Assert.All(parsed.GetPage(1).Letters, letter => Assert.EndsWith("+" + face, letter.FontName, StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("Noto Sans")]
     [InlineData(" noto sans ")]

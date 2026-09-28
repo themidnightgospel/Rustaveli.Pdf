@@ -3,9 +3,9 @@ using System.Reflection;
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
-/// The typefaces the core package carries: Latin, Greek and Cyrillic subsets of Noto Sans in regular, bold and
-/// italic, used for text set in Noto Sans where no Noto Sans is registered or installed, and for any text nothing
-/// registered or installed can set.
+/// The typefaces the core package carries: Latin, Greek and Cyrillic subsets of Noto Sans in regular, bold, italic
+/// and bold italic, used for text set in Noto Sans where no Noto Sans is registered or installed, and for any text
+/// nothing registered or installed can set.
 /// </summary>
 /// <remarks>
 /// A document naming Noto Sans is set in the same faces on every machine, and a machine with no fonts at all — a
@@ -14,7 +14,7 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal static class BundledTypefaces
 {
-    private static readonly string[] Files = ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf"];
+    private static readonly string[] Files = ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf", "NotoSans-BoldItalic.ttf"];
 
     private static readonly Lazy<FontFaceInfo[]> Loaded = new Lazy<FontFaceInfo[]>(Load, LazyThreadSafetyMode.ExecutionAndPublication);
 

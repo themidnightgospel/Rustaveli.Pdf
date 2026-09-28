@@ -23,8 +23,8 @@ public class FontCatalogTests
         Assert.Equal(
             new[]
             {
-                "NotoSans-Bold", "NotoSans-Italic", "NotoSans-Regular", "NotoSansArabic-Regular", "NotoSansDevanagari-Regular",
-                "NotoSansGeorgian-Regular",
+                "NotoSans-Bold", "NotoSans-BoldItalic", "NotoSans-Italic", "NotoSans-Regular", "NotoSansArabic-Regular",
+                "NotoSansDevanagari-Regular", "NotoSansGeorgian-Regular",
                 "SpecimenCff-Regular", "SpecimenCjk-Regular", "SpecimenLayout-Regular", "SpecimenSans-Regular",
                 "SpecimenSans-SemiBold", "SpecimenSans-Italic", "SpecimenSubrs-Regular"
             },
@@ -61,7 +61,8 @@ public class FontCatalogTests
     [InlineData("  Noto Sans ", 900, 0, "NotoSans-Bold")]
     [InlineData("Noto Sans", 300, 0, "NotoSans-Regular")]
     [InlineData("Noto Sans", 400, 1, "NotoSans-Italic")]
-    [InlineData("Noto Sans", 700, 1, "NotoSans-Italic")]
+    [InlineData("Noto Sans", 700, 1, "NotoSans-BoldItalic")]
+    [InlineData("Noto Sans", 600, 2, "NotoSans-BoldItalic")]
     [InlineData("Noto Sans", 400, 2, "NotoSans-Italic")]
     [InlineData("Specimen Sans", 600, 0, "SpecimenSans-SemiBold")]
     [InlineData("Specimen Sans", 700, 0, "SpecimenSans-SemiBold")]

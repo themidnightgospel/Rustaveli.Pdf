@@ -6,7 +6,7 @@ glyph, different line breaks, different page breaks — and passes or fails depe
 
 | File | Covers | Source |
 |---|---|---|
-| `NotoSans-Regular.ttf`, `-Bold.ttf`, `-Italic.ttf` | Latin, Greek, Cyrillic | [notofonts/latin-greek-cyrillic](https://github.com/notofonts/latin-greek-cyrillic) |
+| `NotoSans-Regular.ttf`, `-Bold.ttf`, `-Italic.ttf`, `-BoldItalic.ttf` | Latin, Greek, Cyrillic — the source of the faces the core package carries | [notofonts/latin-greek-cyrillic](https://github.com/notofonts/latin-greek-cyrillic) |
 | `NotoSansGeorgian-Regular.ttf` | Georgian — a script Noto Sans lacks, for fallback tests | [notofonts/georgian](https://github.com/notofonts/georgian) |
 | `NotoSansArabic-Regular.ttf` | Arabic — joining, ligatures and marks, for complex-script shaping | [notofonts/arabic](https://github.com/notofonts/arabic) |
 | `NotoSansDevanagari-Regular.ttf` | Devanagari — reordering and conjuncts, for complex-script shaping | [notofonts/devanagari](https://github.com/notofonts/devanagari) |

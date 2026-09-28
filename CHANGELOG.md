@@ -26,7 +26,7 @@ keeping content together, conditions on the page, repetition, and content compos
 
 **Text** — styled runs, paragraphs aligned, justified and indented, lines broken by the Unicode rules, text in both
 directions, folios, page counts and cross-references; typefaces registered or installed, fallback per character,
-OpenType features and kerning, and Noto Sans carried in the package.
+OpenType features and kerning, and Noto Sans carried in the package as the default typeface.
 
 **Images and artwork** — JPEG and PNG embedded as encoded, SVG and drawn artwork kept vector, and images and
 artwork made for the box they fill.
