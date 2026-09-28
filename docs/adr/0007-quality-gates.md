@@ -12,7 +12,11 @@ Every phase must pass, before merge:
 
 - **Coverage** of the shipped assemblies, both suites combined: ≥ 95% line, ≥ 90% branch, never decreasing.
   Enforced by `dotnet run eng/coverage.cs`. Exclusions need `[ExcludeFromCodeCoverage(Justification = ...)]`.
-- **Mutation testing** (Stryker.NET): score ≥ 80%, proving the tests detect wrong behaviour.
+- **Mutation testing** (Stryker.NET): score ≥ 80% in every shard, proving the tests detect wrong behaviour. A pull
+  request mutates the source files it changes; every night the whole engine is mutated on `main`, and a shard below
+  the floor opens an issue for the next pull request to fix. Mutating the whole engine takes hours on hosted
+  runners, which no merge should wait for, while what a change touches takes minutes. Arguments to exception
+  constructors — the words of an error message — are not mutated.
 - **Unit tests** against a deterministic fake measurer and a recording canvas, so expected values are computable by
   hand.
 - **Integration tests** reading real output back with PdfPig.
@@ -25,3 +29,5 @@ Every phase must pass, before merge:
 ## Consequences
 - Slower phases, far fewer regressions. The expensive gates (mutation, benchmarks, macOS) run once per pull request
   when it is ready to merge rather than on every push. See [0011](0011-delivery-workflow.md).
+- A change that weakens the tests of code it does not touch passes its own gate and is caught by the next nightly
+  run — a day's delay, accepted for merges that do not wait hours.
