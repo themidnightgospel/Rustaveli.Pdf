@@ -85,7 +85,7 @@ internal sealed class GlyphDefinitionTable
 
                 // A filtering set decides alone; the attachment type then plays no part.
                 if ((flags & LookupFlags.UseMarkFilteringSet) != 0)
-                    return markFilteringSet is null || markFilteringSet.IndexOf(glyph) < 0;
+                    return markFilteringSet is not { } set || set.IndexOf(glyph) < 0;
 
                 int attachmentType = (int)(flags & LookupFlags.MarkAttachmentType) >> 8;
                 return attachmentType != 0 && MarkAttachmentClassOf(glyph) != attachmentType;

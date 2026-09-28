@@ -52,8 +52,8 @@ internal sealed class CoverageContextSubstitution : ContextSubstitution
     {
         next = position;
 
-        return _firstInput is not null &&
-               _firstInput.IndexOf(session.Buffer.Glyphs[position]) >= 0 &&
+        return _firstInput is { } firstInput &&
+               firstInput.IndexOf(session.Buffer.Glyphs[position]) >= 0 &&
                TryApplyRule(session, lookup, position, _rule, out next);
     }
 

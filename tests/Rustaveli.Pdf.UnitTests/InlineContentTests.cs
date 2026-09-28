@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Drawing;
+
 namespace Rustaveli.Pdf.UnitTests;
 
 /// <summary>
@@ -377,4 +379,45 @@ public class InlineContentTests
         Approximately.Equal(0f, block.Position.X);
         Approximately.Equal(60f, block.Size.Width);
     }
+
+    [Fact]
+    public void AnInlineFrameIsSetWhileCountingPages()
+    {
+        // A pass that only counts pages passes lines of plain text over, but not a frame among the words, which may
+        // record where it lands.
+        ScriptedBlock frame = new ScriptedBlock(Fit.Complete(20, 10));
+        TextBlock element = Text(text =>
+        {
+            text.Run("a line of plain text\n");
+            text.Run("before");
+            text.Inline(inline => inline.Slot().Child = frame);
+            text.Run("after");
+        });
+
+        using CountingPageSink counting = new CountingPageSink();
+        counting.BeginPage(new Extent(500, 500));
+        element.Render(new Extent(500, 500), new RenderContext(counting, LayoutHarness.Context()));
+
+        Assert.Single(frame.DrawnWith);
+    }
+
+#if NET
+    [Fact]
+    public void LinesOfPlainTextCostNothingWhileCountingPages()
+    {
+        TextBlock element = Text(text => text.Run(string.Join("\n", Enumerable.Repeat("a line of plain text", 40))));
+        PlanContext layout = LayoutHarness.Context();
+        Extent space = new Extent(500, 1000);
+        LayoutHarness.Measure(element, space, layout);
+
+        using CountingPageSink counting = new CountingPageSink();
+        counting.BeginPage(space);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        element.Render(space, new RenderContext(counting, layout));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        // What drawing costs — the pieces of each line, joined — is not paid for lines no one sees.
+        Assert.True(allocated < 1024, $"{allocated} bytes allocated counting forty lines.");
+    }
+#endif
 }
