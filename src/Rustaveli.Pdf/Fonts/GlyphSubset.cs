@@ -172,7 +172,8 @@ internal sealed class GlyphSubset
         char.ConvertFromUtf32(codepoint is >= 0 and <= 0x10FFFF and (< 0xD800 or > 0xDFFF) ? codepoint : 0xFFFD);
 
     /// <summary>Builds the subset font, keeping every subset glyph id handed out so far.</summary>
-    public TrueTypeSubset Build() => TrueTypeSubsetter.SubsetInOrder(Font, OriginalGlyphIds);
+    /// <param name="keepHinting">Whether the glyphs keep their hinting, which fonts that need it keep regardless.</param>
+    public TrueTypeSubset Build(bool keepHinting = false) => TrueTypeSubsetter.SubsetInOrder(Font, OriginalGlyphIds, keepHinting);
 
     /// <summary>
     /// Whether a use shows what the glyph's own code reads as, or offers nothing to tell: checked without building

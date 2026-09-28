@@ -12,6 +12,9 @@ internal static class CompositeGlyph
     public const ushort HasXAndYScale = 0x0040;
     public const ushort HasTwoByTwo = 0x0080;
 
+    /// <summary>On the last record: hinting instructions follow the records, their length first.</summary>
+    public const ushort HasInstructions = 0x0100;
+
     /// <summary>The glyph header: contour count and bounding box.</summary>
     public const int HeaderSize = 10;
 
@@ -26,16 +29,26 @@ internal static class CompositeGlyph
     /// </remarks>
     /// <param name="glyph">A composite glyph's data, header included.</param>
     /// <param name="components">Receives the components in order.</param>
-    public static void ReadComponents(ReadOnlySpan<byte> glyph, List<GlyphComponent> components)
+    public static void ReadComponents(ReadOnlySpan<byte> glyph, List<GlyphComponent> components) =>
+        Walk(glyph, components, out _);
+
+    /// <summary>
+    /// Where the component records of <paramref name="glyph"/> end — where its instructions begin, if it has any —
+    /// and where the last record's flags are.
+    /// </summary>
+    public static int RecordsEnd(ReadOnlySpan<byte> glyph, out int lastFlagsAt) => Walk(glyph, null, out lastFlagsAt);
+
+    private static int Walk(ReadOnlySpan<byte> glyph, List<GlyphComponent>? components, out int lastFlagsAt)
     {
         int position = HeaderSize;
         ushort flags;
 
         do
         {
+            lastFlagsAt = position;
             flags = BigEndian.UInt16(glyph, position);
             ushort glyphId = BigEndian.UInt16(glyph, position + 2);
-            components.Add(new GlyphComponent(glyphId, flags, position + 2));
+            components?.Add(new GlyphComponent(glyphId, flags, position + 2));
 
             position += 4 + ((flags & ArgsAreWords) != 0 ? 4 : 2);
 
@@ -50,5 +63,7 @@ internal static class CompositeGlyph
                 throw FontFormatException.Truncated();
         }
         while ((flags & MoreComponents) != 0);
+
+        return position;
     }
 }

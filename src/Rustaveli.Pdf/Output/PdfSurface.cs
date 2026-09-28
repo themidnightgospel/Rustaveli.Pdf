@@ -93,7 +93,7 @@ internal sealed class PdfSurface : IPageSink
     {
         _writer = writer;
         _shaper = shaper;
-        _fonts = new FontEmbedder(writer.File);
+        _fonts = new FontEmbedder(writer.File, options?.KeepFontHinting == true);
         _images = new ImageEmbedder(writer.File);
         _adjuster = new ImageAdjuster(options);
         _archival = options?.Conformance is { } conformance && conformance != PdfAConformance.None;

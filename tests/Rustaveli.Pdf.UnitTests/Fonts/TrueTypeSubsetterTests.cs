@@ -113,9 +113,9 @@ public class TrueTypeSubsetterTests
     }
 
     [Fact]
-    public void KeepsOnlyTheTablesAPdfNeeds()
+    public void KeepsOnlyTheTablesAPdfNeedsAndTheHintingProgramsWhenAsked()
     {
-        TrueTypeSubset subset = TrueTypeSubsetter.Subset(TestFonts.Regular, [36]);
+        TrueTypeSubset subset = TrueTypeSubsetter.Subset(TestFonts.Regular, [36], keepHinting: true);
         TableDirectory directory = Reparse(subset).Tables;
 
         Assert.Equal(PdfTables, directory.Records.Select(record => TableTag.ToString(record.Tag)));
@@ -127,7 +127,7 @@ public class TrueTypeSubsetterTests
     [Fact]
     public void WritesAValidTableDirectoryAndChecksums()
     {
-        byte[] data = TrueTypeSubsetter.Subset(TestFonts.Italic, [36, 57]).FontData;
+        byte[] data = TrueTypeSubsetter.Subset(TestFonts.Italic, [36, 57], keepHinting: true).FontData;
         int count = BigEndian.UInt16(data, 4);
 
         // searchRange is 16 times the largest power of two at most the table count; eleven tables give 8.
