@@ -194,6 +194,23 @@ public class CharacterMapTests
     }
 
     [Fact]
+    public void FallsBackPastAPreferredSubtableThatCannotBeRead()
+    {
+        byte[] full = SyntheticTables.Format12(false, ('A', 'A', 3));
+        // The full-repertoire subtable is last, so the table ends inside it.
+        CharacterMap truncated = Map((3, 1, SyntheticTables.Format4(('A', 9))), (3, 10, full.Take(full.Length - 3).ToArray()));
+
+        // The full-repertoire record points past the end of the table.
+        byte[] table = SyntheticTables.Cmap((3, 10, full), (3, 1, SyntheticTables.Format4(('A', 9))));
+        BigEndian.WriteUInt32(table, 4 + 4, 5000);
+        CharacterMap pastTheTable = new CharacterMap(table, GlyphCount);
+
+        Assert.Equal(9, truncated.GetGlyph('A'));
+        Assert.Equal(9, pastTheTable.GetGlyph('A'));
+        Assert.Equal(CharacterEncoding.Unicode, pastTheTable.Encoding);
+    }
+
+    [Fact]
     public void FindsSymbolFontCharactersInThePrivateUseArea()
     {
         CharacterMap map = Map((3, 0, SyntheticTables.Format4((0xEFFF, 7), (0xF041, 8), (0x263A, 9))));
