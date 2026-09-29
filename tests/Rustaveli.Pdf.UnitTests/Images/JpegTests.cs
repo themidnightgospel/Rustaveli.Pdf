@@ -502,23 +502,27 @@ public class JpegTests
         Assert.Equal(20, jpeg.Height);
     }
 
-    [Fact]
-    public void RejectsBytesWhereAMarkerShouldBe()
+    [Theory]
+    [InlineData(new byte[] { 0x12 })]
+    [InlineData(new byte[] { 0xFF, 0x00 })]
+    [InlineData(new byte[] { 0x12, 0x00, 0xFF, 0x00, 0x34, 0xFF, 0xFF, 0x00 })]
+    public void SkipsStrayBytesBetweenSegmentsAsLibjpegDoes(byte[] stray)
     {
-        ImageFormatException error = Assert.Throws<ImageFormatException>(
-            () => Parse(TestJpeg.Build([0x12], TestJpeg.Frame(10, 20, 3))));
+        JpegFile jpeg = Parse(TestJpeg.Build(TestJpeg.Jfif(), stray, TestJpeg.Frame(10, 20, 3)));
 
-        Assert.Contains("Expected a JPEG marker at offset 2", error.Message);
+        Assert.Equal(10, jpeg.Width);
+        Assert.Equal(20, jpeg.Height);
     }
 
-    [Fact]
-    public void RejectsAStuffedZeroOutsideTheScan()
+    [Theory]
+    [InlineData(new byte[] { 0xFF, 0xD8, 0x12, 0x34 })]
+    [InlineData(new byte[] { 0xFF, 0xD8, 0xFF, 0x00 })]
+    [InlineData(new byte[] { 0xFF, 0xD8, 0x12, 0xFF, 0x00, 0xFF })]
+    public void RejectsStrayBytesThatRunToTheEnd(byte[] data)
     {
-        ImageFormatException error = Assert.Throws<ImageFormatException>(
-            () => Parse(TestJpeg.Build([0xFF, 0x00], TestJpeg.Frame(10, 20, 3))));
+        ImageFormatException error = Assert.Throws<ImageFormatException>(() => Parse(data));
 
-        Assert.Contains("stuffed zero byte", error.Message);
-        Assert.Contains("offset 3", error.Message);
+        Assert.Contains("ends before any image data", error.Message);
     }
 
     [Theory]

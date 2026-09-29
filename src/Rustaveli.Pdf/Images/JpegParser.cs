@@ -122,27 +122,24 @@ internal static class JpegParser
 
     private static byte ReadMarker(ReadOnlySpan<byte> data, ref int position)
     {
-        if (position >= data.Length)
-            throw new ImageFormatException("The JPEG ends before any image data.");
-
-        if (data[position] != 0xFF)
-            throw new ImageFormatException($"Expected a JPEG marker at offset {position}.");
-
-        // Any number of 0xFF fill bytes may precede a marker code.
-        while (position < data.Length && data[position] == 0xFF)
-            position++;
-
-        if (position >= data.Length)
-            throw new ImageFormatException("The JPEG ends before any image data.");
-
-        byte marker = data[position++];
-        if (marker == 0x00)
+        while (true)
         {
-            throw new ImageFormatException(
-                $"Found a stuffed zero byte where a JPEG marker was expected, at offset {position - 1}.");
-        }
+            // Bytes where a marker should be — junk an encoder left after a segment, or a stuffed zero — are skipped
+            // up to the next marker, as libjpeg skips them with only a warning: viewers show such files.
+            while (position < data.Length && data[position] != 0xFF)
+                position++;
 
-        return marker;
+            // Any number of 0xFF fill bytes may precede a marker code.
+            while (position < data.Length && data[position] == 0xFF)
+                position++;
+
+            if (position >= data.Length)
+                throw new ImageFormatException("The JPEG ends before any image data.");
+
+            byte marker = data[position++];
+            if (marker != 0x00)
+                return marker;
+        }
     }
 
     private static ReadOnlySpan<byte> ReadSegment(ReadOnlySpan<byte> data, ref int position)
