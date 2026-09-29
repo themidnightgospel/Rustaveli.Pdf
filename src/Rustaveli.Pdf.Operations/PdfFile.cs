@@ -14,8 +14,9 @@ namespace Rustaveli.Pdf;
 /// </para>
 /// <para>
 /// Saving writes a new file. What the first file says of the document as a whole — its information, language,
-/// metadata and colour intents — is kept; its outline, named destinations, structure and form fields are kept too
-/// while its pages all are, in their order, at the start of the file.
+/// metadata and colour intents — is kept; its outline, named destinations and structure are kept too while its pages
+/// all are, in their order, at the start of the file. The layers and form fields of every file are kept with its pages,
+/// and links lead where they did in their own file.
 /// </para>
 /// </remarks>
 public sealed class PdfFile
@@ -112,7 +113,6 @@ public sealed class PdfFile
     /// <inheritdoc cref="Underlay(string, string?, string?)"/>
     public PdfFile Underlay(PdfFile layer, string? onto = null, string? from = null) => Lay(layer, onto, from, over: false);
 
-    /// <summary>Writes the file, returning its bytes.</summary>
     /// <summary>
     /// Attaches a file, listed among the attachments readers show and, for PDF/A-3, associated with the document by
     /// its relationship. The file's own attachments are kept whatever pages are.
@@ -172,6 +172,7 @@ public sealed class PdfFile
         return this;
     }
 
+    /// <summary>Writes the file, returning its bytes.</summary>
     public byte[] ToArray()
     {
         using MemoryStream output = new MemoryStream();

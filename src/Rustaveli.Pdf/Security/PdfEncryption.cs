@@ -42,18 +42,25 @@ internal sealed class PdfEncryption
     private static readonly PdfName BaseVersion = new PdfName("BaseVersion");
     private static readonly PdfName ExtensionLevel = new PdfName("ExtensionLevel");
     private static readonly PdfName Pdf17 = new PdfName("1.7");
+    private static readonly PdfName EFF = new PdfName("EFF");
+    private static readonly PdfName EFOpen = new PdfName("EFOpen");
+    private static readonly PdfName EmbeddedFile = new PdfName("EmbeddedFile");
+    private static readonly PdfName Crypt = new PdfName("Crypt");
+    private static readonly PdfName Name = new PdfName("Name");
 
     private readonly byte[] _key;
 
     /// <summary>Whether the file must declare Adobe's extension level 8, the one 256-bit AES at revision 6 arrived in.</summary>
     private readonly bool _extended;
 
-    private PdfEncryption(byte[] key, Cipher streams, Cipher strings, bool metadata, PdfDictionary dictionary, byte[] documentId, bool extended = false)
+    private PdfEncryption(
+        byte[] key, Cipher streams, Cipher strings, bool metadata, PdfDictionary dictionary, byte[] documentId, Cipher? embeddedFiles = null, bool extended = false)
     {
         _key = key;
         _extended = extended;
         Streams = streams;
         Strings = strings;
+        EmbeddedFiles = embeddedFiles ?? streams;
         EncryptsMetadata = metadata;
         Dictionary = dictionary;
         DocumentId = documentId;
@@ -71,6 +78,18 @@ internal sealed class PdfEncryption
     public Cipher Streams { get; }
 
     public Cipher Strings { get; }
+
+    /// <summary>
+    /// How embedded files are encrypted: as <c>/EFF</c> says, or else as other streams are. Known even when the file was
+    /// opened without its key (see <see cref="HasKey"/>), when they cannot be decrypted.
+    /// </summary>
+    public Cipher EmbeddedFiles { get; }
+
+    /// <summary>
+    /// Whether the file was opened with its key. One whose attachments alone are encrypted opens without a password,
+    /// and without the key: its attachments stay encrypted.
+    /// </summary>
+    public bool HasKey => _key.Length > 0;
 
     public bool EncryptsMetadata { get; }
 
@@ -228,7 +247,11 @@ internal sealed class PdfEncryption
         if (revision >= 5)
         {
             byte[]? key = OpenAes256(dictionary, password, owner, user, revision, resolve);
-            return key is null ? null : new PdfEncryption(key, CryptFilter(dictionary, StmF, Cipher.Aes256, resolve), CryptFilter(dictionary, StrF, Cipher.Aes256, resolve), metadata, dictionary, id);
+            Cipher aes = CryptFilter(dictionary, StmF, Cipher.Aes256, resolve);
+
+            return key is null
+                ? AttachmentsOnly(dictionary, id, metadata, resolve)
+                : new PdfEncryption(key, aes, CryptFilter(dictionary, StrF, Cipher.Aes256, resolve), metadata, dictionary, id, EmbeddedFileFilter(dictionary, aes, Cipher.Aes256, resolve));
         }
 
         int length = revision == 2 ? 5 : Integer(dictionary, PdfNames.Length, 40, resolve) / 8;
@@ -245,12 +268,82 @@ internal sealed class PdfEncryption
             ?? StandardSecurity.AuthenticateUser(StandardSecurity.RecoverUser(password, owner, revision, length), owner, user, permissions, id, revision, length, metadata);
 
         if (opened is null)
-            return null;
+            return version == 4 ? AttachmentsOnly(dictionary, id, metadata, resolve) : null;
 
         Cipher cipher = version == 4 ? Cipher.Aes128 : Cipher.Rc4;
         Cipher streams = version == 4 ? CryptFilter(dictionary, StmF, cipher, resolve) : Cipher.Rc4;
         Cipher strings = version == 4 ? CryptFilter(dictionary, StrF, cipher, resolve) : Cipher.Rc4;
-        return new PdfEncryption(opened, streams, strings, metadata, dictionary, id);
+        Cipher embedded = version == 4 ? EmbeddedFileFilter(dictionary, streams, cipher, resolve) : Cipher.Rc4;
+        return new PdfEncryption(opened, streams, strings, metadata, dictionary, id, embedded);
+    }
+
+    /// <summary>The cipher of the embedded files' crypt filter, <c>/EFF</c>, or <paramref name="streams"/> when it names none.</summary>
+    private static Cipher EmbeddedFileFilter(PdfDictionary dictionary, Cipher streams, Cipher fallback, Func<PdfValue, PdfValue> resolve) =>
+        dictionary.ContainsKey(EFF) ? CryptFilter(dictionary, EFF, fallback, resolve) : streams;
+
+    /// <summary>
+    /// A file opened without its password whose strings and streams are left plain, its attachments alone encrypted by a
+    /// crypt filter that asks for the password only when an attachment is opened (<c>/AuthEvent /EFOpen</c>, 7.6.5):
+    /// viewers open it, and it is opened, its attachments left as they are. Null for any other file.
+    /// </summary>
+    private static PdfEncryption? AttachmentsOnly(PdfDictionary dictionary, byte[] id, bool metadata, Func<PdfValue, PdfValue> resolve)
+    {
+        if (CryptFilter(dictionary, StmF, Cipher.Aes128, resolve) != Cipher.None || CryptFilter(dictionary, StrF, Cipher.Aes128, resolve) != Cipher.None
+            || !dictionary.TryGetValue(EFF, out PdfValue named) || resolve(named) is not { Kind: PdfValueKind.Name } name
+            || Defined(dictionary, name.AsName(), resolve) is not { } filter
+            || !filter.TryGetValue(AuthEvent, out PdfValue given) || resolve(given) is not { Kind: PdfValueKind.Name } authEvent || !authEvent.AsName().Equals(EFOpen))
+        {
+            return null;
+        }
+
+        // Without the key the attachments cannot be decrypted, but what they are encrypted with is kept: it decides whether
+        // they can be carried as they are into the file written.
+        return new PdfEncryption([], Cipher.None, Cipher.None, metadata, dictionary, id, Method(filter, Cipher.Aes128, resolve));
+    }
+
+    /// <summary>
+    /// The cipher a stream read from the file was encrypted with: that of the crypt filter it names itself, when its first
+    /// filter is <c>/Crypt</c> (7.4.10), which <paramref name="named"/> says; for an embedded file, the embedded files';
+    /// for any other, the streams'. Cross-reference streams are never encrypted, nor metadata the dictionary leaves readable.
+    /// </summary>
+    public Cipher StreamCipher(PdfDictionary stream, Func<PdfValue, PdfValue> resolve, out bool named)
+    {
+        named = false;
+        PdfName? type = stream.TryGetValue(PdfNames.Type, out PdfValue given) && resolve(given) is { Kind: PdfValueKind.Name } found ? found.AsName() : null;
+
+        if (type is not null && type.Equals(PdfNames.XRef))
+            return Cipher.None;
+
+        if (OwnCryptFilter(stream, resolve) is { } own)
+        {
+            named = true;
+
+            // Without the key nothing can be decrypted; a name the dictionary does not define is taken as the streams' filter.
+            return !HasKey || own.Equals(Identity) ? Cipher.None : Defined(Dictionary, own, resolve) is { } filter ? Method(filter, Streams, resolve) : Streams;
+        }
+
+        // Without the key an attachment is left as it was read, encrypted.
+        if (type is not null && type.Equals(EmbeddedFile))
+            return HasKey ? EmbeddedFiles : Cipher.None;
+
+        return type is not null && type.Equals(Metadata) && !EncryptsMetadata ? Cipher.None : Streams;
+    }
+
+    /// <summary>The crypt filter a stream whose first filter is <c>/Crypt</c> names in its parameters, Identity by default; null for any other stream.</summary>
+    private static PdfName? OwnCryptFilter(PdfDictionary stream, Func<PdfValue, PdfValue> resolve)
+    {
+        PdfValue filters = stream.TryGetValue(Filter, out PdfValue given) ? resolve(given) : PdfValue.Null;
+        PdfValue first = filters.Kind == PdfValueKind.Array && filters.AsArray().Count > 0 ? resolve(filters.AsArray()[0]) : filters;
+
+        if (first.Kind != PdfValueKind.Name || !first.AsName().Equals(Crypt))
+            return null;
+
+        PdfValue parameters = stream.TryGetValue(PdfNames.DecodeParms, out PdfValue held) ? resolve(held) : PdfValue.Null;
+        PdfValue own = parameters.Kind == PdfValueKind.Array && parameters.AsArray().Count > 0 ? resolve(parameters.AsArray()[0]) : parameters;
+
+        return own.Kind == PdfValueKind.Dictionary && own.AsDictionary().TryGetValue(Name, out PdfValue name) && resolve(name) is { Kind: PdfValueKind.Name } chosen
+            ? chosen.AsName()
+            : Identity;
     }
 
     private static byte[]? OpenAes256(PdfDictionary dictionary, string password, byte[] owner, byte[] user, int revision, Func<PdfValue, PdfValue> resolve)
@@ -289,28 +382,44 @@ internal sealed class PdfEncryption
             : throw new InvalidDataException($"The password opens the file, but its /{key.Value} does not hold the 32 bytes of its key.");
     }
 
-    /// <summary>Whether a stream with <paramref name="dictionary"/> is encrypted: all but cross-reference streams, and readable metadata.</summary>
-    public bool Covers(PdfDictionary dictionary)
+    /// <summary>
+    /// The cipher a stream with <paramref name="dictionary"/> is written with: an embedded file the embedded files', a
+    /// cross-reference stream and metadata left readable none, any other the streams'. Without the key nothing is encrypted:
+    /// what a file opened without its password carries encrypted is written as it was read.
+    /// </summary>
+    private Cipher WrittenCipher(PdfDictionary dictionary)
     {
-        if (Streams == Cipher.None)
-            return false;
+        if (!HasKey)
+            return Cipher.None;
 
         if (!dictionary.TryGetValue(PdfNames.Type, out PdfValue type) || type.Kind != PdfValueKind.Name)
-            return true;
+            return Streams;
 
         PdfName name = type.AsName();
-        return !name.Equals(PdfNames.XRef) && (EncryptsMetadata || !name.Equals(Metadata));
+
+        if (name.Equals(EmbeddedFile))
+            return EmbeddedFiles;
+
+        return name.Equals(PdfNames.XRef) || (name.Equals(Metadata) && !EncryptsMetadata) ? Cipher.None : Streams;
     }
 
-    /// <summary>A stream's data, encrypted for object <paramref name="objectNumber"/>.</summary>
-    public byte[] EncryptStream(int objectNumber, ReadOnlySpan<byte> data) => Encrypt(Streams, objectNumber, data);
+    /// <summary>Whether a stream with <paramref name="dictionary"/> is written encrypted.</summary>
+    public bool Covers(PdfDictionary dictionary) => WrittenCipher(dictionary) != Cipher.None;
+
+    /// <summary>A stream's data, encrypted for object <paramref name="objectNumber"/> as a stream with <paramref name="dictionary"/> is.</summary>
+    public byte[] EncryptStream(int objectNumber, PdfDictionary dictionary, ReadOnlySpan<byte> data) => Encrypt(WrittenCipher(dictionary), objectNumber, data);
 
     /// <summary>A string's bytes, encrypted for object <paramref name="objectNumber"/>.</summary>
     public byte[] EncryptString(int objectNumber, ReadOnlySpan<byte> data) => Encrypt(Strings, objectNumber, data);
 
-    public byte[] DecryptStream(int objectNumber, byte[] data) => Decrypt(Streams, objectNumber, data);
+    /// <summary>
+    /// A stream's data, decrypted for object <paramref name="objectNumber"/> of <paramref name="generation"/>: files
+    /// that were updated in place reuse numbers, and under RC4 and 128-bit AES the generation is part of the key.
+    /// </summary>
+    public byte[] DecryptStream(int objectNumber, byte[] data, int generation = 0) => Decrypt(Streams, objectNumber, data, generation);
 
-    public byte[] DecryptString(int objectNumber, byte[] data) => Decrypt(Strings, objectNumber, data);
+    /// <summary>A string's bytes, decrypted for object <paramref name="objectNumber"/> of <paramref name="generation"/>.</summary>
+    public byte[] DecryptString(int objectNumber, byte[] data, int generation = 0) => Decrypt(Strings, objectNumber, data, generation);
 
     private byte[] Encrypt(Cipher cipher, int objectNumber, ReadOnlySpan<byte> data)
     {
@@ -329,12 +438,13 @@ internal sealed class PdfEncryption
         }
     }
 
-    private byte[] Decrypt(Cipher cipher, int objectNumber, byte[] data)
+    /// <summary>Data decrypted with <paramref name="cipher"/> for object <paramref name="objectNumber"/> of <paramref name="generation"/>.</summary>
+    public byte[] Decrypt(Cipher cipher, int objectNumber, byte[] data, int generation)
     {
         switch (cipher)
         {
             case Cipher.Rc4:
-                return Rc4.Transform(StandardSecurity.ObjectKey(_key, objectNumber, aes: false), data);
+                return Rc4.Transform(StandardSecurity.ObjectKey(_key, objectNumber, aes: false, generation), data);
 
             case Cipher.Aes128:
             case Cipher.Aes256:
@@ -342,7 +452,7 @@ internal sealed class PdfEncryption
                 if (data.Length < 32 || data.Length % 16 != 0)
                     return data.Length == 16 ? [] : data;
 
-                byte[] key = cipher == Cipher.Aes256 ? _key : StandardSecurity.ObjectKey(_key, objectNumber, aes: true);
+                byte[] key = cipher == Cipher.Aes256 ? _key : StandardSecurity.ObjectKey(_key, objectNumber, aes: true, generation);
 
                 try
                 {
@@ -367,9 +477,20 @@ internal sealed class PdfEncryption
         if (name.AsName().Equals(Identity))
             return Cipher.None;
 
-        if (dictionary.TryGetValue(CF, out PdfValue filters) && resolve(filters) is { Kind: PdfValueKind.Dictionary } all
-            && all.AsDictionary().TryGetValue(name.AsName(), out PdfValue filter) && resolve(filter) is { Kind: PdfValueKind.Dictionary } found
-            && found.AsDictionary().TryGetValue(CFM, out PdfValue method) && resolve(method) is { Kind: PdfValueKind.Name } kind)
+        return Defined(dictionary, name.AsName(), resolve) is { } found ? Method(found, fallback, resolve) : fallback;
+    }
+
+    /// <summary>The crypt filter the dictionary's <c>/CF</c> defines as <paramref name="name"/>, if it does.</summary>
+    private static PdfDictionary? Defined(PdfDictionary dictionary, PdfName name, Func<PdfValue, PdfValue> resolve) =>
+        dictionary.TryGetValue(CF, out PdfValue filters) && resolve(filters) is { Kind: PdfValueKind.Dictionary } all
+        && all.AsDictionary().TryGetValue(name, out PdfValue filter) && resolve(filter) is { Kind: PdfValueKind.Dictionary } found
+            ? found.AsDictionary()
+            : null;
+
+    /// <summary>The cipher a crypt filter's <c>/CFM</c> names, or <paramref name="fallback"/> when it names none this library knows.</summary>
+    private static Cipher Method(PdfDictionary filter, Cipher fallback, Func<PdfValue, PdfValue> resolve)
+    {
+        if (filter.TryGetValue(CFM, out PdfValue method) && resolve(method) is { Kind: PdfValueKind.Name } kind)
         {
             PdfName chosen = kind.AsName();
 

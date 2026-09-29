@@ -13,10 +13,15 @@ namespace Rustaveli.Pdf.Operations.Reading;
 /// read it: the whole file is scanned for objects, the last of each number kept, and the trailer taken from the last
 /// one written.
 /// </para>
-/// <para>Not thread-safe: objects are read and kept as they are first asked for.</para>
+/// <para>
+/// Objects are read and kept as they are first asked for, under a lock: one file laid as a stamp on, or appended to,
+/// several files shares its reading with all of them, and they may be saved on several threads at once.
+/// </para>
 /// </remarks>
 internal sealed class PdfSource
 {
+    private readonly object _gate = new object();
+
     private static readonly PdfName Root = new PdfName("Root");
     private static readonly PdfName Encrypt = new PdfName("Encrypt");
     private static readonly PdfName Prev = new PdfName("Prev");
@@ -32,6 +37,9 @@ internal sealed class PdfSource
 
     /// <summary>What a page takes from the page tree when it does not say for itself (7.7.3.4).</summary>
     private static readonly PdfName[] Inherited = [PdfNames.Resources, MediaBox, CropBox, Rotate];
+
+    /// <summary>What a cross-reference stream's dictionary says of the stream itself rather than of the file.</summary>
+    private static readonly PdfName[] StreamOnly = [PdfNames.Type, PdfNames.Length, PdfNames.Filter, PdfNames.DecodeParms, W, Index, Prev];
 
     /// <summary>An object read from somewhere other than where the cross-reference section said.</summary>
     private static readonly object Misplaced = new object();
@@ -66,7 +74,14 @@ internal sealed class PdfSource
             : throw new UnreadableFileException("The file is not a PDF this library can read: it has no catalog.");
 
     /// <summary>The object numbers the file holds, in order.</summary>
-    public IEnumerable<int> ObjectNumbers => _entries.Keys.OrderBy(number => number);
+    public IEnumerable<int> ObjectNumbers
+    {
+        get
+        {
+            lock (_gate)
+                return _entries.Keys.OrderBy(number => number).ToList();
+        }
+    }
 
     /// <summary>How the file is encrypted, when it is, opened with the password it was given.</summary>
     public PdfEncryption? Encryption { get; private set; }
@@ -125,43 +140,88 @@ internal sealed class PdfSource
         _objects.Clear();
         _objectStreams.Clear();
         _pages = null;
+
+        // A rebuilt file's object streams were indexed while they could not be read: they are indexed again.
+        if (_rebuilt)
+        {
+            foreach (int number in _entries.Where(entry => entry.Value.IsCompressed).Select(entry => entry.Key).ToList())
+                _entries.Remove(number);
+
+            IndexObjectStreams();
+        }
     }
 
-    /// <summary>An object read from its own place in the file, its strings and stream decrypted.</summary>
-    private object Decrypt(int number, object read)
+    /// <summary>
+    /// An object read from its own place in the file, its strings and stream decrypted with the key of its number and
+    /// <paramref name="generation"/>.
+    /// </summary>
+    private object Decrypt(int number, int generation, object read)
     {
         if (read is SourceStream stream)
         {
             if (stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(XRef))
                 return stream;
 
-            PdfDictionary dictionary = Decrypt(number, stream.Dictionary).AsDictionary();
-            byte[] data = Encryption!.Covers(dictionary) ? Encryption.DecryptStream(number, stream.Data) : stream.Data;
-            return new SourceStream(dictionary, data);
+            PdfDictionary dictionary = Decrypt(number, generation, stream.Dictionary).AsDictionary();
+            PdfEncryption.Cipher cipher = Encryption!.StreamCipher(dictionary, Resolve, out bool named);
+            byte[] data = Encryption.Decrypt(cipher, number, stream.Data, generation);
+
+            // Decrypted by the crypt filter it names, the stream no longer passes through it, wherever it is copied to.
+            return new SourceStream(named && Encryption.HasKey ? WithoutCryptFilter(dictionary) : dictionary, data);
         }
 
-        return Decrypt(number, (PdfValue)read);
+        return Decrypt(number, generation, (PdfValue)read);
     }
 
-    private PdfValue Decrypt(int number, PdfValue value)
+    /// <summary>A stream's dictionary with its first filter, <c>/Crypt</c>, and that filter's parameters taken out.</summary>
+    private PdfDictionary WithoutCryptFilter(PdfDictionary dictionary)
+    {
+        PdfDictionary plain = new PdfDictionary(dictionary.Count);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+        {
+            if (entry.Key.Equals(PdfNames.Filter) || entry.Key.Equals(PdfNames.DecodeParms))
+            {
+                PdfValue value = Resolve(entry.Value);
+
+                // A single filter, or its parameters, go with it; of several, the first goes.
+                if (value.Kind != PdfValueKind.Array || value.AsArray().Count <= 1)
+                    continue;
+
+                PdfArray rest = new PdfArray(value.AsArray().Count - 1);
+
+                foreach (PdfValue item in value.AsArray().Cast<PdfValue>().Skip(1))
+                    rest.Add(item);
+
+                plain[entry.Key] = rest;
+                continue;
+            }
+
+            plain[entry.Key] = entry.Value;
+        }
+
+        return plain;
+    }
+
+    private PdfValue Decrypt(int number, int generation, PdfValue value)
     {
         switch (value.Kind)
         {
             case PdfValueKind.String:
                 PdfString text = value.AsString();
-                return new PdfString(Encryption!.DecryptString(number, text.Bytes.ToArray()), text.Form);
+                return new PdfString(Encryption!.DecryptString(number, text.Bytes.ToArray(), generation), text.Form);
 
             case PdfValueKind.Array:
                 PdfArray array = new PdfArray(value.AsArray().Count);
                 foreach (PdfValue item in value.AsArray())
-                    array.Add(Decrypt(number, item));
+                    array.Add(Decrypt(number, generation, item));
 
                 return array;
 
             case PdfValueKind.Dictionary:
                 PdfDictionary dictionary = new PdfDictionary(value.AsDictionary().Count);
                 foreach (KeyValuePair<PdfName, PdfValue> entry in value.AsDictionary())
-                    dictionary[entry.Key] = Decrypt(number, entry.Value);
+                    dictionary[entry.Key] = Decrypt(number, generation, entry.Value);
 
                 return dictionary;
 
@@ -176,37 +236,40 @@ internal sealed class PdfSource
     /// </summary>
     public object GetObject(int number)
     {
-        if (_objects.TryGetValue(number, out object? known))
-            return known;
-
-        // An object whose length refers back to itself would otherwise be read forever.
-        if (!_loading.Add(number))
-            return PdfValue.Null;
-
-        try
+        lock (_gate)
         {
-            object loaded = Load(number);
+            if (_objects.TryGetValue(number, out object? known))
+                return known;
 
-            if (ReferenceEquals(loaded, Misplaced))
+            // An object whose length refers back to itself would otherwise be read forever.
+            if (!_loading.Add(number))
+                return PdfValue.Null;
+
+            try
             {
-                if (_rebuilt)
-                {
-                    loaded = PdfValue.Null;
-                }
-                else
-                {
-                    Rebuild();
-                    _loading.Remove(number);
-                    return GetObject(number);
-                }
-            }
+                object loaded = Load(number);
 
-            _objects[number] = loaded;
-            return loaded;
-        }
-        finally
-        {
-            _loading.Remove(number);
+                if (ReferenceEquals(loaded, Misplaced))
+                {
+                    if (_rebuilt)
+                    {
+                        loaded = PdfValue.Null;
+                    }
+                    else
+                    {
+                        Rebuild();
+                        _loading.Remove(number);
+                        return GetObject(number);
+                    }
+                }
+
+                _objects[number] = loaded;
+                return loaded;
+            }
+            finally
+            {
+                _loading.Remove(number);
+            }
         }
     }
 
@@ -230,15 +293,26 @@ internal sealed class PdfSource
     public byte[] Decode(SourceStream stream) => StreamDecoder.Decode(stream.Dictionary, stream.Data, Resolve);
 
     /// <summary>The pages, in order, with what each inherits from the page tree.</summary>
-    public IReadOnlyList<SourcePage> Pages => _pages ??= ReadPages();
+    public IReadOnlyList<SourcePage> Pages
+    {
+        get
+        {
+            lock (_gate)
+                return _pages ??= ReadPages();
+        }
+    }
 
     /// <summary>The objects of the page tree, pages and the nodes above them alike.</summary>
     public IReadOnlyCollection<int> PageTree
     {
         get
         {
-            _ = Pages;
-            return _pageTree;
+            // A copy: a repair on another thread reads the tree anew into the set.
+            lock (_gate)
+            {
+                _ = Pages;
+                return _pageTree.ToArray();
+            }
         }
     }
 
@@ -309,22 +383,29 @@ internal sealed class PdfSource
         if (entry.IsCompressed)
             return LoadCompressed(number, entry);
 
-        object read = ReadAt(entry.Offset, number);
+        object read = ReadAt(entry.Offset, number, out int generation);
 
         // Objects in object streams were decrypted with their stream; the encryption dictionary never is.
-        return Encryption is null || number == _encryptNumber || ReferenceEquals(read, Misplaced) ? read : Decrypt(number, read);
+        return Encryption is null || number == _encryptNumber || ReferenceEquals(read, Misplaced) ? read : Decrypt(number, generation, read);
     }
 
-    /// <summary>The object at <paramref name="offset"/>, which must say it is <paramref name="number"/>.</summary>
-    private object ReadAt(long offset, int number)
+    /// <summary>
+    /// The object at <paramref name="offset"/>, which must say it is <paramref name="number"/>, and the generation it
+    /// says it is of.
+    /// </summary>
+    private object ReadAt(long offset, int number, out int generation)
     {
+        generation = 0;
+
         if (offset < 0 || offset >= Data.Length)
             return Misplaced;
 
         PdfParser parser = new PdfParser(Data, (int)offset);
 
-        if (!parser.TryReadInteger(out long found) || found != number || !parser.TryReadInteger(out _) || !parser.TryReadKeyword("obj"u8))
+        if (!parser.TryReadInteger(out long found) || found != number || !parser.TryReadInteger(out long given) || !parser.TryReadKeyword("obj"u8))
             return Misplaced;
+
+        generation = (int)given;
 
         PdfValue value = parser.ReadValue();
 
@@ -638,16 +719,22 @@ internal sealed class PdfSource
             }
         }
 
-        // Objects kept in object streams are found through the streams the scan found; the catalog may be among them.
-        foreach (int number in _entries.Keys.ToList())
+        IndexObjectStreams();
+        Trailer = RebuiltTrailer();
+
+        int Next(int from) => from >= Data.Length ? -1 : Data.AsSpan(from).IndexOf("obj"u8) is int found and >= 0 ? from + found : -1;
+    }
+
+    /// <summary>
+    /// Finds the objects kept in the object streams the scan found; the catalog may be among them. An object two
+    /// streams hold is taken from the later in the file, as the later was written by a later update.
+    /// </summary>
+    private void IndexObjectStreams()
+    {
+        foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderBy(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
         {
-            if (GetObject(number) is not SourceStream stream
-                || !stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type)
-                || type.Kind != PdfValueKind.Name
-                || !type.AsName().Equals(ObjStm))
-            {
+            if (GetObject(number) is not SourceStream stream || !IsOfType(stream.Dictionary, ObjStm))
                 continue;
-            }
 
             try
             {
@@ -656,7 +743,7 @@ internal sealed class PdfSource
 
                 for (int index = 0; index < count && header.TryReadInteger(out long contained) && header.TryReadInteger(out _); index++)
                 {
-                    if (contained is > 0 and <= int.MaxValue && !_entries.ContainsKey((int)contained))
+                    if (contained is > 0 and <= int.MaxValue && !(_entries.TryGetValue((int)contained, out SourceEntry found) && !found.IsCompressed))
                         _entries[(int)contained] = SourceEntry.InStream(number, index);
                 }
             }
@@ -665,11 +752,10 @@ internal sealed class PdfSource
                 // An object stream that cannot be read holds nothing that can be recovered.
             }
         }
-
-        Trailer = RebuiltTrailer();
-
-        int Next(int from) => from >= Data.Length ? -1 : Data.AsSpan(from).IndexOf("obj"u8) is int found and >= 0 ? from + found : -1;
     }
+
+    private static bool IsOfType(PdfDictionary dictionary, PdfName type) =>
+        dictionary.TryGetValue(PdfNames.Type, out PdfValue given) && given.Kind == PdfValueKind.Name && given.AsName().Equals(type);
 
     /// <summary>Where "<c>n g obj</c>" begins, for the keyword at <paramref name="keyword"/>, or -1 if it is not one.</summary>
     private int ObjectStart(int keyword)
@@ -695,7 +781,10 @@ internal sealed class PdfSource
         }
     }
 
-    /// <summary>The trailer of a file being rebuilt: its last, or the catalog found by its type.</summary>
+    /// <summary>
+    /// The trailer of a file being rebuilt: its trailers, each later one over those before; what its cross-reference
+    /// streams say besides, the latest first; and failing those, the catalog found by its type.
+    /// </summary>
     private PdfDictionary RebuiltTrailer()
     {
         PdfDictionary trailer = new PdfDictionary();
@@ -721,6 +810,20 @@ internal sealed class PdfSource
             at = next < 0 ? -1 : at + 1 + next;
         }
 
+        // A cross-reference stream's dictionary is the trailer of its update: the encryption, the identifier the key
+        // was made with and the information are named there as well as the catalog.
+        foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderByDescending(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
+        {
+            if (GetObject(number) is not SourceStream stream || !IsOfType(stream.Dictionary, XRef))
+                continue;
+
+            foreach (KeyValuePair<PdfName, PdfValue> entry in stream.Dictionary)
+            {
+                if (Array.IndexOf(StreamOnly, entry.Key) < 0 && !trailer.ContainsKey(entry.Key))
+                    trailer[entry.Key] = entry.Value;
+            }
+        }
+
         if (trailer.ContainsKey(Root))
             return trailer;
 
@@ -728,20 +831,10 @@ internal sealed class PdfSource
         {
             PdfValue value = GetObject(number) is SourceStream stream ? stream.Dictionary : (PdfValue)GetObject(number);
 
-            if (value.Kind != PdfValueKind.Dictionary || !value.AsDictionary().TryGetValue(PdfNames.Type, out PdfValue type) || type.Kind != PdfValueKind.Name)
-                continue;
-
-            if (type.AsName().Equals(XRef) || type.AsName().Equals(PdfNames.Catalog))
+            if (value.Kind == PdfValueKind.Dictionary && IsOfType(value.AsDictionary(), PdfNames.Catalog))
             {
-                PdfDictionary dictionary = value.AsDictionary();
-
-                if (type.AsName().Equals(PdfNames.Catalog))
-                    trailer[Root] = new PdfReference(number);
-                else if (dictionary.TryGetValue(Root, out PdfValue root))
-                    trailer[Root] = root;
-
-                if (trailer.ContainsKey(Root))
-                    return trailer;
+                trailer[Root] = new PdfReference(number);
+                return trailer;
             }
         }
 

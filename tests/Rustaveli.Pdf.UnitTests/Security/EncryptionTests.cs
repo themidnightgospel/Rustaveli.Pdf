@@ -44,8 +44,8 @@ public class EncryptionTests
 
             Assert.NotNull(opened);
             Assert.Equal(Text, opened.DecryptString(7, written.EncryptString(7, Text)));
-            Assert.Equal(Text, opened.DecryptStream(12, written.EncryptStream(12, Text)));
-            Assert.Equal(Text, written.DecryptStream(12, opened.EncryptStream(12, Text)));
+            Assert.Equal(Text, opened.DecryptStream(12, written.EncryptStream(12, new PdfDictionary(), Text)));
+            Assert.Equal(Text, written.DecryptStream(12, opened.EncryptStream(12, new PdfDictionary(), Text)));
         }
 
         Assert.Null(Reopen(written, "neither"));
@@ -208,7 +208,7 @@ public class EncryptionTests
 
         Assert.NotNull(opened);
         Assert.Equal(Text, opened.DecryptString(7, written.EncryptString(7, Text)));
-        Assert.Equal(Text, opened.DecryptStream(12, written.EncryptStream(12, Text)));
+        Assert.Equal(Text, opened.DecryptStream(12, written.EncryptStream(12, new PdfDictionary(), Text)));
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public class EncryptionTests
         foreach (EncryptionLevel level in new[] { EncryptionLevel.AesWith128Bits, EncryptionLevel.AesWith256Bits })
         {
             PdfEncryption encryption = PdfEncryption.Create(new Protection { Encryption = level });
-            byte[] encrypted = encryption.EncryptStream(9, data);
+            byte[] encrypted = encryption.EncryptStream(9, new PdfDictionary(), data);
 
             // The vector, then the data padded to a whole block, always by at least one byte.
             Assert.Equal(16 + ((length / 16) + 1) * 16, encrypted.Length);
@@ -319,10 +319,10 @@ public class EncryptionTests
         // Streams are what a document is mostly made of; each copy of one is as large as it is.
         PdfEncryption encryption = PdfEncryption.Create(new Protection { Encryption = level });
         byte[] data = new byte[4 << 20];
-        encryption.EncryptStream(1, data);
+        encryption.EncryptStream(1, new PdfDictionary(), data);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        byte[] encrypted = encryption.EncryptStream(1, data);
+        byte[] encrypted = encryption.EncryptStream(1, new PdfDictionary(), data);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal(data.Length + 32, encrypted.Length);

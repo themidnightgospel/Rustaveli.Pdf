@@ -13,11 +13,15 @@ internal sealed class HandmadePdf
     private readonly SortedDictionary<int, int> _offsets = [];
     private int _lastSection = -1;
 
-    /// <summary>Appends object <paramref name="number"/> with <paramref name="body"/> between <c>obj</c> and <c>endobj</c>.</summary>
-    public HandmadePdf Object(int number, string body)
+    /// <summary>
+    /// Appends object <paramref name="number"/>, of generation <paramref name="generation"/>, with
+    /// <paramref name="body"/> between <c>obj</c> and <c>endobj</c>.
+    /// </summary>
+    public HandmadePdf Object(int number, string body, int generation = 0)
     {
         _offsets[number] = _file.Length;
-        _file.Append(number.ToString(CultureInfo.InvariantCulture)).Append(" 0 obj\n").Append(body).Append("\nendobj\n");
+        _file.Append(number.ToString(CultureInfo.InvariantCulture)).Append(' ').Append(generation.ToString(CultureInfo.InvariantCulture))
+            .Append(" obj\n").Append(body).Append("\nendobj\n");
         return this;
     }
 

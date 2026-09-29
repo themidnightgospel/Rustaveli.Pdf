@@ -1,4 +1,5 @@
 using Rustaveli.Pdf.Operations.Reading;
+using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Operations.Assembly;
@@ -11,13 +12,21 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 /// Some objects are not copied but redirected: a page to the page it became, or to nothing when it was left out, so
 /// that copying an annotation does not pull in the page tree it hangs from, and with it every other page.
 /// </remarks>
-internal sealed class ObjectCopier(PdfFileWriter file)
+internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? output = null)
 {
+    private static readonly PdfName Dest = new PdfName("Dest");
+    private static readonly PdfName EmbeddedFile = new PdfName("EmbeddedFile");
+
     private readonly Dictionary<(PdfSource Source, int Number), PdfReference?> _targets = [];
     private readonly Queue<(PdfSource Source, int Number, PdfReference Target)> _pending = new Queue<(PdfSource, int, PdfReference)>();
+    private readonly Dictionary<PdfSource, Dictionary<string, PdfValue>> _named = [];
+    private readonly Dictionary<(PdfSource Source, int Number), (PdfName Key, PdfValue Value)> _amended = [];
 
     /// <summary>Sends every reference to <paramref name="number"/> in <paramref name="source"/> to <paramref name="target"/>, or to null.</summary>
     public void Redirect(PdfSource source, int number, PdfReference? target) => _targets[(source, number)] = target;
+
+    /// <summary>Has the dictionary <paramref name="number"/> in <paramref name="source"/> copied with <paramref name="key"/> set to <paramref name="value"/>.</summary>
+    public void Amend(PdfSource source, int number, PdfName key, PdfValue value) => _amended[(source, number)] = (key, value);
 
     /// <summary>A copy of <paramref name="value"/> for the file being written; objects it refers to are copied by <see cref="Flush"/>.</summary>
     public PdfValue Copy(PdfSource source, PdfValue value)
@@ -63,7 +72,91 @@ internal sealed class ObjectCopier(PdfFileWriter file)
                 copied[entry.Key] = Copy(source, entry.Value);
         }
 
+        if (_named.TryGetValue(source, out Dictionary<string, PdfValue>? named))
+        {
+            // A link's /Dest, or a go-to action's /D; a remote go-to's names another file's destination, and is left be.
+            PdfName? key = dictionary.ContainsKey(Dest) ? Dest
+                : dictionary.TryGetValue(PdfNames.S, out PdfValue action) && source.Resolve(action) is { Kind: PdfValueKind.Name } kind && kind.AsName().Equals(PdfNames.GoTo) ? PdfNames.D
+                : null;
+
+            if (key is { } found && dictionary.TryGetValue(found, out PdfValue given)
+                && Key(source.Resolve(given)) is { } name && named.TryGetValue(name, out PdfValue explicitly))
+            {
+                copied[found] = Copy(source, explicitly);
+            }
+        }
+
         return copied;
+    }
+
+    /// <summary>
+    /// Has every named destination in <paramref name="source"/> — a link's, or a go-to action's — copied as the page and
+    /// place it names, for a file whose names are not kept: the names of each file mean its own pages, and the file
+    /// being written keeps at most the first file's.
+    /// </summary>
+    public void ResolveNamedDestinations(PdfSource source)
+    {
+        Dictionary<string, PdfValue> named = new Dictionary<string, PdfValue>(StringComparer.Ordinal);
+        PdfDictionary catalog = source.Catalog;
+
+        // Names are looked up by their bytes, whether the file gives them as strings (PDF 1.2) or as names (PDF 1.1).
+        if (catalog.TryGetValue(PdfNames.Names, out PdfValue names) && source.Resolve(names) is { Kind: PdfValueKind.Dictionary } tree
+            && tree.AsDictionary().TryGetValue(PdfNames.Dests, out PdfValue root))
+        {
+            foreach ((PdfString name, PdfValue value) in EmbeddedFiles.Entries(source, root))
+                Add(Key(name)!, value);
+        }
+
+        if (catalog.TryGetValue(PdfNames.Dests, out PdfValue old) && source.Resolve(old) is { Kind: PdfValueKind.Dictionary } dests)
+        {
+            foreach (KeyValuePair<PdfName, PdfValue> entry in dests.AsDictionary())
+                Add(Key(entry.Key)!, entry.Value);
+        }
+
+        _named[source] = named;
+
+        void Add(string name, PdfValue value)
+        {
+            // A destination is an array, or a dictionary holding one as /D (12.3.2.3).
+            PdfValue found = source.Resolve(value);
+
+            if (found.Kind == PdfValueKind.Dictionary && found.AsDictionary().TryGetValue(PdfNames.D, out PdfValue inner))
+                found = source.Resolve(inner);
+
+            if (found.Kind == PdfValueKind.Array && !named.ContainsKey(name))
+                named[name] = found;
+        }
+    }
+
+    /// <summary>
+    /// What a named destination is looked up by: a string read as the name of the same bytes would be, or null for
+    /// what is neither a string nor a name.
+    /// </summary>
+    private static string? Key(PdfValue value) => value.Kind switch
+    {
+        PdfValueKind.String => PdfName.FromBytes(value.AsString().Bytes).Value,
+        PdfValueKind.Name => value.AsName().Value,
+        _ => null,
+    };
+
+    /// <summary>
+    /// Refuses an attachment still encrypted, from a file whose attachments alone are encrypted and that was opened without
+    /// its password: it can be neither decrypted nor encrypted again. It is carried as it is only into a file keeping that
+    /// file's protection under 256-bit AES, whose keys do not depend on the object number; under RC4 and 128-bit AES they
+    /// do, and the number changes as the file is written.
+    /// </summary>
+    private void RequireCarriable(PdfSource source, PdfDictionary dictionary)
+    {
+        if (source.Encryption is not { HasKey: false } locked || locked.EmbeddedFiles == PdfEncryption.Cipher.None)
+            return;
+
+        bool attachment = dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(EmbeddedFile);
+
+        if (attachment && !(ReferenceEquals(output, locked) && locked.EmbeddedFiles == PdfEncryption.Cipher.Aes256))
+        {
+            throw new InvalidOperationException(
+                "The file's attachments are encrypted, and it was opened without its password, so they cannot be written again: open it with the password.");
+        }
     }
 
     /// <summary>Writes every object reached so far, and every object those reach, until nothing is left to copy.</summary>
@@ -77,6 +170,7 @@ internal sealed class ObjectCopier(PdfFileWriter file)
             if (read is SourceStream stream)
             {
                 PdfDictionary dictionary = CopyDictionary(source, stream.Dictionary, PdfNames.Length);
+                RequireCarriable(source, dictionary);
 
                 // Data already encoded is kept as it is; data never compressed is compressed now.
                 file.WriteStream(target, dictionary, stream.Data, dictionary.ContainsKey(PdfNames.Filter) ? PdfStreamCompression.None : PdfStreamCompression.Auto);
@@ -89,7 +183,12 @@ internal sealed class ObjectCopier(PdfFileWriter file)
             if (value.Kind == PdfValueKind.Reference)
                 value = source.Resolve(value);
 
-            file.Write(target, Copy(source, value));
+            PdfValue copied = Copy(source, value);
+
+            if (copied.Kind == PdfValueKind.Dictionary && _amended.TryGetValue((source, number), out (PdfName Key, PdfValue Value) amendment))
+                copied.AsDictionary()[amendment.Key] = amendment.Value;
+
+            file.Write(target, copied);
         }
     }
 }

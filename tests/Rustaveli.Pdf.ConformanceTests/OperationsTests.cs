@@ -121,4 +121,37 @@ public class OperationsTests
 
         Assert.True(broken.Count == 0, "veraPDF found:\n" + string.Join("\n", broken));
     }
+
+    [Fact]
+    public void AnInvoiceDescribedOverAnAccessibleArchiveKeepsItsMetadataValid()
+    {
+        TestFonts.EnsureRegistered();
+        Document document = SpecimenCatalog.All[0].Build();
+        document.Info.Title ??= SpecimenCatalog.All[0].Name;
+        document.Info.Language ??= "en";
+
+        // PDF/UA over PDF/A already describes an extension schema, PDF/UA's own, that the invoice's must join.
+        byte[] archived = document.ExportPdf(new PdfExportOptions
+        {
+            Conformance = PdfAConformance.PdfA3B,
+            Accessibility = PdfUAConformance.PdfUA1,
+            ImageProcessor = SkiaImageProcessor.Instance,
+        });
+
+        byte[] invoice = PdfFile.Open(archived)
+            .Attach(new FileAttachment("factur-x.xml", "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\"/>"u8.ToArray())
+            {
+                MediaType = "text/xml",
+                Relationship = AttachmentRelationship.Alternative,
+            })
+            .AddMetadata(FacturX)
+            .ToArray();
+        byte[] again = PdfFile.Open(invoice).AddMetadata(FacturX).ToArray();
+
+        string[] broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["invoice"] = invoice, ["again"] = again })
+            .SelectMany(file => file.Value.Select(rule => $"{file.Key}: {rule}"))
+            .ToArray();
+
+        Assert.True(broken.Length == 0, "veraPDF found:\n" + string.Join("\n", broken));
+    }
 }

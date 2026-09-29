@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Rustaveli.Pdf.Operations.Reading;
 using Rustaveli.Pdf.Writing;
 using UglyToad.PdfPig;
@@ -169,6 +170,69 @@ public class AttachmentTests
 
         Assert.Equal(3, Regex.Matches(metadata, "<rdf:Description").Count);
         Assert.Contains("adobe:ns:meta/", metadata, StringComparison.Ordinal);
+    }
+
+    /// <summary>A description of an invoice, as <see cref="Invoice"/>, with the extension schema PDF/A needs to know it by.</summary>
+    private static string DescribedInvoice(string type) =>
+        $"<rdf:Description rdf:about=\"\" xmlns:fx=\"urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#\"><fx:DocumentType>{type}</fx:DocumentType></rdf:Description>"
+        + "<rdf:Description rdf:about=\"\" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\""
+        + " xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\" xmlns:pdfaProperty=\"http://www.aiim.org/pdfa/ns/property#\">"
+        + "<pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType=\"Resource\">"
+        + "<pdfaSchema:schema>Factur-X PDFA Extension Schema</pdfaSchema:schema>"
+        + "<pdfaSchema:namespaceURI>urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#</pdfaSchema:namespaceURI>"
+        + "<pdfaSchema:prefix>fx</pdfaSchema:prefix><pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType=\"Resource\">"
+        + "<pdfaProperty:name>DocumentType</pdfaProperty:name><pdfaProperty:valueType>Text</pdfaProperty:valueType>"
+        + "<pdfaProperty:category>external</pdfaProperty:category><pdfaProperty:description>The type of the document</pdfaProperty:description>"
+        + "</rdf:li></rdf:Seq></pdfaSchema:property></rdf:li></rdf:Bag></pdfaExtension:schemas></rdf:Description>";
+
+    [Fact]
+    public void MetadataAddedOverWhatIsThereHoldsEachPropertyOnce()
+    {
+        Rustaveli.Pdf.Document document = Rustaveli.Pdf.Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(200, 200);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Text("Invoice");
+        }));
+        document.Info.Title = "Invoice";
+        document.Info.Language = "en";
+        byte[] archived = document.ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA3B, Accessibility = PdfUAConformance.PdfUA1 });
+
+        byte[] once = PdfFile.Open(archived).AddMetadata(DescribedInvoice("DRAFT")).ToArray();
+        XDocument twice = XDocument.Parse(Metadata(PdfFile.Open(once).AddMetadata(DescribedInvoice("INVOICE")).AddMetadata(DescribedInvoice("INVOICE")).ToArray()));
+
+        XNamespace extension = "http://www.aiim.org/pdfa/ns/extension/";
+        XNamespace schema = "http://www.aiim.org/pdfa/ns/schema#";
+        XNamespace factur = "urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#";
+        XElement schemas = Assert.Single(twice.Descendants(extension + "schemas"));
+
+        Assert.Equal(["http://www.aiim.org/pdfua/ns/id/", "urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"], schemas.Descendants(schema + "namespaceURI").Select(uri => uri.Value));
+        Assert.Equal("INVOICE", Assert.Single(twice.Descendants(factur + "DocumentType")).Value);
+        Assert.Single(twice.Descendants(XNamespace.Get("http://www.aiim.org/pdfa/ns/id/") + "part"));
+    }
+
+    [Fact]
+    public void APropertyGivenAsAnAttributeIsReplacedLikeAnyOther()
+    {
+        static string Kind(string rest) => "<rdf:Description rdf:about=\"\" xmlns:k=\"urn:kind\" " + rest + "</rdf:Description>";
+
+        byte[] pdf = PdfFile.Open(Document())
+            .AddMetadata(Kind("k:Kind=\"a\"><k:Other>kept</k:Other>"))
+            .AddMetadata(Kind("><k:Kind>b</k:Kind>"))
+            .AddMetadata(Kind("k:Kind=\"c\">"))
+            .AddMetadata("<rdf:Description rdf:about=\"\" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\"><pdfaExtension:schemas/></rdf:Description>")
+            .AddMetadata(DescribedInvoice("INVOICE"))
+            .ToArray();
+
+        XDocument metadata = XDocument.Parse(Metadata(pdf));
+        XNamespace kind = "urn:kind";
+        List<XElement> descriptions = metadata.Descendants(XNamespace.Get("http://www.w3.org/1999/02/22-rdf-syntax-ns#") + "Description").ToList();
+
+        Assert.Equal(["c"], descriptions.Select(description => (string?)description.Attribute(kind + "Kind")).OfType<string>());
+        Assert.Empty(metadata.Descendants(kind + "Kind"));
+        Assert.Equal("kept", Assert.Single(metadata.Descendants(kind + "Other")).Value);
+        Assert.Single(metadata.Descendants(XNamespace.Get("http://www.aiim.org/pdfa/ns/schema#") + "namespaceURI"));
+        Assert.Contains("<pdfaSchema:namespaceURI>", Metadata(pdf), StringComparison.Ordinal);
     }
 
     [Theory]

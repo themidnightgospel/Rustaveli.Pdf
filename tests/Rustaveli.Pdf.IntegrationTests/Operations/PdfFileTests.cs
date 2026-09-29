@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Operations.Reading;
+using Rustaveli.Pdf.Writing;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Outline;
 
@@ -161,6 +163,410 @@ public class PdfFileTests
             .ToArray();
 
         Assert.Equal(["Two Stamp", "One"], Read(moved));
+    }
+
+    [Fact]
+    public void OneStampLaidOnFilesSavedAtOnceGoesOnEachAsOnOne()
+    {
+        byte[] page = Pages("One");
+        byte[] stamp = Layer("Stamp");
+        byte[] expected = PdfFile.Open(page).Overlay(PdfFile.Open(stamp)).ToArray();
+
+        for (int round = 0; round < 10; round++)
+        {
+            // The files share the stamp's pages, and with them the one reading of its file.
+            PdfFile shared = PdfFile.Open(stamp);
+            PdfFile[] files = Enumerable.Range(0, 8).Select(_ => PdfFile.Open(page).Overlay(shared)).ToArray();
+            byte[][] saved = new byte[files.Length][];
+
+            Parallel.For(0, files.Length, index => saved[index] = files[index].ToArray());
+
+            Assert.All(saved, file => Assert.Equal(expected, file));
+        }
+    }
+
+    /// <summary>How many form XObjects the file holds.</summary>
+    private static int Forms(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        return source.ObjectNumbers.Count(number => source.GetObject(number) is SourceStream stream
+            && stream.Dictionary.TryGetValue(PdfNames.Subtype, out PdfValue subtype) && subtype.Kind == PdfValueKind.Name && subtype.AsName().Value == "Form");
+    }
+
+    [Fact]
+    public void APageLaidOnManyIsWrittenOnce()
+    {
+        byte[] pages = Pages("One", "Two", "Three");
+        byte[] laid = PdfFile.Open(pages)
+            .Overlay(PdfFile.Open(Layer("Stamp")))
+            .Underlay(PdfFile.Open(Layer("Head")), onto: "1-2")
+            .ToArray();
+
+        Assert.Equal(["HeadOneStamp", "HeadTwoStamp", "ThreeStamp"], Drawn(laid));
+        Assert.Equal(Forms(pages) + 2, Forms(laid));
+    }
+
+    /// <summary>
+    /// A page of <paramref name="width"/> by <paramref name="height"/>, turned by <paramref name="rotate"/>, showing
+    /// <paramref name="text"/> near its lower left corner.
+    /// </summary>
+    private static byte[] Turned(int width, int height, int rotate, string text, string? box = null, string extra = "", string catalog = "")
+    {
+        string content = $"BT /F1 12 Tf 20 20 Td ({text}) Tj ET";
+        string pdf = $"%PDF-1.7\n1 0 obj<</Type/Catalog/Pages 2 0 R{catalog}>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+            + $"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox {box ?? $"[0 0 {width} {height}]"}/Rotate {rotate}{extra}/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n"
+            + "4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n"
+            + $"5 0 obj<</Length {content.Length}>>stream\n{content}\nendstream\nendobj\ntrailer<</Root 1 0 R>>\n%%EOF";
+
+        // Saved once, so that it has the cross-reference section the independent reader needs.
+        return PdfFile.Open(System.Text.Encoding.ASCII.GetBytes(pdf)).ToArray();
+    }
+
+    /// <summary>
+    /// Which way the word <paramref name="word"/> runs on the first page as it is seen, the page turned as it says:
+    /// across and up, each -1, 0 or 1.
+    /// </summary>
+    private static (int Across, int Up) Direction(byte[] pdf, string word)
+    {
+        using PdfDocument document = PdfDocument.Open(pdf);
+        List<UglyToad.PdfPig.Content.Letter> letters = document.GetPage(1).Letters.Where(letter => word.Contains(letter.Value)).ToList();
+        Assert.Equal(word, string.Concat(letters.Select(letter => letter.Value)));
+
+        double across = letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
+        double up = letters[letters.Count - 1].EndBaseLine.Y - letters[0].StartBaseLine.Y;
+        return (Math.Sign(Math.Round(across)), Math.Sign(Math.Round(up)));
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 90)]
+    [InlineData(90, 0)]
+    [InlineData(90, 90)]
+    [InlineData(0, 180)]
+    [InlineData(270, 0)]
+    [InlineData(90, 270)]
+    public void AStampIsTurnedToBeSeenAsOnItsOwnPage(int stampRotate, int pageRotate)
+    {
+        byte[] stamp = Turned(200, 200, stampRotate, "Stamp");
+        byte[] stamped = PdfFile.Open(Turned(200, 300, pageRotate, "XYZ")).Overlay(PdfFile.Open(stamp)).ToArray();
+
+        Assert.Equal(Direction(stamp, "Stamp"), Direction(stamped, "Stamp"));
+
+        // And it is on the page, not turned off it.
+        using PdfDocument document = PdfDocument.Open(stamped);
+        UglyToad.PdfPig.Content.Page page = document.GetPage(1);
+        double side = Math.Max(page.Width, page.Height);
+        Assert.All(page.Letters, letter => Assert.InRange(letter.StartBaseLine.X, 0, side));
+        Assert.All(page.Letters, letter => Assert.InRange(letter.StartBaseLine.Y, 0, side));
+    }
+
+    [Theory]
+    [InlineData(200, 300, "", "")]
+    [InlineData(200, 200, "", "1 0 0 1 0 50 cm")]
+    [InlineData(200, 200, "/CropBox[50 50 150 150]", "1 0 0 1 0 50 cm")]
+    [InlineData(400, 400, "", "0.5 0 0 0.5 0 50 cm")]
+    public void AStampIsCentredOnThePageAndShrunkToFit(int width, int height, string extra, string placement)
+    {
+        byte[] stamp = Turned(width, height, 0, "Stamp", extra: extra);
+        string content = FirstPageContent(PdfFile.Open(Turned(200, 300, 0, "XYZ")).Overlay(PdfFile.Open(stamp)).ToArray());
+
+        Assert.Contains($"q\n{placement}{(placement.Length > 0 ? "\n" : string.Empty)}/Layer0 Do\nQ", content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("[0 0 200]", 0, false)]
+    [InlineData("[0 0 /Wide 200]", 0, true)]
+    [InlineData("[0 0 0 200]", 0, false)]
+    [InlineData("7", 0, true)]
+    [InlineData("[0 0 200 300]", 45, false)]
+    public void AStampOnOrFromAPageOfNoSensibleBoxOrTurnIsDrawnWhereItIs(string box, int rotate, bool onTheStamp)
+    {
+        byte[] stamp = onTheStamp ? Turned(0, 0, rotate, "Stamp", box) : Turned(200, 300, 0, "Stamp");
+        byte[] page = onTheStamp ? Turned(200, 300, 0, "XYZ") : Turned(0, 0, rotate, "XYZ", box);
+
+        Assert.Contains("q\n/Layer0 Do\nQ", FirstPageContent(PdfFile.Open(page).Overlay(PdfFile.Open(stamp)).ToArray()), StringComparison.Ordinal);
+    }
+
+    /// <summary>The first page's content, its streams decoded and joined.</summary>
+    private static string FirstPageContent(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfValue contents = source.Pages[0].Dictionary[PdfNames.Contents];
+        IEnumerable<PdfValue> streams = source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray().Cast<PdfValue>() : [contents];
+        return string.Join("\n", streams.Select(stream => System.Text.Encoding.Latin1.GetString(source.Decode(source.Stream(stream)!))));
+    }
+
+    [Fact]
+    public void WhatIsLaidOnATaggedPageIsAnArtifact()
+    {
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(200, 200);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Text("Tagged");
+        }));
+        byte[] tagged = document.ExportPdf(new PdfExportOptions { Tagged = true });
+
+        string content = FirstPageContent(PdfFile.Open(tagged).Overlay(PdfFile.Open(Layer("Stamp"))).Underlay(PdfFile.Open(Layer("Head"))).ToArray());
+        string plain = FirstPageContent(PdfFile.Open(Pages("One")).Overlay(PdfFile.Open(Layer("Stamp"))).ToArray());
+
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(content, @"/Artifact BMC\s+q\s+/Layer\d+ Do\s+Q\s+EMC").Count);
+        Assert.Matches(@"q\s+/Layer\d+ Do\s+Q", plain);
+        Assert.DoesNotContain("/Artifact", plain, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/MarkInfo<</Marked true>>", true)]
+    [InlineData("/MarkInfo<</Marked false>>", false)]
+    [InlineData("/MarkInfo<</Marked 1>>", false)]
+    [InlineData("/MarkInfo<<>>", false)]
+    [InlineData("/MarkInfo 7", false)]
+    public void WhatIsLaidOnAFileMarkedAsTaggedIsAnArtifact(string catalog, bool artifact)
+    {
+        byte[] page = Turned(200, 200, 0, "XYZ", catalog: catalog);
+
+        string content = FirstPageContent(PdfFile.Open(page).Overlay(PdfFile.Open(Turned(200, 200, 0, "Stamp"))).ToArray());
+
+        Assert.Equal(artifact, content.IndexOf("/Artifact BMC\nq\n/Layer0 Do\nQ\nEMC", StringComparison.Ordinal) >= 0);
+    }
+
+    /// <summary>A page linking to a web address, tagged if <paramref name="tagged"/> says.</summary>
+    private static byte[] Linked(bool tagged)
+    {
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(200, 200);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Link("https://example.com").Text("Linked");
+        }));
+        document.Info.Title = "Linked";
+        document.Info.Language = "en";
+        return document.ExportPdf(new PdfExportOptions { Tagged = tagged });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void APageKeptTwiceHasAnnotationsOfItsOwn(bool tagged)
+    {
+        PdfName structParents = new PdfName("StructParents");
+        PdfName structParent = new PdfName("StructParent");
+        PdfSource source = PdfSource.Open(PdfFile.Open(Linked(tagged)).KeepPages("1, 1").ToArray());
+
+        List<PdfReference> annotations = source.Pages.Select(page => Assert.Single(source.Resolve(page.Dictionary[PdfNames.Annots]).AsArray()).AsReference()).ToList();
+        PdfDictionary first = source.Resolve(annotations[0]).AsDictionary();
+        PdfDictionary second = source.Resolve(annotations[1]).AsDictionary();
+
+        Assert.NotEqual(annotations[0].ObjectNumber, annotations[1].ObjectNumber);
+        Assert.Equal(first[PdfNames.Subtype].AsName(), second[PdfNames.Subtype].AsName());
+        Assert.False(second.ContainsKey(structParent));
+        Assert.False(source.Pages[1].Dictionary.ContainsKey(structParents));
+        Assert.Equal(tagged, first.ContainsKey(structParent));
+        Assert.Equal(tagged, source.Pages[0].Dictionary.ContainsKey(structParents));
+
+        foreach ((PdfDictionary annotation, int index) in new[] { (first, 0), (second, 1) })
+        {
+            if (annotation.TryGetValue(new PdfName("P"), out PdfValue page))
+                Assert.Equal(source.Pages[index].ObjectNumber, page.AsReference().ObjectNumber);
+        }
+    }
+
+    [Fact]
+    public void APageKeptTwiceKeepsWhatItsAnnotationsListHoldsBesideAnnotations()
+    {
+        byte[] page = Turned(200, 200, 0, "XYZ", extra: "/Annots[<</Type/Annot/Subtype/Square/Rect[0 0 9 9]/StructParent 4>> 7]");
+        PdfSource source = PdfSource.Open(PdfFile.Open(page).KeepPages("1, 1").ToArray());
+
+        PdfArray again = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray();
+        PdfDictionary square = source.Resolve(again[0]).AsDictionary();
+
+        Assert.Equal(PdfValueKind.Reference, again[0].Kind);
+        Assert.Equal(7L, again[1].AsInteger());
+        Assert.Equal("Square", square[PdfNames.Subtype].AsName().Value);
+        Assert.False(square.ContainsKey(new PdfName("StructParent")));
+        Assert.Equal(source.Pages[1].ObjectNumber, square[new PdfName("P")].AsReference().ObjectNumber);
+    }
+
+    /// <summary>Two pages, the first linking to a destination named "target" on the second, as hyperref names them.</summary>
+    private static byte[] CrossReferenced(string label)
+    {
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(200, 200);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Stack(stack =>
+            {
+                stack.Add().CrossReference("target").Text(label + " go");
+                stack.Add().NewPage();
+                stack.Add().Anchor("target").Text(label + " target");
+            });
+        }));
+
+        return document.ExportPdf();
+    }
+
+    /// <summary>
+    /// The page, from 1, that the link on page <paramref name="page"/> leads to, its destination followed as a viewer
+    /// follows it: a name through the file's named destinations, an array to its page.
+    /// </summary>
+    private static int LinkTarget(byte[] pdf, int page)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfDictionary link = source.Resolve(source.Resolve(source.Pages[page - 1].Dictionary[PdfNames.Annots]).AsArray()[0]).AsDictionary();
+        PdfValue destination = source.Resolve(link.TryGetValue(new PdfName("Dest"), out PdfValue dest) ? dest : source.Resolve(link[PdfNames.A]).AsDictionary()[PdfNames.D]);
+
+        if (destination.Kind == PdfValueKind.String)
+        {
+            PdfValue tree = source.Resolve(source.Catalog[PdfNames.Names]).AsDictionary()[PdfNames.Dests];
+            destination = source.Resolve(Rustaveli.Pdf.Operations.Assembly.EmbeddedFiles.Entries(source, tree)
+                .Single(entry => entry.Key.Bytes.ToArray().SequenceEqual(destination.AsString().Bytes.ToArray())).Value);
+        }
+
+        if (destination.Kind == PdfValueKind.Dictionary)
+            destination = source.Resolve(destination.AsDictionary()[PdfNames.D]);
+
+        int target = destination.AsArray()[0].AsReference().ObjectNumber;
+        return source.Pages.Select(found => found.ObjectNumber).ToList().IndexOf(target) + 1;
+    }
+
+    [Fact]
+    public void LinksToNamedDestinationsLeadWhereTheyDidInTheirOwnFile()
+    {
+        byte[] first = CrossReferenced("A");
+        byte[] second = CrossReferenced("B");
+
+        byte[] appended = PdfFile.Open(first).Append(PdfFile.Open(second)).ToArray();
+        byte[] reordered = PdfFile.Open(first).KeepPages("2, 1").ToArray();
+        byte[] partly = PdfFile.Open(second).Append(PdfFile.Open(first)).KeepPages("3-4").ToArray();
+
+        Assert.Equal(["A go", "A target", "B go", "B target"], Read(appended));
+        Assert.Equal(2, LinkTarget(appended, 1));
+        Assert.Equal(4, LinkTarget(appended, 3));
+        Assert.Equal(1, LinkTarget(reordered, 2));
+        Assert.Equal(2, LinkTarget(partly, 1));
+    }
+
+    [Fact]
+    public void DestinationsNamedEitherWayAreFollowedAndTheRestLeftAsTheyAre()
+    {
+        string link = "<</Type/Annot/Subtype/Link/Rect[0 0 9 9]";
+        string pdf = "%PDF-1.7\n"
+            + "1 0 obj<</Type/Catalog/Pages 2 0 R/Dests<</Old[4 0 R/Fit]/Odd 7>>/Names<</Dests<</Names[(bare)[4 0 R/Fit](tree)<</D[4 0 R/Fit]>>]>>>>>>endobj\n"
+            + "2 0 obj<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2/MediaBox[0 0 200 200]>>endobj\n"
+            + $"3 0 obj<</Type/Page/Parent 2 0 R/Annots[{link}/Dest/Old>>{link}/Dest(tree)>>{link}/A<</S/GoTo/D(bare)>>>>"
+            + $"{link}/A<</S/GoToR/F(other.pdf)/D(tree)>>>>{link}/Dest(missing)>>{link}/Dest/Odd>>{link}/Dest[4 0 R/Fit]>>]>>endobj\n"
+            + "4 0 obj<</Type/Page/Parent 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
+
+        PdfSource source = PdfSource.Open(PdfFile.Open(Pages("One")).Append(PdfFile.Open(System.Text.Encoding.ASCII.GetBytes(pdf))).ToArray());
+        List<PdfValue> destinations = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray().Cast<PdfValue>()
+            .Select(annotation => source.Resolve(annotation).AsDictionary())
+            .Select(annotation => annotation.TryGetValue(new PdfName("Dest"), out PdfValue dest) ? dest : source.Resolve(annotation[PdfNames.A]).AsDictionary()[PdfNames.D])
+            .ToList();
+
+        Assert.All(new[] { 0, 1, 2, 6 }, index => Assert.Equal(source.Pages[2].ObjectNumber, destinations[index].AsArray()[0].AsReference().ObjectNumber));
+        Assert.Equal("tree", System.Text.Encoding.ASCII.GetString(destinations[3].AsString().Bytes.ToArray()));
+        Assert.Equal("missing", System.Text.Encoding.ASCII.GetString(destinations[4].AsString().Bytes.ToArray()));
+        Assert.Equal("Odd", destinations[5].AsName().Value);
+    }
+
+    /// <summary>
+    /// Two pages, the first drawing a word in each of two optional content groups, "hidden" and "shown", which
+    /// <paramref name="configuration"/> shows or hides.
+    /// </summary>
+    private static byte[] Layered(string label, string configuration)
+    {
+        string content = $"/OC /Hidden BDC BT /F1 12 Tf 20 20 Td ({label}hidden) Tj ET EMC /OC /Shown BDC BT /F1 12 Tf 20 60 Td ({label}shown) Tj ET EMC";
+        string pdf = "%PDF-1.7\n"
+            + $"1 0 obj<</Type/Catalog/Pages 2 0 R/OCProperties<</OCGs[5 0 R 6 0 R]/D {configuration}>>>>endobj\n"
+            + "2 0 obj<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2/MediaBox[0 0 200 200]>>endobj\n"
+            + "3 0 obj<</Type/Page/Parent 2 0 R/Resources<</Font<</F1 8 0 R>>/Properties<</Hidden 5 0 R/Shown 6 0 R>>>>/Contents 7 0 R>>endobj\n"
+            + "4 0 obj<</Type/Page/Parent 2 0 R>>endobj\n"
+            + $"5 0 obj<</Type/OCG/Name({label} hidden)>>endobj\n6 0 obj<</Type/OCG/Name({label} shown)>>endobj\n"
+            + $"7 0 obj<</Length {content.Length}>>stream\n{content}\nendstream\nendobj\n"
+            + "8 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    /// <summary>The names of the optional content groups a file lists, of those it hides, and how many its order lists.</summary>
+    private static (List<string> Groups, List<string> Hidden, int Ordered) OptionalContent(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfDictionary properties = source.Resolve(source.Catalog[new PdfName("OCProperties")]).AsDictionary();
+        PdfDictionary configuration = source.Resolve(properties[PdfNames.D]).AsDictionary();
+
+        string Name(PdfValue group) => System.Text.Encoding.ASCII.GetString(source.Resolve(group).AsDictionary()[new PdfName("Name")].AsString().Bytes.ToArray());
+
+        List<string> groups = source.Resolve(properties[new PdfName("OCGs")]).AsArray().Cast<PdfValue>().Select(Name).ToList();
+        List<string> hidden = configuration.TryGetValue(new PdfName("OFF"), out PdfValue off) ? source.Resolve(off).AsArray().Cast<PdfValue>().Select(Name).ToList() : [];
+        int ordered = configuration.TryGetValue(new PdfName("Order"), out PdfValue order) ? source.Resolve(order).AsArray().Count : 0;
+        return (groups, hidden, ordered);
+    }
+
+    [Fact]
+    public void HiddenLayersStayHiddenWhateverPagesAreKeptAndFilesAppended()
+    {
+        byte[] a = Layered("A", "<</OFF[5 0 R]/Order[5 0 R 6 0 R]>>");
+        byte[] b = Layered("B", "<</BaseState/OFF/ON[6 0 R]/Order[5 0 R 6 0 R]/RBGroups[[5 0 R 6 0 R]]>>");
+        byte[] c = Layered("C", "7");
+
+        (List<string> Groups, List<string> Hidden, int Ordered) kept = OptionalContent(PdfFile.Open(a).KeepPages("1").ToArray());
+        (List<string> Groups, List<string> Hidden, int Ordered) appended = OptionalContent(
+            PdfFile.Open(Pages("One")).Append(PdfFile.Open(a)).Append(PdfFile.Open(b), "1").Append(PdfFile.Open(c), "1").ToArray());
+
+        Assert.Equal(["A hidden", "A shown"], kept.Groups);
+        Assert.Equal(["A hidden"], kept.Hidden);
+        Assert.Equal(2, kept.Ordered);
+        Assert.Equal(["A hidden", "A shown", "B hidden", "B shown", "C hidden", "C shown"], appended.Groups);
+        Assert.Equal(["A hidden", "B hidden"], appended.Hidden);
+        Assert.Equal(4, appended.Ordered);
+    }
+
+    /// <summary>
+    /// Two pages with a form: a text field <paramref name="field"/> on the first, holding <paramref name="value"/>, and
+    /// one named "later" on the second, its widget a kid of it; the form's resources name one font, <paramref name="font"/>.
+    /// </summary>
+    private static byte[] Form(string field, string value, string font)
+    {
+        string pdf = "%PDF-1.7\n"
+            + $"1 0 obj<</Type/Catalog/Pages 2 0 R/AcroForm<</Fields[5 0 R 7 0 R]/DR<</Font<</{font} 6 0 R>>>>/DA(/{font} 0 Tf 0 g)>>>>endobj\n"
+            + "2 0 obj<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2/MediaBox[0 0 200 200]>>endobj\n"
+            + "3 0 obj<</Type/Page/Parent 2 0 R/Annots[5 0 R]>>endobj\n4 0 obj<</Type/Page/Parent 2 0 R/Annots[8 0 R]>>endobj\n"
+            + $"5 0 obj<</Type/Annot/Subtype/Widget/FT/Tx/T({field})/V({value})/Rect[10 10 100 30]/P 3 0 R>>endobj\n"
+            + "6 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n"
+            + "7 0 obj<</FT/Tx/T(later)/Kids[8 0 R]>>endobj\n8 0 obj<</Type/Annot/Subtype/Widget/Parent 7 0 R/Rect[10 10 100 30]/P 4 0 R>>endobj\n"
+            + "trailer<</Root 1 0 R>>\n%%EOF";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    /// <summary>The names of a file's form fields, each with its value where it has one, and the fonts its form's resources name.</summary>
+    private static (List<string> Fields, List<string> Fonts) FormOf(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfDictionary form = source.Resolve(source.Catalog[new PdfName("AcroForm")]).AsDictionary();
+
+        string Text(PdfValue value) => System.Text.Encoding.ASCII.GetString(source.Resolve(value).AsString().Bytes.ToArray());
+
+        List<string> fields = source.Resolve(form[new PdfName("Fields")]).AsArray().Cast<PdfValue>()
+            .Select(field => source.Resolve(field).AsDictionary())
+            .Select(field => Text(field[new PdfName("T")]) + (field.TryGetValue(new PdfName("V"), out PdfValue value) ? "=" + Text(value) : string.Empty))
+            .ToList();
+        List<string> fonts = source.Resolve(source.Resolve(form[new PdfName("DR")]).AsDictionary()[PdfNames.Font]).AsDictionary().Select(font => font.Key.Value).ToList();
+        return (fields, fonts);
+    }
+
+    [Fact]
+    public void FormFieldsOfEveryFileAreKeptWithThePagesTheyAreOnAndNamedApart()
+    {
+        byte[] a = Form("name", "first", "Helv");
+        byte[] b = Form("name", "second", "ZaDb");
+
+        (List<string> Fields, List<string> Fonts) appended = FormOf(PdfFile.Open(a).Append(PdfFile.Open(b)).Append(PdfFile.Open(b), "1").ToArray());
+        (List<string> Fields, List<string> Fonts) kept = FormOf(PdfFile.Open(a).KeepPages("2").ToArray());
+
+        Assert.Equal(["name=first", "later", "name+1=second", "later+1", "name+2=second"], appended.Fields);
+        Assert.Equal(["Helv", "ZaDb"], appended.Fonts);
+        Assert.Equal(["later"], kept.Fields);
+        Assert.Equal(["Helv"], kept.Fonts);
     }
 
     [Fact]

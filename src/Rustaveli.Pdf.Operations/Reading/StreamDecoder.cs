@@ -81,7 +81,15 @@ internal static class StreamDecoder
             _ => throw new NotSupportedException($"Streams encoded with {filter.Value} are copied as they are, never decoded."),
         };
 
+    /// <summary>
+    /// The most a stream is inflated to: far more than any page's content or object stream holds, and far less than the
+    /// 2 GB a byte array can, so that a few hundred kilobytes of deflated zeros are refused as damage rather than
+    /// failing as an out-of-memory error or an over-long stream.
+    /// </summary>
+    internal const int MaximumInflatedLength = 256 << 20;
+
     /// <summary>A zlib stream's data. A stream cut short gives what was there, as viewers show what they can.</summary>
+    /// <exception cref="UnreadableFileException">The stream inflates past <see cref="MaximumInflatedLength"/>.</exception>
     public static byte[] Inflate(byte[] data)
     {
         // The two-byte zlib header, when present, precedes the raw deflate data; the checksum after it is not checked.
@@ -96,7 +104,12 @@ internal static class StreamDecoder
         {
             int read;
             while ((read = inflater.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (output.Length + read > MaximumInflatedLength)
+                    throw new UnreadableFileException($"The file is not a PDF this library can read: a stream inflates to more than {MaximumInflatedLength >> 20} MB.");
+
                 output.Write(buffer, 0, read);
+            }
         }
         catch (InvalidDataException)
         {
