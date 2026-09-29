@@ -62,6 +62,15 @@ size, and the PDF reader in how deeply objects may nest. The repository also run
 packages and GitHub Actions, CodeQL code scanning, and OpenSSF Scorecard. These reduce risk; they do not replace
 review.
 
+## Verifying a package
+
+From 0.1.1 on, every package a release publishes carries a signed build provenance attestation, saying which
+workflow, commit and run built it. Check a downloaded package against it with the GitHub CLI:
+
+```bash
+gh attestation verify Rustaveli.Pdf.0.1.1.nupkg --repo themidnightgospel/Rustaveli.Pdf
+```
+
 ## Using the library safely
 
 Treat fonts, images, SVG and PDF files from people you do not trust as untrusted input: process them where a crash

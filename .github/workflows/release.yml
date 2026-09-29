@@ -30,8 +30,10 @@ jobs:
     permissions:
       # Creates the GitHub release.
       contents: write
-      # Lets the job ask GitHub for the signed token nuget.org trades for a key.
+      # Lets the job ask GitHub for the signed token nuget.org trades for a key, and sign the attestations.
       id-token: write
+      # Stores the attestations.
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -68,6 +70,14 @@ jobs:
           path: artifacts/packages
           retention-days: 90
 
+      # A signed SLSA provenance statement for each package: which workflow, commit and run built it. Anyone can check a
+      # package against it with `gh attestation verify <package> --repo themidnightgospel/Rustaveli.Pdf`.
+      - name: Attest the packages' provenance
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: artifacts/packages/*.nupkg
+
       # Asked for only now, after the tests: the key it hands back lasts an hour.
       - name: Sign in to nuget.org
         id: nuget
@@ -86,11 +96,15 @@ jobs:
             dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           done
 
+      # The packages go up with the attestations that vouch for them.
       - name: Create the GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          ATTESTATIONS: ${{ steps.attest.outputs.bundle-path }}
         run: |
           # The release notes are the changelog's section for this version.
           awk -v heading="## ${GITHUB_REF_NAME#v}" 'index($0, heading) == 1 { found = 1; next } found && /^## / { exit } found' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" artifacts/packages/*.nupkg --title "$GITHUB_REF_NAME" --notes-file notes.md
+          cp "$ATTESTATIONS" "artifacts/packages/Rustaveli.Pdf.${GITHUB_REF_NAME#v}.intoto.jsonl"
+          gh release create "$GITHUB_REF_NAME" artifacts/packages/*.nupkg artifacts/packages/*.intoto.jsonl \
+            --title "$GITHUB_REF_NAME" --notes-file notes.md
