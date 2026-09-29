@@ -71,12 +71,16 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      # The symbol packages go up with them.
+      # One push per package, the shell naming each: on Windows, dotnet nuget push does not expand a wildcard in a
+      # relative path, and reports that the file does not exist. Each package's symbol package goes up with it.
       - name: Publish to nuget.org
         shell: bash
-        run: >
-          dotnet nuget push "artifacts/packages/*.nupkg" --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}"
-          --source https://api.nuget.org/v3/index.json --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ steps.nuget.outputs.NUGET_API_KEY }}
+        run: |
+          for package in artifacts/packages/*.nupkg; do
+            dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
 
       - name: Create the GitHub release
         shell: bash
