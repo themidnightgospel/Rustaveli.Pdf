@@ -8,7 +8,8 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 /// <remarks>
 /// Items are never split: each is placed whole or left for the next line or page, and one with nothing to show takes
-/// no place at all. Measuring and drawing share one layout so the two can never disagree.
+/// no place at all. One of no size takes no place either, but is drawn where it falls. Measuring and drawing share one
+/// layout so the two can never disagree.
 /// </remarks>
 internal sealed class FlowBlock : Block
 {
@@ -70,7 +71,7 @@ internal sealed class FlowBlock : Block
             (float start, float gap) = Spread(line, availableSpace.Width, last);
             float x = start;
 
-            foreach ((int index, Extent size) in line.Items)
+            foreach ((int index, Extent size, bool takesPlace) in line.Items)
             {
                 float y = line.Top + LineAlignment switch
                 {
@@ -81,10 +82,11 @@ internal sealed class FlowBlock : Block
 
                 Offset at = new Offset(rightToLeft ? availableSpace.Width - x - size.Width : x, y);
                 context.Surface.Translate(at);
-                Items[index].Render(size, context);
+                context.RenderAllotted(Items[index], size, availableSpace.Height);
                 context.Surface.Translate(at.Reverse());
 
-                x += size.Width + gap;
+                // An item of no size has no gap after it.
+                x += takesPlace ? size.Width + gap : 0f;
             }
         }
 
@@ -98,14 +100,15 @@ internal sealed class FlowBlock : Block
     private (float Start, float Gap) Spread(Line line, float width, bool last)
     {
         float extra = Math.Max(0, width - line.Width);
-        int count = line.Items.Count;
+        int count = line.Shown;
 
+        // A line may hold only items of no size, which have no space around them to share.
         return Placement switch
         {
             FlowPlacement.Center => (extra / 2, Gutter),
             FlowPlacement.Right => (extra, Gutter),
             FlowPlacement.Justify when count > 1 && !last => (0, Gutter + (extra / (count - 1))),
-            FlowPlacement.SpaceAround => (extra / count / 2, Gutter + (extra / count)),
+            FlowPlacement.SpaceAround => (extra / Math.Max(1, count) / 2, Gutter + (extra / Math.Max(1, count))),
             _ => (0, Gutter),
         };
     }
@@ -117,7 +120,8 @@ internal sealed class FlowBlock : Block
     private Layout Lay(Extent availableSpace, PlanContext context)
     {
         List<Line> lines = [];
-        List<(int Index, Extent Size)> items = [];
+        List<(int Index, Extent Size, bool TakesPlace)> items = [];
+        int shown = 0;
         int first = _placed;
         float width = 0f;
         float height = 0f;
@@ -131,8 +135,8 @@ internal sealed class FlowBlock : Block
             if (!plan.IsNothing && !plan.IsComplete)
                 break;
 
-            // Used up, hidden or of no size, so it takes no place; a line that fails to fit still starts after it.
-            if (plan.IsNothing || (plan.Size.Width <= Extent.Epsilon && plan.Size.Height <= Extent.Epsilon))
+            // Used up or hidden, so it takes no place; a line that fails to fit still starts after it.
+            if (plan.IsNothing)
             {
                 if (items.Count == 0)
                     first = index + 1;
@@ -140,9 +144,17 @@ internal sealed class FlowBlock : Block
                 continue;
             }
 
+            // Of no size, it takes no place and no gap, but goes with the line it falls in and is drawn there: what it
+            // does as it is drawn — an anchor, a marker hidden the first time — must still happen, as in a stack.
+            if (plan.Size.Width <= Extent.Epsilon && plan.Size.Height <= Extent.Epsilon)
+            {
+                items.Add((index, Extent.Zero, false));
+                continue;
+            }
+
             Extent size = plan.Size;
 
-            if (items.Count > 0 && width + Gutter + size.Width > availableSpace.Width + Extent.Epsilon)
+            if (shown > 0 && width + Gutter + size.Width > availableSpace.Width + Extent.Epsilon)
             {
                 if (!Close())
                     return new Layout(lines, first, top);
@@ -150,9 +162,10 @@ internal sealed class FlowBlock : Block
                 first = index;
             }
 
-            width = items.Count == 0 ? size.Width : width + Gutter + size.Width;
+            width = shown == 0 ? size.Width : width + Gutter + size.Width;
             height = Math.Max(height, size.Height);
-            items.Add((index, size));
+            items.Add((index, size, true));
+            shown++;
         }
 
         if (items.Count > 0 && !Close())
@@ -168,17 +181,21 @@ internal sealed class FlowBlock : Block
             if (lineTop + height > availableSpace.Height + Extent.Epsilon)
                 return false;
 
-            lines.Add(new Line([.. items], width, height, lineTop));
+            lines.Add(new Line([.. items], shown, width, height, lineTop));
             top = lineTop + height;
             items.Clear();
+            shown = 0;
             width = 0f;
             height = 0f;
             return true;
         }
     }
 
-    /// <summary>A line: its items and their sizes, how wide and tall it is, and where it starts.</summary>
-    private readonly record struct Line(IReadOnlyList<(int Index, Extent Size)> Items, float Width, float Height, float Top);
+    /// <summary>
+    /// A line: its items, their sizes and whether they take a place in it, how many do, how wide and tall it is, and
+    /// where it starts.
+    /// </summary>
+    private readonly record struct Line(IReadOnlyList<(int Index, Extent Size, bool TakesPlace)> Items, int Shown, float Width, float Height, float Top);
 
     /// <summary>The lines that fit, the index of the first item left over, and the height they take.</summary>
     private readonly record struct Layout(List<Line> Lines, int Placed, float Height);

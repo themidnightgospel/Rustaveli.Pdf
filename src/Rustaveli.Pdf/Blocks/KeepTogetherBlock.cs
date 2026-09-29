@@ -24,9 +24,16 @@ internal sealed class KeepTogetherBlock : EnclosingBlock
             return childPlan;
 
         // Moved to a fresh page, would it fit whole there? Only then is moving it worth a page; content longer than
-        // any page is split where it is, as it would be anyway.
-        if (WherePossible && (availableSpace.Height >= context.PageBody.Height - Extent.Epsilon || !base.PlanCore(new Extent(availableSpace.Width, context.PageBody.Height), context).IsComplete))
+        // any page is split where it is, as it would be anyway. The page body is only an estimate of the room a fresh
+        // page offers — an inset or a band around the content takes some of it — so a page that cannot start at all
+        // unless this splits says it can never fit whole.
+        if (WherePossible
+            && (context.SplitsWherePossible
+                || availableSpace.Height >= context.PageBody.Height - Extent.Epsilon
+                || !base.PlanCore(new Extent(availableSpace.Width, context.PageBody.Height), context).IsComplete))
+        {
             return childPlan;
+        }
 
         return Fit.Defer("The content is kept together and does not fit in the remaining space.");
     }

@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
@@ -56,13 +55,20 @@ internal static class Typesetter
 
             int[] pagesByPart = RunPass(document, probe, measurer, pageContext, resolution);
 
-            if (pagesByPart.SequenceEqual(counted))
-                break;
+            // Settled only when the pass also found anchors and captured positions where the pass before it did: a
+            // cross-reference that moved what it refers to, without changing the count, would otherwise print the
+            // page or place it read rather than the one it is drawn on.
+            bool settled = pagesByPart.SequenceEqual(counted) && pageContext.FoundWhatWasKnown();
 
             counted = pagesByPart;
             pageContext.PageCount = counted.Sum();
             pageContext.PartPageCounts = counted;
             pageContext.IsPageCountKnown = true;
+
+            // Content that read none of the page count, an anchor's page or a captured position drew nothing that
+            // depends on them, so another pass would find exactly what this one did.
+            if (settled || !pageContext.ReadsWhatPassesSettle)
+                break;
         }
 
         RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null, inspection);
@@ -90,9 +96,12 @@ internal static class Typesetter
             // Content composed as its pages are set names styles from the document it came from.
             using StyleSheet.Scope styles = document.StylesOf(part).Use();
 
+            pageContext.Section = index;
+
             // Pages whose content sets a draw order are held back and drawn in that order; counted pages are thrown
-            // away, so they need no order.
-            bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
+            // away, so they need no order. Whether the content does is learnt from the counting passes, which have
+            // drawn it all: content composed only as it is reached cannot be found in the document beforehand.
+            bool ordered = pages is not CountingPageSink && pageContext.SetsDrawOrder(index);
             IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
             RenderContext context = ordered ? new RenderContext(sink, layout, structure) { Inspection = inspection } : direct;
 
@@ -115,7 +124,7 @@ internal static class Typesetter
 
                 // Until the real total is known, quote the page count as the current page so that dynamic text
                 // such as "3 of 3" occupies a realistic width and does not shift the layout on the second pass.
-                if (!pageContext.IsPageCountKnown)
+                if (!pageContext.CountKnown)
                     pageContext.PageCount = pageContext.Folio;
                 else if (document.NumbersPartsApart && pageContext.PartPageCounts is { } counts && part < counts.Length)
                     pageContext.PageCount = counts[part];
@@ -181,7 +190,17 @@ internal static class Typesetter
 
             bodySpace = new Extent(contentWidth, contentHeight);
             layout.PageBody = bodySpace;
+            layout.SplitsWherePossible = false;
             contentPlan = section.BodySlot.Plan(bodySpace, layout);
+
+            // Content kept together where possible that holds up even an empty page would start the next page just
+            // as it starts this one, so it is split here rather than moved on for ever. The page is set, and drawn,
+            // on that understanding.
+            if (contentPlan.IsDeferred)
+            {
+                layout.SplitsWherePossible = true;
+                contentPlan = section.BodySlot.Plan(bodySpace, layout);
+            }
         }
         catch (Exception exception) when (exception is not OversetException and not RenderingException)
         {
@@ -208,7 +227,7 @@ internal static class Typesetter
 
         try
         {
-            DrawPage(section, pages, context, pageSize, contentSpace, bands);
+            DrawPage(section, pages, context, pageSize, contentSpace, bands, availableHeight);
         }
         catch (Exception exception) when (exception is not OversetException and not RenderingException)
         {
@@ -228,7 +247,8 @@ internal static class Typesetter
         RenderContext context,
         Extent pageSize,
         Extent contentSpace,
-        Bands bands)
+        Bands bands,
+        float measuredHeight)
     {
         ISurface surface = context.Surface;
         Sides margin = section.Margins;
@@ -261,11 +281,13 @@ internal static class Typesetter
         if (section.RunningHeadSlot.Child is not null)
         {
             using (context.Tags.Untag())
-                section.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeadHeight), context);
+                context.RenderAllotted(section.RunningHeadSlot, new Extent(contentSpace.Width, bands.HeadHeight), measuredHeight);
         }
 
+        // Each part was measured in the room left by those above it, on the tallest page allowed; a page sized to its
+        // content is drawn shorter than that.
         surface.Translate(new Offset(0, bands.HeadHeight));
-        section.BodySlot.Render(contentSpace, context);
+        context.RenderAllotted(section.BodySlot, contentSpace, measuredHeight - bands.HeadHeight - bands.FootHeight);
         surface.Translate(new Offset(0, -bands.HeadHeight));
 
         if (section.RunningFootSlot.Child is not null)
@@ -275,7 +297,7 @@ internal static class Typesetter
             surface.Translate(new Offset(0, footTop));
 
             using (context.Tags.Untag())
-                section.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FootHeight), context);
+                context.RenderAllotted(section.RunningFootSlot, new Extent(contentSpace.Width, bands.FootHeight), measuredHeight - bands.HeadHeight);
 
             surface.Translate(new Offset(0, -footTop));
         }

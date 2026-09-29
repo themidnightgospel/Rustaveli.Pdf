@@ -32,6 +32,24 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
     /// </summary>
     public Extent PageBody { get; internal set; } = Extent.Max;
 
+    /// <summary>
+    /// How much further down the room reached, when the content being drawn was measured, than the box it is drawn in:
+    /// zero while measuring, and while content is drawn in the room it was measured in.
+    /// </summary>
+    /// <remarks>
+    /// A parent measures a child in the room left, then draws it at the height it measured, and the child lays its
+    /// content out again in that smaller box. Content that decides by the room left beneath it rather than by the room
+    /// it takes — a heading that needs headroom — would decide differently there and vanish; adding this back gives it
+    /// the room it was measured in.
+    /// </remarks>
+    public float RoomBelow { get; internal set; }
+
+    /// <summary>
+    /// True while a page is set whose body could not start without splitting content kept together only where
+    /// possible: moved on, it would start the next page just as it starts this one, so it is split here instead.
+    /// </summary>
+    public bool SplitsWherePossible { get; internal set; }
+
     /// <summary>Where measurements are recorded while a layout failure is being explained; null otherwise.</summary>
     internal PlanTrace? Trace { get; set; }
 

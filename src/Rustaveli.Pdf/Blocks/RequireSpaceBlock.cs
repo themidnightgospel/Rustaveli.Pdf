@@ -25,10 +25,14 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        if (!_hasStarted && availableSpace.Height + Extent.Epsilon < MinHeight)
+        // Drawn in a box shorter than the room it was measured in, the content counts the room it was measured in,
+        // or it would refuse to start in the very box its parent set aside for it.
+        float remaining = availableSpace.Height + context.RoomBelow;
+
+        if (!_hasStarted && remaining + Extent.Epsilon < MinHeight)
         {
             return Fit.Defer(
-                FormattableString.Invariant($"Only {availableSpace.Height:F1} points remain but {MinHeight:F1} was required before this content may start."));
+                FormattableString.Invariant($"Only {remaining:F1} points remain but {MinHeight:F1} was required before this content may start."));
         }
 
         return base.PlanCore(availableSpace, context);

@@ -41,11 +41,15 @@ internal sealed class ColumnsBlock : Block
         _cachedAvailableWidth = float.NaN;
     }
 
-    // The completion flags change in place, so they are copied; the widths are replaced whole, never changed.
+    // The completion flags change in place, so they are copied, both ways: returned to, the saved copy must stay as it
+    // was for the next return to it. The widths are replaced whole, never changed.
     protected override object? SaveOwnProgress() => (_completed?.ToArray(), _cachedWidths, _cachedAvailableWidth);
 
-    protected override void RestoreOwnProgress(object progress) =>
-        (_completed, _cachedWidths, _cachedAvailableWidth) = ((bool[]?, float[]?, float))progress;
+    protected override void RestoreOwnProgress(object progress)
+    {
+        (bool[]? completed, _cachedWidths, _cachedAvailableWidth) = ((bool[]?, float[]?, float))progress;
+        _completed = completed?.ToArray();
+    }
 
     /// <summary>Lazily sizes the per-item completion flags to the current item count.</summary>
     private bool[] Completion()
@@ -139,7 +143,7 @@ internal sealed class ColumnsBlock : Block
                         : availableSpace.Width - offset - widths[index];
 
                     context.Surface.Translate(new Offset(position, 0f));
-                    Items[index].Render(new Extent(widths[index], rowHeight), context);
+                    context.RenderAllotted(Items[index], new Extent(widths[index], rowHeight), availableSpace.Height);
                     context.Surface.Translate(new Offset(-position, 0f));
                 }
 
@@ -197,14 +201,21 @@ internal sealed class ColumnsBlock : Block
             consumed += widths[index];
         }
 
+        bool settled = true;
+
         for (int index = 0; index < Items.Count; index++)
         {
             if (Items[index].Sizing != ColumnSizing.Natural)
                 continue;
 
-            Extent offered = new Extent(Math.Max(0f, available - consumed), availableSpace.Height);
+            // Measured in all the height there could be, not in the room this page happens to leave: the width is
+            // kept for every page the row goes on to, so it is the width of all the content, not of what fits here.
+            Extent offered = new Extent(Math.Max(0f, available - consumed), Extent.Max.Height);
             Fit plan = Items[index].Plan(offered, context);
 
+            // Content that cannot be measured at this width gets none, but only for now: kept, that would hold
+            // for every page after, where it might have fitted.
+            settled &= !plan.IsDeferred;
             widths[index] = plan.IsDeferred ? 0f : Math.Min(plan.Size.Width, offered.Width);
             consumed += widths[index];
         }
@@ -226,8 +237,11 @@ internal sealed class ColumnsBlock : Block
             }
         }
 
-        _cachedWidths = widths;
-        _cachedAvailableWidth = availableSpace.Width;
+        if (settled)
+        {
+            _cachedWidths = widths;
+            _cachedAvailableWidth = availableSpace.Width;
+        }
 
         return widths;
     }

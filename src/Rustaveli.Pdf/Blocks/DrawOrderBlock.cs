@@ -18,6 +18,9 @@ internal sealed class DrawOrderBlock : EnclosingBlock
         // counted, there is nothing to reorder.
         if (context.Surface is not LayeredPageSink layers)
         {
+            // Noted, so the pass that draws for real holds this section's pages back even when the content that asked
+            // for an order is composed only as it is reached.
+            context.Pagination.RegisterDrawOrder();
             base.RenderCore(availableSpace, context);
             return;
         }

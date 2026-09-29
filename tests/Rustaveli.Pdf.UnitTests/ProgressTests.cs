@@ -10,7 +10,7 @@ public class ProgressTests
 
     public static TheoryData<string> Kinds => new TheoryData<string>
     {
-        "stack", "text", "table", "columns", "flow", "once", "skip first", "new page", "require space",
+        "stack", "text", "table", "columns", "columns ending", "flow", "once", "skip first", "new page", "require space",
     };
 
     private static Block Build(string kind) => kind switch
@@ -32,6 +32,11 @@ public class ProgressTests
         {
             columns.Fixed(20).Fill(TestInks.Red).Blank();
             columns.Share().Compose(inner => inner.Slot().Child = new SplittableBlock(unitCount: 6, unitHeight: 15));
+        })),
+        "columns ending" => LayoutHarness.Build(frame => frame.Columns(columns =>
+        {
+            columns.Fixed(20).Fill(TestInks.Red).Blank();
+            columns.Share().Compose(inner => inner.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 15));
         })),
         "flow" => LayoutHarness.Build(frame => frame.Flow(flow =>
         {
@@ -77,6 +82,24 @@ public class ProgressTests
 
         Assert.Equal(ahead, Describe(LayoutHarness.Draw(content, Page)));
         Assert.Equal(further, Describe(LayoutHarness.Draw(content, Page)));
+    }
+
+    [Theory]
+    [MemberData(nameof(Kinds))]
+    public void SavedProgressCanBeReturnedToAgainAndAgain(string kind)
+    {
+        // Drawing ahead tries one layout after another from the same point, returning to it after each.
+        Block content = Build(kind);
+        LayoutHarness.Draw(content, Page);
+
+        Progress saved = content.SaveProgress();
+        string ahead = Describe(LayoutHarness.Draw(content, Page));
+
+        content.RestoreProgress(saved);
+        LayoutHarness.Draw(content, Page);
+        content.RestoreProgress(saved);
+
+        Assert.Equal(ahead, Describe(LayoutHarness.Draw(content, Page)));
     }
 
     [Fact]

@@ -24,6 +24,12 @@ internal sealed class TableBlock : Block
 
         public required ReadingDirection Direction { get; init; }
 
+        public required BandCells Head { get; init; }
+
+        public required BandCells Body { get; init; }
+
+        public required BandCells Foot { get; init; }
+
         public float[] HeaderHeights { get; set; } = Array.Empty<float>();
 
         public float[] FooterHeights { get; set; } = Array.Empty<float>();
@@ -31,6 +37,15 @@ internal sealed class TableBlock : Block
         public float[] BodyHeights { get; set; } = Array.Empty<float>();
 
         public int[] GroupEnd { get; set; } = Array.Empty<int>();
+
+        /// <summary>Why a body cell cannot be set in the row it is given, or null when every one can.</summary>
+        public string? BodyUnset { get; set; }
+
+        /// <summary>Why a header or footer cell cannot be set in the row it is given, or null when every one can.</summary>
+        public string? BandUnset { get; set; }
+
+        /// <summary>Why some cell of the table cannot be set in the row it is given, or null when every one can.</summary>
+        public string? Unset => BodyUnset ?? BandUnset;
 
         public float HeaderHeight => HeaderHeights.Sum();
 
@@ -60,13 +75,86 @@ internal sealed class TableBlock : Block
         }
     }
 
+    /// <summary>
+    /// The cells of one band found by the row they start in, so that drawing a page looks only at the rows on it.
+    /// </summary>
+    private sealed class BandCells
+    {
+        private readonly List<CellBlock> _cells;
+
+        /// <summary>For each row, the places in the band's list of the cells starting in it, in list order.</summary>
+        private readonly List<int>[] _rows;
+
+        private bool[]? _lastInColumns;
+
+        public BandCells(List<CellBlock> cells)
+        {
+            _cells = cells;
+            _rows = new List<int>[cells.Count == 0 ? 0 : cells.Max(cell => cell.Row)];
+
+            for (int row = 0; row < _rows.Length; row++)
+                _rows[row] = [];
+
+            for (int place = 0; place < cells.Count; place++)
+                _rows[cells[place].Row - 1].Add(place);
+        }
+
+        /// <summary>
+        /// The places in the band's list of the cells starting in rows <paramref name="firstRow"/> to
+        /// <paramref name="lastRow"/>, in list order, as a walk of the whole list would find them.
+        /// </summary>
+        public List<int> Starting(int firstRow, int lastRow)
+        {
+            List<int> places = [];
+
+            for (int row = firstRow; row <= Math.Min(lastRow, _rows.Length); row++)
+                places.AddRange(_rows[row - 1]);
+
+            places.Sort();
+            return places;
+        }
+
+        public CellBlock this[int place] => _cells[place];
+
+        /// <summary>Whether no other cell starts below the cell at <paramref name="place"/> in any column it covers.</summary>
+        public bool IsLastInItsColumns(int place)
+        {
+            _lastInColumns ??= LastInTheirColumns();
+            return _lastInColumns[place];
+        }
+
+        /// <summary>
+        /// For every cell, whether it is the last of its columns: once the lowest start in each column is known, a
+        /// cell is last when none of its columns has a cell starting below it.
+        /// </summary>
+        private bool[] LastInTheirColumns()
+        {
+            int[] lowestStart = new int[_cells.Max(cell => cell.LastColumn) + 1];
+
+            foreach (CellBlock cell in _cells)
+            {
+                for (int column = cell.Column; column <= cell.LastColumn; column++)
+                    lowestStart[column] = Math.Max(lowestStart[column], cell.Row);
+            }
+
+            bool[] last = new bool[_cells.Count];
+
+            for (int place = 0; place < _cells.Count; place++)
+            {
+                CellBlock cell = _cells[place];
+                last[place] = true;
+
+                for (int column = cell.Column; column <= cell.LastColumn; column++)
+                    last[place] &= lowestStart[column] <= cell.LastRow;
+            }
+
+            return last;
+        }
+    }
+
     private int _completedRows;
 
     private TableLayout? _cachedLayout;
-
-    private float _cachedWidth = float.NaN;
-
-    private ReadingDirection _cachedDirection;
 
     /// <summary>The table's head, body and foot in a tagged document, once it has begun drawing.</summary>
     private StructureElement?[]? _groups;
@@ -99,15 +187,14 @@ internal sealed class TableBlock : Block
     {
         _completedRows = 0;
         _cachedLayout = null;
-        _cachedWidth = float.NaN;
         _groups = null;
         _cellTags = null;
     }
 
-    protected override object? SaveOwnProgress() => (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection);
+    protected override object? SaveOwnProgress() => (_completedRows, _cachedLayout);
 
     protected override void RestoreOwnProgress(object progress) =>
-        (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection) = ((int, TableLayout?, float, ReadingDirection))progress;
+        (_completedRows, _cachedLayout) = ((int, TableLayout?))progress;
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
@@ -115,6 +202,9 @@ internal sealed class TableBlock : Block
 
         if (layout is null)
             return Fit.Defer("The table columns do not fit within the available width.");
+
+        if (layout.Unset is { } unset)
+            return Fit.Defer(unset);
 
         if (_completedRows >= layout.BodyHeights.Length)
             return Fit.Nothing();
@@ -139,6 +229,7 @@ internal sealed class TableBlock : Block
         TableLayout? layout = BuildLayout(availableSpace, context.Planning);
 
         if (layout is null
+            || layout.Unset is not null
             || _completedRows >= layout.BodyHeights.Length
             || layout.BandHeight > availableSpace.Height + Extent.Epsilon)
         {
@@ -175,18 +266,18 @@ internal sealed class TableBlock : Block
         if (layout.HeaderHeights.Length != 0)
         {
             using (tagging && repeat ? tags.Untag() : default(TagStack.Scope))
-                DrawBand(HeaderCells, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head, heads: true);
+                DrawBand(layout.Head, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head, heads: true);
 
             top += layout.HeaderHeight;
         }
 
-        DrawBand(Cells, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, body, heads: false, ExtendLastCells);
+        DrawBand(layout.Body, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, body, heads: false, ExtendLastCells);
         top += takenHeight;
 
         if (layout.FooterHeights.Length != 0)
         {
             using TagStack.Scope scope = tagging && repeat ? tags.Untag() : default;
-            DrawBand(FooterCells, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context, foot, heads: false);
+            DrawBand(layout.Foot, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context, foot, heads: false);
         }
 
         _completedRows = lastRow;
@@ -256,7 +347,7 @@ internal sealed class TableBlock : Block
     }
 
     private void DrawBand(
-        List<CellBlock> cells,
+        BandCells cells,
         float[] rowHeights,
         TableLayout layout,
         int firstRow,
@@ -267,20 +358,20 @@ internal sealed class TableBlock : Block
         bool heads,
         bool extendLastCells = false)
     {
+        List<int> places = cells.Starting(firstRow, lastRow);
+
         if (group is not null)
-            TagCells(cells, firstRow, lastRow, group, heads, context.Tags);
+            TagCells(places.Select(place => cells[place]), group, heads, context.Tags);
 
-        foreach (CellBlock cell in cells)
+        foreach (int place in places)
         {
-            if (cell.Row < firstRow || cell.Row > lastRow)
-                continue;
-
+            CellBlock cell = cells[place];
             StructureElement? element = null;
             _cellTags?.TryGetValue(cell, out element);
             using TagStack.Scope scope = context.Tags.Enter(element);
 
             // The last cell of its columns reaches down to the last row drawn here.
-            int bottomRow = extendLastCells && IsLastInItsColumns(cell, cells) ? lastRow : cell.LastRow;
+            int bottomRow = extendLastCells && cells.IsLastInItsColumns(place) ? lastRow : cell.LastRow;
 
             float cellTop = bandTop;
 
@@ -298,7 +389,7 @@ internal sealed class TableBlock : Block
             Offset offset = new Offset(layout.ColumnLeft(cell, cellSpace.Width), cellTop);
 
             context.Surface.Translate(offset);
-            cell.Render(cellSpace, context);
+            context.RenderAllotted(cell, cellSpace, Extent.Max.Height);
             context.Surface.Translate(offset.Reverse());
         }
     }
@@ -307,13 +398,12 @@ internal sealed class TableBlock : Block
     /// Creates the rows about to be drawn in <paramref name="group"/>, in order, and their cells in column order:
     /// headings of their columns in a header band, of their rows where marked, data otherwise.
     /// </summary>
-    private void TagCells(List<CellBlock> cells, int firstRow, int lastRow, StructureElement group, bool heads, TagStack tags)
+    private void TagCells(IEnumerable<CellBlock> cells, StructureElement group, bool heads, TagStack tags)
     {
         _cellTags ??= [];
         using TagStack.Scope inGroup = tags.Enter(group);
 
         IEnumerable<IGrouping<int, CellBlock>> rows = cells
-            .Where(cell => cell.Row >= firstRow && cell.Row <= lastRow)
             .OrderBy(cell => cell.Row)
             .ThenBy(cell => cell.Column)
             .GroupBy(cell => cell.Row);
@@ -333,18 +423,6 @@ internal sealed class TableBlock : Block
         }
     }
 
-    /// <summary>Whether no other cell starts below <paramref name="cell"/> in any column it covers.</summary>
-    private static bool IsLastInItsColumns(CellBlock cell, List<CellBlock> cells)
-    {
-        foreach (CellBlock other in cells)
-        {
-            if (other.Row > cell.LastRow && other.Column <= cell.LastColumn && other.LastColumn >= cell.Column)
-                return false;
-        }
-
-        return true;
-    }
-
     /// <summary>
     /// Resolves column widths and row heights, reusing the previous result when nothing they depend on has
     /// changed.
@@ -361,20 +439,21 @@ internal sealed class TableBlock : Block
     private TableLayout? BuildLayout(Extent availableSpace, PlanContext context)
     {
         ReadingDirection direction = ReadingDirection ?? context.ReadingDirection;
+        float[]? columnWidths = ResolveColumnWidths(availableSpace.Width);
 
+        if (columnWidths is null)
+            return null;
+
+        // Keyed by the columns rather than the width offered: a table of fixed columns is measured in the whole width
+        // and drawn in its own when centred or on a page sized to it, and the columns, and so the rows, are the same.
         if (_cachedLayout is not null
-            && Math.Abs(_cachedWidth - availableSpace.Width) < Extent.Epsilon
-            && _cachedDirection == direction)
+            && _cachedLayout.Direction == direction
+            && _cachedLayout.ColumnWidths.SequenceEqual(columnWidths))
         {
             // The bands are deliberately outside the cache — see MeasureBands.
             MeasureBands(_cachedLayout, context);
             return _cachedLayout;
         }
-
-        float[]? columnWidths = ResolveColumnWidths(availableSpace.Width);
-
-        if (columnWidths is null)
-            return null;
 
         float[] columnOffsets = new float[columnWidths.Length];
 
@@ -386,15 +465,17 @@ internal sealed class TableBlock : Block
             ColumnWidths = columnWidths,
             ColumnOffsets = columnOffsets,
             TotalWidth = columnWidths.Sum(),
-            Direction = direction
+            Direction = direction,
+            Head = new BandCells(HeaderCells),
+            Body = new BandCells(Cells),
+            Foot = new BandCells(FooterCells)
         };
 
-        layout.BodyHeights = MeasureRowHeights(Cells, layout, context);
+        layout.BodyHeights = MeasureRowHeights(Cells, layout, context, "body", out string? bodyUnset);
+        layout.BodyUnset = bodyUnset;
         layout.GroupEnd = BuildGroupBoundaries(Cells, layout.BodyHeights.Length);
 
         _cachedLayout = layout;
-        _cachedWidth = availableSpace.Width;
-        _cachedDirection = direction;
 
         MeasureBands(layout, context);
 
@@ -412,8 +493,9 @@ internal sealed class TableBlock : Block
     /// </remarks>
     private void MeasureBands(TableLayout layout, PlanContext context)
     {
-        layout.HeaderHeights = MeasureRowHeights(HeaderCells, layout, context);
-        layout.FooterHeights = MeasureRowHeights(FooterCells, layout, context);
+        layout.HeaderHeights = MeasureRowHeights(HeaderCells, layout, context, "header", out string? headerUnset);
+        layout.FooterHeights = MeasureRowHeights(FooterCells, layout, context, "footer", out string? footerUnset);
+        layout.BandUnset = headerUnset ?? footerUnset;
     }
 
     /// <summary>
@@ -443,22 +525,28 @@ internal sealed class TableBlock : Block
 
     /// <summary>
     /// Measures every cell at its natural height, then distributes the height of vertically spanned cells across
-    /// the rows they cover.
+    /// the rows they cover. <paramref name="unset"/> says why a cell cannot be set in the rows it is given, if one
+    /// cannot.
     /// </summary>
-    private static float[] MeasureRowHeights(List<CellBlock> cells, TableLayout layout, PlanContext context)
+    private static float[] MeasureRowHeights(List<CellBlock> cells, TableLayout layout, PlanContext context, string band, out string? unset)
     {
+        unset = null;
+
         if (cells.Count == 0)
             return [];
 
         int rowCount = cells.Max(cell => cell.LastRow);
         float[] heights = new float[rowCount];
+        List<CellBlock>? unmeasured = null;
 
         // Unspanned cells set the baseline height of the row they sit in.
         foreach (CellBlock cell in cells.Where(cell => cell.RowSpan <= 1))
         {
             Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
-            if (!plan.IsDeferred)
+            if (plan.IsDeferred)
+                (unmeasured ??= []).Add(cell);
+            else
                 heights[cell.Row - 1] = Math.Max(heights[cell.Row - 1], plan.Size.Height);
         }
 
@@ -469,18 +557,44 @@ internal sealed class TableBlock : Block
             Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
             if (plan.IsDeferred)
+            {
+                (unmeasured ??= []).Add(cell);
                 continue;
+            }
 
-            float spannedHeight = 0f;
-
-            for (int row = cell.Row; row <= cell.LastRow; row++)
-                spannedHeight += heights[row - 1];
+            float spannedHeight = SpannedHeight(cell, heights);
 
             if (plan.Size.Height > spannedHeight)
                 heights[cell.LastRow - 1] += plan.Size.Height - spannedHeight;
         }
 
+        // A cell that cannot be measured in unlimited height takes no part in sizing its row — content sized by the
+        // height it is given, such as an image fitted to it — but it must fit the row the others make, or it would be
+        // drawn in a row that cannot hold it and lost without a word.
+        foreach (CellBlock cell in unmeasured ?? [])
+        {
+            Extent space = new Extent(layout.SpanWidth(cell), SpannedHeight(cell, heights));
+            Fit plan = cell.Plan(space, context);
+
+            if (plan.IsDeferred)
+            {
+                unset = $"The cell at row {cell.Row}, column {cell.Column} of the {band} cannot be set in the {space} its row gives it. Reason: {plan.DeferReason}";
+                break;
+            }
+        }
+
         return heights;
+    }
+
+    /// <summary>The combined height of the rows <paramref name="cell"/> covers.</summary>
+    private static float SpannedHeight(CellBlock cell, float[] heights)
+    {
+        float height = 0f;
+
+        for (int row = cell.Row; row <= cell.LastRow; row++)
+            height += heights[row - 1];
+
+        return height;
     }
 
     /// <summary>Splits the available width across columns: constants keep their size, relatives share the rest.</summary>

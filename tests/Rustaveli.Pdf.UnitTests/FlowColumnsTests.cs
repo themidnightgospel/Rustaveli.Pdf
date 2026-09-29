@@ -191,4 +191,69 @@ public class FlowColumnsTests
         Assert.Equal(3, pages.Count);
         Assert.Equal([6, 6, 2], pages.Select(page => Units(page).Count));
     }
+
+    [Fact]
+    public void AnAnchorInTheStoryIsWhereTheStoryIsDrawnNotWhereItWasTried()
+    {
+        // The story is poured on the first page to see whether it fits there, and it does not, so it is kept for the
+        // second. The anchor inside it is on the second page, however many pages it was tried on.
+        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        {
+            section.Trim = new Extent(100, 102);
+            section.RunningFoot().Text(text => text.FolioOf("story"));
+            section.Body().Stack(stack =>
+            {
+                stack.Add().Compose(frame => frame.Slot().Child = new FixedBlock(10, 60));
+                stack.Add().KeepTogether().FlowColumns(columns =>
+                {
+                    columns.Gutter(10);
+                    columns.Story().Anchor("story").Compose(frame => frame.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 30));
+                });
+            });
+        }))).Pages;
+
+        Assert.Equal(2, pages.Count);
+        Assert.Equal(["2", "2"], pages.Select(page => page.Content));
+    }
+
+    [Fact]
+    public void BalancingSavesWhereTheStoryHadGotOnceNotForEveryTrial()
+    {
+        // Every trial starts from the same place, so one copy of the story's progress serves them all; taking a copy
+        // walks the whole story.
+        SavingCounted story = new SavingCounted { Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
+        FlowColumnsBlock columns = new FlowColumnsBlock { Count = 2, Gutter = 10, Balanced = true, Story = story };
+
+        Fit plan = LayoutHarness.Measure(columns, new Extent(100, 90));
+
+        Assert.Equal(60f, plan.Size.Height, 0.01f);
+        Assert.Equal(1, story.Saves);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AStoryIsCapturedWhereItIsDrawnNotWhereItWasTried(bool balanced)
+    {
+        CaptureBlock story = new CaptureBlock { Name = "story", Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
+        FlowColumnsBlock columns = new FlowColumnsBlock { Count = 2, Gutter = 10, Balanced = balanced, Story = story };
+        PlanContext context = LayoutHarness.Context();
+
+        LayoutHarness.Draw(columns, new Extent(100, 90), context);
+
+        // Once for each column the story is drawn in, and none for the pours that only tried it.
+        Assert.Equal([new Offset(0, 0), new Offset(55, 0)], context.Pagination.PositionsOf("story").Select(captured => captured.Position));
+    }
+
+    /// <summary>Content that counts how often a copy of its progress is taken.</summary>
+    private sealed class SavingCounted : EnclosingBlock
+    {
+        public int Saves { get; private set; }
+
+        protected override object? SaveOwnProgress()
+        {
+            Saves++;
+            return null;
+        }
+    }
 }

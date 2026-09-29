@@ -15,15 +15,49 @@ internal sealed class Pagination
     private Dictionary<string, AnchorPages> _recording = [];
     private Dictionary<string, List<CapturedPosition>> _knownPositions = [];
     private Dictionary<string, List<CapturedPosition>> _recordingPositions = [];
+    private readonly HashSet<int> _ordered = [];
+    private int _pageCount;
+
+    /// <summary>The index of the section being set.</summary>
+    internal int Section { get; set; }
 
     /// <summary>The one-based number of the page being laid out.</summary>
     public int Folio { get; internal set; } = 1;
 
     /// <summary>The total page count. Meaningful only when <see cref="IsPageCountKnown"/> is true.</summary>
-    public int PageCount { get; internal set; }
+    public int PageCount
+    {
+        get
+        {
+            ReadsWhatPassesSettle = true;
+            return _pageCount;
+        }
+
+        internal set => _pageCount = value;
+    }
 
     /// <summary>False during the counting pass, true while drawing the final output.</summary>
-    public bool IsPageCountKnown { get; internal set; }
+    public bool IsPageCountKnown
+    {
+        get
+        {
+            ReadsWhatPassesSettle = true;
+            return CountKnown;
+        }
+
+        internal set => CountKnown = value;
+    }
+
+    /// <summary>
+    /// <see cref="IsPageCountKnown"/> as the engine reads it for itself, which is not content depending on it.
+    /// </summary>
+    internal bool CountKnown { get; private set; }
+
+    /// <summary>
+    /// Whether content has read, in this pass, what only another pass can settle: the page count, the page of an
+    /// anchor, where content was captured. Content that read none of them is drawn the same by every pass.
+    /// </summary>
+    internal bool ReadsWhatPassesSettle { get; private set; }
 
     /// <summary>How many pages each document merged into this one takes, once counted.</summary>
     internal int[]? PartPageCounts { get; set; }
@@ -50,19 +84,42 @@ internal sealed class Pagination
     }
 
     /// <summary>
+    /// Records that content setting a draw order was drawn in the section being set. Kept across passes: content
+    /// composed only as layout reaches it cannot be found in the document beforehand, but a counting pass has drawn it
+    /// by the time the pass that draws for real decides how to draw the section's pages.
+    /// </summary>
+    internal void RegisterDrawOrder() => _ordered.Add(Section);
+
+    /// <summary>Whether content setting a draw order has been drawn in section <paramref name="section"/>.</summary>
+    internal bool SetsDrawOrder(int section) => _ordered.Contains(section);
+
+    /// <summary>
     /// Everywhere content captured under <paramref name="name"/> was drawn: as the last complete pass found it, or as
     /// far as this pass has got when no pass has finished.
     /// </summary>
-    public IReadOnlyList<CapturedPosition> PositionsOf(string name) =>
-        _knownPositions.TryGetValue(name, out List<CapturedPosition>? known) ? known
-        : _recordingPositions.TryGetValue(name, out List<CapturedPosition>? recording) ? recording
-        : [];
+    public IReadOnlyList<CapturedPosition> PositionsOf(string name)
+    {
+        ReadsWhatPassesSettle = true;
+
+        return _knownPositions.TryGetValue(name, out List<CapturedPosition>? known) ? known
+            : _recordingPositions.TryGetValue(name, out List<CapturedPosition>? recording) ? recording
+            : [];
+    }
 
     /// <summary>The page an anchor begins on, or null if it has not been seen yet.</summary>
     public int? FolioOf(string name) => Find(name)?.First;
 
     /// <summary>The page an anchor's content ends on, or null if it has not been seen yet.</summary>
     public int? LastFolioOf(string name) => Find(name)?.Last;
+
+    /// <summary>
+    /// Whether this pass found every anchor and captured position where the pass before it did, so that content
+    /// reading them — a cross-reference, content placed by a position — drew from what is really there. Anchors and
+    /// positions this pass did not reach are not compared.
+    /// </summary>
+    internal bool FoundWhatWasKnown() =>
+        _recording.All(anchor => _known.TryGetValue(anchor.Key, out AnchorPages known) && known == anchor.Value)
+        && _recordingPositions.All(captured => _knownPositions.TryGetValue(captured.Key, out List<CapturedPosition>? known) && known.SequenceEqual(captured.Value));
 
     /// <summary>
     /// Prepares for another rendering pass over the same document.
@@ -86,12 +143,17 @@ internal sealed class Pagination
 
         _recordingPositions = [];
         Folio = 1;
+        ReadsWhatPassesSettle = false;
     }
 
-    private AnchorPages? Find(string name) =>
-        _known.TryGetValue(name, out AnchorPages settled) ? settled
-        : _recording.TryGetValue(name, out AnchorPages partial) ? partial
-        : null;
+    private AnchorPages? Find(string name)
+    {
+        ReadsWhatPassesSettle = true;
+
+        return _known.TryGetValue(name, out AnchorPages settled) ? settled
+            : _recording.TryGetValue(name, out AnchorPages partial) ? partial
+            : null;
+    }
 
     /// <summary>The first and last page an anchor's content was drawn on.</summary>
     private readonly record struct AnchorPages(int First, int Last);

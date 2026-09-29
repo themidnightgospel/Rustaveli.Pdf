@@ -88,6 +88,41 @@ public class KeepTogetherTests
     }
 
     [Fact]
+    public void WherePossibleSplitsContentThatAFreshPageOffersTooLittleRoomFor()
+    {
+        // The content is shorter than the page body, but the inset leaves less than that on any page. Moving it on
+        // can never help, so it is split rather than refused.
+        Document document = Document.Compose(container => container.Section(page =>
+        {
+            page.Trim = new Extent(200, 100);
+            page.Body().Inset(20).KeepTogetherWherePossible().Compose(inner => inner.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 22));
+        }));
+
+        RecordingSurface canvas = LayoutHarness.Render(document);
+
+        Assert.Equal([2, 2], Blocks(canvas));
+    }
+
+    [Fact]
+    public void WherePossibleMovesContentOnBeforeSplittingItWhereItStartsThePage()
+    {
+        // Behind other content the move is still tried: only the page it then starts proves it can never fit whole.
+        Document document = Document.Compose(container => container.Section(page =>
+        {
+            page.Trim = new Extent(200, 100);
+            page.Body().Stack(column =>
+            {
+                column.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 30));
+                column.Add().InsetVertical(20).KeepTogetherWherePossible().Compose(inner => inner.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 22));
+            });
+        }));
+
+        RecordingSurface canvas = LayoutHarness.Render(document);
+
+        Assert.Equal([1, 2, 2], Blocks(canvas));
+    }
+
+    [Fact]
     public void WherePossibleSplitsAtTheTopOfAPage()
     {
         KeepTogetherBlock element = new KeepTogetherBlock { WherePossible = true, Child = new SplittableBlock(unitCount: 4, unitHeight: 25) };

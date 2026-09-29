@@ -80,4 +80,28 @@ public class TableLastCellsTests
 
         Assert.Equal(10f, spanning.Size.Height);
     }
+
+    [Fact]
+    public void CellsListedOutOfRowOrderAreDrawnAsListedAndStretchedByTheirColumns()
+    {
+        Block root = LayoutHarness.Build(frame => frame.Table(table =>
+        {
+            table.Columns(columns =>
+            {
+                columns.Share();
+                columns.Share();
+            });
+            table.ExtendLastCellsToBottom();
+            table.Cell().AtRow(2).AtColumn(1).Fill(TestInks.Red).Height(10).Blank();
+            table.Cell().AtRow(1).AtColumn(1).SpanColumns(2).Fill(TestInks.Green).Height(10).Blank();
+            table.Cell().AtRow(3).AtColumn(2).Fill(TestInks.Blue).Height(10).Blank();
+            table.Cell().AtRow(2).AtColumn(2).Fill(TestInks.Yellow).Height(10).Blank();
+        }));
+
+        List<RectangleOperation> fills = LayoutHarness.Draw(root, new Extent(100, 100)).Operations.OfType<RectangleOperation>().ToList();
+
+        // Only the first column's cell in row two ends its column; the second column goes on to row three.
+        Assert.Equal([TestInks.Red, TestInks.Green, TestInks.Blue, TestInks.Yellow], fills.Select(fill => fill.Ink));
+        Assert.Equal([20f, 10f, 10f, 10f], fills.Select(fill => fill.Size.Height));
+    }
 }

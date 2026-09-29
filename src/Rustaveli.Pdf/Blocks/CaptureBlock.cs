@@ -17,7 +17,9 @@ internal sealed class CaptureBlock : EnclosingBlock
         if (plan.IsDeferred || plan.IsNothing)
             return;
 
-        context.Pagination.RegisterPosition(Name, new CapturedPosition(context.Pagination.Folio, context.Surface.Origin, availableSpace));
+        if (!context.DrawsAhead)
+            context.Pagination.RegisterPosition(Name, new CapturedPosition(context.Pagination.Folio, context.Surface.Origin, availableSpace));
+
         base.RenderCore(availableSpace, context);
     }
 }
