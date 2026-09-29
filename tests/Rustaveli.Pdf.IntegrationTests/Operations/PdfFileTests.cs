@@ -521,6 +521,54 @@ public class PdfFileTests
         Assert.Equal(4, appended.Ordered);
     }
 
+    /// <summary>
+    /// Two pages with a form: a text field <paramref name="field"/> on the first, holding <paramref name="value"/>, and
+    /// one named "later" on the second, its widget a kid of it; the form's resources name one font, <paramref name="font"/>.
+    /// </summary>
+    private static byte[] Form(string field, string value, string font)
+    {
+        string pdf = "%PDF-1.7\n"
+            + $"1 0 obj<</Type/Catalog/Pages 2 0 R/AcroForm<</Fields[5 0 R 7 0 R]/DR<</Font<</{font} 6 0 R>>>>/DA(/{font} 0 Tf 0 g)>>>>endobj\n"
+            + "2 0 obj<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2/MediaBox[0 0 200 200]>>endobj\n"
+            + "3 0 obj<</Type/Page/Parent 2 0 R/Annots[5 0 R]>>endobj\n4 0 obj<</Type/Page/Parent 2 0 R/Annots[8 0 R]>>endobj\n"
+            + $"5 0 obj<</Type/Annot/Subtype/Widget/FT/Tx/T({field})/V({value})/Rect[10 10 100 30]/P 3 0 R>>endobj\n"
+            + "6 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n"
+            + "7 0 obj<</FT/Tx/T(later)/Kids[8 0 R]>>endobj\n8 0 obj<</Type/Annot/Subtype/Widget/Parent 7 0 R/Rect[10 10 100 30]/P 4 0 R>>endobj\n"
+            + "trailer<</Root 1 0 R>>\n%%EOF";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    /// <summary>The names of a file's form fields, each with its value where it has one, and the fonts its form's resources name.</summary>
+    private static (List<string> Fields, List<string> Fonts) FormOf(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfDictionary form = source.Resolve(source.Catalog[new PdfName("AcroForm")]).AsDictionary();
+
+        string Text(PdfValue value) => System.Text.Encoding.ASCII.GetString(source.Resolve(value).AsString().Bytes.ToArray());
+
+        List<string> fields = source.Resolve(form[new PdfName("Fields")]).AsArray().Cast<PdfValue>()
+            .Select(field => source.Resolve(field).AsDictionary())
+            .Select(field => Text(field[new PdfName("T")]) + (field.TryGetValue(new PdfName("V"), out PdfValue value) ? "=" + Text(value) : string.Empty))
+            .ToList();
+        List<string> fonts = source.Resolve(source.Resolve(form[new PdfName("DR")]).AsDictionary()[PdfNames.Font]).AsDictionary().Select(font => font.Key.Value).ToList();
+        return (fields, fonts);
+    }
+
+    [Fact]
+    public void FormFieldsOfEveryFileAreKeptWithThePagesTheyAreOnAndNamedApart()
+    {
+        byte[] a = Form("name", "first", "Helv");
+        byte[] b = Form("name", "second", "ZaDb");
+
+        (List<string> Fields, List<string> Fonts) appended = FormOf(PdfFile.Open(a).Append(PdfFile.Open(b)).Append(PdfFile.Open(b), "1").ToArray());
+        (List<string> Fields, List<string> Fonts) kept = FormOf(PdfFile.Open(a).KeepPages("2").ToArray());
+
+        Assert.Equal(["name=first", "later", "name+1=second", "later+1", "name+2=second"], appended.Fields);
+        Assert.Equal(["Helv", "ZaDb"], appended.Fonts);
+        Assert.Equal(["later"], kept.Fields);
+        Assert.Equal(["Helv"], kept.Fonts);
+    }
+
     [Fact]
     public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
     {

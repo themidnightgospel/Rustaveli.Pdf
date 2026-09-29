@@ -18,9 +18,13 @@ internal sealed class ObjectCopier(PdfFileWriter file)
     private readonly Dictionary<(PdfSource Source, int Number), PdfReference?> _targets = [];
     private readonly Queue<(PdfSource Source, int Number, PdfReference Target)> _pending = new Queue<(PdfSource, int, PdfReference)>();
     private readonly Dictionary<PdfSource, Dictionary<string, PdfValue>> _named = [];
+    private readonly Dictionary<(PdfSource Source, int Number), (PdfName Key, PdfValue Value)> _amended = [];
 
     /// <summary>Sends every reference to <paramref name="number"/> in <paramref name="source"/> to <paramref name="target"/>, or to null.</summary>
     public void Redirect(PdfSource source, int number, PdfReference? target) => _targets[(source, number)] = target;
+
+    /// <summary>Has the dictionary <paramref name="number"/> in <paramref name="source"/> copied with <paramref name="key"/> set to <paramref name="value"/>.</summary>
+    public void Amend(PdfSource source, int number, PdfName key, PdfValue value) => _amended[(source, number)] = (key, value);
 
     /// <summary>A copy of <paramref name="value"/> for the file being written; objects it refers to are copied by <see cref="Flush"/>.</summary>
     public PdfValue Copy(PdfSource source, PdfValue value)
@@ -156,7 +160,12 @@ internal sealed class ObjectCopier(PdfFileWriter file)
             if (value.Kind == PdfValueKind.Reference)
                 value = source.Resolve(value);
 
-            file.Write(target, Copy(source, value));
+            PdfValue copied = Copy(source, value);
+
+            if (copied.Kind == PdfValueKind.Dictionary && _amended.TryGetValue((source, number), out (PdfName Key, PdfValue Value) amendment))
+                copied.AsDictionary()[amendment.Key] = amendment.Value;
+
+            file.Write(target, copied);
         }
     }
 }

@@ -20,6 +20,10 @@ internal static class FileAssembler
     private static readonly PdfName BBox = new PdfName("BBox");
     private static readonly PdfName CropBox = new PdfName("CropBox");
     private static readonly PdfName Rotate = new PdfName("Rotate");
+    private static readonly PdfName AcroForm = new PdfName("AcroForm");
+    private static readonly PdfName Fields = new PdfName("Fields");
+    private static readonly PdfName DR = new PdfName("DR");
+    private static readonly PdfName T = new PdfName("T");
     private static readonly PdfName OCProperties = new PdfName("OCProperties");
     private static readonly PdfName OCGs = new PdfName("OCGs");
     private static readonly PdfName BaseState = new PdfName("BaseState");
@@ -126,7 +130,7 @@ internal static class FileAssembler
         for (int index = 0; index < pages.Count; index++)
             WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first), forms, again[index]);
 
-        CopyDocument(writer, copier, first, whole, settings, sources);
+        CopyDocument(writer, copier, first, whole, settings, sources, pages);
         copier.Flush();
         writer.Finish();
     }
@@ -440,21 +444,128 @@ internal static class FileAssembler
 
         merged[PdfNames.D] = configuration;
         return merged;
-
-        static List<PdfValue> Items(PdfSource source, PdfDictionary dictionary, PdfName key) =>
-            dictionary.TryGetValue(key, out PdfValue value) && source.Resolve(value) is { Kind: PdfValueKind.Array } array
-                ? array.AsArray().Cast<PdfValue>().ToList()
-                : [];
     }
 
-    private static void CopyDocument(PdfDocumentWriter writer, ObjectCopier copier, PdfSource first, bool whole, SaveSettings settings, List<PdfSource> sources)
+    /// <summary>The items of the array <paramref name="dictionary"/> holds as <paramref name="key"/>, or none.</summary>
+    private static List<PdfValue> Items(PdfSource source, PdfDictionary dictionary, PdfName key) =>
+        dictionary.TryGetValue(key, out PdfValue value) && source.Resolve(value) is { Kind: PdfValueKind.Array } array
+            ? array.AsArray().Cast<PdfValue>().ToList()
+            : [];
+
+    /// <summary>
+    /// The interactive form of every file the pages come from, merged: the first file's fields all while its pages all
+    /// are, and of every file otherwise the fields with a widget on a page kept; a field named as one already listed
+    /// renamed, as qpdf renames it, with "+1", "+2" and so on; and the resources the fields' appearances are made from
+    /// joined, a name already given keeping what it named first. The rest of the form is the first form's.
+    /// </summary>
+    private static PdfDictionary? InteractiveForm(ObjectCopier copier, PdfSource first, bool whole, List<PdfSource> sources, IReadOnlyList<PageEntry> pages)
+    {
+        HashSet<(PdfSource, int)> kept = [];
+
+        foreach (SourcePage page in pages.Select(entry => entry.Page))
+        {
+            foreach (PdfValue annotation in Items(page.Source, page.Dictionary, PdfNames.Annots).Where(annotation => annotation.Kind == PdfValueKind.Reference))
+                kept.Add((page.Source, annotation.AsReference().ObjectNumber));
+        }
+
+        PdfDictionary? form = null;
+        PdfArray fields = new PdfArray();
+        PdfDictionary resources = new PdfDictionary();
+        HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (PdfSource source in sources)
+        {
+            if (!source.Catalog.TryGetValue(AcroForm, out PdfValue given) || source.Resolve(given) is not { Kind: PdfValueKind.Dictionary } found)
+                continue;
+
+            PdfDictionary acroForm = found.AsDictionary();
+            bool all = whole && ReferenceEquals(source, first);
+            form ??= copier.CopyDictionary(source, acroForm, Fields, DR);
+
+            foreach (PdfValue field in Items(source, acroForm, Fields).Where(field => field.Kind == PdfValueKind.Reference))
+            {
+                if (!all && !OnPageKept(source, field, []))
+                    continue;
+
+                if (source.Resolve(field) is { Kind: PdfValueKind.Dictionary } dictionary && dictionary.AsDictionary().TryGetValue(T, out PdfValue title)
+                    && source.Resolve(title) is { Kind: PdfValueKind.String } text && !names.Add(Convert.ToBase64String(text.AsString().Bytes.ToArray())))
+                {
+                    byte[] name = text.AsString().Bytes.ToArray();
+                    bool wide = name.Length >= 2 && name[0] == 0xFE && name[1] == 0xFF;
+                    byte[] renamed = name;
+
+                    for (int copy = 1; !names.Add(Convert.ToBase64String(renamed)); copy++)
+                    {
+                        string suffix = "+" + copy.ToString(CultureInfo.InvariantCulture);
+                        renamed = [.. name, .. wide ? Encoding.BigEndianUnicode.GetBytes(suffix) : Encoding.ASCII.GetBytes(suffix)];
+                    }
+
+                    copier.Amend(source, field.AsReference().ObjectNumber, T, new PdfString(renamed));
+                }
+
+                fields.Add(copier.Copy(source, field));
+            }
+
+            if (acroForm.TryGetValue(DR, out PdfValue held) && source.Resolve(held) is { Kind: PdfValueKind.Dictionary } dr)
+            {
+                foreach (KeyValuePair<PdfName, PdfValue> category in dr.AsDictionary())
+                {
+                    if (source.Resolve(category.Value) is not { Kind: PdfValueKind.Dictionary } named)
+                    {
+                        if (!resources.ContainsKey(category.Key))
+                            resources[category.Key] = copier.Copy(source, category.Value);
+
+                        continue;
+                    }
+
+                    PdfDictionary into = resources.TryGetValue(category.Key, out PdfValue before) && before.Kind == PdfValueKind.Dictionary
+                        ? before.AsDictionary()
+                        : new PdfDictionary();
+                    resources[category.Key] = into;
+
+                    foreach (KeyValuePair<PdfName, PdfValue> entry in named.AsDictionary().Where(entry => !into.ContainsKey(entry.Key)))
+                        into[entry.Key] = copier.Copy(source, entry.Value);
+                }
+            }
+        }
+
+        // A form none of whose fields are kept is left out, unless it is the first file's, kept whole as it was.
+        if (form is null || (fields.Count == 0 && !(whole && first.Catalog.ContainsKey(AcroForm))))
+            return null;
+
+        form[Fields] = fields;
+
+        if (resources.Count > 0)
+            form[DR] = resources;
+
+        return form;
+
+        // Whether the field, or a field or widget beneath it, is listed among the annotations of a page kept.
+        bool OnPageKept(PdfSource source, PdfValue field, HashSet<int> visited)
+        {
+            if (field.Kind != PdfValueKind.Reference || !visited.Add(field.AsReference().ObjectNumber))
+                return false;
+
+            return kept.Contains((source, field.AsReference().ObjectNumber))
+                || (source.Resolve(field) is { Kind: PdfValueKind.Dictionary } node && Items(source, node.AsDictionary(), PdfNames.Kids).Any(kid => OnPageKept(source, kid, visited)));
+        }
+    }
+
+    private static void CopyDocument(
+        PdfDocumentWriter writer,
+        ObjectCopier copier,
+        PdfSource first,
+        bool whole,
+        SaveSettings settings,
+        List<PdfSource> sources,
+        IReadOnlyList<PageEntry> pages)
     {
         PdfDictionary catalog = first.Catalog;
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in catalog)
         {
             if (entry.Key.Equals(PdfNames.Type) || entry.Key.Equals(PdfNames.Pages) || entry.Key.Equals(PdfNames.Names) || entry.Key.Equals(Associated)
-                || entry.Key.Equals(OCProperties) || (settings.LiftRestrictions && entry.Key.Equals(Perms)))
+                || entry.Key.Equals(OCProperties) || entry.Key.Equals(AcroForm) || (settings.LiftRestrictions && entry.Key.Equals(Perms)))
                 continue;
 
             if (whole || Array.IndexOf(Always, entry.Key) >= 0)
@@ -463,6 +574,9 @@ internal static class FileAssembler
 
         if (OptionalContent(copier, sources) is { } optional)
             writer.Catalog[OCProperties] = optional;
+
+        if (InteractiveForm(copier, first, whole, sources, pages) is { } form)
+            writer.Catalog[AcroForm] = form;
 
         // Attached files belong to no page, so they stay whatever pages are kept; the other name trees point at pages.
         PdfDictionary? names = catalog.TryGetValue(PdfNames.Names, out PdfValue given) && first.Resolve(given) is { Kind: PdfValueKind.Dictionary } found
