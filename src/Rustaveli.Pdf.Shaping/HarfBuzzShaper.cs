@@ -33,8 +33,14 @@ internal sealed class HarfBuzzShaper : IComplexShaper
 
     public bool Handles(ReadOnlySpan<char> run)
     {
-        foreach (char character in run)
+        // Read a character at a time, not a code unit: Adlam, Brahmi and the like lie beyond the Basic Multilingual Plane.
+        for (int index = 0; index < run.Length; index++)
         {
+            int character = run[index];
+
+            if (char.IsHighSurrogate(run[index]) && index + 1 < run.Length && char.IsLowSurrogate(run[index + 1]))
+                character = char.ConvertToUtf32(run[index], run[++index]);
+
             if (ComplexScriptCharacters.Contains(character))
                 return true;
         }

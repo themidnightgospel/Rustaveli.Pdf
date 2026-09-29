@@ -44,6 +44,23 @@ internal struct GraphemeBoundaries
         return !extends;
     }
 
+    /// <summary>
+    /// Takes the characters a glyph stands for, <paramref name="length"/> code units of <paramref name="text"/> from
+    /// <paramref name="start"/>, and says whether the first begins a new cluster.
+    /// </summary>
+    public bool Begins(ReadOnlySpan<char> text, int start, int length)
+    {
+        bool begins = Begins(CodepointAt(text, start, out int first));
+
+        for (int index = start + first; index < start + length;)
+        {
+            Begins(CodepointAt(text, index, out int next));
+            index += next;
+        }
+
+        return begins;
+    }
+
     /// <summary>How many code units the first cluster of <paramref name="text"/> takes; 0 for no text.</summary>
     public static int FirstLength(ReadOnlySpan<char> text)
     {

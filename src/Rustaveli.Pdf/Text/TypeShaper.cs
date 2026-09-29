@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Globalization;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Fonts.Substitution;
 using Rustaveli.Pdf.Text.Bidi;
@@ -92,25 +91,31 @@ internal sealed class TypeShaper
             glyphs.Add(glyph);
         }
 
-        return GlyphWalk.Replaying(InDisplayOrder(glyphs));
+        return GlyphWalk.Replaying(InDisplayOrder(glyphs, mirrored));
     }
 
     /// <summary>
     /// Glyphs shaped in logical order, put in the order a right-to-left run displays them: cluster by cluster, last
-    /// first, each cluster — a character, the marks that combine with it and any glyphs made of them — kept in its
-    /// own order, so a mark still follows the letter it sits on.
+    /// first, each cluster — what a reader sees as one character: a letter and the marks that combine with it, an emoji
+    /// sequence, a flag, and any glyphs made of them — kept in its own order, so a mark still follows the letter it
+    /// sits on.
     /// </summary>
     /// <remarks>
     /// A glyph's kerning is with the glyph before it in logical order. Between clusters that neighbour now follows it,
     /// so the kerning a cluster's first glyph carries moves to the first glyph of the cluster before it.
     /// </remarks>
-    private static List<ShapedGlyph> InDisplayOrder(List<ShapedGlyph> logical)
+    private static List<ShapedGlyph> InDisplayOrder(List<ShapedGlyph> logical, string text)
     {
         List<(int Start, int Count)> clusters = [];
+        GraphemeBoundaries boundaries = default;
 
         for (int index = 0; index < logical.Count; index++)
         {
-            if (clusters.Count > 0 && Continues(logical[index]))
+            // A further glyph of the same characters stands for none, and goes with the glyph before it.
+            ShapedGlyph glyph = logical[index];
+            bool begins = glyph.Length > 0 && boundaries.Begins(text.AsSpan(), glyph.Start, glyph.Length);
+
+            if (clusters.Count > 0 && !begins)
                 clusters[^1] = (clusters[^1].Start, clusters[^1].Count + 1);
             else
                 clusters.Add((index, 1));
@@ -131,15 +136,6 @@ internal sealed class TypeShaper
 
         return display;
     }
-
-    /// <summary>
-    /// Whether a glyph belongs with the one before it: a further glyph of the same character, or a combining mark.
-    /// </summary>
-    private static bool Continues(ShapedGlyph glyph) =>
-        glyph.Length == 0
-        || (glyph.Codepoint <= char.MaxValue
-            && CharUnicodeInfo.GetUnicodeCategory((char)glyph.Codepoint)
-                is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or UnicodeCategory.SpacingCombiningMark);
 
     /// <summary>The text with each character that has a mirror image replaced by it.</summary>
     private static string Mirrored(ReadOnlySpan<char> text)

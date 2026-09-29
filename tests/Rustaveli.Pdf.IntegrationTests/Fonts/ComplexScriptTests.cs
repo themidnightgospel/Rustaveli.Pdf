@@ -225,18 +225,51 @@ public class ComplexScriptTests
         Assert.Equal(complex, shaper.Handles($"ab{character}".AsSpan()));
     }
 
+    [Theory]
+    [InlineData(0x10A00, true)] // Kharoshthi
+    [InlineData(0x10D00, true)] // Hanifi Rohingya
+    [InlineData(0x11000, true)] // Brahmi
+    [InlineData(0x11100, true)] // Chakma
+    [InlineData(0x11180, true)] // Sharada
+    [InlineData(0x11300, true)] // Grantha
+    [InlineData(0x11480, true)] // Tirhuta
+    [InlineData(0x11600, true)] // Modi
+    [InlineData(0x11680, true)] // Takri
+    [InlineData(0x11700, true)] // Ahom
+    [InlineData(0x1E900, true)] // Adlam
+    [InlineData(0x10000, false)] // Linear B
+    [InlineData(0x1D400, false)] // mathematical letters
+    [InlineData(0x1F600, false)] // emoji
+    public void RunsInScriptsBeyondTheBasicPlaneAreHandedToHarfBuzz(int character, bool complex)
+    {
+        HarfBuzzShaper shaper = new HarfBuzzShaper();
+
+        Assert.Equal(complex, shaper.Handles($"ab{char.ConvertFromUtf32(character)}".AsSpan()));
+    }
+
+    [Fact]
+    public void ASurrogateWithoutItsPartnerIsNoComplexCharacter()
+    {
+        HarfBuzzShaper shaper = new HarfBuzzShaper();
+
+        Assert.False(shaper.Handles("a\uD83A".AsSpan()));
+        Assert.False(shaper.Handles("\uD83Aa".AsSpan()));
+        Assert.True(shaper.Handles("𞤀".AsSpan()));
+    }
+
     /// <summary>The first and last character of every block whose scripts HarfBuzz shapes.</summary>
     public static TheoryData<int> BlockEdges => new TheoryData<int>
     {
         0x0590, 0x05FF, 0x0600, 0x08FF, 0x0900, 0x0DFF, 0x0E00, 0x0FFF, 0x1000, 0x109F, 0x1780, 0x18AF, 0x1900, 0x1AAF,
         0x1B00, 0x1C4F, 0xA800, 0xA82F, 0xA840, 0xA8FF, 0xA900, 0xAAFF, 0xABC0, 0xABFF, 0xFB1D, 0xFB4F, 0xFB50, 0xFDFF,
-        0xFE70, 0xFEFF,
+        0xFE70, 0xFEFF, 0x10A00, 0x10A5F, 0x10AC0, 0x10AFF, 0x10B80, 0x10BAF, 0x10D00, 0x10D3F, 0x10F30, 0x10FDF,
+        0x11000, 0x11AFF, 0x11C00, 0x11DAF, 0x11EE0, 0x11F5F, 0x1E900, 0x1E95F,
     };
 
     [Theory]
     [MemberData(nameof(BlockEdges))]
     public void EveryBlockIsComplexToItsEdges(int character) =>
-        Assert.True(ComplexScriptCharacters.Contains((char)character), $"U+{character:X4}");
+        Assert.True(ComplexScriptCharacters.Contains(character), $"U+{character:X4}");
 
     [Theory]
     [InlineData(0x058F)]
@@ -253,6 +286,24 @@ public class ComplexScriptTests
     [InlineData(0xFB1C)]
     [InlineData(0xFE00)]
     [InlineData(0xFF00)]
+    [InlineData(0x109FF)]
+    [InlineData(0x10A60)]
+    [InlineData(0x10ABF)]
+    [InlineData(0x10B00)]
+    [InlineData(0x10B7F)]
+    [InlineData(0x10BB0)]
+    [InlineData(0x10CFF)]
+    [InlineData(0x10D40)]
+    [InlineData(0x10F2F)]
+    [InlineData(0x10FE0)]
+    [InlineData(0x10FFF)]
+    [InlineData(0x11B00)]
+    [InlineData(0x11BFF)]
+    [InlineData(0x11DB0)]
+    [InlineData(0x11EDF)]
+    [InlineData(0x11F60)]
+    [InlineData(0x1E8FF)]
+    [InlineData(0x1E960)]
     public void CharactersJustOutsideTheBlocksAreNot(int character) =>
-        Assert.False(ComplexScriptCharacters.Contains((char)character), $"U+{character:X4}");
+        Assert.False(ComplexScriptCharacters.Contains(character), $"U+{character:X4}");
 }

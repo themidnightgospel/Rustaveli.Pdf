@@ -193,6 +193,18 @@ public class ShapingTests
         Assert.Equal([1, 0], ShapeRightToLeft("a\U00010301", Sans).Select(glyph => glyph.Start));
     }
 
+    [Theory]
+    [InlineData("ab\U0001D167", new[] { 1, 2, 0 })]
+    [InlineData("a\U0001F468‍\U0001F469", new[] { 1, 3, 4, 0 })]
+    [InlineData("a\U0001F44D\U0001F3FD", new[] { 1, 3, 0 })]
+    [InlineData("\U0001F1EC\U0001F1EA\U0001F1FA\U0001F1F8", new[] { 4, 6, 0, 2 })]
+    public void WhatReadsAsOneCharacterStaysInOrderRightToLeft(string text, int[] starts)
+    {
+        // A combining mark beyond the Basic Multilingual Plane stays after its letter; emoji joined by a zero width
+        // joiner, an emoji and its skin tone, and the pair of regional indicators making a flag each keep their order.
+        Assert.Equal(starts, ShapeRightToLeft(text, Sans).Select(glyph => glyph.Start));
+    }
+
     [Fact]
     public void ASurrogateWithoutItsPartnerIsSetAsACharacterOfItsOwn()
     {
