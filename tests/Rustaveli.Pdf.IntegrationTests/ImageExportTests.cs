@@ -183,11 +183,21 @@ public class ImageExportTests
     }
 
     [Fact]
+    public void RefusesAResolutionThatGivesMorePixelsThanCanBeCounted()
+    {
+        Exception? error = Record.Exception(() => TwoPages().ExportImages(new ImageExportOptions { Resolution = 1e30f }));
+
+        Assert.Contains("more pixels than an image can have", error?.ToString());
+    }
+
+    [Fact]
     public void RefusesOptionsOutOfRange()
     {
         ImageExportOptions options = new ImageExportOptions();
 
         Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = 0);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = float.NaN);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = float.PositiveInfinity);
         Assert.Throws<ArgumentOutOfRangeException>(() => options.Quality = 0);
         Assert.Throws<ArgumentOutOfRangeException>(() => options.Quality = 101);
         Assert.Throws<ArgumentNullException>(() => ImageExport.ExportImages(null!));

@@ -14,7 +14,9 @@ public sealed class ImageExportOptions
         get => _resolution;
         set
         {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(value, 0f);
+            if (!(value > 0) || float.IsInfinity(value))
+                throw new ArgumentOutOfRangeException(nameof(value), value, "A resolution is a finite number of pixels per inch above nothing.");
+
             _resolution = value;
         }
     }
