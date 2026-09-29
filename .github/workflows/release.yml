@@ -31,9 +31,9 @@ jobs:
       # Lets the job ask GitHub for the signed token nuget.org trades for a key.
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
@@ -58,7 +58,7 @@ jobs:
       - name: Pack
         run: dotnet pack Rustaveli.Pdf.slnx -c Release --no-build -o artifacts/packages
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages
           path: artifacts/packages
