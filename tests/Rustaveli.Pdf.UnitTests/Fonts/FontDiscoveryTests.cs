@@ -51,6 +51,46 @@ public class FontDiscoveryTests
     }
 
     [Fact]
+    public void LoadsAFaceWhoseFileCouldNotBeReadAtFirstOnceItCan()
+    {
+        // The file is gone for a moment, as when another program replaces or locks it: the faces described from it
+        // must load once it is back, not stay broken for as long as the process runs.
+        using TemporaryFolder folder = new TemporaryFolder();
+        byte[] bytes = TestFonts.Bytes(TestFonts.CollectionFile);
+        string path = folder.Write("Specimen.ttc", bytes);
+        IReadOnlyList<FontFaceInfo> faces = FontFileScanner.Scan(path);
+        File.Delete(path);
+
+        Assert.ThrowsAny<IOException>(() => faces[0].Load());
+        Assert.ThrowsAny<IOException>(() => faces[1].Load());
+        Assert.False(faces[0].IsLoaded);
+
+        File.WriteAllBytes(path, bytes);
+
+        Assert.Equal(faces[0].Names.PostScriptName, faces[0].Load().Names.PostScriptName);
+        Assert.Same(faces[0].Load(), faces[0].Load());
+        Assert.True(faces[0].IsLoaded);
+        Assert.Equal(1, faces[1].Load().FaceIndex);
+    }
+
+    [Fact]
+    public void AsksAgainWhetherAFaceCoversACharacterWhenItsFileCouldNotBeRead()
+    {
+        using TemporaryFolder folder = new TemporaryFolder();
+        byte[] bytes = TestFonts.Bytes(TestFonts.GeorgianFile);
+        string path = folder.Write("Georgian.ttf", bytes);
+        FontFaceInfo face = FontFileScanner.Scan(path).Single();
+        File.Delete(path);
+
+        Assert.False(face.Covers('ა'));
+
+        File.WriteAllBytes(path, bytes);
+
+        Assert.True(face.Covers('ა'));
+        Assert.False(face.IsLoaded);
+    }
+
+    [Fact]
     public void FindsFontFilesInSubfoldersAndSkipsEverythingElse()
     {
         using TemporaryFolder folder = new TemporaryFolder();
