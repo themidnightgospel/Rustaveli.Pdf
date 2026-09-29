@@ -117,4 +117,46 @@ public class ProtectionTests
             Protection = new Protection(),
         }));
     }
+
+    private static Document Accessible()
+    {
+        Document document = SpecimenCatalog.All[0].Build();
+        document.Info.Title ??= "Protected";
+        document.Info.Language ??= "en";
+        return document;
+    }
+
+    [Fact]
+    public void PdfUACannotWithholdAccessFromAssistiveTechnology()
+    {
+        // ISO 14289-1, 7.16: a protected PDF/UA file must let assistive technology read its content.
+        TestFonts.EnsureRegistered();
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Accessible().ExportPdf(new PdfExportOptions
+        {
+            Accessibility = PdfUAConformance.PdfUA1,
+            Protection = new Protection { AllowAccessibility = false },
+        }));
+
+        Assert.Contains(nameof(Protection.AllowAccessibility), error.Message, StringComparison.Ordinal);
+
+        // Outside PDF/UA the permission is the author's to withhold.
+        byte[] withheld = Accessible().ExportPdf(new PdfExportOptions { Protection = new Protection { AllowAccessibility = false } });
+        Assert.Contains("accessibility: not allowed", Qpdf.Run(withheld, "--show-encryption", "{input}").Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AProtectedPdfUAFileThatAllowsAccessibilityMeetsPdfUA()
+    {
+        TestFonts.EnsureRegistered();
+        byte[] pdf = Accessible().ExportPdf(new PdfExportOptions
+        {
+            Accessibility = PdfUAConformance.PdfUA1,
+            Protection = new Protection { AllowCopying = false },
+        });
+
+        IReadOnlyList<string> broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["protected-ua1"] = pdf })["protected-ua1"];
+
+        Assert.True(broken.Count == 0, "veraPDF found:\n" + string.Join("\n", broken));
+    }
 }

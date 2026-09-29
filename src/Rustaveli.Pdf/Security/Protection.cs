@@ -37,7 +37,9 @@ public sealed class Protection
     /// <summary>Whether form fields may be filled in even where annotating is not allowed.</summary>
     public bool AllowFillingForms { get; init; } = true;
 
-    /// <summary>Whether assistive technology may read the content out, even where copying is not allowed.</summary>
+    /// <summary>
+    /// Whether assistive technology may read the content out, even where copying is not allowed. PDF/UA requires it.
+    /// </summary>
     public bool AllowAccessibility { get; init; } = true;
 
     /// <summary>Whether pages may be inserted, rotated or removed, and bookmarks and thumbnails made.</summary>
