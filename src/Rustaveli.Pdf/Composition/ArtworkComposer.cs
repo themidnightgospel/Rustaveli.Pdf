@@ -132,7 +132,6 @@ public sealed class ArtworkComposer
         ArgumentNullException.ThrowIfNull(style);
         RequireWritable(x, nameof(x));
         RequireWritable(y, nameof(y));
-        RequireWritable(style.PointSize, nameof(style));
         _steps.Add((surface, measurer) =>
         {
             float width = measurer.MeasureWidth(text, style);

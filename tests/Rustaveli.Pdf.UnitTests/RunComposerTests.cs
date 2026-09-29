@@ -29,6 +29,25 @@ public class RunComposerTests
     public void PointSizeSetsTheSize() =>
         Approximately.Equal(20f, StyleOf(span => span.PointSize(20)).PointSize);
 
+    public static TheoryData<string, Func<RunComposer, RunComposer>> Numbers() => new()
+    {
+        { "size", span => span.PointSize(float.NaN) },
+        { "weight", span => span.StrokeWeight(-1) },
+        { "multiplier", span => span.Leading(float.PositiveInfinity) },
+        { "spacing", span => span.Tracking(float.NaN) },
+        { "spacing", span => span.WordSpacing(2e15f) },
+    };
+
+    [Theory]
+    [MemberData(nameof(Numbers))]
+    public void ANumberThatCannotBeSetIsRefusedWhereItIsGiven(string parameter, Func<RunComposer, RunComposer> refine)
+    {
+        // Composing alone, without laying anything out: the run's style is not worked out until layout.
+        ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() => LayoutHarness.Build(container => container.Text(text => refine(text.Run("x")))));
+
+        Assert.Equal(parameter, refused.ParamName);
+    }
+
     [Fact]
     public void FontColorSetsTheColour() =>
         Assert.Equal((Ink)TestInks.Red, StyleOf(span => span.Ink(TestInks.Red)).Ink);

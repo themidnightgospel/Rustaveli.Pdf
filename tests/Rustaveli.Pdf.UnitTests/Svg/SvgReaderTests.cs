@@ -445,6 +445,12 @@ public class SvgReaderTests
     }
 
     [Theory]
+    [InlineData("-5", 16f)]
+    [InlineData("0", 0f)]
+    public void ANegativeFontSizeIsIgnored(string size, float points) =>
+        Assert.Equal(points, Draw($"<text font-size='{size}'>Hello</text>").OfType<TextOperation>().Single().Style.PointSize);
+
+    [Theory]
     [InlineData("start", 10f)]
     [InlineData("middle", 8.5f)]
     [InlineData("end", 7f)]

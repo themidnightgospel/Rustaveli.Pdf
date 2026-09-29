@@ -28,6 +28,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 **Changed**
 
 - `PdfFile.Open` documents the `NotSupportedException` it throws for a security handler other than the standard one.
+- A type style's point size, stroke weight and leading must be zero or more, and its tracking and word spacing
+  numbers a PDF can write; each throws `ArgumentOutOfRangeException` otherwise — NaN, an infinity or a negative size
+  used to be taken, and failed only when the page was drawn. A run's `PointSize`, `StrokeWeight`, `Leading`,
+  `Tracking` and `WordSpacing` check where they are called. In SVG, a negative `font-size` is ignored, as SVG says.
 
 ## 0.1.0
 
