@@ -16,9 +16,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   when they are given.
 - SVG path data with anything but a command after a close looped forever.
 - An SVG opacity above 1 failed; opacities are clamped, as SVG says.
-- Reading a PDF: a number with two decimal points, a cross-reference stream without a usable `/W` or `/Size`, and an
-  AES-256 file whose wrapped key is not 32 bytes threw exceptions `PdfFile.Open` does not document. The first two
-  are repaired; the last is an `UnreadableFileException`.
+- Reading a PDF: a number with two decimal points, a cross-reference stream without a usable `/W` or `/Size`, an
+  AES-256 file whose wrapped key is not 32 bytes, and an RC4 or AES-128 file with a key outside 40 to 128 bits or an
+  owner entry shorter than 32 bytes threw exceptions `PdfFile.Open` does not document. The first two are repaired;
+  the others are an `UnreadableFileException`.
 
 **Changed**
 
