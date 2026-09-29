@@ -20,8 +20,14 @@ internal interface IComplexShaper
     /// <param name="run">The run, in logical order.</param>
     /// <param name="pointSize">The size it is set at.</param>
     /// <param name="features">The features the style turns on or off beyond the shaper's defaults.</param>
+    /// <param name="rightToLeft">
+    /// Whether the run is displayed right to left, in which case the shaper mirrors the characters that have a mirror
+    /// image, such as brackets: the run is handed over as typed, not mirrored already. Otherwise the run is shaped in
+    /// the direction its script is written in, which is how text is measured before its direction is known.
+    /// </param>
     /// <param name="output">Receives the glyphs, clusters counted from the start of <paramref name="run"/>.</param>
-    void Shape(OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, List<ComplexGlyph> output);
+    void Shape(
+        OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft, List<ComplexGlyph> output);
 }
 
 /// <summary>A glyph a complex shaper set: where its cluster starts in the run, how far it moves the pen, and where it is drawn.</summary>

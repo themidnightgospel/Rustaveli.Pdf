@@ -281,10 +281,10 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
         foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style, rightToLeft))
         {
-            // The glyph before moved the pen by its advance and any word spacing it carries; tracking and kerning
-            // fall between the two.
+            // The glyph before moved the pen by its advance and any word spacing it carries; tracking, where the glyph
+            // takes it, and kerning fall between the two.
             if (!first)
-                pen += previousStep + style.Tracking + glyph.Kerning;
+                pen += previousStep + glyph.Tracking + glyph.Kerning;
 
             // Each face is its own run, as each is its own font in the PDF.
             if (face is not null && !ReferenceEquals(face, glyph.Face))

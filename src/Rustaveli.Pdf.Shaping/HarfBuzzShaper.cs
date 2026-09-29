@@ -14,9 +14,9 @@ namespace Rustaveli.Pdf.Shaping;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A HarfBuzz font is made once per face, from the face's file, and scaled to its units per em, so positions come
-/// back in font units and are scaled to the run's size here. HarfBuzz fonts are immutable once made and may shape
-/// on several threads at once; each thread keeps a buffer of its own.
+/// A HarfBuzz font is made once per face (see <see cref="HarfBuzzFonts"/>), from the face's file, and scaled to its
+/// units per em, so positions come back in font units and are scaled to the run's size here. HarfBuzz fonts are
+/// immutable once made and may shape on several threads at once; each thread keeps a buffer of its own.
 /// </para>
 /// <para>
 /// HarfBuzz hands right-to-left text back in display order. The walk wants logical order, and puts right-to-left
@@ -26,15 +26,25 @@ namespace Rustaveli.Pdf.Shaping;
 /// </remarks>
 internal sealed class HarfBuzzShaper : IComplexShaper
 {
-    private readonly ConcurrentDictionary<OpenTypeFont, Font> _fonts = new();
+    private readonly ConcurrentDictionary<TypeFeatures, Feature[]> _features = new();
 
+    private static readonly Language Undetermined = new Language("und");
+
+    // One per thread, kept between runs; a thread that ends leaves its buffer to be collected, and HarfBuzz's memory
+    // for it is handed back by its finalizer.
     [ThreadStatic]
     private static Buffer? _buffer;
 
     public bool Handles(ReadOnlySpan<char> run)
     {
-        foreach (char character in run)
+        // Read a character at a time, not a code unit: Adlam, Brahmi and the like lie beyond the Basic Multilingual Plane.
+        for (int index = 0; index < run.Length; index++)
         {
+            int character = run[index];
+
+            if (char.IsHighSurrogate(run[index]) && index + 1 < run.Length && char.IsLowSurrogate(run[index + 1]))
+                character = char.ConvertToUtf32(run[index], run[++index]);
+
             if (ComplexScriptCharacters.Contains(character))
                 return true;
         }
@@ -42,14 +52,13 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         return false;
     }
 
-    public void Shape(OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, List<ComplexGlyph> output)
+    public void Shape(
+        OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft, List<ComplexGlyph> output)
     {
-        Font font = _fonts.GetOrAdd(face, Create);
+        Font font = FontFor(face);
         Buffer buffer = _buffer ??= new Buffer();
 
-        buffer.ClearContents();
-        buffer.AddUtf16(run);
-        buffer.GuessSegmentProperties();
+        Prepare(buffer, run, rightToLeft);
         font.Shape(buffer, FeaturesOf(features));
 
         ReadOnlySpan<GlyphInfo> infos = buffer.GetGlyphInfoSpan();
@@ -72,29 +81,48 @@ internal sealed class HarfBuzzShaper : IComplexShaper
             ReverseClusters(output, first);
     }
 
-    /// <summary>Puts glyphs HarfBuzz set right to left back in logical order, cluster by cluster.</summary>
+    /// <summary>The HarfBuzz font <paramref name="face"/> is shaped with, shared with every other shaper.</summary>
+    internal Font FontFor(OpenTypeFont face) => HarfBuzzFonts.Shared.For(face);
+
+    /// <summary>Fills <paramref name="buffer"/> with a run to shape, and says how it is to be shaped.</summary>
+    internal static void Prepare(Buffer buffer, ReadOnlySpan<char> run, bool rightToLeft)
+    {
+        buffer.ClearContents();
+        buffer.AddUtf16(run);
+        buffer.GuessSegmentProperties();
+
+        // The guess fills in the language from the process's locale, which would choose a face's localized forms by
+        // the machine the document is made on. The core sets text in no language in particular, the default language
+        // system of each face, and so does HarfBuzz: "und" is undetermined, which no face has forms of its own for.
+        buffer.Language = Undetermined;
+
+        // HarfBuzz mirrors brackets and the like in text it sets right to left, so it is given the run as typed and
+        // told the direction the paragraph gave it, rather than a guess from the script.
+        if (rightToLeft)
+            buffer.Direction = Direction.RightToLeft;
+    }
+
+    /// <summary>
+    /// Puts glyphs HarfBuzz set right to left back in logical order, cluster by cluster, in place: the whole run
+    /// reversed, then each cluster's glyphs turned back to the order HarfBuzz drew them in.
+    /// </summary>
     private static void ReverseClusters(List<ComplexGlyph> glyphs, int first)
     {
-        List<ComplexGlyph> display = glyphs.GetRange(first, glyphs.Count - first);
-        glyphs.RemoveRange(first, glyphs.Count - first);
+        glyphs.Reverse(first, glyphs.Count - first);
 
-        int end = display.Count;
-
-        while (end > 0)
+        for (int start = first; start < glyphs.Count;)
         {
-            int start = end - 1;
+            int end = start + 1;
 
-            while (start > 0 && display[start - 1].Cluster == display[end - 1].Cluster)
-                start--;
+            while (end < glyphs.Count && glyphs[end].Cluster == glyphs[start].Cluster)
+                end++;
 
-            for (int index = start; index < end; index++)
-                glyphs.Add(display[index]);
-
-            end = start;
+            glyphs.Reverse(start, end - start);
+            start = end;
         }
     }
 
-    private static Font Create(OpenTypeFont face)
+    internal static Font Create(OpenTypeFont face)
     {
         // HarfBuzz reads the file for as long as the font lives, so it is given memory the garbage collector cannot
         // move, freed when HarfBuzz lets the file go. A blob over a managed array would point at wherever the array
@@ -111,6 +139,12 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         return font;
     }
 
-    private static Feature[] FeaturesOf(TypeFeatures features) =>
-        features.Settings.Select(setting => Feature.Parse($"{setting.Tag}={setting.Value}")).ToArray();
+    /// <summary>
+    /// The features a style sets, as HarfBuzz takes them: parsed once per set of features, since every run is shaped
+    /// with them and few documents use more than a handful.
+    /// </summary>
+    private Feature[] FeaturesOf(TypeFeatures features) =>
+        _features.TryGetValue(features, out Feature[]? known)
+            ? known
+            : _features.GetOrAdd(features, static wanted => wanted.Settings.Select(setting => Feature.Parse($"{setting.Tag}={setting.Value}")).ToArray());
 }

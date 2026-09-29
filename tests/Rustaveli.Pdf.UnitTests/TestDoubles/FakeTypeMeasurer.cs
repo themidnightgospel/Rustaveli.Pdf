@@ -38,6 +38,8 @@ internal sealed class FakeTypeMeasurer(bool placesStrokes = false) : ITypeMeasur
             : metrics;
     }
 
+    public TypeMetrics GetMetrics(string text, TypeStyle style) => GetMetrics(style);
+
     public float MeasureWidth(string text, TypeStyle style) =>
         string.IsNullOrEmpty(text) ? 0f : text.Length * CharacterWidth(style);
 

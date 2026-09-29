@@ -557,10 +557,12 @@ internal sealed class PdfSurface : IPageSink
         {
             // Beyond the widths and character spacing a reader applies itself: kerning, word spacing after a space,
             // and any difference between the advance the glyph was set with and the width the font declares for it.
-            float adjustment = glyph.Kerning + previousExtra + previousShortfall;
+            // The character spacing is the style's tracking, applied after every glyph, so where the glyph takes none
+            // — a mark on its letter, a letter joined to the one before — the spacing is taken back.
+            float adjustment = glyph.Kerning + previousExtra + previousShortfall + (glyph.Tracking - style.Tracking);
 
             if (!first)
-                pen += previousAdvance + style.Tracking + glyph.Kerning + previousExtra;
+                pen += previousAdvance + glyph.Tracking + glyph.Kerning + previousExtra;
 
             EmbeddedFont font = _fonts.For(glyph.Face);
             bool displaced = glyph.XOffset != 0 || glyph.YOffset != 0;

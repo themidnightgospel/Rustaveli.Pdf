@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Globalization;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Fonts.Substitution;
 using Rustaveli.Pdf.Text.Bidi;
@@ -18,8 +17,8 @@ namespace Rustaveli.Pdf.Text;
 /// </para>
 /// <para>
 /// A character the face lacks is set in the first face that has it: the configured fallback typefaces in order,
-/// then the registered faces, then the installed ones. Faces found that way are remembered per style, so a run of
-/// CJK text resolves its fallback once rather than once per character.
+/// then the registered faces, then the installed ones. The face found is remembered per character and style, so a
+/// run of CJK text searches once for each character it uses rather than once for each time it uses it.
 /// </para>
 /// <para>Safe for concurrent use; one shaper serves every document set with its catalog.</para>
 /// </remarks>
@@ -37,8 +36,9 @@ internal sealed class TypeShaper
     private readonly FontCatalog _catalog;
     private readonly IReadOnlyList<string> _fallbackTypefaces;
     private readonly ConcurrentDictionary<FontRequest, OpenTypeFont> _faces = new(FontCatalog.FamilyIgnoringCase.Instance);
-    private readonly ConcurrentDictionary<(OpenTypeFont Primary, TypefaceFallbacks Fallbacks, int Codepoint), OpenTypeFont> _fallbacks = new();
-    private readonly ConcurrentDictionary<(OpenTypeFont Primary, TypefaceFallbacks Fallbacks), OpenTypeFont[]> _discovered = new();
+    // Fallbacks are searched for in the weight and slant asked for, so those are part of what is remembered: one face
+    // can be the primary of several weights, and each weight wants its own fallback.
+    private readonly ConcurrentDictionary<(OpenTypeFont Primary, FaceStyle Style, TypefaceFallbacks Fallbacks, int Codepoint), OpenTypeFont> _fallbacks = new();
     private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups = new();
 
     [ThreadStatic]
@@ -71,8 +71,8 @@ internal sealed class TypeShaper
     /// <param name="style">The type it is set in.</param>
     /// <param name="rightToLeft">
     /// Whether the text reads right to left. It is still shaped in logical order — joining and ligatures depend on
-    /// it — with each character that has a mirror image, such as a bracket, taken as that image (UAX #9, rule L4);
-    /// then its glyphs are handed out last first.
+    /// it — with each character that has a mirror image, such as a bracket, taken as that image (UAX #9, rule L4),
+    /// save in runs a complex shaper sets, which mirrors them itself; then its glyphs are handed out last first.
     /// </param>
     public GlyphWalk Walk(ReadOnlySpan<char> text, TypeStyle style, bool rightToLeft = false)
     {
@@ -80,36 +80,60 @@ internal sealed class TypeShaper
         OpenTypeFont primary = Resolve(request);
 
         if (!rightToLeft)
-            return new GlyphWalk(this, primary, request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces);
+        {
+            return new GlyphWalk(
+                this, primary, request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces,
+                tracking: style.Tracking);
+        }
 
         string mirrored = Mirrored(text);
         List<ShapedGlyph> glyphs = [];
 
         foreach (ShapedGlyph glyph in new GlyphWalk(
-            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces))
+            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces, text,
+            style.Tracking))
         {
             glyphs.Add(glyph);
         }
 
-        return GlyphWalk.Replaying(InDisplayOrder(glyphs));
+        return GlyphWalk.Replaying(InDisplayOrder(glyphs, mirrored));
+    }
+
+    /// <summary>
+    /// Walks <paramref name="text"/> as <see cref="Walk"/> does left to right, for measuring: the glyphs are the same, but
+    /// one standing for several characters does not carry them, which only reading the text back needs.
+    /// </summary>
+    public GlyphWalk Measure(ReadOnlySpan<char> text, TypeStyle style)
+    {
+        FontRequest request = RequestFor(style);
+
+        return new GlyphWalk(
+            this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces,
+            tracking: style.Tracking, keepText: false);
     }
 
     /// <summary>
     /// Glyphs shaped in logical order, put in the order a right-to-left run displays them: cluster by cluster, last
-    /// first, each cluster — a character, the marks that combine with it and any glyphs made of them — kept in its
-    /// own order, so a mark still follows the letter it sits on.
+    /// first, each cluster — what a reader sees as one character: a letter and the marks that combine with it, an emoji
+    /// sequence, a flag, and any glyphs made of them — kept in its own order, so a mark still follows the letter it
+    /// sits on.
     /// </summary>
     /// <remarks>
-    /// A glyph's kerning is with the glyph before it in logical order. Between clusters that neighbour now follows it,
-    /// so the kerning a cluster's first glyph carries moves to the first glyph of the cluster before it.
+    /// A glyph's kerning and tracking are with the glyph before it in logical order. Between clusters that neighbour now
+    /// follows it, so what a cluster's first glyph carries moves to the first glyph of the cluster before it.
     /// </remarks>
-    private static List<ShapedGlyph> InDisplayOrder(List<ShapedGlyph> logical)
+    private static List<ShapedGlyph> InDisplayOrder(List<ShapedGlyph> logical, string text)
     {
         List<(int Start, int Count)> clusters = [];
+        GraphemeBoundaries boundaries = default;
 
         for (int index = 0; index < logical.Count; index++)
         {
-            if (clusters.Count > 0 && Continues(logical[index]))
+            // A further glyph of the same characters stands for none, and goes with the glyph before it.
+            ShapedGlyph glyph = logical[index];
+            bool begins = glyph.Length > 0 && boundaries.Begins(text.AsSpan(), glyph.Start, glyph.Length);
+
+            if (clusters.Count > 0 && !begins)
                 clusters[^1] = (clusters[^1].Start, clusters[^1].Count + 1);
             else
                 clusters.Add((index, 1));
@@ -120,9 +144,9 @@ internal sealed class TypeShaper
         for (int cluster = clusters.Count - 1; cluster >= 0; cluster--)
         {
             (int start, int count) = clusters[cluster];
-            float kerning = cluster + 1 < clusters.Count ? logical[clusters[cluster + 1].Start].Kerning : 0f;
+            ShapedGlyph after = cluster + 1 < clusters.Count ? logical[clusters[cluster + 1].Start] : default;
 
-            display.Add(logical[start] with { Kerning = kerning });
+            display.Add(logical[start] with { Kerning = after.Kerning, Tracking = after.Tracking });
 
             for (int index = start + 1; index < start + count; index++)
                 display.Add(logical[index]);
@@ -130,15 +154,6 @@ internal sealed class TypeShaper
 
         return display;
     }
-
-    /// <summary>
-    /// Whether a glyph belongs with the one before it: a further glyph of the same character, or a combining mark.
-    /// </summary>
-    private static bool Continues(ShapedGlyph glyph) =>
-        glyph.Length == 0
-        || (glyph.Codepoint <= char.MaxValue
-            && CharUnicodeInfo.GetUnicodeCategory((char)glyph.Codepoint)
-                is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or UnicodeCategory.SpacingCombiningMark);
 
     /// <summary>The text with each character that has a mirror image replaced by it.</summary>
     private static string Mirrored(ReadOnlySpan<char> text)
@@ -207,7 +222,7 @@ internal sealed class TypeShaper
         if (primary.HasGlyph(codepoint))
             return primary;
 
-        (OpenTypeFont, TypefaceFallbacks, int) key = (primary, fallbacks, codepoint);
+        (OpenTypeFont, FaceStyle, TypefaceFallbacks, int) key = (primary, request.Style, fallbacks, codepoint);
 
         if (_fallbacks.TryGetValue(key, out OpenTypeFont? known))
             return known;
@@ -267,33 +282,21 @@ internal sealed class TypeShaper
 
     private static FontFaceInfo? Embeddable(FontFaceInfo? face) => face is { IsEmbeddable: true } ? face : null;
 
+    /// <remarks>
+    /// Every character is searched for in the order the faces are tried, rather than first among the faces found for
+    /// earlier characters: those may come later in the order than one that has this character, and which characters
+    /// came earlier would then decide the face — even in another document, through a shared library. The search is
+    /// made once per character and style, and the catalog keeps what makes it cheap: which face matches a family, and
+    /// which installed faces cover each block.
+    /// </remarks>
     private OpenTypeFont FindFallback(OpenTypeFont primary, FontRequest request, TypefaceFallbacks fallbacks, int codepoint)
     {
-        OpenTypeFont[] known = _discovered.GetOrAdd((primary, fallbacks), static _ => []);
-
-        foreach (OpenTypeFont candidate in known)
-        {
-            if (candidate.HasGlyph(codepoint))
-                return candidate;
-        }
-
         // The style's own fallbacks come first, then the library's.
         IReadOnlyList<string> families = fallbacks.Names.Count == 0 ? _fallbackTypefaces : [.. fallbacks.Names, .. _fallbackTypefaces];
-        OpenTypeFont? found = _catalog.FindFallback(codepoint, request, families)
-            ?? BundledTypefaces.Covering(codepoint, request.Style);
 
         // No face anywhere has the character, so the primary sets it as its missing-glyph box.
-        if (found is null)
-            return primary;
-
-        // Rare and cheap next to the search above, so a lock is simpler than a lock-free swap.
-        lock (_discovered)
-        {
-            OpenTypeFont[] faces = _discovered.GetOrAdd((primary, fallbacks), static _ => []);
-            if (!faces.Contains(found))
-                _discovered[(primary, fallbacks)] = [.. faces, found];
-        }
-
-        return found;
+        return _catalog.FindFallback(codepoint, request, families)
+            ?? BundledTypefaces.Covering(codepoint, request.Style)
+            ?? primary;
     }
 }

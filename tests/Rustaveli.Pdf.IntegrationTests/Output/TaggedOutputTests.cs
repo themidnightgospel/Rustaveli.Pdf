@@ -195,6 +195,43 @@ public class TaggedOutputTests
     }
 
     [Fact]
+    public void ALinkDrawnInPiecesIsOneLinkWithAnAnnotationForEachWord()
+    {
+        // Justified lines are drawn a word at a time, and the link's last words wrap onto the second line: fifteen
+        // pieces of one link, eight of them words and seven the spaces between.
+        string pdf = Body(stack => stack.Add().Text(text =>
+        {
+            text.Justified();
+            text.Run("Before it, ");
+            text.Link("read the docs about typesetting and page layout", "https://example.com/");
+            text.Run(" and then a good deal more text after it, enough to fill a third line of the paragraph.");
+        }));
+
+        Assert.Single(Regex.Matches(pdf, @"/S\s*/Link\b"));
+        Assert.Equal(8, Regex.Matches(pdf, @"/Type\s*/OBJR").Count);
+        Assert.Equal(8, Regex.Matches(pdf, @"/Subtype\s*/Link").Count);
+    }
+
+    [Fact]
+    public void ACrossReferenceDrawnInPiecesIsOneLinkToo()
+    {
+        string pdf = Body(stack =>
+        {
+            stack.Add().Anchor("notes").Text("Notes");
+            stack.Add().Text(text =>
+            {
+                text.Justified();
+                text.Run("Before it, ");
+                text.CrossReference("see the notes on typesetting", "notes");
+                text.Run(" and then a good deal more text after it, enough to fill another line.");
+            });
+        });
+
+        Assert.Single(Regex.Matches(pdf, @"/S\s*/Link\b"));
+        Assert.Equal(5, Regex.Matches(pdf, @"/Type\s*/OBJR").Count);
+    }
+
+    [Fact]
     public void ALinkInDecorationStillBelongsToTheStructure()
     {
         string pdf = Export(section =>

@@ -25,6 +25,9 @@ internal sealed class TextBlock : Block
     /// <summary>The paragraph the text is, in a tagged document, where nothing else tags it.</summary>
     private StructureElement? _paragraph;
 
+    /// <summary>The link each linked span is, in a tagged document, whichever page and line its pieces fall on.</summary>
+    private Dictionary<Text.TextRun, StructureElement?>? _links;
+
     // Not reset between passes: the lines of the same text at the same width do not change.
     private BuiltLines? _built;
 
@@ -93,6 +96,7 @@ internal sealed class TextBlock : Block
         _pinnedWidth = float.NaN;
         _pinnedWrapping = null;
         _paragraph = null;
+        _links = null;
     }
 
     // The pinned wrapping is replaced whole, never changed, so it is kept rather than copied. The paragraph element is
@@ -271,10 +275,11 @@ internal sealed class TextBlock : Block
 
         foreach (TextRun run in runs)
         {
-            // Linked words are a link in the structure, which the link itself belongs to.
+            // Linked words are a link in the structure, which the link itself belongs to: one for the whole span, however
+            // many pieces it is drawn in — a word at a time when justified, and over several lines.
             using TagStack.Scope link = run.Url is null && run.Destination is null
                 ? default
-                : context.Tags.Enter(context.Tags.Create("Link"));
+                : context.Tags.Enter(LinkFor(run.Source!, context.Tags));
 
             if (run.Inline is not null)
             {
@@ -309,14 +314,18 @@ internal sealed class TextBlock : Block
             if (style.HasUnderline || style.HasStrikeThrough || style.HasOverline)
                 DrawStrokes(surface, style, metrics, x, run.Width, baseline + style.BaselineOffset);
 
-            if (run.Url is not null)
+            // The spaces between linked words are no place to click, and would each be an annotation of their own; a link
+            // on nothing but a space keeps its annotation, which is all there is of it.
+            bool clickable = !string.IsNullOrWhiteSpace(run.Text) || string.IsNullOrWhiteSpace(run.Source?.Text);
+
+            if (run.Url is not null && clickable)
             {
                 surface.Translate(new Offset(x, runTop));
                 surface.DrawExternalLink(run.Url, runSize);
                 surface.Translate(new Offset(x, runTop).Reverse());
             }
 
-            if (run.Destination is not null)
+            if (run.Destination is not null && clickable)
             {
                 surface.Translate(new Offset(x, runTop));
                 surface.DrawInternalLink(run.Destination, runSize);
@@ -325,6 +334,17 @@ internal sealed class TextBlock : Block
 
             x += run.Width;
         }
+    }
+
+    /// <summary>The link element of a linked span, made when its first piece is drawn; none when not tagging.</summary>
+    private StructureElement? LinkFor(Text.TextRun span, TagStack tags)
+    {
+        _links ??= [];
+
+        if (!_links.TryGetValue(span, out StructureElement? link))
+            _links[span] = link = tags.Create("Link");
+
+        return link;
     }
 
     /// <summary>
@@ -707,7 +727,10 @@ internal sealed class TextBlock : Block
                 float segmentWidth = context.Measurer.MeasureWidth(segment, style);
                 float lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
-                if (current.Width + segmentWidth <= lineWidth + Extent.Epsilon)
+                // A soft hyphen ending the piece is shown if the line breaks at it, so the line keeps room for it.
+                float hyphen = EndsWithSoftHyphen(segment) ? context.Measurer.MeasureWidth(ShownHyphen, style) : 0f;
+
+                if (current.Width + segmentWidth + hyphen <= lineWidth + Extent.Epsilon)
                 {
                     current.Add(new TextRun(segment, style, segmentWidth, span, Offset: offset));
                     continue;
@@ -728,7 +751,10 @@ internal sealed class TextBlock : Block
                 }
 
                 if (current.Runs.Count > 0)
+                {
+                    ShowSoftHyphen(current, context.Measurer);
                     FlushLine(force: false);
+                }
 
                 // The flush replaced the line, and a continuation is not indented — so the budget has to be
                 // recomputed. Reusing the opening line's narrower budget would shatter words that do fit.
@@ -847,8 +873,10 @@ internal sealed class TextBlock : Block
                 continue;
             }
 
-            // Always consume at least one character, otherwise an impossibly narrow box would loop forever.
-            fitting = Math.Clamp(fitting, 1, remaining.Length);
+            // Always consume at least one character, otherwise an impossibly narrow box would loop forever — and a whole
+            // one, as a reader sees it, so a surrogate pair or a letter and its accent are never split across lines.
+            if (fitting == 0)
+                fitting = GraphemeBoundaries.FirstLength(remaining.AsSpan());
 
             string chunk = remaining[..fitting];
             float chunkWidth = context.Measurer.MeasureWidth(chunk, style);
@@ -864,6 +892,29 @@ internal sealed class TextBlock : Block
             current.Clear();
         }
     }
+
+    /// <summary>
+    /// Shows the soft hyphen a line ends with as a hyphen, now that the line breaks at it. Elsewhere a soft hyphen is
+    /// set as nothing.
+    /// </summary>
+    private static void ShowSoftHyphen(TextLine line, ITypeMeasurer measurer)
+    {
+        TextRun last = line.Runs[^1];
+
+        if (!EndsWithSoftHyphen(last.Text))
+            return;
+
+        // Replaced one for one, so the run still covers the same characters of its paragraph's text.
+        string shown = last.Text.Substring(0, last.Text.Length - 1) + ShownHyphen;
+        line.RemoveLast();
+        line.Add(last with { Text = shown, Width = measurer.MeasureWidth(shown, last.Style) });
+    }
+
+    private static bool EndsWithSoftHyphen(string text) =>
+        text.Length > 0 && text[text.Length - 1] == InvisibleCharacters.SoftHyphen;
+
+    /// <summary>What a soft hyphen at the end of a line is shown as: the hyphen every face has.</summary>
+    private const string ShownHyphen = "-";
 
     /// <summary>
     /// Whitespace a line may be broken at. Non-breaking forms are deliberately excluded: they exist precisely to
@@ -1248,7 +1299,9 @@ internal sealed class TextBlock : Block
                 if (run.Inline is not null)
                     continue;
 
-                TypeMetrics metrics = measurer.GetMetrics(run.Style);
+                // As tall as the faces the run is set in, fallbacks included, so that a script the style's face lacks,
+                // drawn from a face that reaches further, does not overlap the lines around it.
+                TypeMetrics metrics = measurer.GetMetrics(run.Text, run.Style);
                 float offset = run.Style.BaselineOffset;
 
                 // A superscript has a negative offset and so extends the line upwards; a subscript downwards.

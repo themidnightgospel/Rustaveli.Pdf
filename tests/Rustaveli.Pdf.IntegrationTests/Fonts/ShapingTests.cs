@@ -118,6 +118,19 @@ public class ShapingTests
     }
 
     [Fact]
+    public void KerningCanBeTurnedOff()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        TypeStyle unkerned = Sans.WithFeature("kern", 0);
+        float advances = Shape("AV", Sans).Sum(glyph => glyph.Advance);
+
+        Assert.NotEqual(0f, Shape("AV", Sans)[1].Kerning);
+        Assert.NotEqual(0f, Shape("AV", Sans.WithFeature("kern"))[1].Kerning);
+        Assert.Equal(0f, Shape("AV", unkerned)[1].Kerning);
+        Assert.Equal(advances, measurer.MeasureWidth("AV", unkerned), 0.001f);
+    }
+
+    [Fact]
     public void AFeatureTheFaceLacksChangesNothing()
     {
         Assert.Equal(
@@ -193,11 +206,117 @@ public class ShapingTests
         Assert.Equal([1, 0], ShapeRightToLeft("a\U00010301", Sans).Select(glyph => glyph.Start));
     }
 
+    [Theory]
+    [InlineData("ab\U0001D167", new[] { 1, 2, 0 })]
+    [InlineData("a\U0001F468‍\U0001F469", new[] { 1, 3, 4, 0 })]
+    [InlineData("a\U0001F44D\U0001F3FD", new[] { 1, 3, 0 })]
+    [InlineData("\U0001F1EC\U0001F1EA\U0001F1FA\U0001F1F8", new[] { 4, 6, 0, 2 })]
+    public void WhatReadsAsOneCharacterStaysInOrderRightToLeft(string text, int[] starts)
+    {
+        // A combining mark beyond the Basic Multilingual Plane stays after its letter; emoji joined by a zero width
+        // joiner, an emoji and its skin tone, and the pair of regional indicators making a flag each keep their order.
+        Assert.Equal(starts, ShapeRightToLeft(text, Sans).Select(glyph => glyph.Start));
+    }
+
     [Fact]
     public void ASurrogateWithoutItsPartnerIsSetAsACharacterOfItsOwn()
     {
         Assert.Equal([(0xD835, 0, 1), ('a', 1, 1)], Shape("\uD835a", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
         Assert.Equal([('a', 0, 1), (0xD835, 1, 1)], Shape("a\uD835", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
+    }
+
+    [Theory]
+    [InlineData("©️")]
+    [InlineData("©\U000E0100")]
+    [InlineData("©᠎")]
+    [InlineData("©\u0001")]
+    [InlineData("©️\u0001")]
+    public void AnInvisibleCharacterTheFaceLacksIsSetAsNothing(string text)
+    {
+        // Noto Sans has no glyph for a variation selector, a Mongolian vowel separator or a control character, none of
+        // which is drawn: each goes with the character before it, rather than being set as a missing-glyph box.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        ShapedGlyph copyright = Assert.Single(Shape(text, Sans));
+
+        Assert.Equal(Shape("©", Sans).Single().Glyph, copyright.Glyph);
+        Assert.Equal((0, text.Length, text), (copyright.Start, copyright.Length, copyright.ReadsAs));
+        Assert.Equal(measurer.MeasureWidth("©", Sans), measurer.MeasureWidth(text, Sans));
+        Assert.Empty(measurer.MissingCodepoints);
+    }
+
+    [Fact]
+    public void AnInvisibleCharacterIsSetAsNothingInAFaceWithoutSubstitutions()
+    {
+        TypefaceLibrary library = TestFonts.NewLibrary(includeInstalled: false);
+        library.RegisterFile(FontAssets.PathOf("SpecimenCff-Regular.otf"));
+        TypeStyle specimen = TypeStyle.Default.WithTypeface("Specimen Cff").WithPointSize(20);
+        List<ShapedGlyph> glyphs = [];
+
+        foreach (ShapedGlyph glyph in library.Shaper.Walk("a️b\t".AsSpan(), specimen))
+            glyphs.Add(glyph);
+
+        Assert.Equal([(0, 2, "a️"), (2, 1, "b"), (3, 1, " ")], glyphs.Select(glyph => (glyph.Start, glyph.Length, glyph.ReadsAs)));
+        Assert.DoesNotContain(glyphs, glyph => glyph.Glyph == 0);
+    }
+
+    [Fact]
+    public void AnInvisibleCharacterWithNothingBeforeItIsLeftOut()
+    {
+        Assert.Equal([(1, 1, "a")], Shape("️a", Sans).Select(glyph => (glyph.Start, glyph.Length, glyph.ReadsAs)));
+        Assert.Empty(Shape("️", Sans));
+    }
+
+    [Fact]
+    public void ATabIsSetAsASpace()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        List<ShapedGlyph> glyphs = Shape("a\tb", Sans);
+
+        Assert.Equal(Shape(" ", Sans).Single().Glyph, glyphs[1].Glyph);
+        Assert.Equal(" ", glyphs[1].ReadsAs);
+        Assert.Equal(measurer.MeasureWidth("a b", Sans), measurer.MeasureWidth("a\tb", Sans));
+    }
+
+    /// <summary>The lines of <paramref name="text"/> set in a column <paramref name="width"/> wide, top first, as read back.</summary>
+    private static List<string> Lines(string text, float width)
+    {
+        byte[] pdf = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(width, 200);
+            section.DefaultType = Sans;
+            section.Body().Text(text);
+        })).ExportPdf(new PdfExportOptions { Typefaces = Library });
+
+        using PdfDocument parsed = PdfDocument.Open(pdf);
+
+        // A soft hyphen that is not shown still reads back, with the letter before it; the lines are compared as seen.
+        return parsed.GetPage(1).Letters
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y))
+            .OrderByDescending(line => line.Key)
+            .Select(line => string.Concat(line.Select(letter => letter.Value)).Replace("­", string.Empty))
+            .ToList();
+    }
+
+    [Fact]
+    public void ASoftHyphenIsShownOnlyWhereTheLineBreaks()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        const string Word = "hy­phen­ation";
+
+        Assert.Equal(measurer.MeasureWidth("hyphenation", Sans), measurer.MeasureWidth(Word, Sans));
+        Assert.Equal(0f, measurer.MeasureWidth("­", Sans));
+
+        Assert.Equal(["hyphenation"], Lines(Word, measurer.MeasureWidth("hyphenation", Sans) + 1));
+        Assert.Equal(["hyphen-", "ation"], Lines(Word, measurer.MeasureWidth("hyphen-", Sans) + 1));
+    }
+
+    [Fact]
+    public void ASoftHyphenEndingTheTextIsNotShown()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+
+        Assert.Equal(["hyphen"], Lines("hyphen­", measurer.MeasureWidth("hyphen", Sans) + 1));
+        Assert.Equal(["hyphen", "hyphen"], Lines("hyphen­\nhyphen", measurer.MeasureWidth("hyphen", Sans) + 1));
     }
 
     [Fact]
@@ -250,6 +369,29 @@ public class ShapingTests
 
         Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
         Assert.All(again, measured => Assert.Equal(width, measured));
+    }
+
+    [Fact]
+    public void MeasuringALigatureAllocatesNothingOnceWarm()
+    {
+        // The characters a ligature stands for are what the text read back from a PDF needs, not what measuring does.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        const string Text = "An office affair.";
+        float width = measurer.MeasureWidth(Text, Sans);
+        measurer.MeasureCharactersFitting(Text, Sans, width / 2);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int round = 0; round < 10; round++)
+        {
+            measurer.MeasureWidth(Text, Sans);
+            measurer.MeasureCharactersFitting(Text, Sans, width / 2);
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
+        Assert.Contains(Shape(Text, Sans), glyph => glyph.ReadsAs == "ffi");
     }
 #endif
 }

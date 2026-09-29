@@ -28,6 +28,8 @@ internal ref struct GlyphWalk
     private readonly OpenTypeFont _primary;
     private readonly FontRequest _request;
     private readonly ReadOnlySpan<char> _text;
+    private readonly ReadOnlySpan<char> _typed;
+    private readonly bool _rightToLeft;
     private readonly float _pointSize;
     private readonly float _wordSpacing;
     private readonly TypeFeatures _features;
@@ -44,7 +46,29 @@ internal ref struct GlyphWalk
     private int _runLength;
     private List<ShapedGlyph>? _replay;
     private int _replayed;
+    private readonly float _tracking;
+    private readonly bool _keepText;
+    private GraphemeBoundaries _boundaries;
+    private bool _previousJoined;
 
+    /// <param name="shaper">Chooses faces and substitutions.</param>
+    /// <param name="primary">The style's own face.</param>
+    /// <param name="request">The face asked for, which fallbacks are matched against.</param>
+    /// <param name="text">The text to set, with any character that has a mirror image taken as it when it reads right to left.</param>
+    /// <param name="pointSize">The size it is set at.</param>
+    /// <param name="wordSpacing">Space added to each word space.</param>
+    /// <param name="features">The features the style turns on or off.</param>
+    /// <param name="fallbacks">The style's own fallback typefaces.</param>
+    /// <param name="typed">
+    /// For text that reads right to left, the text as typed, before mirroring: a complex shaper mirrors characters
+    /// itself, and mirroring them twice would turn a bracket back to face the wrong way. Empty for text read left to
+    /// right.
+    /// </param>
+    /// <param name="tracking">The style's tracking, which each glyph says whether it takes.</param>
+    /// <param name="keepText">
+    /// Whether a glyph standing for several characters carries them as <see cref="ShapedGlyph.Text"/>, as drawing
+    /// needs; measuring does not, and is spared the string.
+    /// </param>
     internal GlyphWalk(
         TypeShaper shaper,
         OpenTypeFont primary,
@@ -53,12 +77,21 @@ internal ref struct GlyphWalk
         float pointSize,
         float wordSpacing = 0f,
         TypeFeatures? features = null,
-        TypefaceFallbacks? fallbacks = null)
+        TypefaceFallbacks? fallbacks = null,
+        ReadOnlySpan<char> typed = default,
+        float tracking = 0f,
+        bool keepText = true)
     {
+        _tracking = tracking;
+        _keepText = keepText;
+        _boundaries = default;
+        _previousJoined = false;
         _shaper = shaper;
         _primary = primary;
         _request = request;
         _text = text;
+        _rightToLeft = !typed.IsEmpty;
+        _typed = _rightToLeft ? typed : text;
         _pointSize = pointSize;
         _wordSpacing = wordSpacing;
         _features = features ?? TypeFeatures.None;
@@ -99,34 +132,85 @@ internal ref struct GlyphWalk
             return true;
         }
 
-        if (_buffer is not null)
+        while (true)
         {
-            if (_bufferIndex < _buffer.Count)
+            if (_buffer is not null)
             {
-                EmitShaped();
-                return true;
+                while (_bufferIndex < _buffer.Count)
+                {
+                    if (EmitShaped())
+                        return true;
+                }
+
+                Release();
             }
 
-            Release();
-        }
+            if (_next >= _text.Length)
+                return false;
 
-        if (_next >= _text.Length)
-            return false;
+            int start = _next;
+            (int codepoint, int length) = Read(start);
+            OpenTypeFont face = FaceFor(codepoint, _previousFace);
 
-        int start = _next;
-        (int codepoint, int length) = Read(start);
-        OpenTypeFont face = _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
+            if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) && Shape(face, start, length))
+                continue;
 
-        if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) && Shape(face, start, length))
-        {
-            EmitShaped();
+            ushort glyph = face.GetGlyphId(codepoint);
+            int end = PastNothing(face, start + length);
+            _next = end;
+
+            // One with nothing before it to go with is left out.
+            if (IsSetAsNothing(face, codepoint))
+                continue;
+
+            if (codepoint == InvisibleCharacters.Tab)
+                (codepoint, glyph) = (' ', face.GetGlyphId(' '));
+
+            Emit(face, glyph, codepoint, start, end - start, end - start > length ? TextOf(start, end - start) : null);
             return true;
         }
+    }
 
-        ushort glyph = face.GetGlyphId(codepoint);
-        Emit(face, glyph, codepoint, start, length, text: null);
-        _next = start + length;
-        return true;
+    /// <summary>
+    /// The face that sets <paramref name="codepoint"/>, after a character set in <paramref name="previous"/>: an
+    /// invisible character goes with the one before it, as does a mark or emoji modifier that face has, so that what a
+    /// reader sees as one character is shaped in one face; any other is set in the first face that has it.
+    /// </summary>
+    private readonly OpenTypeFont FaceFor(int codepoint, OpenTypeFont? previous)
+    {
+        if (InvisibleCharacters.Contains(codepoint) || codepoint == InvisibleCharacters.Tab)
+            return previous ?? _primary;
+
+        if (previous is not null && GraphemeBoundaries.Extends(codepoint) && previous.HasGlyph(codepoint))
+            return previous;
+
+        return _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
+    }
+
+    /// <summary>
+    /// Whether a character is drawn as nothing in <paramref name="face"/>: an invisible one it has no glyph for, or a
+    /// soft hyphen, which the face's glyph would show mid-line.
+    /// </summary>
+    private static bool IsSetAsNothing(OpenTypeFont face, int codepoint) =>
+        InvisibleCharacters.Contains(codepoint) && (codepoint == InvisibleCharacters.SoftHyphen || !face.HasGlyph(codepoint));
+
+    /// <summary>
+    /// Where the characters from <paramref name="index"/> that <paramref name="face"/> sets as nothing end, so that
+    /// they go with the glyph before them.
+    /// </summary>
+    private readonly int PastNothing(OpenTypeFont face, int index)
+    {
+        while (index < _text.Length)
+        {
+            (int codepoint, int length) = Read(index);
+
+            if (!IsSetAsNothing(face, codepoint))
+                break;
+
+            index += length;
+        }
+
+        return index;
     }
 
     /// <summary>Hands the shaping buffer back if the walk was left before its end.</summary>
@@ -144,7 +228,7 @@ internal ref struct GlyphWalk
         {
             (int codepoint, int length) = Read(end);
 
-            if (!ReferenceEquals(_shaper.FaceFor(_primary, _request, _fallbacks, codepoint), face))
+            if (!ReferenceEquals(FaceFor(codepoint, face), face))
                 break;
 
             end += length;
@@ -153,7 +237,7 @@ internal ref struct GlyphWalk
         ReadOnlySpan<char> run = _text.Slice(start, end - start);
 
         if (_shaper.Complex is IComplexShaper complex && complex.Handles(run))
-            return ShapeComplex(complex, face, start, run);
+            return ShapeComplex(complex, face, start, _typed.Slice(start, run.Length));
 
         IReadOnlyList<(int Index, int Value)> lookups = face.Substitutions is null
             ? []
@@ -194,7 +278,8 @@ internal ref struct GlyphWalk
     /// <summary>
     /// Hands a run to the complex shaper, which places its glyphs itself — advances with any kerning, and offsets for
     /// marks — and loads what it sets into the buffer, so they are handed out cluster by cluster as substituted glyphs
-    /// are.
+    /// are. The run is the text as typed, which the shaper mirrors itself when it reads right to left; the glyphs
+    /// still read as the text walked, as the core's do.
     /// </summary>
     private bool ShapeComplex(IComplexShaper complex, OpenTypeFont face, int start, ReadOnlySpan<char> run)
     {
@@ -203,7 +288,7 @@ internal ref struct GlyphWalk
         List<ComplexGlyph> placements = scratch.Placements;
 
         placements.Clear();
-        complex.Shape(face, run, _pointSize, _features, placements);
+        complex.Shape(face, run, _pointSize, _features, _rightToLeft, placements);
         buffer.Load(face, ReadOnlySpan<char>.Empty);
 
         foreach (ComplexGlyph placed in placements)
@@ -220,43 +305,129 @@ internal ref struct GlyphWalk
     }
 
     /// <summary>
-    /// The next glyph of the shaped run. The first glyph of a cluster stands for its characters; any further glyphs
-    /// of the cluster, from a substitution that made several of one, stand for none, so text read back is not doubled.
+    /// The next glyph of the shaped run. The first glyph of a cluster stands for its characters, and for any after it
+    /// that are set as nothing; any further glyphs of the cluster, from a substitution that made several of one, stand
+    /// for none, so text read back is not doubled. False, and nothing handed out, for a glyph set as nothing.
     /// </summary>
-    private void EmitShaped()
+    private bool EmitShaped()
     {
         GlyphBuffer buffer = _buffer!;
         int index = _bufferIndex++;
+
+        // Invisible characters the face has no glyph for went with the glyph before them, or, with none before them,
+        // are left out.
+        if (IsNothing(buffer, index))
+            return false;
+
         int cluster = buffer.Clusters[index];
         bool opens = index == 0 || buffer.Clusters[index - 1] != cluster;
         int start = _runStart + cluster;
-        int length = opens ? buffer.GetClusterEnd(index, _runLength) - cluster : 0;
+        int length = opens ? ClusterEnd(buffer, index) - cluster : 0;
         (int codepoint, int single) = Read(start);
+        ushort glyph = buffer.Glyphs[index];
 
         string? text = !opens ? string.Empty
-            : length > single ? _text.Slice(start, length).ToString()
+            : length > single ? TextOf(start, length)
             : null;
 
         List<ComplexGlyph> placements = _scratch!.Placements;
         ComplexGlyph? placed = placements.Count > 0 ? placements[index] : null;
 
-        Emit(_bufferFace!, buffer.Glyphs[index], codepoint, start, length, text, placed);
+        if (opens && codepoint == InvisibleCharacters.Tab)
+            (codepoint, glyph, placed) = (' ', _bufferFace!.GetGlyphId(' '), null);
+
+        Emit(_bufferFace!, glyph, codepoint, start, length, text, placed);
+        return true;
     }
+
+    /// <summary>
+    /// Whether the glyph at <paramref name="index"/> stands for nothing drawn: the face's missing glyph for a cluster
+    /// of invisible characters, or a soft hyphen's.
+    /// </summary>
+    private readonly bool IsNothing(GlyphBuffer buffer, int index)
+    {
+        int start = _runStart + buffer.Clusters[index];
+
+        if (buffer.Glyphs[index] != 0)
+            return _text[start] == InvisibleCharacters.SoftHyphen;
+
+        int end = _runStart + buffer.GetClusterEnd(index, _runLength);
+
+        for (int at = start; at < end;)
+        {
+            (int codepoint, int length) = Read(at);
+
+            if (!InvisibleCharacters.Contains(codepoint))
+                return false;
+
+            at += length;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Where the characters the cluster at <paramref name="index"/> stands for end, counting the clusters after it
+    /// that stand for nothing drawn, in code units from the start of the run.
+    /// </summary>
+    private readonly int ClusterEnd(GlyphBuffer buffer, int index)
+    {
+        ReadOnlySpan<int> clusters = buffer.Clusters;
+        int end = buffer.GetClusterEnd(index, _runLength);
+        int next = index + 1;
+
+        while (next < clusters.Length && clusters[next] == clusters[index])
+            next++;
+
+        for (; next < clusters.Length && IsNothing(buffer, next); next++)
+            end = buffer.GetClusterEnd(next, _runLength);
+
+        return end;
+    }
+
+    /// <summary>
+    /// The characters a glyph standing for several stands for, as the text read back from a PDF needs them; none when
+    /// the walk only measures, which would otherwise allocate a string for every ligature of every word.
+    /// </summary>
+    private readonly string? TextOf(int start, int length) => _keepText ? _text.Slice(start, length).ToString() : null;
 
     private void Emit(OpenTypeFont face, ushort glyph, int codepoint, int start, int length, string? text, ComplexGlyph? placed = null)
     {
         // A glyph a complex shaper placed moves the pen as it said, kerning included, and is drawn where it said.
         float advance = placed?.Advance ?? face.GetAdvance(glyph, _pointSize);
-        float kerning = placed is null && ReferenceEquals(face, _previousFace) ? face.GetKerning(_previousGlyph, glyph, _pointSize) : 0f;
+        float kerning = placed is null && _features.Kerns && ReferenceEquals(face, _previousFace)
+            ? face.GetKerning(_previousGlyph, glyph, _pointSize)
+            : 0f;
 
         // Word spacing widens the spaces between words, the no-break space among them; it is carried by the space
-        // itself, so a space measured on its own is as wide as it will be set.
-        float extra = text is null && codepoint is ' ' or NoBreakSpace ? _wordSpacing : 0f;
+        // itself, so a space measured on its own is as wide as it will be set. A glyph standing for more than the
+        // space is no word space.
+        float extra = length == 1 && codepoint is ' ' or NoBreakSpace ? _wordSpacing : 0f;
 
         Current = new ShapedGlyph(
-            face, glyph, codepoint, start, length, advance, kerning, extra, text, placed?.XOffset ?? 0f, placed?.YOffset ?? 0f);
+            face, glyph, codepoint, start, length, advance, kerning, extra, text, placed?.XOffset ?? 0f, placed?.YOffset ?? 0f,
+            _tracking == 0 ? 0f : TrackingBefore(codepoint, start, length));
         _previousFace = face;
         _previousGlyph = glyph;
+    }
+
+    /// <summary>
+    /// The tracking before a glyph: where what a reader sees as a new character begins — not before a mark, or a
+    /// further glyph of the same characters, which would move off the letter it belongs to — and not between two
+    /// letters of a script written joined, whose joins it would break. None before the first glyph.
+    /// </summary>
+    private float TrackingBefore(int codepoint, int start, int length)
+    {
+        if (length == 0)
+            return 0f;
+
+        bool first = _previousFace is null;
+        bool begins = _boundaries.Begins(_text, start, length);
+        bool joined = JoinedScripts.Contains(codepoint);
+        bool between = _previousJoined && joined;
+        _previousJoined = joined;
+
+        return first || !begins || between ? 0f : _tracking;
     }
 
     private readonly (int Codepoint, int Length) Read(int index)

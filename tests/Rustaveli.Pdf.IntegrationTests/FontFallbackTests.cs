@@ -188,6 +188,17 @@ public class FontFallbackTests
     }
 
     [Fact]
+    public void AStylesFallbacksKeepTheirOrderWhateverWasFoundBefore()
+    {
+        TypefaceLibrary library = CommittedLibrary();
+        TypeStyle style = TypeStyle.Default.WithTypeface("Noto Sans Georgian", "Specimen Sans", TestFonts.Sans);
+
+        // Specimen Sans has no ß, so Noto Sans sets it; A, which both have, is still set in Specimen Sans, named first.
+        Assert.Equal(TestFonts.Sans, FamilyOf(library, "ß", style));
+        Assert.Equal("Specimen Sans", FamilyOf(library, "A", style));
+    }
+
+    [Fact]
     public void StylesWithDifferentFallbacksDoNotShareWhatTheyFound()
     {
         TypefaceLibrary library = CommittedLibrary();
@@ -197,6 +208,29 @@ public class FontFallbackTests
         Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", plain));
         Assert.Equal("Specimen Sans", FamilyOf(library, "A", plain.WithTypeface("Noto Sans Georgian", "Specimen Sans")));
         Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", plain));
+    }
+
+    [Fact]
+    public void AFallbackIsFoundInTheWeightAndSlantAskedFor()
+    {
+        // Noto Sans Georgian's one face sets every weight and slant, and has no Latin letters. Whichever weight asks
+        // for A first, each gets the Noto Sans face of its own weight and slant.
+        TypefaceLibrary library = CommittedLibrary();
+        TypeStyle georgian = TypeStyle.Default.WithTypeface("Noto Sans Georgian", TestFonts.Sans);
+        TypeStyle sans = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+
+        Assert.Same(library.Shaper.Resolve(georgian), library.Shaper.Resolve(georgian.Bold()));
+        Assert.Same(library.Shaper.Resolve(sans), FaceOf(library, "A", georgian));
+        Assert.Same(library.Shaper.Resolve(sans.Bold()), FaceOf(library, "A", georgian.Bold()));
+        Assert.Same(library.Shaper.Resolve(sans.Italic()), FaceOf(library, "A", georgian.Italic()));
+    }
+
+    private static OpenTypeFont FaceOf(TypefaceLibrary library, string text, TypeStyle style)
+    {
+        foreach (ShapedGlyph glyph in library.Shaper.Walk(text.AsSpan(), style))
+            return glyph.Face;
+
+        throw new InvalidOperationException("Nothing was set.");
     }
 
     [Fact]
