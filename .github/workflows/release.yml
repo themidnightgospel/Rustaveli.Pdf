@@ -2,10 +2,15 @@
 # Directory.Build.props already carries, so a release is always a commit that says what it is. Everything is built
 # and tested again on Windows, where both runtimes and every validator run, before anything leaves.
 #
-# Publishes by trusted publishing, with no stored key: the job proves to nuget.org who it is with a token GitHub
+# Publishes by trusted publishing, with no stored key: the publish job proves to nuget.org who it is with a token GitHub
 # signs, and is given a key that lasts an hour. It needs, on nuget.org, a trusted publishing policy for this
 # repository's owner and name and the workflow file release.yml, allowed to push the Rustaveli.Pdf* packages; and
 # here, the repository secret NUGET_USER: the nuget.org user name (not the email address) that owns the policy.
+#
+# Two jobs, so that nothing able to publish runs code it did not write. The build job runs the build, the tests and
+# the validators they fetch, with a read-only token and no way to ask for a signed one, and hands over the packages as
+# an artifact. Only the publish job can ask for the token nuget.org trades for a key, and it runs no code from the
+# repository or its tests: it downloads the packages, attests them, pushes them and creates the release.
 
 name: release
 
@@ -23,17 +28,10 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  publish:
-    name: build, test, pack and publish
+  build:
+    name: build, test and pack
     runs-on: windows-latest
     timeout-minutes: 45
-    permissions:
-      # Creates the GitHub release.
-      contents: write
-      # Lets the job ask GitHub for the signed token nuget.org trades for a key, and sign the attestations.
-      id-token: write
-      # Stores the attestations.
-      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -64,11 +62,55 @@ jobs:
       - name: Pack
         run: dotnet pack Rustaveli.Pdf.slnx -c Release --no-build -o artifacts/packages
 
+      # The release notes are the changelog's section for this version, taken here so the publish job needs no checkout.
+      - name: Take the release notes from the changelog
+        shell: bash
+        run: |
+          mkdir -p artifacts/notes
+          awk -v heading="## ${GITHUB_REF_NAME#v}" 'index($0, heading) == 1 { found = 1; next } found && /^## / { exit } found' CHANGELOG.md > artifacts/notes/notes.md
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: packages
           path: artifacts/packages
           retention-days: 90
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notes
+          path: artifacts/notes
+          retention-days: 90
+          if-no-files-found: error
+
+  publish:
+    name: attest and publish
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      # Creates the GitHub release.
+      contents: write
+      # Lets the job ask GitHub for the signed token nuget.org trades for a key, and sign the attestations.
+      id-token: write
+      # Stores the attestations.
+      attestations: write
+    steps:
+      # The download fails if an artifact's digest differs from the one recorded when it was uploaded.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: packages
+          path: artifacts/packages
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-notes
+          path: artifacts/notes
+
+      # Only for dotnet nuget push; nothing is built here.
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
 
       # A signed SLSA provenance statement for each package: which workflow, commit and run built it. Anyone can check a
       # package against it with `gh attestation verify <package> --repo themidnightgospel/Rustaveli.Pdf`.
@@ -78,15 +120,15 @@ jobs:
         with:
           subject-path: artifacts/packages/*.nupkg
 
-      # Asked for only now, after the tests: the key it hands back lasts an hour.
+      # Asked for only now, after the attestations: the key it hands back lasts an hour.
       - name: Sign in to nuget.org
         id: nuget
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      # One push per package, the shell naming each: on Windows, dotnet nuget push does not expand a wildcard in a
-      # relative path, and reports that the file does not exist. Each package's symbol package goes up with it.
+      # One push per package, the shell naming each: dotnet nuget push does not expand a wildcard in a relative path on
+      # every platform, and reports that the file does not exist. Each package's symbol package goes up with it.
       - name: Publish to nuget.org
         shell: bash
         env:
@@ -96,15 +138,13 @@ jobs:
             dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           done
 
-      # The packages go up with the attestations that vouch for them.
+      # The packages go up with the attestations that vouch for them. With no checkout, gh is told the repository.
       - name: Create the GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           ATTESTATIONS: ${{ steps.attest.outputs.bundle-path }}
         run: |
-          # The release notes are the changelog's section for this version.
-          awk -v heading="## ${GITHUB_REF_NAME#v}" 'index($0, heading) == 1 { found = 1; next } found && /^## / { exit } found' CHANGELOG.md > notes.md
           cp "$ATTESTATIONS" "artifacts/packages/Rustaveli.Pdf.${GITHUB_REF_NAME#v}.intoto.jsonl"
           gh release create "$GITHUB_REF_NAME" artifacts/packages/*.nupkg artifacts/packages/*.intoto.jsonl \
-            --title "$GITHUB_REF_NAME" --notes-file notes.md
+            --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file artifacts/notes/notes.md
