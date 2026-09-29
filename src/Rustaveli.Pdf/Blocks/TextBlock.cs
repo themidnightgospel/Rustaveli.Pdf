@@ -25,6 +25,9 @@ internal sealed class TextBlock : Block
     /// <summary>The paragraph the text is, in a tagged document, where nothing else tags it.</summary>
     private StructureElement? _paragraph;
 
+    /// <summary>The link each linked span is, in a tagged document, whichever page and line its pieces fall on.</summary>
+    private Dictionary<Text.TextRun, StructureElement?>? _links;
+
     // Not reset between passes: the lines of the same text at the same width do not change.
     private BuiltLines? _built;
 
@@ -93,6 +96,7 @@ internal sealed class TextBlock : Block
         _pinnedWidth = float.NaN;
         _pinnedWrapping = null;
         _paragraph = null;
+        _links = null;
     }
 
     // The pinned wrapping is replaced whole, never changed, so it is kept rather than copied. The paragraph element is
@@ -271,10 +275,11 @@ internal sealed class TextBlock : Block
 
         foreach (TextRun run in runs)
         {
-            // Linked words are a link in the structure, which the link itself belongs to.
+            // Linked words are a link in the structure, which the link itself belongs to: one for the whole span, however
+            // many pieces it is drawn in — a word at a time when justified, and over several lines.
             using TagStack.Scope link = run.Url is null && run.Destination is null
                 ? default
-                : context.Tags.Enter(context.Tags.Create("Link"));
+                : context.Tags.Enter(LinkFor(run.Source!, context.Tags));
 
             if (run.Inline is not null)
             {
@@ -309,14 +314,18 @@ internal sealed class TextBlock : Block
             if (style.HasUnderline || style.HasStrikeThrough || style.HasOverline)
                 DrawStrokes(surface, style, metrics, x, run.Width, baseline + style.BaselineOffset);
 
-            if (run.Url is not null)
+            // The spaces between linked words are no place to click, and would each be an annotation of their own; a link
+            // on nothing but a space keeps its annotation, which is all there is of it.
+            bool clickable = !string.IsNullOrWhiteSpace(run.Text) || string.IsNullOrWhiteSpace(run.Source?.Text);
+
+            if (run.Url is not null && clickable)
             {
                 surface.Translate(new Offset(x, runTop));
                 surface.DrawExternalLink(run.Url, runSize);
                 surface.Translate(new Offset(x, runTop).Reverse());
             }
 
-            if (run.Destination is not null)
+            if (run.Destination is not null && clickable)
             {
                 surface.Translate(new Offset(x, runTop));
                 surface.DrawInternalLink(run.Destination, runSize);
@@ -325,6 +334,17 @@ internal sealed class TextBlock : Block
 
             x += run.Width;
         }
+    }
+
+    /// <summary>The link element of a linked span, made when its first piece is drawn; none when not tagging.</summary>
+    private StructureElement? LinkFor(Text.TextRun span, TagStack tags)
+    {
+        _links ??= [];
+
+        if (!_links.TryGetValue(span, out StructureElement? link))
+            _links[span] = link = tags.Create("Link");
+
+        return link;
     }
 
     /// <summary>
