@@ -112,7 +112,6 @@ public sealed class PdfFile
     /// <inheritdoc cref="Underlay(string, string?, string?)"/>
     public PdfFile Underlay(PdfFile layer, string? onto = null, string? from = null) => Lay(layer, onto, from, over: false);
 
-    /// <summary>Writes the file, returning its bytes.</summary>
     /// <summary>
     /// Attaches a file, listed among the attachments readers show and, for PDF/A-3, associated with the document by
     /// its relationship. The file's own attachments are kept whatever pages are.
@@ -172,6 +171,7 @@ public sealed class PdfFile
         return this;
     }
 
+    /// <summary>Writes the file, returning its bytes.</summary>
     public byte[] ToArray()
     {
         using MemoryStream output = new MemoryStream();
