@@ -96,9 +96,26 @@
 
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <!-- The licence itself travels as a PackageLicenseExpression, which nuget.org can read; only the README and the
-         logo, 128 pixels square as nuget.org shows it, need packing as files. -->
-    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+         logo, 128 pixels square as nuget.org shows it, need packing as files. The README packed is the one below. -->
+    <None Include="$(PackageReadmeCopy)" Pack="true" PackagePath="\README.md" Visible="false" />
     <None Include="$(MSBuildThisFileDirectory)docs/images/logo.png" Pack="true" PackagePath="\icon.png" Visible="false" />
   </ItemGroup>
+
+  <!--
+    The README without what only GitHub can show. nuget.org renders no HTML — it prints the tags as text — so the
+    HTML between <!- - github-only - -> and <!- - /github-only - -> in README.md, the centred logo, is left out of the
+    copy the packages carry; nuget.org shows the package icon above the readme instead.
+  -->
+  <PropertyGroup>
+    <PackageReadmeCopy>$(MSBuildProjectDirectory)/obj/PackageReadme/README.md</PackageReadmeCopy>
+  </PropertyGroup>
+
+  <Target Name="WritePackageReadme" BeforeTargets="GenerateNuspec" Condition="'$(IsPackable)' != 'false'">
+    <PropertyGroup>
+      <_ReadmeText>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)README.md'))</_ReadmeText>
+      <_PackageReadmeText>$([System.Text.RegularExpressions.Regex]::Replace($(_ReadmeText), '(?s)&lt;!-- github-only --&gt;.*?&lt;!-- /github-only --&gt;\s*', ''))</_PackageReadmeText>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(PackageReadmeCopy)" Lines="$([MSBuild]::Escape($(_PackageReadmeText)))" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
 
 </Project>
