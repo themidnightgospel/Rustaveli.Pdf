@@ -169,6 +169,42 @@ public class ComplexScriptTests
     }
 
     [Fact]
+    public void ALineIsTallEnoughForTheFallbackFacesSetOnIt()
+    {
+        // Noto Sans has no Arabic, which comes from Noto Sans Arabic, a face reaching further above and below.
+        TypeStyle sans = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(20);
+
+        List<double> Baselines(string text)
+        {
+            byte[] pdf = Document.Compose(composition => composition.Section(section =>
+            {
+                section.DefaultType = sans;
+                section.Body().Text(text);
+            })).ExportPdf(new PdfExportOptions { Typefaces = Plain });
+
+            using PdfDocument parsed = PdfDocument.Open(pdf);
+            return parsed.GetPage(1).Letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().ToList();
+        }
+
+        List<double> latin = Baselines("a\nb\nc");
+        List<double> mixed = Baselines("a\n" + Salaam + "\nc");
+        TypeMetrics own = new OpenTypeMeasurer(Plain.Shaper).GetMetrics(sans);
+        TypeMetrics arabic = new OpenTypeMeasurer(Plain.Shaper).GetMetrics(Arabic.WithPointSize(20));
+
+        // The Arabic line's baseline drops by as much further as its face reaches above Noto Sans, and the line after
+        // it by as much again as it reaches below.
+        Assert.Equal(latin[0] - latin[1] + (arabic.Ascent - own.Ascent), mixed[0] - mixed[1], 2);
+        Assert.Equal(latin[1] - latin[2] + (arabic.Descent - own.Descent), mixed[1] - mixed[2], 2);
+
+        // Text in the style's own face alone keeps its own metrics; text set partly in another reaches as far as both.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Plain.Shaper);
+        TypeMetrics both = measurer.GetMetrics("a " + Salaam, sans);
+
+        Assert.Equal(own, measurer.GetMetrics("abc", sans));
+        Assert.Equal((arabic.Ascent, arabic.Descent, own.UnderlineOffset), (both.Ascent, both.Descent, both.UnderlineOffset));
+    }
+
+    [Fact]
     public void ADevanagariVowelSignIsDrawnBeforeTheConsonantItFollows()
     {
         // Ka followed by the vowel sign i: typed after the consonant, the sign is written before it.

@@ -1279,7 +1279,9 @@ internal sealed class TextBlock : Block
                 if (run.Inline is not null)
                     continue;
 
-                TypeMetrics metrics = measurer.GetMetrics(run.Style);
+                // As tall as the faces the run is set in, fallbacks included, so that a script the style's face lacks,
+                // drawn from a face that reaches further, does not overlap the lines around it.
+                TypeMetrics metrics = measurer.GetMetrics(run.Text, run.Style);
                 float offset = run.Style.BaselineOffset;
 
                 // A superscript has a negative offset and so extends the line upwards; a subscript downwards.

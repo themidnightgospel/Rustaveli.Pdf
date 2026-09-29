@@ -11,6 +11,13 @@ internal interface ITypeMeasurer
 {
     TypeMetrics GetMetrics(TypeStyle style);
 
+    /// <summary>
+    /// The metrics of <paramref name="text"/> set in <paramref name="style"/>: the style's own, reaching as far above
+    /// and below the baseline as any face the text falls back to for characters the style's face lacks, so a line
+    /// holding such text is tall enough for it.
+    /// </summary>
+    TypeMetrics GetMetrics(string text, TypeStyle style);
+
     /// <summary>Width of <paramref name="text" /> laid out on a single line, ignoring wrapping.</summary>
     float MeasureWidth(string text, TypeStyle style);
 

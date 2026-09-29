@@ -46,6 +46,51 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
             Math.Max(0f, strikeWeight));
     }
 
+    public TypeMetrics GetMetrics(string text, TypeStyle style)
+    {
+        TypeMetrics metrics = GetMetrics(style);
+        OpenTypeFont primary = shaper.Resolve(style);
+
+        // Text the style's own face has every character of is set in it alone, and is not walked: nearly all of it.
+        if (!FallsBack(primary, text))
+            return metrics;
+
+        float size = style.EffectivePointSize;
+
+        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
+        {
+            if (ReferenceEquals(glyph.Face, primary))
+                continue;
+
+            // The strokes stay the style's own, drawn once along the whole run.
+            LineMetrics lines = glyph.Face.LineMetrics;
+            metrics = metrics with
+            {
+                Ascent = Math.Max(metrics.Ascent, glyph.Face.ToPoints(lines.Ascent, size)),
+                Descent = Math.Max(metrics.Descent, glyph.Face.ToPoints(lines.Descent, size)),
+                LineGap = Math.Max(metrics.LineGap, glyph.Face.ToPoints(lines.LineGap, size)),
+            };
+        }
+
+        return metrics;
+    }
+
+    /// <summary>Whether <paramref name="primary"/> lacks a character of <paramref name="text"/> that is drawn.</summary>
+    private static bool FallsBack(OpenTypeFont primary, string text)
+    {
+        for (int index = 0; index < text.Length;)
+        {
+            int codepoint = GraphemeBoundaries.CodepointAt(text.AsSpan(), index, out int length);
+
+            if (!primary.HasGlyph(codepoint) && !InvisibleCharacters.Contains(codepoint))
+                return true;
+
+            index += length;
+        }
+
+        return false;
+    }
+
     public float MeasureWidth(string text, TypeStyle style)
     {
         if (string.IsNullOrEmpty(text))
