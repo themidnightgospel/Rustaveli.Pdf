@@ -237,6 +237,36 @@ public class ArtworkTests
     }
 
     [Fact]
+    public void ReadingSvgFromAStreamLeavesTheStreamOpen()
+    {
+        using MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'/>"));
+
+        Assert.Equal(new Extent(30, 15), Artwork.FromSvg(stream).Size);
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public void SvgFromAStreamIsReadInTheEncodingItDeclares()
+    {
+        byte[] latin = System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(
+            "<?xml version='1.0' encoding='ISO-8859-1'?><svg xmlns='http://www.w3.org/2000/svg' width='100' height='20'><text y='10'>Café</text></svg>");
+        using MemoryStream stream = new MemoryStream(latin);
+        Artwork artwork = Artwork.FromSvg(stream);
+
+        Assert.Equal("Café", LayoutHarness.Draw(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<TextOperation>().Single().Text);
+    }
+
+    [Theory]
+    [InlineData("<?xml version='1.0' encoding='x-no-such-encoding'?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    [InlineData("<?xml version='1.0' encoding='UTF-16'?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    public void SvgFromAStreamInAnEncodingThatCannotBeReadIsNotAnSvg(string svg)
+    {
+        using MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(svg));
+
+        Assert.Throws<FormatException>(() => Artwork.FromSvg(stream));
+    }
+
+    [Fact]
     public void ARestoreNeedsASave() =>
         Assert.Throws<InvalidOperationException>(() => Artwork.Draw(10, 10, art => art.RestoreState()));
 

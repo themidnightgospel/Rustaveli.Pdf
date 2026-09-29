@@ -61,21 +61,31 @@ internal sealed class SvgReader
 
     /// <summary>The artwork <paramref name="svg"/> draws.</summary>
     /// <exception cref="FormatException">The text is not an SVG document.</exception>
-    public static Artwork Read(TextReader svg)
+    public static Artwork Read(TextReader svg) => Read(settings => XmlReader.Create(svg, settings));
+
+    /// <summary>
+    /// The artwork the SVG in <paramref name="svg"/> draws, read in the encoding the document declares and left open.
+    /// </summary>
+    /// <exception cref="FormatException">The bytes are not an SVG document.</exception>
+    public static Artwork Read(Stream svg) => Read(settings => XmlReader.Create(svg, settings));
+
+    private static Artwork Read(Func<XmlReaderSettings, XmlReader> open)
     {
         XDocument document;
 
         try
         {
             // Entities declared in the document are expanded, as illustration tools write them; nothing is fetched.
+            // What is read from is the caller's, to close when it is done with it.
             XmlReaderSettings settings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Parse,
                 XmlResolver = null,
                 MaxCharactersFromEntities = 10_000_000,
+                CloseInput = false,
             };
 
-            using XmlReader reader = XmlReader.Create(svg, settings);
+            using XmlReader reader = open(settings);
             document = XDocument.Load(reader);
         }
         catch (XmlException exception)
