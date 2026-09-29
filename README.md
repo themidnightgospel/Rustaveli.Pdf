@@ -1,5 +1,10 @@
 # Rustaveli.Pdf
 
+[![CI](https://github.com/themidnightgospel/Rustaveli.Pdf/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/themidnightgospel/Rustaveli.Pdf/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/themidnightgospel/Rustaveli.Pdf/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/themidnightgospel/Rustaveli.Pdf/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2Fthemidnightgospel%2FRustaveli.Pdf&query=%24.score&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/themidnightgospel/Rustaveli.Pdf)
+[![NuGet](https://img.shields.io/nuget/v/Rustaveli.Pdf.svg)](https://www.nuget.org/packages/Rustaveli.Pdf)
+
 A free, open source, fluent PDF generation library for .NET.
 
 > **Version 0.1, the first release.** Every capability of QuestPDF's last MIT release, tooling included — see the
