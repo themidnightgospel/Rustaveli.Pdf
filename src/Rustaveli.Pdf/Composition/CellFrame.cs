@@ -38,13 +38,17 @@ public sealed class CellFrame : IFrameSlot
 
     public CellFrame SpanRows(int span)
     {
-        _cell.RowSpan = Math.Max(1, span);
+        ArgumentOutOfRangeException.ThrowIfLessThan(span, 1);
+
+        _cell.RowSpan = span;
         return this;
     }
 
     public CellFrame SpanColumns(int span)
     {
-        _cell.ColumnSpan = Math.Max(1, span);
+        ArgumentOutOfRangeException.ThrowIfLessThan(span, 1);
+
+        _cell.ColumnSpan = span;
         return this;
     }
 
