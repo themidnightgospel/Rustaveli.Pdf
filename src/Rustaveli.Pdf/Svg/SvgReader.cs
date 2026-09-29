@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
 using Matrix = (float A, float B, float C, float D, float E, float F);
@@ -129,8 +130,19 @@ internal sealed class SvgReader
         Dictionary<string, string> style = new Dictionary<string, string>(parent, StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, string> property in declared)
         {
-            if (Inherited.Contains(property.Key) && property.Value != "inherit")
+            if (!Inherited.Contains(property.Key) || property.Value == "inherit")
+                continue;
+
+            // A weight is kept as the number it comes to, since bolder and lighter are taken from the weight inherited.
+            if (property.Key.Equals("font-weight", StringComparison.OrdinalIgnoreCase))
+            {
+                if (FontWeight(property.Value, Weight(parent)) is { } weight)
+                    style["font-weight"] = weight.ToString(CultureInfo.InvariantCulture);
+            }
+            else
+            {
                 style[property.Key] = property.Value;
+            }
         }
 
         float opacity = parentOpacity * Opacity(Value(declared, "opacity"));
@@ -273,9 +285,8 @@ internal sealed class SvgReader
             .WithPointSize(size)
             .WithInk(fill.WithOpacity(fill.Opacity * opacity * Opacity(Value(style, "fill-opacity"))));
 
-        string weight = Value(style, "font-weight") ?? "normal";
-        if (weight is "bold" or "bolder" || (int.TryParse(weight, out int numeric) && numeric >= 600))
-            type = type.Bold();
+        // Of the weights a typeface may come in, the one nearest the weight asked for.
+        type = type.WithWeight((TypeWeight)Math.Min(900, Math.Max(100, Math.Round(Weight(style) / 100, MidpointRounding.AwayFromZero) * 100)));
 
         if (Value(style, "font-style") is "italic" or "oblique")
             type = type.Italic();
@@ -719,6 +730,23 @@ internal sealed class SvgReader
         List<float> values = new SvgNumbers((string?)element.Attribute(name) ?? string.Empty).Rest();
         return values.Count > 0 ? values[0] : 0;
     }
+
+    /// <summary>The weight in force, as a number: 400, a normal weight, unless one is inherited.</summary>
+    private static float Weight(Dictionary<string, string> style) =>
+        Value(style, "font-weight") is { } weight && float.TryParse(weight, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) ? number : 400;
+
+    /// <summary>
+    /// The weight <paramref name="value"/> comes to, bolder and lighter taken from <paramref name="inherited"/> as CSS
+    /// says; null for a value that is no weight, which is ignored.
+    /// </summary>
+    private static float? FontWeight(string value, float inherited) => value switch
+    {
+        "normal" => 400,
+        "bold" => 700,
+        "bolder" => inherited < 350 ? 400 : inherited < 550 ? 700 : inherited < 900 ? 900 : inherited,
+        "lighter" => inherited < 100 ? inherited : inherited < 550 ? 100 : inherited < 750 ? 400 : 700,
+        _ => float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) && number >= 1 && number <= 1000 ? number : null,
+    };
 
     private static float Fraction(string? text, float fallback) => Math.Max(0, SvgLength.Fraction(text, fallback));
 

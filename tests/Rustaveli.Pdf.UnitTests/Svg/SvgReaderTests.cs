@@ -539,9 +539,18 @@ public class SvgReaderTests
     [Theory]
     [InlineData("font-weight='bold'", TypeWeight.Bold, false)]
     [InlineData("font-weight='bolder'", TypeWeight.Bold, false)]
-    [InlineData("font-weight='600'", TypeWeight.Bold, false)]
-    [InlineData("font-weight='500'", TypeWeight.Normal, false)]
-    [InlineData("font-weight='lighter'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='600'", TypeWeight.SemiBold, false)]
+    [InlineData("font-weight='500'", TypeWeight.Medium, false)]
+    [InlineData("font-weight='300'", TypeWeight.Light, false)]
+    [InlineData("font-weight='349'", TypeWeight.Light, false)]
+    [InlineData("font-weight='350'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='1'", TypeWeight.Thin, false)]
+    [InlineData("font-weight='1000'", TypeWeight.Black, false)]
+    [InlineData("font-weight='0'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='1001'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='heavy'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='normal'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='lighter'", TypeWeight.Thin, false)]
     [InlineData("font-style='italic'", TypeWeight.Normal, true)]
     [InlineData("font-style='oblique'", TypeWeight.Normal, true)]
     [InlineData("font-style='normal'", TypeWeight.Normal, false)]
@@ -550,6 +559,28 @@ public class SvgReaderTests
         TextOperation text = Draw($"<text {attributes}>x</text>").OfType<TextOperation>().Single();
 
         Assert.Equal((weight, italic), (text.Style.Weight, text.Style.IsItalic));
+    }
+
+    [Theory]
+    [InlineData("100", "bolder", TypeWeight.Normal)]
+    [InlineData("300", "bolder", TypeWeight.Normal)]
+    [InlineData("400", "bolder", TypeWeight.Bold)]
+    [InlineData("600", "bolder", TypeWeight.Black)]
+    [InlineData("900", "bolder", TypeWeight.Black)]
+    [InlineData("100", "lighter", TypeWeight.Thin)]
+    [InlineData("50", "lighter", TypeWeight.Thin)]
+    [InlineData("50", "bolder", TypeWeight.Normal)]
+    [InlineData("500", "lighter", TypeWeight.Thin)]
+    [InlineData("600", "lighter", TypeWeight.Normal)]
+    [InlineData("700", "lighter", TypeWeight.Normal)]
+    [InlineData("800", "lighter", TypeWeight.Bold)]
+    [InlineData("bold", "inherit", TypeWeight.Bold)]
+    [InlineData("bold", "nonsense", TypeWeight.Bold)]
+    public void ARelativeWeightIsTakenFromTheWeightInherited(string inherited, string weight, TypeWeight expected)
+    {
+        TextOperation text = Draw($"<g font-weight='{inherited}'><text font-weight='{weight}'>x</text></g>").OfType<TextOperation>().Single();
+
+        Assert.Equal(expected, text.Style.Weight);
     }
 
     [Fact]
