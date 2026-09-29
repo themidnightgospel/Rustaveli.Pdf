@@ -61,6 +61,33 @@ public class ShrinkToFitTests
     }
 
     [Fact]
+    public void ContentThatNoLongerFitsWhenAskedAgainIsNotTakenForContentOfNoSize()
+    {
+        // It fits when the scale is chosen and not when planned at it: its answer is passed on, so the content goes
+        // on to the next page instead of vanishing as a box of no size.
+        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new FitsOnce() };
+
+        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsDeferred);
+    }
+
+    /// <summary>Content that fits the first time it is planned, and never after.</summary>
+    private sealed class FitsOnce : Block
+    {
+        private bool _planned;
+
+        protected override Fit PlanCore(Extent availableSpace, PlanContext context)
+        {
+            bool first = !_planned;
+            _planned = true;
+            return first ? Fit.Complete(50, 20) : Fit.Defer("It no longer fits.");
+        }
+
+        protected override void RenderCore(Extent availableSpace, RenderContext context)
+        {
+        }
+    }
+
+    [Fact]
     public void WithoutContentOccupiesNothing()
     {
         ShrinkToFitBlock element = new ShrinkToFitBlock();

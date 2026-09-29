@@ -10,7 +10,6 @@ public class BidiParagraphTests
     [InlineData("Hello, world: 1,234.50 \u20AC (100%) \u00BFQu\u00E9?\t\"quoted\"")]
     [InlineData("\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC \u041A\u0438\u0440\u0438\u043B\u043B\u0438\u0446\u0430 \u4E2D\u6587 \u0939\u093F\u0928\u094D\u0926\u0940")]
     [InlineData("emoji \U0001F600 and a musical symbol \U0001D11E")]
-    [InlineData("lone surrogates \uD800 \uDC00 \uD800")]
     [InlineData("\u200Bzero width \u200D joiners and marks e\u0301")]
     public void SetsLeftToRightTextAsOneLeftToRightRun(string text)
     {
@@ -28,6 +27,12 @@ public class BidiParagraphTests
         Assert.All(levels, level => Assert.Equal(0, level));
         Assert.All(Enumerable.Range(0, text.Length), index => Assert.Equal(0, paragraph.GetLevel(index)));
     }
+
+    // Not a case of the theory above: xUnit passes theory data through UTF-8 as it discovers tests, which turns a
+    // surrogate without its partner into U+FFFD, so the text would arrive with no surrogate in it at all.
+    [Fact]
+    public void SetsTextWithLoneSurrogatesAsOneLeftToRightRun() =>
+        SetsLeftToRightTextAsOneLeftToRightRun("lone surrogates \uD800 \uDC00 \uD800");
 
     [Fact]
     public void SetsLeftToRightTextAtLevelTwoInARightToLeftParagraph()
