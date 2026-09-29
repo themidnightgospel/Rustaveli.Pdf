@@ -163,11 +163,44 @@ internal sealed class PdfSource
                 return stream;
 
             PdfDictionary dictionary = Decrypt(number, generation, stream.Dictionary).AsDictionary();
-            byte[] data = Encryption!.Covers(dictionary) ? Encryption.DecryptStream(number, stream.Data, generation) : stream.Data;
-            return new SourceStream(dictionary, data);
+            PdfEncryption.Cipher cipher = Encryption!.StreamCipher(dictionary, Resolve, out bool named);
+            byte[] data = Encryption.Decrypt(cipher, number, stream.Data, generation);
+
+            // Decrypted by the crypt filter it names, the stream no longer passes through it, wherever it is copied to.
+            return new SourceStream(named && Encryption.HasKey ? WithoutCryptFilter(dictionary) : dictionary, data);
         }
 
         return Decrypt(number, generation, (PdfValue)read);
+    }
+
+    /// <summary>A stream's dictionary with its first filter, <c>/Crypt</c>, and that filter's parameters taken out.</summary>
+    private PdfDictionary WithoutCryptFilter(PdfDictionary dictionary)
+    {
+        PdfDictionary plain = new PdfDictionary(dictionary.Count);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+        {
+            if (entry.Key.Equals(PdfNames.Filter) || entry.Key.Equals(PdfNames.DecodeParms))
+            {
+                PdfValue value = Resolve(entry.Value);
+
+                // A single filter, or its parameters, go with it; of several, the first goes.
+                if (value.Kind != PdfValueKind.Array || value.AsArray().Count <= 1)
+                    continue;
+
+                PdfArray rest = new PdfArray(value.AsArray().Count - 1);
+
+                foreach (PdfValue item in value.AsArray().Cast<PdfValue>().Skip(1))
+                    rest.Add(item);
+
+                plain[entry.Key] = rest;
+                continue;
+            }
+
+            plain[entry.Key] = entry.Value;
+        }
+
+        return plain;
     }
 
     private PdfValue Decrypt(int number, int generation, PdfValue value)
