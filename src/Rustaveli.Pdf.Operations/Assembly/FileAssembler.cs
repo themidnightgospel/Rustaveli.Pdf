@@ -20,6 +20,8 @@ internal static class FileAssembler
     private static readonly PdfName BBox = new PdfName("BBox");
     private static readonly PdfName CropBox = new PdfName("CropBox");
     private static readonly PdfName Rotate = new PdfName("Rotate");
+    private static readonly PdfName MarkInfo = new PdfName("MarkInfo");
+    private static readonly PdfName Marked = new PdfName("Marked");
     private static readonly PdfName StructParents = new PdfName("StructParents");
     private static readonly PdfName EmbeddedFiles = new PdfName("EmbeddedFiles");
     private static readonly PdfName Associated = new PdfName("AF");
@@ -146,6 +148,10 @@ internal static class FileAssembler
         StringBuilder after = new StringBuilder("\nQ\n");
         int count = 0;
 
+        // On a tagged page everything drawn is either in the structure or marked as not being content: what is laid
+        // on it is neither the page's text nor any part of its structure, so it is an artifact.
+        bool artifact = own.ContainsKey(StructParents) || IsMarked(source);
+
         foreach ((List<SourcePage> layers, StringBuilder content) in new[] { (entry.Beneath, before), (entry.Over, after) })
         {
             foreach (SourcePage layer in layers)
@@ -164,7 +170,10 @@ internal static class FileAssembler
                 }
 
                 forms[name] = form;
-                content.Append("q\n").Append(Placement(layer, entry.Page)).Append(Encoding.ASCII.GetString(name.Encoded.ToArray())).Append(" Do\nQ\n");
+                content.Append(artifact ? "/Artifact BMC\nq\n" : "q\n")
+                    .Append(Placement(layer, entry.Page))
+                    .Append(Encoding.ASCII.GetString(name.Encoded.ToArray()))
+                    .Append(artifact ? " Do\nQ\nEMC\n" : " Do\nQ\n");
             }
         }
 
@@ -261,6 +270,11 @@ internal static class FileAssembler
 
         return right - left > 0 && top - bottom > 0 ? (left, bottom, right, top, right - left, top - bottom) : null;
     }
+
+    /// <summary>Whether <paramref name="source"/> says it is tagged: its catalog's <c>/MarkInfo</c> has <c>/Marked true</c>.</summary>
+    private static bool IsMarked(PdfSource source) =>
+        source.Catalog.TryGetValue(MarkInfo, out PdfValue given) && source.Resolve(given) is { Kind: PdfValueKind.Dictionary } info
+        && info.AsDictionary().TryGetValue(Marked, out PdfValue marked) && source.Resolve(marked) is { Kind: PdfValueKind.Boolean } flag && flag.AsBoolean();
 
     /// <summary>How far a page is turned clockwise as it is shown: a multiple of 90 degrees, or none.</summary>
     private static int Rotation(SourcePage page) =>

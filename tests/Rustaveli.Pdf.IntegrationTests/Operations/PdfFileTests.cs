@@ -210,10 +210,10 @@ public class PdfFileTests
     /// A page of <paramref name="width"/> by <paramref name="height"/>, turned by <paramref name="rotate"/>, showing
     /// <paramref name="text"/> near its lower left corner.
     /// </summary>
-    private static byte[] Turned(int width, int height, int rotate, string text, string? box = null, string extra = "")
+    private static byte[] Turned(int width, int height, int rotate, string text, string? box = null, string extra = "", string catalog = "")
     {
         string content = $"BT /F1 12 Tf 20 20 Td ({text}) Tj ET";
-        string pdf = "%PDF-1.7\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+        string pdf = $"%PDF-1.7\n1 0 obj<</Type/Catalog/Pages 2 0 R{catalog}>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
             + $"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox {box ?? $"[0 0 {width} {height}]"}/Rotate {rotate}{extra}/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n"
             + "4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n"
             + $"5 0 obj<</Length {content.Length}>>stream\n{content}\nendstream\nendobj\ntrailer<</Root 1 0 R>>\n%%EOF";
@@ -294,6 +294,40 @@ public class PdfFileTests
         PdfValue contents = source.Pages[0].Dictionary[PdfNames.Contents];
         IEnumerable<PdfValue> streams = source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray().Cast<PdfValue>() : [contents];
         return string.Join("\n", streams.Select(stream => System.Text.Encoding.Latin1.GetString(source.Decode(source.Stream(stream)!))));
+    }
+
+    [Fact]
+    public void WhatIsLaidOnATaggedPageIsAnArtifact()
+    {
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(200, 200);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Text("Tagged");
+        }));
+        byte[] tagged = document.ExportPdf(new PdfExportOptions { Tagged = true });
+
+        string content = FirstPageContent(PdfFile.Open(tagged).Overlay(PdfFile.Open(Layer("Stamp"))).Underlay(PdfFile.Open(Layer("Head"))).ToArray());
+        string plain = FirstPageContent(PdfFile.Open(Pages("One")).Overlay(PdfFile.Open(Layer("Stamp"))).ToArray());
+
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(content, @"/Artifact BMC\s+q\s+/Layer\d+ Do\s+Q\s+EMC").Count);
+        Assert.Matches(@"q\s+/Layer\d+ Do\s+Q", plain);
+        Assert.DoesNotContain("/Artifact", plain, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/MarkInfo<</Marked true>>", true)]
+    [InlineData("/MarkInfo<</Marked false>>", false)]
+    [InlineData("/MarkInfo<</Marked 1>>", false)]
+    [InlineData("/MarkInfo<<>>", false)]
+    [InlineData("/MarkInfo 7", false)]
+    public void WhatIsLaidOnAFileMarkedAsTaggedIsAnArtifact(string catalog, bool artifact)
+    {
+        byte[] page = Turned(200, 200, 0, "XYZ", catalog: catalog);
+
+        string content = FirstPageContent(PdfFile.Open(page).Overlay(PdfFile.Open(Turned(200, 200, 0, "Stamp"))).ToArray());
+
+        Assert.Equal(artifact, content.IndexOf("/Artifact BMC\nq\n/Layer0 Do\nQ\nEMC", StringComparison.Ordinal) >= 0);
     }
 
     [Fact]
