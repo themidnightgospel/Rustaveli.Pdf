@@ -257,6 +257,20 @@ public class ComplexScriptTests
     }
 
     [Fact]
+    public void ShapingDoesNotTakeTheMachinesLanguage()
+    {
+        // HarfBuzz picks a face's localized forms by language, and fills in the process's locale where it is given
+        // none; the core picks none, so neither may HarfBuzz, or the same document would set differently by machine.
+        using HarfBuzzSharp.Buffer buffer = new HarfBuzzSharp.Buffer();
+        HarfBuzzShaper.Prepare(buffer, Salaam.AsSpan(), rightToLeft: true);
+
+        // HarfBuzz keeps one of each language, so the same language is the same handle; the wrapper HarfBuzz hands
+        // back for a buffer's language does not carry its name.
+        Assert.Equal(new HarfBuzzSharp.Language("und").Handle, buffer.Language.Handle);
+        Assert.Equal(HarfBuzzSharp.Direction.RightToLeft, buffer.Direction);
+    }
+
+    [Fact]
     public void TurningComplexScriptsOnTwiceKeepsOneShaper()
     {
         TypefaceLibrary library = Library().ShapeComplexScripts();

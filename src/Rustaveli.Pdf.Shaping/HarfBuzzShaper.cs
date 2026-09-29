@@ -29,6 +29,8 @@ internal sealed class HarfBuzzShaper : IComplexShaper
     private readonly ConcurrentDictionary<OpenTypeFont, Font> _fonts = new();
     private readonly ConcurrentDictionary<TypeFeatures, Feature[]> _features = new();
 
+    private static readonly Language Undetermined = new Language("und");
+
     [ThreadStatic]
     private static Buffer? _buffer;
 
@@ -56,15 +58,7 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         Font font = _fonts.TryGetValue(face, out Font? made) ? made : _fonts.GetOrAdd(face, Create);
         Buffer buffer = _buffer ??= new Buffer();
 
-        buffer.ClearContents();
-        buffer.AddUtf16(run);
-        buffer.GuessSegmentProperties();
-
-        // HarfBuzz mirrors brackets and the like in text it sets right to left, so it is given the run as typed and
-        // told the direction the paragraph gave it, rather than a guess from the script.
-        if (rightToLeft)
-            buffer.Direction = Direction.RightToLeft;
-
+        Prepare(buffer, run, rightToLeft);
         font.Shape(buffer, FeaturesOf(features));
 
         ReadOnlySpan<GlyphInfo> infos = buffer.GetGlyphInfoSpan();
@@ -85,6 +79,24 @@ internal sealed class HarfBuzzShaper : IComplexShaper
 
         if (buffer.Direction == Direction.RightToLeft)
             ReverseClusters(output, first);
+    }
+
+    /// <summary>Fills <paramref name="buffer"/> with a run to shape, and says how it is to be shaped.</summary>
+    internal static void Prepare(Buffer buffer, ReadOnlySpan<char> run, bool rightToLeft)
+    {
+        buffer.ClearContents();
+        buffer.AddUtf16(run);
+        buffer.GuessSegmentProperties();
+
+        // The guess fills in the language from the process's locale, which would choose a face's localized forms by
+        // the machine the document is made on. The core sets text in no language in particular, the default language
+        // system of each face, and so does HarfBuzz: "und" is undetermined, which no face has forms of its own for.
+        buffer.Language = Undetermined;
+
+        // HarfBuzz mirrors brackets and the like in text it sets right to left, so it is given the run as typed and
+        // told the direction the paragraph gave it, rather than a guess from the script.
+        if (rightToLeft)
+            buffer.Direction = Direction.RightToLeft;
     }
 
     /// <summary>
