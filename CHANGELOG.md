@@ -3,6 +3,25 @@
 Versions follow [semantic versioning](https://semver.org/). Before 1.0 the public surface may still change from one
 minor version to the next; from 1.0, nothing public changes incompatibly within a major version.
 
+## Unreleased
+
+**Fixed**
+
+- A table cell pinned to a row with no room left in it covered a cell already there; it is now refused with a
+  `CompositionException` naming the row.
+- SVG artwork with numbers beyond what a PDF can hold (10^15), or transforms, clips, gradients and view boxes that
+  reach beyond it, failed the export; what reaches beyond it is left out. `ArtworkComposer` refuses such numbers
+  when they are given.
+- SVG path data with anything but a command after a close looped forever.
+- An SVG opacity above 1 failed; opacities are clamped, as SVG says.
+- Reading a PDF: a number with two decimal points, a cross-reference stream without a usable `/W` or `/Size`, and an
+  AES-256 file whose wrapped key is not 32 bytes threw exceptions `PdfFile.Open` does not document. The first two
+  are repaired; the last is an `UnreadableFileException`.
+
+**Changed**
+
+- `PdfFile.Open` documents the `NotSupportedException` it throws for a security handler other than the standard one.
+
 ## 0.1.0
 
 The first release: every capability of QuestPDF 2026.5.0, its last MIT release, in a vocabulary drawn from print —

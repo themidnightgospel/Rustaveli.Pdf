@@ -52,9 +52,9 @@ public sealed class TableComposer
     internal void PlaceAutomaticCells()
     {
         int columnCount = Math.Max(1, _block.Columns.Count);
-        CellPlacement.Apply(_block.Cells, columnCount);
-        CellPlacement.Apply(_block.HeaderCells, columnCount);
-        CellPlacement.Apply(_block.FooterCells, columnCount);
+        CellPlacement.Apply(_block.Cells, columnCount, "body");
+        CellPlacement.Apply(_block.HeaderCells, columnCount, "header");
+        CellPlacement.Apply(_block.FooterCells, columnCount, "footer");
         Validate(_block.Cells, columnCount, "body");
         Validate(_block.HeaderCells, columnCount, "header");
         Validate(_block.FooterCells, columnCount, "footer");
