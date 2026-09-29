@@ -78,9 +78,18 @@ internal sealed class SubstitutionLookup
     public bool TryApply(SubstitutionSession session, int position, out int next)
     {
         next = position;
+        return !Skips(session.Buffer.Glyphs[position]) && TryApplyAt(session, position, out next);
+    }
 
-        if (Skips(session.Buffer.Glyphs[position]))
-            return false;
+    /// <summary>
+    /// Applies the first subtable that substitutes at <paramref name="position"/>, whatever the lookup's flags say of
+    /// the glyph there: a contextual rule names the glyph its nested lookup applies to, and HarfBuzz applies it there.
+    /// The flags still decide which glyphs the lookup matches past.
+    /// </summary>
+    /// <inheritdoc cref="TryApply" path="/param"/>
+    public bool TryApplyAt(SubstitutionSession session, int position, out int next)
+    {
+        next = position;
 
         foreach (SubstitutionSubtable subtable in _subtables)
         {
