@@ -335,6 +335,41 @@ public class SvgReaderTests
         Assert.Equal([Red, Blue, Red, Blue], painted.Select(operation => operation.Ink));
     }
 
+    // ---- Switch ----------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void ASwitchDrawsOnlyItsFirstChild() =>
+        Assert.Equal(Red, Assert.Single(Painted("<switch><rect width='5' height='5' fill='red'/><rect width='5' height='5' fill='blue'/></switch>")).Ink);
+
+    [Fact]
+    public void ASwitchDrawsTheFirstChildWhoseConditionsHold()
+    {
+        List<PathOperation> painted = Painted(
+            "<switch><title>Chooses</title>" +
+            "<rect width='5' height='5' fill='blue' requiredExtensions='http://example.org/extension'/>" +
+            "<g systemLanguage='fr, de'><rect width='5' height='5' fill='blue'/></g>" +
+            "<rect width='5' height='5' fill='red' systemLanguage='de, en-GB'/>" +
+            "<rect width='5' height='5' fill='blue'/></switch>");
+
+        Assert.Equal(Red, Assert.Single(painted).Ink);
+    }
+
+    [Theory]
+    [InlineData("systemLanguage='en'")]
+    [InlineData("systemLanguage='EN-us'")]
+    [InlineData("systemLanguage=' fr ,en '")]
+    public void EnglishIsTheLanguageASwitchChoosesFor(string conditions) =>
+        Assert.Single(Painted($"<switch><rect width='5' height='5' {conditions}/></switch>"));
+
+    // No extension is supported, and an empty list of either holds for nothing, as SVG says.
+    [Theory]
+    [InlineData("systemLanguage=''")]
+    [InlineData("systemLanguage='eng'")]
+    [InlineData("requiredExtensions='x'")]
+    [InlineData("requiredExtensions=''")]
+    public void ASwitchWhoseChildrenAllFailDrawsNothing(string conditions) =>
+        Assert.Empty(Painted($"<switch><rect width='5' height='5' {conditions}/></switch>"));
+
     // ---- Transforms and clips --------------------------------------------------------------------------------
 
     [Fact]

@@ -12,7 +12,8 @@ namespace Rustaveli.Pdf.Svg;
 /// </summary>
 /// <remarks>
 /// Radial gradients are drawn in the mean of their colours; filters, masks, patterns and markers are left out, and
-/// animation is not played. Opacity is carried down to each fill and stroke rather than blending a group as one.
+/// animation is not played. Opacity is carried down to each fill and stroke rather than blending a group as one. A
+/// switch draws its first child that needs no extension and, where it names languages, names English.
 /// </remarks>
 internal sealed class SvgReader
 {
@@ -176,8 +177,13 @@ internal sealed class SvgReader
             case "symbol":
             case "g":
             case "a":
-            case "switch":
                 RenderChildren(element, style, opacity, art, depth);
+                break;
+
+            case "switch":
+                if (element.Elements().FirstOrDefault(Applies) is { } chosen)
+                    Render(chosen, style, opacity, art, depth + 1);
+
                 break;
 
             case "use":
@@ -244,6 +250,21 @@ internal sealed class SvgReader
         }
 
         _using.Remove(target);
+    }
+
+    /// <summary>
+    /// Whether a child of a switch is the one to draw: something drawn, needing no extension — none is supported — and
+    /// in English where it names languages. English is the reader's language here, whatever the culture the program
+    /// runs in, so that the same document always draws the same.
+    /// </summary>
+    private static bool Applies(XElement child)
+    {
+        if (NotDrawn.Contains(child.Name.LocalName) || child.Attribute("requiredExtensions") is not null)
+            return false;
+
+        return (string?)child.Attribute("systemLanguage") is not { } languages
+            || languages.Split(',').Select(language => language.Trim()).Any(language =>
+                language.Equals("en", StringComparison.OrdinalIgnoreCase) || language.StartsWith("en-", StringComparison.OrdinalIgnoreCase));
     }
 
     private void RenderChildren(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
