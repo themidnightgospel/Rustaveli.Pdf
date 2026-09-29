@@ -58,13 +58,17 @@ internal static class Typesetter
             // Settled only when the pass also found anchors and captured positions where the pass before it did: a
             // cross-reference that moved what it refers to, without changing the count, would otherwise print the
             // page or place it read rather than the one it is drawn on.
-            if (pagesByPart.SequenceEqual(counted) && pageContext.FoundWhatWasKnown())
-                break;
+            bool settled = pagesByPart.SequenceEqual(counted) && pageContext.FoundWhatWasKnown();
 
             counted = pagesByPart;
             pageContext.PageCount = counted.Sum();
             pageContext.PartPageCounts = counted;
             pageContext.IsPageCountKnown = true;
+
+            // Content that read none of the page count, an anchor's page or a captured position drew nothing that
+            // depends on them, so another pass would find exactly what this one did.
+            if (settled || !pageContext.ReadsWhatPassesSettle)
+                break;
         }
 
         RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null, inspection);
@@ -120,7 +124,7 @@ internal static class Typesetter
 
                 // Until the real total is known, quote the page count as the current page so that dynamic text
                 // such as "3 of 3" occupies a realistic width and does not shift the layout on the second pass.
-                if (!pageContext.IsPageCountKnown)
+                if (!pageContext.CountKnown)
                     pageContext.PageCount = pageContext.Folio;
                 else if (document.NumbersPartsApart && pageContext.PartPageCounts is { } counts && part < counts.Length)
                     pageContext.PageCount = counts[part];

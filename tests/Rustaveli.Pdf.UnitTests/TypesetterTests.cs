@@ -1062,6 +1062,94 @@ public class TypesetterTests
         Assert.False(pagination.FoundWhatWasKnown());
     }
 
+    [Fact]
+    public void ADocumentThatReadsNothingCountingSettlesIsCountedOnce()
+    {
+        // Nothing asks for the page count, an anchor's page or a captured position, so a second count would find
+        // exactly what the first did.
+        PassCounted content = new PassCounted();
+        Document document = Build(page =>
+        {
+            page.Trim = new Extent(200f, 200f);
+            page.Body().Stack(stack =>
+            {
+                stack.Add().Text(text => text.Folio());
+                stack.Add().Compose(inner => inner.Slot().Child = content);
+            });
+        });
+
+        Assert.Equal("1", LayoutHarness.Render(document).Page(1).Content);
+        Assert.Equal(2, content.Passes);
+    }
+
+    [Theory]
+    [InlineData("page count")]
+    [InlineData("anchor")]
+    [InlineData("last page")]
+    [InlineData("position")]
+    [InlineData("page facts")]
+    public void ADocumentThatReadsWhatCountingSettlesIsCountedUntilItSettles(string reads)
+    {
+        PassCounted content = new PassCounted();
+        Document document = Build(page =>
+        {
+            page.Trim = new Extent(200f, 200f);
+            page.Body().Stack(stack =>
+            {
+                stack.Add().Anchor("here").CapturePosition("here").Compose(inner => inner.Slot().Child = content);
+
+                switch (reads)
+                {
+                    case "page count":
+                        stack.Add().Text(text => text.PageCount());
+                        break;
+                    case "anchor":
+                        stack.Add().Text(text => text.FolioOf("here"));
+                        break;
+                    case "last page":
+                        stack.Add().Text(text => text.LastFolioOf("here"));
+                        break;
+                    case "position":
+                        stack.Add().ComposePerPage(new PositionReader());
+                        break;
+                    default:
+                        stack.Add().When(facts => facts.PageCount == 1).Text("only");
+                        break;
+                }
+            });
+        });
+
+        LayoutHarness.Render(document);
+
+        Assert.Equal(3, content.Passes);
+    }
+
+    /// <summary>Fixed content that counts the passes it is set in.</summary>
+    private sealed class PassCounted : Block
+    {
+        public int Passes { get; private set; }
+
+        protected override void ResetOwnState() => Passes++;
+
+        protected override Fit PlanCore(Extent availableSpace, PlanContext context) => Fit.Complete(10f, 10f);
+
+        protected override void RenderCore(Extent availableSpace, RenderContext context)
+        {
+        }
+    }
+
+    /// <summary>Content composed per page that looks up where "here" was drawn.</summary>
+    private sealed class PositionReader : IDynamicContent<int>
+    {
+        public int Initial => 0;
+
+        public DynamicPart<int> Compose(DynamicPage page, int state)
+        {
+            _ = page.PositionsOf("here");
+            return new DynamicPart<int>(frame => { }, 0, false);
+        }
+    }
+
     /// <summary>
     /// As tall as where "target" was last drawn says — 10 before it has been drawn, and then 10 more until 30 — and
     /// remembering what it was drawn from.

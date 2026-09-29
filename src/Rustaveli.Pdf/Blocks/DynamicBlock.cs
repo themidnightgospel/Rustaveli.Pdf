@@ -67,7 +67,7 @@ internal sealed class DynamicBlock<TState>(IDynamicContent<TState> content) : Bl
 
         if (_composed is { } kept
             && kept.Folio == pagination.Folio
-            && kept.CountKnown == pagination.IsPageCountKnown
+            && kept.CountKnown == pagination.CountKnown
             && kept.Room == room)
         {
             return kept;
@@ -79,7 +79,7 @@ internal sealed class DynamicBlock<TState>(IDynamicContent<TState> content) : Bl
         Frame frame = new Frame();
         part.Content(frame);
 
-        _composed = new Composed(pagination.Folio, pagination.IsPageCountKnown, room, part, frame);
+        _composed = new Composed(pagination.Folio, pagination.CountKnown, room, part, frame);
         return _composed;
     }
 
