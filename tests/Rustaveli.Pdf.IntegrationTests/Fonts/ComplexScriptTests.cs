@@ -271,6 +271,38 @@ public class ComplexScriptTests
     }
 
     [Fact]
+    public void EveryShaperSharesOneHarfBuzzFontPerFace()
+    {
+        // A library made per request makes a shaper of its own; the copy of the font file HarfBuzz holds is shared.
+        OpenTypeFont face = Shaped.Shaper.Resolve(Arabic);
+
+        Assert.Same(new HarfBuzzShaper().FontFor(face), new HarfBuzzShaper().FontFor(face));
+    }
+
+    [Fact]
+    public async Task AFaceFirstShapedOnTwoThreadsAtOnceIsMadeIntoOneFont()
+    {
+        // Whoever makes the font waits a while for another thread to try as well: were both let in, both would make one.
+        OpenTypeFont face = FontAssets.Load("NotoSansArabic-Regular.ttf");
+        int made = 0;
+        using Barrier both = new Barrier(2);
+
+        HarfBuzzFonts fonts = new HarfBuzzFonts(created =>
+        {
+            Interlocked.Increment(ref made);
+            both.SignalAndWait(TimeSpan.FromSeconds(1));
+            return HarfBuzzShaper.Create(created);
+        });
+
+        HarfBuzzSharp.Font[] shaped = await Task.WhenAll(
+            Task.Factory.StartNew(() => fonts.For(face), TaskCreationOptions.LongRunning),
+            Task.Factory.StartNew(() => fonts.For(face), TaskCreationOptions.LongRunning));
+
+        Assert.Equal(1, made);
+        Assert.Same(shaped[0], shaped[1]);
+    }
+
+    [Fact]
     public void TurningComplexScriptsOnTwiceKeepsOneShaper()
     {
         TypefaceLibrary library = Library().ShapeComplexScripts();

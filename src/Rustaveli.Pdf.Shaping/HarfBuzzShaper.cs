@@ -14,9 +14,9 @@ namespace Rustaveli.Pdf.Shaping;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A HarfBuzz font is made once per face, from the face's file, and scaled to its units per em, so positions come
-/// back in font units and are scaled to the run's size here. HarfBuzz fonts are immutable once made and may shape
-/// on several threads at once; each thread keeps a buffer of its own.
+/// A HarfBuzz font is made once per face (see <see cref="HarfBuzzFonts"/>), from the face's file, and scaled to its
+/// units per em, so positions come back in font units and are scaled to the run's size here. HarfBuzz fonts are
+/// immutable once made and may shape on several threads at once; each thread keeps a buffer of its own.
 /// </para>
 /// <para>
 /// HarfBuzz hands right-to-left text back in display order. The walk wants logical order, and puts right-to-left
@@ -26,11 +26,12 @@ namespace Rustaveli.Pdf.Shaping;
 /// </remarks>
 internal sealed class HarfBuzzShaper : IComplexShaper
 {
-    private readonly ConcurrentDictionary<OpenTypeFont, Font> _fonts = new();
     private readonly ConcurrentDictionary<TypeFeatures, Feature[]> _features = new();
 
     private static readonly Language Undetermined = new Language("und");
 
+    // One per thread, kept between runs; a thread that ends leaves its buffer to be collected, and HarfBuzz's memory
+    // for it is handed back by its finalizer.
     [ThreadStatic]
     private static Buffer? _buffer;
 
@@ -54,8 +55,7 @@ internal sealed class HarfBuzzShaper : IComplexShaper
     public void Shape(
         OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft, List<ComplexGlyph> output)
     {
-        // Looked up before it is added, so that finding it does not make a delegate for the method each time.
-        Font font = _fonts.TryGetValue(face, out Font? made) ? made : _fonts.GetOrAdd(face, Create);
+        Font font = FontFor(face);
         Buffer buffer = _buffer ??= new Buffer();
 
         Prepare(buffer, run, rightToLeft);
@@ -80,6 +80,9 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         if (buffer.Direction == Direction.RightToLeft)
             ReverseClusters(output, first);
     }
+
+    /// <summary>The HarfBuzz font <paramref name="face"/> is shaped with, shared with every other shaper.</summary>
+    internal Font FontFor(OpenTypeFont face) => HarfBuzzFonts.Shared.For(face);
 
     /// <summary>Fills <paramref name="buffer"/> with a run to shape, and says how it is to be shaped.</summary>
     internal static void Prepare(Buffer buffer, ReadOnlySpan<char> run, bool rightToLeft)
@@ -119,7 +122,7 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         }
     }
 
-    private static Font Create(OpenTypeFont face)
+    internal static Font Create(OpenTypeFont face)
     {
         // HarfBuzz reads the file for as long as the font lives, so it is given memory the garbage collector cannot
         // move, freed when HarfBuzz lets the file go. A blob over a managed array would point at wherever the array
