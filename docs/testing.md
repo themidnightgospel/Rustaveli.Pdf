@@ -44,6 +44,14 @@ PDF/A-3u, PDF/A-2a with PDF/UA-1, and PDF/UA-1 alone, and each file checked agai
 **Mutation testing** runs over the whole engine every night: Stryker.NET changes the code in small ways, and each
 area must have tests that catch at least 80% of the changes.
 
+**Fuzzing** feeds the readers — fonts, PNG and JPEG images, SVG and PDF — inputs no one would write by hand.
+[libFuzzer](https://llvm.org/docs/LibFuzzer.html), through [SharpFuzz](https://github.com/Metalnem/sharpfuzz), mutates
+real files and keeps each mutation that reaches code no input reached before. An input fails when a reader throws
+anything it does not document, hangs, or asks for memory no file warrants; files the library writes from what it read
+must also read back without any exception at all. It runs for a few minutes on each pull request that touches the
+library, and for longer every night; see [`fuzz/README.md`](https://github.com/themidnightgospel/Rustaveli.Pdf/tree/main/fuzz)
+for running it locally and replaying a failure.
+
 **Benchmarks** compare speed, allocations and file size with QuestPDF; see [performance](performance.md).
 
 > **On the QuestPDF test dependency.** The oracle is pinned to **2026.5.0**, the last release distributed under

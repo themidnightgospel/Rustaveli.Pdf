@@ -59,7 +59,9 @@ and a pull request that breaks it fails. Every C# example in the guides is compi
 Every push to a pull request runs the build and the tests on Linux (with the coverage gate) and on Windows (on
 .NET 10 and .NET Framework 4.8). Once a pull request is ready, the `ready-to-merge` label runs the costlier checks
 too: macOS, and the benchmarks against QuestPDF. A pull request merges when all of them are green. Mutation testing
-is not run on pull requests; it runs over `main` every night, and a shard below its floor opens an issue.
+is not run on pull requests; it runs over `main` every night, and a shard below its floor opens an issue. A pull
+request that touches the library is also fuzzed for a few minutes; [`fuzz/README.md`](fuzz/README.md) says how to
+replay an input it fails on.
 
 Why the checks are what they are is recorded in the [architecture decision records](docs/adr/README.md), notably
 [quality gates](docs/adr/0007-quality-gates.md) and [performance targets](docs/adr/0009-performance-targets.md).

@@ -181,7 +181,7 @@ internal sealed class PdfParser(byte[] data, int position = 0)
 
             if (value is >= (byte)'0' and <= (byte)'9')
                 digits++;
-            else if (value == '.')
+            else if (value == '.' && integer)
                 integer = false;
             else if (!(index == 0 && value is (byte)'+' or (byte)'-'))
                 throw Damaged($"'{Text(token)}' at {start} is neither a number nor a keyword an object can be");

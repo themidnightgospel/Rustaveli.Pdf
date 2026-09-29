@@ -21,7 +21,7 @@
   [encryption](how-it-works/encryption.md)
 - [Existing files](how-it-works/existing-files.md) — reading, repairing, combining and protecting PDF files
 - [Page images and preview](how-it-works/rendering-and-preview.md) — Skia rendering and the live preview
-- [How it's tested](testing.md) — unit, property-based, integration, conformance and mutation tests
+- [How it's tested](testing.md) — unit, property-based, integration, conformance and mutation tests, and fuzzing
 - [Performance](performance.md) — benchmarks and file sizes against QuestPDF
 - [Architecture decision records](adr/README.md) — the choices behind the design, and why
 - [Parity checklist](parity/PARITY.md) — each of QuestPDF's capabilities and where it is covered

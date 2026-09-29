@@ -98,8 +98,9 @@ internal sealed class SvgReader
         {
             // User units are CSS pixels; the artwork is measured in points.
             art.Scale(SvgLength.PointsPerPixel, SvgLength.PointsPerPixel);
-            MapViewBox(art, root, viewBox, width, height);
-            Render(root, style, 1, art, 0, children: true);
+
+            if (MapViewBox(art, root, viewBox, width, height))
+                Render(root, style, 1, art, 0, children: true);
         });
     }
 
@@ -125,17 +126,22 @@ internal sealed class SvgReader
                 style[property.Key] = property.Value;
         }
 
-        float opacity = parentOpacity * Fraction(Value(declared, "opacity"), 1);
+        float opacity = parentOpacity * Opacity(Value(declared, "opacity"));
         Matrix? transform = SvgTransform.Read((string?)element.Attribute("transform"));
         string? clip = Value(declared, "clip-path");
         VectorPath? clipPath = clip is null ? null : ClipPathOf(clip, depth);
+
+        // An element whose transform or clip reaches beyond what a PDF can write is left out.
+        if ((transform is { } matrix && !SvgTransform.IsWritable(matrix)) || clipPath is { IsWritable: false })
+            return;
+
         bool scoped = transform is not null || clipPath is not null || name == "svg" && depth > 0 || name == "use";
 
         if (scoped)
             art.SaveState();
 
-        if (transform is { } matrix)
-            art.Transform(matrix.A, matrix.B, matrix.C, matrix.D, matrix.E, matrix.F);
+        if (transform is { } writable)
+            art.Transform(writable.A, writable.B, writable.C, writable.D, writable.E, writable.F);
 
         if (clipPath is not null)
             art.Clip(clipPath, Value(style, "clip-rule") == "evenodd" ? FillRule.EvenOdd : FillRule.NonZero);
@@ -190,7 +196,9 @@ internal sealed class SvgReader
 
         art.Translate(x, y);
         art.Clip(new VectorPath().AddRectangle(0, 0, width, height));
-        MapViewBox(art, element, viewBox, width, height);
+
+        if (!MapViewBox(art, element, viewBox, width, height))
+            return;
 
         foreach (XElement child in element.Elements())
             Render(child, style, opacity, art, depth + 1);
@@ -206,8 +214,8 @@ internal sealed class SvgReader
         // A symbol is drawn as a group of its children; anything else as itself.
         if (target.Name.LocalName == "symbol")
         {
-            MapViewBox(art, target, ViewBox(target), SvgLength.Read((string?)element.Attribute("width"), 100, ViewBox(target)?[2] ?? 100), SvgLength.Read((string?)element.Attribute("height"), 100, ViewBox(target)?[3] ?? 100));
-            Render(target, style, opacity, art, depth + 1, children: true);
+            if (MapViewBox(art, target, ViewBox(target), SvgLength.Read((string?)element.Attribute("width"), 100, ViewBox(target)?[2] ?? 100), SvgLength.Read((string?)element.Attribute("height"), 100, ViewBox(target)?[3] ?? 100)))
+                Render(target, style, opacity, art, depth + 1, children: true);
         }
         else
         {
@@ -235,7 +243,7 @@ internal sealed class SvgReader
         TypeStyle type = TypeStyle.Default
             .WithTypeface(families.Length > 0 ? families[0] : "sans-serif", families.Skip(1).ToArray())
             .WithPointSize(size)
-            .WithInk(fill.WithOpacity(fill.Opacity * opacity * Fraction(Value(style, "fill-opacity"), 1)));
+            .WithInk(fill.WithOpacity(fill.Opacity * opacity * Opacity(Value(style, "fill-opacity"))));
 
         string weight = Value(style, "font-weight") ?? "normal";
         if (weight is "bold" or "bolder" || (int.TryParse(weight, out int numeric) && numeric >= 600))
@@ -281,14 +289,15 @@ internal sealed class SvgReader
 
     private void Paint(VectorPath path, Dictionary<string, string> style, float opacity, ArtworkComposer art, bool open)
     {
-        if (Value(style, "visibility") is "hidden" or "collapse")
+        // A shape reaching beyond what a PDF can write, as a circle about a centre near that does, is left out.
+        if (Value(style, "visibility") is "hidden" or "collapse" || !path.IsWritable)
             return;
 
         // A line or polyline has no inside to fill.
         if (!open)
         {
             FillRule rule = Value(style, "fill-rule") == "evenodd" ? FillRule.EvenOdd : FillRule.NonZero;
-            float fillOpacity = opacity * Fraction(Value(style, "fill-opacity"), 1);
+            float fillOpacity = opacity * Opacity(Value(style, "fill-opacity"));
 
             switch (Resolve(Value(style, "fill") ?? "black", style, fillOpacity))
             {
@@ -296,7 +305,7 @@ internal sealed class SvgReader
                     art.Fill(path, ink, rule);
                     break;
 
-                case Gradient gradient:
+                case Gradient gradient when ArtworkComposer.CanLay(gradient, path):
                     art.Fill(path, gradient, rule);
                     break;
             }
@@ -314,7 +323,7 @@ internal sealed class SvgReader
             Fraction(Value(style, "stroke-miterlimit"), 4),
             Dashes(Value(style, "stroke-dasharray")),
             SvgLength.Read(Value(style, "stroke-dashoffset"), 100, 0));
-        float strokeOpacity = opacity * Fraction(Value(style, "stroke-opacity"), 1);
+        float strokeOpacity = opacity * Opacity(Value(style, "stroke-opacity"));
 
         switch (Resolve(Value(style, "stroke") ?? "none", style, strokeOpacity))
         {
@@ -322,7 +331,7 @@ internal sealed class SvgReader
                 art.Stroke(path, ink, line);
                 break;
 
-            case Gradient gradient:
+            case Gradient gradient when ArtworkComposer.CanLay(gradient, path):
                 art.Stroke(path, gradient, line);
                 break;
         }
@@ -416,7 +425,7 @@ internal sealed class SvgReader
                     Dictionary<string, string> declared = Declared(stop);
                     float position = Math.Max(last, Math.Min(1, Math.Max(0, SvgLength.Fraction((string?)stop.Attribute("offset"), 0))));
                     Ink ink = SolidPaint(Value(declared, "stop-color") ?? "black", declared) ?? Ink.Rgb(0, 0, 0);
-                    read.Add(new GradientStop(position, ink.WithOpacity(ink.Opacity * opacity * Fraction(Value(declared, "stop-opacity"), 1))));
+                    read.Add(new GradientStop(position, ink.WithOpacity(ink.Opacity * opacity * Opacity(Value(declared, "stop-opacity")))));
                     last = position;
                 }
 
@@ -608,11 +617,15 @@ internal sealed class SvgReader
         return values.Count == 4 && values[2] > 0 && values[3] > 0 ? values.ToArray() : null;
     }
 
-    /// <summary>Maps a view box into a viewport of <paramref name="width"/> by <paramref name="height"/>, as its aspect ratio setting says.</summary>
-    private static void MapViewBox(ArtworkComposer art, XElement element, float[]? viewBox, float width, float height)
+    /// <summary>
+    /// Maps a view box into a viewport of <paramref name="width"/> by <paramref name="height"/>, as its aspect ratio
+    /// setting says: false, with nothing mapped, when the view box is too small beside the viewport for a PDF to write
+    /// the scale, and what it holds is left out.
+    /// </summary>
+    private static bool MapViewBox(ArtworkComposer art, XElement element, float[]? viewBox, float width, float height)
     {
         if (viewBox is null)
-            return;
+            return true;
 
         string[] aspect = ((string?)element.Attribute("preserveAspectRatio") ?? "xMidYMid meet").Split([' '], StringSplitOptions.RemoveEmptyEntries);
         float scaleX = width / viewBox[2];
@@ -620,9 +633,12 @@ internal sealed class SvgReader
 
         if (aspect.Length > 0 && aspect[0] == "none")
         {
+            if (!Writable.Is(scaleX) || !Writable.Is(scaleY))
+                return false;
+
             art.Scale(scaleX, scaleY);
             art.Translate(-viewBox[0], -viewBox[1]);
-            return;
+            return true;
         }
 
         string align = aspect.Length > 0 ? aspect[0] : "xMidYMid";
@@ -633,9 +649,13 @@ internal sealed class SvgReader
         float alignX = align.Contains("xMid") ? 0.5f : align.Contains("xMax") ? 1 : 0;
         float alignY = align.Contains("YMid") ? 0.5f : align.Contains("YMax") ? 1 : 0;
 
+        if (!Writable.Is(scale) || !Writable.Is(spareX * alignX) || !Writable.Is(spareY * alignY))
+            return false;
+
         art.Translate(spareX * alignX, spareY * alignY);
         art.Scale(scale, scale);
         art.Translate(-viewBox[0], -viewBox[1]);
+        return true;
     }
 
     private static List<float>? Dashes(string? text)
@@ -656,6 +676,9 @@ internal sealed class SvgReader
     }
 
     private static float Fraction(string? text, float fallback) => Math.Max(0, SvgLength.Fraction(text, fallback));
+
+    /// <summary>An opacity, fully opaque when none is given, and clamped to the range from 0 to 1 as SVG clamps it.</summary>
+    private static float Opacity(string? text) => Math.Min(1, Fraction(text, 1));
 
     private static string? Value(Dictionary<string, string> style, string name) =>
         style.TryGetValue(name, out string? value) ? value : null;

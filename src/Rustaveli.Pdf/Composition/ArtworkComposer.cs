@@ -9,6 +9,8 @@ namespace Rustaveli.Pdf;
 /// </summary>
 public sealed class ArtworkComposer
 {
+    private const string WritableNumbers = "Artwork is drawn with numbers a PDF can hold: finite, and below 10^15 in magnitude.";
+
     private readonly List<Action<ISurface, ITypeMeasurer>> _steps = [];
     private int _saved;
 
@@ -34,42 +36,62 @@ public sealed class ArtworkComposer
     }
 
     /// <summary>Moves the origin by (<paramref name="x"/>, <paramref name="y"/>).</summary>
-    public void Translate(float x, float y) => _steps.Add((surface, _) => surface.Translate(new Offset(x, y)));
+    public void Translate(float x, float y)
+    {
+        RequireWritable(x, nameof(x));
+        RequireWritable(y, nameof(y));
+        _steps.Add((surface, _) => surface.Translate(new Offset(x, y)));
+    }
 
     /// <summary>Scales what follows, across and down.</summary>
-    public void Scale(float x, float y) => _steps.Add((surface, _) => surface.Scale(x, y));
+    public void Scale(float x, float y)
+    {
+        RequireWritable(x, nameof(x));
+        RequireWritable(y, nameof(y));
+        _steps.Add((surface, _) => surface.Scale(x, y));
+    }
 
     /// <summary>Turns what follows by <paramref name="degrees"/>, clockwise about the origin.</summary>
-    public void Rotate(float degrees) => _steps.Add((surface, _) => surface.Rotate(degrees));
+    public void Rotate(float degrees)
+    {
+        RequireWritable(degrees, nameof(degrees));
+        _steps.Add((surface, _) => surface.Rotate(degrees));
+    }
 
     /// <summary>
     /// Transforms what follows by the matrix mapping (x, y) to (a·x + c·y + e, b·x + d·y + f), as SVG's
     /// <c>matrix(a b c d e f)</c> does.
     /// </summary>
-    public void Transform(float a, float b, float c, float d, float e, float f) =>
+    public void Transform(float a, float b, float c, float d, float e, float f)
+    {
+        RequireWritable(a, nameof(a));
+        RequireWritable(b, nameof(b));
+        RequireWritable(c, nameof(c));
+        RequireWritable(d, nameof(d));
+        RequireWritable(e, nameof(e));
+        RequireWritable(f, nameof(f));
         _steps.Add((surface, _) => surface.Concatenate(a, b, c, d, e, f));
+    }
 
     /// <summary>Confines what follows, until the next <see cref="RestoreState"/>, to the inside of <paramref name="path"/>.</summary>
     public void Clip(VectorPath path, FillRule rule = FillRule.NonZero)
     {
-        ArgumentNullException.ThrowIfNull(path);
+        RequireWritable(path);
         _steps.Add((surface, _) => surface.ClipPath(path, rule));
     }
 
     /// <summary>Fills <paramref name="path"/> with <paramref name="ink"/>.</summary>
     public void Fill(VectorPath path, Ink ink, FillRule rule = FillRule.NonZero)
     {
-        ArgumentNullException.ThrowIfNull(path);
+        RequireWritable(path);
         _steps.Add((surface, _) => surface.FillPath(path, ink, rule));
     }
 
     /// <summary>Fills <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
     public void Fill(VectorPath path, Gradient gradient, FillRule rule = FillRule.NonZero)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(gradient);
-
-        (Offset position, Extent size) = path.Bounds();
+        RequireWritable(path);
+        (Offset position, Extent size) = RequireWritable(gradient, path);
         _steps.Add((surface, _) =>
         {
             surface.BeginGradient(gradient, position, size);
@@ -81,17 +103,17 @@ public sealed class ArtworkComposer
     /// <summary>Strokes <paramref name="path"/> with <paramref name="ink"/>, as <paramref name="style"/> says.</summary>
     public void Stroke(VectorPath path, Ink ink, LineStyle style)
     {
-        ArgumentNullException.ThrowIfNull(path);
+        RequireWritable(path);
+        RequireWritable(style);
         _steps.Add((surface, _) => surface.StrokePath(path, ink, style));
     }
 
     /// <summary>Strokes <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
     public void Stroke(VectorPath path, Gradient gradient, LineStyle style)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(gradient);
-
-        (Offset position, Extent size) = path.Bounds();
+        RequireWritable(path);
+        RequireWritable(style);
+        (Offset position, Extent size) = RequireWritable(gradient, path);
         _steps.Add((surface, _) =>
         {
             surface.BeginGradient(gradient, position, size);
@@ -108,10 +130,17 @@ public sealed class ArtworkComposer
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
+        RequireWritable(x, nameof(x));
+        RequireWritable(y, nameof(y));
+        RequireWritable(style.PointSize, nameof(style));
         _steps.Add((surface, measurer) =>
         {
-            float shift = anchor == TextAnchor.Start ? 0 : measurer.MeasureWidth(text, style) * (anchor == TextAnchor.Middle ? 0.5f : 1f);
-            surface.DrawText(text, new Offset(x - shift, y), style);
+            float width = measurer.MeasureWidth(text, style);
+            float start = x - (anchor == TextAnchor.Start ? 0 : width * (anchor == TextAnchor.Middle ? 0.5f : 1f));
+
+            // Text so large that its glyphs would be placed beyond the numbers a PDF can hold is left out.
+            if (Writable.Is(start) && Writable.Is(start + width))
+                surface.DrawText(text, new Offset(start, y), style);
         });
     }
 
@@ -119,6 +148,10 @@ public sealed class ArtworkComposer
     public void Image(IImage image, float x, float y, float width, float height)
     {
         ArgumentNullException.ThrowIfNull(image);
+        RequireWritable(x, nameof(x));
+        RequireWritable(y, nameof(y));
+        RequireWritable(width, nameof(width));
+        RequireWritable(height, nameof(height));
         _steps.Add((surface, _) =>
         {
             surface.Save();
@@ -135,5 +168,47 @@ public sealed class ArtworkComposer
             _steps.Add(static (surface, _) => surface.Restore());
 
         return _steps.ToArray();
+    }
+
+    /// <summary>
+    /// Whether <paramref name="gradient"/> can be laid across <paramref name="path"/>: its axis, from the path's bounds,
+    /// can be written to a PDF. Gradients read from outside are checked with this before they are drawn.
+    /// </summary>
+    internal static bool CanLay(Gradient gradient, VectorPath path)
+    {
+        (Offset position, Extent size) = path.Bounds();
+        (Offset start, Offset end) = gradient.Axis(position, size);
+        return Writable.Is(start) && Writable.Is(end);
+    }
+
+    private static void RequireWritable(float value, string name)
+    {
+        if (!Writable.Is(value))
+            throw new ArgumentOutOfRangeException(name, value, WritableNumbers);
+    }
+
+    private static void RequireWritable(VectorPath path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        if (!path.IsWritable)
+            throw new ArgumentOutOfRangeException(nameof(path), "Every point of a path is a number a PDF can hold: finite, and below 10^15 in magnitude.");
+    }
+
+    private static void RequireWritable(LineStyle style)
+    {
+        if (!Writable.Is(style.Weight) || !Writable.Is(style.MiterLimit) || !Writable.Is(style.DashOffset) || (style.Dashes is { } dashes && !dashes.All(Writable.Is)))
+            throw new ArgumentOutOfRangeException(nameof(style), "A line's weight, miter limit and dashes are numbers a PDF can hold: finite, and below 10^15 in magnitude.");
+    }
+
+    /// <summary>The bounds of <paramref name="path"/>, across which <paramref name="gradient"/> is laid.</summary>
+    private static (Offset Position, Extent Size) RequireWritable(Gradient gradient, VectorPath path)
+    {
+        ArgumentNullException.ThrowIfNull(gradient);
+
+        if (!CanLay(gradient, path))
+            throw new ArgumentOutOfRangeException(nameof(gradient), "The gradient, laid across this path, reaches beyond the numbers a PDF can hold: finite, and below 10^15 in magnitude.");
+
+        return path.Bounds();
     }
 }

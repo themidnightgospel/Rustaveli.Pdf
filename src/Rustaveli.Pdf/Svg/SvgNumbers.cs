@@ -81,7 +81,14 @@ internal sealed class SvgNumbers(string text)
             throw new FormatException($"A number was expected at {start} in \"{text}\".");
         }
 
-        return float.Parse(text.Substring(start, _position - start), NumberStyles.Float, CultureInfo.InvariantCulture);
+        // Too large for a PDF, or even a float: .NET Framework fails to parse the second, later runtimes read it as infinity.
+        if (!float.TryParse(text.Substring(start, _position - start), NumberStyles.Float, CultureInfo.InvariantCulture, out float number) || !Writable.Is(number))
+        {
+            _position = start;
+            throw new FormatException($"The number at {start} in \"{text}\" is too large to draw with.");
+        }
+
+        return number;
     }
 
     /// <summary>An arc's flag: a single 0 or 1, which may run straight into what follows it.</summary>

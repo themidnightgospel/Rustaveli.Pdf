@@ -27,6 +27,13 @@ public sealed class VectorPath
     /// <summary>The points each verb takes, in order: one for a move or line, three for a curve, none for a close.</summary>
     internal IReadOnlyList<Offset> Points => _points;
 
+    /// <summary>
+    /// Whether every point can be written to a PDF. Coordinates are not checked as they are added, since a path built
+    /// from numbers that can be written may still reach beyond them, as a circle's edge does about a far centre; the
+    /// path is checked where it is drawn.
+    /// </summary>
+    internal bool IsWritable => _points.TrueForAll(Writable.Is);
+
     /// <summary>Starts a new figure at (<paramref name="x"/>, <paramref name="y"/>).</summary>
     public VectorPath MoveTo(float x, float y)
     {

@@ -202,6 +202,32 @@ public class PdfFileTests
     }
 
     [Fact]
+    public void AFileProtectedByAnotherSecurityHandlerIsNotOpened()
+    {
+        byte[] data = PdfFile.Open(Pages("One")).Protect(new Protection { OwnerPassword = "owner" }).ToArray();
+        string text = System.Text.Encoding.Latin1.GetString(data);
+
+        // Renamed in place, the same length, so that the file is otherwise sound.
+        byte[] other = System.Text.Encoding.Latin1.GetBytes(text.Replace("/Filter/Standard", "/Filter/Standarx"));
+
+        Assert.NotEqual(text, System.Text.Encoding.Latin1.GetString(other));
+        Assert.Throws<NotSupportedException>(() => PdfFile.Open(other));
+    }
+
+    [Fact]
+    public void AFileWhoseKeyIsLostIsUnreadable()
+    {
+        byte[] data = PdfFile.Open(Pages("One")).Protect(new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.AesWith256Bits }).ToArray();
+        string text = System.Text.Encoding.Latin1.GetString(data);
+
+        // Renamed in place, as the handler is above: the owner's password is right, but the key it unwraps is gone.
+        byte[] lost = System.Text.Encoding.Latin1.GetBytes(text.Replace("/OE<", "/OX<"));
+
+        Assert.NotEqual(text, System.Text.Encoding.Latin1.GetString(lost));
+        Assert.Throws<UnreadableFileException>(() => PdfFile.Open(lost, "owner"));
+    }
+
+    [Fact]
     public void AFileOfNoPagesCannotBeSaved()
     {
         PdfFile file = PdfFile.Open(Pages("One"));

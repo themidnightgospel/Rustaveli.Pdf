@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Fuzz targets for the parsers that read what comes from outside a program: fonts, images, SVG and PDF files.
+    Run by libFuzzer through SharpFuzz; see fuzz/README.md and .github/workflows/fuzz.yml.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Rustaveli.Pdf.Fuzzing</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rustaveli.Pdf\Rustaveli.Pdf.csproj" />
+    <ProjectReference Include="..\..\src\Rustaveli.Pdf.Operations\Rustaveli.Pdf.Operations.csproj" />
+    <PackageReference Include="SharpFuzz" />
+  </ItemGroup>
+
+</Project>

@@ -27,8 +27,9 @@ internal static class SvgPathData
                 break;
 
             char next = numbers.Peek();
+            bool named = char.IsLetter(next) && next is not ('e' or 'E');
 
-            if (char.IsLetter(next) && next is not ('e' or 'E'))
+            if (named)
             {
                 command = next;
                 numbers.Advance();
@@ -132,7 +133,9 @@ internal static class SvgPathData
                         break;
                     }
 
-                    case 'Z':
+                    // A close takes no numbers, so it does not repeat as the others do: anything after it but a command
+                    // is an error, and reading stops there rather than closing over and over.
+                    case 'Z' when named:
                         path.Close();
                         (x, y) = (startX, startY);
                         break;
