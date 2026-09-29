@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Layout;
 #if NETFRAMEWORK
@@ -106,8 +107,25 @@ public class PreviewTests
 
         string state = await Get(session, "/state");
 
-        Assert.Contains("\"error\":\"InvalidOperationException: Not written yet\\n\\nFormatException: bad date\"", state, StringComparison.Ordinal);
+        // Each exception says where it was thrown in the composing code; the one caused by it here never was.
+        Assert.Contains("\"error\":\"InvalidOperationException: Not written yet\\n   at Rustaveli.Pdf.IntegrationTests.PreviewTests.", state, StringComparison.Ordinal);
+        Assert.Contains("\\n\\nFormatException: bad date\"", state, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task AFailureShowsWhereInTheComposingCodeItWasThrown()
+    {
+        using PreviewSession session = Start(ComposeUnfinished);
+
+        string state = await Get(session, "/state");
+
+        Assert.Matches(
+            "\"error\":\"InvalidOperationException: Not written yet\\\\n   at Rustaveli\\.Pdf\\.IntegrationTests\\.PreviewTests\\.ComposeUnfinished\\(\\) in [^\"]*PreviewTests\\.cs:line \\d+\"",
+            state);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Document ComposeUnfinished() => throw new InvalidOperationException("Not written yet");
 
     [Fact]
     public async Task AComposeFunctionThatReturnsNoDocumentIsAFailure()

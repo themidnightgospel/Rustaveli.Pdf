@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Reflection;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -137,9 +139,33 @@ public sealed class PreviewSession : IDisposable
                 text.Append("\n\n");
 
             text.Append(current.GetType().Name).Append(": ").Append(current.Message);
+
+            foreach (string frame in CallerFrames(current))
+                text.Append('\n').Append(frame);
         }
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// Where <paramref name="exception"/> was thrown in the code that composes the document, innermost first: the frames
+    /// of its stack that have a source line, which .NET's own do not, outside this library. They are what a writer
+    /// needs to find the line at fault; the type and message alone rarely say.
+    /// </summary>
+    private static IEnumerable<string> CallerFrames(Exception exception)
+    {
+        Assembly[] library = [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(PreviewSession).Assembly];
+
+        // .NET Framework has no frames at all, not an empty list, for an exception that was never thrown.
+        foreach (StackFrame frame in new StackTrace(exception, fNeedFileInfo: true).GetFrames() ?? [])
+        {
+            if (frame.GetFileName() is not { } file || frame.GetMethod() is not { DeclaringType: { } type } method || library.Contains(type.Assembly))
+                continue;
+
+            string parameters = string.Join(", ", method.GetParameters().Select(parameter => parameter.ParameterType.Name));
+            // Nested types, a lambda's among them, are named with dots, as .NET's own stack traces name them.
+            yield return FormattableString.Invariant($"   at {type.ToString().Replace('+', '.')}.{method.Name}({parameters}) in {file}:line {frame.GetFileLineNumber()}");
+        }
     }
 
     private static int FreePort()
