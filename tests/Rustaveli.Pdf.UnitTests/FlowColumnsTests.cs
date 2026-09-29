@@ -216,6 +216,20 @@ public class FlowColumnsTests
         Assert.Equal(["2", "2"], pages.Select(page => page.Content));
     }
 
+    [Fact]
+    public void BalancingSavesWhereTheStoryHadGotOnceNotForEveryTrial()
+    {
+        // Every trial starts from the same place, so one copy of the story's progress serves them all; taking a copy
+        // walks the whole story.
+        SavingCounted story = new SavingCounted { Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
+        FlowColumnsBlock columns = new FlowColumnsBlock { Count = 2, Gutter = 10, Balanced = true, Story = story };
+
+        Fit plan = LayoutHarness.Measure(columns, new Extent(100, 90));
+
+        Assert.Equal(60f, plan.Size.Height, 0.01f);
+        Assert.Equal(1, story.Saves);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -229,5 +243,17 @@ public class FlowColumnsTests
 
         // Once for each column the story is drawn in, and none for the pours that only tried it.
         Assert.Equal([new Offset(0, 0), new Offset(55, 0)], context.Pagination.PositionsOf("story").Select(captured => captured.Position));
+    }
+
+    /// <summary>Content that counts how often a copy of its progress is taken.</summary>
+    private sealed class SavingCounted : EnclosingBlock
+    {
+        public int Saves { get; private set; }
+
+        protected override object? SaveOwnProgress()
+        {
+            Saves++;
+            return null;
+        }
     }
 }

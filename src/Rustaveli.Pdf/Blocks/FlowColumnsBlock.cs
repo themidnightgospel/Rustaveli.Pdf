@@ -110,6 +110,10 @@ internal sealed class FlowColumnsBlock : Block
         using CountingPageSink nowhere = new CountingPageSink();
         RenderContext ahead = new RenderContext(nowhere, context) { DrawsAhead = true };
 
+        // Every trial starts where the story has got to and returns it there, so one copy of that serves them all:
+        // taking it walks the whole story.
+        Progress saved = Story!.SaveProgress();
+
         Pour full = Trial(height);
 
         if (!Balanced || !full.Done || Count < 2)
@@ -140,8 +144,6 @@ internal sealed class FlowColumnsBlock : Block
 
         Pour Trial(float columnHeight)
         {
-            Progress saved = Story!.SaveProgress();
-
             try
             {
                 return Flow(width, columnHeight, context, ahead, static _ => Offset.Zero);

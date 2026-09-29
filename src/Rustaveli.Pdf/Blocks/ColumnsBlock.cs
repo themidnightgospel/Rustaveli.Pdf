@@ -41,11 +41,15 @@ internal sealed class ColumnsBlock : Block
         _cachedAvailableWidth = float.NaN;
     }
 
-    // The completion flags change in place, so they are copied; the widths are replaced whole, never changed.
+    // The completion flags change in place, so they are copied, both ways: returned to, the saved copy must stay as it
+    // was for the next return to it. The widths are replaced whole, never changed.
     protected override object? SaveOwnProgress() => (_completed?.ToArray(), _cachedWidths, _cachedAvailableWidth);
 
-    protected override void RestoreOwnProgress(object progress) =>
-        (_completed, _cachedWidths, _cachedAvailableWidth) = ((bool[]?, float[]?, float))progress;
+    protected override void RestoreOwnProgress(object progress)
+    {
+        (bool[]? completed, _cachedWidths, _cachedAvailableWidth) = ((bool[]?, float[]?, float))progress;
+        _completed = completed?.ToArray();
+    }
 
     /// <summary>Lazily sizes the per-item completion flags to the current item count.</summary>
     private bool[] Completion()
