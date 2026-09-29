@@ -45,7 +45,8 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
 
         Fit plan = Child.Plan(Unscale(availableSpace, scale.Value), context);
 
-        if (plan.IsDeferred || plan.IsNothing)
+        // The scale is one the content was found to fit at, so it is drawn whole there or has nothing left to draw.
+        if (plan.IsNothing)
             return plan;
 
         Extent size = new Extent(plan.Size.Width * scale.Value, plan.Size.Height * scale.Value);

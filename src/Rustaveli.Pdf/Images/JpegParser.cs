@@ -58,6 +58,15 @@ internal static class JpegParser
                 throw new ImageFormatException("The JPEG ends before any image data.");
 
             ReadOnlySpan<byte> segment = ReadSegment(data, ref position);
+
+            // The first scan ends the headers: everything describing the image has been read by then.
+            if (marker == StartOfScan)
+            {
+                if (frame == null)
+                    throw new ImageFormatException("The JPEG image data starts before its frame header.");
+                return Build(source, frame.Value, hasAdobe, hasJfif, orientation, iccChunks);
+            }
+
             switch (marker)
             {
                 case Baseline:
@@ -83,11 +92,6 @@ internal static class JpegParser
                         $"The JPEG uses coding process SOF{marker - 0xC0} (lossless, hierarchical or " +
                         "arithmetic-coded), which PDF readers are not required to decode; only baseline, extended " +
                         "and progressive Huffman-coded JPEGs can be embedded.");
-
-                case StartOfScan:
-                    if (frame == null)
-                        throw new ImageFormatException("The JPEG image data starts before its frame header.");
-                    return Build(source, frame.Value, hasAdobe, hasJfif, orientation, iccChunks);
 
                 case App0:
                     hasJfif |= segment.StartsWith("JFIF\0"u8);

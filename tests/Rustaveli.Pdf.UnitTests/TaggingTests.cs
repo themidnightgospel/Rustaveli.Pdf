@@ -210,6 +210,32 @@ public class TaggingTests
     }
 
     [Fact]
+    public void ASpanGoingOnToAnotherPageIsStillOne()
+    {
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+            frame => frame.Tagged(ContentTag.Paragraph).Language("ka").Text(text =>
+            {
+                for (int line = 1; line <= 30; line++)
+                    text.Line("Line " + line);
+            }),
+            new Extent(300, 60),
+            pages: 3);
+
+        Assert.Equal("Document(P(Span))", Tree(root));
+        Assert.All(Texts(surface), text => Assert.Equal("Span", text.Role));
+        Assert.Contains(surface.Pages[1].Operations, operation => operation is TextOperation);
+    }
+
+    [Fact]
+    public void ALanguageInUntaggedOutputOnlyDrawsItsContent()
+    {
+        RecordedPage page = LayoutHarness.Draw(frame => frame.Tagged(ContentTag.Paragraph).Language("ka").Text("გამარჯობა"), Page);
+
+        Assert.Empty(page.Operations.OfType<TagOperation>());
+        Assert.Equal("გამარჯობა", Assert.Single(page.Operations.OfType<TextOperation>()).Text);
+    }
+
+    [Fact]
     public void ALanguageUntaggedChangesNothing()
     {
         (StructureElement root, _) = LayoutHarness.DrawTagged(frame => frame.Untagged().Language("ka").Text("გამარჯობა"), Page);

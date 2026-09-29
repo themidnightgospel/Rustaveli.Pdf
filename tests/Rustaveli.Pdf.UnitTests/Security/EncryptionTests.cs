@@ -151,13 +151,41 @@ public class EncryptionTests
         Assert.True(protection.EncryptMetadata);
     }
 
-    [Fact]
-    public void WithoutAnOwnerPasswordTheRestrictionsCannotBeLifted()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void WithoutAnOwnerPasswordTheRestrictionsCannotBeLifted(string? owner)
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", Encryption = EncryptionLevel.AesWith128Bits });
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = owner, Encryption = EncryptionLevel.AesWith128Bits });
 
         Assert.NotNull(Reopen(written, "user"));
         Assert.Null(Reopen(written, string.Empty));
+    }
+
+    [Theory]
+    [InlineData(EncryptionLevel.Rc4With40Bits)]
+    [InlineData(EncryptionLevel.Rc4With128Bits)]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    public void AUserEntryTooShortToCheckOpensToNeitherPassword(EncryptionLevel level)
+    {
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = level });
+        written.Dictionary[new PdfName("U")] = new PdfString(new byte[8], PdfStringForm.Hex);
+
+        Assert.Null(Reopen(written, "user"));
+        Assert.Null(Reopen(written, "owner"));
+    }
+
+    [Fact]
+    public void AVersion4FileWithoutItsStandardCryptFilterTakesTheKeyLengthFromItsDictionary()
+    {
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", Encryption = EncryptionLevel.AesWith128Bits });
+        written.Dictionary[new PdfName("CF")] = new PdfDictionary();
+
+        PdfEncryption opened = Reopen(written, "user")!;
+
+        Assert.NotNull(opened);
+        Assert.Equal(Text, opened.DecryptString(7, written.EncryptString(7, Text)));
+        Assert.Equal(Text, opened.DecryptStream(12, written.EncryptStream(12, Text)));
     }
 
     [Fact]
@@ -173,8 +201,10 @@ public class EncryptionTests
     public void OnlyTheStandardHandlerIsOpened()
     {
         PdfDictionary other = new PdfDictionary { [PdfNames.Filter] = new PdfName("Adobe.PubSec") };
+        PdfDictionary spelled = new PdfDictionary { [PdfNames.Filter] = PdfString.FromText("Standard") };
 
         Assert.Throws<NotSupportedException>(() => PdfEncryption.Open(other, [], string.Empty, value => value));
+        Assert.Throws<NotSupportedException>(() => PdfEncryption.Open(spelled, [], string.Empty, value => value));
         Assert.Throws<NotSupportedException>(() => PdfEncryption.Open(new PdfDictionary(), [], string.Empty, value => value));
     }
 

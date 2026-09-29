@@ -71,6 +71,17 @@ public class StrokeAndFillTests
     }
 
     [Fact]
+    public void TransparentFillPaintsOnlyTheContent()
+    {
+        FillBlock element = new FillBlock { Ink = TestInks.Transparent, Child = new FixedBlock(50, 20, TestInks.White) };
+
+        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
+        RectangleOperation only = Assert.IsType<RectangleOperation>(Assert.Single(page.Operations));
+
+        Assert.Equal(TestInks.White, only.Ink);
+    }
+
+    [Fact]
     public void FillWithoutContentPaintsOnlyItsOwnFill()
     {
         FillBlock element = new FillBlock { Ink = TestInks.Red };

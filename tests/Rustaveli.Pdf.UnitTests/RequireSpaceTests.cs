@@ -47,6 +47,19 @@ public class RequireSpaceTests
         Assert.True(LayoutHarness.Measure(element, new Extent(200, 30)).IsDeferred);
     }
 
+    [Theory]
+    [InlineData(nameof(FitKind.Defer))]
+    [InlineData(nameof(FitKind.Nothing))]
+    public void ContentWithNothingToDrawNeverCountsAsStarted(string outcome)
+    {
+        // A parent may draw with less room than it measured in, and the content may then have nothing to show.
+        RequireSpaceBlock element = new RequireSpaceBlock { MinHeight = 80, Child = ScriptedBlock.WithNothingToDraw(outcome) };
+
+        LayoutHarness.Draw(element, new Extent(200, 100));
+
+        Assert.Contains("was required before this content may start", LayoutHarness.Measure(element, new Extent(200, 40)).DeferReason);
+    }
+
     [Fact]
     public void MovesAHeadingToTheNextPageRatherThanStrandingIt()
     {

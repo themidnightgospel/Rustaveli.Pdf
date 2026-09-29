@@ -259,7 +259,7 @@ internal sealed class PdfFileWriter : IDisposable
     private static int ByteWidth(long value)
     {
         int width = 1;
-        while (width < 8 && value >> (8 * width) != 0)
+        for (ulong rest = (ulong)value >> 8; rest != 0; rest >>= 8)
             width++;
 
         return width;

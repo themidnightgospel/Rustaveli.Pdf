@@ -69,10 +69,12 @@ public class PathOutputTests
         Assert.DoesNotMatch(@"\sJ\s|\sj\s|\sd\s", content);
     }
 
-    [Fact]
-    public void APatternOfGapsAloneIsSolid()
+    [Theory]
+    [InlineData(new float[] { 0, 0 })]
+    [InlineData(new float[0])]
+    public void APatternOfGapsAloneOrOfNothingIsSolid(float[] dashes)
     {
-        string content = Content(surface => surface.StrokePath(Triangle, Red, new LineStyle(2, Dashes: [0, 0])));
+        string content = Content(surface => surface.StrokePath(Triangle, Red, new LineStyle(2, Dashes: dashes)));
 
         Assert.DoesNotMatch(@"\sd\s", content);
     }

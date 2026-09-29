@@ -125,7 +125,7 @@ internal sealed class PdfSurface : IPageSink
 
         if (_tagging)
         {
-            if (_pageMarks is { Count: > 0 } marks)
+            if (_pageMarks is { } marks)
             {
                 page.Entries[StructParents] = _nextParentKey;
                 _parents.Add(_nextParentKey++, marks);

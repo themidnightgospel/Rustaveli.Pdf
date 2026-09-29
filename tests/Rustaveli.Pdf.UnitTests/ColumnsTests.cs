@@ -216,6 +216,23 @@ public class ColumnsTests
     }
 
     [Fact]
+    public void AnItemWithNothingLeftIsNotDrawnAndLeavesTheRowToTheOthers()
+    {
+        ScriptedBlock finished = new ScriptedBlock(Fit.Nothing());
+        ColumnsBlock row = Row(0, Item(ColumnSizing.Share, 1, finished), Item(ColumnSizing.Share, 1, new FixedBlock(10, 30, TestInks.Blue)));
+        Extent space = new Extent(200, 60);
+
+        Fit plan = LayoutHarness.Measure(row, space);
+        RecordedPage page = LayoutHarness.Draw(row, space);
+
+        Assert.True(plan.IsComplete);
+        Approximately.Equal(new Extent(200, 30), plan.Size);
+        Assert.Empty(finished.DrawnWith);
+        Approximately.Equal(new Offset(100, 0), Assert.Single(page.Operations.OfType<RectangleOperation>()).Position);
+        Assert.True(LayoutHarness.Measure(row, space).IsNothing);
+    }
+
+    [Fact]
     public void AnItemThatCannotFitStopsTheWholeRowWithoutFinishingTheOthers()
     {
         // Nothing is drawn on the cramped page, so nothing may be marked finished either — otherwise the red
