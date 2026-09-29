@@ -51,7 +51,12 @@ public sealed class TableComposer
     /// </summary>
     internal void PlaceAutomaticCells()
     {
-        int columnCount = Math.Max(1, _block.Columns.Count);
+        // Cells without columns would pass placement as one column and then fail at export, saying only that the
+        // columns do not fit — nothing about the columns never having been declared.
+        if (_block.Columns.Count == 0 && (_block.Cells.Count > 0 || _block.HeaderCells.Count > 0 || _block.FooterCells.Count > 0))
+            throw new CompositionException("A table declares its columns with Columns(...) before its cells can be placed.");
+
+        int columnCount = _block.Columns.Count;
         CellPlacement.Apply(_block.Cells, columnCount, "body");
         CellPlacement.Apply(_block.HeaderCells, columnCount, "header");
         CellPlacement.Apply(_block.FooterCells, columnCount, "footer");
