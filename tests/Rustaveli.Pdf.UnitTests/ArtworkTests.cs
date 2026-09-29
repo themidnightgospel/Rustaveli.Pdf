@@ -144,6 +144,74 @@ public class ArtworkTests
     }
 
     [Fact]
+    public void TextReachingBeyondAPdfIsLeftOut()
+    {
+        // Thirty characters at 10^14 points: one and a half times 10^15 points wide, to the measurer used in tests.
+        string text = new string('a', 30);
+        TypeStyle huge = TypeStyle.Default.WithPointSize(1e14f);
+        Artwork artwork = Artwork.Draw(100, 100, art =>
+        {
+            art.Text(text, 50, 20, huge, TextAnchor.Middle);
+            art.Text(text, 50, 20, huge);
+            art.Text(text, -50, 20, huge, TextAnchor.End);
+        });
+
+        Assert.Equal(50 - 7.5e14, Assert.IsType<TextOperation>(Draw(artwork).Single()).Position.X, 1e9);
+    }
+
+    [Theory]
+    [InlineData(1e-14f, 1e-14f, ImageFitting.FitWidth)]
+    [InlineData(1f, 1e-14f, ImageFitting.Stretch)]
+    public void ArtworkTooSmallForAPdfToScaleIsLeftOut(float width, float height, ImageFitting fit) =>
+        Assert.Empty(Draw(Artwork.Draw(width, height, art => art.Fill(Square, TestInks.Red)), fit: fit));
+
+    [Fact]
+    public void ArtworkIsDrawnWithNumbersAPdfCanHold()
+    {
+        VectorPath across = new VectorPath().MoveTo(float.NaN, 0).LineTo(1, 1);
+        VectorPath down = new VectorPath().MoveTo(0, float.PositiveInfinity).LineTo(1, 1);
+        Gradient reaching = Gradient.Between(Offset.Zero, new Offset(1e38f, 0), ofBox: true, [new GradientStop(0, TestInks.Red), new GradientStop(1, TestInks.Black)]);
+        VectorPath wide = new VectorPath().AddRectangle(0, 0, 100, 10);
+
+        Artwork.Draw(10, 10, art =>
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Translate(float.NaN, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Translate(2e15f, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Text("text", 0, 0, TypeStyle.Default.WithPointSize(2e15f)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Translate(0, float.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Scale(float.PositiveInfinity, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Scale(1, float.NegativeInfinity));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Rotate(float.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Transform(float.NaN, 0, 0, 1, 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Transform(1, float.NaN, 0, 1, 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Transform(1, 0, float.NaN, 1, 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Transform(1, 0, 0, float.NaN, 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Transform(1, 0, 0, 1, float.NaN, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Transform(1, 0, 0, 1, 0, float.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Clip(across));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Fill(down, TestInks.Red));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Fill(across, Gradient.Across(TestInks.Red, TestInks.Black)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Fill(wide, reaching));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Stroke(down, TestInks.Red, new LineStyle(1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Stroke(wide, reaching, new LineStyle(1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Stroke(wide, TestInks.Red, new LineStyle(float.NaN)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Stroke(wide, TestInks.Red, new LineStyle(1, MiterLimit: float.PositiveInfinity)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Stroke(wide, TestInks.Red, new LineStyle(1, DashOffset: float.NaN)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Stroke(wide, TestInks.Red, new LineStyle(1, Dashes: [2, float.NaN])));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Stroke(wide, Gradient.Across(TestInks.Red, TestInks.Black), new LineStyle(float.NaN)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Text("text", float.NaN, 0, TypeStyle.Default));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Text("text", 0, float.NaN, TypeStyle.Default));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Image(new FakeImage(1, 1), float.NaN, 0, 1, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Image(new FakeImage(1, 1), 0, float.NaN, 1, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Image(new FakeImage(1, 1), 0, 0, float.NaN, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => art.Image(new FakeImage(1, 1), 0, 0, 1, float.NaN));
+
+            // Dashes are optional, and finite ones are fine.
+            art.Stroke(wide, TestInks.Red, new LineStyle(1, Dashes: [2, 1]));
+        });
+    }
+
+    [Fact]
     public void ARestoreNeedsASave() =>
         Assert.Throws<InvalidOperationException>(() => Artwork.Draw(10, 10, art => art.RestoreState()));
 

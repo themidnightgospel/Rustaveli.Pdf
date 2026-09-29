@@ -107,7 +107,18 @@ internal sealed class PdfSource
             ? pair.AsArray()[0].AsString().Bytes.ToArray()
             : [];
 
-        Encryption = PdfEncryption.Open(dictionary, id, password ?? string.Empty, Resolve) ?? throw new IncorrectPasswordException(
+        PdfEncryption? opened;
+
+        try
+        {
+            opened = PdfEncryption.Open(dictionary, id, password ?? string.Empty, Resolve);
+        }
+        catch (InvalidDataException exception)
+        {
+            throw new UnreadableFileException("The file is not a PDF this library can read: " + exception.Message, exception);
+        }
+
+        Encryption = opened ?? throw new IncorrectPasswordException(
             password is null ? "The file is protected by a password, and was opened without one." : "The password given does not open the file.");
 
         // Whatever was read to find the encryption was read before it could be decrypted.
@@ -513,11 +524,13 @@ internal sealed class PdfSource
             throw parser.Damaged("a cross-reference stream is not of type XRef");
 
         byte[] data = StreamDecoder.Decode(dictionary, StreamData(parser.Position, dictionary), value => value);
-        PdfArray widths = dictionary[W].AsArray();
-        int[] width = [(int)widths[0].AsInteger(), (int)widths[1].AsInteger(), (int)widths[2].AsInteger()];
+        int[] width = Widths(dictionary) ?? throw parser.Damaged("a cross-reference stream's /W does not give the widths of its three fields");
         int row = width[0] + width[1] + width[2];
-        long size = dictionary[PdfNames.Size].AsInteger();
-        PdfArray ranges = dictionary.TryGetValue(Index, out PdfValue given) ? given.AsArray() : new PdfArray(2) { 0, size };
+        PdfArray ranges = dictionary.TryGetValue(Index, out PdfValue given)
+            ? given.AsArray()
+            : dictionary.TryGetValue(PdfNames.Size, out PdfValue size) && size.Kind == PdfValueKind.Integer
+                ? new PdfArray(2) { 0, size.AsInteger() }
+                : throw parser.Damaged("a cross-reference stream has neither /Index nor /Size");
         int position = 0;
 
         for (int range = 0; range + 1 < ranges.Count; range += 2)
@@ -549,6 +562,31 @@ internal sealed class PdfSource
         // The stream itself is found by where it was read, whether or not it lists itself.
         Record((int)number, SourceEntry.At(offset));
         return dictionary;
+    }
+
+    /// <summary>
+    /// The widths of a cross-reference stream's three fields, from its /W: each at most the eight bytes a long holds,
+    /// and a row of at least one byte, so that reading its rows moves on through the stream. Null when /W is not that.
+    /// </summary>
+    private static int[]? Widths(PdfDictionary dictionary)
+    {
+        if (!dictionary.TryGetValue(W, out PdfValue value) || value.Kind != PdfValueKind.Array || value.AsArray().Count < 3)
+            return null;
+
+        int[] width = new int[3];
+
+        for (int field = 0; field < width.Length; field++)
+        {
+            PdfValue given = value.AsArray()[field];
+
+            // Unsigned, a negative width is too wide as well.
+            if (given.Kind != PdfValueKind.Integer || (ulong)given.AsInteger() > sizeof(long))
+                return null;
+
+            width[field] = (int)given.AsInteger();
+        }
+
+        return width.Sum() > 0 ? width : null;
     }
 
     private static long Field(byte[] data, int position, int width)

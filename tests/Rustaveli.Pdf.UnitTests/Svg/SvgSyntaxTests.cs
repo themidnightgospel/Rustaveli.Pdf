@@ -42,6 +42,20 @@ public class SvgSyntaxTests
         Assert.Throws<FormatException>(() => new SvgNumbers(" ").Next());
     }
 
+    [Theory]
+    [InlineData("2e15")]
+    [InlineData("-2e15")]
+    [InlineData("1e39")]
+    public void ANumberTooLargeForAPdfIsNoNumber(string text)
+    {
+        SvgNumbers numbers = new SvgNumbers(text);
+
+        Assert.Throws<FormatException>(() => numbers.Next());
+        Assert.Equal(text[0], numbers.Peek());
+        Assert.Equal([1f, 2f], new SvgNumbers("1 2 " + new string('9', 60) + " 3").Rest());
+        Assert.Equal(-9e14f, new SvgNumbers("-9e14").Next());
+    }
+
     [Fact]
     public void FlagsMayRunTogether()
     {
@@ -129,6 +143,13 @@ public class SvgSyntaxTests
         Assert.Equal(string.Empty, Describe(SvgPathData.Read("  ")));
     }
 
+    [Theory]
+    [InlineData("M0 0 L5 5 z 5")]
+    [InlineData("M0 0 L5 5 z ��")]
+    [InlineData("M0 0 L5 5 z.")]
+    public void ACloseDoesNotRepeat(string data) =>
+        Assert.Equal("M 0,0 | L 5,5 | C", Describe(SvgPathData.Read(data)));
+
     // ---- Transforms ------------------------------------------------------------------------------------------
 
     [Theory]
@@ -170,6 +191,26 @@ public class SvgSyntaxTests
     public void NothingReadableIsNoTransform(string? list) =>
         Assert.Null(SvgTransform.Read(list));
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void AMatrixWithAnyEntryBeyondAPdfIsNotWritable(int entry)
+    {
+        float[] values = [1, 0, 0, 1, 0, 0];
+        values[entry] = entry % 2 == 0 ? 2e15f : float.NaN;
+
+        Assert.True(SvgTransform.IsWritable(SvgTransform.Identity));
+        Assert.False(SvgTransform.IsWritable((values[0], values[1], values[2], values[3], values[4], values[5])));
+    }
+
+    [Fact]
+    public void WritableStepsCanMultiplyBeyondAPdf() =>
+        Assert.False(SvgTransform.IsWritable(SvgTransform.Read("scale(1e10) scale(1e10)")!.Value));
+
     // ---- Lengths ---------------------------------------------------------------------------------------------
 
     [Theory]
@@ -200,6 +241,10 @@ public class SvgSyntaxTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("auto")]
+    [InlineData("1e39")]
+    [InlineData("2e15")]
+    [InlineData("1e14in")]
+    [InlineData("-1e14em")]
     public void NoLengthIsTheFallback(string? text) =>
         Assert.Equal(-1f, SvgLength.Read(text, 200, -1));
 
@@ -208,6 +253,8 @@ public class SvgSyntaxTests
     [InlineData("25%", 0.25f)]
     [InlineData(null, 9f)]
     [InlineData("x", 9f)]
+    [InlineData("2e15", 9f)]
+    [InlineData("1e39%", 9f)]
     public void FractionsArePlainOrPercentages(string? text, float fraction) =>
         Assert.Equal(fraction, SvgLength.Fraction(text, 9));
 

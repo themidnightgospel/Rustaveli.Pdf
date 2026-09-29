@@ -218,6 +218,18 @@ public class SvgReaderTests
         Assert.Equal(0.25f, square.Ink.Opacity, 3);
     }
 
+    [Theory]
+    [InlineData("fill='red' opacity='5.7'")]
+    [InlineData("fill='red' fill-opacity='5.7'")]
+    [InlineData("fill='none' stroke='red' stroke-opacity='5.7'")]
+    [InlineData("fill='url(#g)'")]
+    public void AnOpacityBeyondOneIsOpaque(string attributes)
+    {
+        PathOperation square = Painted($"<linearGradient id='g'><stop stop-color='red' stop-opacity='5.7'/></linearGradient><rect width='5' height='5' {attributes}/>").Single();
+
+        Assert.Equal(1f, square.Ink.Opacity);
+    }
+
     [Fact]
     public void CurrentColourIsTheColourInForce()
     {
@@ -498,6 +510,34 @@ public class SvgReaderTests
     [InlineData("width='5' height='5'")]
     public void AnImageThatCannotBeReadHereIsLeftOut(string attributes) =>
         Assert.Empty(Draw($"<image {attributes}/>").OfType<ImageOperation>());
+
+    // ---- Overflow --------------------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("<circle cx='9e14' cy='5' r='9e14'/>")]
+    [InlineData("<rect width='5' height='5' transform='scale(1e10) scale(1e10)'/>")]
+    [InlineData("<clipPath id='c'><circle cx='9e14' cy='5' r='9e14'/></clipPath><rect width='5' height='5' clip-path='url(#c)'/>")]
+    [InlineData("<linearGradient id='g' x2='1e14'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient><rect width='50' height='5' fill='url(#g)'/>")]
+    [InlineData("<linearGradient id='g' x2='1e14'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient><rect width='50' height='5' fill='none' stroke='url(#g)'/>")]
+    [InlineData("<svg width='10' height='10' viewBox='0 0 1e-44 1e-44'><rect width='5' height='5'/></svg>")]
+    [InlineData("<symbol id='s' viewBox='0 0 1e-44 1e-44'><rect width='5' height='5'/></symbol><use href='#s' width='10' height='10'/>")]
+    public void WhatReachesBeyondAPdfIsLeftOut(string body)
+    {
+        Assert.Empty(Painted(body));
+        Assert.Single(Painted(body + "<rect width='5' height='5'/>"));
+    }
+
+    [Theory]
+    [InlineData("0 0 1e-44 1e-44", "xMidYMid")]
+    [InlineData("0 0 1e-44 10", "none")]
+    [InlineData("0 0 10 1e-44", "none")]
+    [InlineData("0 0 1e10 1e-10", "xMidYMid slice")]
+    [InlineData("0 0 1e-10 1e10", "xMidYMid slice")]
+    public void AViewBoxTooSmallToScaleDrawsNothing(string viewBox, string aspect)
+    {
+        Assert.Empty(Painted("<rect width='5' height='5'/>", $"width='100' height='100' viewBox='{viewBox}' preserveAspectRatio='{aspect}'"));
+        Assert.Single(Painted("<rect width='5' height='5'/>", $"width='100' height='100' viewBox='0 0 10 10' preserveAspectRatio='{aspect}'"));
+    }
 
     // ---- Depth -----------------------------------------------------------------------------------------------
 

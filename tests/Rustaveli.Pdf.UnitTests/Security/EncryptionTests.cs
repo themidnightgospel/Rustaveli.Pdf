@@ -175,6 +175,17 @@ public class EncryptionTests
         Assert.Null(Reopen(written, "owner"));
     }
 
+    [Theory]
+    [InlineData("OE", "owner")]
+    [InlineData("UE", "user")]
+    public void AKeyWrappedInTheWrongLengthIsDamage(string entry, string password)
+    {
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = EncryptionLevel.AesWith256Bits });
+        written.Dictionary[new PdfName(entry)] = new PdfString(new byte[31], PdfStringForm.Hex);
+
+        Assert.Throws<InvalidDataException>(() => Reopen(written, password));
+    }
+
     [Fact]
     public void AVersion4FileWithoutItsStandardCryptFilterTakesTheKeyLengthFromItsDictionary()
     {

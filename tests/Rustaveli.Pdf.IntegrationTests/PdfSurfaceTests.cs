@@ -629,6 +629,26 @@ public class PdfSurfaceTests
     }
 
     [Fact]
+    public void AGradientThatCannotBePlacedPaintsNothing()
+    {
+        VectorPath square = new VectorPath().AddRectangle(0, 0, 5, 5);
+
+        // Each scale is written as it is; together they reach beyond what a pattern's matrix can hold.
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.Scale(1e10f, 1e10f);
+            canvas.Scale(1e10f, 1e10f);
+            canvas.BeginGradient(Gradient.Across(Brick, Ocean), Offset.Zero, new Extent(5, 5));
+            canvas.FillPath(square, Brick, FillRule.NonZero);
+            canvas.StrokePath(square, Brick, new LineStyle(1));
+            canvas.EndGradient();
+            canvas.FillPath(square, Brick, FillRule.NonZero);
+        });
+
+        Assert.Single(parsed.GetPage(1).Paths);
+    }
+
+    [Fact]
     public void DrawImageRejectsAnImageItDidNotDecode()
     {
         using PdfDocument parsed = Render(canvas =>

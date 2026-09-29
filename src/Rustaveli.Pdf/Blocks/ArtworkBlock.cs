@@ -27,10 +27,17 @@ internal sealed class ArtworkBlock : Block
         if (!size.FitsIn(availableSpace))
             return;
 
-        Extent own = Artwork.Size;
+        float scaleX = size.Width / Artwork.Size.Width;
+        float scaleY = size.Height / Artwork.Size.Height;
+
+        // Artwork too small beside its frame for a PDF to hold the scale is left out: every coordinate inside it is
+        // below the writer's five decimals, and would be written as nought.
+        if (!Writable.Is(scaleX) || !Writable.Is(scaleY))
+            return;
+
         context.Surface.Save();
         context.Surface.ClipRectangle(size);
-        context.Surface.Scale(size.Width / own.Width, size.Height / own.Height);
+        context.Surface.Scale(scaleX, scaleY);
         Artwork.Render(context.Surface, context.Measurer);
         context.Surface.Restore();
     }

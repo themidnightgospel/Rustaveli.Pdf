@@ -53,6 +53,8 @@ public class PdfParserTests
     [InlineData("-")]
     [InlineData("1-2")]
     [InlineData("1.2.3x")]
+    [InlineData("403.1.7")]
+    [InlineData("1..2")]
     [InlineData("obj")]
     public void RefusesWhatIsNeitherANumberNorAValue(string text) => Assert.Throws<UnreadableFileException>(() => Read(text));
 

@@ -1,0 +1,153 @@
+# Coverage-guided fuzzing of everything that reads files from outside: fonts, PNG and JPEG images, SVG and PDF. libFuzzer
+# mutates a corpus of real files, guided by which branches of the instrumented library each input reaches, and stops at
+# the first input that throws what the reader does not document, hangs, or runs away with memory. See fuzz/README.md.
+#
+# A few minutes a target on each pull request that touches the library, longer every night. The corpus each run grows is
+# cached and carried into the next. An input that fails is uploaded as it is, to replay with fuzz/README.md's steps; a
+# failed night is filed as an issue. Set off the hour, and clear of the mutation run at 02:17.
+
+name: Fuzzing
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - 'fuzz/**'
+      - 'Directory.Packages.props'
+      - 'dotnet-tools.json'
+      - 'global.json'
+      - '.github/workflows/fuzz.yml'
+  schedule:
+    - cron: '43 3 * * *'
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds to fuzz each target for
+        default: '600'
+
+concurrency:
+  group: fuzz-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # libFuzzer's driver for .NET, which runs the fuzzing program and reads the coverage it reports. Its releases publish
+  # no digest, so the one this was set up with is pinned here.
+  LIBFUZZER_DOTNET_URL: https://github.com/Metalnem/libfuzzer-dotnet/releases/download/v2025.05.02.0904/libfuzzer-dotnet-ubuntu
+  LIBFUZZER_DOTNET_SHA256: c2c2a90d94c409a4af339a0d4f244e0442c5a5d249be0f1252ba07871f285958
+
+jobs:
+  fuzz:
+    name: fuzz · ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fonts, images, svg, pdf]
+    env:
+      FUZZ_TARGET: ${{ matrix.target }}
+      SECONDS_TO_FUZZ: ${{ inputs.seconds || (github.event_name == 'schedule' && '1200' || '120') }}
+      OUT: artifacts/fuzz/out
+      CORPUS: artifacts/fuzz/corpus/${{ matrix.target }}
+      CRASHES: artifacts/fuzz/crashes/${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - run: dotnet tool restore
+
+      - name: Fetch libFuzzer's driver for .NET
+        run: |
+          curl -fsSL --retry 3 -o libfuzzer-dotnet "$LIBFUZZER_DOTNET_URL"
+          echo "$LIBFUZZER_DOTNET_SHA256  libfuzzer-dotnet" | sha256sum --check --strict
+          chmod +x libfuzzer-dotnet
+
+      # Each run saves the corpus under a key of its own, and starts from the newest one saved before it.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CORPUS }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.target }}-
+
+      - name: Publish the fuzzing program
+        run: dotnet publish fuzz/Rustaveli.Pdf.Fuzzing -c Release -o "$OUT"
+
+      # Seeded before instrumenting: an instrumented library runs only under libFuzzer.
+      - name: Seed the corpus
+        run: |
+          mkdir -p "$CORPUS" "$CRASHES"
+          case "$FUZZ_TARGET" in
+            fonts) cp tests/assets/fonts/*.ttf tests/assets/fonts/*.otf tests/assets/fonts/*.ttc "$CORPUS" ;;
+            images) cp tests/assets/images/*.png tests/assets/images/*.jpg "$CORPUS" ;;
+            svg) cp tests/assets/svg/*.svg "$CORPUS" ;;
+            pdf) dotnet "$OUT/Rustaveli.Pdf.Fuzzing.dll" seed "$CORPUS" ;;
+          esac
+          echo "$(ls "$CORPUS" | wc -l) inputs in the corpus"
+
+      - name: Instrument the library
+        run: |
+          dotnet sharpfuzz "$OUT/Rustaveli.Pdf.dll"
+          dotnet sharpfuzz "$OUT/Rustaveli.Pdf.Operations.dll"
+
+      # The heap is capped so that an input asking for more memory than any file warrants fails as it asks, rather than
+      # taking the runner down; each input has ten seconds.
+      - name: Fuzz
+        env:
+          DOTNET_GCHeapHardLimit: '0x40000000'
+        run: >
+          ./libfuzzer-dotnet --target_path=dotnet --target_arg="$OUT/Rustaveli.Pdf.Fuzzing.dll"
+          -timeout=10 -max_total_time="$SECONDS_TO_FUZZ" -print_final_stats=1
+          -artifact_prefix="$CRASHES/" "$CORPUS"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: fuzz-failure-${{ matrix.target }}
+          path: ${{ env.CRASHES }}
+          retention-days: 30
+
+  # A failure found at night is work for the next pull request, so it is filed as an issue — one, kept open until
+  # fixed, however many nights it fails.
+  report:
+    name: report a failed night
+    needs: fuzz
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open an issue unless one is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Nightly fuzzing found a failure"
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq length)
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$open" = "0" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" \
+              --body "Fuzzing found an input a reader fails on, on main: $run. The input is attached to the run; fuzz/README.md says how to replay it."
+          else
+            number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "Failed again: $run"
+          fi

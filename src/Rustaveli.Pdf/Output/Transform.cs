@@ -7,6 +7,12 @@ internal readonly record struct Transform(double A, double B, double C, double D
 {
     public static Transform Identity { get; } = new Transform(1, 0, 0, 1, 0, 0);
 
+    /// <summary>
+    /// Whether every entry can be written to a PDF. Transforms that each can may multiply into one that cannot, and even
+    /// overflow a double.
+    /// </summary>
+    public bool IsWritable => Writable.Is(A) && Writable.Is(B) && Writable.Is(C) && Writable.Is(D) && Writable.Is(E) && Writable.Is(F);
+
     public static Transform Translation(double x, double y) => new Transform(1, 0, 0, 1, x, y);
 
     public static Transform Scaling(double x, double y) => new Transform(x, 0, 0, y, 0, 0);

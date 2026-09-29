@@ -8,6 +8,13 @@ internal static class SvgTransform
 {
     public static readonly (float A, float B, float C, float D, float E, float F) Identity = (1, 0, 0, 1, 0, 0);
 
+    /// <summary>
+    /// Whether every entry of <paramref name="matrix"/> can be written to a PDF: steps that each can may multiply into
+    /// a matrix that cannot.
+    /// </summary>
+    public static bool IsWritable((float A, float B, float C, float D, float E, float F) matrix) =>
+        Writable.Is(matrix.A) && Writable.Is(matrix.B) && Writable.Is(matrix.C) && Writable.Is(matrix.D) && Writable.Is(matrix.E) && Writable.Is(matrix.F);
+
     /// <summary>The matrix of <paramref name="list"/>, or null when it holds nothing that can be read.</summary>
     public static (float A, float B, float C, float D, float E, float F)? Read(string? list)
     {

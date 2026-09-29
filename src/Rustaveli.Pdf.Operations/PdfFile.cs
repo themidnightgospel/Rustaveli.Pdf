@@ -39,6 +39,9 @@ public sealed class PdfFile
     /// </summary>
     /// <exception cref="IncorrectPasswordException">The file is protected, and the password does not open it.</exception>
     /// <exception cref="UnreadableFileException">The file is not a PDF, or is damaged past repair.</exception>
+    /// <exception cref="NotSupportedException">
+    /// The file is protected by a security handler other than the standard, password one, such as a certificate's.
+    /// </exception>
     public static PdfFile Open(string path, string? password = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);

@@ -35,7 +35,7 @@ internal static class SvgLength
         if (!float.TryParse(value.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out float number))
             return fallback;
 
-        return value.Substring(end).Trim().ToLowerInvariant() switch
+        float length = value.Substring(end).Trim().ToLowerInvariant() switch
         {
             "" or "px" => number,
             "pt" => number / PointsPerPixel,
@@ -48,6 +48,9 @@ internal static class SvgLength
             "%" => number / 100 * reference,
             _ => number,
         };
+
+        // A length too large for a PDF, as written or once in pixels, is no length to draw with.
+        return Writable.Is(length) ? length : fallback;
     }
 
     /// <summary>A fraction for a gradient's point: a plain number, or a percentage of one.</summary>
@@ -59,7 +62,7 @@ internal static class SvgLength
         string value = text!.Trim();
         bool percent = value.EndsWith("%", StringComparison.Ordinal);
 
-        return float.TryParse(percent ? value.Substring(0, value.Length - 1) : value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number)
+        return float.TryParse(percent ? value.Substring(0, value.Length - 1) : value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) && Writable.Is(number)
             ? (percent ? number / 100 : number)
             : fallback;
     }

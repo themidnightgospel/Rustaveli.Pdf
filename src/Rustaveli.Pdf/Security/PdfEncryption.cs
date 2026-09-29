@@ -166,6 +166,7 @@ internal sealed class PdfEncryption
     /// owner's or the user's; null when it is neither.
     /// </summary>
     /// <exception cref="NotSupportedException">The file is encrypted by a handler other than the standard one.</exception>
+    /// <exception cref="InvalidDataException">The password opens the file, but the key it unwraps is damaged.</exception>
     public static PdfEncryption? Open(PdfDictionary dictionary, byte[] id, string password, Func<PdfValue, PdfValue> resolve)
     {
         if (!dictionary.TryGetValue(Filter, out PdfValue filter) || resolve(filter) is not { Kind: PdfValueKind.Name } name || !name.AsName().Equals(Standard))
@@ -213,17 +214,28 @@ internal sealed class PdfEncryption
             if (StandardSecurity.Hash(secret, owner.AsSpan(32, 8), userEntry, revision).AsSpan().SequenceEqual(owner.AsSpan(0, 32)))
             {
                 byte[] key = StandardSecurity.Hash(secret, owner.AsSpan(40, 8), userEntry, revision);
-                return StandardSecurity.Aes(key, zero, Bytes(dictionary, OE, resolve), false, CipherMode.CBC, PaddingMode.None);
+                return StandardSecurity.Aes(key, zero, WrappedKey(dictionary, OE, resolve), false, CipherMode.CBC, PaddingMode.None);
             }
 
             if (StandardSecurity.Hash(secret, user.AsSpan(32, 8), [], revision).AsSpan().SequenceEqual(user.AsSpan(0, 32)))
             {
                 byte[] key = StandardSecurity.Hash(secret, user.AsSpan(40, 8), [], revision);
-                return StandardSecurity.Aes(key, zero, Bytes(dictionary, UE, resolve), false, CipherMode.CBC, PaddingMode.None);
+                return StandardSecurity.Aes(key, zero, WrappedKey(dictionary, UE, resolve), false, CipherMode.CBC, PaddingMode.None);
             }
         }
 
         return null;
+    }
+
+    /// <summary>The file key, as the /OE or /UE entry <paramref name="key"/> keeps it wrapped: thirty-two bytes.</summary>
+    /// <exception cref="InvalidDataException">The entry is missing, or is not thirty-two bytes long.</exception>
+    private static byte[] WrappedKey(PdfDictionary dictionary, PdfName key, Func<PdfValue, PdfValue> resolve)
+    {
+        byte[] wrapped = Bytes(dictionary, key, resolve);
+
+        return wrapped.Length == 32
+            ? wrapped
+            : throw new InvalidDataException($"The password opens the file, but its /{key.Value} does not hold the 32 bytes of its key.");
     }
 
     /// <summary>Whether a stream with <paramref name="dictionary"/> is encrypted: all but cross-reference streams, and readable metadata.</summary>

@@ -66,4 +66,9 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
 
+  <!-- Fuzzing: libFuzzer's bridge to .NET, which the SharpFuzz tool in dotnet-tools.json instruments assemblies for. -->
+  <ItemGroup>
+    <PackageVersion Include="SharpFuzz" Version="2.3.0" />
+  </ItemGroup>
+
 </Project>

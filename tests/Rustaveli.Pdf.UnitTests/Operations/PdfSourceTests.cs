@@ -280,6 +280,28 @@ public class PdfSourceTests
         Assert.Null(source.Stream(6));
     }
 
+    [Theory]
+    [InlineData(@"/W\[[^\]]*\]", "/X[1 2 2]")]
+    [InlineData(@"/W\[[^\]]*\]", "/W 1")]
+    [InlineData(@"/W\[[^\]]*\]", "/W[1 2]")]
+    [InlineData(@"/W\[[^\]]*\]", "/W[1/A 2]")]
+    [InlineData(@"/W\[[^\]]*\]", "/W[1 9 2]")]
+    [InlineData(@"/W\[[^\]]*\]", "/W[0 0 0]")]
+    [InlineData(@"/Size \d+", "/Sizx 1")]
+    [InlineData(@"/Size \d+", "/Size/A")]
+    public void ACrossReferenceStreamThatDoesNotSayHowToReadItIsRebuilt(string pattern, string replacement)
+    {
+        string text = Encoding.Latin1.GetString(Written(PdfCrossReferenceFormat.Stream));
+        System.Text.RegularExpressions.Match found = System.Text.RegularExpressions.Regex.Match(text, pattern);
+
+        // Replaced in place, the same length, so that the file is otherwise sound and only the section fails.
+        Assert.True(found.Success && replacement.Length <= found.Length);
+        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes(text.Remove(found.Index, found.Length).Insert(found.Index, replacement.PadRight(found.Length))));
+
+        Assert.True(source.WasRepaired);
+        Assert.Equal(2, source.Pages.Count);
+    }
+
     [Fact]
     public void ObjectStreamsAreFoundWhenTheSectionIsRebuilt()
     {

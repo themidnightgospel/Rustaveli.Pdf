@@ -65,6 +65,9 @@ internal sealed class PdfSurface : IPageSink
     /// <summary>The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.</summary>
     private (PdfName Pattern, float Opacity)? _gradient;
 
+    /// <summary>Whether the gradient begun could not be placed, so that fills and strokes until it ends are left out.</summary>
+    private bool _unplacedGradient;
+
     /// <summary>Whether content is marked for the structure tree, as a tagged PDF needs.</summary>
     private readonly bool _tagging;
     private readonly Dictionary<string, PdfName> _roles = new Dictionary<string, PdfName>(StringComparer.Ordinal);
@@ -297,7 +300,7 @@ internal sealed class PdfSurface : IPageSink
 
     public void FillPath(VectorPath path, Ink ink, FillRule rule)
     {
-        if (ink.IsTransparent || path.IsEmpty)
+        if (ink.IsTransparent || path.IsEmpty || _unplacedGradient)
             return;
 
         Mark(text: false);
@@ -313,7 +316,7 @@ internal sealed class PdfSurface : IPageSink
 
     public void StrokePath(VectorPath path, Ink ink, LineStyle style)
     {
-        if (ink.IsTransparent || path.IsEmpty || style.Weight <= 0)
+        if (ink.IsTransparent || path.IsEmpty || style.Weight <= 0 || _unplacedGradient)
             return;
 
         Mark(text: false);
@@ -831,13 +834,26 @@ internal sealed class PdfSurface : IPageSink
 
     public void BeginGradient(Gradient gradient, Offset position, Extent size)
     {
+        // A pattern is placed in the page's own space, by the transform in force, which transforms that could each be
+        // written may have multiplied beyond what can be. The gradient cannot be placed then, and what it would paint is
+        // left out, since painting it in any ink would be wrong.
+        if (!_state.Matrix.IsWritable)
+        {
+            _unplacedGradient = true;
+            return;
+        }
+
         (Offset start, Offset end) = gradient.Axis(position, size);
         PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix, _archival));
 
         _gradient = (Page.Resources.GetPatternName(pattern), gradient.Opacity);
     }
 
-    public void EndGradient() => _gradient = null;
+    public void EndGradient()
+    {
+        _gradient = null;
+        _unplacedGradient = false;
+    }
 
     private void SetFill(Ink ink)
     {
