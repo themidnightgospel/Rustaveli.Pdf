@@ -308,9 +308,14 @@ internal sealed class PdfEncryption
     /// <summary>A string's bytes, encrypted for object <paramref name="objectNumber"/>.</summary>
     public byte[] EncryptString(int objectNumber, ReadOnlySpan<byte> data) => Encrypt(Strings, objectNumber, data);
 
-    public byte[] DecryptStream(int objectNumber, byte[] data) => Decrypt(Streams, objectNumber, data);
+    /// <summary>
+    /// A stream's data, decrypted for object <paramref name="objectNumber"/> of <paramref name="generation"/>: files
+    /// that were updated in place reuse numbers, and under RC4 and 128-bit AES the generation is part of the key.
+    /// </summary>
+    public byte[] DecryptStream(int objectNumber, byte[] data, int generation = 0) => Decrypt(Streams, objectNumber, data, generation);
 
-    public byte[] DecryptString(int objectNumber, byte[] data) => Decrypt(Strings, objectNumber, data);
+    /// <summary>A string's bytes, decrypted for object <paramref name="objectNumber"/> of <paramref name="generation"/>.</summary>
+    public byte[] DecryptString(int objectNumber, byte[] data, int generation = 0) => Decrypt(Strings, objectNumber, data, generation);
 
     private byte[] Encrypt(Cipher cipher, int objectNumber, ReadOnlySpan<byte> data)
     {
@@ -329,12 +334,12 @@ internal sealed class PdfEncryption
         }
     }
 
-    private byte[] Decrypt(Cipher cipher, int objectNumber, byte[] data)
+    private byte[] Decrypt(Cipher cipher, int objectNumber, byte[] data, int generation)
     {
         switch (cipher)
         {
             case Cipher.Rc4:
-                return Rc4.Transform(StandardSecurity.ObjectKey(_key, objectNumber, aes: false), data);
+                return Rc4.Transform(StandardSecurity.ObjectKey(_key, objectNumber, aes: false, generation), data);
 
             case Cipher.Aes128:
             case Cipher.Aes256:
@@ -342,7 +347,7 @@ internal sealed class PdfEncryption
                 if (data.Length < 32 || data.Length % 16 != 0)
                     return data.Length == 16 ? [] : data;
 
-                byte[] key = cipher == Cipher.Aes256 ? _key : StandardSecurity.ObjectKey(_key, objectNumber, aes: true);
+                byte[] key = cipher == Cipher.Aes256 ? _key : StandardSecurity.ObjectKey(_key, objectNumber, aes: true, generation);
 
                 try
                 {

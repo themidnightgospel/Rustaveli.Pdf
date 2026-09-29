@@ -112,11 +112,11 @@ internal static class StandardSecurity
         return entry;
     }
 
-    /// <summary>Algorithm 1: the key one object is encrypted with, from the file key and its number.</summary>
-    public static byte[] ObjectKey(byte[] fileKey, int objectNumber, bool aes)
+    /// <summary>Algorithm 1: the key one object is encrypted with, from the file key, its number and its generation.</summary>
+    public static byte[] ObjectKey(byte[] fileKey, int objectNumber, bool aes, int generation = 0)
     {
         using MD5 md5 = MD5.Create();
-        List<byte> input = [.. fileKey, (byte)objectNumber, (byte)(objectNumber >> 8), (byte)(objectNumber >> 16), 0, 0];
+        List<byte> input = [.. fileKey, (byte)objectNumber, (byte)(objectNumber >> 8), (byte)(objectNumber >> 16), (byte)generation, (byte)(generation >> 8)];
 
         if (aes)
             input.AddRange("sAlT"u8.ToArray());

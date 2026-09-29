@@ -127,41 +127,44 @@ internal sealed class PdfSource
         _pages = null;
     }
 
-    /// <summary>An object read from its own place in the file, its strings and stream decrypted.</summary>
-    private object Decrypt(int number, object read)
+    /// <summary>
+    /// An object read from its own place in the file, its strings and stream decrypted with the key of its number and
+    /// <paramref name="generation"/>.
+    /// </summary>
+    private object Decrypt(int number, int generation, object read)
     {
         if (read is SourceStream stream)
         {
             if (stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(XRef))
                 return stream;
 
-            PdfDictionary dictionary = Decrypt(number, stream.Dictionary).AsDictionary();
-            byte[] data = Encryption!.Covers(dictionary) ? Encryption.DecryptStream(number, stream.Data) : stream.Data;
+            PdfDictionary dictionary = Decrypt(number, generation, stream.Dictionary).AsDictionary();
+            byte[] data = Encryption!.Covers(dictionary) ? Encryption.DecryptStream(number, stream.Data, generation) : stream.Data;
             return new SourceStream(dictionary, data);
         }
 
-        return Decrypt(number, (PdfValue)read);
+        return Decrypt(number, generation, (PdfValue)read);
     }
 
-    private PdfValue Decrypt(int number, PdfValue value)
+    private PdfValue Decrypt(int number, int generation, PdfValue value)
     {
         switch (value.Kind)
         {
             case PdfValueKind.String:
                 PdfString text = value.AsString();
-                return new PdfString(Encryption!.DecryptString(number, text.Bytes.ToArray()), text.Form);
+                return new PdfString(Encryption!.DecryptString(number, text.Bytes.ToArray(), generation), text.Form);
 
             case PdfValueKind.Array:
                 PdfArray array = new PdfArray(value.AsArray().Count);
                 foreach (PdfValue item in value.AsArray())
-                    array.Add(Decrypt(number, item));
+                    array.Add(Decrypt(number, generation, item));
 
                 return array;
 
             case PdfValueKind.Dictionary:
                 PdfDictionary dictionary = new PdfDictionary(value.AsDictionary().Count);
                 foreach (KeyValuePair<PdfName, PdfValue> entry in value.AsDictionary())
-                    dictionary[entry.Key] = Decrypt(number, entry.Value);
+                    dictionary[entry.Key] = Decrypt(number, generation, entry.Value);
 
                 return dictionary;
 
@@ -309,22 +312,29 @@ internal sealed class PdfSource
         if (entry.IsCompressed)
             return LoadCompressed(number, entry);
 
-        object read = ReadAt(entry.Offset, number);
+        object read = ReadAt(entry.Offset, number, out int generation);
 
         // Objects in object streams were decrypted with their stream; the encryption dictionary never is.
-        return Encryption is null || number == _encryptNumber || ReferenceEquals(read, Misplaced) ? read : Decrypt(number, read);
+        return Encryption is null || number == _encryptNumber || ReferenceEquals(read, Misplaced) ? read : Decrypt(number, generation, read);
     }
 
-    /// <summary>The object at <paramref name="offset"/>, which must say it is <paramref name="number"/>.</summary>
-    private object ReadAt(long offset, int number)
+    /// <summary>
+    /// The object at <paramref name="offset"/>, which must say it is <paramref name="number"/>, and the generation it
+    /// says it is of.
+    /// </summary>
+    private object ReadAt(long offset, int number, out int generation)
     {
+        generation = 0;
+
         if (offset < 0 || offset >= Data.Length)
             return Misplaced;
 
         PdfParser parser = new PdfParser(Data, (int)offset);
 
-        if (!parser.TryReadInteger(out long found) || found != number || !parser.TryReadInteger(out _) || !parser.TryReadKeyword("obj"u8))
+        if (!parser.TryReadInteger(out long found) || found != number || !parser.TryReadInteger(out long given) || !parser.TryReadKeyword("obj"u8))
             return Misplaced;
+
+        generation = (int)given;
 
         PdfValue value = parser.ReadValue();
 

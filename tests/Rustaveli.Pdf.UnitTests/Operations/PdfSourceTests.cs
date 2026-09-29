@@ -1,5 +1,8 @@
+using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using Rustaveli.Pdf.Operations.Reading;
+using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.UnitTests.Operations;
@@ -53,6 +56,58 @@ public class PdfSourceTests
 
         SourceStream content = source.Stream(source.Pages[1].Dictionary[PdfNames.Contents])!;
         Assert.Contains("0 0 2 2 re", Encoding.ASCII.GetString(source.Decode(content)), StringComparison.Ordinal);
+    }
+
+    private static string Hex(byte[] bytes) => string.Concat(bytes.Select(value => value.ToString("X2", CultureInfo.InvariantCulture)));
+
+    /// <summary>
+    /// <paramref name="text"/> encrypted as the standard handler encrypts a string of object <paramref name="number"/>,
+    /// generation <paramref name="generation"/> (ISO 32000-1, algorithm 1): worked out here, apart from the reader.
+    /// </summary>
+    private static byte[] Encrypted(byte[] fileKey, int number, int generation, string text, bool aes)
+    {
+        byte[] salt = aes ? "sAlT"u8.ToArray() : [];
+        byte[] input = [.. fileKey, (byte)number, (byte)(number >> 8), (byte)(number >> 16), (byte)generation, (byte)(generation >> 8), .. salt];
+        byte[] key;
+
+        using (MD5 md5 = MD5.Create())
+            key = md5.ComputeHash(input).AsSpan(0, Math.Min(fileKey.Length + 5, 16)).ToArray();
+
+        byte[] data = Encoding.ASCII.GetBytes(text);
+
+        if (!aes)
+            return Rc4.Transform(key, data);
+
+        byte[] iv = new byte[16];
+        return [.. iv, .. StandardSecurity.Aes(key, iv, data, true, CipherMode.CBC, PaddingMode.PKCS7)];
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnObjectOfALaterGenerationIsDecryptedWithItsOwnKey(bool aes)
+    {
+        byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
+        PdfDictionary written = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = aes ? EncryptionLevel.AesWith128Bits : EncryptionLevel.Rc4With128Bits }, id).Dictionary;
+        long version = written[new PdfName("V")].AsInteger();
+        int revision = (int)written[new PdfName("R")].AsInteger();
+        int permissions = (int)written[new PdfName("P")].AsInteger();
+        byte[] owner = written[new PdfName("O")].AsString().Bytes.ToArray();
+        byte[] user = written[new PdfName("U")].AsString().Bytes.ToArray();
+        byte[] fileKey = StandardSecurity.FileKey(StandardSecurity.Pad(string.Empty), owner, permissions, id, revision, 16, encryptMetadata: true);
+        string filters = aes ? "/CF<</StdCF<</CFM/AESV2/AuthEvent/DocOpen/Length 16>>>>/StmF/StdCF/StrF/StdCF" : string.Empty;
+
+        HandmadePdf pdf = HandmadePdf.OnePage()
+            .Object(4, $"<{Hex(Encrypted(fileKey, 4, 0, "generation zero", aes))}>")
+            .Object(5, $"<</Filter/Standard/V {version}/R {revision}/Length 128{filters}/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>")
+            .Object(12, $"<{Hex(Encrypted(fileKey, 12, 1, "generation one", aes))}>", generation: 1);
+        pdf.Section($"/Root 1 0 R/Encrypt 5 0 R/ID[<{Hex(id)}><{Hex(id)}>]");
+
+        PdfSource source = Open(pdf);
+
+        Assert.False(source.WasRepaired);
+        Assert.Equal("generation zero", Encoding.ASCII.GetString(Value(source, 4).AsString().Bytes.ToArray()));
+        Assert.Equal("generation one", Encoding.ASCII.GetString(Value(source, 12).AsString().Bytes.ToArray()));
     }
 
     [Fact]
