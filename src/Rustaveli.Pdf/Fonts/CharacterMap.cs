@@ -22,6 +22,7 @@ internal sealed class CharacterMap
     private readonly CharacterMapSubtable? _subtable;
     private readonly int _glyphCount;
 
+    /// <summary>Reads the best Unicode subtable of a font's <c>cmap</c> table.</summary>
     /// <param name="table">The <c>cmap</c> table.</param>
     /// <param name="glyphCount">The font's glyph count; a mapping to a glyph beyond it counts as no mapping.</param>
     public CharacterMap(ReadOnlyMemory<byte> table, int glyphCount)

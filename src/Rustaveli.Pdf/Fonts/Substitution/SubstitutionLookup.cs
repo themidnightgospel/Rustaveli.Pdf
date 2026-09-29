@@ -12,6 +12,7 @@ internal sealed class SubstitutionLookup
     private readonly GlyphDefinitionTable? _definitions;
     private readonly CoverageTable? _markFilteringSet;
 
+    /// <summary>A lookup of subtables of one type, applied to the glyphs its flags let it see.</summary>
     /// <param name="type">The lookup type, an extension's being that of the subtables it wraps.</param>
     /// <param name="flags">The lookup flags.</param>
     /// <param name="subtables">The subtables, in the order they are tried.</param>

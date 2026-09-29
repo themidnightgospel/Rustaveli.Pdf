@@ -152,6 +152,8 @@ internal sealed class PdfEncryption
             [OE] = new PdfString(ownerKey, PdfStringForm.Hex),
             [UE] = new PdfString(userKey, PdfStringForm.Hex),
             [P] = permissions,
+            // ECB because ISO 32000-2 says so (Algorithm 10): /Perms is a single block, a copy of the permissions
+            // with four random bytes that a reader decrypts to check nothing altered them. Nothing else is written in ECB.
             [Perms] = new PdfString(StandardSecurity.Aes(key, null, perms, true, CipherMode.ECB, PaddingMode.None), PdfStringForm.Hex),
         };
 
@@ -166,7 +168,10 @@ internal sealed class PdfEncryption
     /// owner's or the user's; null when it is neither.
     /// </summary>
     /// <exception cref="NotSupportedException">The file is encrypted by a handler other than the standard one.</exception>
-    /// <exception cref="InvalidDataException">The password opens the file, but the key it unwraps is damaged.</exception>
+    /// <exception cref="InvalidDataException">
+    /// The dictionary is damaged: its key length or owner entry leaves no password to check, or the password opens the
+    /// file but the key it unwraps is damaged.
+    /// </exception>
     public static PdfEncryption? Open(PdfDictionary dictionary, byte[] id, string password, Func<PdfValue, PdfValue> resolve)
     {
         if (!dictionary.TryGetValue(Filter, out PdfValue filter) || resolve(filter) is not { Kind: PdfValueKind.Name } name || !name.AsName().Equals(Standard))
@@ -189,6 +194,11 @@ internal sealed class PdfEncryption
 
         if (version == 4 && CryptLength(dictionary, resolve) is int bytes)
             length = bytes;
+
+        // Both passwords are checked through a key of 40 to 128 bits and the 32 bytes of the owner entry: without them
+        // no password can be checked at all, which is damage rather than a wrong password.
+        if (length is < 5 or > 16 || owner.Length < 32)
+            throw new InvalidDataException($"The file's encryption dictionary gives a {length * 8}-bit key and a {owner.Length}-byte /O; RC4 and AES-128 need 40 to 128 bits and 32 bytes.");
 
         byte[]? opened = StandardSecurity.AuthenticateUser(StandardSecurity.Pad(password), owner, user, permissions, id, revision, length, metadata)
             ?? StandardSecurity.AuthenticateUser(StandardSecurity.RecoverUser(password, owner, revision, length), owner, user, permissions, id, revision, length, metadata);

@@ -242,7 +242,7 @@ internal static class FileAssembler
         }
 
         PdfArray associated = catalog.TryGetValue(Associated, out PdfValue af) && first.Resolve(af) is { Kind: PdfValueKind.Array } array
-            ? (PdfArray)copier.Copy(first, array).AsArray()
+            ? copier.Copy(first, array).AsArray()
             : new PdfArray();
 
         DateTimeOffset now = DateTimeOffset.UtcNow;

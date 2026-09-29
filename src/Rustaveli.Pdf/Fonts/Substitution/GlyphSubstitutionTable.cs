@@ -50,6 +50,7 @@ internal sealed class GlyphSubstitutionTable
     private readonly SubstitutionLookup?[] _lookups;
     private int _subtableBudget = MaximumSubtables;
 
+    /// <summary>Reads a font's GSUB table: its features, and the lookups they name, read as they are first used.</summary>
     /// <param name="table">The GSUB table's bytes.</param>
     /// <param name="definitions">The font's GDEF table, for the lookup flags; null when it has none.</param>
     /// <param name="glyphCount">How many glyphs the font has; a substitution to any other glyph is not made.</param>

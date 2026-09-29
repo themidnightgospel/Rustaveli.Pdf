@@ -2,7 +2,8 @@
 # so new queries are run over code that has not changed. Findings appear under the repository's Security tab.
 #
 # CodeQL analyses what the build compiles, so only the shipped projects are built: the tests and benchmarks hold no
-# code a user runs, and their findings would bury the ones that matter.
+# code a user runs, and their findings would bury the ones that matter. The queries, and the few left out and why, are
+# in .github/codeql/codeql-config.yml.
 
 name: CodeQL
 
@@ -55,7 +56,7 @@ jobs:
         with:
           languages: csharp
           build-mode: manual
-          queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Build the shipped projects
         shell: bash

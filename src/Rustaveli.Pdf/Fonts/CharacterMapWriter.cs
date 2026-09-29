@@ -15,6 +15,7 @@ internal static class CharacterMapWriter
     private const int Format4HeaderSize = 16;
     private const int Format4SegmentSize = 8;
 
+    /// <summary>A <c>cmap</c> table for a subset, mapping each character code to its glyph.</summary>
     /// <param name="mappings">Character codes and the subset glyphs they map to.</param>
     /// <param name="symbol">
     /// True for a symbol font, whose codes are the U+F0xx values it had and go in a Windows symbol subtable.

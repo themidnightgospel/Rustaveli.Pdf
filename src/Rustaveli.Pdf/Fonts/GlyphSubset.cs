@@ -150,10 +150,9 @@ internal sealed class GlyphSubset
     {
         lock (_sync)
         {
-            if (code >= FirstSharedCode)
-                text = code - FirstSharedCode < _sharedCodes.Count ? _sharedCodes[code - FirstSharedCode].Text : null!;
-            else
-                text = (code < _glyphs.Count ? _texts[code] : null)!;
+            text = code >= FirstSharedCode
+                ? (code - FirstSharedCode < _sharedCodes.Count ? _sharedCodes[code - FirstSharedCode].Text : null!)
+                : (code < _glyphs.Count ? _texts[code] : null)!;
 
             return text is not null;
         }

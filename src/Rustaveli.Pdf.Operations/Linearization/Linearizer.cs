@@ -481,7 +481,7 @@ internal static class Linearizer
 
             if (value is SourceStream stream)
             {
-                PdfDictionary dictionary = (PdfDictionary)Remap(stream.Dictionary).AsDictionary();
+                PdfDictionary dictionary = Remap(stream.Dictionary).AsDictionary();
                 byte[] data = encryption is not null && encryption.Covers(dictionary) ? encryption.EncryptStream(number, stream.Data) : stream.Data;
                 dictionary[PdfNames.Length] = data.Length;
                 writer.WriteDictionary(dictionary);

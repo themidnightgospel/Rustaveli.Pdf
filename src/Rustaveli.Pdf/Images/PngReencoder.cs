@@ -26,6 +26,7 @@ internal sealed class PngReencoder : IPngRowSink, IDisposable
     private byte[]? _previousAlphaRow;
     private bool _translucent;
 
+    /// <summary>A reencoder for one PNG image's rows, splitting out its alpha as they are decoded.</summary>
     /// <param name="header">The image being decoded.</param>
     /// <param name="paletteAlpha">The palette image's tRNS entries, when <paramref name="paletteMask"/> is set.</param>
     /// <param name="paletteMask">True to build a soft mask by looking each palette index up in its alpha.</param>
