@@ -202,6 +202,19 @@ public class DrawOrderTests
     }
 
     [Fact]
+    public void AnOrderSetByContentComposedLaterIsKept()
+    {
+        // The content is composed only when layout reaches it, so it cannot be found in the document beforehand.
+        RecordedPage page = Render(stack =>
+        {
+            stack.Add().Height(20).Fill(Blue).Blank();
+            stack.Add().ComposeLater(later => later.Height(20).DrawOrder(-1).Fill(TestInks.Red).Blank());
+        });
+
+        Assert.Equal([Ink.White, TestInks.Red, Blue], Inks(page));
+    }
+
+    [Fact]
     public void EveryPageStartsAfresh()
     {
         List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>

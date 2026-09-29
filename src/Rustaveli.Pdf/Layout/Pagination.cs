@@ -15,6 +15,10 @@ internal sealed class Pagination
     private Dictionary<string, AnchorPages> _recording = [];
     private Dictionary<string, List<CapturedPosition>> _knownPositions = [];
     private Dictionary<string, List<CapturedPosition>> _recordingPositions = [];
+    private readonly HashSet<int> _ordered = [];
+
+    /// <summary>The index of the section being set.</summary>
+    internal int Section { get; set; }
 
     /// <summary>The one-based number of the page being laid out.</summary>
     public int Folio { get; internal set; } = 1;
@@ -48,6 +52,16 @@ internal sealed class Pagination
 
         positions.Add(position);
     }
+
+    /// <summary>
+    /// Records that content setting a draw order was drawn in the section being set. Kept across passes: content
+    /// composed only as layout reaches it cannot be found in the document beforehand, but a counting pass has drawn it
+    /// by the time the pass that draws for real decides how to draw the section's pages.
+    /// </summary>
+    internal void RegisterDrawOrder() => _ordered.Add(Section);
+
+    /// <summary>Whether content setting a draw order has been drawn in section <paramref name="section"/>.</summary>
+    internal bool SetsDrawOrder(int section) => _ordered.Contains(section);
 
     /// <summary>
     /// Everywhere content captured under <paramref name="name"/> was drawn: as the last complete pass found it, or as

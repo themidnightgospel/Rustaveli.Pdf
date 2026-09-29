@@ -1,4 +1,3 @@
-using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
@@ -90,9 +89,12 @@ internal static class Typesetter
             // Content composed as its pages are set names styles from the document it came from.
             using StyleSheet.Scope styles = document.StylesOf(part).Use();
 
+            pageContext.Section = index;
+
             // Pages whose content sets a draw order are held back and drawn in that order; counted pages are thrown
-            // away, so they need no order.
-            bool ordered = pages is not CountingPageSink && section.Slots().Any(slot => slot.Traverse().Any(block => block is DrawOrderBlock));
+            // away, so they need no order. Whether the content does is learnt from the counting passes, which have
+            // drawn it all: content composed only as it is reached cannot be found in the document beforehand.
+            bool ordered = pages is not CountingPageSink && pageContext.SetsDrawOrder(index);
             IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
             RenderContext context = ordered ? new RenderContext(sink, layout, structure) { Inspection = inspection } : direct;
 
