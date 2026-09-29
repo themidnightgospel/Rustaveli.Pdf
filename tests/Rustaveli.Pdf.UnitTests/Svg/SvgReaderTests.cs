@@ -114,6 +114,71 @@ public class SvgReaderTests
         Approximately.Equal(Pixels(20, 30, 60, 50), paths[1].Bounds);
     }
 
+    [Fact]
+    public void PercentagesAreTakenOfTheViewport()
+    {
+        PathOperation background = Painted("<rect width='100%' height='100%' fill='#eee'/>", "viewBox='0 0 800 600'").Single();
+
+        Approximately.Equal(Pixels(0, 0, 800, 600), background.Bounds);
+    }
+
+    [Fact]
+    public void PercentagesAcrossAndDownAreTakenOfTheViewportsWidthAndHeight()
+    {
+        List<PathOperation> painted = Painted(
+            "<rect x='10%' y='10%' width='50%' height='50%'/><line x1='0' y1='0' x2='100%' y2='100%' stroke='red'/>",
+            "width='200' height='100'");
+
+        Approximately.Equal(Pixels(20, 10, 120, 60), painted[0].Bounds);
+        Assert.Equal(new Offset(200, 100), painted[1].Path.Points[1]);
+    }
+
+    [Fact]
+    public void APercentageThatIsNeitherAcrossNorDownIsTakenOfTheViewportsDiagonal()
+    {
+        // SVG takes such lengths of the diagonal over the square root of two: here √((200² + 100²) / 2) ≈ 158.11.
+        PathOperation circle = Painted("<circle cx='100' cy='50' r='10%'/>", "width='200' height='100'").Single();
+
+        Approximately.Equal(Pixels(100 - 15.811f, 50 - 15.811f, 100 + 15.811f, 50 + 15.811f), circle.Bounds);
+    }
+
+    [Fact]
+    public void AGradientInUserSpaceTakesPercentagesOfTheViewport()
+    {
+        GradientOperation gradient = Draw(
+            "<linearGradient id='g' gradientUnits='userSpaceOnUse' x1='0' x2='50%' y2='100%'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>" +
+            "<rect width='10' height='10' fill='url(#g)'/>",
+            "width='400' height='200'").OfType<GradientOperation>().Single();
+
+        (Offset start, Offset end) = gradient.Gradient.Axis(Offset.Zero, new Extent(1, 1));
+        Assert.Equal((Offset.Zero, new Offset(200, 200)), (start, end));
+    }
+
+    [Fact]
+    public void ANestedViewportWithoutASizeFillsTheViewportItIsIn()
+    {
+        List<PathOperation> paths = Paths("<svg viewBox='0 0 4 2'><rect width='4' height='2'/></svg>", "width='400' height='200'");
+
+        Approximately.Equal(Pixels(0, 0, 400, 200), paths[0].Bounds);
+        Approximately.Equal(Pixels(0, 0, 400, 200), paths[1].Bounds);
+    }
+
+    [Fact]
+    public void ANestedViewportsPercentagesAreTakenOfItsOwnSize()
+    {
+        List<PathOperation> paths = Paths("<svg width='50%' height='50%'><rect width='100%' height='100%'/></svg>", "width='400' height='200'");
+
+        Approximately.Equal(Pixels(0, 0, 200, 100), paths[1].Bounds);
+    }
+
+    [Fact]
+    public void AUsedSymbolWithoutASizeFillsTheViewport()
+    {
+        PathOperation square = Painted("<symbol id='s' viewBox='0 0 10 10'><rect width='10' height='10'/></symbol><use href='#s'/>", "width='300' height='300'").Single();
+
+        Approximately.Equal(Pixels(0, 0, 300, 300), square.Bounds);
+    }
+
     // ---- Shapes ----------------------------------------------------------------------------------------------
 
     [Fact]

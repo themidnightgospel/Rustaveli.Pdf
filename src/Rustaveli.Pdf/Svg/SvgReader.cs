@@ -39,6 +39,12 @@ internal sealed class SvgReader
     private readonly SvgStyleSheet _sheet = new SvgStyleSheet();
     private readonly HashSet<XElement> _using = [];
 
+    /// <summary>
+    /// The size of the viewport content is drawn in, in its own user units: what percentages are taken of. It is the
+    /// view box's size where there is one, and the viewport's width and height where there is not.
+    /// </summary>
+    private (float Width, float Height) _viewport;
+
     private SvgReader(XElement root)
     {
         foreach (XElement element in root.DescendantsAndSelf())
@@ -93,6 +99,7 @@ internal sealed class SvgReader
             throw new FormatException("The SVG has no size to draw at.");
 
         Dictionary<string, string> style = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        _viewport = viewBox is null ? (width, height) : (viewBox[2], viewBox[3]);
 
         return Artwork.Draw(width * SvgLength.PointsPerPixel, height * SvgLength.PointsPerPixel, art =>
         {
@@ -158,9 +165,7 @@ internal sealed class SvgReader
             case "g":
             case "a":
             case "switch":
-                foreach (XElement child in element.Elements())
-                    Render(child, style, opacity, art, depth + 1);
-
+                RenderChildren(element, style, opacity, art, depth);
                 break;
 
             case "use":
@@ -188,20 +193,19 @@ internal sealed class SvgReader
 
     private void NestedViewport(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
     {
-        float x = SvgLength.Read((string?)element.Attribute("x"), 0, 0);
-        float y = SvgLength.Read((string?)element.Attribute("y"), 0, 0);
+        float x = Across(element, "x");
+        float y = Down(element, "y");
         float[]? viewBox = ViewBox(element);
-        float width = SvgLength.Read((string?)element.Attribute("width"), viewBox?[2] ?? 100, viewBox?[2] ?? 100);
-        float height = SvgLength.Read((string?)element.Attribute("height"), viewBox?[3] ?? 100, viewBox?[3] ?? 100);
+
+        // A nested viewport without a size of its own fills the one it is in, as its width and height of 100% say.
+        float width = Across(element, "width", _viewport.Width);
+        float height = Down(element, "height", _viewport.Height);
 
         art.Translate(x, y);
         art.Clip(new VectorPath().AddRectangle(0, 0, width, height));
 
-        if (!MapViewBox(art, element, viewBox, width, height))
-            return;
-
-        foreach (XElement child in element.Elements())
-            Render(child, style, opacity, art, depth + 1);
+        if (MapViewBox(art, element, viewBox, width, height))
+            RenderIn(viewBox, width, height, () => RenderChildren(element, style, opacity, art, depth));
     }
 
     private void Use(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
@@ -209,13 +213,18 @@ internal sealed class SvgReader
         if (Referenced(element) is not { } target || !_using.Add(target))
             return;
 
-        art.Translate(SvgLength.Read((string?)element.Attribute("x"), 0, 0), SvgLength.Read((string?)element.Attribute("y"), 0, 0));
+        art.Translate(Across(element, "x"), Down(element, "y"));
 
-        // A symbol is drawn as a group of its children; anything else as itself.
+        // A symbol is drawn as a group of its children, in a viewport of the use's size, the whole viewport it is in
+        // unless it says; anything else as itself.
         if (target.Name.LocalName == "symbol")
         {
-            if (MapViewBox(art, target, ViewBox(target), SvgLength.Read((string?)element.Attribute("width"), 100, ViewBox(target)?[2] ?? 100), SvgLength.Read((string?)element.Attribute("height"), 100, ViewBox(target)?[3] ?? 100)))
-                Render(target, style, opacity, art, depth + 1, children: true);
+            float[]? viewBox = ViewBox(target);
+            float width = Across(element, "width", _viewport.Width);
+            float height = Down(element, "height", _viewport.Height);
+
+            if (MapViewBox(art, target, viewBox, width, height))
+                RenderIn(viewBox, width, height, () => Render(target, style, opacity, art, depth + 1, children: true));
         }
         else
         {
@@ -223,6 +232,21 @@ internal sealed class SvgReader
         }
 
         _using.Remove(target);
+    }
+
+    private void RenderChildren(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
+    {
+        foreach (XElement child in element.Elements())
+            Render(child, style, opacity, art, depth + 1);
+    }
+
+    /// <summary>Draws with <paramref name="draw"/> in a new viewport, whose percentages are of its own size.</summary>
+    private void RenderIn(float[]? viewBox, float width, float height, Action draw)
+    {
+        (float Width, float Height) outer = _viewport;
+        _viewport = viewBox is null ? (width, height) : (viewBox[2], viewBox[3]);
+        draw();
+        _viewport = outer;
     }
 
     private void Text(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art)
@@ -266,11 +290,11 @@ internal sealed class SvgReader
         art.Text(content, First(element, "x"), First(element, "y"), type, anchor);
     }
 
-    private static void Image(XElement element, ArtworkComposer art)
+    private void Image(XElement element, ArtworkComposer art)
     {
         string? href = Href(element);
-        float width = SvgLength.Read((string?)element.Attribute("width"), 0, 0);
-        float height = SvgLength.Read((string?)element.Attribute("height"), 0, 0);
+        float width = Across(element, "width");
+        float height = Down(element, "height");
 
         // Only images carried in the document are drawn; nothing is fetched from elsewhere.
         if (href is null || !href.StartsWith("data:", StringComparison.OrdinalIgnoreCase) || !(width > 0) || !(height > 0))
@@ -283,7 +307,7 @@ internal sealed class SvgReader
         try
         {
             RasterImage image = RasterImage.FromBytes(Convert.FromBase64String(href.Substring(comma + 1).Trim()));
-            art.Image(image, SvgLength.Read((string?)element.Attribute("x"), 0, 0), SvgLength.Read((string?)element.Attribute("y"), 0, 0), width, height);
+            art.Image(image, Across(element, "x"), Down(element, "y"), width, height);
         }
         catch (Exception exception) when (exception is FormatException or ArgumentException or NotSupportedException or InvalidDataException)
         {
@@ -315,7 +339,7 @@ internal sealed class SvgReader
             }
         }
 
-        float weight = SvgLength.Read(Value(style, "stroke-width"), 100, 1);
+        float weight = SvgLength.Read(Value(style, "stroke-width"), Diagonal, 1);
 
         if (!(weight > 0))
             return;
@@ -326,7 +350,7 @@ internal sealed class SvgReader
             Value(style, "stroke-linejoin") switch { "round" => LineJoin.Round, "bevel" => LineJoin.Bevel, _ => LineJoin.Miter },
             Fraction(Value(style, "stroke-miterlimit"), 4),
             Dashes(Value(style, "stroke-dasharray")),
-            SvgLength.Read(Value(style, "stroke-dashoffset"), 100, 0));
+            SvgLength.Read(Value(style, "stroke-dashoffset"), Diagonal, 0));
         float strokeOpacity = opacity * Opacity(Value(style, "stroke-opacity"));
 
         switch (Resolve(Value(style, "stroke") ?? "none", style, strokeOpacity))
@@ -395,8 +419,8 @@ internal sealed class SvgReader
             return stops[0].Ink;
 
         bool ofBox = Inherit(element, "gradientUnits") != "userSpaceOnUse";
-        Offset start = new Offset(Coordinate(element, "x1", ofBox, 0), Coordinate(element, "y1", ofBox, 0));
-        Offset end = new Offset(Coordinate(element, "x2", ofBox, 1), Coordinate(element, "y2", ofBox, 0));
+        Offset start = new Offset(Coordinate(element, "x1", ofBox, 0, _viewport.Width), Coordinate(element, "y1", ofBox, 0, _viewport.Height));
+        Offset end = new Offset(Coordinate(element, "x2", ofBox, 1, _viewport.Width), Coordinate(element, "y2", ofBox, 0, _viewport.Height));
 
         if (SvgTransform.Read(Inherit(element, "gradientTransform")) is { } matrix)
         {
@@ -407,8 +431,12 @@ internal sealed class SvgReader
         return Gradient.Between(start, end, ofBox, stops);
     }
 
-    private float Coordinate(XElement element, string name, bool ofBox, float fallback) =>
-        ofBox ? SvgLength.Fraction(Inherit(element, name), fallback) : SvgLength.Read(Inherit(element, name), 100, fallback * 100);
+    /// <summary>
+    /// A point of a gradient: a fraction of the shape's box, or in user space, where a percentage is taken of the
+    /// viewport the shape is drawn in, <paramref name="extent"/> along this axis.
+    /// </summary>
+    private float Coordinate(XElement element, string name, bool ofBox, float fallback, float extent) =>
+        ofBox ? SvgLength.Fraction(Inherit(element, name), fallback) : SvgLength.Read(Inherit(element, name), extent, fallback * extent);
 
     /// <summary>A gradient's stops, from itself or the gradient it refers to, in order and at their opacity.</summary>
     private List<GradientStop> Stops(XElement element, float opacity)
@@ -502,7 +530,7 @@ internal sealed class SvgReader
 
             if (child.Name.LocalName == "use" && Referenced(child) is { } target && _using.Add(target))
             {
-                Matrix moved = SvgTransform.Multiply(inner, (1, 0, 0, 1, SvgLength.Read((string?)child.Attribute("x"), 0, 0), SvgLength.Read((string?)child.Attribute("y"), 0, 0)));
+                Matrix moved = SvgTransform.Multiply(inner, (1, 0, 0, 1, Across(child, "x"), Down(child, "y")));
                 AddClipShapes(new XElement("g", target), moved, into, depth + 1);
                 _using.Remove(target);
             }
@@ -518,7 +546,7 @@ internal sealed class SvgReader
     }
 
     /// <summary>The path of a basic shape or path element, or null for any other element or a shape of no size.</summary>
-    private static VectorPath? Shape(XElement element)
+    private VectorPath? Shape(XElement element)
     {
         switch (element.Name.LocalName)
         {
@@ -527,15 +555,16 @@ internal sealed class SvgReader
 
             case "rect":
             {
-                float x = Length(element, "x"), y = Length(element, "y");
-                float width = Length(element, "width"), height = Length(element, "height");
+                float x = Across(element, "x"), y = Down(element, "y");
+                float width = Across(element, "width"), height = Down(element, "height");
 
                 if (!(width > 0) || !(height > 0))
                     return null;
 
+                // A corner radius given one way only is the same the other.
                 string? rxText = (string?)element.Attribute("rx"), ryText = (string?)element.Attribute("ry");
-                float rx = SvgLength.Read(rxText ?? ryText, width, 0);
-                float ry = SvgLength.Read(ryText ?? rxText, height, 0);
+                float rx = rxText is null ? Down(element, "ry") : Across(element, "rx");
+                float ry = ryText is null ? Across(element, "rx") : Down(element, "ry");
                 rx = Math.Min(Math.Max(0, rx), width / 2);
                 ry = Math.Min(Math.Max(0, ry), height / 2);
 
@@ -551,18 +580,18 @@ internal sealed class SvgReader
 
             case "circle":
             {
-                float radius = Length(element, "r");
-                return radius > 0 ? new VectorPath().AddCircle(Length(element, "cx"), Length(element, "cy"), radius) : null;
+                float radius = SvgLength.Read((string?)element.Attribute("r"), Diagonal, 0);
+                return radius > 0 ? new VectorPath().AddCircle(Across(element, "cx"), Down(element, "cy"), radius) : null;
             }
 
             case "ellipse":
             {
-                float rx = Length(element, "rx"), ry = Length(element, "ry");
-                return rx > 0 && ry > 0 ? new VectorPath().AddEllipse(Length(element, "cx"), Length(element, "cy"), rx, ry) : null;
+                float rx = Across(element, "rx"), ry = Down(element, "ry");
+                return rx > 0 && ry > 0 ? new VectorPath().AddEllipse(Across(element, "cx"), Down(element, "cy"), rx, ry) : null;
             }
 
             case "line":
-                return new VectorPath().MoveTo(Length(element, "x1"), Length(element, "y1")).LineTo(Length(element, "x2"), Length(element, "y2"));
+                return new VectorPath().MoveTo(Across(element, "x1"), Down(element, "y1")).LineTo(Across(element, "x2"), Down(element, "y2"));
 
             case "polyline":
             case "polygon":
@@ -671,7 +700,19 @@ internal sealed class SvgReader
         return dashes.Count == 0 || dashes.Any(dash => dash < 0) ? null : dashes;
     }
 
-    private static float Length(XElement element, string name) => SvgLength.Read((string?)element.Attribute(name), 100, 0);
+    /// <summary>A length across, such as an x or a width: a percentage is of the viewport's width.</summary>
+    private float Across(XElement element, string name, float fallback = 0) =>
+        SvgLength.Read((string?)element.Attribute(name), _viewport.Width, fallback);
+
+    /// <summary>A length down, such as a y or a height: a percentage is of the viewport's height.</summary>
+    private float Down(XElement element, string name, float fallback = 0) =>
+        SvgLength.Read((string?)element.Attribute(name), _viewport.Height, fallback);
+
+    /// <summary>
+    /// What a percentage that is neither across nor down, such as a radius or a stroke's width, is taken of: the
+    /// viewport's diagonal over the square root of two, as SVG says.
+    /// </summary>
+    private float Diagonal => (float)Math.Sqrt((((double)_viewport.Width * _viewport.Width) + ((double)_viewport.Height * _viewport.Height)) / 2);
 
     private static float First(XElement element, string name)
     {
