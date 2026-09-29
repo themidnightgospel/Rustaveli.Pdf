@@ -11,7 +11,7 @@ Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public
 **Status:** ✅ have · 🟡 partial · ❌ missing · ➖ deliberately not matched (reason given)
 
 **Phases:** 1 vocabulary · 2 managed writer · 3 text engine · 4 layout and styling · 5 images and SVG ·
-6 output and conformance · 7 document operations · 8 preview tool · 9 docs and 1.0
+6 output and conformance · 7 document operations · 8 preview tool · 9 docs and first release
 
 ---
 

@@ -1,9 +1,9 @@
 # Changelog
 
-Versions follow [semantic versioning](https://semver.org/): nothing public changes incompatibly within a major
-version.
+Versions follow [semantic versioning](https://semver.org/). Before 1.0 the public surface may still change from one
+minor version to the next; from 1.0, nothing public changes incompatibly within a major version.
 
-## 1.0.0
+## 0.1.0
 
 The first release: every capability of QuestPDF 2026.5.0, its last MIT release, in a vocabulary drawn from print —
 see the [parity checklist](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/parity/PARITY.md) and

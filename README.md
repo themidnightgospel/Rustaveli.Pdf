@@ -2,7 +2,7 @@
 
 A free, open source, fluent PDF generation library for .NET.
 
-> **Version 1.0.** Every capability of QuestPDF's last MIT release, tooling included — see the
+> **Version 0.1, the first release.** Every capability of QuestPDF's last MIT release, tooling included — see the
 > [parity checklist](docs/parity/PARITY.md) — on `net10.0` and `netstandard2.0` (.NET Framework 4.7.2+). The
 > [guides](docs/guide/README.md) show how to use it.
 
@@ -282,7 +282,7 @@ masks, patterns and markers are left out.
 
 ## Roadmap
 
-1.0 delivers every capability of QuestPDF — including its tooling — in a vocabulary of our own. The
+The first release delivers every capability of QuestPDF — including its tooling — in a vocabulary of our own. The
 [parity checklist](docs/parity/PARITY.md) tracks each capability against the phase that delivered it, and the
 [architecture decision records](docs/adr/README.md) explain the choices behind the plan. Every phase below is done.
 
@@ -297,7 +297,7 @@ masks, patterns and markers are left out.
 | 6 | Output formats and conformance: page images, CMYK and spot colour, PDF/A, PDF/UA |
 | 7 | Document operations: merge, overlay, attachments, encryption |
 | 8 | A live preview tool with hot reload |
-| 9 | Documentation, and 1.0 |
+| 9 | Documentation, and the first release |
 
 ## Licence
 
