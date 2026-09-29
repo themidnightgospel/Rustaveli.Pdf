@@ -89,24 +89,38 @@ public class TableComposerTests
         Assert.Equal(2, cell.ColumnSpan);
     }
 
-    [Fact]
-    public void ATableWithoutDeclaredColumnsLaysItsCellsOutAsOneColumn()
+    public static TheoryData<string, Action<TableComposer>> CellsWithoutColumns => new()
     {
-        TableBlock table = Compose(descriptor =>
-        {
-            descriptor.Cell();
-            descriptor.Cell();
-        });
+        { "body", table => table.Cell() },
+        { "header", table => table.HeaderRows(header => header.Cell()) },
+        { "footer", table => table.FooterRows(footer => footer.Cell()) },
+    };
 
-        Assert.Equal(new[] { (1, 1), (2, 1) }, table.Cells.Select(cell => (cell.Row, cell.Column)));
+    [Theory]
+    [MemberData(nameof(CellsWithoutColumns))]
+    public void RejectsCellsInATableWithoutDeclaredColumns(string band, Action<TableComposer> cell)
+    {
+        CompositionException exception = Assert.Throws<CompositionException>(() => Compose(cell));
+
+        Assert.True(
+            exception.Message == "A table declares its columns with Columns(...) before its cells can be placed.",
+            $"A {band} cell was rejected with: {exception.Message}");
     }
 
     [Fact]
-    public void ATableWithoutDeclaredColumnsStillRejectsASecondColumn()
+    public void ATableWithoutColumnsOrCellsIsAccepted()
     {
-        CompositionException exception = Assert.Throws<CompositionException>(() =>
-            Compose(descriptor => descriptor.Cell().AtColumn(2)));
+        TableBlock table = Compose(_ => { });
 
-        Assert.StartsWith("A body cell occupies columns 2 to 2, but the table declares only 1.", exception.Message);
+        Assert.Empty(table.Columns);
+    }
+
+    [Fact]
+    public void ADocumentWithAColumnlessTableFailsWhileComposing()
+    {
+        Exception? exception = Record.Exception(() => LayoutHarness.Render(Document.Compose(composition =>
+            composition.Section(section => section.Body().Table(table => table.Cell().Text("Cell"))))));
+
+        Assert.IsType<CompositionException>(exception);
     }
 }

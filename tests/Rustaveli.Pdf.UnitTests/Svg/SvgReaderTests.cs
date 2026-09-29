@@ -114,6 +114,71 @@ public class SvgReaderTests
         Approximately.Equal(Pixels(20, 30, 60, 50), paths[1].Bounds);
     }
 
+    [Fact]
+    public void PercentagesAreTakenOfTheViewport()
+    {
+        PathOperation background = Painted("<rect width='100%' height='100%' fill='#eee'/>", "viewBox='0 0 800 600'").Single();
+
+        Approximately.Equal(Pixels(0, 0, 800, 600), background.Bounds);
+    }
+
+    [Fact]
+    public void PercentagesAcrossAndDownAreTakenOfTheViewportsWidthAndHeight()
+    {
+        List<PathOperation> painted = Painted(
+            "<rect x='10%' y='10%' width='50%' height='50%'/><line x1='0' y1='0' x2='100%' y2='100%' stroke='red'/>",
+            "width='200' height='100'");
+
+        Approximately.Equal(Pixels(20, 10, 120, 60), painted[0].Bounds);
+        Assert.Equal(new Offset(200, 100), painted[1].Path.Points[1]);
+    }
+
+    [Fact]
+    public void APercentageThatIsNeitherAcrossNorDownIsTakenOfTheViewportsDiagonal()
+    {
+        // SVG takes such lengths of the diagonal over the square root of two: here √((200² + 100²) / 2) ≈ 158.11.
+        PathOperation circle = Painted("<circle cx='100' cy='50' r='10%'/>", "width='200' height='100'").Single();
+
+        Approximately.Equal(Pixels(100 - 15.811f, 50 - 15.811f, 100 + 15.811f, 50 + 15.811f), circle.Bounds);
+    }
+
+    [Fact]
+    public void AGradientInUserSpaceTakesPercentagesOfTheViewport()
+    {
+        GradientOperation gradient = Draw(
+            "<linearGradient id='g' gradientUnits='userSpaceOnUse' x1='0' x2='50%' y2='100%'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>" +
+            "<rect width='10' height='10' fill='url(#g)'/>",
+            "width='400' height='200'").OfType<GradientOperation>().Single();
+
+        (Offset start, Offset end) = gradient.Gradient.Axis(Offset.Zero, new Extent(1, 1));
+        Assert.Equal((Offset.Zero, new Offset(200, 200)), (start, end));
+    }
+
+    [Fact]
+    public void ANestedViewportWithoutASizeFillsTheViewportItIsIn()
+    {
+        List<PathOperation> paths = Paths("<svg viewBox='0 0 4 2'><rect width='4' height='2'/></svg>", "width='400' height='200'");
+
+        Approximately.Equal(Pixels(0, 0, 400, 200), paths[0].Bounds);
+        Approximately.Equal(Pixels(0, 0, 400, 200), paths[1].Bounds);
+    }
+
+    [Fact]
+    public void ANestedViewportsPercentagesAreTakenOfItsOwnSize()
+    {
+        List<PathOperation> paths = Paths("<svg width='50%' height='50%'><rect width='100%' height='100%'/></svg>", "width='400' height='200'");
+
+        Approximately.Equal(Pixels(0, 0, 200, 100), paths[1].Bounds);
+    }
+
+    [Fact]
+    public void AUsedSymbolWithoutASizeFillsTheViewport()
+    {
+        PathOperation square = Painted("<symbol id='s' viewBox='0 0 10 10'><rect width='10' height='10'/></symbol><use href='#s'/>", "width='300' height='300'").Single();
+
+        Approximately.Equal(Pixels(0, 0, 300, 300), square.Bounds);
+    }
+
     // ---- Shapes ----------------------------------------------------------------------------------------------
 
     [Fact]
@@ -269,6 +334,41 @@ public class SvgReaderTests
 
         Assert.Equal([Red, Blue, Red, Blue], painted.Select(operation => operation.Ink));
     }
+
+    // ---- Switch ----------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void ASwitchDrawsOnlyItsFirstChild() =>
+        Assert.Equal(Red, Assert.Single(Painted("<switch><rect width='5' height='5' fill='red'/><rect width='5' height='5' fill='blue'/></switch>")).Ink);
+
+    [Fact]
+    public void ASwitchDrawsTheFirstChildWhoseConditionsHold()
+    {
+        List<PathOperation> painted = Painted(
+            "<switch><title>Chooses</title>" +
+            "<rect width='5' height='5' fill='blue' requiredExtensions='http://example.org/extension'/>" +
+            "<g systemLanguage='fr, de'><rect width='5' height='5' fill='blue'/></g>" +
+            "<rect width='5' height='5' fill='red' systemLanguage='de, en-GB'/>" +
+            "<rect width='5' height='5' fill='blue'/></switch>");
+
+        Assert.Equal(Red, Assert.Single(painted).Ink);
+    }
+
+    [Theory]
+    [InlineData("systemLanguage='en'")]
+    [InlineData("systemLanguage='EN-us'")]
+    [InlineData("systemLanguage=' fr ,en '")]
+    public void EnglishIsTheLanguageASwitchChoosesFor(string conditions) =>
+        Assert.Single(Painted($"<switch><rect width='5' height='5' {conditions}/></switch>"));
+
+    // No extension is supported, and an empty list of either holds for nothing, as SVG says.
+    [Theory]
+    [InlineData("systemLanguage=''")]
+    [InlineData("systemLanguage='eng'")]
+    [InlineData("requiredExtensions='x'")]
+    [InlineData("requiredExtensions=''")]
+    public void ASwitchWhoseChildrenAllFailDrawsNothing(string conditions) =>
+        Assert.Empty(Painted($"<switch><rect width='5' height='5' {conditions}/></switch>"));
 
     // ---- Transforms and clips --------------------------------------------------------------------------------
 
@@ -444,6 +544,91 @@ public class SvgReaderTests
         Assert.Equal(Red, text.Style.Ink);
     }
 
+    /// <summary>The runs of text drawn, each with its point in pixels.</summary>
+    private static List<(string Text, float X, float Y)> Runs(string body) =>
+        Draw(body, "width='200' height='100'").OfType<TextOperation>()
+            .Select(text => (text.Text, (float)Math.Round(text.Position.X / 0.75f, 2), (float)Math.Round(text.Position.Y / 0.75f, 2)))
+            .ToList();
+
+    [Fact]
+    public void EachLineOfTextSetsWhereItsSpanSays()
+    {
+        // As Inkscape writes a text of two lines.
+        List<(string, float, float)> runs = Runs(
+            "<text x='10' y='20'>\n  <tspan x='10' y='20'>Line one</tspan>\n  <tspan x='10' y='45'>Line two</tspan>\n</text>");
+
+        // The white space between the spans is one space, which ends the first line, as SVG has it.
+        Assert.Equal([("Line one ", 10f, 20f), ("Line two", 10f, 45f)], runs);
+    }
+
+    [Fact]
+    public void ASpanIsSetInItsOwnStyleAfterTheTextBeforeIt()
+    {
+        List<TextOperation> texts = Draw("<text x='10' y='20' font-size='10'>Total: <tspan font-weight='bold' fill='red'>42</tspan></text>").OfType<TextOperation>().ToList();
+
+        Assert.Equal(["Total: ", "42"], texts.Select(text => text.Text));
+        Assert.Equal((TypeWeight.Normal, Ink.Rgb(0, 0, 0)), (texts[0].Style.Weight, texts[0].Style.Ink));
+        Assert.Equal((TypeWeight.Bold, Red), (texts[1].Style.Weight, texts[1].Style.Ink));
+
+        // The measurer used for tests gives every character half a point of width per point of size.
+        Assert.Equal(new Offset(45 * 0.75f, 20 * 0.75f), texts[1].Position);
+    }
+
+    [Fact]
+    public void ASpanMovedByDxAndDyMovesWhatFollowsIt() =>
+        Assert.Equal(
+            [("ab", 10f, 20f), ("c", 25f, 17f), ("d", 30f, 17f)],
+            Runs("<text x='10' y='20' font-size='10'>ab<tspan dx='5' dy='-3'>c</tspan><tspan fill='red'>d</tspan></text>"));
+
+    [Fact]
+    public void ASpanGivenOnlyALineGoesOnAcross() =>
+        Assert.Equal([("ab", 0f, 10f), ("c", 10f, 30f)], Runs("<text x='0' y='10' font-size='10'>ab<tspan y='30'>c</tspan></text>"));
+
+    [Fact]
+    public void AnUndisplayedSpanIsLeftOutAndAHiddenOneKeepsItsRoom()
+    {
+        Assert.Equal([("ac", 0f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan display='none'>b</tspan>c</text>"));
+        Assert.Equal([("a", 0f, 10f), ("c", 10f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan visibility='hidden'>b</tspan>c</text>"));
+        Assert.Equal([("a", 0f, 10f), ("c", 10f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan fill='none'>b</tspan>c</text>"));
+    }
+
+    [Fact]
+    public void AnAnchorPlacesTheWholeRunOfSpans() =>
+        Assert.Equal([("ab", 40f, 10f), ("cd", 50f, 10f)], Runs("<text x='50' y='10' font-size='10' text-anchor='middle'>ab<tspan fill='red'>cd</tspan></text>"));
+
+    [Fact]
+    public void AnAnchorAtTheEndEndsTheWholeRunOfSpansThere() =>
+        Assert.Equal([("ab", 30f, 10f), ("cd", 40f, 10f)], Runs("<text x='50' y='10' font-size='10' text-anchor='end'>ab<tspan fill='red'>cd</tspan></text>"));
+
+    [Fact]
+    public void SpansAreFollowedOnlySoDeep()
+    {
+        string deep = string.Concat(Enumerable.Repeat("<tspan>", 80)) + "deep" + string.Concat(Enumerable.Repeat("</tspan>", 80));
+
+        Assert.Equal([("shallow", 0f, 10f)], Runs($"<text x='0' y='10'>shallow{deep}</text>"));
+    }
+
+    [Fact]
+    public void TextPlacedBeyondAPdfIsLeftOut()
+    {
+        Assert.Empty(Runs("<text x='9e14' y='10' font-size='1e14'>abc</text>"));
+        Assert.Equal(["a"], Runs("<text x='0' y='9e14' font-size='10'>a<tspan dy='9e14'>b</tspan></text>").Select(run => run.Text));
+    }
+
+    [Fact]
+    public void ASpanWithNothingInItMovesNothing() =>
+        Assert.Equal([("ab", 0f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan x='50'></tspan>b</text>"));
+
+    [Fact]
+    public void ANestedSpansPositionIsTakenOverTheOneAroundIt() =>
+        Assert.Equal(
+            [("a", 0f, 10f), ("bc", 30f, 10f)],
+            Runs("<text x='0' y='10' font-size='10'>a<tspan x='20'><tspan x='30'>b</tspan>c</tspan></text>"));
+
+    [Fact]
+    public void ALinkInTextIsSetAsASpan() =>
+        Assert.Equal([("see ", 0f, 10f), ("here", 20f, 10f)], Runs("<text x='0' y='10' font-size='10'>see <a href='#x' fill='red'>here</a><title>Tip</title></text>"));
+
     [Theory]
     [InlineData("-5", 16f)]
     [InlineData("0", 0f)]
@@ -474,9 +659,18 @@ public class SvgReaderTests
     [Theory]
     [InlineData("font-weight='bold'", TypeWeight.Bold, false)]
     [InlineData("font-weight='bolder'", TypeWeight.Bold, false)]
-    [InlineData("font-weight='600'", TypeWeight.Bold, false)]
-    [InlineData("font-weight='500'", TypeWeight.Normal, false)]
-    [InlineData("font-weight='lighter'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='600'", TypeWeight.SemiBold, false)]
+    [InlineData("font-weight='500'", TypeWeight.Medium, false)]
+    [InlineData("font-weight='300'", TypeWeight.Light, false)]
+    [InlineData("font-weight='349'", TypeWeight.Light, false)]
+    [InlineData("font-weight='350'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='1'", TypeWeight.Thin, false)]
+    [InlineData("font-weight='1000'", TypeWeight.Black, false)]
+    [InlineData("font-weight='0'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='1001'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='heavy'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='normal'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='lighter'", TypeWeight.Thin, false)]
     [InlineData("font-style='italic'", TypeWeight.Normal, true)]
     [InlineData("font-style='oblique'", TypeWeight.Normal, true)]
     [InlineData("font-style='normal'", TypeWeight.Normal, false)]
@@ -485,6 +679,28 @@ public class SvgReaderTests
         TextOperation text = Draw($"<text {attributes}>x</text>").OfType<TextOperation>().Single();
 
         Assert.Equal((weight, italic), (text.Style.Weight, text.Style.IsItalic));
+    }
+
+    [Theory]
+    [InlineData("100", "bolder", TypeWeight.Normal)]
+    [InlineData("300", "bolder", TypeWeight.Normal)]
+    [InlineData("400", "bolder", TypeWeight.Bold)]
+    [InlineData("600", "bolder", TypeWeight.Black)]
+    [InlineData("900", "bolder", TypeWeight.Black)]
+    [InlineData("100", "lighter", TypeWeight.Thin)]
+    [InlineData("50", "lighter", TypeWeight.Thin)]
+    [InlineData("50", "bolder", TypeWeight.Normal)]
+    [InlineData("500", "lighter", TypeWeight.Thin)]
+    [InlineData("600", "lighter", TypeWeight.Normal)]
+    [InlineData("700", "lighter", TypeWeight.Normal)]
+    [InlineData("800", "lighter", TypeWeight.Bold)]
+    [InlineData("bold", "inherit", TypeWeight.Bold)]
+    [InlineData("bold", "nonsense", TypeWeight.Bold)]
+    public void ARelativeWeightIsTakenFromTheWeightInherited(string inherited, string weight, TypeWeight expected)
+    {
+        TextOperation text = Draw($"<g font-weight='{inherited}'><text font-weight='{weight}'>x</text></g>").OfType<TextOperation>().Single();
+
+        Assert.Equal(expected, text.Style.Weight);
     }
 
     [Fact]

@@ -14,10 +14,10 @@ public sealed class FlowComposer
     internal FlowComposer(FlowBlock block) => _block = block;
 
     /// <summary>Sets the gap between neighbouring items in a line.</summary>
-    public void Gutter(float value) => _block.Gutter = value;
+    public void Gutter(float value) => _block.Gutter = Numbers.NotNegative(value, nameof(value));
 
     /// <summary>Sets the gap between one line and the next.</summary>
-    public void SpaceBetweenLines(float value) => _block.SpaceBetweenLines = value;
+    public void SpaceBetweenLines(float value) => _block.SpaceBetweenLines = Numbers.NotNegative(value, nameof(value));
 
     /// <summary>Sets each line against the start, the default.</summary>
     public void FlushLeft() => _block.Placement = FlowPlacement.Left;

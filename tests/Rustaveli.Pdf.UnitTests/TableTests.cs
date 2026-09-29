@@ -428,7 +428,9 @@ public class TableTests
     [Fact]
     public void WrapsWithoutAnyColumns()
     {
-        TableBlock table = BuildTable(descriptor => Fill(descriptor.Cell(), 1, 10));
+        // Composing refuses cells without columns; a block holding them anyway still wraps rather than failing.
+        TableBlock table = new TableBlock();
+        Fill(new TableComposer(table).Cell(), 1, 10);
 
         Assert.True(LayoutHarness.Measure(table, new Extent(200, 200)).IsDeferred);
         Assert.Empty(LayoutHarness.Draw(table, new Extent(200, 200)).Operations);

@@ -45,7 +45,20 @@ internal sealed class RasterPageTarget(ImageExportOptions options) : ISkiaPageTa
         _surface = null;
     }
 
-    private static int Pixels(float points, float scale) => Math.Max(1, (int)Math.Round(points * scale, MidpointRounding.AwayFromZero));
+    /// <summary>
+    /// The pixels <paramref name="points"/> take at <paramref name="scale"/>, at least one. A count beyond what an int
+    /// holds is refused here: converted, it would come out as whatever the platform makes of it — on .NET Framework the
+    /// smallest int, which would have drawn a page of a single pixel.
+    /// </summary>
+    private static int Pixels(float points, float scale)
+    {
+        double pixels = Math.Round((double)points * scale, MidpointRounding.AwayFromZero);
+
+        if (pixels > int.MaxValue)
+            throw new InvalidOperationException(FormattableString.Invariant($"A page {points} points long at {scale * 72} pixels per inch has more pixels than an image can have."));
+
+        return Math.Max(1, (int)pixels);
+    }
 
     private static SKEncodedImageFormat Encoding(PageImageFormat format) => format switch
     {

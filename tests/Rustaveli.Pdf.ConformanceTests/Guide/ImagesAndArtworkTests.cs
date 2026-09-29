@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rustaveli.Pdf.ConformanceTests.Guide;
 
 /// <summary>The examples of docs/guide/images-and-artwork.md, as written there.</summary>
@@ -86,16 +88,32 @@ public class ImagesAndArtworkTests
     [Fact]
     public void MadeForTheirBox()
     {
+        // In a culture that writes a decimal comma, as the example must still be right in.
+        CultureInfo culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+
+        try
+        {
+            AssertMadeForTheirBox();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    private static void AssertMadeForTheirBox()
+    {
         Document document = Page(section =>
         {
-            section.Body().Height(160).Artwork(size => Artwork.FromSvg(
+            section.Body().Height(160).Artwork(size => Artwork.FromSvg(FormattableString.Invariant(
                 $"""
                 <svg xmlns="http://www.w3.org/2000/svg" width="{size.Width}" height="{size.Height}">
                   <rect x="0" y="{size.Height * 0.4}" width="{size.Width / 3}" height="{size.Height * 0.6}" fill="#43A047"/>
                   <rect x="{size.Width / 3}" y="{size.Height * 0.1}" width="{size.Width / 3}" height="{size.Height * 0.9}" fill="#1E88E5"/>
                   <rect x="{size.Width * 2 / 3}" y="{size.Height * 0.7}" width="{size.Width / 3}" height="{size.Height * 0.3}" fill="#FB8C00"/>
                 </svg>
-                """));
+                """)));
         });
 
         using UglyToad.PdfPig.PdfDocument read = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
@@ -108,6 +126,18 @@ public class ImagesAndArtworkTests
         Assert.Contains((0x43, 0xA0, 0x47), fills);
         Assert.Contains((0x1E, 0x88, 0xE5), fills);
         Assert.Contains((0xFB, 0x8C, 0x00), fills);
+
+        // The three bars side by side fill the width between the margins, each a third of it.
+        List<double> lefts = read.GetPage(1).Paths
+            .Where(path => path.IsFilled && path.FillColor is not null)
+            .Where(path => path.FillColor!.ToRGBValues() is var rgb && Math.Round(rgb.r * 255) is 0x43 or 0x1E or 0xFB)
+            .Select(path => path.GetBoundingRectangle()!.Value.Left)
+            .OrderBy(left => left)
+            .ToList();
+        double width = PaperSizes.A5.Width - 72;
+        double[] expected = [36, 36 + (width / 3), 36 + (width * 2 / 3)];
+        Assert.Equal(3, lefts.Count);
+        Assert.All(Enumerable.Range(0, 3), bar => Assert.True(Math.Abs(lefts[bar] - expected[bar]) < 0.1, $"Bar {bar + 1} starts at {lefts[bar]}, not {expected[bar]}."));
     }
 
     /// <summary>An A5 page, as the examples that begin at the body are set on.</summary>

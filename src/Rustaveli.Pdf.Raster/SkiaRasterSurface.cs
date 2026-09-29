@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Images;
@@ -24,7 +25,14 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
     {
     }
 
-    private readonly Dictionary<OpenTypeFont, SKTypeface> _typefaces = [];
+    /// <summary>
+    /// Each face loaded into Skia once, for as long as the face itself lives, rather than once per export: loading
+    /// copies the whole font file, and a preview redrawn at every edit would copy a 20 MB CJK face every time. The table
+    /// is safe to share between threads, and a Skia typeface is immutable, so exports drawing at once share it too. A
+    /// typeface is let go with its face and released by its finalizer, never disposed while an export may be using it.
+    /// </summary>
+    private static readonly ConditionalWeakTable<OpenTypeFont, SKTypeface> Typefaces = new ConditionalWeakTable<OpenTypeFont, SKTypeface>();
+
     private readonly Dictionary<RasterImage, SKImage> _images = [];
     private readonly List<byte[]> _pages = [];
     private SKCanvas? _canvas;
@@ -356,11 +364,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         foreach (SKImage image in _images.Values)
             image.Dispose();
 
-        foreach (SKTypeface typeface in _typefaces.Values)
-            typeface.Dispose();
-
         _images.Clear();
-        _typefaces.Clear();
     }
 
     /// <summary>
@@ -512,17 +516,13 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         }
     }
 
-    private SKTypeface TypefaceFor(OpenTypeFont face)
-    {
-        if (!_typefaces.TryGetValue(face, out SKTypeface? typeface))
-        {
-            using SKData data = SKData.CreateCopy(face.FileData.Span);
-            typeface = SKTypeface.FromData(data, face.FaceIndex)
-                ?? throw new InvalidOperationException($"Skia could not load the face {face.Names.FullName}.");
-            _typefaces.Add(face, typeface);
-        }
+    internal static SKTypeface TypefaceFor(OpenTypeFont face) => Typefaces.GetValue(face, Load);
 
-        return typeface;
+    private static SKTypeface Load(OpenTypeFont face)
+    {
+        using SKData data = SKData.CreateCopy(face.FileData.Span);
+        return SKTypeface.FromData(data, face.FaceIndex)
+            ?? throw new InvalidOperationException($"Skia could not load the face {face.Names.FullName}.");
     }
 
     /// <summary>Decodes the pixels as stored, without any orientation applied: the placement turns them.</summary>
@@ -535,7 +535,9 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         using SKCodec codec = SKCodec.Create(data)
             ?? throw new ArgumentException("Skia could not decode the image.", nameof(image));
 
-        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        // Decoded into sRGB, the colours of the page, so an image with a profile of its own is drawn in the colours
+        // the profile gives it rather than as its bare samples.
+        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
         using SKBitmap bitmap = new SKBitmap(info);
         SKCodecResult result = codec.GetPixels(info, bitmap.GetPixels());
 

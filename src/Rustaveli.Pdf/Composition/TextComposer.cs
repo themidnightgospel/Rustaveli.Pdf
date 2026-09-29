@@ -109,6 +109,10 @@ public sealed class TextComposer
     /// <summary>Appends text that opens an external URL when clicked.</summary>
     public RunComposer Link(string text, string url)
     {
+        // An empty target draws text that looks linked with no annotation behind it, and, tagged, a Link element
+        // with nothing to point at, which PDF/UA forbids.
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+
         return Add(new TextRun
         {
             Text = text,
@@ -119,6 +123,8 @@ public sealed class TextComposer
     /// <summary>Appends text that jumps to a named section when clicked.</summary>
     public RunComposer CrossReference(string text, string anchor)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
+
         return Add(new TextRun
         {
             Text = text,
@@ -153,13 +159,13 @@ public sealed class TextComposer
     /// <summary>Indents the opening line of every paragraph in this block.</summary>
     public void FirstLineIndent(float indent)
     {
-        _block.FirstLineIndent = indent;
+        _block.FirstLineIndent = Numbers.NotNegative(indent, nameof(indent));
     }
 
     /// <summary>Inserts a vertical gap before every paragraph after the first.</summary>
     public void SpaceBetweenParagraphs(float spacing)
     {
-        _block.SpaceBetweenParagraphs = spacing;
+        _block.SpaceBetweenParagraphs = Numbers.NotNegative(spacing, nameof(spacing));
     }
 
     /// <summary>
@@ -225,6 +231,7 @@ public sealed class TextComposer
     /// <summary>Adjusts the style inherited by every span in this paragraph.</summary>
     public void DefaultType(Func<TypeStyle, TypeStyle> refinement)
     {
+        ArgumentNullException.ThrowIfNull(refinement);
         Func<TypeStyle, TypeStyle>? previous = _block.DefaultTypeRefinement;
 
         _block.DefaultTypeRefinement = previous is null

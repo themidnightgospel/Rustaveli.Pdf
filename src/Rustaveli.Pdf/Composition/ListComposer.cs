@@ -18,13 +18,13 @@ public sealed class ListComposer
     public void Numbered(ListNumbering numbering = ListNumbering.Arabic) => _block.Numbering = numbering;
 
     /// <summary>Sets the width of the gutter the markers sit in.</summary>
-    public void MarkerIndent(float width) => _block.MarkerIndent = width;
+    public void MarkerIndent(float width) => _block.MarkerIndent = Numbers.NotNegative(width, nameof(width));
 
     /// <summary>Adjusts the style of the markers, leaving the item content untouched.</summary>
     public void MarkerType(Func<TypeStyle, TypeStyle> refinement) => _block.MarkerType = refinement;
 
     /// <summary>Sets the vertical gap between items.</summary>
-    public void SpaceBetween(float value) => _block.SpaceBetween = value;
+    public void SpaceBetween(float value) => _block.SpaceBetween = Numbers.NotNegative(value, nameof(value));
 
     /// <summary>Adds an item and returns its container.</summary>
     public IFrame Add()

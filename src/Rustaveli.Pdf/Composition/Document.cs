@@ -88,9 +88,13 @@ public sealed class Document : IComposition
 
         foreach (Document part in parts)
         {
+            // A part that is itself a merge brings its own parts, each with its boundary and style sheet, rather than
+            // becoming one part whose sheet — the merge's own, which its content never named styles from — is empty.
+            // A fresh copy always carries its style sheets, one for a document composed alone.
             Document fresh = part.Recompose();
-            merged._partStarts.Add(merged._pages.Count);
-            merged._partStyles.Add(part.Styles);
+            int offset = merged._pages.Count;
+            merged._partStarts.AddRange(fresh._partStarts.Select(start => offset + start));
+            merged._partStyles.AddRange(fresh._partStyles);
             merged._pages.AddRange(fresh._pages);
         }
 

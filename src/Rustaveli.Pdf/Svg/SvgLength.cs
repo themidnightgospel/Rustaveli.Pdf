@@ -13,7 +13,7 @@ internal static class SvgLength
 
     /// <summary>
     /// The length <paramref name="text"/> in user units, a percentage taken of <paramref name="reference"/>, or
-    /// <paramref name="fallback"/> when there is no length to read.
+    /// <paramref name="fallback"/> when there is no length to read or it is in a unit SVG does not know.
     /// </summary>
     public static float Read(string? text, float reference, float fallback)
     {
@@ -46,7 +46,10 @@ internal static class SvgLength
             "em" => number * 16,
             "ex" => number * 8,
             "%" => number / 100 * reference,
-            _ => number,
+
+            // A unit SVG does not know, or a number written with a decimal comma, makes the length invalid, which SVG
+            // ignores, as it does any other attribute in error; taking the number alone would draw it at another size.
+            _ => float.NaN,
         };
 
         // A length too large for a PDF, as written or once in pixels, is no length to draw with.

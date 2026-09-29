@@ -382,12 +382,14 @@ public class TypesetterTests
     [Fact]
     public void RejectsAPageWithNoArea()
     {
-        Document document = Build(page =>
+        // Refused as it is set, while the composing code is on the stack, rather than when the page is laid out.
+        CompositionException exception = Assert.Throws<CompositionException>(() => Build(page =>
         {
             page.Trim = new Extent(0f, 0f);
             page.Body().Text("nowhere to draw");
-        });
-        Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
+        }));
+
+        Assert.IsType<ArgumentOutOfRangeException>(exception.InnerException);
     }
 
     [Fact]
@@ -524,24 +526,14 @@ public class TypesetterTests
     }
 
     [Theory]
-    [InlineData(0f, 100f, "(Width: 0.000, Height: 100.000)")]
-    [InlineData(100f, 0f, "(Width: 100.000, Height: 0.000)")]
-    [InlineData(-10f, 100f, "(Width: -10.000, Height: 100.000)")]
-    public void RejectsAPageSizeWithoutAreaInEitherDimension(float width, float height, string formattedSize)
+    [InlineData(0f, 100f)]
+    [InlineData(100f, 0f)]
+    [InlineData(-10f, 100f)]
+    public void RejectsAPageSizeWithoutAreaInEitherDimension(float width, float height)
     {
-        using CultureScope culture = CultureScope.DecimalComma();
-        Document document = Build(page =>
-        {
-            page.Trim = new Extent(width, height);
-            page.Body().Text("nowhere to draw");
-        });
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => new Section { Trim = new Extent(width, height) });
 
-        OversetException exception =
-            Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
-
-        Assert.Equal(
-            $"The trim size {formattedSize} cannot be drawn. Both dimensions must be greater than zero.",
-            exception.Message);
+        Assert.StartsWith("A page size is greater than nothing and at most 14,400 points each way", exception.Message);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Layout;
 #if NETFRAMEWORK
@@ -106,8 +107,25 @@ public class PreviewTests
 
         string state = await Get(session, "/state");
 
-        Assert.Contains("\"error\":\"InvalidOperationException: Not written yet\\n\\nFormatException: bad date\"", state, StringComparison.Ordinal);
+        // Each exception says where it was thrown in the composing code; the one caused by it here never was.
+        Assert.Contains("\"error\":\"InvalidOperationException: Not written yet\\n   at Rustaveli.Pdf.IntegrationTests.PreviewTests.", state, StringComparison.Ordinal);
+        Assert.Contains("\\n\\nFormatException: bad date\"", state, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task AFailureShowsWhereInTheComposingCodeItWasThrown()
+    {
+        using PreviewSession session = Start(ComposeUnfinished);
+
+        string state = await Get(session, "/state");
+
+        Assert.Matches(
+            "\"error\":\"InvalidOperationException: Not written yet\\\\n   at Rustaveli\\.Pdf\\.IntegrationTests\\.PreviewTests\\.ComposeUnfinished\\(\\) in [^\"]*PreviewTests\\.cs:line \\d+\"",
+            state);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Document ComposeUnfinished() => throw new InvalidOperationException("Not written yet");
 
     [Fact]
     public async Task AComposeFunctionThatReturnsNoDocumentIsAFailure()
@@ -130,7 +148,7 @@ public class PreviewTests
         string frames = await Get(session, "/frames/1");
 
         Assert.StartsWith("[{\"name\":", frames, StringComparison.Ordinal);
-        Assert.Matches("\"name\":\"\\\\\"Greeting\\\\\"\",\"source\":\"[^\"]*PreviewTests\\.cs:\\d+\",\"x\":10,\"y\":10,\"width\":124,\"height\":52,\"children\":\\[\\{", frames);
+        Assert.Matches("\"name\":\"\\\\\"Greeting\\\\\"\",\"source\":\"[^\"]*PreviewTests\\.cs:\\d+\",\"editor\":\"vscode://file/[^\"]*PreviewTests\\.cs:\\d+\",\"x\":10,\"y\":10,\"width\":124,\"height\":52,\"children\":\\[\\{", frames);
     }
 
     [Fact]
@@ -144,10 +162,21 @@ public class PreviewTests
         inspection.Leave(inspection.Enter(new NewPageBlock(), new Offset(5, 6), new Extent(7, 8)));
 
         Assert.Equal(
-            "[{\"name\":\"Stack\",\"source\":null,\"x\":1.23,\"y\":2,\"width\":3,\"height\":4,\"children\":"
-            + "[{\"name\":\"NewPage\",\"source\":null,\"x\":0,\"y\":0,\"width\":0,\"height\":0,\"children\":[]}]},"
-            + "{\"name\":\"NewPage\",\"source\":null,\"x\":5,\"y\":6,\"width\":7,\"height\":8,\"children\":[]}]",
+            "[{\"name\":\"Stack\",\"source\":null,\"editor\":null,\"x\":1.23,\"y\":2,\"width\":3,\"height\":4,\"children\":"
+            + "[{\"name\":\"NewPage\",\"source\":null,\"editor\":null,\"x\":0,\"y\":0,\"width\":0,\"height\":0,\"children\":[]}]},"
+            + "{\"name\":\"NewPage\",\"source\":null,\"editor\":null,\"x\":5,\"y\":6,\"width\":7,\"height\":8,\"children\":[]}]",
             PreviewSession.Frames(inspection.Pages[0]));
+    }
+
+    [Theory]
+    [InlineData(@"C:\src\C#\Demo\Program.cs:12", "vscode://file/C:/src/C%23/Demo/Program.cs:12")]
+    [InlineData("/home/me/what?/100% done/Program.cs:3", "vscode://file//home/me/what%3F/100%25%20done/Program.cs:3")]
+    [InlineData("/home/me/Program.cs", "vscode://file//home/me/Program.cs")]
+    public void AFrameLeadsToTheLineThatMadeItWhateverThePathHolds(string source, string editor)
+    {
+        LayoutInspection.Node node = new LayoutInspection.Node("Stack", source, Offset.Zero, Extent.Zero, null);
+
+        Assert.Contains("\"editor\":" + PreviewSession.Quote(editor), PreviewSession.Frames([node]), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -291,6 +320,51 @@ public class PreviewTests
         {
             PdfExport.Open = open;
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task APreviewStartsEvenWhereNoBrowserCanBeOpened(bool unsupported)
+    {
+        Action<string> open = PdfExport.Open;
+
+        // As Process.Start fails on a Linux machine without xdg-open, and on a platform with no processes to start.
+        PdfExport.Open = _ => throw (unsupported ? new PlatformNotSupportedException() : (Exception)new System.ComponentModel.Win32Exception(2, "No such file or directory"));
+
+        try
+        {
+            using PreviewSession session = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { Resolution = 72 });
+
+            Assert.Contains("\"version\":1", await Get(session, "/state"), StringComparison.Ordinal);
+        }
+        finally
+        {
+            PdfExport.Open = open;
+        }
+    }
+
+    [Fact]
+    public void APreviewThatFailsToStartLetsItsPortGo()
+    {
+        TcpListener probe = new TcpListener(IPAddress.Loopback, 0);
+        probe.Start();
+        int port = ((IPEndPoint)probe.LocalEndpoint).Port;
+        probe.Stop();
+        Action<string> open = PdfExport.Open;
+        PdfExport.Open = _ => throw new NotSupportedException("Not here.");
+
+        try
+        {
+            Assert.Throws<NotSupportedException>(() => DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { Port = port }));
+        }
+        finally
+        {
+            PdfExport.Open = open;
+        }
+
+        using PreviewSession again = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
+        Assert.Equal(port, again.Url.Port);
     }
 
     [Fact]

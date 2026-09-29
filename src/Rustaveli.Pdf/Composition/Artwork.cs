@@ -49,12 +49,17 @@ public sealed class Artwork
         return Svg.SvgReader.Read(reader);
     }
 
-    /// <inheritdoc cref="FromSvg(string)"/>
+    /// <summary>
+    /// The artwork the SVG document in <paramref name="svg"/> draws, read in the encoding the document declares, at the
+    /// size it gives itself, a CSS pixel to three quarters of a point. The stream is read from where it stands and is
+    /// left open: it is the caller's to dispose.
+    /// </summary>
+    /// <remarks><inheritdoc cref="FromSvg(string)" path="/remarks"/></remarks>
+    /// <exception cref="FormatException">The bytes are not an SVG document.</exception>
     public static Artwork FromSvg(Stream svg)
     {
         ArgumentNullException.ThrowIfNull(svg);
-        using StreamReader reader = new StreamReader(svg);
-        return Svg.SvgReader.Read(reader);
+        return Svg.SvgReader.Read(svg);
     }
 
     /// <inheritdoc cref="FromSvg(string)"/>

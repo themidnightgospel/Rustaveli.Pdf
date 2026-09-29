@@ -169,6 +169,24 @@ public class FlowColumnsTests
     }
 
     [Fact]
+    public void TheColumnsHaveOneStoryAndOneFrameBetween()
+    {
+        CompositionException story = Assert.Throws<CompositionException>(() => LayoutHarness.Build(frame => frame.FlowColumns(columns =>
+        {
+            columns.Story().Text("First");
+            columns.Story().Text("Second");
+        })));
+        CompositionException between = Assert.Throws<CompositionException>(() => LayoutHarness.Build(frame => frame.FlowColumns(columns =>
+        {
+            columns.Between().VerticalRule();
+            columns.Between().VerticalRule();
+        })));
+
+        Assert.Equal("FlowColumns has one Story; it is already declared.", story.Message);
+        Assert.Equal("FlowColumns has one Between; it is already declared.", between.Message);
+    }
+
+    [Fact]
     public void AStoryFlowsThroughAtLeastOneColumn()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => LayoutHarness.Build(frame => frame.FlowColumns(columns => columns.Columns(0))));

@@ -22,7 +22,7 @@ public sealed class FlowColumnsComposer
     }
 
     /// <summary>Sets the gap between neighbouring columns.</summary>
-    public void Gutter(float value) => _block.Gutter = value;
+    public void Gutter(float value) => _block.Gutter = Numbers.NotNegative(value, nameof(value));
 
     /// <summary>Ends the columns of the story's last page level, rather than filling each before the next.</summary>
     public void Balanced() => _block.Balanced = true;
@@ -30,6 +30,10 @@ public sealed class FlowColumnsComposer
     /// <summary>The frame whose content flows through the columns.</summary>
     public IFrame Story()
     {
+        // A second story would silently replace the first, and everything composed into it with it.
+        if (_block.Story is not null)
+            throw new CompositionException("FlowColumns has one Story; it is already declared.");
+
         Frame story = new Frame();
         _block.Story = story;
         return story;
@@ -38,6 +42,9 @@ public sealed class FlowColumnsComposer
     /// <summary>A frame drawn in each gutter between columns in use, as tall as the columns: for a rule, say.</summary>
     public IFrame Between()
     {
+        if (_block.Between is not null)
+            throw new CompositionException("FlowColumns has one Between; it is already declared.");
+
         Frame between = new Frame();
         _block.Between = between;
         return between;

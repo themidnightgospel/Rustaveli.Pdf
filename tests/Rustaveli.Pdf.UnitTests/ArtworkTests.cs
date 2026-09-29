@@ -212,6 +212,61 @@ public class ArtworkTests
     }
 
     [Fact]
+    public void APathIsDrawnAsItWasWhenGiven()
+    {
+        VectorPath path = new VectorPath().AddRectangle(0, 0, 10, 10);
+        List<float> dashes = [2, 1];
+        Artwork artwork = Artwork.Draw(100, 100, art =>
+        {
+            art.Clip(path);
+            art.Fill(path, TestInks.Red);
+            art.Fill(path, Gradient.Across(TestInks.Red, TestInks.Black));
+            art.Stroke(path, TestInks.Black, new LineStyle(1, Dashes: dashes));
+            art.Stroke(path, Gradient.Across(TestInks.Red, TestInks.Black), new LineStyle(1));
+        });
+
+        // Changed after the calls: a circle added, and a point no PDF can hold.
+        path.AddCircle(50, 50, 20).LineTo(float.NaN, 0);
+        dashes.Add(float.NaN);
+
+        List<PathOperation> paths = Draw(artwork, new Extent(100, 100)).OfType<PathOperation>().ToList();
+
+        Assert.Equal(5, paths.Count);
+        Assert.All(paths, operation => Assert.Equal(new Bounds(0, 0, 10, 10), operation.Bounds));
+        Assert.Equal([2f, 1f], paths[3].Style!.Value.Dashes!);
+    }
+
+    [Fact]
+    public void ReadingSvgFromAStreamLeavesTheStreamOpen()
+    {
+        using MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'/>"));
+
+        Assert.Equal(new Extent(30, 15), Artwork.FromSvg(stream).Size);
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public void SvgFromAStreamIsReadInTheEncodingItDeclares()
+    {
+        byte[] latin = System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(
+            "<?xml version='1.0' encoding='ISO-8859-1'?><svg xmlns='http://www.w3.org/2000/svg' width='100' height='20'><text y='10'>Café</text></svg>");
+        using MemoryStream stream = new MemoryStream(latin);
+        Artwork artwork = Artwork.FromSvg(stream);
+
+        Assert.Equal("Café", LayoutHarness.Draw(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<TextOperation>().Single().Text);
+    }
+
+    [Theory]
+    [InlineData("<?xml version='1.0' encoding='x-no-such-encoding'?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    [InlineData("<?xml version='1.0' encoding='UTF-16'?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    public void SvgFromAStreamInAnEncodingThatCannotBeReadIsNotAnSvg(string svg)
+    {
+        using MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(svg));
+
+        Assert.Throws<FormatException>(() => Artwork.FromSvg(stream));
+    }
+
+    [Fact]
     public void ARestoreNeedsASave() =>
         Assert.Throws<InvalidOperationException>(() => Artwork.Draw(10, 10, art => art.RestoreState()));
 

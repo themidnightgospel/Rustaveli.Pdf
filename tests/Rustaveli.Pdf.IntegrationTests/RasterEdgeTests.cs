@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Images;
 using Rustaveli.Pdf.Raster;
 using SkiaSharp;
@@ -29,6 +30,15 @@ public class RasterEdgeTests
         draw(surface);
         surface.EndPage();
         return Encoding.UTF8.GetString(surface.Pages[0]);
+    }
+
+    [Fact]
+    public void AFaceIsLoadedIntoSkiaOnceForEveryExport()
+    {
+        OpenTypeFont face = OpenTypeFont.LoadFile(TestFonts.PathOf("NotoSans-Regular.ttf"));
+
+        Assert.Same(SkiaRasterSurface.TypefaceFor(face), SkiaRasterSurface.TypefaceFor(face));
+        Assert.NotSame(SkiaRasterSurface.TypefaceFor(face), SkiaRasterSurface.TypefaceFor(OpenTypeFont.LoadFile(TestFonts.PathOf("NotoSans-Regular.ttf"))));
     }
 
     [Fact]

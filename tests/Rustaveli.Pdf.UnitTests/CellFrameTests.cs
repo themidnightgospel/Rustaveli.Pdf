@@ -40,14 +40,12 @@ public class CellFrameTests
     [Theory]
     [InlineData(0)]
     [InlineData(-3)]
-    public void TreatsASpanBelowOneAsASingleSlot(int span)
+    public void RejectsASpanBelowOne(int span)
     {
-        CellBlock cell = new CellBlock();
+        CellFrame cell = new CellFrame(new CellBlock());
 
-        new CellFrame(cell).SpanRows(span).SpanColumns(span);
-
-        Assert.Equal(1, cell.RowSpan);
-        Assert.Equal(1, cell.ColumnSpan);
+        Assert.Equal("span", Assert.Throws<ArgumentOutOfRangeException>(() => cell.SpanRows(span)).ParamName);
+        Assert.Equal("span", Assert.Throws<ArgumentOutOfRangeException>(() => cell.SpanColumns(span)).ParamName);
     }
 
     [Fact]

@@ -76,26 +76,26 @@ public sealed class ArtworkComposer
     /// <summary>Confines what follows, until the next <see cref="RestoreState"/>, to the inside of <paramref name="path"/>.</summary>
     public void Clip(VectorPath path, FillRule rule = FillRule.NonZero)
     {
-        RequireWritable(path);
-        _steps.Add((surface, _) => surface.ClipPath(path, rule));
+        VectorPath drawn = WritableCopy(path);
+        _steps.Add((surface, _) => surface.ClipPath(drawn, rule));
     }
 
     /// <summary>Fills <paramref name="path"/> with <paramref name="ink"/>.</summary>
     public void Fill(VectorPath path, Ink ink, FillRule rule = FillRule.NonZero)
     {
-        RequireWritable(path);
-        _steps.Add((surface, _) => surface.FillPath(path, ink, rule));
+        VectorPath drawn = WritableCopy(path);
+        _steps.Add((surface, _) => surface.FillPath(drawn, ink, rule));
     }
 
     /// <summary>Fills <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
     public void Fill(VectorPath path, Gradient gradient, FillRule rule = FillRule.NonZero)
     {
-        RequireWritable(path);
-        (Offset position, Extent size) = RequireWritable(gradient, path);
+        VectorPath drawn = WritableCopy(path);
+        (Offset position, Extent size) = RequireWritable(gradient, drawn);
         _steps.Add((surface, _) =>
         {
             surface.BeginGradient(gradient, position, size);
-            surface.FillPath(path, Ink.Black, rule);
+            surface.FillPath(drawn, Ink.Black, rule);
             surface.EndGradient();
         });
     }
@@ -103,21 +103,21 @@ public sealed class ArtworkComposer
     /// <summary>Strokes <paramref name="path"/> with <paramref name="ink"/>, as <paramref name="style"/> says.</summary>
     public void Stroke(VectorPath path, Ink ink, LineStyle style)
     {
-        RequireWritable(path);
-        RequireWritable(style);
-        _steps.Add((surface, _) => surface.StrokePath(path, ink, style));
+        VectorPath drawn = WritableCopy(path);
+        LineStyle line = WritableCopy(style);
+        _steps.Add((surface, _) => surface.StrokePath(drawn, ink, line));
     }
 
     /// <summary>Strokes <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
     public void Stroke(VectorPath path, Gradient gradient, LineStyle style)
     {
-        RequireWritable(path);
-        RequireWritable(style);
-        (Offset position, Extent size) = RequireWritable(gradient, path);
+        VectorPath drawn = WritableCopy(path);
+        LineStyle line = WritableCopy(style);
+        (Offset position, Extent size) = RequireWritable(gradient, drawn);
         _steps.Add((surface, _) =>
         {
             surface.BeginGradient(gradient, position, size);
-            surface.StrokePath(path, Ink.Black, style);
+            surface.StrokePath(drawn, Ink.Black, line);
             surface.EndGradient();
         });
     }
@@ -140,6 +140,64 @@ public sealed class ArtworkComposer
             // Text so large that its glyphs would be placed beyond the numbers a PDF can hold is left out.
             if (Writable.Is(start) && Writable.Is(start + width))
                 surface.DrawText(text, new Offset(start, y), style);
+        });
+    }
+
+    /// <summary>
+    /// Sets runs of text one after another on a line, as SVG's text and its spans are set: a run placed at an x or a y
+    /// of its own starts a new chunk there, anchored as its first run says; any other run goes on from where the one
+    /// before it ended, as measured when the artwork is drawn, moved by its dx and dy.
+    /// </summary>
+    internal void TextRuns(IReadOnlyList<Span> runs)
+    {
+        Span[] set = runs.ToArray();
+
+        _steps.Add((surface, measurer) =>
+        {
+            float penX = 0, penY = 0;
+
+            for (int start = 0; start < set.Length;)
+            {
+                int end = start + 1;
+
+                while (end < set.Length && set[end].X is null && set[end].Y is null)
+                    end++;
+
+                // Each run's place before anchoring, the pen moving on by the width of each.
+                float[] xs = new float[end - start], ys = new float[end - start], widths = new float[end - start];
+                penX = set[start].X ?? penX;
+                penY = set[start].Y ?? penY;
+
+                for (int index = start; index < end; index++)
+                {
+                    penX += set[index].Dx;
+                    penY += set[index].Dy;
+                    xs[index - start] = penX;
+                    ys[index - start] = penY;
+                    widths[index - start] = measurer.MeasureWidth(set[index].Text, set[index].Style);
+                    penX += widths[index - start];
+                }
+
+                float extent = penX - xs[0];
+                float shift = set[start].Anchor switch
+                {
+                    TextAnchor.Middle => extent / 2,
+                    TextAnchor.End => extent,
+                    _ => 0,
+                };
+
+                for (int index = start; index < end; index++)
+                {
+                    float x = xs[index - start] - shift;
+
+                    // Text so large, or so far off, that its glyphs would be placed beyond the numbers a PDF can hold
+                    // is left out; a run of spaces is only room.
+                    if (set[index].Visible && set[index].Text.Trim().Length > 0 && Writable.Is(x) && Writable.Is(x + widths[index - start]) && Writable.Is(ys[index - start]))
+                        surface.DrawText(set[index].Text, new Offset(x, ys[index - start]), set[index].Style);
+                }
+
+                start = end;
+            }
         });
     }
 
@@ -180,24 +238,60 @@ public sealed class ArtworkComposer
         return Writable.Is(start) && Writable.Is(end);
     }
 
+    /// <summary>
+    /// One run of text for <see cref="TextRuns"/>: its style, where it is placed — an x or a y of its own starting a
+    /// chunk, null going on from the run before — how far it is moved from there, and whether it is drawn or only takes
+    /// its room.
+    /// </summary>
+    internal sealed class Span(string text, TypeStyle style, TextAnchor anchor, bool visible)
+    {
+        public string Text { get; set; } = text;
+
+        public TypeStyle Style { get; } = style;
+
+        public TextAnchor Anchor { get; } = anchor;
+
+        public bool Visible { get; } = visible;
+
+        public float? X { get; init; }
+
+        public float? Y { get; init; }
+
+        public float Dx { get; init; }
+
+        public float Dy { get; init; }
+    }
+
     private static void RequireWritable(float value, string name)
     {
         if (!Writable.Is(value))
             throw new ArgumentOutOfRangeException(name, value, WritableNumbers);
     }
 
-    private static void RequireWritable(VectorPath path)
+    /// <summary>
+    /// A copy of <paramref name="path"/> as it is at the call, checked. The artwork is drawn later, when it is placed,
+    /// so drawing the caller's own path would draw whatever it had become by then, beyond the check made here.
+    /// </summary>
+    private static VectorPath WritableCopy(VectorPath path)
     {
         ArgumentNullException.ThrowIfNull(path);
+        VectorPath copy = path.Copy();
 
-        if (!path.IsWritable)
+        if (!copy.IsWritable)
             throw new ArgumentOutOfRangeException(nameof(path), "Every point of a path is a number a PDF can hold: finite, and below 10^15 in magnitude.");
+
+        return copy;
     }
 
-    private static void RequireWritable(LineStyle style)
+    /// <summary>A copy of <paramref name="style"/> with its own dashes, which a later change to the caller's list does not reach, checked.</summary>
+    private static LineStyle WritableCopy(LineStyle style)
     {
-        if (!Writable.Is(style.Weight) || !Writable.Is(style.MiterLimit) || !Writable.Is(style.DashOffset) || (style.Dashes is { } dashes && !dashes.All(Writable.Is)))
+        LineStyle copy = style with { Dashes = style.Dashes?.ToArray() };
+
+        if (!Writable.Is(copy.Weight) || !Writable.Is(copy.MiterLimit) || !Writable.Is(copy.DashOffset) || (copy.Dashes is { } dashes && !dashes.All(Writable.Is)))
             throw new ArgumentOutOfRangeException(nameof(style), "A line's weight, miter limit and dashes are numbers a PDF can hold: finite, and below 10^15 in magnitude.");
+
+        return copy;
     }
 
     /// <summary>The bounds of <paramref name="path"/>, across which <paramref name="gradient"/> is laid.</summary>

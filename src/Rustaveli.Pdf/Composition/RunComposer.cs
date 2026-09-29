@@ -30,10 +30,14 @@ public sealed class RunComposer
     /// Sets the run in <paramref name="fontFamily"/>, falling back to <paramref name="fallbacks"/>, in order, for any
     /// character it lacks.
     /// </summary>
-    public RunComposer Typeface(string fontFamily, params string[] fallbacks) =>
-        Refine(style => style.WithTypeface(fontFamily, fallbacks));
+    public RunComposer Typeface(string fontFamily, params string[] fallbacks)
+    {
+        TypeStyle.TypefaceNames(fontFamily, fallbacks);
+        return Refine(style => style.WithTypeface(fontFamily, fallbacks));
+    }
 
-    // Numbers are checked here, where the caller gives them, not when the run's style is worked out during layout.
+    // Arguments are checked here, where the caller gives them, not when the run's style is worked out during layout,
+    // where a mistake would surface as a failure to lay out a page, far from the code that made it.
     public RunComposer PointSize(float size)
     {
         TypeStyle.Size(size, nameof(size));
@@ -111,7 +115,11 @@ public sealed class RunComposer
     /// Sets the OpenType feature <paramref name="tag"/> — <c>"smcp"</c>, <c>"onum"</c>, <c>"ss01"</c> — to
     /// <paramref name="value"/>: 0 off, 1 on, higher to choose among alternates.
     /// </summary>
-    public RunComposer Feature(string tag, int value = 1) => Refine(style => style.WithFeature(tag, value));
+    public RunComposer Feature(string tag, int value = 1)
+    {
+        TypeStyle.Feature(tag, value);
+        return Refine(style => style.WithFeature(tag, value));
+    }
 
     /// <summary>Sets ligatures such as "fi" and "ffl", or not; they are on unless turned off.</summary>
     public RunComposer Ligatures(bool value = true) => Refine(style => style.Ligatures(value));
@@ -133,7 +141,11 @@ public sealed class RunComposer
     public RunComposer Superscript() => Refine(style => style.Superscript());
 
     /// <summary>Applies an arbitrary style transformation.</summary>
-    public RunComposer Style(Func<TypeStyle, TypeStyle> refinement) => Refine(refinement);
+    public RunComposer Style(Func<TypeStyle, TypeStyle> refinement)
+    {
+        ArgumentNullException.ThrowIfNull(refinement);
+        return Refine(refinement);
+    }
 
     /// <summary>Sets the run in the document's type style named <paramref name="name"/>.</summary>
     public RunComposer Style(string name) => Refine(StyleSheet.InForce.Type(name));
