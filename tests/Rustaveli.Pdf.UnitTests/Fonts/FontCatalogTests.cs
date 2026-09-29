@@ -242,6 +242,19 @@ public class FontCatalogTests
     }
 
     [Fact]
+    public void NeverSetsTextInAFaceItCannotEmbed()
+    {
+        // A face without outlines can be measured but not drawn into a PDF, so text asking for it is set in a face
+        // that can be: with no substitute for its kind to be had, any registered one.
+        TypefaceLibrary library = new TypefaceLibrary(FontCatalog.WithoutSystemFonts());
+        library.Register(SyntheticFont.Named("Bitmap").Without("glyf").Without("loca").Build());
+        library.Register(SyntheticFont.Named("Outlined").Build());
+
+        Assert.Equal("Outlined", library.Shaper.Resolve(TypeStyle.Default.WithTypeface("Bitmap")).Names.Family);
+        Assert.Equal("Outlined", library.Shaper.Resolve(TypeStyle.Default.WithTypeface("Outlined")).Names.Family);
+    }
+
+    [Fact]
     public void LooksBeyondTheFaceKnownForABlockWhenItLacksTheCharacter()
     {
         FontCatalog catalog = new FontCatalog(new SystemFontIndex([TestFonts.Directory]));

@@ -93,6 +93,7 @@ public class BidiParagraphTests
         // A surrogate without its other half is a character of its own, and a left-to-right one.
         Assert.Equal(2, new BidiParagraph("\uDC00\U0001E900".AsSpan(), BidiDirection.RightToLeft).GetLevel(0));
         Assert.Equal(0, new BidiParagraph("\uD800\u05D0".AsSpan()).ParagraphLevel);
+        Assert.True(new BidiParagraph("a\uD800".AsSpan()).IsLeftToRightOnly);
     }
 
     [Fact]

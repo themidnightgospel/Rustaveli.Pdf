@@ -68,4 +68,8 @@ public class ScriptDetectionTests
     [Fact]
     public void ALoneSurrogateIsNoLetter() =>
         Assert.Equal(ScriptTag.Hebrew, ScriptDetection.Of("\uD800א".AsSpan()));
+
+    [Fact]
+    public void AHighSurrogateEndingTheTextIsNoLetter() =>
+        Assert.Equal(ScriptTag.Default, ScriptDetection.Of("1\uD800".AsSpan()));
 }

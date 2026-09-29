@@ -147,10 +147,10 @@ internal sealed class TypeShaper
 
         for (int index = 0; index < characters.Length; index++)
         {
-            // Every mirrored pair lies in the Basic Multilingual Plane.
+            // Every mirrored pair lies in the Basic Multilingual Plane, so the mirror image fits a char.
             int mirror = BidiCharacter.Mirror(characters[index]);
 
-            if (mirror != characters[index] && mirror <= char.MaxValue)
+            if (mirror != characters[index])
                 characters[index] = (char)mirror;
         }
 

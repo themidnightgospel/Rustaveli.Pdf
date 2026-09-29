@@ -309,6 +309,21 @@ public class TextBlockTests
         Assert.NotEqual("AAA", LayoutHarness.Draw(nonBreaking, space).Content);
     }
 
+    [Theory]
+    [InlineData("\u00A0")]
+    [InlineData("\u202F")]
+    [InlineData("\u2007")]
+    public void ANoBreakSpaceBeforeALineEndIsPartOfTheWordNotTrailingSpace(string noBreakSpace)
+    {
+        // 36pt fits "aaa" and both spaces but not "bbb". The ordinary space after the no-break one is trailing and
+        // does not count; the no-break space belongs to the word, so the line is four characters wide, not three.
+        TextBlock element = Text(text => text.Run("aaa" + noBreakSpace + " bbb"));
+
+        Fit plan = LayoutHarness.Measure(element, new Extent(36, 500));
+
+        Approximately.Equal(4 * CharacterWidth, plan.Size.Width);
+    }
+
     [Fact]
     public void BlankLinesTakeTheInheritedSize()
     {
@@ -428,6 +443,32 @@ public class TextBlockTests
 
         Assert.Equal(["aaa ", "bbb", " ccc"], texts.Select(text => text.Text));
         Assert.Equal([0f, 24f, 42f], texts.Select(text => text.Position.X));
+    }
+
+    [Fact]
+    public void RunsStyledAlikeAreDrawnAsOnePiece()
+    {
+        // Each run is given a style of its own; alike is judged by what the styles say, not by which object holds it.
+        TextBlock element = Text(text =>
+        {
+            text.Run("aaa ").Bold();
+            text.Run("bbb").Bold();
+        });
+
+        TextOperation line = Assert.Single(LayoutHarness.Draw(element, new Extent(500, 100)).Texts);
+
+        Assert.Equal("aaa bbb", line.Text);
+    }
+
+    [Theory]
+    [InlineData("\t")]
+    [InlineData("\u2003")]
+    public void AGapOfOneCharacterOtherThanASpaceIsDrawnAsTyped(string gap)
+    {
+        // A gap of one space is handed out as one shared string; a gap of any other single character is not a space.
+        TextBlock element = Text(text => text.Run("aaa" + gap + "bbb"));
+
+        Assert.Equal("aaa" + gap + "bbb", Assert.Single(LayoutHarness.Draw(element, new Extent(500, 100)).Texts).Text);
     }
 
     [Fact]
@@ -906,5 +947,14 @@ public class TextBlockTests
         // As tall as a line of the paragraph's own text would be, but with nothing on it.
         Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(0, 40), plan.Size);
+    }
+
+    [Fact]
+    public void AParagraphWithNoSpansAtAllTakesNoSpace()
+    {
+        TextBlock element = new TextBlock { DefaultTypeRefinement = style => style.WithPointSize(40) };
+
+        // Empty spans are a blank line someone wrote; no spans at all are no text, and leave no gap behind.
+        Assert.True(LayoutHarness.Measure(element, new Extent(500, 500)).IsNothing);
     }
 }
