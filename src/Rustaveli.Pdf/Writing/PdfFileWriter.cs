@@ -198,7 +198,7 @@ internal sealed class PdfFileWriter : IDisposable
         {
             // Data is compressed first and encrypted after: encrypted data does not compress. A stream left readable is
             // written as it is, without a copy.
-            ReadOnlySpan<byte> written = encryption.Covers(dictionary) ? encryption.EncryptStream(reference.ObjectNumber, body) : body;
+            ReadOnlySpan<byte> written = encryption.Covers(dictionary) ? encryption.EncryptStream(reference.ObjectNumber, dictionary, body) : body;
             _pending.StringCipher = StringCipher(reference);
             WriteStreamObject(reference, dictionary, written, compress);
             _pending.StringCipher = null;

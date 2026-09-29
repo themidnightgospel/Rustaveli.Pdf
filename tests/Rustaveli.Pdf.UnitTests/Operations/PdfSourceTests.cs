@@ -116,7 +116,8 @@ public class PdfSourceTests
     /// attached file (object 6) encrypted with AES under a filter opened by the password "att" only when an attachment is,
     /// and two streams that name that filter themselves, one plain beneath it (object 8) and one deflated (object 9).
     /// </summary>
-    private static HandmadePdf AttachmentsOnly(string filters = "/CF<</StdCF<</CFM/AESV2/AuthEvent/EFOpen/Length 16>>>>/StmF/Identity/StrF/Identity/EFF/StdCF")
+    private static HandmadePdf AttachmentsOnly(
+        string filters = "/CF<</StdCF<</CFM/AESV2/AuthEvent/EFOpen/Length 16>>>>/StmF/Identity/StrF/Identity/EFF/StdCF", string attachment = "attached")
     {
         byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
         PdfDictionary written = PdfEncryption.Create(new Protection { UserPassword = "att", OwnerPassword = "own", Encryption = EncryptionLevel.AesWith128Bits }, id).Dictionary;
@@ -142,7 +143,7 @@ public class PdfSourceTests
             .Object(3, "<</Type/Page/Parent 2 0 R/Contents 4 0 R>>")
             .Stream(4, "<<>>", "0 0 m 9 9 l S")
             .Object(5, "<</Type/Filespec/F(a.txt)/EF<</F 6 0 R>>>>")
-            .Stream(6, "<</Type/EmbeddedFile>>", Stream(6, "attached"))
+            .Stream(6, "<</Type/EmbeddedFile>>", Stream(6, attachment))
             .Object(7, $"<</Filter/Standard/V 4/R 4/Length 128{filters}/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>")
             .Stream(8, "<</DecodeParms<</Type/CryptFilterDecodeParms/Name/StdCF>>/Filter/Crypt>>", Stream(8, "own filter"))
             .Stream(9, "<</Filter[/Crypt/FlateDecode]/DecodeParms[<</Name/StdCF>> null]>>", Encoding.Latin1.GetString(Encrypted(fileKey, 9, 0, deflated, aes: true)))
@@ -166,6 +167,67 @@ public class PdfSourceTests
         Assert.True(((SourceStream)source.GetObject(8)).Dictionary.ContainsKey(PdfNames.Filter));
     }
 
+    /// <summary>The text of the one embedded file in <paramref name="source"/>, decoded.</summary>
+    private static string Attachment(PdfSource source) =>
+        Encoding.ASCII.GetString(source.Decode(source.ObjectNumbers.Select(source.GetObject).OfType<SourceStream>()
+            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.AsName().Value == "EmbeddedFile")));
+
+    /// <summary>A file whose attachment alone is encrypted, with 256-bit AES, whose keys do not depend on object numbers.</summary>
+    private static byte[] AttachmentsOnlyAes256()
+    {
+        byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
+        PdfEncryption created = PdfEncryption.Create(new Protection { UserPassword = "att", OwnerPassword = "own", Encryption = EncryptionLevel.AesWith256Bits }, id);
+        PdfDictionary written = created.Dictionary;
+        string Entry(string key) => Hex(written[new PdfName(key)].AsString().Bytes.ToArray());
+
+        HandmadePdf pdf = new HandmadePdf()
+            .Object(1, "<</Type/Catalog/Pages 2 0 R/Names<</EmbeddedFiles<</Names[(a.txt) 5 0 R]>>>>>>")
+            .Object(2, "<</Type/Pages/Kids[3 0 R]/Count 1>>")
+            .Object(3, "<</Type/Page/Parent 2 0 R/Contents 4 0 R>>")
+            .Stream(4, "<<>>", "0 0 m 9 9 l S")
+            .Object(5, "<</Type/Filespec/F(a.txt)/EF<</F 6 0 R>>>>")
+            .Stream(6, "<</Type/EmbeddedFile>>", Encoding.Latin1.GetString(created.EncryptStream(6, new PdfDictionary(), "attached"u8)))
+            .Object(7, "<</Filter/Standard/V 5/R 6/Length 256/CF<</StdCF<</CFM/AESV3/AuthEvent/EFOpen/Length 32>>>>/StmF/Identity/StrF/Identity/EFF/StdCF"
+                + $"/O<{Entry("O")}>/U<{Entry("U")}>/OE<{Entry("OE")}>/UE<{Entry("UE")}>/Perms<{Entry("Perms")}>/P {written[new PdfName("P")].AsInteger()}>>");
+        pdf.Section($"/Root 1 0 R/Encrypt 7 0 R/ID[<{Hex(id)}><{Hex(id)}>]");
+        return pdf.ToArray();
+    }
+
+    [Fact]
+    public void AttachmentsAloneEncryptedStayReadableWhenTheFileIsSavedProtectedAsItWas()
+    {
+        // Longer than an AES block, so that data left unencrypted cannot pass for encrypted data too short to decrypt.
+        const string Text = "an attachment longer than a block of the cipher";
+        byte[] saved = PdfFile.Open(AttachmentsOnly(attachment: Text).ToArray(), "att").ToArray();
+
+        // Written encrypted, as the encryption dictionary the file keeps says it is, and read back as it was.
+        Assert.DoesNotContain(Text, Encoding.Latin1.GetString(saved), StringComparison.Ordinal);
+        Assert.Equal(Text, Attachment(PdfSource.Open(saved, "att")));
+    }
+
+    [Fact]
+    public void AttachmentsWhoseKeyNamesTheirObjectCannotBeCarriedWithoutThePassword()
+    {
+        // Under 128-bit AES an object's key holds its number, which saving changes: without the password the
+        // attachment can be neither decrypted nor encrypted again, so saving would write it unreadable.
+        InvalidOperationException kept = Assert.Throws<InvalidOperationException>(() => PdfFile.Open(AttachmentsOnly().ToArray()).ToArray());
+        Assert.Throws<InvalidOperationException>(() => PdfFile.Open(AttachmentsOnly().ToArray()).Unprotect().ToArray());
+
+        Assert.Contains("password", kept.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Aes256AttachmentsAreCarriedAsTheyAreWithoutThePassword()
+    {
+        byte[] file = AttachmentsOnlyAes256();
+
+        // Opened with the password, and without it: under 256-bit AES the attachment's key does not depend on where it
+        // is written, so it is carried encrypted as it was when the file keeps its protection.
+        Assert.Equal("attached", Attachment(PdfSource.Open(PdfFile.Open(file, "att").ToArray(), "att")));
+        Assert.Equal("attached", Attachment(PdfSource.Open(PdfFile.Open(file).ToArray(), "att")));
+        Assert.Throws<InvalidOperationException>(() => PdfFile.Open(file).Unprotect().ToArray());
+    }
+
     [Fact]
     public void AttachmentsAndStreamsNamingTheirOwnCryptFilterAreDecryptedWithIt()
     {
@@ -182,14 +244,11 @@ public class PdfSourceTests
         Assert.Equal("deflated beneath", Encoding.ASCII.GetString(source.Decode(deflated)));
         Assert.Equal(["FlateDecode"], source.Resolve(deflated.Dictionary[PdfNames.Filter]).AsArray().Cast<PdfValue>().Select(filter => filter.AsName().Value));
 
-        // Saved without protection, the attachment is plain; saved as it was, the file opens as it did.
+        // Saved without protection, the attachment is plain.
         PdfSource plain = PdfSource.Open(PdfFile.Open(AttachmentsOnly().ToArray(), "att").Unprotect().ToArray());
-        SourceStream copied = plain.ObjectNumbers.Select(plain.GetObject).OfType<SourceStream>()
-            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.AsName().Value == "EmbeddedFile");
 
         Assert.Null(plain.Encryption);
-        Assert.Equal("attached", Encoding.ASCII.GetString(plain.Decode(copied)));
-        Assert.NotNull(PdfSource.Open(PdfFile.Open(AttachmentsOnly().ToArray()).ToArray()).Encryption);
+        Assert.Equal("attached", Attachment(plain));
 
         // A crypt filter named by no name is the identity; one the file does not define is taken as its streams' filter.
         foreach ((int number, string text) in new[] { (10, "identity"), (11, "unknown") })

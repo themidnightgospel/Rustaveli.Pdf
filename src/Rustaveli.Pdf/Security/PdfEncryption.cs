@@ -79,7 +79,10 @@ internal sealed class PdfEncryption
 
     public Cipher Strings { get; }
 
-    /// <summary>How embedded files are encrypted: as <c>/EFF</c> says, or else as other streams are.</summary>
+    /// <summary>
+    /// How embedded files are encrypted: as <c>/EFF</c> says, or else as other streams are. Known even when the file was
+    /// opened without its key (see <see cref="HasKey"/>), when they cannot be decrypted.
+    /// </summary>
     public Cipher EmbeddedFiles { get; }
 
     /// <summary>
@@ -293,7 +296,9 @@ internal sealed class PdfEncryption
             return null;
         }
 
-        return new PdfEncryption([], Cipher.None, Cipher.None, metadata, dictionary, id, Cipher.None);
+        // Without the key the attachments cannot be decrypted, but what they are encrypted with is kept: it decides whether
+        // they can be carried as they are into the file written.
+        return new PdfEncryption([], Cipher.None, Cipher.None, metadata, dictionary, id, Method(filter, Cipher.Aes128, resolve));
     }
 
     /// <summary>
@@ -317,8 +322,9 @@ internal sealed class PdfEncryption
             return !HasKey || own.Equals(Identity) ? Cipher.None : Defined(Dictionary, own, resolve) is { } filter ? Method(filter, Streams, resolve) : Streams;
         }
 
+        // Without the key an attachment is left as it was read, encrypted.
         if (type is not null && type.Equals(EmbeddedFile))
-            return EmbeddedFiles;
+            return HasKey ? EmbeddedFiles : Cipher.None;
 
         return type is not null && type.Equals(Metadata) && !EncryptsMetadata ? Cipher.None : Streams;
     }
@@ -376,21 +382,32 @@ internal sealed class PdfEncryption
             : throw new InvalidDataException($"The password opens the file, but its /{key.Value} does not hold the 32 bytes of its key.");
     }
 
-    /// <summary>Whether a stream with <paramref name="dictionary"/> is encrypted: all but cross-reference streams, and readable metadata.</summary>
-    public bool Covers(PdfDictionary dictionary)
+    /// <summary>
+    /// The cipher a stream with <paramref name="dictionary"/> is written with: an embedded file the embedded files', a
+    /// cross-reference stream and metadata left readable none, any other the streams'. Without the key nothing is encrypted:
+    /// what a file opened without its password carries encrypted is written as it was read.
+    /// </summary>
+    private Cipher WrittenCipher(PdfDictionary dictionary)
     {
-        if (Streams == Cipher.None)
-            return false;
+        if (!HasKey)
+            return Cipher.None;
 
         if (!dictionary.TryGetValue(PdfNames.Type, out PdfValue type) || type.Kind != PdfValueKind.Name)
-            return true;
+            return Streams;
 
         PdfName name = type.AsName();
-        return !name.Equals(PdfNames.XRef) && (EncryptsMetadata || !name.Equals(Metadata));
+
+        if (name.Equals(EmbeddedFile))
+            return EmbeddedFiles;
+
+        return name.Equals(PdfNames.XRef) || (name.Equals(Metadata) && !EncryptsMetadata) ? Cipher.None : Streams;
     }
 
-    /// <summary>A stream's data, encrypted for object <paramref name="objectNumber"/>.</summary>
-    public byte[] EncryptStream(int objectNumber, ReadOnlySpan<byte> data) => Encrypt(Streams, objectNumber, data);
+    /// <summary>Whether a stream with <paramref name="dictionary"/> is written encrypted.</summary>
+    public bool Covers(PdfDictionary dictionary) => WrittenCipher(dictionary) != Cipher.None;
+
+    /// <summary>A stream's data, encrypted for object <paramref name="objectNumber"/> as a stream with <paramref name="dictionary"/> is.</summary>
+    public byte[] EncryptStream(int objectNumber, PdfDictionary dictionary, ReadOnlySpan<byte> data) => Encrypt(WrittenCipher(dictionary), objectNumber, data);
 
     /// <summary>A string's bytes, encrypted for object <paramref name="objectNumber"/>.</summary>
     public byte[] EncryptString(int objectNumber, ReadOnlySpan<byte> data) => Encrypt(Strings, objectNumber, data);

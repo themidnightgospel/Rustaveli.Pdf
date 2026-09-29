@@ -80,7 +80,7 @@ internal static class FileAssembler
             Encryption = encryption,
         });
 
-        ObjectCopier copier = new ObjectCopier(writer.File);
+        ObjectCopier copier = new ObjectCopier(writer.File, encryption);
         List<(PdfReference Page, PdfReference Parent)> placed = pages.Select(_ => writer.AddPage()).ToList();
 
         // Every file the pages come from, the first file first whether or not any of its pages are kept.

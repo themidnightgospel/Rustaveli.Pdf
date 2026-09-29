@@ -1,4 +1,5 @@
 using Rustaveli.Pdf.Operations.Reading;
+using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Operations.Assembly;
@@ -11,9 +12,10 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 /// Some objects are not copied but redirected: a page to the page it became, or to nothing when it was left out, so
 /// that copying an annotation does not pull in the page tree it hangs from, and with it every other page.
 /// </remarks>
-internal sealed class ObjectCopier(PdfFileWriter file)
+internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? output = null)
 {
     private static readonly PdfName Dest = new PdfName("Dest");
+    private static readonly PdfName EmbeddedFile = new PdfName("EmbeddedFile");
 
     private readonly Dictionary<(PdfSource Source, int Number), PdfReference?> _targets = [];
     private readonly Queue<(PdfSource Source, int Number, PdfReference Target)> _pending = new Queue<(PdfSource, int, PdfReference)>();
@@ -137,6 +139,26 @@ internal sealed class ObjectCopier(PdfFileWriter file)
         _ => null,
     };
 
+    /// <summary>
+    /// Refuses an attachment still encrypted, from a file whose attachments alone are encrypted and that was opened without
+    /// its password: it can be neither decrypted nor encrypted again. It is carried as it is only into a file keeping that
+    /// file's protection under 256-bit AES, whose keys do not depend on the object number; under RC4 and 128-bit AES they
+    /// do, and the number changes as the file is written.
+    /// </summary>
+    private void RequireCarriable(PdfSource source, PdfDictionary dictionary)
+    {
+        if (source.Encryption is not { HasKey: false } locked || locked.EmbeddedFiles == PdfEncryption.Cipher.None)
+            return;
+
+        bool attachment = dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(EmbeddedFile);
+
+        if (attachment && !(ReferenceEquals(output, locked) && locked.EmbeddedFiles == PdfEncryption.Cipher.Aes256))
+        {
+            throw new InvalidOperationException(
+                "The file's attachments are encrypted, and it was opened without its password, so they cannot be written again: open it with the password.");
+        }
+    }
+
     /// <summary>Writes every object reached so far, and every object those reach, until nothing is left to copy.</summary>
     public void Flush()
     {
@@ -148,6 +170,7 @@ internal sealed class ObjectCopier(PdfFileWriter file)
             if (read is SourceStream stream)
             {
                 PdfDictionary dictionary = CopyDictionary(source, stream.Dictionary, PdfNames.Length);
+                RequireCarriable(source, dictionary);
 
                 // Data already encoded is kept as it is; data never compressed is compressed now.
                 file.WriteStream(target, dictionary, stream.Data, dictionary.ContainsKey(PdfNames.Filter) ? PdfStreamCompression.None : PdfStreamCompression.Auto);
