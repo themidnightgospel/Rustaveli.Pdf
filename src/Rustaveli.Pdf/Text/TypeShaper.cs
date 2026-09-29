@@ -80,13 +80,18 @@ internal sealed class TypeShaper
         OpenTypeFont primary = Resolve(request);
 
         if (!rightToLeft)
-            return new GlyphWalk(this, primary, request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces);
+        {
+            return new GlyphWalk(
+                this, primary, request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces,
+                tracking: style.Tracking);
+        }
 
         string mirrored = Mirrored(text);
         List<ShapedGlyph> glyphs = [];
 
         foreach (ShapedGlyph glyph in new GlyphWalk(
-            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces, text))
+            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces, text,
+            style.Tracking))
         {
             glyphs.Add(glyph);
         }
@@ -101,8 +106,8 @@ internal sealed class TypeShaper
     /// sits on.
     /// </summary>
     /// <remarks>
-    /// A glyph's kerning is with the glyph before it in logical order. Between clusters that neighbour now follows it,
-    /// so the kerning a cluster's first glyph carries moves to the first glyph of the cluster before it.
+    /// A glyph's kerning and tracking are with the glyph before it in logical order. Between clusters that neighbour now
+    /// follows it, so what a cluster's first glyph carries moves to the first glyph of the cluster before it.
     /// </remarks>
     private static List<ShapedGlyph> InDisplayOrder(List<ShapedGlyph> logical, string text)
     {
@@ -126,9 +131,9 @@ internal sealed class TypeShaper
         for (int cluster = clusters.Count - 1; cluster >= 0; cluster--)
         {
             (int start, int count) = clusters[cluster];
-            float kerning = cluster + 1 < clusters.Count ? logical[clusters[cluster + 1].Start].Kerning : 0f;
+            ShapedGlyph after = cluster + 1 < clusters.Count ? logical[clusters[cluster + 1].Start] : default;
 
-            display.Add(logical[start] with { Kerning = kerning });
+            display.Add(logical[start] with { Kerning = after.Kerning, Tracking = after.Tracking });
 
             for (int index = start + 1; index < start + count; index++)
                 display.Add(logical[index]);

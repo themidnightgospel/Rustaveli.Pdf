@@ -576,6 +576,21 @@ public class PdfSurfaceTests
     }
 
     [Fact]
+    public void TrackingLeavesAMarkOnItsLetter()
+    {
+        // Without ccmp, Noto Sans sets e and a combining acute as two glyphs; the acute takes no room of its own and
+        // no tracking comes between it and the e, so the b after it lands as though it were not there.
+        TypeStyle spaced = Style.WithFeature("ccmp", 0).WithTracking(6);
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
+
+        using PdfDocument parsed = Render(canvas => canvas.DrawText("aéb", new Offset(40, 120), spaced));
+        Page page = parsed.GetPage(1);
+
+        Assert.Equal(40 + measurer.MeasureWidth("ae", spaced) + 6, LetterOf(page, "b").StartBaseLine.X, Tolerance);
+        Assert.Equal(40 + measurer.MeasureWidth("aé", spaced) + 6, LetterOf(page, "b").StartBaseLine.X, Tolerance);
+    }
+
+    [Fact]
     public void TrackingKeepsASurrogatePairWholeAndCarriesAcrossFontRuns()
     {
         // The pair falls outside Arial, so it is also a separate font run: the gap before "B" proves the spacing

@@ -46,6 +46,9 @@ internal ref struct GlyphWalk
     private int _runLength;
     private List<ShapedGlyph>? _replay;
     private int _replayed;
+    private readonly float _tracking;
+    private GraphemeBoundaries _boundaries;
+    private bool _previousJoined;
 
     /// <param name="shaper">Chooses faces and substitutions.</param>
     /// <param name="primary">The style's own face.</param>
@@ -60,6 +63,7 @@ internal ref struct GlyphWalk
     /// itself, and mirroring them twice would turn a bracket back to face the wrong way. Empty for text read left to
     /// right.
     /// </param>
+    /// <param name="tracking">The style's tracking, which each glyph says whether it takes.</param>
     internal GlyphWalk(
         TypeShaper shaper,
         OpenTypeFont primary,
@@ -69,8 +73,12 @@ internal ref struct GlyphWalk
         float wordSpacing = 0f,
         TypeFeatures? features = null,
         TypefaceFallbacks? fallbacks = null,
-        ReadOnlySpan<char> typed = default)
+        ReadOnlySpan<char> typed = default,
+        float tracking = 0f)
     {
+        _tracking = tracking;
+        _boundaries = default;
+        _previousJoined = false;
         _shaper = shaper;
         _primary = primary;
         _request = request;
@@ -374,9 +382,29 @@ internal ref struct GlyphWalk
         float extra = text is null && codepoint is ' ' or NoBreakSpace ? _wordSpacing : 0f;
 
         Current = new ShapedGlyph(
-            face, glyph, codepoint, start, length, advance, kerning, extra, text, placed?.XOffset ?? 0f, placed?.YOffset ?? 0f);
+            face, glyph, codepoint, start, length, advance, kerning, extra, text, placed?.XOffset ?? 0f, placed?.YOffset ?? 0f,
+            _tracking == 0 ? 0f : TrackingBefore(codepoint, start, length));
         _previousFace = face;
         _previousGlyph = glyph;
+    }
+
+    /// <summary>
+    /// The tracking before a glyph: where what a reader sees as a new character begins — not before a mark, or a
+    /// further glyph of the same characters, which would move off the letter it belongs to — and not between two
+    /// letters of a script written joined, whose joins it would break. None before the first glyph.
+    /// </summary>
+    private float TrackingBefore(int codepoint, int start, int length)
+    {
+        if (length == 0)
+            return 0f;
+
+        bool first = _previousFace is null;
+        bool begins = _boundaries.Begins(_text, start, length);
+        bool joined = JoinedScripts.Contains(codepoint);
+        bool between = _previousJoined && joined;
+        _previousJoined = joined;
+
+        return first || !begins || between ? 0f : _tracking;
     }
 
     private readonly (int Codepoint, int Length) Read(int index)

@@ -139,6 +139,21 @@ public class ComplexScriptTests
     }
 
     [Fact]
+    public void TrackingDoesNotPullJoinedLettersApart()
+    {
+        // Arabic is written joined, so tracking falls only between words: around the space, not between the letters.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Shaped.Shaper);
+        TypeStyle tracked = Arabic.WithTracking(5);
+
+        Assert.Equal(measurer.MeasureWidth(Salaam, Arabic), measurer.MeasureWidth(Salaam, tracked), 0.001f);
+        Assert.Equal(measurer.MeasureWidth("بَ", Arabic), measurer.MeasureWidth("بَ", tracked), 0.001f);
+        Assert.Equal(
+            measurer.MeasureWidth(Salaam + " " + Salaam, Arabic) + 10,
+            measurer.MeasureWidth(Salaam + " " + Salaam, tracked),
+            0.001f);
+    }
+
+    [Fact]
     public void ADevanagariVowelSignIsDrawnBeforeTheConsonantItFollows()
     {
         // Ka followed by the vowel sign i: typed after the consonant, the sign is written before it.

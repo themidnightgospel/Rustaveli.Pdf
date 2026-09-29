@@ -180,6 +180,16 @@ public class OpenTypeMeasurerTests
     }
 
     [Fact]
+    public void TrackingFallsBetweenCharactersNotBetweenALetterAndItsMark()
+    {
+        // Without ccmp, Noto Sans sets e and a combining acute as two glyphs; the acute stays over the e.
+        TypeStyle separate = Style.WithFeature("ccmp", 0);
+
+        Assert.Equal(Measurer.MeasureWidth("é", separate), Measurer.MeasureWidth("é", separate.WithTracking(5)), 0.001f);
+        Assert.Equal(Measurer.MeasureWidth("aé", separate) + 5, Measurer.MeasureWidth("aé", separate.WithTracking(5)), 0.001f);
+    }
+
+    [Fact]
     public void TighteningBeyondTheGlyphsThemselvesMeasuresAsNothing()
     {
         Assert.Equal(0f, Measurer.MeasureWidth("AB", Style.WithTracking(-1000)));

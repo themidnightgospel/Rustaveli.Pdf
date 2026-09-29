@@ -8,7 +8,9 @@ namespace Rustaveli.Pdf.Text;
 /// </summary>
 /// <remarks>
 /// The widths are those the PDF surface positions glyphs by, because both walk the same <see cref="GlyphWalk"/>.
-/// Tracking falls between characters — N characters have N - 1 gaps — so centred text stays centred.
+/// Tracking falls between characters — N characters have N - 1 gaps — so centred text stays centred: between what a
+/// reader sees as characters, not between a letter and its marks, and not between the letters of a script written
+/// joined, such as Arabic.
 /// </remarks>
 internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 {
@@ -50,12 +52,10 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
             return 0f;
 
         float width = 0f;
-        bool first = true;
 
         foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
         {
-            width += Step(glyph, style.Tracking, first);
-            first = false;
+            width += Step(glyph);
 
             if (glyph.Glyph == 0 && NeedsGlyph(glyph.Codepoint))
                 _missing.Add(glyph.Codepoint);
@@ -79,7 +79,6 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         // The same sum MeasureWidth makes, stopped early, so a prefix this accepts measures within the width. It ends
         // where a character a reader sees as one begins, never between a letter and a mark set as a glyph of its own.
         float width = 0f;
-        bool first = true;
         int cluster = 0;
         GraphemeBoundaries boundaries = default;
 
@@ -88,8 +87,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
             if (glyph.Length > 0 && boundaries.Begins(text.AsSpan(), glyph.Start, glyph.Length))
                 cluster = glyph.Start;
 
-            width += Step(glyph, style.Tracking, first);
-            first = false;
+            width += Step(glyph);
 
             if (width > maxWidth)
                 return cluster;
@@ -100,8 +98,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 
     /// <summary>
     /// How far one glyph moves the pen: kerning and tracking from the glyph before it, its advance, and any word
-    /// spacing it carries.
+    /// spacing it carries. The first glyph has neither kerning nor tracking before it.
     /// </summary>
-    private static float Step(ShapedGlyph glyph, float tracking, bool first) =>
-        (first ? 0f : glyph.Kerning + tracking) + glyph.Advance + glyph.Extra;
+    private static float Step(ShapedGlyph glyph) => glyph.Kerning + glyph.Tracking + glyph.Advance + glyph.Extra;
 }

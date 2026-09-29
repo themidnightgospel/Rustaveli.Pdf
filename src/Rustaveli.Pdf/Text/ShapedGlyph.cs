@@ -27,6 +27,11 @@ namespace Rustaveli.Pdf.Text;
 /// </param>
 /// <param name="XOffset">How far the glyph is drawn to the right of the pen, in points, without moving it.</param>
 /// <param name="YOffset">How far the glyph is drawn above the baseline, in points: a mark placed on its letter.</param>
+/// <param name="Tracking">
+/// The style's tracking between the previous glyph and this one, in points, where it falls: before a glyph that
+/// begins what a reader sees as a new character, not between letters of a script written joined. Zero for the first
+/// glyph and for every other.
+/// </param>
 internal readonly record struct ShapedGlyph(
     OpenTypeFont Face,
     ushort Glyph,
@@ -38,7 +43,8 @@ internal readonly record struct ShapedGlyph(
     float Extra = 0f,
     string? Text = null,
     float XOffset = 0f,
-    float YOffset = 0f)
+    float YOffset = 0f,
+    float Tracking = 0f)
 {
     /// <summary>
     /// The text the glyph stands for when read back: <see cref="Codepoint"/> for most glyphs, every character of a
