@@ -36,6 +36,11 @@ internal static class VeraPdf
             start.ArgumentList.Add("-classpath");
             start.ArgumentList.Add(Path.Combine(home, "etc") + Path.PathSeparator + Path.Combine(home, "bin", "*"));
             start.ArgumentList.Add("-Dfile.encoding=UTF8");
+
+            // Without a home of its own, veraPDF keeps its configuration in ~/.verapdf, and on a machine that has none
+            // yet, runs from tests in parallel race to create it: one fails that app.xml "must be a creatable or
+            // readable file". Each run gets its own, in its own directory.
+            start.ArgumentList.Add("-Dapp.home=" + directory);
             start.ArgumentList.Add("org.verapdf.apps.GreenfieldCliWrapper");
             start.ArgumentList.Add("--format");
             start.ArgumentList.Add("mrr");
