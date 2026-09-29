@@ -20,6 +20,19 @@ public class LayersComposerTests
     }
 
     [Fact]
+    public void OnlyOneLayerIsTheBase()
+    {
+        CompositionException exception = Assert.Throws<CompositionException>(() => LayoutHarness.Build(container => container.Layered(layers =>
+        {
+            Fill(layers.BaseLayer(), 50, 20, TestInks.Blue);
+            layers.Layer().Placeholder(TestInks.Red);
+            Fill(layers.BaseLayer(), 60, 30, TestInks.Blue);
+        })));
+
+        Assert.Equal("Layers have one BaseLayer, whose size the stack takes; it is already declared.", exception.Message);
+    }
+
+    [Fact]
     public void AnOrdinaryLayerContributesNothingToTheSize()
     {
         Block root = LayoutHarness.Build(container => container.Layered(layers =>

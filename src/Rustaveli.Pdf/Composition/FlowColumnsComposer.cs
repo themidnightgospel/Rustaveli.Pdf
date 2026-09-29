@@ -30,6 +30,10 @@ public sealed class FlowColumnsComposer
     /// <summary>The frame whose content flows through the columns.</summary>
     public IFrame Story()
     {
+        // A second story would silently replace the first, and everything composed into it with it.
+        if (_block.Story is not null)
+            throw new CompositionException("FlowColumns has one Story; it is already declared.");
+
         Frame story = new Frame();
         _block.Story = story;
         return story;
@@ -38,6 +42,9 @@ public sealed class FlowColumnsComposer
     /// <summary>A frame drawn in each gutter between columns in use, as tall as the columns: for a rule, say.</summary>
     public IFrame Between()
     {
+        if (_block.Between is not null)
+            throw new CompositionException("FlowColumns has one Between; it is already declared.");
+
         Frame between = new Frame();
         _block.Between = between;
         return between;
