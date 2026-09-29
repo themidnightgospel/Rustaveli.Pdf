@@ -44,6 +44,12 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
     /// </remarks>
     public float RoomBelow { get; internal set; }
 
+    /// <summary>
+    /// True while a page is set whose body could not start without splitting content kept together only where
+    /// possible: moved on, it would start the next page just as it starts this one, so it is split here instead.
+    /// </summary>
+    public bool SplitsWherePossible { get; internal set; }
+
     /// <summary>Where measurements are recorded while a layout failure is being explained; null otherwise.</summary>
     internal PlanTrace? Trace { get; set; }
 

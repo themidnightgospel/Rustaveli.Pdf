@@ -181,7 +181,17 @@ internal static class Typesetter
 
             bodySpace = new Extent(contentWidth, contentHeight);
             layout.PageBody = bodySpace;
+            layout.SplitsWherePossible = false;
             contentPlan = section.BodySlot.Plan(bodySpace, layout);
+
+            // Content kept together where possible that holds up even an empty page would start the next page just
+            // as it starts this one, so it is split here rather than moved on for ever. The page is set, and drawn,
+            // on that understanding.
+            if (contentPlan.IsDeferred)
+            {
+                layout.SplitsWherePossible = true;
+                contentPlan = section.BodySlot.Plan(bodySpace, layout);
+            }
         }
         catch (Exception exception) when (exception is not OversetException and not RenderingException)
         {
