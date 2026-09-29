@@ -29,7 +29,7 @@ and macOS have and Debian or Ubuntu get from `fonts-noto-core` and `fonts-noto-c
   enforced by the build: in Release, a warning is an error.
 - **Test what you change.** Unit tests run the layout engine against a fake type measurer, so expected values can
   be worked out by hand; integration tests read real PDFs back; conformance tests check files with qpdf and veraPDF
-  and compare pages rendered by PDFium with approved snapshots. The [README's testing section](README.md#testing)
+  and compare pages rendered by PDFium with approved snapshots. [How it's tested](docs/testing.md)
   explains each.
 - **Keep coverage up.** `dotnet run eng/coverage.cs` runs the suites with coverage and fails below the floors in
   [`eng/coverage-thresholds.json`](eng/coverage-thresholds.json). A test should assert what a caller would see, not

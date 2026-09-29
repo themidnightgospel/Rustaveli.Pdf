@@ -10,64 +10,70 @@ namespace Rustaveli.Pdf.IntegrationTests;
 public class QuickStartTests
 {
     [Fact]
-    public void TheReadmeExampleExportsAStatement()
+    public void TheReadmeExampleExportsAnInvoice()
     {
         using TemporaryWorkingDirectory directory = new TemporaryWorkingDirectory();
 
-        (string Code, string Description, string Amount)[] rows =
+        (string Item, string Quantity, string Amount)[] lines =
         [
-            ("A-100", "Consulting", "1,200.00"),
-            ("B-200", "Licences", "300.00"),
+            ("Design review", "4", "1,600.00"),
+            ("Implementation", "12", "7,200.00"),
+            ("Support, one month", "1", "450.00"),
         ];
 
-        Document document = Document.Compose(composition => composition.Section(section =>
+        Ink blue = Ink.Hex("#1565C0");
+
+        Document invoice = Document.Compose(composition => composition.Section(section =>
         {
-            section.Trim = PaperSizes.A4;
+            section.Trim = PaperSizes.A5;
             section.Margins = Sides.All(40);
-            section.DefaultType = TypeStyle.Default.WithTypeface("Noto Sans").WithPointSize(11);
+            section.DefaultType = TypeStyle.Default.WithPointSize(10);
 
-            section.RunningHead().Text("Quarterly Statement");
-
-            section.RunningFoot().Centered().Text(text =>
+            section.Body().Stack(stack =>
             {
-                text.Run("Page ");
-                text.Folio();
-                text.Run(" of ");
-                text.PageCount();
-            });
+                stack.SpaceBetween(20);
 
-            section.Body().Table(table =>
-            {
-                table.Columns(columns =>
+                stack.Add().Text(text =>
                 {
-                    columns.Fixed(90);
-                    columns.Share();
-                    columns.Fixed(70);
+                    text.Line("Invoice INV-0042").PointSize(22).Bold().Ink(blue);
+                    text.Line("Issued 29 September 2026, due in 30 days");
                 });
 
-                table.HeaderRows(header =>
+                stack.Add().Table(table =>
                 {
-                    header.Cell().Text("Code");
-                    header.Cell().Text("Description");
-                    header.Cell().FlushRight().Text("Amount");
+                    table.Columns(columns =>
+                    {
+                        columns.Share();
+                        columns.Fixed(40);
+                        columns.Fixed(70);
+                    });
+
+                    table.HeaderRows(header =>
+                    {
+                        header.Cell().Fill(blue).Inset(6).Text(text => text.Run("Item").Bold().Ink(Ink.White));
+                        header.Cell().Fill(blue).Inset(6).FlushRight().Text(text => text.Run("Qty").Bold().Ink(Ink.White));
+                        header.Cell().Fill(blue).Inset(6).FlushRight().Text(text => text.Run("Amount").Bold().Ink(Ink.White));
+                    });
+
+                    foreach ((string item, string quantity, string amount) in lines)
+                    {
+                        table.Cell().StrokeBottom(0.5f).Inset(6).Text(item);
+                        table.Cell().StrokeBottom(0.5f).Inset(6).FlushRight().Text(quantity);
+                        table.Cell().StrokeBottom(0.5f).Inset(6).FlushRight().Text(amount);
+                    }
                 });
 
-                foreach ((string code, string description, string amount) in rows)
-                {
-                    table.Cell().Text(code);
-                    table.Cell().Text(description);
-                    table.Cell().FlushRight().Text(amount);
-                }
+                stack.Add().FlushRight().Text(text => text.Run("Total due 9,250.00").PointSize(14).Bold());
             });
         }));
 
-        document.ExportPdf("statement.pdf");
+        invoice.ExportPdf("invoice.pdf");
 
-        using PdfDocument pdf = PdfDocument.Open(Path.Combine(directory.Location, "statement.pdf"));
+        using PdfDocument pdf = PdfDocument.Open(Path.Combine(directory.Location, "invoice.pdf"));
         string words = string.Join(" ", pdf.GetPage(1).GetWords().Select(word => word.Text));
         Assert.Equal(1, pdf.NumberOfPages);
-        Assert.Contains("Quarterly Statement", words, StringComparison.Ordinal);
-        Assert.Contains("Consulting", words, StringComparison.Ordinal);
-        Assert.Contains("Page 1 of 1", words, StringComparison.Ordinal);
+        Assert.Contains("Invoice INV-0042", words, StringComparison.Ordinal);
+        Assert.Contains("Support, one month", words, StringComparison.Ordinal);
+        Assert.Contains("Total due 9,250.00", words, StringComparison.Ordinal);
     }
 }
