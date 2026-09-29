@@ -230,10 +230,8 @@ public class SvgSyntaxTests
     [InlineData("5e-1", 0.5f)]
     [InlineData("-12", -12f)]
     [InlineData("+12", 12f)]
-    [InlineData("2e", 2f)]
-    [InlineData("2E", 2f)]
-    [InlineData("3furlongs", 3f)]
     [InlineData(" 7 ", 7f)]
+    [InlineData("7 px", 7f)]
     public void LengthsAreReadInPixels(string text, float pixels) =>
         Assert.Equal(pixels, SvgLength.Read(text, 200, -1), 3);
 
@@ -245,6 +243,13 @@ public class SvgSyntaxTests
     [InlineData("2e15")]
     [InlineData("1e14in")]
     [InlineData("-1e14em")]
+
+    // A unit SVG does not know makes the length invalid, which SVG ignores, rather than a number of pixels; so does a
+    // decimal comma, as a number written in a German culture has.
+    [InlineData("3furlongs")]
+    [InlineData("123,45")]
+    [InlineData("2e")]
+    [InlineData("2E")]
     public void NoLengthIsTheFallback(string? text) =>
         Assert.Equal(-1f, SvgLength.Read(text, 200, -1));
 

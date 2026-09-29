@@ -92,15 +92,18 @@ Artwork or an image can be made when layout knows the box it will fill — a cha
 frame, say:
 
 ```csharp
-section.Body().Height(160).Artwork(size => Artwork.FromSvg(
+section.Body().Height(160).Artwork(size => Artwork.FromSvg(FormattableString.Invariant(
     $"""
     <svg xmlns="http://www.w3.org/2000/svg" width="{size.Width}" height="{size.Height}">
       <rect x="0" y="{size.Height * 0.4}" width="{size.Width / 3}" height="{size.Height * 0.6}" fill="#43A047"/>
       <rect x="{size.Width / 3}" y="{size.Height * 0.1}" width="{size.Width / 3}" height="{size.Height * 0.9}" fill="#1E88E5"/>
       <rect x="{size.Width * 2 / 3}" y="{size.Height * 0.7}" width="{size.Width / 3}" height="{size.Height * 0.3}" fill="#FB8C00"/>
     </svg>
-    """));
+    """)));
 ```
+
+Numbers written into SVG take a decimal point whatever the culture the program runs in, so the text is formatted
+with `FormattableString.Invariant`: in a culture that writes a decimal comma, `123,45` is no length SVG can read.
 
 `Image(request => ...)` does the same for pixels: it is asked for an image of `request.PixelWidth` by
 `request.PixelHeight`, at the export's `ImageResolution`, and returns the encoded bytes.
