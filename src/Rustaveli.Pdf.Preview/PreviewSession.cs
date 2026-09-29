@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using Rustaveli.Pdf.Layout;
 using Rustaveli.Pdf.Preview;
 
@@ -273,6 +274,7 @@ public sealed class PreviewSession : IDisposable
 
                 json.Append("{\"name\":").Append(Quote(node.Name))
                     .Append(",\"source\":").Append(node.Source is null ? "null" : Quote(node.Source))
+                    .Append(",\"editor\":").Append(node.Source is null ? "null" : Quote(EditorLink(node.Source)))
                     .Append(",\"x\":").Append(Number(node.Origin.X))
                     .Append(",\"y\":").Append(Number(node.Origin.Y))
                     .Append(",\"width\":").Append(Number(node.Size.Width))
@@ -286,6 +288,20 @@ public sealed class PreviewSession : IDisposable
         }
 
         static string Number(float value) => Math.Round(value, 2).ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// The link that opens <paramref name="source"/>, a file and a line, in the editor. Each part of the path is escaped
+    /// on its own, so a <c>#</c> or <c>?</c> in a folder's name — <c>C:\src\C#\Demo</c> — stays part of the path instead
+    /// of ending it; the separators, a drive's colon and the line number stay as they are.
+    /// </summary>
+    internal static string EditorLink(string source)
+    {
+        Match line = Regex.Match(source, @":\d+$");
+        string path = source.Substring(0, source.Length - line.Length).Replace('\\', '/');
+        string escaped = string.Join("/", path.Split('/').Select(part => Uri.EscapeDataString(part).Replace("%3A", ":")));
+
+        return "vscode://file/" + escaped + line.Value;
     }
 
     /// <summary>A PNG's size in pixels, from its header.</summary>

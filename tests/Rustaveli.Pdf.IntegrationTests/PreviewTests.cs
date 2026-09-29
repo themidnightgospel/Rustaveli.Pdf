@@ -130,7 +130,7 @@ public class PreviewTests
         string frames = await Get(session, "/frames/1");
 
         Assert.StartsWith("[{\"name\":", frames, StringComparison.Ordinal);
-        Assert.Matches("\"name\":\"\\\\\"Greeting\\\\\"\",\"source\":\"[^\"]*PreviewTests\\.cs:\\d+\",\"x\":10,\"y\":10,\"width\":124,\"height\":52,\"children\":\\[\\{", frames);
+        Assert.Matches("\"name\":\"\\\\\"Greeting\\\\\"\",\"source\":\"[^\"]*PreviewTests\\.cs:\\d+\",\"editor\":\"vscode://file/[^\"]*PreviewTests\\.cs:\\d+\",\"x\":10,\"y\":10,\"width\":124,\"height\":52,\"children\":\\[\\{", frames);
     }
 
     [Fact]
@@ -144,10 +144,21 @@ public class PreviewTests
         inspection.Leave(inspection.Enter(new NewPageBlock(), new Offset(5, 6), new Extent(7, 8)));
 
         Assert.Equal(
-            "[{\"name\":\"Stack\",\"source\":null,\"x\":1.23,\"y\":2,\"width\":3,\"height\":4,\"children\":"
-            + "[{\"name\":\"NewPage\",\"source\":null,\"x\":0,\"y\":0,\"width\":0,\"height\":0,\"children\":[]}]},"
-            + "{\"name\":\"NewPage\",\"source\":null,\"x\":5,\"y\":6,\"width\":7,\"height\":8,\"children\":[]}]",
+            "[{\"name\":\"Stack\",\"source\":null,\"editor\":null,\"x\":1.23,\"y\":2,\"width\":3,\"height\":4,\"children\":"
+            + "[{\"name\":\"NewPage\",\"source\":null,\"editor\":null,\"x\":0,\"y\":0,\"width\":0,\"height\":0,\"children\":[]}]},"
+            + "{\"name\":\"NewPage\",\"source\":null,\"editor\":null,\"x\":5,\"y\":6,\"width\":7,\"height\":8,\"children\":[]}]",
             PreviewSession.Frames(inspection.Pages[0]));
+    }
+
+    [Theory]
+    [InlineData(@"C:\src\C#\Demo\Program.cs:12", "vscode://file/C:/src/C%23/Demo/Program.cs:12")]
+    [InlineData("/home/me/what?/100% done/Program.cs:3", "vscode://file//home/me/what%3F/100%25%20done/Program.cs:3")]
+    [InlineData("/home/me/Program.cs", "vscode://file//home/me/Program.cs")]
+    public void AFrameLeadsToTheLineThatMadeItWhateverThePathHolds(string source, string editor)
+    {
+        LayoutInspection.Node node = new LayoutInspection.Node("Stack", source, Offset.Zero, Extent.Zero, null);
+
+        Assert.Contains("\"editor\":" + PreviewSession.Quote(editor), PreviewSession.Frames([node]), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -111,7 +111,7 @@ internal static class PreviewPage
             const at = node.source;
             if (!at) return make('span', 'dim', 'no line known');
             const link = make('a', '', at.split(/[\\/]/).pop());
-            link.href = 'vscode://file/' + encodeURI(at.replace(/\\/g, '/'));
+            link.href = node.editor;
             link.title = 'Open ' + at + ' in the editor';
             return link;
           }
