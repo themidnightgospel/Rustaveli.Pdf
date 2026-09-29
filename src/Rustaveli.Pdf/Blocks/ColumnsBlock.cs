@@ -70,7 +70,7 @@ internal sealed class ColumnsBlock : Block
         if (fixedWidth > availableSpace.Width + Extent.Epsilon)
         {
             return Fit.Defer(
-                $"The fixed columns need {fixedWidth:F1} points but only {availableSpace.Width:F1} are available.");
+                FormattableString.Invariant($"The fixed columns need {fixedWidth:F1} points but only {availableSpace.Width:F1} are available."));
         }
 
         float[] widths = ResolveWidths(availableSpace, context);

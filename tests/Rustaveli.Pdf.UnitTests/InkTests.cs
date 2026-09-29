@@ -383,6 +383,29 @@ public class InkTests
     }
 
     [Fact]
+    public void EqualityIsTheSameWhicheverSideAsks()
+    {
+        Ink[] inks =
+        [
+            Ink.Rgb(0, 0, 0), Ink.Black, Ink.Cmyk(0, 0, 0, 1), Ink.White, Ink.Transparent, Ink.Registration,
+            Ink.Spot("Gold", Ink.Black), Ink.Spot("Gold", Ink.Black).Tint(0.5f), Ink.Spot("Gold", Ink.Rgb(0, 0, 0)),
+            Ink.Rgb(0, 0, 0).WithOpacity(0.5f), Ink.Hex("#000000"),
+        ];
+
+        foreach (Ink first in inks)
+        {
+            foreach (Ink second in inks)
+            {
+                Assert.Equal(first.Equals((object)second), second.Equals((object)first));
+                Assert.Equal(first == second, second == first);
+
+                if (first == second)
+                    Assert.Equal(first.GetHashCode(), second.GetHashCode());
+            }
+        }
+    }
+
+    [Fact]
     public void EachComponentTakesPartInEquality()
     {
         Ink ink = Ink.Cmyk(0.1f, 0.2f, 0.3f, 0.4f);

@@ -6,8 +6,8 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Runs the enclosed code under a fixed culture, restoring the previous one on dispose.
 /// </summary>
 /// <remarks>
-/// Sizes and positions format their numbers with the current culture, and they surface in exception messages.
-/// Asserting those messages literally needs a known decimal separator, whatever machine the suite runs on.
+/// Sizes, positions and the messages built from them read the same in every culture. Tests that assert them word for
+/// word run under <see cref="DecimalComma"/>, so that one formatted in the current culture would fail.
 /// </remarks>
 internal sealed class CultureScope : IDisposable
 {
@@ -19,7 +19,8 @@ internal sealed class CultureScope : IDisposable
         CultureInfo.CurrentCulture = culture;
     }
 
-    public static CultureScope Invariant() => new CultureScope(CultureInfo.InvariantCulture);
+    /// <summary>A culture that writes decimals with a comma, as German does.</summary>
+    public static CultureScope DecimalComma() => new CultureScope(new CultureInfo("de-DE"));
 
     public void Dispose() => CultureInfo.CurrentCulture = _previous;
 }

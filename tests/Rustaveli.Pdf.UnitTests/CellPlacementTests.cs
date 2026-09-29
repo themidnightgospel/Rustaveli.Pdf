@@ -145,19 +145,32 @@ public class CellPlacementTests
     }
 
     [Fact]
-    public void ARowOnlyCellInAFullRowIsKeptInsideTheGrid()
+    public void ARowWithNoRoomLeftRefusesACellPinnedToIt()
     {
-        IEnumerable<(int Row, int Column)> slots = Place(3, table =>
+        // Moving the cell to another row would not put it where it was asked, and keeping it would cover a cell.
+        CompositionException full = Assert.Throws<CompositionException>(() => Place(3, table =>
         {
             table.Cell().AtRow(1).AtColumn(1);
             table.Cell().AtRow(1).AtColumn(2);
             table.Cell().AtRow(1).AtColumn(3);
-            table.Cell().AtRow(1).SpanColumns(2);
-        });
+            table.Cell().AtRow(1);
+        }));
 
-        // No slot is free, so the cell settles on the last column its span still fits from rather than being
-        // pushed past the grid, where validation would reject it.
-        Assert.Equal((1, 2), slots.Last());
+        Assert.Contains("body cell is placed in row 1", full.Message, StringComparison.Ordinal);
+        Assert.Contains("1-column span", full.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ARowWithGapsTooNarrowRefusesASpanningCellPinnedToIt()
+    {
+        CompositionException narrow = Assert.Throws<CompositionException>(() => Compose(3, table => table.HeaderRows(header =>
+        {
+            header.Cell().AtRow(1).AtColumn(2);
+            header.Cell().AtRow(1).SpanColumns(2);
+        })));
+
+        Assert.Contains("header cell is placed in row 1", narrow.Message, StringComparison.Ordinal);
+        Assert.Contains("2-column span", narrow.Message, StringComparison.Ordinal);
     }
 
     [Fact]

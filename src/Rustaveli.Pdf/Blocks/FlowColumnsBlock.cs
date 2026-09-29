@@ -43,7 +43,7 @@ internal sealed class FlowColumnsBlock : Block
         float width = ColumnWidth(availableSpace.Width);
 
         if (width <= 0)
-            return Fit.Defer($"{Count} columns with gutters of {Gutter:F1} leave no width in {availableSpace.Width:F1} points.");
+            return Fit.Defer(FormattableString.Invariant($"{Count} columns with gutters of {Gutter:F1} leave no width in {availableSpace.Width:F1} points."));
 
         Pour pour = Measure(width, availableSpace.Height, context);
 
@@ -51,7 +51,7 @@ internal sealed class FlowColumnsBlock : Block
         {
             return pour.Done
                 ? Fit.Nothing()
-                : Fit.Defer($"The story does not fit even one column {width:F1} by {availableSpace.Height:F1} points.");
+                : Fit.Defer(FormattableString.Invariant($"The story does not fit even one column {width:F1} by {availableSpace.Height:F1} points."));
         }
 
         Extent size = new Extent(availableSpace.Width, pour.Height);

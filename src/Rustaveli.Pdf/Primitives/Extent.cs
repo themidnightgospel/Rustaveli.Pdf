@@ -24,5 +24,5 @@ public readonly record struct Extent(float Width, float Height)
         Width <= available.Width + Epsilon &&
         Height <= available.Height + Epsilon;
 
-    public override string ToString() => $"(Width: {Width:F3}, Height: {Height:F3})";
+    public override string ToString() => FormattableString.Invariant($"(Width: {Width:F3}, Height: {Height:F3})");
 }

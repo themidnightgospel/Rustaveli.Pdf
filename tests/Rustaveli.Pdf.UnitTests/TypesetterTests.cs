@@ -213,7 +213,7 @@ public class TypesetterTests
     [Fact]
     public void ThrowsWhenContentCanNeverFit()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
@@ -240,7 +240,7 @@ public class TypesetterTests
     [Fact]
     public void ThrowsWhenMarginsLeaveNoRoom()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(100f, 100f);
@@ -257,7 +257,7 @@ public class TypesetterTests
     [Fact]
     public void ThrowsWhenTheHeaderAndFooterFillThePage()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 100f);
@@ -529,7 +529,7 @@ public class TypesetterTests
     [InlineData(-10f, 100f, "(Width: -10.000, Height: 100.000)")]
     public void RejectsAPageSizeWithoutAreaInEitherDimension(float width, float height, string formattedSize)
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(width, height);
@@ -547,7 +547,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsHorizontalMarginsThatConsumeExactlyTheWholeWidth()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(100, 100);
@@ -563,7 +563,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsVerticalMarginsThatConsumeExactlyTheWholeHeight()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(100, 100);
@@ -617,7 +617,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAHeaderThatDoesNotFitOnThePage()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
@@ -638,7 +638,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAHeaderThatClaimsMoreThanItWasOffered()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
@@ -654,7 +654,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAHeaderThatExpandsToFillThePage()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
@@ -676,7 +676,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAFooterThatClaimsMoreThanTheHeaderLeft()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 200);
@@ -724,6 +724,42 @@ public class TypesetterTests
 
         Assert.Equal("Drawing page 2 failed. See the inner exception for details.", exception.Message);
         Assert.Same(failure, exception.InnerException);
+    }
+
+    [Fact]
+    public void WrapsAFailureWhileMeasuringWithThePageItHappenedOn()
+    {
+        InvalidOperationException failure = new InvalidOperationException("The component could not measure itself.");
+        Document document = Document.Compose(container =>
+        {
+            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(10, 10)));
+            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
+        });
+
+        RenderingException exception = Assert.Throws<RenderingException>(() => LayoutHarness.Render(document));
+
+        Assert.Equal("Laying out page 2 failed. See the inner exception for details.", exception.Message);
+        Assert.Same(failure, exception.InnerException);
+    }
+
+    [Fact]
+    public void WrapsAFailureWhileMeasuringARunningHead()
+    {
+        InvalidOperationException failure = new InvalidOperationException("The component could not measure itself.");
+        Document document = Build(page => page.RunningHead().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
+
+        Assert.Same(failure, Assert.Throws<RenderingException>(() => LayoutHarness.Render(document)).InnerException);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LetsALayoutFailureRaisedWhileMeasuringPassThroughUnwrapped(bool rendering)
+    {
+        TypesettingException failure = rendering ? new RenderingException("A nested document failed.") : new OversetException("A nested layout could not be resolved.");
+        Document document = Build(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
+
+        Assert.Same(failure, Assert.Throws(failure.GetType(), () => LayoutHarness.Render(document)));
     }
 
     [Fact]

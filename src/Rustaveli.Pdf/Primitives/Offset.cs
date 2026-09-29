@@ -11,5 +11,5 @@ public readonly record struct Offset(float X, float Y)
 
     public static Offset operator +(Offset a, Offset b) => new(a.X + b.X, a.Y + b.Y);
 
-    public override string ToString() => $"(X: {X:F3}, Y: {Y:F3})";
+    public override string ToString() => FormattableString.Invariant($"(X: {X:F3}, Y: {Y:F3})");
 }

@@ -6,7 +6,8 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal static class CellPlacement
 {
-    public static void Apply(List<CellBlock> cells, int columnCount)
+    /// <exception cref="CompositionException">A cell pinned to a row finds no room left in it.</exception>
+    public static void Apply(List<CellBlock> cells, int columnCount, string band)
     {
         HashSet<(int Row, int Column)> occupied = new HashSet<(int Row, int Column)>();
 
@@ -24,7 +25,14 @@ internal static class CellPlacement
             while (candidate + span - 1 <= columnCount && !IsFree(occupied, cell.Row, candidate, span, cell.RowSpan))
                 candidate++;
 
-            cell.Column = Math.Min(candidate, Math.Max(1, columnCount - span + 1));
+            // Moved to another row it would not be where it was put, and kept in this one it would cover a cell that is.
+            if (candidate + span - 1 > columnCount)
+            {
+                throw new CompositionException(
+                    $"A {band} cell is placed in row {cell.Row}, but the row has no room left for its {span}-column span. Give the cell a column, or place it in another row.");
+            }
+
+            cell.Column = candidate;
             Occupy(occupied, cell);
         }
 

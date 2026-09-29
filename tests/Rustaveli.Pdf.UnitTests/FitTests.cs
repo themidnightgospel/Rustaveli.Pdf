@@ -82,7 +82,7 @@ public class FitTests
     [Fact]
     public void RenderingOutcomesDescribeThemselvesWithTheirSize()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
 
         Assert.Equal("Complete (Width: 1.500, Height: 2.250)", Fit.Complete(1.5f, 2.25f).ToString());
         Assert.Equal("Partial (Width: 3.000, Height: 4.000)", Fit.Partial(3, 4).ToString());

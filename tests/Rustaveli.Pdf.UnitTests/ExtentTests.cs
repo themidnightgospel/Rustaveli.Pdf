@@ -69,7 +69,7 @@ public class ExtentTests
     [Fact]
     public void FormatsBothDimensionsToThreeDecimals()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
 
         Assert.Equal("(Width: 1.500, Height: 2.346)", new Extent(1.5f, 2.3456f).ToString());
     }

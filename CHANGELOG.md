@@ -3,6 +3,32 @@
 Versions follow [semantic versioning](https://semver.org/). Before 1.0 the public surface may still change from one
 minor version to the next; from 1.0, nothing public changes incompatibly within a major version.
 
+## Unreleased
+
+**Fixed**
+
+- A table cell pinned to a row with no room left in it covered a cell already there; it is now refused with a
+  `CompositionException` naming the row.
+- Layout error messages, and `Extent` and `Offset` as text, wrote numbers in the current culture — `0,000` on a
+  machine that writes decimals with a comma. They read the same in every culture now.
+- A running head or foot of no height was not drawn at all, so an anchor, bookmark or marker in it never took effect
+  and links to it went nowhere.
+- Content that threw while it was measured escaped unwrapped, with nothing to say where in the document it was. It is
+  wrapped in a `RenderingException` naming the page, as a failure while drawing is.
+- SVG artwork with numbers beyond what a PDF can hold (10^15), or transforms, clips, gradients and view boxes that
+  reach beyond it, failed the export; what reaches beyond it is left out. `ArtworkComposer` refuses such numbers
+  when they are given.
+- SVG path data with anything but a command after a close looped forever.
+- An SVG opacity above 1 failed; opacities are clamped, as SVG says.
+- Reading a PDF: a number with two decimal points, a cross-reference stream without a usable `/W` or `/Size`, an
+  AES-256 file whose wrapped key is not 32 bytes, and an RC4 or AES-128 file with a key outside 40 to 128 bits or an
+  owner entry shorter than 32 bytes threw exceptions `PdfFile.Open` does not document. The first two are repaired;
+  the others are an `UnreadableFileException`.
+
+**Changed**
+
+- `PdfFile.Open` documents the `NotSupportedException` it throws for a security handler other than the standard one.
+
 ## 0.1.0
 
 The first release: every capability of QuestPDF 2026.5.0, its last MIT release, in a vocabulary drawn from print —
