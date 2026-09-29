@@ -53,6 +53,12 @@ internal sealed class PdfDictionary : IReadOnlyCollection<KeyValuePair<PdfName, 
         _entries.Add(new KeyValuePair<PdfName, PdfValue>(key, value));
     }
 
+    /// <summary>
+    /// Adds an entry whose key the caller knows is not yet present, without the scan <see cref="Add"/> makes to check:
+    /// for dictionaries that grow large under keys unique by construction, which the scan would make quadratic.
+    /// </summary>
+    public void AddUnique(PdfName key, PdfValue value) => _entries.Add(new KeyValuePair<PdfName, PdfValue>(key, value));
+
     public bool ContainsKey(PdfName key) => IndexOf(key) >= 0;
 
     public bool TryGetValue(PdfName key, out PdfValue value)

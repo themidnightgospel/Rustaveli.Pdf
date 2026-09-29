@@ -67,7 +67,9 @@ internal sealed class PdfResources
 
             PdfName name = new PdfName(prefix + (_entries.Count + 1).ToString(CultureInfo.InvariantCulture));
             _names.Add(reference.ObjectNumber, name);
-            _entries.Add(name, reference);
+
+            // Numbered in turn, each name is new: a page of thousands of images need not check it against every other.
+            _entries.AddUnique(name, reference);
             return name;
         }
 
