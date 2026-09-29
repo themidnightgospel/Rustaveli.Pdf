@@ -1,25 +1,16 @@
-# Tier 2: the expensive checks, run once a pull request is labelled ready-to-merge (and again on any push after
-# that). A PR merges only when both this and ci.yml are green. Split out because mutation testing, benchmarks and
-# macOS minutes cost too much to spend on every intermediate push.
-#
-# Mutation testing runs every night on main, and on demand, but not on pull requests for now: each phase's pull
-# request rewrites whole areas, and mutating them held merges for hours even counting only the files changed. A
-# shard that falls below the floor at night opens an issue. Once pull requests are small again, add
-# `|| contains(github.event.pull_request.labels.*.name, 'ready-to-merge')` back to the mutation job's condition — a
-# pull request then mutates only the source files it changes against main.
+# Mutation testing of the whole engine on main, every night and at no other time: it takes hours, and pull requests
+# should not wait for it. A shard that falls below the 80% floor, or fails, opens an issue — work for the next pull
+# request. Set off the hour: GitHub delays or drops scheduled runs when load is highest, which is on the hour.
 
-name: gate
+name: Nightly mutation testing
 
 on:
-  pull_request:
-    types: [labeled, synchronize, reopened]
   schedule:
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+    - cron: '17 2 * * *'
 
 concurrency:
-  group: gate-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: nightly-mutation
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -37,7 +28,6 @@ jobs:
   # "File.cs{0..23000}" — a span counting characters, not lines; shards beyond the concurrent-job limit simply queue.
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ${{ matrix.shard.os || 'ubuntu-latest' }}
     timeout-minutes: 300
     defaults:
@@ -187,10 +177,7 @@ jobs:
               --mutate "**/Fonts/TypefaceLibrary.cs" --mutate "**/Text/TypeShaper.cs" --mutate "**/Text/GlyphWalk.cs"
               --mutate "**/Text/OpenTypeMeasurer.cs"
     steps:
-      # The whole history, so that a pull request can be compared with main.
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -225,7 +212,6 @@ jobs:
           dotnet stryker --config-file stryker-config.json
           --reporter progress --reporter markdown --reporter html
           --concurrency ${{ matrix.shard.runners || (matrix.shard.fonts && 2 || 3) }}
-          ${{ github.event_name == 'pull_request' && '--since:origin/main' || '' }}
           ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
       - name: Publish mutation summary
@@ -241,87 +227,12 @@ jobs:
           path: StrykerOutput/**/reports
           retention-days: 14
 
-  benchmarks:
-    name: benchmarks vs QuestPDF
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
-          restore-keys: nuget-${{ runner.os }}-
-
-      # Reported, not yet gated: regression gating against the main baseline starts with the managed writer
-      # (docs/adr/0009-performance-targets.md).
-      - name: File sizes
-        run: |
-          echo "## File size" >> "$GITHUB_STEP_SUMMARY"
-          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release -- --sizes | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: Throughput and allocations
-        run: >
-          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release --
-          --filter "*" --job short --exporters github json --artifacts artifacts/benchmarks
-
-      - name: Publish benchmark summary
-        if: always()
-        run: |
-          for report in artifacts/benchmarks/results/*-report-github.md; do
-            [ -f "$report" ] && cat "$report" >> "$GITHUB_STEP_SUMMARY"
-          done
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: benchmark-results
-          path: artifacts/benchmarks/results
-          retention-days: 30
-
-  macos:
-    name: macos · build, test
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
-    runs-on: macos-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      # No portable qpdf build exists for macOS; Homebrew's is the upstream release.
-      - name: Install validators (qpdf)
-        run: brew install qpdf
-
-      # veraPDF validates PDF/A and PDF/UA output; it runs on Java.
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Fetch validators (veraPDF)
-        run: dotnet run eng/tools.cs
-
-      - name: Build (Release, warnings are errors)
-        run: dotnet build Rustaveli.Pdf.slnx -c Release
-
-      - name: Test
-        run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build
-
-  # A shard of the nightly run below the floor is work for the next pull request, so it is filed as an issue — one,
-  # kept open until fixed, however many nights it fails.
-  nightly-report:
-    name: report a failed nightly run
+  # A shard below the floor is work for the next pull request, so it is filed as an issue — one, kept open until
+  # fixed, however many nights it fails.
+  report:
+    name: report a failed night
     needs: mutation
-    if: failure() && github.event_name == 'schedule'
+    if: failure()
     runs-on: ubuntu-latest
     permissions:
       issues: write

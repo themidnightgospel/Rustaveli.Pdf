@@ -13,10 +13,10 @@ Every phase must pass, before merge:
 - **Coverage** of the shipped assemblies, both suites combined: ≥ 95% line, ≥ 90% branch, never decreasing.
   Enforced by `dotnet run eng/coverage.cs`. Exclusions need `[ExcludeFromCodeCoverage(Justification = ...)]`.
 - **Mutation testing** (Stryker.NET): score ≥ 80% in every shard, proving the tests detect wrong behaviour. Every
-  night the whole engine is mutated on `main`, and a shard below the floor opens an issue for the next pull request
-  to fix. Pull requests are not mutation-tested while the phases' large pull requests land — mutating the areas
-  each rewrites held merges for hours — and will be again, mutating only the files each changes, once pull requests
-  are small. Arguments to exception constructors — the words of an error message — are not mutated.
+  night, and only then, the whole engine is mutated on `main`, and a shard below the floor opens an issue for the
+  next pull request to fix. Pull requests are not mutation-tested: even mutating only the files a pull request
+  changes held merges for hours. Arguments to exception constructors — the words of an error message — are not
+  mutated.
 - **Unit tests** against a deterministic fake measurer and a recording canvas, so expected values are computable by
   hand.
 - **Integration tests** reading real output back with PdfPig.

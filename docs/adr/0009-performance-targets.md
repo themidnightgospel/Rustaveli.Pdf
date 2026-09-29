@@ -23,4 +23,5 @@ target unreachable by construction.
 
 ## Consequences
 - Performance becomes a tested property, not a claim.
-- Benchmarks run only in the ready-to-merge gate, where their noise and cost are acceptable.
+- Benchmarks run only in the pre-merge checks, once a pull request is ready to merge, where their noise and cost
+  are acceptable.
