@@ -322,8 +322,7 @@ internal sealed class PdfEncryption
             case Cipher.Aes128:
             case Cipher.Aes256:
                 byte[] key = cipher == Cipher.Aes256 ? _key : StandardSecurity.ObjectKey(_key, objectNumber, aes: true);
-                byte[] iv = StandardSecurity.Random(16);
-                return [.. iv, .. StandardSecurity.Aes(key, iv, data.ToArray(), true, CipherMode.CBC, PaddingMode.PKCS7)];
+                return StandardSecurity.EncryptCbc(key, data);
 
             default:
                 return data.ToArray();
