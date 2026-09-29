@@ -86,6 +86,9 @@ internal sealed class PdfFileWriter : IDisposable
         _pending.Write([0xE2, 0xE3, 0xCF, 0xD3, (byte)'\n']);
     }
 
+    /// <summary>How the file is encrypted, or null when it is not.</summary>
+    public Security.PdfEncryption? Encryption => _encryption;
+
     /// <summary>Allocates the next object number. It must be written before <see cref="Finish"/>.</summary>
     public PdfReference Reserve()
     {

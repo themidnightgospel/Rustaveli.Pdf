@@ -76,6 +76,9 @@ internal static class Linearizer
         List<int> outline = [];
         PdfDictionary root = ((PdfValue)objects[catalog]).AsDictionary();
 
+        // The file was finished plain, so what its encryption needs declared is declared as it is laid out.
+        encryption?.DeclareExtension(root);
+
         if (root.TryGetValue(PageMode, out PdfValue mode) && mode.Kind == PdfValueKind.Name && mode.AsName().Equals(UseOutlines)
             && root.TryGetValue(Outlines, out PdfValue outlines))
         {

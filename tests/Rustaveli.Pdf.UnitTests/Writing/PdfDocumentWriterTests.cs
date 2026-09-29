@@ -435,6 +435,47 @@ public class PdfDocumentWriterTests
         Assert.Equal("The document has been finished.", Refusal(() => document.GetOpacityState(1)));
     }
 
+    [Theory]
+    [InlineData(EncryptionLevel.AesWith256Bits, false, 8L)]
+    [InlineData(EncryptionLevel.AesWith128Bits, false, null)]
+    [InlineData(EncryptionLevel.AesWith256Bits, true, 3L)]
+    public void Aes256IsDeclaredAsAdobesExtensionLevel8UnlessTheCatalogDeclaresItsOwn(EncryptionLevel level, bool declared, long? expected)
+    {
+        using MemoryStream output = new MemoryStream();
+        // Outside an object stream the catalog is read as it is: only strings and streams are encrypted.
+        PdfWriterOptions options = new PdfWriterOptions
+        {
+            CrossReferenceFormat = PdfCrossReferenceFormat.Table,
+            Encryption = Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { Encryption = level }),
+        };
+
+        using (PdfDocumentWriter document = new PdfDocumentWriter(output, options))
+        {
+            if (declared)
+            {
+                document.Catalog[new PdfName("Extensions")] = new PdfDictionary
+                {
+                    [new PdfName("ADBE")] = new PdfDictionary { [new PdfName("BaseVersion")] = new PdfName("1.7"), [new PdfName("ExtensionLevel")] = 3 },
+                };
+            }
+
+            document.EndPage(document.BeginPage(10, 10));
+            document.Finish();
+        }
+
+        Dictionary<string, object?> catalog = new PdfFileReader(output.ToArray()).Catalog();
+
+        if (expected is null)
+        {
+            Assert.False(catalog.ContainsKey("Extensions"));
+            return;
+        }
+
+        Dictionary<string, object?> adobe = (Dictionary<string, object?>)((Dictionary<string, object?>)catalog["Extensions"]!)["ADBE"]!;
+        Assert.Equal(new ParsedName("1.7"), adobe["BaseVersion"]);
+        Assert.Equal(expected, adobe["ExtensionLevel"]);
+    }
+
     [Fact]
     public void RefusesToFinishWithoutPages()
     {

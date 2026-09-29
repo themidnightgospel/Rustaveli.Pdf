@@ -238,6 +238,8 @@ internal sealed class PdfDocumentWriter : IDisposable
                 catalog[entry.Key] = entry.Value;
         }
 
+        File.Encryption?.DeclareExtension(catalog);
+
         PdfReference root = File.Write(catalog);
         PdfReference? info = InfoDictionary is { } copied ? File.Write(copied) : Info.IsEmpty ? null : File.Write(Info.ToDictionary());
         File.Finish(root, info);
