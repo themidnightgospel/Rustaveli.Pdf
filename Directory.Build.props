@@ -118,4 +118,18 @@
     <WriteLinesToFile File="$(PackageReadmeCopy)" Lines="$([MSBuild]::Escape($(_PackageReadmeText)))" Overwrite="true" WriteOnlyWhenDifferent="true" />
   </Target>
 
+  <!--
+    The companion packages are built against the core's internals, which change from one release to the next, so each
+    depends on exactly the core it was built with: a project reference packs as [0.1.1], not as the floating ">= 0.1.1"
+    NuGet writes by default, under which a newer core could be restored beside an older companion and fail at run time.
+    NuGet reads the version of each referenced project into _ProjectReferencesWithVersions; this brackets it.
+  -->
+  <Target Name="PinProjectReferenceVersions" AfterTargets="_GetProjectReferenceVersions" Condition="'$(IsPackable)' != 'false'">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Condition="'%(_ProjectReferencesWithVersions.ProjectVersion)' != '' and !$([System.String]::Copy('%(_ProjectReferencesWithVersions.ProjectVersion)').StartsWith('['))">
+        <ProjectVersion>[%(_ProjectReferencesWithVersions.ProjectVersion)]</ProjectVersion>
+      </_ProjectReferencesWithVersions>
+    </ItemGroup>
+  </Target>
+
 </Project>
