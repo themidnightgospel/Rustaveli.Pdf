@@ -173,6 +173,22 @@ public class ImageExportTests
     }
 
     [Fact]
+    public void AnImageIsDrawnInTheColoursItsProfileGivesIt()
+    {
+        RasterImage image = RasterImage.FromBytes(TestImages.LinearGreyPng(8, 8));
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(72, 72);
+            section.Body().Image(image, ImageFitting.Stretch);
+        }));
+
+        using SKBitmap page = Decode(document.ExportImages(new ImageExportOptions { Resolution = 72 })[0]);
+
+        // The samples are 128 in linear light, which in the sRGB of the page is about 188.
+        Assert.InRange(page.GetPixel(36, 36).Red, 184, 192);
+    }
+
+    [Fact]
     public void RefusesAnImageItCannotDecode()
     {
         Document document = Document.Compose(composition => composition.Section(section => section.Body().Image(new ForeignImage())));

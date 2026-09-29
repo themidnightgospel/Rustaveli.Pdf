@@ -535,7 +535,9 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         using SKCodec codec = SKCodec.Create(data)
             ?? throw new ArgumentException("Skia could not decode the image.", nameof(image));
 
-        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        // Decoded into sRGB, the colours of the page, so an image with a profile of its own is drawn in the colours
+        // the profile gives it rather than as its bare samples.
+        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
         using SKBitmap bitmap = new SKBitmap(info);
         SKCodecResult result = codec.GetPixels(info, bitmap.GetPixels());
 

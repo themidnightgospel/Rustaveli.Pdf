@@ -19,10 +19,13 @@ public sealed class SkiaImageProcessor : IImageProcessor
 
         using SKData source = SKData.CreateCopy(request.Source.ToArray());
         using SKCodec codec = SKCodec.Create(source) ?? throw new ArgumentException("The image could not be decoded.", nameof(request));
-        using SKBitmap stored = SKBitmap.Decode(codec) ?? throw new ArgumentException("The image could not be decoded.", nameof(request));
+
+        // Converted to sRGB as it is decoded, and kept in sRGB to the end: re-encoded, the image carries no profile of
+        // its own, so its samples must already be in the colours the PDF takes them to be in.
+        using SKBitmap stored = SKBitmap.Decode(codec, codec.Info.WithColorSpace(SKColorSpace.CreateSrgb())) ?? throw new ArgumentException("The image could not be decoded.", nameof(request));
         using SKBitmap upright = Upright(stored, codec.EncodedOrigin);
         using SKBitmap scaled = upright.Resize(
-            new SKImageInfo(request.PixelWidth, request.PixelHeight, upright.ColorType, upright.AlphaType),
+            new SKImageInfo(request.PixelWidth, request.PixelHeight, upright.ColorType, upright.AlphaType, upright.ColorSpace),
             new SKSamplingOptions(SKCubicResampler.Mitchell)) ?? throw new InvalidOperationException("The image could not be scaled.");
 
         bool lossless = request.Quality is null || HasTransparency(scaled);
@@ -53,7 +56,7 @@ public sealed class SkiaImageProcessor : IImageProcessor
             _ => SKMatrix.Identity,
         };
 
-        SKBitmap upright = new SKBitmap(new SKImageInfo(turned ? height : width, turned ? width : height, stored.ColorType, stored.AlphaType));
+        SKBitmap upright = new SKBitmap(new SKImageInfo(turned ? height : width, turned ? width : height, stored.ColorType, stored.AlphaType, stored.ColorSpace));
 
         using SKCanvas canvas = new SKCanvas(upright);
         canvas.Clear(SKColors.Transparent);

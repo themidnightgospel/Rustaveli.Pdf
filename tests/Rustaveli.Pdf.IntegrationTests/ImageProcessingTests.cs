@@ -107,6 +107,37 @@ public class ImageProcessingTests
             Assert.Equal(expected.GetPixel(x, y).Green < 128, upright.GetPixel(x, y).Green < 128);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData(90)]
+    public void AnImageKeepsItsColoursWhenItIsProcessed(int? quality)
+    {
+        byte[] linear = TestImages.LinearGreyPng(8, 8);
+        Assert.InRange(TestImages.CentreInSrgb(linear).Red, 185, 191);
+
+        byte[] processed = SkiaImageProcessor.Instance.Process(new ImageProcessing(linear, 4, 4, quality));
+
+        Assert.InRange(TestImages.CentreInSrgb(processed).Red, 184, 192);
+    }
+
+    [Theory]
+    [InlineData("jpeg-gray.jpg")]
+    [InlineData("jpeg-cmyk-adobe.jpg")]
+    [InlineData("jpeg-icc.jpg")]
+    [InlineData("png-iccp.png")]
+    [InlineData("basn0g16.png")]
+    [InlineData("basn4a16.png")]
+    [InlineData("basn6a16.png")]
+    [InlineData("basn3p08.png")]
+    public void EveryKindOfImageIsProcessedInSrgb(string name)
+    {
+        byte[] processed = SkiaImageProcessor.Instance.Process(new ImageProcessing(File.ReadAllBytes(ImagePath(name)), 8, 8, 80));
+
+        using SKCodec codec = SKCodec.Create(new MemoryStream(processed));
+        Assert.Equal((8, 8), (codec.Info.Width, codec.Info.Height));
+        Assert.True(codec.Info.ColorSpace is null || codec.Info.ColorSpace.IsSrgb, $"{name} came out in another colour space.");
+    }
+
     [Fact]
     public void AProcessorNeedsPixelsToMake()
     {
