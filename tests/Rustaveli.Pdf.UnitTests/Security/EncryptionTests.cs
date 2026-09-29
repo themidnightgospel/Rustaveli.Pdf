@@ -176,6 +176,18 @@ public class EncryptionTests
     }
 
     [Theory]
+    [InlineData("Length", 4096)]
+    [InlineData("Length", 8)]
+    [InlineData("O", 8)]
+    public void AKeyLengthOrOwnerEntryNoPasswordCanBeCheckedWithIsDamage(string entry, int value)
+    {
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = EncryptionLevel.Rc4With128Bits });
+        written.Dictionary[new PdfName(entry)] = entry == "O" ? new PdfString(new byte[value], PdfStringForm.Hex) : value;
+
+        Assert.Throws<InvalidDataException>(() => Reopen(written, "user"));
+    }
+
+    [Theory]
     [InlineData("OE", "owner")]
     [InlineData("UE", "user")]
     public void AKeyWrappedInTheWrongLengthIsDamage(string entry, string password)
