@@ -44,7 +44,7 @@ internal sealed class TableBlock : Block
         /// <summary>Why a header or footer cell cannot be set in the row it is given, or null when every one can.</summary>
         public string? BandUnset { get; set; }
 
-        /// <summary>Why the table cannot be drawn with a cell of each row whole, or null when it can.</summary>
+        /// <summary>Why some cell of the table cannot be set in the row it is given, or null when every one can.</summary>
         public string? Unset => BodyUnset ?? BandUnset;
 
         public float HeaderHeight => HeaderHeights.Sum();
