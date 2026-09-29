@@ -1,25 +1,26 @@
 # About the project
 
-## Background
+## Why this exists
 
-QuestPDF popularised the fluent, composable approach to building PDFs in .NET. As of release **2026.6.0**
-(June 2026) it moved from an MIT grant to a source-available commercial licence that is explicitly not
-OSI-approved, excludes public-sector bodies and publicly traded companies from its free tier regardless of
-revenue, and gates everyone else behind a $1M annual revenue threshold.
+.NET should have a PDF tool that is free and open source: free to use in any software, commercial or not, and open
+to read, change and ship. Rustaveli.Pdf is that tool. It is MIT-licensed, with no revenue limits, licence keys or
+paid tiers, and it is meant to be complete enough that nobody has to reach for anything else — from a one-page
+invoice to a PDF/A archive or an accessible, tagged document.
 
-This project provides the same category of tool under a genuinely permissive licence, with no revenue gate and
-no eligibility classes.
+It is written from scratch, as a design of its own:
 
-It is written from scratch rather than forked. [FossPDF](https://github.com/lol768/FossPDF.NET) already
-continues QuestPDF's MIT-era code and is the shorter path to a free library; this codebase exists to be a fresh
-design, in a vocabulary of its own drawn from print and typesetting ([glossary](GLOSSARY.md)), with the layout
-engine kept strictly behind a drawing-surface seam so the output backend remains a replaceable decision rather than
-a foundational one.
+- **A vocabulary drawn from print and typesetting** — trims, margins, running heads, folios, inks
+  ([glossary](GLOSSARY.md)) — so the API reads like the documents it makes.
+- **Plain .NET at the core.** The PDF writer, fonts, images and text engine are managed code with no native
+  dependencies; native libraries come in only through the optional packages that need them.
+- **Layout kept apart from output.** The layout engine draws through a single surface, so producing a PDF, a page
+  image or anything else is a decision at the edge rather than one built into the core
+  ([how layout works](architecture.md)).
 
 
 ## History
 
-The first release delivers every capability of QuestPDF — including its tooling — in a vocabulary of our own. The
+The first release was built in ten phases, each merged only once it met every quality gate. The
 [parity checklist](parity/PARITY.md) tracks each capability against the phase that delivered it, and the
 [architecture decision records](adr/README.md) explain the choices behind the plan. Every phase below is done.
 
