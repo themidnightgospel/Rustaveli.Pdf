@@ -2,7 +2,10 @@
 # Directory.Build.props already carries, so a release is always a commit that says what it is. Everything is built
 # and tested again on Windows, where both runtimes and every validator run, before anything leaves.
 #
-# Needs the repository secret NUGET_API_KEY: a nuget.org key allowed to push the Rustaveli.Pdf* packages.
+# Publishes by trusted publishing, with no stored key: the job proves to nuget.org who it is with a token GitHub
+# signs, and is given a key that lasts an hour. It needs, on nuget.org, a trusted publishing policy for this
+# repository's owner and name and the workflow file release.yml, allowed to push the Rustaveli.Pdf* packages; and
+# here, the repository secret NUGET_USER: the nuget.org user name (not the email address) that owns the policy.
 
 name: release
 
@@ -23,6 +26,10 @@ jobs:
     name: build, test, pack and publish
     runs-on: windows-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
+      # Lets the job ask GitHub for the signed token nuget.org trades for a key.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -57,11 +64,18 @@ jobs:
           path: artifacts/packages
           retention-days: 90
 
+      # Asked for only now, after the tests: the key it hands back lasts an hour.
+      - name: Sign in to nuget.org
+        id: nuget
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       # The symbol packages go up with them.
       - name: Publish to nuget.org
         shell: bash
         run: >
-          dotnet nuget push "artifacts/packages/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}"
+          dotnet nuget push "artifacts/packages/*.nupkg" --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Create the GitHub release
