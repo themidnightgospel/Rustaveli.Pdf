@@ -1,0 +1,100 @@
+# The checks too costly for every push, run once a pull request is labelled ready-to-merge (and again on any push
+# after that): benchmarks against QuestPDF, and the build and tests on macOS. A pull request merges only when both
+# these and ci.yml are green. They can also be run by hand, on any branch.
+#
+# Mutation testing is not among them: it takes hours, so it runs only at night, on main (nightly-mutation.yml).
+
+name: Pre-merge checks
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: pre-merge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  benchmarks:
+    name: benchmarks vs QuestPDF
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Reported, not yet gated: regression gating against the main baseline starts with the managed writer
+      # (docs/adr/0009-performance-targets.md).
+      - name: File sizes
+        run: |
+          echo "## File size" >> "$GITHUB_STEP_SUMMARY"
+          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release -- --sizes | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Throughput and allocations
+        run: >
+          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release --
+          --filter "*" --job short --exporters github json --artifacts artifacts/benchmarks
+
+      - name: Publish benchmark summary
+        if: always()
+        run: |
+          for report in artifacts/benchmarks/results/*-report-github.md; do
+            [ -f "$report" ] && cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: artifacts/benchmarks/results
+          retention-days: 30
+
+  macos:
+    name: macos · build, test
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # No portable qpdf build exists for macOS; Homebrew's is the upstream release.
+      - name: Install validators (qpdf)
+        run: brew install qpdf
+
+      # veraPDF validates PDF/A and PDF/UA output; it runs on Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Fetch validators (veraPDF)
+        run: dotnet run eng/tools.cs
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build Rustaveli.Pdf.slnx -c Release
+
+      - name: Test
+        run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build

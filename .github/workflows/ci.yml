@@ -1,6 +1,7 @@
 # Tier 1: runs on every push to a pull request and on main. Cheap enough to run constantly; strict enough that
 # nothing reaches main without a clean Release build, both runtimes green and the coverage gate met.
-# The expensive checks (mutation testing, benchmarks, macOS) live in gate.yml and run once a PR is ready to merge.
+# Benchmarks and macOS live in pre-merge.yml and run once a PR is ready to merge; mutation testing runs only at night
+# (nightly-mutation.yml).
 
 name: ci
 
