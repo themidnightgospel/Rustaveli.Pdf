@@ -58,7 +58,12 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
-  - pymdownx.superfences
+  # Mermaid diagrams, drawn by the theme: a ```mermaid block.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
 
@@ -76,7 +81,16 @@ nav:
       - Existing files: guide/existing-files.md
       - Preview and debugging: guide/preview-and-debugging.md
   - How it works:
-      - How layout works: architecture.md
+      - How layout works: how-it-works/layout.md
+      - The text engine: how-it-works/text.md
+      - Fonts: how-it-works/fonts.md
+      - The PDF writer: how-it-works/pdf-writer.md
+      - Images: how-it-works/images.md
+      - Colour: how-it-works/colour.md
+      - Standards: how-it-works/standards.md
+      - Encryption: how-it-works/encryption.md
+      - Existing files: how-it-works/existing-files.md
+      - Page images and preview: how-it-works/rendering-and-preview.md
       - How it's tested: testing.md
       - Performance: performance.md
   - Reference:

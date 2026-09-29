@@ -20,7 +20,7 @@
 Fonts are subset to the glyphs a document uses, TrueType and OpenType CFF alike — a sixteen-megabyte Chinese font
 becomes a few kilobytes — and TrueType fonts lose their hinting unless `KeepFontHinting` asks for it, which often
 halves them. Images are embedded as they were encoded where PDF allows, and identical images and fonts are written
-once however often they appear. Pages are rendered in parallel.
+once however often they appear. A document can be exported from several threads at once.
 
 ## Page images, SVG and XPS
 
@@ -60,7 +60,8 @@ byte[] archived = document.ExportPdf(new PdfExportOptions { Conformance = PdfACo
 ```
 
 Under PDF/A every character must be found in a typeface, and CMYK images without a colour profile need an
-`ImageProcessor` to become RGB. Every level is checked by veraPDF in this library's tests.
+`ImageProcessor` to become RGB. This library's tests check PDF/A-2b, PDF/A-3u, and PDF/A-2a with PDF/UA-1 with
+veraPDF, on every specimen document.
 
 ## Tagged PDF and PDF/UA
 

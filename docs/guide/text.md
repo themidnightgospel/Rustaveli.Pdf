@@ -31,7 +31,7 @@ section.DefaultType = TypeStyle.Default.WithTypeface("Noto Sans").WithPointSize(
 section.Body().DefaultType(type => type.WithInk(Ink.Hex("#37474F"))).Text("Slate grey, in Noto Sans at 10.5 points.");
 ```
 
-`WithLeading` sets line spacing as a multiple of the point size; `WithTracking` adds space between letters.
+`WithLeading` sets line spacing as a multiple of the font's own line height; `WithTracking` adds space between letters.
 
 ## Setting a paragraph
 
@@ -127,8 +127,9 @@ byte[] pdf = document.ExportPdf(new PdfExportOptions { Typefaces = typefaces, Re
 ```
 
 A character a run's typeface lacks is looked for in the typefaces named after it in `WithTypeface("Noto Sans",
-"Noto Sans Symbols")`, then in the library's `Fallbacks`, then in any installed typeface. `RequireEveryGlyph`
-turns a character found nowhere into a `MissingGlyphException` naming it, rather than a blank in the output.
+"Noto Sans Symbols")`, then in the library's `Fallbacks`, then in any registered typeface, then in any installed
+one, and last in the Noto Sans the package carries. `RequireEveryGlyph` turns a character found nowhere into a
+`MissingGlyphException` naming it, rather than a missing-glyph box in the output.
 
 Fonts are embedded subset to the glyphs used, and every run stays searchable and copyable. Typefaces register from
 a file, a stream, bytes or an embedded resource, under their own family names or a name you give; a registered

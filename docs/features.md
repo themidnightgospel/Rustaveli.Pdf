@@ -35,7 +35,7 @@ colour keys, sixteen bits and ICC profiles kept, images shared by content and tu
 orientation; CMYK process colour, spot inks as separations with a process fallback, and opacity; links,
 cross-references to anchors, bookmarks and document information. Exports run in parallel. PDF/A-2 and PDF/A-3 at
 levels B, U and A; tagged PDF and PDF/UA-1, with headings, lists, tables, figures and their alternative text, and
-languages; password protection from RC4 to AES-256 — all checked by veraPDF and qpdf in the tests. Page images —
+languages; password protection from RC4 to AES-256 — checked in the tests by veraPDF and qpdf. Page images —
 PNG, JPEG or WebP at any resolution — SVG pages and XPS come from the `Rustaveli.Pdf.Raster` package, drawn from the
 same layout and glyphs.
 
