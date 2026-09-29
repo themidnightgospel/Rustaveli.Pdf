@@ -73,6 +73,50 @@ public class TypeStyleTests
         Assert.Equal(0f, Base.WithStrokeWeight(0f).StrokeWeight);
     }
 
+    public static TheoryData<string, Func<float, TypeStyle>> Sizes() => new()
+    {
+        { "size", size => Base.WithPointSize(size) },
+        { "weight", weight => Base.WithStrokeWeight(weight) },
+        { "multiplier", multiplier => Base.WithLeading(multiplier) },
+        { "PointSize", size => Base with { PointSize = size } },
+        { "StrokeWeight", weight => Base with { StrokeWeight = weight } },
+        { "Leading", multiplier => Base with { Leading = multiplier } },
+    };
+
+    public static TheoryData<string, Func<float, TypeStyle>> Spacings() => new()
+    {
+        { "spacing", spacing => Base.WithTracking(spacing) },
+        { "spacing", spacing => Base.WithWordSpacing(spacing) },
+        { "Tracking", spacing => Base with { Tracking = spacing } },
+        { "WordSpacing", spacing => Base with { WordSpacing = spacing } },
+    };
+
+    [Theory]
+    [MemberData(nameof(Sizes))]
+    public void SizesAreZeroOrMoreAndNumbersAPdfCanWrite(string parameter, Func<float, TypeStyle> set)
+    {
+        Assert.NotNull(set(0));
+        Assert.NotNull(set(9e14f));
+
+        foreach (float wrong in new[] { -0.1f, float.NaN, float.PositiveInfinity, 2e15f })
+            Assert.Equal(parameter, Assert.Throws<ArgumentOutOfRangeException>(() => set(wrong)).ParamName);
+    }
+
+    [Theory]
+    [MemberData(nameof(Spacings))]
+    public void SpacingsTightenOrLoosenByNumbersAPdfCanWrite(string parameter, Func<float, TypeStyle> set)
+    {
+        Assert.NotNull(set(-3));
+        Assert.NotNull(set(3));
+
+        foreach (float wrong in new[] { float.NaN, float.NegativeInfinity, 2e15f, -2e15f })
+            Assert.Equal(parameter, Assert.Throws<ArgumentOutOfRangeException>(() => set(wrong)).ParamName);
+    }
+
+    [Fact]
+    public void AStrokeWeightCanBeLeftToTheFont() =>
+        Assert.Null((Base.WithStrokeWeight(1) with { StrokeWeight = null }).StrokeWeight);
+
     [Fact]
     public void AStrokeWeightCannotBeNegative()
     {

@@ -33,7 +33,12 @@ public sealed class RunComposer
     public RunComposer Typeface(string fontFamily, params string[] fallbacks) =>
         Refine(style => style.WithTypeface(fontFamily, fallbacks));
 
-    public RunComposer PointSize(float size) => Refine(style => style.WithPointSize(size));
+    // Numbers are checked here, where the caller gives them, not when the run's style is worked out during layout.
+    public RunComposer PointSize(float size)
+    {
+        TypeStyle.Size(size, nameof(size));
+        return Refine(style => style.WithPointSize(size));
+    }
 
     public RunComposer Ink(Ink ink) => Refine(style => style.WithInk(ink));
 
@@ -65,14 +70,30 @@ public sealed class RunComposer
     public RunComposer StrokeInk(string hex) => StrokeInk(Rustaveli.Pdf.Ink.Hex(hex));
 
     /// <summary>The weight of the run's underline, strike-through and overline, in points, in place of the font's own.</summary>
-    public RunComposer StrokeWeight(float weight) => Refine(style => style.WithStrokeWeight(weight));
+    public RunComposer StrokeWeight(float weight)
+    {
+        TypeStyle.Size(weight, nameof(weight));
+        return Refine(style => style.WithStrokeWeight(weight));
+    }
 
-    public RunComposer Leading(float multiplier) => Refine(style => style.WithLeading(multiplier));
+    public RunComposer Leading(float multiplier)
+    {
+        TypeStyle.Size(multiplier, nameof(multiplier));
+        return Refine(style => style.WithLeading(multiplier));
+    }
 
-    public RunComposer Tracking(float spacing) => Refine(style => style.WithTracking(spacing));
+    public RunComposer Tracking(float spacing)
+    {
+        TypeStyle.Spacing(spacing, nameof(spacing));
+        return Refine(style => style.WithTracking(spacing));
+    }
 
     /// <summary>Adds space to each space between words, in points; negative tightens.</summary>
-    public RunComposer WordSpacing(float spacing) => Refine(style => style.WithWordSpacing(spacing));
+    public RunComposer WordSpacing(float spacing)
+    {
+        TypeStyle.Spacing(spacing, nameof(spacing));
+        return Refine(style => style.WithWordSpacing(spacing));
+    }
 
     /// <summary>
     /// Reads the run left to right, set apart from the text around it: an English phrase in a right-to-left paragraph

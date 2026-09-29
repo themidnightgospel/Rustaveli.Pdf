@@ -20,7 +20,18 @@ public sealed record TypeStyle
     /// </summary>
     public string Typeface { get; init; } = "Noto Sans";
 
-    public float PointSize { get; init; } = 12f;
+    private readonly float _pointSize = 12f;
+    private readonly float? _strokeWeight;
+    private readonly float _leading = 1f;
+    private readonly float _tracking;
+    private readonly float _wordSpacing;
+
+    /// <summary>The size text is set at, in points: zero or more.</summary>
+    public float PointSize
+    {
+        get => _pointSize;
+        init => _pointSize = Size(value, nameof(PointSize));
+    }
 
     public TypeWeight Weight { get; init; } = TypeWeight.Normal;
 
@@ -64,16 +75,32 @@ public sealed record TypeStyle
     public Ink? StrokeInk { get; init; }
 
     /// <summary>The weight of underlines, strike-throughs and overlines, in points; the font's own when not set.</summary>
-    public float? StrokeWeight { get; init; }
+    public float? StrokeWeight
+    {
+        get => _strokeWeight;
+        init => _strokeWeight = value is { } weight ? Size(weight, nameof(StrokeWeight)) : null;
+    }
 
-    /// <summary>Multiplier applied to the font's natural line height.</summary>
-    public float Leading { get; init; } = 1f;
+    /// <summary>Multiplier applied to the font's natural line height: zero or more.</summary>
+    public float Leading
+    {
+        get => _leading;
+        init => _leading = Size(value, nameof(Leading));
+    }
 
-    /// <summary>Additional space inserted between characters, in points.</summary>
-    public float Tracking { get; init; }
+    /// <summary>Additional space inserted between characters, in points; negative tightens.</summary>
+    public float Tracking
+    {
+        get => _tracking;
+        init => _tracking = Spacing(value, nameof(Tracking));
+    }
 
     /// <summary>Additional space added to each space between words, in points; negative tightens.</summary>
-    public float WordSpacing { get; init; }
+    public float WordSpacing
+    {
+        get => _wordSpacing;
+        init => _wordSpacing = Spacing(value, nameof(WordSpacing));
+    }
 
     public ScriptPosition Script { get; init; } = ScriptPosition.Normal;
 
@@ -117,6 +144,8 @@ public sealed record TypeStyle
 
     public TypeStyle WithPointSize(float size)
     {
+        Size(size, nameof(size));
+
         return this with
         {
             PointSize = size
@@ -259,7 +288,7 @@ public sealed record TypeStyle
 
     public TypeStyle WithStrokeWeight(float weight)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(weight);
+        Size(weight, nameof(weight));
 
         return this with
         {
@@ -269,6 +298,8 @@ public sealed record TypeStyle
 
     public TypeStyle WithLeading(float multiplier)
     {
+        Size(multiplier, nameof(multiplier));
+
         return this with
         {
             Leading = multiplier
@@ -277,6 +308,8 @@ public sealed record TypeStyle
 
     public TypeStyle WithTracking(float spacing)
     {
+        Spacing(spacing, nameof(spacing));
+
         return this with
         {
             Tracking = spacing
@@ -285,6 +318,8 @@ public sealed record TypeStyle
 
     public TypeStyle WithWordSpacing(float spacing)
     {
+        Spacing(spacing, nameof(spacing));
+
         return this with
         {
             WordSpacing = spacing
@@ -306,4 +341,18 @@ public sealed record TypeStyle
             Script = ScriptPosition.Superscript
         };
     }
+
+    /// <summary><paramref name="value"/>, a size or a multiplier: zero or more, and a number a PDF can write.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">It is negative, NaN, or 10^15 or more.</exception>
+    internal static float Size(float value, string name) =>
+        value >= 0 && Writable.Is(value)
+            ? value
+            : throw new ArgumentOutOfRangeException(name, value, "Must be zero or more, and less than 10^15, the largest number a PDF can write.");
+
+    /// <summary><paramref name="value"/>, a spacing that may tighten as well as loosen: a number a PDF can write.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">It is NaN, or 10^15 or more either way.</exception>
+    internal static float Spacing(float value, string name) =>
+        Writable.Is(value)
+            ? value
+            : throw new ArgumentOutOfRangeException(name, value, "Must be a number less than 10^15 either way, the largest a PDF can write.");
 }

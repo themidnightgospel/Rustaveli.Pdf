@@ -238,7 +238,11 @@ internal sealed class SvgReader
         if (ink is not { } fill)
             return;
 
+        // A negative font size is an error SVG ignores, leaving the default.
         float size = SvgLength.Read(Value(style, "font-size"), 16, 16);
+
+        if (size < 0)
+            size = 16;
         string[] families = (Value(style, "font-family") ?? "sans-serif").Split(',').Select(family => family.Trim(' ', '"', '\'')).Where(family => family.Length > 0).ToArray();
         TypeStyle type = TypeStyle.Default
             .WithTypeface(families.Length > 0 ? families[0] : "sans-serif", families.Skip(1).ToArray())
