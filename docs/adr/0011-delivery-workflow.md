@@ -17,7 +17,7 @@ ends in one pull request. Two pipelines validate it:
 
 A phase merges only when both are green. Phases, in order: groundwork; vocabulary; managed writer; text engine;
 layout and styling parity; images and SVG; output formats and conformance; document operations; preview tool;
-documentation and 1.0.
+documentation and the first release.
 
 ## Consequences
 - `main` is always releasable.
