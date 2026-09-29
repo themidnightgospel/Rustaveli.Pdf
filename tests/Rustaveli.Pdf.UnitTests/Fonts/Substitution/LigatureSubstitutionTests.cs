@@ -145,6 +145,6 @@ public class LigatureSubstitutionTests
         byte[] subtable = Ligature(Cover(F), [(FI, [I])]);
         BigEndian.WriteUInt16(subtable, 4, 5000);
 
-        Assert.Throws<FontFormatException>(() => Apply(OneLookup(4, subtable), [F, I]));
+        Assert.Throws<FontFormatException>(() => ReadSubtable(4, subtable));
     }
 }

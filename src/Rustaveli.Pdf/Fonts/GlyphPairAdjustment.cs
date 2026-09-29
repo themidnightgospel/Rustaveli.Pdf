@@ -26,8 +26,14 @@ internal sealed class GlyphPairAdjustment : PairAdjustment
 
         ReadOnlySpan<byte> span = Table.Span;
         int pairSet = Offset + BigEndian.UInt16(span, Offset + 10 + (index * 2));
+
+        // Pair sets are read as pairs are measured, not when the subtable is: one past the table, or declaring more
+        // records than it holds, kerns only what it holds, rather than failing every run that sets the pair.
+        if (pairSet + 2 > span.Length)
+            return false;
+
         int low = 0;
-        int high = BigEndian.UInt16(span, pairSet) - 1;
+        int high = Math.Min(BigEndian.UInt16(span, pairSet), (span.Length - pairSet - 2) / _recordSize) - 1;
 
         while (low <= high)
         {

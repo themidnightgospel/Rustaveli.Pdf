@@ -159,7 +159,7 @@ internal abstract class ContextSubstitution : SubstitutionSubtable
             }
 
             int edits = session.EditCount;
-            nested.TryApply(session, positions[sequenceIndex], out _);
+            nested.TryApplyAt(session, positions[sequenceIndex], out _);
             session.Leave();
             session.Replay(positions, edits);
         }

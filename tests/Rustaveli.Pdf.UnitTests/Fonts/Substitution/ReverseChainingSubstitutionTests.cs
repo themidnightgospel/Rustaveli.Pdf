@@ -60,6 +60,6 @@ public class ReverseChainingSubstitutionTests
         // Format, coverage offset, backtrack count, lookahead count, then the substitute count.
         BigEndian.WriteUInt16(subtable, 8, 5000);
 
-        Assert.Throws<FontFormatException>(() => Apply(OneLookup(8, subtable), [1]));
+        Assert.Throws<FontFormatException>(() => ReadSubtable(8, subtable));
     }
 }

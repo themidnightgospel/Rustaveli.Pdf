@@ -13,7 +13,7 @@ namespace Rustaveli.Pdf.Fonts;
 internal sealed class FontFaceInfo
 {
     private readonly FontFileSource _source;
-    private readonly Lazy<OpenTypeFont> _font;
+    private Lazy<OpenTypeFont> _font;
     private readonly Lazy<CharacterMap?> _coverage;
 
     public FontFaceInfo(
@@ -38,9 +38,7 @@ internal sealed class FontFaceInfo
         Outlines = outlines;
         IsRegistered = registered;
 
-        // Loading once per face matters: two threads that both pick a large CJK font must not both read it.
-        _font = new Lazy<OpenTypeFont>(
-            () => loaded ?? OpenTypeFont.Load(_source.Data, FaceIndex), LazyThreadSafetyMode.ExecutionAndPublication);
+        _font = LoadOnce(loaded);
         _coverage = new Lazy<CharacterMap?>(ReadCoverage, LazyThreadSafetyMode.PublicationOnly);
 
         if (loaded is not null)
@@ -72,7 +70,7 @@ internal sealed class FontFaceInfo
     public bool IsEmbeddable => Outlines is OutlineFormat.TrueType or OutlineFormat.Cff;
 
     /// <summary>True once the whole font has been loaded, which describing and matching it never requires.</summary>
-    public bool IsLoaded => _font.IsValueCreated;
+    public bool IsLoaded => Volatile.Read(ref _font).IsValueCreated;
 
     /// <summary>Describes a face already loaded, as a registered font is, keeping that very instance.</summary>
     public static FontFaceInfo FromFont(FontFileSource source, OpenTypeFont font, bool registered, string? alias = null) =>
@@ -81,7 +79,23 @@ internal sealed class FontFaceInfo
     /// <summary>The font, loaded on first call and kept.</summary>
     /// <exception cref="FontFormatException">The file is not a font this library can read.</exception>
     /// <exception cref="IOException">The file could not be read.</exception>
-    public OpenTypeFont Load() => _font.Value;
+    public OpenTypeFont Load()
+    {
+        Lazy<OpenTypeFont> font = Volatile.Read(ref _font);
+
+        try
+        {
+            return font.Value;
+        }
+        catch
+        {
+            // The lazy value keeps its exception, and the face would stay broken for as long as the process runs over
+            // what may have been a file locked for a moment: the failed load is replaced by a fresh one, tried the next
+            // time the face is used.
+            Interlocked.CompareExchange(ref _font, LoadOnce(loaded: null), font);
+            throw;
+        }
+    }
 
     /// <summary>
     /// True when the face has a glyph for the code point. A face whose character map cannot be read covers
@@ -89,13 +103,31 @@ internal sealed class FontFaceInfo
     /// </summary>
     public bool Covers(int codepoint)
     {
-        if (_font.IsValueCreated)
-            return _font.Value.HasGlyph(codepoint);
+        Lazy<OpenTypeFont> font = Volatile.Read(ref _font);
 
-        return _coverage.Value?.GetGlyph(codepoint) is > 0;
+        if (font.IsValueCreated)
+            return font.Value.HasGlyph(codepoint);
+
+        try
+        {
+            return _coverage.Value?.GetGlyph(codepoint) is > 0;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // A file that cannot be read now covers nothing now, but is asked again next time: it may only have been
+            // locked for a moment, and the coverage kept would leave the face out of fallback for good.
+            return false;
+        }
     }
 
     public override string ToString() => $"{Names.FullName} ({FilePath ?? "registered"}#{FaceIndex})";
+
+    /// <summary>
+    /// Loading once per face matters: two threads that both pick a large CJK font must not both read it.
+    /// </summary>
+    private Lazy<OpenTypeFont> LoadOnce(OpenTypeFont? loaded) =>
+        new Lazy<OpenTypeFont>(
+            () => loaded ?? OpenTypeFont.Load(_source.Data, FaceIndex), LazyThreadSafetyMode.ExecutionAndPublication);
 
     private CharacterMap? ReadCoverage()
     {
@@ -107,9 +139,9 @@ internal sealed class FontFaceInfo
                 ? Load().CharacterMap
                 : FontFileScanner.ReadCharacterMap(_source.Path!, FaceIndex);
         }
-        catch (Exception exception) when (
-            exception is FontFormatException or IOException or UnauthorizedAccessException)
+        catch (FontFormatException)
         {
+            // Kept: the same bytes will not read any better next time.
             return null;
         }
     }

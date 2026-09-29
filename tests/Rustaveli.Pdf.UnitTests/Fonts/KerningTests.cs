@@ -325,6 +325,49 @@ public class KerningTests
     }
 
     [Fact]
+    public void LeavesOutAKernTableThatCannotBeReadAsShapersDo()
+    {
+        byte[] kern = SyntheticTables.KernWindows((0x0001, [(1, 2, -33)]));
+
+        OpenTypeFont font = SyntheticFont.Minimal().With("kern", kern.AsSpan(0, 7).ToArray()).Load();
+
+        Assert.Null(font.Kerning);
+        Assert.Equal(0, font.GetKerning(1, 2));
+        Assert.Equal(1.3f, font.MeasureWidth("AB", 1f), 3);
+    }
+
+    [Fact]
+    public void FallsBackToTheKernTableWhenGposCannotBeRead()
+    {
+        byte[] subtable = Pairs(SyntheticLayout.CoverageFormat1(1), [(2, [-40], [])]);
+        BigEndian.WriteUInt16(subtable, 0, 3);
+
+        OpenTypeFont font = SyntheticFont.Minimal()
+            .With("GPOS", SyntheticLayout.KernGpos((2, [subtable])))
+            .With("kern", SyntheticTables.KernWindows((0x0001, [(1, 2, -33)])))
+            .Load();
+
+        Assert.IsType<LegacyKerningTable>(font.Kerning);
+        Assert.Equal(-33, font.GetKerning(1, 2));
+    }
+
+    [Fact]
+    public void LeavesAPairWhosePairSetIsPastTheTableUnkerned()
+    {
+        // The first glyph's pair set is past the end of the table; the second's is intact.
+        byte[] subtable = Pairs(SyntheticLayout.CoverageFormat1(1, 2), [(2, [-40], [])], [(1, [12], [])]);
+        BigEndian.WriteUInt16(subtable, 10, 0xFFF0);
+
+        OpenTypeFont font = SyntheticFont.Minimal()
+            .With("GPOS", SyntheticLayout.KernGpos((2, [subtable])))
+            .Load();
+
+        Assert.Equal(0, font.GetKerning(1, 2));
+        Assert.Equal(12, font.GetKerning(2, 1));
+        Assert.Equal(1.3f, font.MeasureWidth("AB", 1f), 3);
+    }
+
+    [Fact]
     public void HasNoKerningWhenNeitherTableKerns()
     {
         OpenTypeFont font = SyntheticFont.Minimal()
@@ -415,6 +458,19 @@ public class KerningTests
         gpos.U16(4).U16(0).U16(0).U16(0xFFFF).U16(0xFFFF).Zeros(2 * 0xFFFF);
 
         Assert.Throws<FontFormatException>(() => new GlyphPositioningKerning(gpos.ToArray()));
+    }
+
+    [Fact]
+    public void KernsWhatAPairSetHoldsWhenItDeclaresMore()
+    {
+        byte[] subtable = Pairs(SyntheticLayout.CoverageFormat1(1), [(2, [-40], []), (4, [-15], [])]);
+        BigEndian.WriteUInt16(subtable, BigEndian.UInt16(subtable, 10), 5000);
+
+        GlyphPositioningKerning kern = Gpos((2, [subtable]));
+
+        Assert.Equal(-40, kern.GetAdjustment(1, 2));
+        Assert.Equal(-15, kern.GetAdjustment(1, 4));
+        Assert.Equal(0, kern.GetAdjustment(1, 9));
     }
 
     [Fact]

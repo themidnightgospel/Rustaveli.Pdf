@@ -33,6 +33,7 @@ internal sealed class CharacterMap
         _glyphCount = glyphCount;
 
         int bestRank = Unusable;
+        FontFormatException? unreadable = null;
 
         for (int index = 0; index < count; index++)
         {
@@ -45,10 +46,22 @@ internal sealed class CharacterMap
             if (rank >= bestRank)
                 continue;
 
-            if (offset >= (uint)table.Length)
-                throw FontFormatException.Truncated();
+            CharacterMapSubtable? subtable;
 
-            CharacterMapSubtable? subtable = CharacterMapSubtable.Read(table, (int)offset);
+            // A subtable that cannot be read is passed over for the next best, as FreeType passes over one that
+            // fails its checks; only when none can be read is the font's character map reported as malformed.
+            try
+            {
+                if (offset >= (uint)table.Length)
+                    throw FontFormatException.Truncated();
+
+                subtable = CharacterMapSubtable.Read(table, (int)offset);
+            }
+            catch (FontFormatException exception)
+            {
+                unreadable = exception;
+                continue;
+            }
 
             if (subtable is null)
                 continue;
@@ -62,6 +75,9 @@ internal sealed class CharacterMap
                 _ => CharacterEncoding.Unicode
             };
         }
+
+        if (_subtable is null && unreadable is not null)
+            throw unreadable;
 
         for (int codepoint = 0; codepoint < _latin.Length; codepoint++)
             _latin[codepoint] = LookupUncached(codepoint);

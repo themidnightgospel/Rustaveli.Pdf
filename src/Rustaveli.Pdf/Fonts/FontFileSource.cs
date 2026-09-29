@@ -6,15 +6,12 @@ namespace Rustaveli.Pdf.Fonts;
 /// </summary>
 internal sealed class FontFileSource
 {
-    private readonly Lazy<ReadOnlyMemory<byte>> _data;
+    private Lazy<ReadOnlyMemory<byte>> _data;
 
     public FontFileSource(string path)
     {
         Path = path;
-
-        // One read however many threads ask at once: the file may be large, and the result is kept for good.
-        _data = new Lazy<ReadOnlyMemory<byte>>(
-            () => File.ReadAllBytes(path), LazyThreadSafetyMode.ExecutionAndPublication);
+        _data = ReadOnce(path);
     }
 
     public FontFileSource(ReadOnlyMemory<byte> data)
@@ -26,7 +23,32 @@ internal sealed class FontFileSource
     /// <summary>The file the font was found in; null for a font registered from memory or a stream.</summary>
     public string? Path { get; }
 
-    public ReadOnlyMemory<byte> Data => _data.Value;
+    /// <summary>The file's bytes, read on first call and kept.</summary>
+    /// <exception cref="IOException">The file could not be read.</exception>
+    public ReadOnlyMemory<byte> Data
+    {
+        get
+        {
+            Lazy<ReadOnlyMemory<byte>> data = Volatile.Read(ref _data);
 
-    public bool IsLoaded => _data.IsValueCreated;
+            try
+            {
+                return data.Value;
+            }
+            catch
+            {
+                // The lazy value keeps its exception, and a file locked by another program for a moment would then
+                // lose every face in it for as long as the process runs: the failed read is replaced by a fresh one,
+                // tried the next time the bytes are asked for.
+                Interlocked.CompareExchange(ref _data, ReadOnce(Path!), data);
+                throw;
+            }
+        }
+    }
+
+    public bool IsLoaded => Volatile.Read(ref _data).IsValueCreated;
+
+    /// <summary>One read however many threads ask at once: the file may be large, and the result is kept for good.</summary>
+    private static Lazy<ReadOnlyMemory<byte>> ReadOnce(string path) =>
+        new Lazy<ReadOnlyMemory<byte>>(() => File.ReadAllBytes(path), LazyThreadSafetyMode.ExecutionAndPublication);
 }

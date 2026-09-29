@@ -149,8 +149,10 @@ internal sealed class CharStringFlattener
 
                     int second = _cff[position++];
 
-                    // Only the flex operators, 34 to 37, draw; the rest compute and store values on the stack.
-                    if (second is < 34 or > 37)
+                    // Only the flex operators, 34 to 37, draw, and dotsection, 0, deprecated, does nothing at all: it
+                    // is kept as it is, being common in fonts converted from Type 1, where refusing it would embed the
+                    // whole font. The rest compute and store values on the stack.
+                    if (second is not (0 or (>= 34 and <= 37)))
                         throw new NotSupportedException($"Charstring operator 12 {second} is not subset.");
 
                     WriteOperator(Escape, second);

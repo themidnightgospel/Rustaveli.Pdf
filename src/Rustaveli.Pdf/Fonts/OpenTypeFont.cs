@@ -402,23 +402,17 @@ internal sealed class OpenTypeFont
         ? new GlyphTable(Table(TableTag.Glyf), Table(TableTag.Loca), GlyphCount, Head.IndexToLocFormat)
         : null;
 
+    /// <summary>
+    /// Kerning refines how text is set, so either table read wrongly is left out like any other refinement: a GPOS
+    /// table that cannot be read gives way to the <c>kern</c> table, as it would were it absent.
+    /// </summary>
     private KerningSource? ReadKerning()
     {
-        if (TryGetTable(TableTag.Gpos, out ReadOnlyMemory<byte> gpos))
-        {
-            GlyphPositioningKerning positioning = new GlyphPositioningKerning(gpos);
+        if (Refinement(TableTag.Gpos, static data => new GlyphPositioningKerning(data)) is { HasPairs: true } positioning)
+            return positioning;
 
-            if (positioning.HasPairs)
-                return positioning;
-        }
-
-        if (TryGetTable(TableTag.Kern, out ReadOnlyMemory<byte> kern))
-        {
-            LegacyKerningTable legacy = new LegacyKerningTable(kern);
-
-            if (legacy.HasPairs)
-                return legacy;
-        }
+        if (Refinement(TableTag.Kern, static data => new LegacyKerningTable(data)) is { HasPairs: true } legacy)
+            return legacy;
 
         return null;
     }

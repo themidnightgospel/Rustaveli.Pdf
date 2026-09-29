@@ -135,6 +135,15 @@ public class CharStringFlattenerTests
     }
 
     [Fact]
+    public void TheDeprecatedDotsectionIsKept()
+    {
+        // Left in fonts converted from Type 1: readers ignore it, and refusing it would embed the whole font.
+        byte[] glyph = [N(10), N(20), RLineTo, 12, 0, N(5), N(5), RLineTo, 12, 0, EndChar];
+
+        Assert.Equal(glyph, Flatten(glyph));
+    }
+
+    [Fact]
     public void AWidthBeforeEndcharIsKept()
     {
         byte[] glyph = [N(40), EndChar];

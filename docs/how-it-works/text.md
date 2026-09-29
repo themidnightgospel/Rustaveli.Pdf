@@ -99,6 +99,7 @@ These features are on for every face, as a shaper turns them on for scripts with
 | `calt` | Contextual alternates |
 | `clig` | Contextual ligatures |
 | `liga` | Standard ligatures |
+| `rclt` | Required contextual alternates |
 
 A style can turn features on or off beyond these: `Ligatures(false)` turns off `liga` and `clig`, `SmallCapitals()`,
 `OldstyleFigures()` and `TabularFigures()` turn on `smcp`, `onum` and `tnum`, and `WithFeature(tag, value)` sets any

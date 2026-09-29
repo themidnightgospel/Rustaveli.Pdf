@@ -73,6 +73,6 @@ public class SingleSubstitutionTests
         byte[] subtable = SingleFormat2(Cover(2), 20);
         BigEndian.WriteUInt16(subtable, 4, 5000);
 
-        Assert.Throws<FontFormatException>(() => Apply(OneLookup(1, subtable), [2]));
+        Assert.Throws<FontFormatException>(() => ReadSubtable(1, subtable));
     }
 }

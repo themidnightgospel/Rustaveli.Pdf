@@ -156,6 +156,6 @@ public class ChainedContextSubstitutionTests
         byte[] subtable = ChainFormat2(Cover(2), null, null, null, [ChainRule([], [], [], (0, 1))]);
         BigEndian.WriteUInt16(subtable, 10, 5000);
 
-        Assert.Throws<FontFormatException>(() => Apply(Table(subtable), [2]));
+        Assert.Throws<FontFormatException>(() => ReadSubtable(6, subtable));
     }
 }

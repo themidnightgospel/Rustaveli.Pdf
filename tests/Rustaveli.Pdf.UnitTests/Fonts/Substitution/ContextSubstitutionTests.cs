@@ -149,6 +149,23 @@ public class ContextSubstitutionTests
     }
 
     [Fact]
+    public void AppliesANestedLookupAtItsGlyphWhateverTheNestedLookupsFlagsSayOfIt()
+    {
+        // The rule matches the base 1 and the mark 4, and calls lookup 1 — which passes over marks — at the mark.
+        // HarfBuzz applies a nested lookup where the rule says: its flags decide what it matches past, as the
+        // outermost lookup's decide which glyphs it starts at, but not whether it applies at the glyph it is given.
+        byte[] gsub = SyntheticSubstitution.Gsub(
+        [
+            Lookup(5, ContextFormat1(Cover(1), [Rule([4], (1, 1))])),
+            Lookup(1, 0x0008, 0, SingleFormat1(SyntheticLayout.CoverageFormat2((1, 99, 0)), 100))
+        ]);
+
+        GlyphBuffer buffer = Apply(gsub, [1, 4], SyntheticLayout.Gdef(SyntheticLayout.ClassFormat1(1, 1, 1, 1, 3)));
+
+        Assert.Equal(new[] { 1, 104 }, Glyphs(buffer));
+    }
+
+    [Fact]
     public void LeavesOutOfTheSequenceAGlyphItPassedOverThatALigatureRemoved()
     {
         // The context passes over the mark 4; the nested ligature, which does not, takes it as a component.
@@ -277,7 +294,7 @@ public class ContextSubstitutionTests
 
         BigEndian.WriteUInt16(subtable, format == 1 ? 4 : 6, 5000);
 
-        Assert.Throws<FontFormatException>(() => Apply(Table(subtable), [1]));
+        Assert.Throws<FontFormatException>(() => ReadSubtable(5, subtable));
     }
 
     [Fact]
