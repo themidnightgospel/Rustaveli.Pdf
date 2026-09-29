@@ -73,7 +73,7 @@ internal sealed class BandsBlock : Block
 
         ISurface surface = context.Surface;
 
-        Head.Render(new Extent(availableSpace.Width, beforeSize.Height), context);
+        context.RenderAllotted(Head, new Extent(availableSpace.Width, beforeSize.Height), availableSpace.Height);
 
         surface.Translate(new Offset(0, beforeSize.Height));
         Body.Render(new Extent(availableSpace.Width, contentHeight), context);
@@ -81,7 +81,7 @@ internal sealed class BandsBlock : Block
 
         float afterTop = beforeSize.Height + contentPlan.Size.Height;
         surface.Translate(new Offset(0, afterTop));
-        Foot.Render(new Extent(availableSpace.Width, afterSize.Height), context);
+        context.RenderAllotted(Foot, new Extent(availableSpace.Width, afterSize.Height), availableSpace.Height - beforeSize.Height);
         surface.Translate(new Offset(0, -afterTop));
 
         // The bands repeat on every page, but their content tracks how much of itself it has drawn and would

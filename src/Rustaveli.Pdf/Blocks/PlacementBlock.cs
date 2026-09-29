@@ -40,7 +40,7 @@ internal sealed class PlacementBlock : EnclosingBlock
         // instead, content that positions itself — right-aligned or right-to-left text — would be offset a second
         // time, off the far edge. Text re-wrapped at its own measured width reproduces the same lines: every line
         // already fits, and none can take a word more than it did in the wider box.
-        Child.Render(childPlan.Size, context);
+        context.RenderAllotted(Child, childPlan.Size, availableSpace.Height);
 
         context.Surface.Translate(offset.Reverse());
     }

@@ -298,7 +298,7 @@ internal sealed class TableBlock : Block
             Offset offset = new Offset(layout.ColumnLeft(cell, cellSpace.Width), cellTop);
 
             context.Surface.Translate(offset);
-            cell.Render(cellSpace, context);
+            context.RenderAllotted(cell, cellSpace, Extent.Max.Height);
             context.Surface.Translate(offset.Reverse());
         }
     }

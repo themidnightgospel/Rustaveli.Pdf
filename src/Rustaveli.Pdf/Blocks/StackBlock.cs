@@ -30,7 +30,7 @@ internal sealed class StackBlock : Block
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        LayoutResult result = Layout(availableSpace, context, static (_, _, _) => { });
+        LayoutResult result = Layout(availableSpace, context, static (_, _, _, _) => { });
 
         return result.ToSpacePlan();
     }
@@ -40,12 +40,12 @@ internal sealed class StackBlock : Block
         ISurface surface = context.Surface;
         float offset = 0f;
 
-        LayoutResult result = Layout(availableSpace, context.Planning, (item, itemSpace, top) =>
+        LayoutResult result = Layout(availableSpace, context.Planning, (item, itemSpace, measuredHeight, top) =>
         {
             Offset delta = new Offset(0, top - offset);
             surface.Translate(delta);
             offset = top;
-            item.Render(itemSpace, context);
+            context.RenderAllotted(item, itemSpace, measuredHeight);
         });
 
         surface.Translate(new Offset(0, -offset));
@@ -57,9 +57,10 @@ internal sealed class StackBlock : Block
 
     /// <summary>
     /// Walks the remaining items, accumulating height and invoking <paramref name="onItem"/> for each one that
-    /// fits. Measuring and drawing share this so the two passes can never disagree about what fits.
+    /// fits, with the box it is drawn in, the height of the room it was measured in, and where its top is. Measuring and
+    /// drawing share this so the two passes can never disagree about what fits.
     /// </summary>
-    private LayoutResult Layout(Extent availableSpace, PlanContext context, Action<Block, Extent, float> onItem)
+    private LayoutResult Layout(Extent availableSpace, PlanContext context, Action<Block, Extent, float, float> onItem)
     {
         if (_completedItems >= Items.Count)
             return LayoutResult.Exhausted();
@@ -124,7 +125,7 @@ internal sealed class StackBlock : Block
                 totalHeight += spacing;
 
             // The item's final size: the column's full width, and the height it measured (ADR 0012).
-            onItem(Items[index], new Extent(availableSpace.Width, plan.Size.Height), totalHeight);
+            onItem(Items[index], new Extent(availableSpace.Width, plan.Size.Height), itemSpace.Height, totalHeight);
 
             totalHeight += plan.Size.Height;
             maxWidth = Math.Max(maxWidth, plan.Size.Width);

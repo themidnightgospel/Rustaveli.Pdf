@@ -36,6 +36,7 @@ internal sealed class UnboundedBlock : EnclosingBlock
         if (childPlan.IsDeferred || childPlan.IsNothing)
             return;
 
-        Child?.Render(childPlan.Size, context);
+        if (Child is not null)
+            context.RenderAllotted(Child, childPlan.Size, Extent.Max.Height);
     }
 }

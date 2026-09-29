@@ -23,4 +23,27 @@ internal sealed class RenderContext(ISurface surface, PlanContext layout, Struct
 
     /// <summary>The structure being drawn inside, when the output is tagged.</summary>
     public TagStack Tags { get; } = new TagStack(surface, structure);
+
+    /// <summary>
+    /// Draws <paramref name="child"/> in <paramref name="allotted"/> after measuring it in room
+    /// <paramref name="measuredHeight"/> tall, keeping the difference in <see cref="PlanContext.RoomBelow"/>.
+    /// </summary>
+    public void RenderAllotted(Block child, Extent allotted, float measuredHeight) =>
+        RenderWithRoomBelow(child, allotted, Planning.RoomBelow + Math.Max(0f, measuredHeight - allotted.Height));
+
+    /// <summary>Draws <paramref name="child"/> in <paramref name="space"/> with <paramref name="roomBelow"/> in force.</summary>
+    public void RenderWithRoomBelow(Block child, Extent space, float roomBelow)
+    {
+        float outer = Planning.RoomBelow;
+        Planning.RoomBelow = roomBelow;
+
+        try
+        {
+            child.Render(space, this);
+        }
+        finally
+        {
+            Planning.RoomBelow = outer;
+        }
+    }
 }

@@ -139,7 +139,7 @@ internal sealed class ColumnsBlock : Block
                         : availableSpace.Width - offset - widths[index];
 
                     context.Surface.Translate(new Offset(position, 0f));
-                    Items[index].Render(new Extent(widths[index], rowHeight), context);
+                    context.RenderAllotted(Items[index], new Extent(widths[index], rowHeight), availableSpace.Height);
                     context.Surface.Translate(new Offset(-position, 0f));
                 }
 

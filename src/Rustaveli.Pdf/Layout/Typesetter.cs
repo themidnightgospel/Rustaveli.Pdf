@@ -208,7 +208,7 @@ internal static class Typesetter
 
         try
         {
-            DrawPage(section, pages, context, pageSize, contentSpace, bands);
+            DrawPage(section, pages, context, pageSize, contentSpace, bands, availableHeight);
         }
         catch (Exception exception) when (exception is not OversetException and not RenderingException)
         {
@@ -228,7 +228,8 @@ internal static class Typesetter
         RenderContext context,
         Extent pageSize,
         Extent contentSpace,
-        Bands bands)
+        Bands bands,
+        float measuredHeight)
     {
         ISurface surface = context.Surface;
         Sides margin = section.Margins;
@@ -261,11 +262,13 @@ internal static class Typesetter
         if (section.RunningHeadSlot.Child is not null)
         {
             using (context.Tags.Untag())
-                section.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeadHeight), context);
+                context.RenderAllotted(section.RunningHeadSlot, new Extent(contentSpace.Width, bands.HeadHeight), measuredHeight);
         }
 
+        // Each part was measured in the room left by those above it, on the tallest page allowed; a page sized to its
+        // content is drawn shorter than that.
         surface.Translate(new Offset(0, bands.HeadHeight));
-        section.BodySlot.Render(contentSpace, context);
+        context.RenderAllotted(section.BodySlot, contentSpace, measuredHeight - bands.HeadHeight - bands.FootHeight);
         surface.Translate(new Offset(0, -bands.HeadHeight));
 
         if (section.RunningFootSlot.Child is not null)
@@ -275,7 +278,7 @@ internal static class Typesetter
             surface.Translate(new Offset(0, footTop));
 
             using (context.Tags.Untag())
-                section.RunningFootSlot.Render(new Extent(contentSpace.Width, bands.FootHeight), context);
+                context.RenderAllotted(section.RunningFootSlot, new Extent(contentSpace.Width, bands.FootHeight), measuredHeight - bands.HeadHeight);
 
             surface.Translate(new Offset(0, -footTop));
         }
