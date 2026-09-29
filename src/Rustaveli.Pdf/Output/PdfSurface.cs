@@ -623,6 +623,10 @@ internal sealed class PdfSurface : IPageSink
         PdfName name = Page.Resources.GetXObjectName(_images.Reference(raster));
         Transform placement = Placement(raster.Orientation, size.Width, size.Height);
 
+        // An image is painted with the fill's constant alpha, so one drawn after a translucent fill in the same state
+        // would take on that fill's opacity. Images are always opaque, as the raster surface draws them.
+        SetOpacity(1, _state.StrokeAlpha);
+
         ContentStreamBuilder content = Content;
         content.SaveState();
         content.Transform(placement.A, placement.B, placement.C, placement.D, placement.E, placement.F);
