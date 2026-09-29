@@ -37,8 +37,10 @@ internal sealed class TypeShaper
     private readonly FontCatalog _catalog;
     private readonly IReadOnlyList<string> _fallbackTypefaces;
     private readonly ConcurrentDictionary<FontRequest, OpenTypeFont> _faces = new(FontCatalog.FamilyIgnoringCase.Instance);
-    private readonly ConcurrentDictionary<(OpenTypeFont Primary, TypefaceFallbacks Fallbacks, int Codepoint), OpenTypeFont> _fallbacks = new();
-    private readonly ConcurrentDictionary<(OpenTypeFont Primary, TypefaceFallbacks Fallbacks), OpenTypeFont[]> _discovered = new();
+    // Fallbacks are searched for in the weight and slant asked for, so those are part of what is remembered: one face
+    // can be the primary of several weights, and each weight wants its own fallback.
+    private readonly ConcurrentDictionary<(OpenTypeFont Primary, FaceStyle Style, TypefaceFallbacks Fallbacks, int Codepoint), OpenTypeFont> _fallbacks = new();
+    private readonly ConcurrentDictionary<(OpenTypeFont Primary, FaceStyle Style, TypefaceFallbacks Fallbacks), OpenTypeFont[]> _discovered = new();
     private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups = new();
 
     [ThreadStatic]
@@ -207,7 +209,7 @@ internal sealed class TypeShaper
         if (primary.HasGlyph(codepoint))
             return primary;
 
-        (OpenTypeFont, TypefaceFallbacks, int) key = (primary, fallbacks, codepoint);
+        (OpenTypeFont, FaceStyle, TypefaceFallbacks, int) key = (primary, request.Style, fallbacks, codepoint);
 
         if (_fallbacks.TryGetValue(key, out OpenTypeFont? known))
             return known;
@@ -269,7 +271,7 @@ internal sealed class TypeShaper
 
     private OpenTypeFont FindFallback(OpenTypeFont primary, FontRequest request, TypefaceFallbacks fallbacks, int codepoint)
     {
-        OpenTypeFont[] known = _discovered.GetOrAdd((primary, fallbacks), static _ => []);
+        OpenTypeFont[] known = _discovered.GetOrAdd((primary, request.Style, fallbacks), static _ => []);
 
         foreach (OpenTypeFont candidate in known)
         {
@@ -289,9 +291,9 @@ internal sealed class TypeShaper
         // Rare and cheap next to the search above, so a lock is simpler than a lock-free swap.
         lock (_discovered)
         {
-            OpenTypeFont[] faces = _discovered.GetOrAdd((primary, fallbacks), static _ => []);
+            OpenTypeFont[] faces = _discovered.GetOrAdd((primary, request.Style, fallbacks), static _ => []);
             if (!faces.Contains(found))
-                _discovered[(primary, fallbacks)] = [.. faces, found];
+                _discovered[(primary, request.Style, fallbacks)] = [.. faces, found];
         }
 
         return found;

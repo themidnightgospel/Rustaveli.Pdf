@@ -200,6 +200,29 @@ public class FontFallbackTests
     }
 
     [Fact]
+    public void AFallbackIsFoundInTheWeightAndSlantAskedFor()
+    {
+        // Noto Sans Georgian's one face sets every weight and slant, and has no Latin letters. Whichever weight asks
+        // for A first, each gets the Noto Sans face of its own weight and slant.
+        TypefaceLibrary library = CommittedLibrary();
+        TypeStyle georgian = TypeStyle.Default.WithTypeface("Noto Sans Georgian", TestFonts.Sans);
+        TypeStyle sans = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+
+        Assert.Same(library.Shaper.Resolve(georgian), library.Shaper.Resolve(georgian.Bold()));
+        Assert.Same(library.Shaper.Resolve(sans), FaceOf(library, "A", georgian));
+        Assert.Same(library.Shaper.Resolve(sans.Bold()), FaceOf(library, "A", georgian.Bold()));
+        Assert.Same(library.Shaper.Resolve(sans.Italic()), FaceOf(library, "A", georgian.Italic()));
+    }
+
+    private static OpenTypeFont FaceOf(TypefaceLibrary library, string text, TypeStyle style)
+    {
+        foreach (ShapedGlyph glyph in library.Shaper.Walk(text.AsSpan(), style))
+            return glyph.Face;
+
+        throw new InvalidOperationException("Nothing was set.");
+    }
+
+    [Fact]
     public void ARunNamesItsFallbacksWithItsTypeface()
     {
         TypefaceLibrary library = CommittedLibrary();
