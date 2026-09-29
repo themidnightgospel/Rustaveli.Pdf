@@ -112,21 +112,14 @@ invoice.ExportPdf("invoice.pdf");
 - **Small files** — fonts subset to the glyphs used and images embedded as encoded: from 4% to 55% of QuestPDF's
   file size on the benchmark documents ([performance](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/performance.md)).
 
-## Learn more
+## Documentation
 
-- [Documentation](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/README.md), starting with
+- [The documentation](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/README.md), starting with
   [getting started](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/guide/getting-started.md)
 - [Coming from QuestPDF](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/guide/coming-from-questpdf.md)
 - [Features](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/features.md) and
   [known limitations](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/limitations.md)
 - [Changelog](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CHANGELOG.md)
-
-## Contributing
-
-Issues and pull requests are welcome; the
-[contributing guide](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CONTRIBUTING.md) covers building and
-testing. Report security issues privately, as the
-[security policy](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/SECURITY.md) describes.
 
 ## Licence
 
