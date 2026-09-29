@@ -206,6 +206,15 @@ internal static class CffSubsetter
         List<byte[]> outlines,
         byte[] selection)
     {
+        // A reader concatenates the top dict's font matrix with a font dict's. So where font dicts carry matrices of
+        // their own, those already scale the glyphs, and a top matrix scaling by the units per em as well would draw
+        // them that many times too small: the font dicts without one are given it instead, and the top dict none.
+        bool unscaled = unitsPerEm != 1000 && Find(topEntries, FontMatrix) is null;
+        bool fontDictsScale = fonts.Any(font => font.Dict.Length > 0);
+
+        if (unscaled && fontDictsScale)
+            fonts = fonts.Select(font => font.Dict.Length > 0 ? font : font with { Dict = UnitsPerEmMatrix(unitsPerEm) }).ToList();
+
         // The top dict's size does not depend on the offsets it holds, each written in five bytes, so it is laid out
         // once with zeros to be measured, then again with the offsets found.
         byte[] Top(int charset, int fdSelect, int charStrings, int fdArray)
@@ -219,17 +228,8 @@ internal static class CffSubsetter
             foreach (CffDictEntry entry in topEntries.Where(entry => entry.Operator is FontBBox or FontMatrix))
                 dict.Bytes(top.AsSpan(entry.Start, entry.Length));
 
-            if (unitsPerEm != 1000 && Find(topEntries, FontMatrix) is null)
-            {
-                double scale = 1d / unitsPerEm;
-                Real(dict, scale);
-                Integer(dict, 0);
-                Integer(dict, 0);
-                Real(dict, scale);
-                Integer(dict, 0);
-                Integer(dict, 0);
-                Operator(dict, FontMatrix);
-            }
+            if (unscaled && !fontDictsScale)
+                dict.Bytes(UnitsPerEmMatrix(unitsPerEm));
 
             Integer(dict, kept.Max(glyph => glyph.Cid) + 1);
             Operator(dict, CidCount);
@@ -284,6 +284,21 @@ internal static class CffSubsetter
             file.Bytes(font.Private);
 
         return file.ToArray();
+    }
+
+    /// <summary>A FontMatrix entry scaling by one over <paramref name="unitsPerEm"/>.</summary>
+    private static byte[] UnitsPerEmMatrix(int unitsPerEm)
+    {
+        FontDataWriter dict = new FontDataWriter();
+        double scale = 1d / unitsPerEm;
+        Real(dict, scale);
+        Integer(dict, 0);
+        Integer(dict, 0);
+        Real(dict, scale);
+        Integer(dict, 0);
+        Integer(dict, 0);
+        Operator(dict, FontMatrix);
+        return dict.ToArray();
     }
 
     /// <summary>A format 0 charset: the CID of every glyph but .notdef, in glyph order.</summary>

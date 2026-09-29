@@ -113,6 +113,33 @@ public class CffSubsetterTests
     }
 
     [Fact]
+    public void AFontWhoseFontDictsScaleItIsNotScaledAgainByTheTopDict()
+    {
+        // A reader concatenates the top dict's matrix with a font dict's, so a top matrix scaling by 1/2048 over a
+        // font dict already scaling by 1/2048 would draw every glyph 2048 times too small. The font dict that has no
+        // matrix of its own is given the one that scales by the units per em instead.
+        double scale = 1d / 2048;
+        byte[] source = CidKeyedCff([scale, 0, 0, scale, 0, 0], null);
+
+        byte[] subset = CffSubsetter.TrySubset(source, 2048, [(1, 1), (2, 2)])!;
+
+        Assert.DoesNotContain(TopDict(subset), entry => entry.Operator == FontMatrix);
+        Assert.All(
+            FontDicts(subset),
+            dict => Assert.Equal([scale, 0, 0, scale, 0, 0], dict.Single(entry => entry.Operator == FontMatrix).Operands));
+    }
+
+    [Fact]
+    public void ACidKeyedFontWhoseFontDictsHaveNoMatrixIsScaledByTheTopDict()
+    {
+        byte[] subset = CffSubsetter.TrySubset(CffOf(Cjk), 2048, Shown(Cjk, "中あA"))!;
+
+        double scale = 1d / 2048;
+        Assert.Equal([scale, 0, 0, scale, 0, 0], TopDict(subset).Single(entry => entry.Operator == FontMatrix).Operands);
+        Assert.DoesNotContain(FontDictOperators(subset), op => op == FontMatrix);
+    }
+
+    [Fact]
     public void AGlyphShownTwiceIsKeptOnceAndNotdefIsAlwaysFirst()
     {
         OpenTypeFont font = Subrs;
@@ -144,6 +171,106 @@ public class CffSubsetterTests
         CffIndex tops = CffIndex.Read(cff, names.End);
         (int start, int length) = tops.GetItem(cff, 0);
         return CffDict.Read(cff.AsSpan(start, length));
+    }
+
+    /// <summary>
+    /// A CID-keyed CFF of three empty glyphs with no top dict font matrix and one font dict per matrix given — null
+    /// for one without — glyph <c>n</c> using font dict <c>n</c> modulo their number. Private dicts are empty.
+    /// </summary>
+    private static byte[] CidKeyedCff(params double[]?[] matrices)
+    {
+        const int GlyphCount = 3;
+        byte[] name = [(byte)'C', (byte)'i', (byte)'d'];
+
+        // Every offset is written in five bytes, so the top dict's size does not depend on the values in it.
+        byte[] Top(int fdSelect, int charStrings, int fdArray) => new FontBytes()
+            .U8(139).U8(139).U8(139).U8(12).U8(30)
+            .U8(29).U32(fdSelect).U8(12).U8(37)
+            .U8(29).U32(charStrings).U8(17)
+            .U8(29).U32(fdArray).U8(12).U8(36)
+            .ToArray();
+
+        byte[][] fontDicts = matrices.Select(matrix =>
+        {
+            FontBytes dict = new FontBytes();
+
+            if (matrix is not null)
+            {
+                foreach (double value in matrix)
+                    dict.Bytes(Real(value));
+
+                dict.U8(12).U8(7);
+            }
+
+            return dict.U8(139).U8(139).U8(18).ToArray();
+        }).ToArray();
+
+        int fdSelectAt = 4 + IndexLength([name]) + IndexLength([Top(0, 0, 0)]) + 2 + 2;
+        int charStringsAt = fdSelectAt + 1 + GlyphCount;
+        byte[][] glyphs = Enumerable.Repeat(new byte[] { 14 }, GlyphCount).ToArray();
+        int fdArrayAt = charStringsAt + IndexLength(glyphs);
+
+        FontBytes cff = new FontBytes().U8(1).U8(0).U8(4).U8(4);
+        Index(cff, [name]);
+        Index(cff, [Top(fdSelectAt, charStringsAt, fdArrayAt)]);
+        cff.U16(0).U16(0).U8(0);
+
+        for (int glyph = 0; glyph < GlyphCount; glyph++)
+            cff.U8(glyph % matrices.Length);
+
+        Index(cff, glyphs);
+        Index(cff, fontDicts);
+        return cff.ToArray();
+    }
+
+    /// <summary>A real number in a DICT, written in the nibbles of its decimal digits and point.</summary>
+    private static byte[] Real(double value)
+    {
+        string text = value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        List<int> nibbles = [.. text.Select(character => character == '.' ? 0xA : character - '0'), 0xF];
+
+        if (nibbles.Count % 2 == 1)
+            nibbles.Add(0xF);
+
+        FontBytes real = new FontBytes().U8(30);
+
+        for (int index = 0; index < nibbles.Count; index += 2)
+            real.U8((nibbles[index] << 4) | nibbles[index + 1]);
+
+        return real.ToArray();
+    }
+
+    /// <summary>An INDEX with one-byte offsets, which is all these small tables need.</summary>
+    private static void Index(FontBytes table, byte[][] items)
+    {
+        table.U16(items.Length).U8(1).U8(1);
+        int offset = 1;
+
+        foreach (byte[] item in items)
+        {
+            offset += item.Length;
+            table.U8(offset);
+        }
+
+        foreach (byte[] item in items)
+            table.Bytes(item);
+    }
+
+    private static int IndexLength(byte[][] items) => 3 + items.Length + 1 + items.Sum(item => item.Length);
+
+    /// <summary>The entries of each of the font dicts of <paramref name="cff"/>.</summary>
+    private static List<List<CffDictEntry>> FontDicts(byte[] cff)
+    {
+        CffIndex fdArray = CffIndex.Read(cff, TopDict(cff).Single(entry => entry.Operator == ((12 << 8) | 36)).Integer());
+        List<List<CffDictEntry>> dicts = [];
+
+        for (int index = 0; index < fdArray.Count; index++)
+        {
+            (int start, int length) = fdArray.GetItem(cff, index);
+            dicts.Add(CffDict.Read(cff.AsSpan(start, length)));
+        }
+
+        return dicts;
     }
 
     private static int FontDictCount(byte[] cff)
