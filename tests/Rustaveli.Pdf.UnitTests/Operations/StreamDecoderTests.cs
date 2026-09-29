@@ -54,6 +54,29 @@ public class StreamDecoderTests
     }
 
     [Fact]
+    public void AStreamThatInflatesPastAnyPagesNeedIsUnreadable()
+    {
+        // Zeros deflate about a thousand to one: a third of a megabyte inflates to 300 MB, and a few more to past 2 GB.
+        byte[] bomb;
+        using (MemoryStream compressed = new MemoryStream())
+        {
+            using (DeflateStream deflater = new DeflateStream(compressed, CompressionLevel.Fastest, leaveOpen: true))
+            {
+                byte[] zeros = new byte[1 << 20];
+
+                for (int megabyte = 0; megabyte < 300; megabyte++)
+                    deflater.Write(zeros, 0, zeros.Length);
+            }
+
+            bomb = compressed.ToArray();
+        }
+
+        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(() => Decode(new PdfName("FlateDecode"), bomb));
+
+        Assert.Contains("inflates", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AStreamCutShortGivesWhatInflated()
     {
         byte[] original = new byte[5000];
