@@ -19,6 +19,18 @@ public class LinkTests
         Assert.Single(page.Operations.OfType<RectangleOperation>());
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void LinkedTextNeedsSomewhereToGo(string? target)
+    {
+        ArgumentException link = Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(frame => frame.Text(text => text.Link("here", target!))));
+        ArgumentException reference = Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(frame => frame.Text(text => text.CrossReference("here", target!))));
+
+        Assert.Equal(("url", "anchor"), (link.ParamName, reference.ParamName));
+    }
+
     [Fact]
     public void ALinkWithoutAUrlDrawsOnlyItsContent()
     {
