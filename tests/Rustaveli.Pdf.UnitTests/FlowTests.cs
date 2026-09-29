@@ -176,6 +176,75 @@ public class FlowTests
     }
 
     [Fact]
+    public void ItemsOfNoSizeAreStillDrawnSoWhatTheyDoHappens()
+    {
+        // A "continued" marker in a running head is hidden the first time it is drawn, and shown every time after.
+        // Never drawn, it would stay hidden for good.
+        FlowBlock flow = new FlowBlock { Gutter = 10, Placement = FlowPlacement.SpaceAround };
+        flow.Items.Add(new SkipFirstBlock { Child = new FixedBlock(40, 10, TestInks.Blue) });
+        flow.Items.Add(new FixedBlock(40, 10, TestInks.Red));
+
+        List<RectangleOperation> first = LayoutHarness.Draw(flow, Space).Operations.OfType<RectangleOperation>().ToList();
+        flow.ResetState(includeDocumentProgress: false);
+        List<RectangleOperation> second = LayoutHarness.Draw(flow, Space).Operations.OfType<RectangleOperation>().ToList();
+
+        // Hidden, it takes no share of the space around the items either.
+        Assert.Equal([new Offset(30, 0)], first.Select(operation => operation.Position));
+        Assert.Equal([TestInks.Blue, TestInks.Red], second.Select(operation => operation.Ink));
+    }
+
+    [Fact]
+    public void AFlowOfItemsOfNoSizeIsDrawnAtNoSize()
+    {
+        // An anchor with nothing in it still marks where it is.
+        FlowBlock flow = new FlowBlock { Gutter = 10, SpaceBetweenLines = 5 };
+        flow.Items.Add(new AnchorBlock { Name = "here" });
+        PlanContext context = LayoutHarness.Context();
+
+        Fit plan = LayoutHarness.Measure(flow, Space, context);
+        LayoutHarness.Draw(flow, Space, context);
+
+        Assert.True(plan.IsComplete);
+        Assert.Equal(Extent.Zero, plan.Size);
+        Assert.Equal(1, context.Pagination.FolioOf("here"));
+    }
+
+    [Fact]
+    public void AnItemOfNoSizeAfterTheLastLineGoesWithIt()
+    {
+        // It opens no line of its own, so it adds no space between lines.
+        FlowBlock flow = new FlowBlock { Gutter = 10, SpaceBetweenLines = 5 };
+        flow.Items.Add(new FixedBlock(80, 10, TestInks.Red));
+        flow.Items.Add(new FixedBlock(80, 10, TestInks.Red));
+        flow.Items.Add(new AnchorBlock { Name = "end" });
+        PlanContext context = LayoutHarness.Context();
+
+        Fit plan = LayoutHarness.Measure(flow, Space, context);
+        LayoutHarness.Draw(flow, Space, context);
+
+        Assert.Equal(new Extent(80, 25), plan.Size);
+        Assert.Equal(1, context.Pagination.FolioOf("end"));
+    }
+
+    [Fact]
+    public void AnItemOfNoSizeIsDrawnWhereItFallsThoughTheNextDoesNotFit()
+    {
+        // As in a stack: it needs no room, so it is drawn on this page, and the flow goes on from the item after it.
+        FlowBlock flow = new FlowBlock();
+        flow.Items.Add(new AnchorBlock { Name = "start" });
+        flow.Items.Add(new FixedBlock(80, 20, TestInks.Red));
+        PlanContext context = LayoutHarness.Context();
+
+        Fit cramped = LayoutHarness.Measure(flow, new Extent(100, 15), context);
+        LayoutHarness.Draw(flow, new Extent(100, 15), context);
+
+        Assert.True(cramped.IsPartial);
+        Assert.Equal(Extent.Zero, cramped.Size);
+        Assert.Equal(1, context.Pagination.FolioOf("start"));
+        Assert.Equal(new Extent(80, 20), LayoutHarness.Measure(flow, new Extent(100, 30), context).Size);
+    }
+
+    [Fact]
     public void AFlowOfNothingIsNothing()
     {
         FlowBlock flow = new FlowBlock();
