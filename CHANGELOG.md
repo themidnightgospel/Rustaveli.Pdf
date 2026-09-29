@@ -13,6 +13,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   machine that writes decimals with a comma. They read the same in every culture now.
 - A running head or foot of no height was not drawn at all, so an anchor, bookmark or marker in it never took effect
   and links to it went nowhere.
+- Content that threw while it was measured escaped unwrapped, with nothing to say where in the document it was. It is
+  wrapped in a `RenderingException` naming the page, as a failure while drawing is.
 - SVG artwork with numbers beyond what a PDF can hold (10^15), or transforms, clips, gradients and view boxes that
   reach beyond it, failed the export; what reaches beyond it is left out. `ArtworkComposer` refuses such numbers
   when they are given.

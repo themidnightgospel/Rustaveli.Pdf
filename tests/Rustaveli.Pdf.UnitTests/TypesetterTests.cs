@@ -727,6 +727,42 @@ public class TypesetterTests
     }
 
     [Fact]
+    public void WrapsAFailureWhileMeasuringWithThePageItHappenedOn()
+    {
+        InvalidOperationException failure = new InvalidOperationException("The component could not measure itself.");
+        Document document = Document.Compose(container =>
+        {
+            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(10, 10)));
+            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
+        });
+
+        RenderingException exception = Assert.Throws<RenderingException>(() => LayoutHarness.Render(document));
+
+        Assert.Equal("Laying out page 2 failed. See the inner exception for details.", exception.Message);
+        Assert.Same(failure, exception.InnerException);
+    }
+
+    [Fact]
+    public void WrapsAFailureWhileMeasuringARunningHead()
+    {
+        InvalidOperationException failure = new InvalidOperationException("The component could not measure itself.");
+        Document document = Build(page => page.RunningHead().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
+
+        Assert.Same(failure, Assert.Throws<RenderingException>(() => LayoutHarness.Render(document)).InnerException);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LetsALayoutFailureRaisedWhileMeasuringPassThroughUnwrapped(bool rendering)
+    {
+        TypesettingException failure = rendering ? new RenderingException("A nested document failed.") : new OversetException("A nested layout could not be resolved.");
+        Document document = Build(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
+
+        Assert.Same(failure, Assert.Throws(failure.GetType(), () => LayoutHarness.Render(document)));
+    }
+
+    [Fact]
     public void LetsALayoutFailureRaisedWhileDrawingPassThroughUnwrapped()
     {
         OversetException failure = new OversetException("A nested layout could not be resolved.");

@@ -164,18 +164,33 @@ internal static class Typesetter
             throw new OversetException(
                 FormattableString.Invariant($"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {largest.Height:F1} points tall."));
 
-        Bands bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
-        float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
+        Bands bands;
+        Extent bodySpace;
+        Fit contentPlan;
 
-        // Tolerate the same sub-epsilon overshoot every element accepts as fitting. A footer that fits by that
-        // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
-        if (contentHeight < -Extent.Epsilon)
-            throw new OversetException(
-                FormattableString.Invariant($"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body."));
+        try
+        {
+            bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
+            float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
 
-        Extent bodySpace = new Extent(contentWidth, contentHeight);
-        layout.PageBody = bodySpace;
-        Fit contentPlan = section.BodySlot.Plan(bodySpace, layout);
+            // Tolerate the same sub-epsilon overshoot every element accepts as fitting. A footer that fits by that
+            // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
+            if (contentHeight < -Extent.Epsilon)
+                throw new OversetException(
+                    FormattableString.Invariant($"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body."));
+
+            bodySpace = new Extent(contentWidth, contentHeight);
+            layout.PageBody = bodySpace;
+            contentPlan = section.BodySlot.Plan(bodySpace, layout);
+        }
+        catch (Exception exception) when (exception is not OversetException and not RenderingException)
+        {
+            // Content that throws as it is measured — a component, content composed per page — is reported with the
+            // page it was being measured for, as it is when it throws while drawn.
+            throw new RenderingException(
+                $"Laying out page {context.Pagination.Folio} failed. See the inner exception for details.",
+                exception);
+        }
 
         if (contentPlan.IsDeferred)
             throw new OversetException(
