@@ -206,6 +206,96 @@ public class PdfFileTests
         Assert.Equal(Forms(pages) + 2, Forms(laid));
     }
 
+    /// <summary>
+    /// A page of <paramref name="width"/> by <paramref name="height"/>, turned by <paramref name="rotate"/>, showing
+    /// <paramref name="text"/> near its lower left corner.
+    /// </summary>
+    private static byte[] Turned(int width, int height, int rotate, string text, string? box = null, string extra = "")
+    {
+        string content = $"BT /F1 12 Tf 20 20 Td ({text}) Tj ET";
+        string pdf = "%PDF-1.7\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+            + $"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox {box ?? $"[0 0 {width} {height}]"}/Rotate {rotate}{extra}/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n"
+            + "4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n"
+            + $"5 0 obj<</Length {content.Length}>>stream\n{content}\nendstream\nendobj\ntrailer<</Root 1 0 R>>\n%%EOF";
+
+        // Saved once, so that it has the cross-reference section the independent reader needs.
+        return PdfFile.Open(System.Text.Encoding.ASCII.GetBytes(pdf)).ToArray();
+    }
+
+    /// <summary>
+    /// Which way the word <paramref name="word"/> runs on the first page as it is seen, the page turned as it says:
+    /// across and up, each -1, 0 or 1.
+    /// </summary>
+    private static (int Across, int Up) Direction(byte[] pdf, string word)
+    {
+        using PdfDocument document = PdfDocument.Open(pdf);
+        List<UglyToad.PdfPig.Content.Letter> letters = document.GetPage(1).Letters.Where(letter => word.Contains(letter.Value)).ToList();
+        Assert.Equal(word, string.Concat(letters.Select(letter => letter.Value)));
+
+        double across = letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
+        double up = letters[letters.Count - 1].EndBaseLine.Y - letters[0].StartBaseLine.Y;
+        return (Math.Sign(Math.Round(across)), Math.Sign(Math.Round(up)));
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 90)]
+    [InlineData(90, 0)]
+    [InlineData(90, 90)]
+    [InlineData(0, 180)]
+    [InlineData(270, 0)]
+    [InlineData(90, 270)]
+    public void AStampIsTurnedToBeSeenAsOnItsOwnPage(int stampRotate, int pageRotate)
+    {
+        byte[] stamp = Turned(200, 200, stampRotate, "Stamp");
+        byte[] stamped = PdfFile.Open(Turned(200, 300, pageRotate, "XYZ")).Overlay(PdfFile.Open(stamp)).ToArray();
+
+        Assert.Equal(Direction(stamp, "Stamp"), Direction(stamped, "Stamp"));
+
+        // And it is on the page, not turned off it.
+        using PdfDocument document = PdfDocument.Open(stamped);
+        UglyToad.PdfPig.Content.Page page = document.GetPage(1);
+        double side = Math.Max(page.Width, page.Height);
+        Assert.All(page.Letters, letter => Assert.InRange(letter.StartBaseLine.X, 0, side));
+        Assert.All(page.Letters, letter => Assert.InRange(letter.StartBaseLine.Y, 0, side));
+    }
+
+    [Theory]
+    [InlineData(200, 300, "", "")]
+    [InlineData(200, 200, "", "1 0 0 1 0 50 cm")]
+    [InlineData(200, 200, "/CropBox[50 50 150 150]", "1 0 0 1 0 50 cm")]
+    [InlineData(400, 400, "", "0.5 0 0 0.5 0 50 cm")]
+    public void AStampIsCentredOnThePageAndShrunkToFit(int width, int height, string extra, string placement)
+    {
+        byte[] stamp = Turned(width, height, 0, "Stamp", extra: extra);
+        string content = FirstPageContent(PdfFile.Open(Turned(200, 300, 0, "XYZ")).Overlay(PdfFile.Open(stamp)).ToArray());
+
+        Assert.Contains($"q\n{placement}{(placement.Length > 0 ? "\n" : string.Empty)}/Layer0 Do\nQ", content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("[0 0 200]", 0, false)]
+    [InlineData("[0 0 /Wide 200]", 0, true)]
+    [InlineData("[0 0 0 200]", 0, false)]
+    [InlineData("7", 0, true)]
+    [InlineData("[0 0 200 300]", 45, false)]
+    public void AStampOnOrFromAPageOfNoSensibleBoxOrTurnIsDrawnWhereItIs(string box, int rotate, bool onTheStamp)
+    {
+        byte[] stamp = onTheStamp ? Turned(0, 0, rotate, "Stamp", box) : Turned(200, 300, 0, "Stamp");
+        byte[] page = onTheStamp ? Turned(200, 300, 0, "XYZ") : Turned(0, 0, rotate, "XYZ", box);
+
+        Assert.Contains("q\n/Layer0 Do\nQ", FirstPageContent(PdfFile.Open(page).Overlay(PdfFile.Open(stamp)).ToArray()), StringComparison.Ordinal);
+    }
+
+    /// <summary>The first page's content, its streams decoded and joined.</summary>
+    private static string FirstPageContent(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfValue contents = source.Pages[0].Dictionary[PdfNames.Contents];
+        IEnumerable<PdfValue> streams = source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray().Cast<PdfValue>() : [contents];
+        return string.Join("\n", streams.Select(stream => System.Text.Encoding.Latin1.GetString(source.Decode(source.Stream(stream)!))));
+    }
+
     [Fact]
     public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
     {

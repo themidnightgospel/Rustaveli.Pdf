@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 using Rustaveli.Pdf.Operations.Linearization;
@@ -18,6 +19,7 @@ internal static class FileAssembler
     private static readonly PdfName Form = new PdfName("Form");
     private static readonly PdfName BBox = new PdfName("BBox");
     private static readonly PdfName CropBox = new PdfName("CropBox");
+    private static readonly PdfName Rotate = new PdfName("Rotate");
     private static readonly PdfName StructParents = new PdfName("StructParents");
     private static readonly PdfName EmbeddedFiles = new PdfName("EmbeddedFiles");
     private static readonly PdfName Associated = new PdfName("AF");
@@ -162,7 +164,7 @@ internal static class FileAssembler
                 }
 
                 forms[name] = form;
-                content.Append("q\n").Append(Encoding.ASCII.GetString(name.Encoded.ToArray())).Append(" Do\nQ\n");
+                content.Append("q\n").Append(Placement(layer, entry.Page)).Append(Encoding.ASCII.GetString(name.Encoded.ToArray())).Append(" Do\nQ\n");
             }
         }
 
@@ -188,6 +190,83 @@ internal static class FileAssembler
         contents.Add(writer.File.WriteStream(new PdfDictionary(), Encoding.ASCII.GetBytes(after.ToString())));
         page[PdfNames.Contents] = contents;
     }
+
+    /// <summary>
+    /// The <c>cm</c> that draws <paramref name="layer"/> on <paramref name="target"/> as it is seen on its own page:
+    /// turned by its own rotation and back by the target's, so that it reads as it did once the target is turned in
+    /// its turn, then centred on the target's visible box and shrunk to fit it if larger, as qpdf places pages. Nothing
+    /// where that leaves it where it is — neither turned, and boxes alike.
+    /// </summary>
+    private static string Placement(SourcePage layer, SourcePage target)
+    {
+        if (VisibleBox(layer) is not { } from || VisibleBox(target) is not { } to)
+            return string.Empty;
+
+        // /Rotate turns a page clockwise as it is shown; a clockwise turn maps (x, y) to (x cos + y sin, y cos - x sin).
+        int turn = (((Rotation(layer) - Rotation(target)) % 360) + 360) % 360;
+        (double a, double b, double c, double d) = turn switch
+        {
+            90 => (0d, -1d, 1d, 0d),
+            180 => (-1d, 0d, 0d, -1d),
+            270 => (0d, 1d, -1d, 0d),
+            _ => (1d, 0d, 0d, 1d),
+        };
+
+        bool across = turn is 90 or 270;
+        double width = across ? from.Height : from.Width;
+        double height = across ? from.Width : from.Height;
+        double scale = Math.Min(1, Math.Min(to.Width / width, to.Height / height));
+        double x = (from.Left + from.Right) / 2;
+        double y = (from.Bottom + from.Top) / 2;
+        double[] matrix =
+        [
+            scale * a, scale * b, scale * c, scale * d,
+            ((to.Left + to.Right) / 2) - (scale * ((a * x) + (c * y))),
+            ((to.Bottom + to.Top) / 2) - (scale * ((b * x) + (d * y))),
+        ];
+
+        if (matrix.Select(Round).SequenceEqual([1d, 0d, 0d, 1d, 0d, 0d]))
+            return string.Empty;
+
+        return string.Join(" ", matrix.Select(value => Round(value).ToString("0.#####", CultureInfo.InvariantCulture))) + " cm\n";
+
+        // Rounded to what the matrix is written with, and never to minus zero.
+        static double Round(double value) => Math.Round(value, 5) is double rounded && rounded != 0 ? rounded : 0;
+    }
+
+    /// <summary>A page's visible box — its crop box, or else its media box — or null when it is not four numbers enclosing something.</summary>
+    private static (double Left, double Bottom, double Right, double Top, double Width, double Height)? VisibleBox(SourcePage page)
+    {
+        PdfValue given = page.Dictionary.TryGetValue(CropBox, out PdfValue crop) ? crop : page.Dictionary[PdfNames.MediaBox];
+
+        if (page.Source.Resolve(given) is not { Kind: PdfValueKind.Array } array || array.AsArray().Count != 4)
+            return null;
+
+        double[] corners = new double[4];
+
+        for (int index = 0; index < 4; index++)
+        {
+            PdfValue corner = page.Source.Resolve(array.AsArray()[index]);
+
+            if (corner.Kind is not (PdfValueKind.Integer or PdfValueKind.Real))
+                return null;
+
+            corners[index] = corner.Kind == PdfValueKind.Integer ? corner.AsInteger() : corner.AsReal();
+        }
+
+        double left = Math.Min(corners[0], corners[2]);
+        double right = Math.Max(corners[0], corners[2]);
+        double bottom = Math.Min(corners[1], corners[3]);
+        double top = Math.Max(corners[1], corners[3]);
+
+        return right - left > 0 && top - bottom > 0 ? (left, bottom, right, top, right - left, top - bottom) : null;
+    }
+
+    /// <summary>How far a page is turned clockwise as it is shown: a multiple of 90 degrees, or none.</summary>
+    private static int Rotation(SourcePage page) =>
+        page.Dictionary.TryGetValue(Rotate, out PdfValue given) && page.Source.Resolve(given) is { Kind: PdfValueKind.Integer } rotate && rotate.AsInteger() % 90 == 0
+            ? (int)(rotate.AsInteger() % 360)
+            : 0;
 
     /// <summary>A page as a form: its content, its resources, and its visible box as the form's bounds.</summary>
     private static PdfReference FormOf(PdfDocumentWriter writer, ObjectCopier copier, SourcePage page)
