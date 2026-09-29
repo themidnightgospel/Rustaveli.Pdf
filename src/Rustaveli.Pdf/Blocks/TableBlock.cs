@@ -433,8 +433,9 @@ internal sealed class TableBlock : Block
             if (cell.RowSpan <= 1)
                 continue;
 
-            for (int row = cell.Row; row <= cell.LastRow && row <= rowCount; row++)
-                groupEnd[row - 1] = Math.Max(groupEnd[row - 1], Math.Min(cell.LastRow, rowCount));
+            // The row count is the last row any cell reaches, so no span runs past it.
+            for (int row = cell.Row; row <= cell.LastRow; row++)
+                groupEnd[row - 1] = Math.Max(groupEnd[row - 1], cell.LastRow);
         }
 
         return groupEnd;

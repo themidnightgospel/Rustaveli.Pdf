@@ -328,8 +328,34 @@ public class InlineContentTests
 
         OversetException exception = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
-        Assert.Contains("inline", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("such as Expand", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(
+            "A line holding an inline frame is taller than the space available. Content that expands to fill the space "
+            + "offered to it, such as Expand, claims the whole page when set inline — give it an explicit Height instead.",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnInlineFrameWiderThanTheLineSaysSo()
+    {
+        Fit plan = LayoutHarness.Measure(Text(text => text.Inline(inline => inline.Width(500).Height(10))), new Extent(100, 100));
+
+        Assert.Equal(
+            "A paragraph holds an inline frame that does not fit the width available to it. Inline frames cannot be split "
+            + "across lines, so it has to fit on one.",
+            plan.DeferReason);
+    }
+
+    [Fact]
+    public void AnIndentTakingTheWholeWidthSaysSo()
+    {
+        Fit plan = LayoutHarness.Measure(Text(text =>
+        {
+            text.FirstLineIndent(100);
+            text.Run("Words");
+        }), new Extent(100, 100));
+
+        Assert.Equal("There is no width available for text once the first-line indent is applied.", plan.DeferReason);
     }
 
     [Fact]

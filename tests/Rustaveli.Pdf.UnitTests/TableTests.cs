@@ -40,6 +40,52 @@ public class TableTests
     }
 
     [Fact]
+    public void ARightToLeftTableMirrorsEveryColumnNotOnlyTheFirst()
+    {
+        RecordedPage page = LayoutHarness.Draw(container => container.RightToLeft().Table(table =>
+        {
+            table.Columns(columns =>
+            {
+                columns.Fixed(30);
+                columns.Fixed(50);
+                columns.Share();
+            });
+
+            Fill(table.Cell(), 1, 10);
+            Fill(table.Cell(), 1, 10);
+            Fill(table.Cell(), 1, 10);
+        }), new Extent(200, 200));
+
+        // Column one against the right edge, each next one to its left, each at its own width.
+        Assert.Equal([170f, 120f, 0f], page.Operations.OfType<RectangleOperation>().Select(rectangle => rectangle.Position.X));
+    }
+
+    [Theory]
+    [InlineData(300f, 0f, 0f, 10f, "The table columns do not fit within the available width.")]
+    [InlineData(10f, 60f, 60f, 10f, "The header and footer rows alone exceed the available height.")]
+    [InlineData(10f, 0f, 0f, 150f, "The next table row is taller than the available height.")]
+    public void ATableThatCannotStartSaysWhy(float columnWidth, float headerHeight, float footerHeight, float rowHeight, string reason)
+    {
+        TableBlock table = BuildTable(descriptor =>
+        {
+            descriptor.Columns(columns => columns.Fixed(columnWidth));
+
+            if (headerHeight > 0)
+                descriptor.HeaderRows(header => Fill(header.Cell(), 1, headerHeight));
+
+            if (footerHeight > 0)
+                descriptor.FooterRows(footer => Fill(footer.Cell(), 1, footerHeight));
+
+            Fill(descriptor.Cell(), 1, rowHeight);
+        });
+
+        Fit plan = LayoutHarness.Measure(table, new Extent(200, 100));
+
+        Assert.True(plan.IsDeferred);
+        Assert.Equal(reason, plan.DeferReason);
+    }
+
+    [Fact]
     public void HonoursWeightsBetweenRelativeColumns()
     {
         TableBlock table = BuildTable(descriptor =>
