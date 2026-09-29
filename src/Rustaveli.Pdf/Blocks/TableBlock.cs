@@ -73,10 +73,6 @@ internal sealed class TableBlock : Block
 
     private TableLayout? _cachedLayout;
 
-    private float _cachedWidth = float.NaN;
-
-    private ReadingDirection _cachedDirection;
-
     /// <summary>The table's head, body and foot in a tagged document, once it has begun drawing.</summary>
     private StructureElement?[]? _groups;
 
@@ -108,15 +104,14 @@ internal sealed class TableBlock : Block
     {
         _completedRows = 0;
         _cachedLayout = null;
-        _cachedWidth = float.NaN;
         _groups = null;
         _cellTags = null;
     }
 
-    protected override object? SaveOwnProgress() => (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection);
+    protected override object? SaveOwnProgress() => (_completedRows, _cachedLayout);
 
     protected override void RestoreOwnProgress(object progress) =>
-        (_completedRows, _cachedLayout, _cachedWidth, _cachedDirection) = ((int, TableLayout?, float, ReadingDirection))progress;
+        (_completedRows, _cachedLayout) = ((int, TableLayout?))progress;
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
@@ -374,20 +369,21 @@ internal sealed class TableBlock : Block
     private TableLayout? BuildLayout(Extent availableSpace, PlanContext context)
     {
         ReadingDirection direction = ReadingDirection ?? context.ReadingDirection;
+        float[]? columnWidths = ResolveColumnWidths(availableSpace.Width);
 
+        if (columnWidths is null)
+            return null;
+
+        // Keyed by the columns rather than the width offered: a table of fixed columns is measured in the whole width
+        // and drawn in its own when centred or on a page sized to it, and the columns, and so the rows, are the same.
         if (_cachedLayout is not null
-            && Math.Abs(_cachedWidth - availableSpace.Width) < Extent.Epsilon
-            && _cachedDirection == direction)
+            && _cachedLayout.Direction == direction
+            && _cachedLayout.ColumnWidths.SequenceEqual(columnWidths))
         {
             // The bands are deliberately outside the cache — see MeasureBands.
             MeasureBands(_cachedLayout, context);
             return _cachedLayout;
         }
-
-        float[]? columnWidths = ResolveColumnWidths(availableSpace.Width);
-
-        if (columnWidths is null)
-            return null;
 
         float[] columnOffsets = new float[columnWidths.Length];
 
@@ -407,8 +403,6 @@ internal sealed class TableBlock : Block
         layout.GroupEnd = BuildGroupBoundaries(Cells, layout.BodyHeights.Length);
 
         _cachedLayout = layout;
-        _cachedWidth = availableSpace.Width;
-        _cachedDirection = direction;
 
         MeasureBands(layout, context);
 

@@ -597,6 +597,56 @@ public class TableTests
     }
 
     [Fact]
+    public void ATableOfFixedColumnsIsLaidOutOnceWhateverWidthItIsOffered()
+    {
+        // Centred, or on a page sized to it, the table is measured in the whole width and drawn in its own, narrower
+        // one. The columns come out the same, so the cells need not be measured again.
+        CountingBlock cell = new CountingBlock();
+        TableBlock table = BuildTable(descriptor =>
+        {
+            descriptor.Columns(columns =>
+            {
+                columns.Fixed(40);
+                columns.Fixed(60);
+            });
+
+            descriptor.Cell().Compose(inner => inner.Slot().Child = cell);
+        });
+
+        LayoutHarness.Measure(table, new Extent(200, 100));
+        int measured = cell.Plans;
+
+        LayoutHarness.Measure(table, new Extent(100, 100));
+        LayoutHarness.Measure(table, new Extent(200, 100));
+
+        Assert.Equal(measured, cell.Plans);
+    }
+
+    [Fact]
+    public void ATableIsLaidOutAgainWhenItsColumnsChange()
+    {
+        CountingBlock cell = new CountingBlock();
+        TableBlock table = BuildTable(descriptor =>
+        {
+            descriptor.Columns(columns => columns.Share());
+            descriptor.Cell().Compose(inner => inner.Slot().Child = cell);
+        });
+
+        LayoutHarness.Measure(table, new Extent(200, 100));
+        int measured = cell.Plans;
+
+        LayoutHarness.Measure(table, new Extent(100, 100));
+        int narrower = cell.Plans;
+
+        PlanContext rightToLeft = LayoutHarness.Context();
+        rightToLeft.ReadingDirection = ReadingDirection.RightToLeft;
+        LayoutHarness.Measure(table, new Extent(100, 100), rightToLeft);
+
+        Assert.True(narrower > measured);
+        Assert.True(cell.Plans > narrower);
+    }
+
+    [Fact]
     public void ACellSizedByTheHeightOfItsRowIsDrawnInIt()
     {
         // Content that takes its width from the height it is given cannot be measured in unlimited height, but it
@@ -614,5 +664,21 @@ public class TableTests
         }), new Extent(200, 100));
 
         Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
+    }
+
+    /// <summary>Content of a fixed size that counts how often it is measured.</summary>
+    private sealed class CountingBlock : Block
+    {
+        public int Plans { get; private set; }
+
+        protected override Fit PlanCore(Extent availableSpace, PlanContext context)
+        {
+            Plans++;
+            return Fit.Complete(10, 10);
+        }
+
+        protected override void RenderCore(Extent availableSpace, RenderContext context)
+        {
+        }
     }
 }
