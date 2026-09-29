@@ -72,11 +72,16 @@ public sealed class SkiaImageProcessor : IImageProcessor
         if (bitmap.AlphaType == SKAlphaType.Opaque)
             return false;
 
-        for (int y = 0; y < bitmap.Height; y++)
+        // The alpha of every pixel, copied out in one call and read as bytes: asking for each pixel in turn is a
+        // native call apiece, 24 million of them for a photograph of 24 megapixels.
+        using SKBitmap alpha = bitmap.Copy(SKColorType.Alpha8) ?? throw new InvalidOperationException("The image's transparency could not be read.");
+        ReadOnlySpan<byte> samples = alpha.GetPixelSpan();
+
+        for (int y = 0; y < alpha.Height; y++)
         {
-            for (int x = 0; x < bitmap.Width; x++)
+            foreach (byte sample in samples.Slice(y * alpha.RowBytes, alpha.Width))
             {
-                if (bitmap.GetPixel(x, y).Alpha < 255)
+                if (sample < 255)
                     return true;
             }
         }
