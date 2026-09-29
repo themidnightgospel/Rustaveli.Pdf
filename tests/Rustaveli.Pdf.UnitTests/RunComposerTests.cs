@@ -48,6 +48,28 @@ public class RunComposerTests
         Assert.Equal(parameter, refused.ParamName);
     }
 
+    public static TheoryData<string, Action<TextComposer>> Refinements() => new()
+    {
+        { "fontFamily", text => text.Run("x").Typeface(null!) },
+        { "fontFamily", text => text.Run("x").Typeface(" ") },
+        { "fallbacks", text => text.Run("x").Typeface("Courier", null!) },
+        { "tag", text => text.Run("x").Feature("toolong") },
+        { "tag", text => text.Run("x").Feature(null!) },
+        { "value", text => text.Run("x").Feature("smcp", -1) },
+        { "refinement", text => text.Run("x").Style((Func<TypeStyle, TypeStyle>)null!) },
+        { "refinement", text => text.DefaultType(null!) },
+    };
+
+    [Theory]
+    [MemberData(nameof(Refinements))]
+    public void ARefinementThatCannotApplyIsRefusedWhereItIsGiven(string parameter, Action<TextComposer> compose)
+    {
+        // Composing alone, without laying anything out: the run's style is not worked out until layout.
+        ArgumentException refused = Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(container => container.Text(compose)));
+
+        Assert.Equal(parameter, refused.ParamName);
+    }
+
     [Fact]
     public void FontColorSetsTheColour() =>
         Assert.Equal((Ink)TestInks.Red, StyleOf(span => span.Ink(TestInks.Red)).Ink);

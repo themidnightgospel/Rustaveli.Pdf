@@ -231,6 +231,7 @@ public sealed class TextComposer
     /// <summary>Adjusts the style inherited by every span in this paragraph.</summary>
     public void DefaultType(Func<TypeStyle, TypeStyle> refinement)
     {
+        ArgumentNullException.ThrowIfNull(refinement);
         Func<TypeStyle, TypeStyle>? previous = _block.DefaultTypeRefinement;
 
         _block.DefaultTypeRefinement = previous is null

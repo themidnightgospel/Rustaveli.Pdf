@@ -133,7 +133,7 @@ public sealed record TypeStyle
     /// <remarks>Naming the typeface again replaces the fallbacks too: with none given, the style has none.</remarks>
     public TypeStyle WithTypeface(string fontFamily, params string[] fallbacks)
     {
-        ArgumentNullException.ThrowIfNull(fallbacks);
+        TypefaceNames(fontFamily, fallbacks);
 
         return this with
         {
@@ -236,11 +236,7 @@ public sealed record TypeStyle
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
     public TypeStyle WithFeature(string tag, int value = 1)
     {
-        ArgumentNullException.ThrowIfNull(tag);
-        ArgumentOutOfRangeException.ThrowIfNegative(value);
-
-        if (tag.Length != 4 || tag.Any(character => character is < ' ' or > '~'))
-            throw new ArgumentException($"An OpenType feature tag is four printable ASCII characters, such as \"liga\"; \"{tag}\" is not.", nameof(tag));
+        Feature(tag, value);
 
         return this with
         {
@@ -348,6 +344,27 @@ public sealed record TypeStyle
         value >= 0 && Writable.Is(value)
             ? value
             : throw new ArgumentOutOfRangeException(name, value, "Must be zero or more, and less than 10^15, the largest number a PDF can write.");
+
+    /// <summary>Checks a typeface's name and the list of its fallbacks, as a style set in them needs them.</summary>
+    /// <exception cref="ArgumentException"><paramref name="fontFamily"/> is null, empty or only white space.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="fallbacks"/> is null.</exception>
+    internal static void TypefaceNames(string fontFamily, string[] fallbacks)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fontFamily);
+        ArgumentNullException.ThrowIfNull(fallbacks);
+    }
+
+    /// <summary>Checks an OpenType feature setting: a tag of four printable ASCII characters, and a value of zero or more.</summary>
+    /// <exception cref="ArgumentException"><paramref name="tag"/> is not four printable ASCII characters.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
+    internal static void Feature(string tag, int value)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+
+        if (tag.Length != 4 || tag.Any(character => character is < ' ' or > '~'))
+            throw new ArgumentException($"An OpenType feature tag is four printable ASCII characters, such as \"liga\"; \"{tag}\" is not.", nameof(tag));
+    }
 
     /// <summary><paramref name="value"/>, a spacing that may tighten as well as loosen: a number a PDF can write.</summary>
     /// <exception cref="ArgumentOutOfRangeException">It is NaN, or 10^15 or more either way.</exception>
