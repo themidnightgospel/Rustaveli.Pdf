@@ -159,6 +159,7 @@ public class PreviewTests
         {
             ("/", "text/html; charset=utf-8"),
             ("/state", "application/json"),
+            ("/icon.png", "image/png"),
             ("/pages/1", "image/png"),
             ("/frames/1", "application/json"),
             ("/frames/2", "application/json"),
@@ -173,6 +174,20 @@ public class PreviewTests
 
         using HttpResponseMessage missing = await Client.GetAsync(new Uri(session.Url, "/pages/9"));
         Assert.Equal("Not found", await missing.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task ThePreviewTabShowsTheLibrarysLogo()
+    {
+        using PreviewSession session = Start(() => Pages(1));
+
+        Assert.Contains("<link rel=\"icon\" type=\"image/png\" href=\"/icon.png\">", await Get(session, "/"), StringComparison.Ordinal);
+
+        byte[] icon = await Client.GetByteArrayAsync(new Uri(session.Url, "/icon.png"));
+
+        // A PNG, 128 pixels square: its signature, then its header's width and height.
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, icon.Take(8));
+        Assert.Equal(new byte[] { 0, 0, 0, 128, 0, 0, 0, 128 }, icon.Skip(16).Take(8));
     }
 
     [Theory]

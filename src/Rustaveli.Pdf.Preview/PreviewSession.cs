@@ -186,6 +186,10 @@ public sealed class PreviewSession : IDisposable
             {
                 Send(response, "application/json", Encoding.UTF8.GetBytes(State()));
             }
+            else if (path == "/icon.png")
+            {
+                Send(response, "image/png", PreviewPage.Icon);
+            }
             else if (PageNumber(path, "/pages/") is int number && Draw().Pages is { } pages && number >= 1 && number <= pages.Count)
             {
                 Send(response, "image/png", pages[number - 1]);

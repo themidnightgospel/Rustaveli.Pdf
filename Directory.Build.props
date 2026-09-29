@@ -41,6 +41,7 @@
     <Authors>Rustaveli.Pdf contributors</Authors>
     <PackageTags>pdf;document;report;invoice;generation;layout;typesetting;pdf-a;pdf-ua</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/themidnightgospel/Rustaveli.Pdf</PackageProjectUrl>
     <RepositoryUrl>https://github.com/themidnightgospel/Rustaveli.Pdf</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -94,9 +95,10 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
-    <!-- The licence itself travels as a PackageLicenseExpression, which nuget.org can read; only the README
-         needs packing as a file. -->
+    <!-- The licence itself travels as a PackageLicenseExpression, which nuget.org can read; only the README and the
+         logo, 128 pixels square as nuget.org shows it, need packing as files. -->
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)docs/images/logo.png" Pack="true" PackagePath="\icon.png" Visible="false" />
   </ItemGroup>
 
 </Project>

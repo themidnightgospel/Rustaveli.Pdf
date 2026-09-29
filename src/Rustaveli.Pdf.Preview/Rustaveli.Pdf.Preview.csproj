@@ -15,6 +15,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Rustaveli.Pdf.Raster\Rustaveli.Pdf.Raster.csproj" />
 
+    <!-- The library's logo, served as the preview tab's icon. -->
+    <EmbeddedResource Include="..\..\docs\images\logo.png" LogicalName="Rustaveli.Pdf.Preview.Icon.png" Visible="false" />
+
     <InternalsVisibleTo Include="Rustaveli.Pdf.UnitTests" />
     <InternalsVisibleTo Include="Rustaveli.Pdf.IntegrationTests" />
     <InternalsVisibleTo Include="Rustaveli.Pdf.ConformanceTests" />

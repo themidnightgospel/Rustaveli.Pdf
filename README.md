@@ -1,3 +1,5 @@
+![Rustaveli.Pdf](https://raw.githubusercontent.com/themidnightgospel/Rustaveli.Pdf/main/docs/images/logo.png)
+
 # Rustaveli.Pdf
 
 [![CI](https://github.com/themidnightgospel/Rustaveli.Pdf/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/themidnightgospel/Rustaveli.Pdf/actions/workflows/ci.yml)
