@@ -82,9 +82,13 @@ internal sealed class GlyphSubstitutionTable
 
     /// <summary>
     /// The features a shaper turns on for horizontal text in scripts without shaping rules of their own — Latin,
-    /// Greek, Cyrillic, Georgian and the like: composition, localized forms, and required, contextual and standard
-    /// ligatures.
+    /// Greek, Cyrillic, Georgian and the like: composition, localized forms, required, contextual and standard
+    /// ligatures, and contextual alternates, required and not.
     /// </summary>
+    /// <remarks>
+    /// HarfBuzz also turns on <c>ltra</c> and <c>ltrm</c> for left-to-right text. They are not here: these defaults
+    /// apply to every run, right-to-left ones included, and the forms those features choose would be wrong there.
+    /// </remarks>
     public static IReadOnlyList<FeatureSetting> DefaultFeatures { get; } =
     [
         FeatureSetting.On(FeatureTag.RequiredVariationAlternates),
@@ -93,7 +97,8 @@ internal sealed class GlyphSubstitutionTable
         FeatureSetting.On(FeatureTag.RequiredLigatures),
         FeatureSetting.On(FeatureTag.ContextualAlternates),
         FeatureSetting.On(FeatureTag.ContextualLigatures),
-        FeatureSetting.On(FeatureTag.StandardLigatures)
+        FeatureSetting.On(FeatureTag.StandardLigatures),
+        FeatureSetting.On(FeatureTag.RequiredContextualAlternates)
     ];
 
     public int GlyphCount { get; }

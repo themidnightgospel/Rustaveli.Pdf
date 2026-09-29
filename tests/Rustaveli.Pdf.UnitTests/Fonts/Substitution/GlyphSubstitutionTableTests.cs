@@ -202,9 +202,20 @@ public class GlyphSubstitutionTableTests
     public void ListsTheDefaultFeaturesOfSimpleScripts()
     {
         Assert.Equal(
-            new[] { "rvrn", "ccmp", "locl", "rlig", "calt", "clig", "liga" },
+            new[] { "rvrn", "ccmp", "locl", "rlig", "calt", "clig", "liga", "rclt" },
             GlyphSubstitutionTable.DefaultFeatures.Select(setting => setting.Tag.ToString()));
         Assert.All(GlyphSubstitutionTable.DefaultFeatures, setting => Assert.Equal(1, setting.Value));
+    }
+
+    [Fact]
+    public void AppliesRequiredContextualAlternatesByDefault()
+    {
+        // rclt is always on in HarfBuzz for horizontal text: fonts put there the contextual forms that must not be
+        // turned off with calt.
+        byte[] gsub = Gsub([("DFLT", (-1, [0]), [])], [("rclt", [0])], Lookups(1));
+
+        Assert.Equal(
+            10, Shape(gsub, ScriptTag.Default, LanguageTag.Default, [.. GlyphSubstitutionTable.DefaultFeatures]));
     }
 
     // ---- Lookups -------------------------------------------------------------------------------------------------

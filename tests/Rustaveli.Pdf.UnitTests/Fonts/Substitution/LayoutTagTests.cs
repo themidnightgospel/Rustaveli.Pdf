@@ -16,6 +16,7 @@ public class LayoutTagTests
             (FeatureTag.ContextualAlternates, "calt"),
             (FeatureTag.ContextualLigatures, "clig"),
             (FeatureTag.StandardLigatures, "liga"),
+            (FeatureTag.RequiredContextualAlternates, "rclt"),
             (FeatureTag.DiscretionaryLigatures, "dlig"),
             (FeatureTag.SmallCapitals, "smcp"),
             (FeatureTag.CapitalsToSmallCapitals, "c2sc"),
