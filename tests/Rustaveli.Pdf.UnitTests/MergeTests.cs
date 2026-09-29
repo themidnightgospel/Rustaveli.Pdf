@@ -114,6 +114,32 @@ public class MergeTests
     }
 
     [Fact]
+    public void AMergeMergedAgainKeepsTheStylesOfEachOfItsDocuments()
+    {
+        Document Styled(float size) => Document.Compose(composition =>
+        {
+            composition.Styles.DefineType("Size", style => style.WithPointSize(size));
+            composition.Section(section => section.Body().ComposeLater(later => later.Text(text => text.Run("x").Style("Size"))));
+        });
+
+        List<float> sizes = LayoutHarness.Render(Document.Merge(Document.Merge(Styled(10), Styled(20)), Styled(30))).Pages
+            .SelectMany(page => page.Operations.OfType<TextOperation>())
+            .Select(text => text.Style.PointSize)
+            .ToList();
+
+        Assert.Equal([10f, 20f, 30f], sizes);
+    }
+
+    [Fact]
+    public void AMergeMergedAgainNumbersEachOfItsDocumentsSeparately()
+    {
+        Document merged = Document.Merge(Document.Merge(Pages("A", 2), Pages("B", 1)), Pages("C", 2)).NumberPartsSeparately();
+
+        Assert.Equal(3, merged.PartCount);
+        Assert.Equal(["A 1/2", "A 2/2", "B 1/1", "C 1/2", "C 2/2"], Feet(merged));
+    }
+
+    [Fact]
     public void MergingNeedsDocuments()
     {
         Assert.Throws<ArgumentNullException>(() => Document.Merge(null!));
