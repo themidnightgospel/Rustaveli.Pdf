@@ -126,6 +126,19 @@ public class ComplexScriptTests
     }
 
     [Fact]
+    public void FittingNeverSeparatesAVowelSignFromItsConsonant()
+    {
+        // Set a character at a time, ka and the vowel sign aa after it are two glyphs, each with an advance of its
+        // own; a width that ends inside the sign still cannot keep the consonant without it.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Plain.Shaper);
+        List<ShapedGlyph> glyphs = Shape(Plain, "का", Devanagari);
+
+        Assert.Equal(2, glyphs.Count);
+        Assert.Equal(0, measurer.MeasureCharactersFitting("का", Devanagari, glyphs[0].Advance + (glyphs[1].Advance / 2)));
+        Assert.Equal(2, measurer.MeasureCharactersFitting("काका", Devanagari, measurer.MeasureWidth("का", Devanagari) + (glyphs[0].Advance / 2)));
+    }
+
+    [Fact]
     public void ADevanagariVowelSignIsDrawnBeforeTheConsonantItFollows()
     {
         // Ka followed by the vowel sign i: typed after the consonant, the sign is written before it.

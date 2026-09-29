@@ -853,8 +853,10 @@ internal sealed class TextBlock : Block
                 continue;
             }
 
-            // Always consume at least one character, otherwise an impossibly narrow box would loop forever.
-            fitting = Math.Clamp(fitting, 1, remaining.Length);
+            // Always consume at least one character, otherwise an impossibly narrow box would loop forever — and a whole
+            // one, as a reader sees it, so a surrogate pair or a letter and its accent are never split across lines.
+            if (fitting == 0)
+                fitting = GraphemeBoundaries.FirstLength(remaining.AsSpan());
 
             string chunk = remaining[..fitting];
             float chunkWidth = context.Measurer.MeasureWidth(chunk, style);

@@ -202,6 +202,19 @@ public class TextBlockTests
     }
 
     [Fact]
+    public void AWordNoLineCanHoldIsNeverSplitInsideACharacter()
+    {
+        // Not a single 6pt code unit fits a 4pt line, so each line takes the least there is: a whole character. A
+        // character beyond the Basic Multilingual Plane is two code units, and a letter with a combining accent is
+        // two characters read as one.
+        TextBlock element = Text(text => text.Run("\U00020BB7\U00020BB7é"));
+
+        List<TextOperation> texts = LayoutHarness.Draw(element, new Extent(4, 500)).Texts.ToList();
+
+        Assert.Equal(["\U00020BB7", "\U00020BB7", "é"], texts.Select(text => text.Text));
+    }
+
+    [Fact]
     public void OnlyTheRunThatBreaksAnywhereDoesSo()
     {
         TextBlock element = Text(text =>

@@ -76,20 +76,44 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         if (string.IsNullOrEmpty(text) || maxWidth <= 0)
             return 0;
 
-        // The same sum MeasureWidth makes, stopped early, so a prefix this accepts measures within the width.
+        // The same sum MeasureWidth makes, stopped early, so a prefix this accepts measures within the width. It ends
+        // where a character a reader sees as one begins, never between a letter and a mark set as a glyph of its own.
         float width = 0f;
         bool first = true;
+        int cluster = 0;
+        GraphemeBoundaries boundaries = default;
 
         foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
         {
+            if (glyph.Length > 0 && Begins(ref boundaries, text, glyph))
+                cluster = glyph.Start;
+
             width += Step(glyph, style.Tracking, first);
             first = false;
 
             if (width > maxWidth)
-                return glyph.Start;
+                return cluster;
         }
 
         return text.Length;
+    }
+
+    /// <summary>
+    /// Whether a glyph standing for characters begins a cluster, taking every character it stands for in turn: the
+    /// first says whether it begins one, and the rest whether what follows extends it.
+    /// </summary>
+    private static bool Begins(ref GraphemeBoundaries boundaries, string text, ShapedGlyph glyph)
+    {
+        bool begins = boundaries.Begins(glyph.Codepoint);
+        int index = glyph.Start + (glyph.Codepoint > char.MaxValue ? 2 : 1);
+
+        while (index < glyph.Start + glyph.Length)
+        {
+            boundaries.Begins(GraphemeBoundaries.CodepointAt(text.AsSpan(), index, out int length));
+            index += length;
+        }
+
+        return begins;
     }
 
     /// <summary>
