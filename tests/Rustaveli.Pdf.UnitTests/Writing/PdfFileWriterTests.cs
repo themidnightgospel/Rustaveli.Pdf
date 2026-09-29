@@ -382,6 +382,51 @@ public class PdfFileWriterTests
         Assert.Equal(new List<object?> { 42L }, reader.GetObject(after.ObjectNumber));
     }
 
+#if NET
+    [Fact]
+    public void AStreamLeftUnencryptedInAnEncryptedFileIsWrittenWithoutACopy()
+    {
+        // Readable metadata is written as it is; copying it first would cost as much as the stream.
+        PdfWriterOptions options = new PdfWriterOptions
+        {
+            CompressionLevel = CompressionLevel.NoCompression,
+            Encryption = Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { EncryptMetadata = false }),
+        };
+
+        byte[] data = new byte[4 << 20];
+        PdfDictionary metadata = new PdfDictionary { [Type] = new PdfName("Metadata") };
+
+        using PdfFileWriter writer = new PdfFileWriter(Stream.Null, options);
+        writer.WriteStream(metadata, data);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        writer.WriteStream(metadata, data);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated < data.Length / 10, $"Writing {data.Length} bytes allocated {allocated}.");
+    }
+#endif
+
+    [Fact]
+    public void AnEncryptedFileCarriesEncryptedAndReadableStreamsIntact()
+    {
+        Rustaveli.Pdf.Security.PdfEncryption encryption = Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { EncryptMetadata = false });
+        byte[] data = Random(100_000, 3);
+        PdfReference covered = default;
+        PdfReference readable = default;
+
+        byte[] file = Write(new PdfWriterOptions { CrossReferenceFormat = PdfCrossReferenceFormat.Table, Encryption = encryption }, writer =>
+        {
+            covered = writer.WriteStream(new PdfDictionary(), data, PdfStreamCompression.None);
+            readable = writer.WriteStream(new PdfDictionary { [Type] = new PdfName("Metadata") }, data, PdfStreamCompression.None);
+            return writer.Write(CatalogDictionary());
+        });
+
+        PdfFileReader reader = new PdfFileReader(file);
+        Assert.Equal(data, encryption.DecryptStream(covered.ObjectNumber, ((ParsedStream)reader.GetObject(covered.ObjectNumber)!).Data));
+        Assert.Equal(data, ((ParsedStream)reader.GetObject(readable.ObjectNumber)!).Data);
+    }
+
     [Theory]
     [InlineData(0, 1)]
     [InlineData(300, 2)]

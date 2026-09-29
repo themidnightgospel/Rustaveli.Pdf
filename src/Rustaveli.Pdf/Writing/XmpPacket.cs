@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security;
 using System.Text;
 
 namespace Rustaveli.Pdf.Writing;
@@ -48,19 +47,19 @@ internal static class XmpPacket
             xmp.Append("   <pdfuaid:part>").Append(accessible.ToString(CultureInfo.InvariantCulture)).Append("</pdfuaid:part>\n");
 
         if (info.Title is { } title)
-            xmp.Append("   <dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(title)).Append("</rdf:li></rdf:Alt></dc:title>\n");
+            xmp.Append("   <dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(title, "Title")).Append("</rdf:li></rdf:Alt></dc:title>\n");
 
         if (info.Author is { } author)
-            xmp.Append("   <dc:creator><rdf:Seq><rdf:li>").Append(Escape(author)).Append("</rdf:li></rdf:Seq></dc:creator>\n");
+            xmp.Append("   <dc:creator><rdf:Seq><rdf:li>").Append(Escape(author, "Author")).Append("</rdf:li></rdf:Seq></dc:creator>\n");
 
         if (info.Subject is { } subject)
-            xmp.Append("   <dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(subject)).Append("</rdf:li></rdf:Alt></dc:description>\n");
+            xmp.Append("   <dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(subject, "Subject")).Append("</rdf:li></rdf:Alt></dc:description>\n");
 
-        Simple(xmp, "pdf:Keywords", info.Keywords);
-        Simple(xmp, "pdf:Producer", info.Producer);
-        Simple(xmp, "xmp:CreatorTool", info.Creator);
-        Simple(xmp, "xmp:CreateDate", Date(info.CreationDate));
-        Simple(xmp, "xmp:ModifyDate", Date(info.ModificationDate));
+        Simple(xmp, "pdf:Keywords", "Keywords", info.Keywords);
+        Simple(xmp, "pdf:Producer", "Producer", info.Producer);
+        Simple(xmp, "xmp:CreatorTool", "Creator", info.Creator);
+        Simple(xmp, "xmp:CreateDate", "CreationDate", Date(info.CreationDate));
+        Simple(xmp, "xmp:ModifyDate", "ModificationDate", Date(info.ModificationDate));
 
         xmp.Append("  </rdf:Description>\n");
 
@@ -100,15 +99,79 @@ internal static class XmpPacket
         + "   </pdfaExtension:schemas>\n"
         + "  </rdf:Description>\n";
 
-    private static void Simple(StringBuilder xmp, string property, string? value)
+    private static void Simple(StringBuilder xmp, string property, string entry, string? value)
     {
         if (value is not null)
-            xmp.Append("   <").Append(property).Append('>').Append(Escape(value)).Append("</").Append(property).Append(">\n");
+            xmp.Append("   <").Append(property).Append('>').Append(Escape(value, entry)).Append("</").Append(property).Append(">\n");
     }
 
     /// <summary>A date as XMP writes it, to the second and with its offset, as the information dictionary has it.</summary>
     private static string? Date(DateTimeOffset? date) =>
         date?.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture);
 
-    private static string Escape(string text) => SecurityElement.Escape(text) ?? string.Empty;
+    /// <summary>
+    /// The information dictionary's <paramref name="entry"/> as XML character data that a parser reads back exactly.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The text has a character XML 1.0 cannot hold, even escaped: a control character other than tab, line feed and
+    /// carriage return, U+FFFE, U+FFFF, or half a surrogate pair.
+    /// </exception>
+    private static string Escape(string text, string entry)
+    {
+        StringBuilder escaped = new StringBuilder(text.Length);
+
+        for (int index = 0; index < text.Length; index++)
+        {
+            char character = text[index];
+
+            switch (character)
+            {
+                case '&':
+                    escaped.Append("&amp;");
+                    break;
+
+                case '<':
+                    escaped.Append("&lt;");
+                    break;
+
+                case '>':
+                    escaped.Append("&gt;");
+                    break;
+
+                case '"':
+                    escaped.Append("&quot;");
+                    break;
+
+                case '\'':
+                    escaped.Append("&apos;");
+                    break;
+
+                // A parser reads a raw carriage return, alone or before a line feed, as a line feed; the metadata would
+                // then differ from the information dictionary it repeats, which PDF/A compares entry by entry.
+                case '\r':
+                    escaped.Append("&#xD;");
+                    break;
+
+                case '\t' or '\n' or (>= ' ' and < '\uD800') or (>= '' and <= '�'):
+                    escaped.Append(character);
+                    break;
+
+                default:
+                    if (!char.IsHighSurrogate(character) || index + 1 == text.Length || !char.IsLowSurrogate(text[index + 1]))
+                    {
+                        // Leaving the character out would make the metadata disagree with the information dictionary,
+                        // and there is no escape for it, so the document is refused rather than described wrongly.
+                        throw new InvalidOperationException(
+                            $"The document's {entry} has the character U+{(int)character:X4}, which XML, and so the XMP metadata " +
+                            "PDF/A and PDF/UA need, cannot hold: remove it.");
+                    }
+
+                    escaped.Append(character).Append(text[index + 1]);
+                    index++;
+                    break;
+            }
+        }
+
+        return escaped.ToString();
+    }
 }

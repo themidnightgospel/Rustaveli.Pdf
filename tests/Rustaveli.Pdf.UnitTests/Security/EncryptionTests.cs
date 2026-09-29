@@ -256,6 +256,80 @@ public class EncryptionTests
         Assert.Equal(new byte[5], encryption.DecryptString(1, new byte[5]));
     }
 
+    [Theory]
+    [InlineData(EncryptionLevel.Rc4With40Bits)]
+    [InlineData(EncryptionLevel.Rc4With128Bits)]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    public void APasswordBelowAes256IsRefusedWhereItsCharactersWouldBeLost(EncryptionLevel level)
+    {
+        // Below revision 5 a password is PDFDocEncoding, and every character outside it would become the same '?', so
+        // "пароль" would open a file protected with "секрет".
+        ArgumentException user = Assert.Throws<ArgumentException>(() => PdfEncryption.Create(new Protection { UserPassword = "секрет", Encryption = level }));
+        ArgumentException owner = Assert.Throws<ArgumentException>(() => PdfEncryption.Create(new Protection { OwnerPassword = "секрет", Encryption = level }));
+
+        Assert.Contains(nameof(EncryptionLevel.AesWith256Bits), user.Message);
+        Assert.Contains("user", user.Message);
+        Assert.Contains("owner", owner.Message);
+
+        // Latin-1 letters are in PDFDocEncoding, and are kept.
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "café", OwnerPassword = "naïve", Encryption = level });
+        Assert.NotNull(Reopen(written, "café"));
+        Assert.NotNull(Reopen(written, "naïve"));
+        Assert.Null(Reopen(written, "cafe"));
+    }
+
+    [Fact]
+    public void Aes256KeepsAPasswordInAnyScript()
+    {
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "секрет", OwnerPassword = "ქართული" });
+
+        Assert.NotNull(Reopen(written, "секрет"));
+        Assert.NotNull(Reopen(written, "ქართული"));
+        Assert.Null(Reopen(written, "пароль"));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(15)]
+    [InlineData(16)]
+    [InlineData(17)]
+    [InlineData(65_536)]
+    [InlineData(200_003)]
+    public void AesStreamsOfEveryLengthComeBackAsTheyWere(int length)
+    {
+        byte[] data = Enumerable.Range(0, length).Select(index => (byte)(index * 7)).ToArray();
+
+        foreach (EncryptionLevel level in new[] { EncryptionLevel.AesWith128Bits, EncryptionLevel.AesWith256Bits })
+        {
+            PdfEncryption encryption = PdfEncryption.Create(new Protection { Encryption = level });
+            byte[] encrypted = encryption.EncryptStream(9, data);
+
+            // The vector, then the data padded to a whole block, always by at least one byte.
+            Assert.Equal(16 + ((length / 16) + 1) * 16, encrypted.Length);
+            Assert.Equal(data, encryption.DecryptStream(9, encrypted));
+        }
+    }
+
+#if NET
+    [Theory]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    [InlineData(EncryptionLevel.AesWith256Bits)]
+    public void AnAesStreamIsEncryptedIntoOneBufferWithoutCopiesOfItsData(EncryptionLevel level)
+    {
+        // Streams are what a document is mostly made of; each copy of one is as large as it is.
+        PdfEncryption encryption = PdfEncryption.Create(new Protection { Encryption = level });
+        byte[] data = new byte[4 << 20];
+        encryption.EncryptStream(1, data);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        byte[] encrypted = encryption.EncryptStream(1, data);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(data.Length + 32, encrypted.Length);
+        Assert.True(allocated < data.Length * 1.1, $"Encrypting {data.Length} bytes allocated {allocated}.");
+    }
+#endif
+
     [Fact]
     public void ThePasswordIsPaddedOrCutTo32Bytes()
     {

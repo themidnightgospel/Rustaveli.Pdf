@@ -628,6 +628,55 @@ public class PdfSurfaceTests
         Assert.Empty(parsed.GetPage(1).GetImages());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnImageIsOpaqueAfterATranslucentFill(bool gradient)
+    {
+        // An image is painted with the fill's constant alpha, so one drawn in the same state as a translucent fill
+        // would take on that fill's opacity; the raster surface draws it opaque.
+        RasterImage image = RasterImage.FromBytes(TestImages.Png(4, 2));
+        VectorPath square = new VectorPath().AddRectangle(0, 0, 5, 5);
+
+        using PdfDocument parsed = Render(canvas =>
+        {
+            if (gradient)
+            {
+                canvas.BeginGradient(Gradient.Across(Brick.WithOpacity(0.3f), Ocean.WithOpacity(0.3f)), Offset.Zero, new Extent(5, 5));
+                canvas.FillPath(square, Brick, FillRule.NonZero);
+                canvas.EndGradient();
+            }
+            else
+            {
+                canvas.DrawRectangle(Offset.Zero, new Extent(5, 5), Ocean.WithOpacity(0.3f));
+            }
+
+            canvas.StrokePath(square, Brick.WithOpacity(0.6f), new LineStyle(1));
+            canvas.DrawImage(image, new Extent(10, 5));
+        });
+
+        Page page = parsed.GetPage(1);
+        List<UglyToad.PdfPig.Graphics.Operations.IGraphicsStateOperation> operations = page.Operations.ToList();
+        int painted = operations.FindIndex(operation => operation is UglyToad.PdfPig.Graphics.Operations.InvokeNamedXObject);
+        UglyToad.PdfPig.Graphics.Operations.SpecialGraphicsState.SetGraphicsStateParametersFromDictionary state = operations
+            .Take(painted)
+            .OfType<UglyToad.PdfPig.Graphics.Operations.SpecialGraphicsState.SetGraphicsStateParametersFromDictionary>()
+            .Last();
+
+        DictionaryToken resources = Resolve<DictionaryToken>(parsed, page.Dictionary.Data["Resources"]);
+        DictionaryToken states = Resolve<DictionaryToken>(parsed, resources.Data["ExtGState"]);
+        DictionaryToken opacity = Resolve<DictionaryToken>(parsed, states.Data[state.Name.Data]);
+
+        Assert.Equal(1, Resolve<NumericToken>(parsed, opacity.Data["ca"]).Double);
+
+        // The stroke's opacity is left as it was.
+        Assert.Equal(0.6, Resolve<NumericToken>(parsed, opacity.Data["CA"]).Double, 0.001);
+    }
+
+    private static T Resolve<T>(PdfDocument parsed, IToken token)
+        where T : IToken =>
+        token is IndirectReferenceToken reference ? (T)parsed.Structure.GetObject(reference.Data).Data : (T)token;
+
     [Fact]
     public void AGradientThatCannotBePlacedPaintsNothing()
     {

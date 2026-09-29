@@ -98,6 +98,39 @@ public class XmpPacketTests
     }
 
     [Fact]
+    public void EveryCharacterXmlCanHoldIsReadBackAsWritten()
+    {
+        // A parser turns a raw carriage return into a line feed; the metadata must still say what the information does.
+        PdfDocumentInfo info = new PdfDocumentInfo
+        {
+            Title = "Q3\r\nReport",
+            Author = "O'Brien \"Books\"",
+            Subject = "Tab\there, line\nthere, return\ronly",
+            Keywords = "emoji \U0001F600, �, ",
+        };
+
+        XElement description = Description(Packet(info, (2, 'B'), null));
+
+        Assert.Equal("Q3\r\nReport", description.Element(Dc + "title")!.Descendants(Rdf + "li").Single().Value);
+        Assert.Equal("O'Brien \"Books\"", description.Element(Dc + "creator")!.Descendants(Rdf + "li").Single().Value);
+        Assert.Equal("Tab\there, line\nthere, return\ronly", description.Element(Dc + "description")!.Descendants(Rdf + "li").Single().Value);
+        Assert.Equal("emoji \U0001F600, �, ", description.Element(Pdf + "Keywords")!.Value);
+    }
+
+    [Fact]
+    public void ACharacterXmlCannotHoldIsRefusedNamingTheEntry()
+    {
+        // XML 1.0 has no way to write these, even escaped: the packet would not parse, and PDF/A needs it to. They are
+        // listed here rather than as theory data, which would not carry a lone surrogate through intact.
+        foreach (string value in new[] { "A\u0001B", "A\u001FB", "A￾B", "A￿", "A\uD800B", "A\uD800", "A\uDC00B" })
+        {
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Packet(new PdfDocumentInfo { Producer = value }, (2, 'B'), null));
+
+            Assert.Contains("Producer", error.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void WhatTheInformationLeavesOutTheMetadataLeavesOut()
     {
         XElement description = Description(Packet(new PdfDocumentInfo(), (2, 'B'), null));

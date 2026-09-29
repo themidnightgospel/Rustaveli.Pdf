@@ -1,3 +1,6 @@
+#if !NET
+using System.Buffers;
+#endif
 using System.Security.Cryptography;
 using System.Text;
 using Rustaveli.Pdf.Writing;
@@ -184,6 +187,58 @@ internal static class StandardSecurity
 
         using ICryptoTransform transform = encrypt ? aes.CreateEncryptor() : aes.CreateDecryptor();
         return transform.TransformFinalBlock(data, 0, data.Length);
+    }
+
+    /// <summary>
+    /// <paramref name="data"/> encrypted with AES in CBC mode and PKCS #7 padding under a random vector, which comes first,
+    /// as PDF stores a string or stream (ISO 32000-1, 7.6.2). A stream can be most of a document, so it is encrypted
+    /// straight into the one array returned rather than copied on the way.
+    /// </summary>
+    public static byte[] EncryptCbc(byte[] key, ReadOnlySpan<byte> data)
+    {
+        // Padding always adds from one byte to a whole block.
+        byte[] result = new byte[16 + ((data.Length / 16) + 1) * 16];
+        byte[] iv = Random(16);
+        iv.CopyTo(result, 0);
+
+        using Aes aes = System.Security.Cryptography.Aes.Create();
+        aes.Key = key;
+
+#if NET
+        aes.EncryptCbc(data, iv, result.AsSpan(16), PaddingMode.PKCS7);
+#else
+        // Without span overloads the data passes through a small rented buffer, a run of whole blocks at a time.
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        aes.IV = iv;
+
+        using ICryptoTransform encryptor = aes.CreateEncryptor();
+        byte[] chunk = ArrayPool<byte>.Shared.Rent(Math.Min(Math.Max(data.Length, 16), 64 * 1024));
+        int run = chunk.Length / 16 * 16;
+        int whole = data.Length - (data.Length % 16);
+        int read = 0;
+        int written = 16;
+
+        try
+        {
+            while (read < whole)
+            {
+                int count = Math.Min(run, whole - read);
+                data.Slice(read, count).CopyTo(chunk);
+                written += encryptor.TransformBlock(chunk, 0, count, result, written);
+                read += count;
+            }
+
+            data.Slice(read).CopyTo(chunk);
+            encryptor.TransformFinalBlock(chunk, 0, data.Length - read).CopyTo(result, written);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(chunk);
+        }
+#endif
+
+        return result;
     }
 
     public static byte[] Random(int length)

@@ -86,6 +86,9 @@ internal sealed class PdfFileWriter : IDisposable
         _pending.Write([0xE2, 0xE3, 0xCF, 0xD3, (byte)'\n']);
     }
 
+    /// <summary>How the file is encrypted, or null when it is not.</summary>
+    public Security.PdfEncryption? Encryption => _encryption;
+
     /// <summary>Allocates the next object number. It must be written before <see cref="Finish"/>.</summary>
     public PdfReference Reserve()
     {
@@ -193,10 +196,11 @@ internal sealed class PdfFileWriter : IDisposable
 
         if (_encryption is { } encryption)
         {
-            // Data is compressed first and encrypted after: encrypted data does not compress.
-            byte[] encrypted = encryption.Covers(dictionary) ? encryption.EncryptStream(reference.ObjectNumber, body) : body.ToArray();
+            // Data is compressed first and encrypted after: encrypted data does not compress. A stream left readable is
+            // written as it is, without a copy.
+            ReadOnlySpan<byte> written = encryption.Covers(dictionary) ? encryption.EncryptStream(reference.ObjectNumber, body) : body;
             _pending.StringCipher = StringCipher(reference);
-            WriteStreamObject(reference, dictionary, encrypted, compress);
+            WriteStreamObject(reference, dictionary, written, compress);
             _pending.StringCipher = null;
             return;
         }

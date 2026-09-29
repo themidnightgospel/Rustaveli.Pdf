@@ -77,9 +77,18 @@ jobs:
 
       - run: dotnet tool restore
 
+      # Kept between runs by its digest: the four targets fetching it at once from GitHub's release storage have been
+      # turned away with a 403, which curl does not retry unless told to.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: libfuzzer-dotnet
+          key: libfuzzer-dotnet-${{ env.LIBFUZZER_DOTNET_SHA256 }}
+
       - name: Fetch libFuzzer's driver for .NET
         run: |
-          curl -fsSL --retry 3 -o libfuzzer-dotnet "$LIBFUZZER_DOTNET_URL"
+          if [ ! -f libfuzzer-dotnet ]; then
+            curl -fsSL --retry 5 --retry-all-errors --retry-delay 10 -o libfuzzer-dotnet "$LIBFUZZER_DOTNET_URL"
+          fi
           echo "$LIBFUZZER_DOTNET_SHA256  libfuzzer-dotnet" | sha256sum --check --strict
           chmod +x libfuzzer-dotnet
 

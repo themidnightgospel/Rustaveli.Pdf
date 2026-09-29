@@ -114,6 +114,13 @@ public static class PdfExport
         if (options?.Protection is not null && options.Conformance != PdfAConformance.None)
             throw new InvalidOperationException("PDF/A forbids encryption: a document cannot be both protected and archival.");
 
+        // ISO 14289-1, 7.16: a protected PDF/UA file must still let assistive technology extract its content.
+        if (options?.Protection is { AllowAccessibility: false } && options.Accessibility != PdfUAConformance.None)
+        {
+            throw new InvalidOperationException(
+                "PDF/UA requires that assistive technology may read a protected document: leave Protection.AllowAccessibility on.");
+        }
+
         PdfWriterOptions writing = new PdfWriterOptions
         {
             CompressionLevel = options?.Compress == false ? CompressionLevel.NoCompression : CompressionLevel.Optimal,

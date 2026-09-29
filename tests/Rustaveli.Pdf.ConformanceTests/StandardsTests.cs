@@ -46,6 +46,31 @@ public class StandardsTests
         Assert.True(broken.Length == 0, "veraPDF found:\n" + string.Join("\n", broken));
     }
 
+    [Fact]
+    public void MetadataWithLineBreaksSaysWhatTheInformationDictionarySays()
+    {
+        // An XML parser reads a raw carriage return as a line feed, and PDF/A compares the two entry by entry.
+        TestFonts.EnsureRegistered();
+        Document document = SpecimenCatalog.All[0].Build();
+        document.Info.Title = "Q3\r\nReport";
+        document.Info.Subject = "Carriage\rreturn";
+        byte[] pdf = document.ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA2B, ImageProcessor = SkiaImageProcessor.Instance });
+
+        IReadOnlyList<string> broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["line-breaks"] = pdf })["line-breaks"];
+
+        Assert.True(broken.Count == 0, "veraPDF found:\n" + string.Join("\n", broken));
+    }
+
+    [Fact]
+    public void MetadataXmlCannotHoldIsRefused()
+    {
+        TestFonts.EnsureRegistered();
+        Document document = SpecimenCatalog.All[0].Build();
+        document.Info.Title = "A\u0001B";
+
+        Assert.Throws<InvalidOperationException>(() => document.ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA2B }));
+    }
+
     /// <summary>
     /// Everything tagging touches: headings, a paragraph with a link, a figure, decoration, a list, a table spanning pages
     /// with repeated headings and row headings, a change of language and untagged content, under a running head and foot.
