@@ -74,10 +74,12 @@ internal static class CellPlacement
     private static bool IsFree(HashSet<(int, int)> occupied, int row, int column, int columnSpan, int rowSpan)
     {
         for (int r = row; r < row + Math.Max(1, rowSpan); r++)
-        for (int c = column; c < column + columnSpan; c++)
         {
-            if (occupied.Contains((r, c)))
-                return false;
+            for (int c = column; c < column + columnSpan; c++)
+            {
+                if (occupied.Contains((r, c)))
+                    return false;
+            }
         }
 
         return true;
@@ -86,7 +88,9 @@ internal static class CellPlacement
     private static void Occupy(HashSet<(int Row, int Column)> occupied, CellBlock cell)
     {
         for (int row = cell.Row; row <= cell.LastRow; row++)
-        for (int column = cell.Column; column <= cell.LastColumn; column++)
-            occupied.Add((row, column));
+        {
+            for (int column = cell.Column; column <= cell.LastColumn; column++)
+                occupied.Add((row, column));
+        }
     }
 }

@@ -1,0 +1,26 @@
+# CodeQL's security and quality queries, less those whose advice would be wrong for this code. Each is left out for a
+# reason that holds for every place it fires; anything else CodeQL finds is fixed, or dismissed alert by alert with its
+# reason recorded.
+
+name: Rustaveli.Pdf
+
+queries:
+  - uses: security-and-quality
+
+query-filters:
+  # Floats are compared exactly only on purpose: against a sentinel (a scale or an opacity of 0, a radius of 0 that SVG
+  # says means no arc), against an identity not worth writing (a scale of 1, PDF's default miter limit of 10), to skip
+  # a graphics state already in force, or to ask whether a number is whole. A tolerance would be wrong in each.
+  - exclude:
+      id: cs/equality-on-floats
+
+  # "!(x > 0)" is how a check rejects NaN along with zero and negatives; the "x <= 0" suggested lets NaN through.
+  - exclude:
+      id: cs/simplifiable-boolean-expression
+
+  # Loops stay loops: LINQ allocates, which matters on the hot paths of layout, fonts and parsing, and elsewhere the
+  # suggestion is one of style.
+  - exclude:
+      id: cs/linq/missed-where
+  - exclude:
+      id: cs/linq/missed-select

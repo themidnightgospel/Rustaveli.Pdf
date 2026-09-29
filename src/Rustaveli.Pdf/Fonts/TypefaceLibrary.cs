@@ -55,7 +55,8 @@ public sealed class TypefaceLibrary
     /// </summary>
     public IReadOnlyList<string> Fallbacks
     {
-        get => _fallbacks;
+        // Replaced whole under the lock, never changed in place: a volatile read sees the latest list without taking it.
+        get => Volatile.Read(ref _fallbacks);
         set
         {
             ArgumentNullException.ThrowIfNull(value);
@@ -76,7 +77,7 @@ public sealed class TypefaceLibrary
     /// </summary>
     internal IComplexShaper? ComplexShaper
     {
-        get => _complex;
+        get => Volatile.Read(ref _complex);
         set
         {
             lock (_lock)

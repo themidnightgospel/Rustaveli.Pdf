@@ -22,6 +22,9 @@ internal static class Typesetter
     /// </summary>
     private const int MaxCountingPasses = 5;
 
+    /// <summary>
+    /// Sets <paramref name="document"/>: counting passes until the page count settles, then a final pass that draws.
+    /// </summary>
     /// <param name="document">The document to set.</param>
     /// <param name="pages">Where the final pass draws.</param>
     /// <param name="measurer">What measures text.</param>

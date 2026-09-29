@@ -152,6 +152,8 @@ internal sealed class PdfEncryption
             [OE] = new PdfString(ownerKey, PdfStringForm.Hex),
             [UE] = new PdfString(userKey, PdfStringForm.Hex),
             [P] = permissions,
+            // ECB because ISO 32000-2 says so (Algorithm 10): /Perms is a single block, a copy of the permissions
+            // with four random bytes that a reader decrypts to check nothing altered them. Nothing else is written in ECB.
             [Perms] = new PdfString(StandardSecurity.Aes(key, null, perms, true, CipherMode.ECB, PaddingMode.None), PdfStringForm.Hex),
         };
 

@@ -174,7 +174,7 @@ internal sealed class TableBlock : Block
 
         if (layout.HeaderHeights.Length != 0)
         {
-            using (TagStack.Scope scope = tagging && repeat ? tags.Untag() : default)
+            using (tagging && repeat ? tags.Untag() : default(TagStack.Scope))
                 DrawBand(HeaderCells, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head, heads: true);
 
             top += layout.HeaderHeight;

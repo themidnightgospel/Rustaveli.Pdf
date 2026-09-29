@@ -112,8 +112,8 @@ internal static class StructureTree
         {
             switch (kid)
             {
-                case StructureElement child when references.ContainsKey(child):
-                    kids.Add(references[child]);
+                case StructureElement child when references.TryGetValue(child, out PdfReference reference):
+                    kids.Add(reference);
                     WriteElement(child, references[element], file, references);
                     break;
 
