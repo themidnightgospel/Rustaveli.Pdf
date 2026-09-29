@@ -195,7 +195,8 @@ public class ProtectionTests
             Qpdf.Check(pdf);
             broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["protected-ua1"] = pdf })["protected-ua1"];
 
-            if (!broken.Any(problem => problem.Contains("unknown or wrong password", StringComparison.Ordinal)))
+            // Any report of a rule is a real finding; only veraPDF failing to read a file qpdf has just opened is retried.
+            if (!broken.Any(problem => problem.StartsWith("veraPDF produced no validation report", StringComparison.Ordinal)))
                 break;
         }
 
