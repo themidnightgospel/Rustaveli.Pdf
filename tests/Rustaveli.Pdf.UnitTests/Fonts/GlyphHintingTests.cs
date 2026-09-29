@@ -39,6 +39,18 @@ public class GlyphHintingTests
     }
 
     [Fact]
+    public void AGlyphOfNoContoursThatIsOnlyAHeaderIsUnchanged()
+    {
+        // Legal, and read by FreeType and fontTools alike: with no contours there are no points for instructions to
+        // move, and nothing after the header to hold their length.
+        byte[] empty = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        byte[] withInstructions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0xB0, 0x01];
+
+        Assert.Equal(empty, GlyphHinting.Strip(empty));
+        Assert.Equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], GlyphHinting.Strip(withInstructions));
+    }
+
+    [Fact]
     public void ACompositeGlyphLosesTheInstructionsAfterItsLastRecordAndTheFlagThatAnnouncesThem()
     {
         // Two records: the first with byte arguments and more to come, the last with word arguments and

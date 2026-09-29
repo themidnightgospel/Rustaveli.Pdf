@@ -46,7 +46,13 @@ internal static class GlyphHinting
     /// </summary>
     private static byte[] StripSimple(ReadOnlySpan<byte> glyph)
     {
-        int lengthAt = CompositeGlyph.HeaderSize + (2 * BigEndian.Int16(glyph, 0));
+        int contours = BigEndian.Int16(glyph, 0);
+        int lengthAt = CompositeGlyph.HeaderSize + (2 * contours);
+
+        // A glyph of no contours may end at its header, as FreeType and fontTools accept: it has no points for
+        // instructions to move, and no instructions to take out.
+        if (contours == 0 && lengthAt + 2 > glyph.Length)
+            return glyph.ToArray();
 
         if (lengthAt + 2 > glyph.Length)
             throw FontFormatException.Truncated();
