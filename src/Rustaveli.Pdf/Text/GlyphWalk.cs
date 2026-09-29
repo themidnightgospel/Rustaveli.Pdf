@@ -28,6 +28,8 @@ internal ref struct GlyphWalk
     private readonly OpenTypeFont _primary;
     private readonly FontRequest _request;
     private readonly ReadOnlySpan<char> _text;
+    private readonly ReadOnlySpan<char> _typed;
+    private readonly bool _rightToLeft;
     private readonly float _pointSize;
     private readonly float _wordSpacing;
     private readonly TypeFeatures _features;
@@ -45,6 +47,19 @@ internal ref struct GlyphWalk
     private List<ShapedGlyph>? _replay;
     private int _replayed;
 
+    /// <param name="shaper">Chooses faces and substitutions.</param>
+    /// <param name="primary">The style's own face.</param>
+    /// <param name="request">The face asked for, which fallbacks are matched against.</param>
+    /// <param name="text">The text to set, with any character that has a mirror image taken as it when it reads right to left.</param>
+    /// <param name="pointSize">The size it is set at.</param>
+    /// <param name="wordSpacing">Space added to each word space.</param>
+    /// <param name="features">The features the style turns on or off.</param>
+    /// <param name="fallbacks">The style's own fallback typefaces.</param>
+    /// <param name="typed">
+    /// For text that reads right to left, the text as typed, before mirroring: a complex shaper mirrors characters
+    /// itself, and mirroring them twice would turn a bracket back to face the wrong way. Empty for text read left to
+    /// right.
+    /// </param>
     internal GlyphWalk(
         TypeShaper shaper,
         OpenTypeFont primary,
@@ -53,12 +68,15 @@ internal ref struct GlyphWalk
         float pointSize,
         float wordSpacing = 0f,
         TypeFeatures? features = null,
-        TypefaceFallbacks? fallbacks = null)
+        TypefaceFallbacks? fallbacks = null,
+        ReadOnlySpan<char> typed = default)
     {
         _shaper = shaper;
         _primary = primary;
         _request = request;
         _text = text;
+        _rightToLeft = !typed.IsEmpty;
+        _typed = _rightToLeft ? typed : text;
         _pointSize = pointSize;
         _wordSpacing = wordSpacing;
         _features = features ?? TypeFeatures.None;
@@ -153,7 +171,7 @@ internal ref struct GlyphWalk
         ReadOnlySpan<char> run = _text.Slice(start, end - start);
 
         if (_shaper.Complex is IComplexShaper complex && complex.Handles(run))
-            return ShapeComplex(complex, face, start, run);
+            return ShapeComplex(complex, face, start, _typed.Slice(start, run.Length));
 
         IReadOnlyList<(int Index, int Value)> lookups = face.Substitutions is null
             ? []
@@ -194,7 +212,8 @@ internal ref struct GlyphWalk
     /// <summary>
     /// Hands a run to the complex shaper, which places its glyphs itself — advances with any kerning, and offsets for
     /// marks — and loads what it sets into the buffer, so they are handed out cluster by cluster as substituted glyphs
-    /// are.
+    /// are. The run is the text as typed, which the shaper mirrors itself when it reads right to left; the glyphs
+    /// still read as the text walked, as the core's do.
     /// </summary>
     private bool ShapeComplex(IComplexShaper complex, OpenTypeFont face, int start, ReadOnlySpan<char> run)
     {
@@ -203,7 +222,7 @@ internal ref struct GlyphWalk
         List<ComplexGlyph> placements = scratch.Placements;
 
         placements.Clear();
-        complex.Shape(face, run, _pointSize, _features, placements);
+        complex.Shape(face, run, _pointSize, _features, _rightToLeft, placements);
         buffer.Load(face, ReadOnlySpan<char>.Empty);
 
         foreach (ComplexGlyph placed in placements)

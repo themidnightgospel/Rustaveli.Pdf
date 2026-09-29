@@ -71,8 +71,8 @@ internal sealed class TypeShaper
     /// <param name="style">The type it is set in.</param>
     /// <param name="rightToLeft">
     /// Whether the text reads right to left. It is still shaped in logical order — joining and ligatures depend on
-    /// it — with each character that has a mirror image, such as a bracket, taken as that image (UAX #9, rule L4);
-    /// then its glyphs are handed out last first.
+    /// it — with each character that has a mirror image, such as a bracket, taken as that image (UAX #9, rule L4),
+    /// save in runs a complex shaper sets, which mirrors them itself; then its glyphs are handed out last first.
     /// </param>
     public GlyphWalk Walk(ReadOnlySpan<char> text, TypeStyle style, bool rightToLeft = false)
     {
@@ -86,7 +86,7 @@ internal sealed class TypeShaper
         List<ShapedGlyph> glyphs = [];
 
         foreach (ShapedGlyph glyph in new GlyphWalk(
-            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces))
+            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces, text))
         {
             glyphs.Add(glyph);
         }

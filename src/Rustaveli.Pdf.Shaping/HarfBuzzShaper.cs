@@ -42,7 +42,8 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         return false;
     }
 
-    public void Shape(OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, List<ComplexGlyph> output)
+    public void Shape(
+        OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft, List<ComplexGlyph> output)
     {
         Font font = _fonts.GetOrAdd(face, Create);
         Buffer buffer = _buffer ??= new Buffer();
@@ -50,6 +51,12 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         buffer.ClearContents();
         buffer.AddUtf16(run);
         buffer.GuessSegmentProperties();
+
+        // HarfBuzz mirrors brackets and the like in text it sets right to left, so it is given the run as typed and
+        // told the direction the paragraph gave it, rather than a guess from the script.
+        if (rightToLeft)
+            buffer.Direction = Direction.RightToLeft;
+
         font.Shape(buffer, FeaturesOf(features));
 
         ReadOnlySpan<GlyphInfo> infos = buffer.GetGlyphInfoSpan();

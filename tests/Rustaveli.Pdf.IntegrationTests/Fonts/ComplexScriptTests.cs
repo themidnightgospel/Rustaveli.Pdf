@@ -1,3 +1,4 @@
+using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Shaping;
 using Rustaveli.Pdf.Text;
 using UglyToad.PdfPig;
@@ -93,6 +94,23 @@ public class ComplexScriptTests
         List<ShapedGlyph> displayed = Shape(Shaped, Salaam, Arabic, rightToLeft: true);
 
         Assert.Equal(logical.Select(glyph => glyph.Glyph).Reverse(), displayed.Select(glyph => glyph.Glyph));
+    }
+
+    [Fact]
+    public void QuotationMarksInRightToLeftArabicAreMirroredOnce()
+    {
+        // Noto Sans Arabic has both guillemets, so the quote and its marks are one run, shaped by HarfBuzz. Displayed
+        // right to left each mark is its mirror image, as the core sets them: the » that closes the quote, read
+        // last, is displayed first as «, and the « that opens it last as ».
+        OpenTypeFont face = Shaped.Shaper.Resolve(Arabic);
+        List<ShapedGlyph> core = Shape(Plain, "«سلام»", Arabic, rightToLeft: true);
+        List<ShapedGlyph> shaped = Shape(Shaped, "«سلام»", Arabic, rightToLeft: true);
+
+        Assert.Equal([face.GetGlyphId('«'), face.GetGlyphId('»')], [core[0].Glyph, core[^1].Glyph]);
+        Assert.Equal([face.GetGlyphId('«'), face.GetGlyphId('»')], [shaped[0].Glyph, shaped[^1].Glyph]);
+
+        // Each reads as the mark it is drawn as, as the core's do.
+        Assert.Equal([core[0].ReadsAs, core[^1].ReadsAs], [shaped[0].ReadsAs, shaped[^1].ReadsAs]);
     }
 
     [Fact]
