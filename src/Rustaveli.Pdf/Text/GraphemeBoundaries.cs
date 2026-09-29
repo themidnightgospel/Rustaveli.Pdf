@@ -31,8 +31,7 @@ internal struct GraphemeBoundaries
         LineBreakClass kind = LineBreakProperties.Of(codepoint).Class;
 
         bool extends = _started
-            && (kind is LineBreakClass.ZWJ or LineBreakClass.EM
-                || (kind == LineBreakClass.CM && codepoint >= FirstMark)
+            && (Extends(codepoint, kind)
                 || (_previous == ZeroWidthJoiner && IsPictographic(codepoint))
                 || (_halfFlag && kind == LineBreakClass.RI));
 
@@ -60,6 +59,15 @@ internal struct GraphemeBoundaries
 
         return begins;
     }
+
+    /// <summary>
+    /// Whether a character belongs with whatever comes before it: a combining mark, a joiner, a variation selector or
+    /// an emoji modifier.
+    /// </summary>
+    public static bool Extends(int codepoint) => Extends(codepoint, LineBreakProperties.Of(codepoint).Class);
+
+    private static bool Extends(int codepoint, LineBreakClass kind) =>
+        kind is LineBreakClass.ZWJ or LineBreakClass.EM || (kind == LineBreakClass.CM && codepoint >= FirstMark);
 
     /// <summary>How many code units the first cluster of <paramref name="text"/> takes; 0 for no text.</summary>
     public static int FirstLength(ReadOnlySpan<char> text)

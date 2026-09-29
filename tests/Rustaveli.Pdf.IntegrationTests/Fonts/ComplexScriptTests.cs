@@ -154,6 +154,21 @@ public class ComplexScriptTests
     }
 
     [Fact]
+    public void AMarkIsSetInTheFaceOfTheLetterItSitsOn()
+    {
+        // Noto Sans has no Devanagari, so ka comes from Noto Sans Devanagari. Both faces have the combining asterisk
+        // above, and Noto Sans a zero width joiner: each goes with the ka, rather than to the style's own face.
+        TypeStyle sans = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(20);
+        OpenTypeFont devanagari = Plain.Shaper.Resolve(Devanagari);
+
+        Assert.All(Shape(Plain, "क⃰", sans), glyph => Assert.Same(devanagari, glyph.Face));
+        Assert.All(Shape(Plain, "क‍", sans), glyph => Assert.Same(devanagari, glyph.Face));
+
+        // A mark the letter's face lacks is still set in a face that has it.
+        Assert.Same(devanagari, Shape(Plain, "aा", sans)[1].Face);
+    }
+
+    [Fact]
     public void ADevanagariVowelSignIsDrawnBeforeTheConsonantItFollows()
     {
         // Ka followed by the vowel sign i: typed after the consonant, the sign is written before it.

@@ -166,12 +166,19 @@ internal ref struct GlyphWalk
 
     /// <summary>
     /// The face that sets <paramref name="codepoint"/>, after a character set in <paramref name="previous"/>: an
-    /// invisible character goes with the one before it, and any other is set in the first face that has it.
+    /// invisible character goes with the one before it, as does a mark or emoji modifier that face has, so that what a
+    /// reader sees as one character is shaped in one face; any other is set in the first face that has it.
     /// </summary>
-    private readonly OpenTypeFont FaceFor(int codepoint, OpenTypeFont? previous) =>
-        InvisibleCharacters.Contains(codepoint) || codepoint == InvisibleCharacters.Tab
-            ? previous ?? _primary
-            : _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
+    private readonly OpenTypeFont FaceFor(int codepoint, OpenTypeFont? previous)
+    {
+        if (InvisibleCharacters.Contains(codepoint) || codepoint == InvisibleCharacters.Tab)
+            return previous ?? _primary;
+
+        if (previous is not null && GraphemeBoundaries.Extends(codepoint) && previous.HasGlyph(codepoint))
+            return previous;
+
+        return _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
+    }
 
     /// <summary>
     /// Whether a character is drawn as nothing in <paramref name="face"/>: an invisible one it has no glyph for, or a
