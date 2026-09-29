@@ -79,6 +79,15 @@ internal sealed class Pagination
     public int? LastFolioOf(string name) => Find(name)?.Last;
 
     /// <summary>
+    /// Whether this pass found every anchor and captured position where the pass before it did, so that content
+    /// reading them — a cross-reference, content placed by a position — drew from what is really there. Anchors and
+    /// positions this pass did not reach are not compared.
+    /// </summary>
+    internal bool FoundWhatWasKnown() =>
+        _recording.All(anchor => _known.TryGetValue(anchor.Key, out AnchorPages known) && known == anchor.Value)
+        && _recordingPositions.All(captured => _knownPositions.TryGetValue(captured.Key, out List<CapturedPosition>? known) && known.SequenceEqual(captured.Value));
+
+    /// <summary>
     /// Prepares for another rendering pass over the same document.
     /// </summary>
     /// <remarks>

@@ -55,7 +55,10 @@ internal static class Typesetter
 
             int[] pagesByPart = RunPass(document, probe, measurer, pageContext, resolution);
 
-            if (pagesByPart.SequenceEqual(counted))
+            // Settled only when the pass also found anchors and captured positions where the pass before it did: a
+            // cross-reference that moved what it refers to, without changing the count, would otherwise print the
+            // page or place it read rather than the one it is drawn on.
+            if (pagesByPart.SequenceEqual(counted) && pageContext.FoundWhatWasKnown())
                 break;
 
             counted = pagesByPart;
