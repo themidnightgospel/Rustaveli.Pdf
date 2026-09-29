@@ -98,6 +98,14 @@ internal static class FileAssembler
         bool whole = first.Pages.Count <= pages.Count
             && first.Pages.Select((page, index) => ReferenceEquals(pages[index].Page, page)).All(same => same);
 
+        // Only the first file's named destinations are kept, and only then: every other file's links name destinations
+        // of its own, which the names kept would take elsewhere or nowhere, so they are copied as the places they name.
+        foreach (PdfSource source in pages.Select(entry => entry.Page.Source).Distinct())
+        {
+            if (!whole || !ReferenceEquals(source, first))
+                copier.ResolveNamedDestinations(source);
+        }
+
         // A page laid on many — a letterhead under every page — is written as a form once, and drawn wherever it is laid.
         Dictionary<(PdfSource, int), PdfReference> forms = [];
 

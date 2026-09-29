@@ -387,6 +387,88 @@ public class PdfFileTests
         Assert.Equal(source.Pages[1].ObjectNumber, square[new PdfName("P")].AsReference().ObjectNumber);
     }
 
+    /// <summary>Two pages, the first linking to a destination named "target" on the second, as hyperref names them.</summary>
+    private static byte[] CrossReferenced(string label)
+    {
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(200, 200);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Stack(stack =>
+            {
+                stack.Add().CrossReference("target").Text(label + " go");
+                stack.Add().NewPage();
+                stack.Add().Anchor("target").Text(label + " target");
+            });
+        }));
+
+        return document.ExportPdf();
+    }
+
+    /// <summary>
+    /// The page, from 1, that the link on page <paramref name="page"/> leads to, its destination followed as a viewer
+    /// follows it: a name through the file's named destinations, an array to its page.
+    /// </summary>
+    private static int LinkTarget(byte[] pdf, int page)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfDictionary link = source.Resolve(source.Resolve(source.Pages[page - 1].Dictionary[PdfNames.Annots]).AsArray()[0]).AsDictionary();
+        PdfValue destination = source.Resolve(link.TryGetValue(new PdfName("Dest"), out PdfValue dest) ? dest : source.Resolve(link[PdfNames.A]).AsDictionary()[PdfNames.D]);
+
+        if (destination.Kind == PdfValueKind.String)
+        {
+            PdfValue tree = source.Resolve(source.Catalog[PdfNames.Names]).AsDictionary()[PdfNames.Dests];
+            destination = source.Resolve(Rustaveli.Pdf.Operations.Assembly.EmbeddedFiles.Entries(source, tree)
+                .Single(entry => entry.Key.Bytes.ToArray().SequenceEqual(destination.AsString().Bytes.ToArray())).Value);
+        }
+
+        if (destination.Kind == PdfValueKind.Dictionary)
+            destination = source.Resolve(destination.AsDictionary()[PdfNames.D]);
+
+        int target = destination.AsArray()[0].AsReference().ObjectNumber;
+        return source.Pages.Select(found => found.ObjectNumber).ToList().IndexOf(target) + 1;
+    }
+
+    [Fact]
+    public void LinksToNamedDestinationsLeadWhereTheyDidInTheirOwnFile()
+    {
+        byte[] first = CrossReferenced("A");
+        byte[] second = CrossReferenced("B");
+
+        byte[] appended = PdfFile.Open(first).Append(PdfFile.Open(second)).ToArray();
+        byte[] reordered = PdfFile.Open(first).KeepPages("2, 1").ToArray();
+        byte[] partly = PdfFile.Open(second).Append(PdfFile.Open(first)).KeepPages("3-4").ToArray();
+
+        Assert.Equal(["A go", "A target", "B go", "B target"], Read(appended));
+        Assert.Equal(2, LinkTarget(appended, 1));
+        Assert.Equal(4, LinkTarget(appended, 3));
+        Assert.Equal(1, LinkTarget(reordered, 2));
+        Assert.Equal(2, LinkTarget(partly, 1));
+    }
+
+    [Fact]
+    public void DestinationsNamedEitherWayAreFollowedAndTheRestLeftAsTheyAre()
+    {
+        string link = "<</Type/Annot/Subtype/Link/Rect[0 0 9 9]";
+        string pdf = "%PDF-1.7\n"
+            + "1 0 obj<</Type/Catalog/Pages 2 0 R/Dests<</Old[4 0 R/Fit]/Odd 7>>/Names<</Dests<</Names[(bare)[4 0 R/Fit](tree)<</D[4 0 R/Fit]>>]>>>>>>endobj\n"
+            + "2 0 obj<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2/MediaBox[0 0 200 200]>>endobj\n"
+            + $"3 0 obj<</Type/Page/Parent 2 0 R/Annots[{link}/Dest/Old>>{link}/Dest(tree)>>{link}/A<</S/GoTo/D(bare)>>>>"
+            + $"{link}/A<</S/GoToR/F(other.pdf)/D(tree)>>>>{link}/Dest(missing)>>{link}/Dest/Odd>>{link}/Dest[4 0 R/Fit]>>]>>endobj\n"
+            + "4 0 obj<</Type/Page/Parent 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
+
+        PdfSource source = PdfSource.Open(PdfFile.Open(Pages("One")).Append(PdfFile.Open(System.Text.Encoding.ASCII.GetBytes(pdf))).ToArray());
+        List<PdfValue> destinations = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray().Cast<PdfValue>()
+            .Select(annotation => source.Resolve(annotation).AsDictionary())
+            .Select(annotation => annotation.TryGetValue(new PdfName("Dest"), out PdfValue dest) ? dest : source.Resolve(annotation[PdfNames.A]).AsDictionary()[PdfNames.D])
+            .ToList();
+
+        Assert.All(new[] { 0, 1, 2, 6 }, index => Assert.Equal(source.Pages[2].ObjectNumber, destinations[index].AsArray()[0].AsReference().ObjectNumber));
+        Assert.Equal("tree", System.Text.Encoding.ASCII.GetString(destinations[3].AsString().Bytes.ToArray()));
+        Assert.Equal("missing", System.Text.Encoding.ASCII.GetString(destinations[4].AsString().Bytes.ToArray()));
+        Assert.Equal("Odd", destinations[5].AsName().Value);
+    }
+
     [Fact]
     public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
     {
