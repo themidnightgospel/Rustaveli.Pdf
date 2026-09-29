@@ -21,7 +21,7 @@ namespace Rustaveli.Pdf.Fonts;
 /// glyph's instructions — save in the fonts that need it to be read at all (<see cref="GlyphHinting"/>).
 /// </para>
 /// <para>
-/// Only TrueType outlines are subset. CFF fonts are embedded whole.
+/// Only TrueType outlines are subset here; CFF fonts are subset by <see cref="CffSubsetter"/>.
 /// </para>
 /// </remarks>
 internal static class TrueTypeSubsetter

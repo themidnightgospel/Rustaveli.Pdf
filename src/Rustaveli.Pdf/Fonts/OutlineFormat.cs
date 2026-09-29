@@ -15,8 +15,8 @@ internal enum OutlineFormat
     TrueType,
 
     /// <summary>
-    /// Cubic PostScript outlines in a <c>CFF </c> table. Not subset by this library: the whole font is embedded
-    /// (FontFile3 with subtype OpenType, or the bare CFF table as CIDFontType0C).
+    /// Cubic PostScript outlines in a <c>CFF </c> table. Subset as a CID-keyed CFF (FontFile3 with subtype
+    /// CIDFontType0C) by <see cref="CffSubsetter"/>; a font it cannot subset is embedded whole, as OpenType.
     /// </summary>
     Cff,
 

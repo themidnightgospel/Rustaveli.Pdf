@@ -43,7 +43,7 @@ flowchart TD
 ```
 
 - The **surface** turns drawing — paths, text, images, links — into content-stream operators. It is the PDF
-  implementation of the one drawing seam the layout engine talks to ([How layout works](../architecture.md)).
+  implementation of the one drawing seam the layout engine talks to ([How layout works](layout.md)).
 - The **document writer** knows PDF's logical structure: pages, the page tree, the catalog, named destinations, the
   outline and the information dictionary.
 - The **file writer** knows its physical structure: the header, numbered objects, streams, compression, the

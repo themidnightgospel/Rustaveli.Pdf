@@ -233,8 +233,8 @@ part of the text engine with a native dependency ([ADR 0015](../adr/0015-text-en
 installs a HarfBuzz shaper on a `TypefaceLibrary`. From then on, a run set in one face that holds any character of
 Hebrew, Arabic and its neighbouring scripts, the scripts of India from Devanagari to Sinhala, or Thai, Lao, Tibetan,
 Myanmar, Khmer and other scripts of South-East Asia, is handed to HarfBuzz whole. HarfBuzz shapes it from the face's
-own tables, with the style's feature settings on top of its own defaults, and returns the glyphs with their advances (kerning included) and offsets. The walk hands those glyphs out
-like any others, and the PDF surface draws each displaced glyph — a mark on its letter — at exactly the position
+own tables, with the style's feature settings on top of its own defaults, and returns the glyphs with their advances
+(kerning included) and offsets. The walk hands those glyphs out like any others, and the PDF surface draws each displaced glyph — a mark on its letter — at exactly the position
 HarfBuzz gave it. Every other run is shaped by the core as before.
 
 Without the package, such text is still set, a glyph for each character through the core's substitutions: Arabic

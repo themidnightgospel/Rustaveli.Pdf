@@ -18,7 +18,7 @@ It is written from scratch, as a design of its own:
   dependencies; native libraries come in only through the optional packages that need them.
 - **Layout kept apart from output.** The layout engine draws through a single surface, so producing a PDF, a page
   image or anything else is a decision at the edge rather than one built into the core
-  ([how layout works](architecture.md)).
+  ([how layout works](how-it-works/layout.md)).
 
 
 ## History

@@ -13,7 +13,14 @@
 
 ## How it works
 
-- [How layout works](architecture.md) — the fitting contract, counting passes and per-page state
+- [How layout works](how-it-works/layout.md) — the fitting contract, pagination, counting passes and per-page state
+- [The text engine](how-it-works/text.md) — shaping, fallback, line breaking, bidirectional text and justification
+- [Fonts](how-it-works/fonts.md) — finding and matching typefaces, and embedding them as subsets
+- [The PDF writer](how-it-works/pdf-writer.md) — objects, streams, compression and parallel exports
+- [Images](how-it-works/images.md), [colour](how-it-works/colour.md), [standards](how-it-works/standards.md) and
+  [encryption](how-it-works/encryption.md)
+- [Existing files](how-it-works/existing-files.md) — reading, repairing, combining and protecting PDF files
+- [Page images and preview](how-it-works/rendering-and-preview.md) — Skia rendering and the live preview
 - [How it's tested](testing.md) — unit, property-based, integration, conformance and mutation tests
 - [Performance](performance.md) — benchmarks and file sizes against QuestPDF
 - [Architecture decision records](adr/README.md) — the choices behind the design, and why

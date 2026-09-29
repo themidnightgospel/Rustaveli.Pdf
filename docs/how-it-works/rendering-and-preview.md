@@ -8,7 +8,7 @@ explains how both work. The guides show how to use them: [Output](../guide/outpu
 
 ## One layout, several surfaces
 
-Layout never depends on how its result is drawn ([How layout works](../architecture.md)). The typesetter plans and
+Layout never depends on how its result is drawn ([How layout works](layout.md)). The typesetter plans and
 renders every page through one drawing seam, and a page image is simply a different surface behind that seam:
 
 ```mermaid

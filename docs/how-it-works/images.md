@@ -118,7 +118,7 @@ in its upright proportions:
 | `Stretch` | The frame's width and height, in or out of proportion |
 
 An image whose fitted size does not fit — a `FitWidth` image too tall for what is left of the page, say — moves on
-to the next page (see [How layout works](../architecture.md)). The image is scaled by the PDF's transformation
+to the next page (see [How layout works](layout.md)). The image is scaled by the PDF's transformation
 matrix, not resampled: the viewer scales the pixels as it draws. Artwork is fitted by the same rules and clipped to
 its own bounds.
 

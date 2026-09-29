@@ -17,8 +17,8 @@ namespace Rustaveli.Pdf;
 /// in memory. Documents can be exported in parallel; each export has its own writer and shares only the typefaces.
 /// </para>
 /// <para>
-/// A document holds its layout progress while it is set, so one document must not be exported from two threads
-/// at once. Export it once per thread, or compose one per thread.
+/// A document holds its layout progress while it is set, so an export that begins while another is under way lays
+/// out a copy composed afresh: one document can be exported from several threads at once.
 /// </para>
 /// </remarks>
 public static class PdfExport
