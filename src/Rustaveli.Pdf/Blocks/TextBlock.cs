@@ -707,7 +707,10 @@ internal sealed class TextBlock : Block
                 float segmentWidth = context.Measurer.MeasureWidth(segment, style);
                 float lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
-                if (current.Width + segmentWidth <= lineWidth + Extent.Epsilon)
+                // A soft hyphen ending the piece is shown if the line breaks at it, so the line keeps room for it.
+                float hyphen = EndsWithSoftHyphen(segment) ? context.Measurer.MeasureWidth(ShownHyphen, style) : 0f;
+
+                if (current.Width + segmentWidth + hyphen <= lineWidth + Extent.Epsilon)
                 {
                     current.Add(new TextRun(segment, style, segmentWidth, span, Offset: offset));
                     continue;
@@ -728,7 +731,10 @@ internal sealed class TextBlock : Block
                 }
 
                 if (current.Runs.Count > 0)
+                {
+                    ShowSoftHyphen(current, context.Measurer);
                     FlushLine(force: false);
+                }
 
                 // The flush replaced the line, and a continuation is not indented — so the budget has to be
                 // recomputed. Reusing the opening line's narrower budget would shatter words that do fit.
@@ -864,6 +870,29 @@ internal sealed class TextBlock : Block
             current.Clear();
         }
     }
+
+    /// <summary>
+    /// Shows the soft hyphen a line ends with as a hyphen, now that the line breaks at it. Elsewhere a soft hyphen is
+    /// set as nothing.
+    /// </summary>
+    private static void ShowSoftHyphen(TextLine line, ITypeMeasurer measurer)
+    {
+        TextRun last = line.Runs[^1];
+
+        if (!EndsWithSoftHyphen(last.Text))
+            return;
+
+        // Replaced one for one, so the run still covers the same characters of its paragraph's text.
+        string shown = last.Text.Substring(0, last.Text.Length - 1) + ShownHyphen;
+        line.RemoveLast();
+        line.Add(last with { Text = shown, Width = measurer.MeasureWidth(shown, last.Style) });
+    }
+
+    private static bool EndsWithSoftHyphen(string text) =>
+        text.Length > 0 && text[text.Length - 1] == InvisibleCharacters.SoftHyphen;
+
+    /// <summary>What a soft hyphen at the end of a line is shown as: the hyphen every face has.</summary>
+    private const string ShownHyphen = "-";
 
     /// <summary>
     /// Whitespace a line may be broken at. Non-breaking forms are deliberately excluded: they exist precisely to

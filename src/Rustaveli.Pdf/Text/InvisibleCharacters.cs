@@ -8,11 +8,15 @@ namespace Rustaveli.Pdf.Text;
 /// <remarks>
 /// A face without a glyph for one sets it as nothing, rather than as its missing-glyph box, and it goes with the
 /// character before it: set in that character's face, so a selector or joiner does not split a run of it, and read
-/// back as part of it. A tab, the one control character typed as spacing, is set as a space instead.
+/// back as part of it. A tab, the one control character typed as spacing, is set as a space instead. A soft hyphen
+/// is set as nothing even in a face that has a glyph for it, since it only shows where a line breaks at it, which
+/// is the paragraph's to show.
 /// </remarks>
 internal static class InvisibleCharacters
 {
     public const int Tab = '\t';
+
+    public const char SoftHyphen = '­';
 
     /// <summary>Whether <paramref name="codepoint"/> is drawn as nothing when its face has no glyph for it.</summary>
     /// <remarks>

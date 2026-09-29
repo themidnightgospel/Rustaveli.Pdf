@@ -145,7 +145,7 @@ internal ref struct GlyphWalk
             _next = end;
 
             // One with nothing before it to go with is left out.
-            if (glyph == 0 && InvisibleCharacters.Contains(codepoint))
+            if (IsSetAsNothing(face, codepoint))
                 continue;
 
             if (codepoint == InvisibleCharacters.Tab)
@@ -165,9 +165,12 @@ internal ref struct GlyphWalk
             ? previous ?? _primary
             : _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
 
-    /// <summary>Whether a character is drawn as nothing in <paramref name="face"/>: an invisible one it has no glyph for.</summary>
+    /// <summary>
+    /// Whether a character is drawn as nothing in <paramref name="face"/>: an invisible one it has no glyph for, or a
+    /// soft hyphen, which the face's glyph would show mid-line.
+    /// </summary>
     private static bool IsSetAsNothing(OpenTypeFont face, int codepoint) =>
-        InvisibleCharacters.Contains(codepoint) && !face.HasGlyph(codepoint);
+        InvisibleCharacters.Contains(codepoint) && (codepoint == InvisibleCharacters.SoftHyphen || !face.HasGlyph(codepoint));
 
     /// <summary>
     /// Where the characters from <paramref name="index"/> that <paramref name="face"/> sets as nothing end, so that
@@ -317,16 +320,18 @@ internal ref struct GlyphWalk
 
     /// <summary>
     /// Whether the glyph at <paramref name="index"/> stands for nothing drawn: the face's missing glyph for a cluster
-    /// of invisible characters.
+    /// of invisible characters, or a soft hyphen's.
     /// </summary>
     private readonly bool IsNothing(GlyphBuffer buffer, int index)
     {
+        int start = _runStart + buffer.Clusters[index];
+
         if (buffer.Glyphs[index] != 0)
-            return false;
+            return _text[start] == InvisibleCharacters.SoftHyphen;
 
         int end = _runStart + buffer.GetClusterEnd(index, _runLength);
 
-        for (int at = _runStart + buffer.Clusters[index]; at < end;)
+        for (int at = start; at < end;)
         {
             (int codepoint, int length) = Read(at);
 

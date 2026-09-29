@@ -252,6 +252,48 @@ public class ShapingTests
         Assert.Equal(measurer.MeasureWidth("a b", Sans), measurer.MeasureWidth("a\tb", Sans));
     }
 
+    /// <summary>The lines of <paramref name="text"/> set in a column <paramref name="width"/> wide, top first, as read back.</summary>
+    private static List<string> Lines(string text, float width)
+    {
+        byte[] pdf = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(width, 200);
+            section.DefaultType = Sans;
+            section.Body().Text(text);
+        })).ExportPdf(new PdfExportOptions { Typefaces = Library });
+
+        using PdfDocument parsed = PdfDocument.Open(pdf);
+
+        // A soft hyphen that is not shown still reads back, with the letter before it; the lines are compared as seen.
+        return parsed.GetPage(1).Letters
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y))
+            .OrderByDescending(line => line.Key)
+            .Select(line => string.Concat(line.Select(letter => letter.Value)).Replace("­", string.Empty))
+            .ToList();
+    }
+
+    [Fact]
+    public void ASoftHyphenIsShownOnlyWhereTheLineBreaks()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        const string Word = "hy­phen­ation";
+
+        Assert.Equal(measurer.MeasureWidth("hyphenation", Sans), measurer.MeasureWidth(Word, Sans));
+        Assert.Equal(0f, measurer.MeasureWidth("­", Sans));
+
+        Assert.Equal(["hyphenation"], Lines(Word, measurer.MeasureWidth("hyphenation", Sans) + 1));
+        Assert.Equal(["hyphen-", "ation"], Lines(Word, measurer.MeasureWidth("hyphen-", Sans) + 1));
+    }
+
+    [Fact]
+    public void ASoftHyphenEndingTheTextIsNotShown()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+
+        Assert.Equal(["hyphen"], Lines("hyphen­", measurer.MeasureWidth("hyphen", Sans) + 1));
+        Assert.Equal(["hyphen", "hyphen"], Lines("hyphen­\nhyphen", measurer.MeasureWidth("hyphen", Sans) + 1));
+    }
+
     [Fact]
     public void BracketsReadingRightToLeftAreMirrored()
     {
