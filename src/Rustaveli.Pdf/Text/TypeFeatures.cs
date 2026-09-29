@@ -9,6 +9,9 @@ namespace Rustaveli.Pdf.Text;
 /// <remarks>Immutable: each change returns a new set, as each change to a <see cref="TypeStyle"/> does.</remarks>
 internal sealed class TypeFeatures : IEquatable<TypeFeatures>
 {
+    // Before None, which the constructor that reads it makes.
+    private static readonly FeatureTag Kerning = FeatureTag.Parse("kern");
+
     public static readonly TypeFeatures None = new TypeFeatures([]);
 
     private readonly FeatureSetting[] _settings;
@@ -16,10 +19,19 @@ internal sealed class TypeFeatures : IEquatable<TypeFeatures>
     private TypeFeatures(FeatureSetting[] settings)
     {
         _settings = settings;
+
+        foreach (FeatureSetting setting in settings)
+            Kerns &= setting.Tag != Kerning || setting.Value != 0;
     }
 
     /// <summary>The settings, one per feature, in tag order.</summary>
     public IReadOnlyList<FeatureSetting> Settings => _settings;
+
+    /// <summary>
+    /// Whether pair kerning applies: unless <c>kern</c> is turned off, as the core applies the font's kerning itself
+    /// rather than through a positioning feature.
+    /// </summary>
+    public bool Kerns { get; } = true;
 
     /// <summary>These settings with <paramref name="tag"/> set to <paramref name="value"/>, replacing any before.</summary>
     public TypeFeatures With(FeatureTag tag, int value)

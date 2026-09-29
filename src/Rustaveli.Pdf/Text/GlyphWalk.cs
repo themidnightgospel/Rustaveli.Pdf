@@ -382,7 +382,9 @@ internal ref struct GlyphWalk
     {
         // A glyph a complex shaper placed moves the pen as it said, kerning included, and is drawn where it said.
         float advance = placed?.Advance ?? face.GetAdvance(glyph, _pointSize);
-        float kerning = placed is null && ReferenceEquals(face, _previousFace) ? face.GetKerning(_previousGlyph, glyph, _pointSize) : 0f;
+        float kerning = placed is null && _features.Kerns && ReferenceEquals(face, _previousFace)
+            ? face.GetKerning(_previousGlyph, glyph, _pointSize)
+            : 0f;
 
         // Word spacing widens the spaces between words, the no-break space among them; it is carried by the space
         // itself, so a space measured on its own is as wide as it will be set.

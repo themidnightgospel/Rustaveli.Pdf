@@ -118,6 +118,19 @@ public class ShapingTests
     }
 
     [Fact]
+    public void KerningCanBeTurnedOff()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        TypeStyle unkerned = Sans.WithFeature("kern", 0);
+        float advances = Shape("AV", Sans).Sum(glyph => glyph.Advance);
+
+        Assert.NotEqual(0f, Shape("AV", Sans)[1].Kerning);
+        Assert.NotEqual(0f, Shape("AV", Sans.WithFeature("kern"))[1].Kerning);
+        Assert.Equal(0f, Shape("AV", unkerned)[1].Kerning);
+        Assert.Equal(advances, measurer.MeasureWidth("AV", unkerned), 0.001f);
+    }
+
+    [Fact]
     public void AFeatureTheFaceLacksChangesNothing()
     {
         Assert.Equal(
