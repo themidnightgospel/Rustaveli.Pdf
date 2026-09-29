@@ -250,6 +250,61 @@ public class ColumnsTests
     }
 
     [Fact]
+    public void AnAutoColumnFirstMeasuredWithNoRoomLeftIsSizedOnTheNextPage()
+    {
+        // The row is first measured in the last few points of a page, where its text has no room to be measured in.
+        // The width it is given must not be fixed by that, or it collapses to nothing on every page after.
+        Document document = Document.Compose(container => container.Section(page =>
+        {
+            page.Trim = new Extent(200, 100);
+            page.Body().Stack(column =>
+            {
+                column.Add().Height(95).Text("filler");
+                column.Add().Columns(row =>
+                {
+                    row.Natural().Text("Qty");
+                    row.Share().Text("item");
+                });
+            });
+        }));
+
+        RecordingSurface canvas = LayoutHarness.Render(document);
+
+        Assert.Equal(2, canvas.Pages.Count);
+        Assert.Equal("Qtyitem", canvas.Page(2).Content);
+        Assert.Equal(18f, canvas.Page(2).Texts.Single(text => text.Text == "item").Position.X);
+    }
+
+    [Fact]
+    public void AnAutoColumnIsAsWideAsAllOfItsContentNotOnlyWhatFitsTheFirstPage()
+    {
+        // Measured in the height the row is offered, a column would take the width of the lines that fit there, and
+        // keep it for the lines that follow on the next page, however wider they are.
+        StackBlock content = new StackBlock();
+        content.Items.Add(new FixedBlock(20, 30));
+        content.Items.Add(new FixedBlock(60, 30));
+
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Natural, 0, content),
+            Item(ColumnSizing.Share, 1, new FixedBlock(10, 10, TestInks.Red)));
+
+        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 40));
+
+        Approximately.Equal(60f, page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red).Position.X);
+    }
+
+    [Fact]
+    public void AnAutoItemTooWideForTheRowMakesItWrapUntilItIsOfferedMore()
+    {
+        ColumnsBlock row = Row(0,
+            Item(ColumnSizing.Natural, 0, new FixedBlock(300, 10)),
+            Item(ColumnSizing.Share, 1, new FixedBlock(10, 10)));
+
+        Assert.True(LayoutHarness.Measure(row, new Extent(200, 100)).IsDeferred);
+        Assert.True(LayoutHarness.Measure(row, new Extent(400, 100)).IsComplete);
+    }
+
+    [Fact]
     public void AnAutoItemThatCannotFitMakesTheRowWrap()
     {
         ColumnsBlock row = Row(0,

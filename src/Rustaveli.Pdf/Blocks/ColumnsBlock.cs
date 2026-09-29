@@ -197,14 +197,21 @@ internal sealed class ColumnsBlock : Block
             consumed += widths[index];
         }
 
+        bool settled = true;
+
         for (int index = 0; index < Items.Count; index++)
         {
             if (Items[index].Sizing != ColumnSizing.Natural)
                 continue;
 
-            Extent offered = new Extent(Math.Max(0f, available - consumed), availableSpace.Height);
+            // Measured in all the height there could be, not in the room this page happens to leave: the width is
+            // kept for every page the row goes on to, so it is the width of all the content, not of what fits here.
+            Extent offered = new Extent(Math.Max(0f, available - consumed), Extent.Max.Height);
             Fit plan = Items[index].Plan(offered, context);
 
+            // Content that cannot be measured at this width gets none, but only for now: kept, that would hold
+            // for every page after, where it might have fitted.
+            settled &= !plan.IsDeferred;
             widths[index] = plan.IsDeferred ? 0f : Math.Min(plan.Size.Width, offered.Width);
             consumed += widths[index];
         }
@@ -226,8 +233,11 @@ internal sealed class ColumnsBlock : Block
             }
         }
 
-        _cachedWidths = widths;
-        _cachedAvailableWidth = availableSpace.Width;
+        if (settled)
+        {
+            _cachedWidths = widths;
+            _cachedAvailableWidth = availableSpace.Width;
+        }
 
         return widths;
     }
