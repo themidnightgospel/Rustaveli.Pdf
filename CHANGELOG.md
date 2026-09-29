@@ -3,7 +3,16 @@
 Versions follow [semantic versioning](https://semver.org/). Before 1.0 the public surface may still change from one
 minor version to the next; from 1.0, nothing public changes incompatibly within a major version.
 
-## Unreleased
+## 0.1.1
+
+Fixes found by fuzzing the readers of fonts, images, SVG and PDF files, which now runs on every change, and by the
+issues left from 0.1.0.
+
+**Packaging**
+
+- Each package comes with a signed build provenance attestation:
+  `gh attestation verify <package>.nupkg --repo themidnightgospel/Rustaveli.Pdf` shows it was built here, from this
+  release's commit.
 
 **Fixed**
 
