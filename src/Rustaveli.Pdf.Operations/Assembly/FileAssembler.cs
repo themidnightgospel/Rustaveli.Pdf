@@ -20,6 +20,14 @@ internal static class FileAssembler
     private static readonly PdfName BBox = new PdfName("BBox");
     private static readonly PdfName CropBox = new PdfName("CropBox");
     private static readonly PdfName Rotate = new PdfName("Rotate");
+    private static readonly PdfName OCProperties = new PdfName("OCProperties");
+    private static readonly PdfName OCGs = new PdfName("OCGs");
+    private static readonly PdfName BaseState = new PdfName("BaseState");
+    private static readonly PdfName On = new PdfName("ON");
+    private static readonly PdfName Off = new PdfName("OFF");
+
+    /// <summary>What an optional content configuration lists that every file's configuration adds to.</summary>
+    private static readonly PdfName[] Joined = [new PdfName("Order"), new PdfName("RBGroups"), new PdfName("Locked")];
     private static readonly PdfName MarkInfo = new PdfName("MarkInfo");
     private static readonly PdfName Marked = new PdfName("Marked");
     private static readonly PdfName StructParents = new PdfName("StructParents");
@@ -71,8 +79,14 @@ internal static class FileAssembler
         ObjectCopier copier = new ObjectCopier(writer.File);
         List<(PdfReference Page, PdfReference Parent)> placed = pages.Select(_ => writer.AddPage()).ToList();
 
+        // Every file the pages come from, the first file first whether or not any of its pages are kept.
+        List<PdfSource> sources = new[] { first }
+            .Concat(pages.SelectMany(entry => entry.Over.Concat(entry.Beneath).Append(entry.Page)).Select(page => page.Source))
+            .Distinct()
+            .ToList();
+
         // Every page of every file goes to the first page it became, or nowhere; the rest of their trees go nowhere.
-        foreach (PdfSource source in pages.SelectMany(entry => entry.Over.Concat(entry.Beneath).Append(entry.Page)).Select(page => page.Source).Distinct())
+        foreach (PdfSource source in sources)
         {
             foreach (int node in source.PageTree)
                 copier.Redirect(source, node, null);
@@ -112,7 +126,7 @@ internal static class FileAssembler
         for (int index = 0; index < pages.Count; index++)
             WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first), forms, again[index]);
 
-        CopyDocument(writer, copier, first, whole, settings);
+        CopyDocument(writer, copier, first, whole, settings, sources);
         copier.Flush();
         writer.Finish();
     }
@@ -360,19 +374,95 @@ internal static class FileAssembler
         return writer.File.WriteStream(form, content.ToArray());
     }
 
-    private static void CopyDocument(PdfDocumentWriter writer, ObjectCopier copier, PdfSource first, bool whole, SaveSettings settings)
+    /// <summary>
+    /// The optional content of every file the pages come from, merged (8.11.4): content in a group the file does not
+    /// list is shown by viewers, so a layer its own file hid would appear. The groups of every file are listed, and
+    /// each file's hidden groups hidden, whatever pages are kept, since the properties name groups and not pages;
+    /// the first file's default configuration is kept otherwise, each other file's order and radio groups joined to it.
+    /// </summary>
+    private static PdfDictionary? OptionalContent(ObjectCopier copier, List<PdfSource> sources)
+    {
+        PdfDictionary? merged = null;
+        PdfDictionary configuration = new PdfDictionary();
+        PdfArray groups = new PdfArray();
+        PdfArray hidden = new PdfArray();
+        Dictionary<PdfName, PdfArray> joined = Joined.ToDictionary(key => key, _ => new PdfArray());
+
+        foreach (PdfSource source in sources)
+        {
+            if (!source.Catalog.TryGetValue(OCProperties, out PdfValue given) || source.Resolve(given) is not { Kind: PdfValueKind.Dictionary } found)
+                continue;
+
+            PdfDictionary properties = found.AsDictionary();
+            PdfDictionary shown = source.Resolve(properties.TryGetValue(PdfNames.D, out PdfValue d) ? d : PdfValue.Null) is { Kind: PdfValueKind.Dictionary } own
+                ? own.AsDictionary()
+                : new PdfDictionary();
+            List<PdfValue> listed = Items(source, properties, OCGs);
+
+            if (merged is null)
+            {
+                merged = copier.CopyDictionary(source, properties, OCGs, PdfNames.D);
+                configuration = copier.CopyDictionary(source, shown, [BaseState, On, Off, .. Joined]);
+            }
+
+            foreach (PdfValue group in listed)
+                groups.Add(copier.Copy(source, group));
+
+            // A configuration that starts with every group hidden shows only those it names as on.
+            if (source.Resolve(shown.TryGetValue(BaseState, out PdfValue state) ? state : PdfValue.Null) is { Kind: PdfValueKind.Name } name && name.AsName().Equals(Off))
+            {
+                HashSet<int> on = [.. Items(source, shown, On).Where(group => group.Kind == PdfValueKind.Reference).Select(group => group.AsReference().ObjectNumber)];
+
+                foreach (PdfValue group in listed.Where(group => group.Kind == PdfValueKind.Reference && !on.Contains(group.AsReference().ObjectNumber)))
+                    hidden.Add(copier.Copy(source, group));
+            }
+            else
+            {
+                foreach (PdfValue group in Items(source, shown, Off))
+                    hidden.Add(copier.Copy(source, group));
+            }
+
+            foreach (PdfName key in Joined)
+            {
+                foreach (PdfValue item in Items(source, shown, key))
+                    joined[key].Add(copier.Copy(source, item));
+            }
+        }
+
+        if (merged is null)
+            return null;
+
+        merged[OCGs] = groups;
+        configuration[Off] = hidden;
+
+        foreach (KeyValuePair<PdfName, PdfArray> entry in joined.Where(entry => entry.Value.Count > 0))
+            configuration[entry.Key] = entry.Value;
+
+        merged[PdfNames.D] = configuration;
+        return merged;
+
+        static List<PdfValue> Items(PdfSource source, PdfDictionary dictionary, PdfName key) =>
+            dictionary.TryGetValue(key, out PdfValue value) && source.Resolve(value) is { Kind: PdfValueKind.Array } array
+                ? array.AsArray().Cast<PdfValue>().ToList()
+                : [];
+    }
+
+    private static void CopyDocument(PdfDocumentWriter writer, ObjectCopier copier, PdfSource first, bool whole, SaveSettings settings, List<PdfSource> sources)
     {
         PdfDictionary catalog = first.Catalog;
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in catalog)
         {
             if (entry.Key.Equals(PdfNames.Type) || entry.Key.Equals(PdfNames.Pages) || entry.Key.Equals(PdfNames.Names) || entry.Key.Equals(Associated)
-                || (settings.LiftRestrictions && entry.Key.Equals(Perms)))
+                || entry.Key.Equals(OCProperties) || (settings.LiftRestrictions && entry.Key.Equals(Perms)))
                 continue;
 
             if (whole || Array.IndexOf(Always, entry.Key) >= 0)
                 writer.Catalog[entry.Key] = copier.Copy(first, entry.Value);
         }
+
+        if (OptionalContent(copier, sources) is { } optional)
+            writer.Catalog[OCProperties] = optional;
 
         // Attached files belong to no page, so they stay whatever pages are kept; the other name trees point at pages.
         PdfDictionary? names = catalog.TryGetValue(PdfNames.Names, out PdfValue given) && first.Resolve(given) is { Kind: PdfValueKind.Dictionary } found

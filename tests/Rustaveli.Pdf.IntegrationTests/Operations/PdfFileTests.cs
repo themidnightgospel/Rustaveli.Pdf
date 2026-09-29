@@ -469,6 +469,58 @@ public class PdfFileTests
         Assert.Equal("Odd", destinations[5].AsName().Value);
     }
 
+    /// <summary>
+    /// Two pages, the first drawing a word in each of two optional content groups, "hidden" and "shown", which
+    /// <paramref name="configuration"/> shows or hides.
+    /// </summary>
+    private static byte[] Layered(string label, string configuration)
+    {
+        string content = $"/OC /Hidden BDC BT /F1 12 Tf 20 20 Td ({label}hidden) Tj ET EMC /OC /Shown BDC BT /F1 12 Tf 20 60 Td ({label}shown) Tj ET EMC";
+        string pdf = "%PDF-1.7\n"
+            + $"1 0 obj<</Type/Catalog/Pages 2 0 R/OCProperties<</OCGs[5 0 R 6 0 R]/D {configuration}>>>>endobj\n"
+            + "2 0 obj<</Type/Pages/Kids[3 0 R 4 0 R]/Count 2/MediaBox[0 0 200 200]>>endobj\n"
+            + "3 0 obj<</Type/Page/Parent 2 0 R/Resources<</Font<</F1 8 0 R>>/Properties<</Hidden 5 0 R/Shown 6 0 R>>>>/Contents 7 0 R>>endobj\n"
+            + "4 0 obj<</Type/Page/Parent 2 0 R>>endobj\n"
+            + $"5 0 obj<</Type/OCG/Name({label} hidden)>>endobj\n6 0 obj<</Type/OCG/Name({label} shown)>>endobj\n"
+            + $"7 0 obj<</Length {content.Length}>>stream\n{content}\nendstream\nendobj\n"
+            + "8 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    /// <summary>The names of the optional content groups a file lists, of those it hides, and how many its order lists.</summary>
+    private static (List<string> Groups, List<string> Hidden, int Ordered) OptionalContent(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        PdfDictionary properties = source.Resolve(source.Catalog[new PdfName("OCProperties")]).AsDictionary();
+        PdfDictionary configuration = source.Resolve(properties[PdfNames.D]).AsDictionary();
+
+        string Name(PdfValue group) => System.Text.Encoding.ASCII.GetString(source.Resolve(group).AsDictionary()[new PdfName("Name")].AsString().Bytes.ToArray());
+
+        List<string> groups = source.Resolve(properties[new PdfName("OCGs")]).AsArray().Cast<PdfValue>().Select(Name).ToList();
+        List<string> hidden = configuration.TryGetValue(new PdfName("OFF"), out PdfValue off) ? source.Resolve(off).AsArray().Cast<PdfValue>().Select(Name).ToList() : [];
+        int ordered = configuration.TryGetValue(new PdfName("Order"), out PdfValue order) ? source.Resolve(order).AsArray().Count : 0;
+        return (groups, hidden, ordered);
+    }
+
+    [Fact]
+    public void HiddenLayersStayHiddenWhateverPagesAreKeptAndFilesAppended()
+    {
+        byte[] a = Layered("A", "<</OFF[5 0 R]/Order[5 0 R 6 0 R]>>");
+        byte[] b = Layered("B", "<</BaseState/OFF/ON[6 0 R]/Order[5 0 R 6 0 R]/RBGroups[[5 0 R 6 0 R]]>>");
+        byte[] c = Layered("C", "7");
+
+        (List<string> Groups, List<string> Hidden, int Ordered) kept = OptionalContent(PdfFile.Open(a).KeepPages("1").ToArray());
+        (List<string> Groups, List<string> Hidden, int Ordered) appended = OptionalContent(
+            PdfFile.Open(Pages("One")).Append(PdfFile.Open(a)).Append(PdfFile.Open(b), "1").Append(PdfFile.Open(c), "1").ToArray());
+
+        Assert.Equal(["A hidden", "A shown"], kept.Groups);
+        Assert.Equal(["A hidden"], kept.Hidden);
+        Assert.Equal(2, kept.Ordered);
+        Assert.Equal(["A hidden", "A shown", "B hidden", "B shown", "C hidden", "C shown"], appended.Groups);
+        Assert.Equal(["A hidden", "B hidden"], appended.Hidden);
+        Assert.Equal(4, appended.Ordered);
+    }
+
     [Fact]
     public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
     {
