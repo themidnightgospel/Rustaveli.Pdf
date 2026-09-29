@@ -241,7 +241,9 @@ internal static class Typesetter
         Offset origin = new Offset(margin.Left, margin.Top);
         surface.Translate(origin);
 
-        if (bands.HeadHeight > 0)
+        // A band with content is drawn even at no height: what takes no room — an anchor, a bookmark, a marker — must
+        // still take effect.
+        if (section.RunningHeadSlot.Child is not null)
         {
             using (context.Tags.Untag())
                 section.RunningHeadSlot.Render(new Extent(contentSpace.Width, bands.HeadHeight), context);
@@ -251,7 +253,7 @@ internal static class Typesetter
         section.BodySlot.Render(contentSpace, context);
         surface.Translate(new Offset(0, -bands.HeadHeight));
 
-        if (bands.FootHeight > 0)
+        if (section.RunningFootSlot.Child is not null)
         {
             // The footer sits against the bottom margin rather than immediately after the content.
             float footTop = pageSize.Height - margin.Vertical - bands.FootHeight;

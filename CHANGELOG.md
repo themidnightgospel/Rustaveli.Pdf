@@ -11,6 +11,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   `CompositionException` naming the row.
 - Layout error messages, and `Extent` and `Offset` as text, wrote numbers in the current culture — `0,000` on a
   machine that writes decimals with a comma. They read the same in every culture now.
+- A running head or foot of no height was not drawn at all, so an anchor, bookmark or marker in it never took effect
+  and links to it went nowhere.
 - SVG artwork with numbers beyond what a PDF can hold (10^15), or transforms, clips, gradients and view boxes that
   reach beyond it, failed the export; what reaches beyond it is left out. `ArtworkComposer` refuses such numbers
   when they are given.

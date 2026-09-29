@@ -95,6 +95,23 @@ public class LinkTests
     }
 
     [Fact]
+    public void AnAnchorInARunningHeadOrFootOfNoHeightIsStillNamed()
+    {
+        Document document = Document.Compose(container => container.Section(page =>
+        {
+            page.Trim = new Extent(200, 100);
+            page.RunningHead().Anchor("top");
+            page.RunningFoot().Anchor("bottom");
+            page.Body().CrossReference("top").Text("Back to the top");
+        }));
+
+        RecordingSurface canvas = LayoutHarness.Render(document);
+
+        Assert.Equal(["top", "bottom"], canvas.Page(1).Operations.OfType<DestinationOperation>().Select(destination => destination.Name));
+        Assert.Equal("top", Assert.Single(canvas.Page(1).Operations.OfType<InternalLinkOperation>()).Destination);
+    }
+
+    [Fact]
     public void ACrossReferenceReachesItsAnchorAcrossPages()
     {
         Document document = Document.Compose(container => container.Section(page =>
