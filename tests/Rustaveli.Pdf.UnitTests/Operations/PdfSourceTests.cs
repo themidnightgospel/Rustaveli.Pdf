@@ -20,10 +20,10 @@ public class PdfSourceTests
     private static PdfValue Value(PdfSource source, int number) => (PdfValue)source.GetObject(number);
 
     /// <summary>A file the managed writer wrote, with a marked object among its pages.</summary>
-    private static byte[] Written(PdfCrossReferenceFormat format, int pages = 2)
+    private static byte[] Written(PdfCrossReferenceFormat format, int pages = 2, PdfEncryption? encryption = null)
     {
         using MemoryStream output = new MemoryStream();
-        using (PdfDocumentWriter writer = new PdfDocumentWriter(output, new PdfWriterOptions { CrossReferenceFormat = format }))
+        using (PdfDocumentWriter writer = new PdfDocumentWriter(output, new PdfWriterOptions { CrossReferenceFormat = format, Encryption = encryption }))
         {
             for (int page = 1; page <= pages; page++)
             {
@@ -371,6 +371,43 @@ public class PdfSourceTests
         Assert.True(source.WasRepaired);
         Assert.Equal(2, source.Pages.Count);
         Assert.Equal("found", Encoding.ASCII.GetString(source.Resolve(source.Catalog[Marker]).AsDictionary()[Marker].AsString().Bytes.ToArray()));
+    }
+
+    [Theory]
+    [InlineData(EncryptionLevel.Rc4With128Bits)]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    [InlineData(EncryptionLevel.AesWith256Bits)]
+    public void AnEncryptedFileWhoseSectionIsLostIsRebuiltAndDecrypted(EncryptionLevel level)
+    {
+        byte[] file = Written(PdfCrossReferenceFormat.Stream, encryption: PdfEncryption.Create(new Protection { UserPassword = "user", Encryption = level }));
+        string text = Encoding.Latin1.GetString(file);
+        int keyword = text.LastIndexOf("startxref", StringComparison.Ordinal);
+
+        // Pointed at the header, the section is not found, and the file is read by scanning.
+        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes(text.Substring(0, keyword) + "startxref\n1\n%%EOF\n"), "user");
+
+        Assert.True(source.WasRepaired);
+        Assert.NotNull(source.Encryption);
+        Assert.True(source.Trailer.ContainsKey(PdfNames.ID));
+        Assert.Equal(2, source.Pages.Count);
+        Assert.Equal("found", Encoding.ASCII.GetString(source.Resolve(source.Catalog[Marker]).AsDictionary()[Marker].AsString().Bytes.ToArray()));
+        Assert.Throws<IncorrectPasswordException>(() => PdfSource.Open(Encoding.Latin1.GetBytes(text.Substring(0, keyword) + "startxref\n1\n%%EOF\n")));
+    }
+
+    [Fact]
+    public void WhenTwoObjectStreamsHoldAnObjectTheLaterOneIsKept()
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage()
+            .Stream(5, "<</Type/ObjStm/N 1/First 4>>", "4 0 (old)")
+            .Stream(6, "<</Type/ObjStm/N 1/First 4>>", "4 0 (new)")
+            .Stream(7, "<</Type/ObjStm/N 1/First 4>>", "8 0 (only)")
+            .Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n");
+
+        PdfSource source = Open(pdf);
+
+        Assert.True(source.WasRepaired);
+        Assert.Equal("new", Encoding.ASCII.GetString(Value(source, 4).AsString().Bytes.ToArray()));
+        Assert.Equal("only", Encoding.ASCII.GetString(Value(source, 8).AsString().Bytes.ToArray()));
     }
 
     [Fact]

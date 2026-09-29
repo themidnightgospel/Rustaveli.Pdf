@@ -33,6 +33,9 @@ internal sealed class PdfSource
     /// <summary>What a page takes from the page tree when it does not say for itself (7.7.3.4).</summary>
     private static readonly PdfName[] Inherited = [PdfNames.Resources, MediaBox, CropBox, Rotate];
 
+    /// <summary>What a cross-reference stream's dictionary says of the stream itself rather than of the file.</summary>
+    private static readonly PdfName[] StreamOnly = [PdfNames.Type, PdfNames.Length, PdfNames.Filter, PdfNames.DecodeParms, W, Index, Prev];
+
     /// <summary>An object read from somewhere other than where the cross-reference section said.</summary>
     private static readonly object Misplaced = new object();
 
@@ -125,6 +128,15 @@ internal sealed class PdfSource
         _objects.Clear();
         _objectStreams.Clear();
         _pages = null;
+
+        // A rebuilt file's object streams were indexed while they could not be read: they are indexed again.
+        if (_rebuilt)
+        {
+            foreach (int number in _entries.Where(entry => entry.Value.IsCompressed).Select(entry => entry.Key).ToList())
+                _entries.Remove(number);
+
+            IndexObjectStreams();
+        }
     }
 
     /// <summary>
@@ -648,16 +660,22 @@ internal sealed class PdfSource
             }
         }
 
-        // Objects kept in object streams are found through the streams the scan found; the catalog may be among them.
-        foreach (int number in _entries.Keys.ToList())
+        IndexObjectStreams();
+        Trailer = RebuiltTrailer();
+
+        int Next(int from) => from >= Data.Length ? -1 : Data.AsSpan(from).IndexOf("obj"u8) is int found and >= 0 ? from + found : -1;
+    }
+
+    /// <summary>
+    /// Finds the objects kept in the object streams the scan found; the catalog may be among them. An object two
+    /// streams hold is taken from the later in the file, as the later was written by a later update.
+    /// </summary>
+    private void IndexObjectStreams()
+    {
+        foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderBy(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
         {
-            if (GetObject(number) is not SourceStream stream
-                || !stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type)
-                || type.Kind != PdfValueKind.Name
-                || !type.AsName().Equals(ObjStm))
-            {
+            if (GetObject(number) is not SourceStream stream || !IsOfType(stream.Dictionary, ObjStm))
                 continue;
-            }
 
             try
             {
@@ -666,7 +684,7 @@ internal sealed class PdfSource
 
                 for (int index = 0; index < count && header.TryReadInteger(out long contained) && header.TryReadInteger(out _); index++)
                 {
-                    if (contained is > 0 and <= int.MaxValue && !_entries.ContainsKey((int)contained))
+                    if (contained is > 0 and <= int.MaxValue && !(_entries.TryGetValue((int)contained, out SourceEntry found) && !found.IsCompressed))
                         _entries[(int)contained] = SourceEntry.InStream(number, index);
                 }
             }
@@ -675,11 +693,10 @@ internal sealed class PdfSource
                 // An object stream that cannot be read holds nothing that can be recovered.
             }
         }
-
-        Trailer = RebuiltTrailer();
-
-        int Next(int from) => from >= Data.Length ? -1 : Data.AsSpan(from).IndexOf("obj"u8) is int found and >= 0 ? from + found : -1;
     }
+
+    private static bool IsOfType(PdfDictionary dictionary, PdfName type) =>
+        dictionary.TryGetValue(PdfNames.Type, out PdfValue given) && given.Kind == PdfValueKind.Name && given.AsName().Equals(type);
 
     /// <summary>Where "<c>n g obj</c>" begins, for the keyword at <paramref name="keyword"/>, or -1 if it is not one.</summary>
     private int ObjectStart(int keyword)
@@ -705,7 +722,10 @@ internal sealed class PdfSource
         }
     }
 
-    /// <summary>The trailer of a file being rebuilt: its last, or the catalog found by its type.</summary>
+    /// <summary>
+    /// The trailer of a file being rebuilt: its trailers, each later one over those before; what its cross-reference
+    /// streams say besides, the latest first; and failing those, the catalog found by its type.
+    /// </summary>
     private PdfDictionary RebuiltTrailer()
     {
         PdfDictionary trailer = new PdfDictionary();
@@ -731,6 +751,20 @@ internal sealed class PdfSource
             at = next < 0 ? -1 : at + 1 + next;
         }
 
+        // A cross-reference stream's dictionary is the trailer of its update: the encryption, the identifier the key
+        // was made with and the information are named there as well as the catalog.
+        foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderByDescending(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
+        {
+            if (GetObject(number) is not SourceStream stream || !IsOfType(stream.Dictionary, XRef))
+                continue;
+
+            foreach (KeyValuePair<PdfName, PdfValue> entry in stream.Dictionary)
+            {
+                if (Array.IndexOf(StreamOnly, entry.Key) < 0 && !trailer.ContainsKey(entry.Key))
+                    trailer[entry.Key] = entry.Value;
+            }
+        }
+
         if (trailer.ContainsKey(Root))
             return trailer;
 
@@ -738,20 +772,10 @@ internal sealed class PdfSource
         {
             PdfValue value = GetObject(number) is SourceStream stream ? stream.Dictionary : (PdfValue)GetObject(number);
 
-            if (value.Kind != PdfValueKind.Dictionary || !value.AsDictionary().TryGetValue(PdfNames.Type, out PdfValue type) || type.Kind != PdfValueKind.Name)
-                continue;
-
-            if (type.AsName().Equals(XRef) || type.AsName().Equals(PdfNames.Catalog))
+            if (value.Kind == PdfValueKind.Dictionary && IsOfType(value.AsDictionary(), PdfNames.Catalog))
             {
-                PdfDictionary dictionary = value.AsDictionary();
-
-                if (type.AsName().Equals(PdfNames.Catalog))
-                    trailer[Root] = new PdfReference(number);
-                else if (dictionary.TryGetValue(Root, out PdfValue root))
-                    trailer[Root] = root;
-
-                if (trailer.ContainsKey(Root))
-                    return trailer;
+                trailer[Root] = new PdfReference(number);
+                return trailer;
             }
         }
 
