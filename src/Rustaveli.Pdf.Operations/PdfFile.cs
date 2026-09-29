@@ -14,8 +14,9 @@ namespace Rustaveli.Pdf;
 /// </para>
 /// <para>
 /// Saving writes a new file. What the first file says of the document as a whole — its information, language,
-/// metadata and colour intents — is kept; its outline, named destinations, structure and form fields are kept too
-/// while its pages all are, in their order, at the start of the file.
+/// metadata and colour intents — is kept; its outline, named destinations and structure are kept too while its pages
+/// all are, in their order, at the start of the file. The layers and form fields of every file are kept with its pages,
+/// and links lead where they did in their own file.
 /// </para>
 /// </remarks>
 public sealed class PdfFile
