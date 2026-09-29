@@ -2,10 +2,9 @@
 
 ## Why this exists
 
-.NET should have a PDF tool that is free and open source: free to use in any software, commercial or not, and open
-to read, change and ship. Rustaveli.Pdf is that tool. It is MIT-licensed, with no revenue limits, licence keys or
-paid tiers, and it is meant to be complete enough that nobody has to reach for anything else — from a one-page
-invoice to a PDF/A archive or an accessible, tagged document.
+We believe generating a PDF is basic infrastructure, and basic infrastructure should be free and open.
+Rustaveli.Pdf exists to give .NET a PDF tool anyone can use, read, change and ship — in hobby projects, in
+startups, in governments and in the largest companies — under the MIT licence, forever.
 
 It is written from scratch, as a design of its own:
 
