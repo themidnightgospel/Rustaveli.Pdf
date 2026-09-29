@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using Matrix = (float A, float B, float C, float D, float E, float F);
@@ -138,24 +139,7 @@ internal sealed class SvgReader
         if (Value(declared, "display") == "none")
             return;
 
-        Dictionary<string, string> style = new Dictionary<string, string>(parent, StringComparer.OrdinalIgnoreCase);
-        foreach (KeyValuePair<string, string> property in declared)
-        {
-            if (!Inherited.Contains(property.Key) || property.Value == "inherit")
-                continue;
-
-            // A weight is kept as the number it comes to, since bolder and lighter are taken from the weight inherited.
-            if (property.Key.Equals("font-weight", StringComparison.OrdinalIgnoreCase))
-            {
-                if (FontWeight(property.Value, Weight(parent)) is { } weight)
-                    style["font-weight"] = weight.ToString(CultureInfo.InvariantCulture);
-            }
-            else
-            {
-                style[property.Key] = property.Value;
-            }
-        }
-
+        Dictionary<string, string> style = Cascade(parent, declared);
         float opacity = parentOpacity * Opacity(Value(declared, "opacity"));
         Matrix? transform = SvgTransform.Read((string?)element.Attribute("transform"));
         string? clip = Value(declared, "clip-path");
@@ -201,7 +185,7 @@ internal sealed class SvgReader
                 break;
 
             case "text":
-                Text(element, style, opacity, art);
+                Text(element, style, opacity, art, depth);
                 break;
 
             case "image":
@@ -292,32 +276,133 @@ internal sealed class SvgReader
         _viewport = outer;
     }
 
-    private void Text(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art)
+    /// <summary>
+    /// Sets a text element: its characters, and those of the spans within it, each span in its own style and where its
+    /// x, y, dx and dy put it, the rest going on from the character before.
+    /// </summary>
+    /// <remarks>
+    /// White space is collapsed across the whole element, as SVG and CSS collapse it: a line break or tab is a space,
+    /// spaces in a row are one, and those at the start and end go. A position list gives only its first position.
+    /// </remarks>
+    private void Text(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
     {
-        string content = string.Join(" ", element.DescendantNodes().OfType<XText>().Select(text => text.Value)
-            .SelectMany(text => text.Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries)));
+        TextSetting setting = new TextSetting();
+        Place(element, setting);
+        Spans(element, style, opacity, setting, depth);
 
-        if (content.Length == 0 || Value(style, "visibility") is "hidden" or "collapse")
+        if (setting.Runs.Count > 0)
+        {
+            ArtworkComposer.Span last = setting.Runs[setting.Runs.Count - 1];
+            last.Text = last.Text.TrimEnd(' ');
+
+            if (last.Text.Length == 0)
+                setting.Runs.RemoveAt(setting.Runs.Count - 1);
+        }
+
+        if (setting.Runs.Count > 0)
+            art.TextRuns(setting.Runs);
+    }
+
+    /// <summary>The characters within <paramref name="parent"/>, and within the spans and links in it, as runs.</summary>
+    private void Spans(XElement parent, Dictionary<string, string> style, float opacity, TextSetting setting, int depth)
+    {
+        foreach (XNode node in parent.Nodes())
+        {
+            if (node is XText text)
+            {
+                Add(text.Value, style, opacity, setting);
+                continue;
+            }
+
+            if (node is not XElement span || span.Name.LocalName is not ("tspan" or "a") || depth >= DeepestNesting)
+                continue;
+
+            Dictionary<string, string> declared = Declared(span);
+
+            if (Value(declared, "display") == "none")
+                continue;
+
+            // A span's position belongs to its first character; a span with none moves nothing.
+            (float? X, float? Y, float? Dx, float? Dy) before = setting.Pending;
+            int added = setting.Added;
+            Place(span, setting);
+            Spans(span, Cascade(style, declared), opacity * Opacity(Value(declared, "opacity")), setting, depth + 1);
+
+            if (setting.Added == added)
+                setting.Pending = before;
+        }
+    }
+
+    /// <summary>Takes the position an element gives the character it starts with, over any given it from outside.</summary>
+    private void Place(XElement element, TextSetting setting)
+    {
+        (float? x, float? y, float? dx, float? dy) = setting.Pending;
+        setting.Pending = (
+            FirstLength(element, "x", _viewport.Width) ?? x,
+            FirstLength(element, "y", _viewport.Height) ?? y,
+            FirstLength(element, "dx", _viewport.Width) ?? dx,
+            FirstLength(element, "dy", _viewport.Height) ?? dy);
+    }
+
+    /// <summary>Adds characters, with white space collapsed, to the run before when nothing sets them apart from it.</summary>
+    private static void Add(string value, Dictionary<string, string> style, float opacity, TextSetting setting)
+    {
+        StringBuilder collapsed = new StringBuilder(value.Length);
+
+        foreach (char character in value)
+        {
+            bool space = character is ' ' or '\t' or '\n' or '\r';
+
+            if (space && setting.AfterSpace)
+                continue;
+
+            collapsed.Append(space ? ' ' : character);
+            setting.AfterSpace = space;
+        }
+
+        if (collapsed.Length == 0)
             return;
 
-        Ink? ink = SolidPaint(Value(style, "fill") ?? "black", style);
+        (TypeStyle type, TextAnchor anchor, bool visible) = TypeOf(style, opacity);
+        (string, float, TypeWeight, bool, Ink, TextAnchor, bool) look = (Value(style, "font-family") ?? string.Empty, type.PointSize, type.Weight, type.IsItalic, type.Ink, anchor, visible);
+        setting.Added++;
 
-        if (ink is not { } fill)
+        if (!setting.Placed && setting.Runs.Count > 0 && look.Equals(setting.LastLook))
+        {
+            setting.Runs[setting.Runs.Count - 1].Text += collapsed.ToString();
             return;
+        }
+
+        (float? x, float? y, float? dx, float? dy) = setting.Pending;
+        setting.Runs.Add(new ArtworkComposer.Span(collapsed.ToString(), type, anchor, visible) { X = x, Y = y, Dx = dx ?? 0, Dy = dy ?? 0 });
+        setting.Pending = default;
+        setting.LastLook = look;
+    }
+
+    /// <summary>
+    /// The type the style in force sets text in, how it is anchored, and whether it is drawn at all or only takes its
+    /// room: hidden, or filled with nothing.
+    /// </summary>
+    private static (TypeStyle Type, TextAnchor Anchor, bool Visible) TypeOf(Dictionary<string, string> style, float opacity)
+    {
+        Ink? fill = SolidPaint(Value(style, "fill") ?? "black", style);
+        bool visible = fill is not null && Value(style, "visibility") is not ("hidden" or "collapse");
+        Ink ink = fill ?? Ink.Black;
 
         // A negative font size is an error SVG ignores, leaving the default.
         float size = SvgLength.Read(Value(style, "font-size"), 16, 16);
 
         if (size < 0)
             size = 16;
+
         string[] families = (Value(style, "font-family") ?? "sans-serif").Split(',').Select(family => family.Trim(' ', '"', '\'')).Where(family => family.Length > 0).ToArray();
         TypeStyle type = TypeStyle.Default
             .WithTypeface(families.Length > 0 ? families[0] : "sans-serif", families.Skip(1).ToArray())
             .WithPointSize(size)
-            .WithInk(fill.WithOpacity(fill.Opacity * opacity * Opacity(Value(style, "fill-opacity"))));
+            .WithInk(ink.WithOpacity(ink.Opacity * opacity * Opacity(Value(style, "fill-opacity"))))
 
-        // Of the weights a typeface may come in, the one nearest the weight asked for.
-        type = type.WithWeight((TypeWeight)Math.Min(900, Math.Max(100, Math.Round(Weight(style) / 100, MidpointRounding.AwayFromZero) * 100)));
+            // Of the weights a typeface may come in, the one nearest the weight asked for.
+            .WithWeight((TypeWeight)Math.Min(900, Math.Max(100, Math.Round(Weight(style) / 100, MidpointRounding.AwayFromZero) * 100)));
 
         if (Value(style, "font-style") is "italic" or "oblique")
             type = type.Italic();
@@ -329,7 +414,15 @@ internal sealed class SvgReader
             _ => TextAnchor.Start,
         };
 
-        art.Text(content, First(element, "x"), First(element, "y"), type, anchor);
+        return (type, anchor, visible);
+    }
+
+    /// <summary>The first length of a list such as a text's x, or null when there is none to read.</summary>
+    private static float? FirstLength(XElement element, string name, float reference)
+    {
+        string? first = ((string?)element.Attribute(name))?.Split([' ', ',', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        float length = SvgLength.Read(first, reference, float.NaN);
+        return float.IsNaN(length) ? null : length;
     }
 
     private void Image(XElement element, ArtworkComposer art)
@@ -756,12 +849,6 @@ internal sealed class SvgReader
     /// </summary>
     private float Diagonal => (float)Math.Sqrt((((double)_viewport.Width * _viewport.Width) + ((double)_viewport.Height * _viewport.Height)) / 2);
 
-    private static float First(XElement element, string name)
-    {
-        List<float> values = new SvgNumbers((string?)element.Attribute(name) ?? string.Empty).Rest();
-        return values.Count > 0 ? values[0] : 0;
-    }
-
     /// <summary>The weight in force, as a number: 400, a normal weight, unless one is inherited.</summary>
     private static float Weight(Dictionary<string, string> style) =>
         Value(style, "font-weight") is { } weight && float.TryParse(weight, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) ? number : 400;
@@ -789,4 +876,52 @@ internal sealed class SvgReader
 
     private static Offset Apply(Matrix matrix, Offset point) =>
         new Offset((matrix.A * point.X) + (matrix.C * point.Y) + matrix.E, (matrix.B * point.X) + (matrix.D * point.Y) + matrix.F);
+
+    /// <summary>
+    /// The style an element's properties give it within <paramref name="parent"/>'s: its inherited properties taken over
+    /// the parent's, except where they say to inherit.
+    /// </summary>
+    private static Dictionary<string, string> Cascade(Dictionary<string, string> parent, Dictionary<string, string> declared)
+    {
+        Dictionary<string, string> style = new Dictionary<string, string>(parent, StringComparer.OrdinalIgnoreCase);
+
+        foreach (KeyValuePair<string, string> property in declared)
+        {
+            if (!Inherited.Contains(property.Key) || property.Value == "inherit")
+                continue;
+
+            // A weight is kept as the number it comes to, since bolder and lighter are taken from the weight inherited.
+            if (property.Key.Equals("font-weight", StringComparison.OrdinalIgnoreCase))
+            {
+                if (FontWeight(property.Value, Weight(parent)) is { } weight)
+                    style["font-weight"] = weight.ToString(CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                style[property.Key] = property.Value;
+            }
+        }
+
+        return style;
+    }
+
+    /// <summary>What setting a text element has come to: its runs so far, and what the next characters take from them.</summary>
+    private sealed class TextSetting
+    {
+        public List<ArtworkComposer.Span> Runs { get; } = [];
+
+        /// <summary>Whether the last character set was a space, or none has been, so that a space now is collapsed.</summary>
+        public bool AfterSpace { get; set; } = true;
+
+        /// <summary>The position the next character set is given, by the element it starts: none unless one says.</summary>
+        public (float? X, float? Y, float? Dx, float? Dy) Pending { get; set; }
+
+        /// <summary>How the last run looks, which the next characters join when they look the same and are not placed.</summary>
+        public (string, float, TypeWeight, bool, Ink, TextAnchor, bool) LastLook { get; set; }
+
+        /// <summary>How many times characters have been set, so a span that set none can be told apart.</summary>
+        public int Added { get; set; }
+
+        public bool Placed => !Pending.Equals(default((float?, float?, float?, float?)));
+    }
 }

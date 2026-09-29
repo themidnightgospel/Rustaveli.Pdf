@@ -544,6 +544,91 @@ public class SvgReaderTests
         Assert.Equal(Red, text.Style.Ink);
     }
 
+    /// <summary>The runs of text drawn, each with its point in pixels.</summary>
+    private static List<(string Text, float X, float Y)> Runs(string body) =>
+        Draw(body, "width='200' height='100'").OfType<TextOperation>()
+            .Select(text => (text.Text, (float)Math.Round(text.Position.X / 0.75f, 2), (float)Math.Round(text.Position.Y / 0.75f, 2)))
+            .ToList();
+
+    [Fact]
+    public void EachLineOfTextSetsWhereItsSpanSays()
+    {
+        // As Inkscape writes a text of two lines.
+        List<(string, float, float)> runs = Runs(
+            "<text x='10' y='20'>\n  <tspan x='10' y='20'>Line one</tspan>\n  <tspan x='10' y='45'>Line two</tspan>\n</text>");
+
+        // The white space between the spans is one space, which ends the first line, as SVG has it.
+        Assert.Equal([("Line one ", 10f, 20f), ("Line two", 10f, 45f)], runs);
+    }
+
+    [Fact]
+    public void ASpanIsSetInItsOwnStyleAfterTheTextBeforeIt()
+    {
+        List<TextOperation> texts = Draw("<text x='10' y='20' font-size='10'>Total: <tspan font-weight='bold' fill='red'>42</tspan></text>").OfType<TextOperation>().ToList();
+
+        Assert.Equal(["Total: ", "42"], texts.Select(text => text.Text));
+        Assert.Equal((TypeWeight.Normal, Ink.Rgb(0, 0, 0)), (texts[0].Style.Weight, texts[0].Style.Ink));
+        Assert.Equal((TypeWeight.Bold, Red), (texts[1].Style.Weight, texts[1].Style.Ink));
+
+        // The measurer used for tests gives every character half a point of width per point of size.
+        Assert.Equal(new Offset(45 * 0.75f, 20 * 0.75f), texts[1].Position);
+    }
+
+    [Fact]
+    public void ASpanMovedByDxAndDyMovesWhatFollowsIt() =>
+        Assert.Equal(
+            [("ab", 10f, 20f), ("c", 25f, 17f), ("d", 30f, 17f)],
+            Runs("<text x='10' y='20' font-size='10'>ab<tspan dx='5' dy='-3'>c</tspan><tspan fill='red'>d</tspan></text>"));
+
+    [Fact]
+    public void ASpanGivenOnlyALineGoesOnAcross() =>
+        Assert.Equal([("ab", 0f, 10f), ("c", 10f, 30f)], Runs("<text x='0' y='10' font-size='10'>ab<tspan y='30'>c</tspan></text>"));
+
+    [Fact]
+    public void AnUndisplayedSpanIsLeftOutAndAHiddenOneKeepsItsRoom()
+    {
+        Assert.Equal([("ac", 0f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan display='none'>b</tspan>c</text>"));
+        Assert.Equal([("a", 0f, 10f), ("c", 10f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan visibility='hidden'>b</tspan>c</text>"));
+        Assert.Equal([("a", 0f, 10f), ("c", 10f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan fill='none'>b</tspan>c</text>"));
+    }
+
+    [Fact]
+    public void AnAnchorPlacesTheWholeRunOfSpans() =>
+        Assert.Equal([("ab", 40f, 10f), ("cd", 50f, 10f)], Runs("<text x='50' y='10' font-size='10' text-anchor='middle'>ab<tspan fill='red'>cd</tspan></text>"));
+
+    [Fact]
+    public void AnAnchorAtTheEndEndsTheWholeRunOfSpansThere() =>
+        Assert.Equal([("ab", 30f, 10f), ("cd", 40f, 10f)], Runs("<text x='50' y='10' font-size='10' text-anchor='end'>ab<tspan fill='red'>cd</tspan></text>"));
+
+    [Fact]
+    public void SpansAreFollowedOnlySoDeep()
+    {
+        string deep = string.Concat(Enumerable.Repeat("<tspan>", 80)) + "deep" + string.Concat(Enumerable.Repeat("</tspan>", 80));
+
+        Assert.Equal([("shallow", 0f, 10f)], Runs($"<text x='0' y='10'>shallow{deep}</text>"));
+    }
+
+    [Fact]
+    public void TextPlacedBeyondAPdfIsLeftOut()
+    {
+        Assert.Empty(Runs("<text x='9e14' y='10' font-size='1e14'>abc</text>"));
+        Assert.Equal(["a"], Runs("<text x='0' y='9e14' font-size='10'>a<tspan dy='9e14'>b</tspan></text>").Select(run => run.Text));
+    }
+
+    [Fact]
+    public void ASpanWithNothingInItMovesNothing() =>
+        Assert.Equal([("ab", 0f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan x='50'></tspan>b</text>"));
+
+    [Fact]
+    public void ANestedSpansPositionIsTakenOverTheOneAroundIt() =>
+        Assert.Equal(
+            [("a", 0f, 10f), ("bc", 30f, 10f)],
+            Runs("<text x='0' y='10' font-size='10'>a<tspan x='20'><tspan x='30'>b</tspan>c</tspan></text>"));
+
+    [Fact]
+    public void ALinkInTextIsSetAsASpan() =>
+        Assert.Equal([("see ", 0f, 10f), ("here", 20f, 10f)], Runs("<text x='0' y='10' font-size='10'>see <a href='#x' fill='red'>here</a><title>Tip</title></text>"));
+
     [Theory]
     [InlineData("-5", 16f)]
     [InlineData("0", 0f)]

@@ -143,6 +143,64 @@ public sealed class ArtworkComposer
         });
     }
 
+    /// <summary>
+    /// Sets runs of text one after another on a line, as SVG's text and its spans are set: a run placed at an x or a y
+    /// of its own starts a new chunk there, anchored as its first run says; any other run goes on from where the one
+    /// before it ended, as measured when the artwork is drawn, moved by its dx and dy.
+    /// </summary>
+    internal void TextRuns(IReadOnlyList<Span> runs)
+    {
+        Span[] set = runs.ToArray();
+
+        _steps.Add((surface, measurer) =>
+        {
+            float penX = 0, penY = 0;
+
+            for (int start = 0; start < set.Length;)
+            {
+                int end = start + 1;
+
+                while (end < set.Length && set[end].X is null && set[end].Y is null)
+                    end++;
+
+                // Each run's place before anchoring, the pen moving on by the width of each.
+                float[] xs = new float[end - start], ys = new float[end - start], widths = new float[end - start];
+                penX = set[start].X ?? penX;
+                penY = set[start].Y ?? penY;
+
+                for (int index = start; index < end; index++)
+                {
+                    penX += set[index].Dx;
+                    penY += set[index].Dy;
+                    xs[index - start] = penX;
+                    ys[index - start] = penY;
+                    widths[index - start] = measurer.MeasureWidth(set[index].Text, set[index].Style);
+                    penX += widths[index - start];
+                }
+
+                float extent = penX - xs[0];
+                float shift = set[start].Anchor switch
+                {
+                    TextAnchor.Middle => extent / 2,
+                    TextAnchor.End => extent,
+                    _ => 0,
+                };
+
+                for (int index = start; index < end; index++)
+                {
+                    float x = xs[index - start] - shift;
+
+                    // Text so large, or so far off, that its glyphs would be placed beyond the numbers a PDF can hold
+                    // is left out; a run of spaces is only room.
+                    if (set[index].Visible && set[index].Text.Trim().Length > 0 && Writable.Is(x) && Writable.Is(x + widths[index - start]) && Writable.Is(ys[index - start]))
+                        surface.DrawText(set[index].Text, new Offset(x, ys[index - start]), set[index].Style);
+                }
+
+                start = end;
+            }
+        });
+    }
+
     /// <summary>Places <paramref name="image"/> in the box at (<paramref name="x"/>, <paramref name="y"/>), stretched to fill it.</summary>
     public void Image(IImage image, float x, float y, float width, float height)
     {
@@ -178,6 +236,30 @@ public sealed class ArtworkComposer
         (Offset position, Extent size) = path.Bounds();
         (Offset start, Offset end) = gradient.Axis(position, size);
         return Writable.Is(start) && Writable.Is(end);
+    }
+
+    /// <summary>
+    /// One run of text for <see cref="TextRuns"/>: its style, where it is placed — an x or a y of its own starting a
+    /// chunk, null going on from the run before — how far it is moved from there, and whether it is drawn or only takes
+    /// its room.
+    /// </summary>
+    internal sealed class Span(string text, TypeStyle style, TextAnchor anchor, bool visible)
+    {
+        public string Text { get; set; } = text;
+
+        public TypeStyle Style { get; } = style;
+
+        public TextAnchor Anchor { get; } = anchor;
+
+        public bool Visible { get; } = visible;
+
+        public float? X { get; init; }
+
+        public float? Y { get; init; }
+
+        public float Dx { get; init; }
+
+        public float Dy { get; init; }
     }
 
     private static void RequireWritable(float value, string name)
