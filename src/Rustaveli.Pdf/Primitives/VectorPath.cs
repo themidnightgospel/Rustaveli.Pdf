@@ -279,6 +279,15 @@ public sealed class VectorPath
         float Y(int index) => (b * path._points[index].X) + (d * path._points[index].Y) + f;
     }
 
+    /// <summary>A copy of the path as it is now, which changes to this one no longer reach.</summary>
+    internal VectorPath Copy()
+    {
+        VectorPath copy = new VectorPath { _current = _current, _figureStart = _figureStart, _open = _open };
+        copy._verbs.AddRange(_verbs);
+        copy._points.AddRange(_points);
+        return copy;
+    }
+
     /// <summary>The box every point of the path, control points included, lies within; empty for an empty path.</summary>
     internal (Offset Position, Extent Size) Bounds()
     {

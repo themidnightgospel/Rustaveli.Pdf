@@ -212,6 +212,31 @@ public class ArtworkTests
     }
 
     [Fact]
+    public void APathIsDrawnAsItWasWhenGiven()
+    {
+        VectorPath path = new VectorPath().AddRectangle(0, 0, 10, 10);
+        List<float> dashes = [2, 1];
+        Artwork artwork = Artwork.Draw(100, 100, art =>
+        {
+            art.Clip(path);
+            art.Fill(path, TestInks.Red);
+            art.Fill(path, Gradient.Across(TestInks.Red, TestInks.Black));
+            art.Stroke(path, TestInks.Black, new LineStyle(1, Dashes: dashes));
+            art.Stroke(path, Gradient.Across(TestInks.Red, TestInks.Black), new LineStyle(1));
+        });
+
+        // Changed after the calls: a circle added, and a point no PDF can hold.
+        path.AddCircle(50, 50, 20).LineTo(float.NaN, 0);
+        dashes.Add(float.NaN);
+
+        List<PathOperation> paths = Draw(artwork, new Extent(100, 100)).OfType<PathOperation>().ToList();
+
+        Assert.Equal(5, paths.Count);
+        Assert.All(paths, operation => Assert.Equal(new Bounds(0, 0, 10, 10), operation.Bounds));
+        Assert.Equal([2f, 1f], paths[3].Style!.Value.Dashes!);
+    }
+
+    [Fact]
     public void ARestoreNeedsASave() =>
         Assert.Throws<InvalidOperationException>(() => Artwork.Draw(10, 10, art => art.RestoreState()));
 

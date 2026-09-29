@@ -76,26 +76,26 @@ public sealed class ArtworkComposer
     /// <summary>Confines what follows, until the next <see cref="RestoreState"/>, to the inside of <paramref name="path"/>.</summary>
     public void Clip(VectorPath path, FillRule rule = FillRule.NonZero)
     {
-        RequireWritable(path);
-        _steps.Add((surface, _) => surface.ClipPath(path, rule));
+        VectorPath drawn = WritableCopy(path);
+        _steps.Add((surface, _) => surface.ClipPath(drawn, rule));
     }
 
     /// <summary>Fills <paramref name="path"/> with <paramref name="ink"/>.</summary>
     public void Fill(VectorPath path, Ink ink, FillRule rule = FillRule.NonZero)
     {
-        RequireWritable(path);
-        _steps.Add((surface, _) => surface.FillPath(path, ink, rule));
+        VectorPath drawn = WritableCopy(path);
+        _steps.Add((surface, _) => surface.FillPath(drawn, ink, rule));
     }
 
     /// <summary>Fills <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
     public void Fill(VectorPath path, Gradient gradient, FillRule rule = FillRule.NonZero)
     {
-        RequireWritable(path);
-        (Offset position, Extent size) = RequireWritable(gradient, path);
+        VectorPath drawn = WritableCopy(path);
+        (Offset position, Extent size) = RequireWritable(gradient, drawn);
         _steps.Add((surface, _) =>
         {
             surface.BeginGradient(gradient, position, size);
-            surface.FillPath(path, Ink.Black, rule);
+            surface.FillPath(drawn, Ink.Black, rule);
             surface.EndGradient();
         });
     }
@@ -103,21 +103,21 @@ public sealed class ArtworkComposer
     /// <summary>Strokes <paramref name="path"/> with <paramref name="ink"/>, as <paramref name="style"/> says.</summary>
     public void Stroke(VectorPath path, Ink ink, LineStyle style)
     {
-        RequireWritable(path);
-        RequireWritable(style);
-        _steps.Add((surface, _) => surface.StrokePath(path, ink, style));
+        VectorPath drawn = WritableCopy(path);
+        LineStyle line = WritableCopy(style);
+        _steps.Add((surface, _) => surface.StrokePath(drawn, ink, line));
     }
 
     /// <summary>Strokes <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
     public void Stroke(VectorPath path, Gradient gradient, LineStyle style)
     {
-        RequireWritable(path);
-        RequireWritable(style);
-        (Offset position, Extent size) = RequireWritable(gradient, path);
+        VectorPath drawn = WritableCopy(path);
+        LineStyle line = WritableCopy(style);
+        (Offset position, Extent size) = RequireWritable(gradient, drawn);
         _steps.Add((surface, _) =>
         {
             surface.BeginGradient(gradient, position, size);
-            surface.StrokePath(path, Ink.Black, style);
+            surface.StrokePath(drawn, Ink.Black, line);
             surface.EndGradient();
         });
     }
@@ -186,18 +186,30 @@ public sealed class ArtworkComposer
             throw new ArgumentOutOfRangeException(name, value, WritableNumbers);
     }
 
-    private static void RequireWritable(VectorPath path)
+    /// <summary>
+    /// A copy of <paramref name="path"/> as it is at the call, checked. The artwork is drawn later, when it is placed,
+    /// so drawing the caller's own path would draw whatever it had become by then, beyond the check made here.
+    /// </summary>
+    private static VectorPath WritableCopy(VectorPath path)
     {
         ArgumentNullException.ThrowIfNull(path);
+        VectorPath copy = path.Copy();
 
-        if (!path.IsWritable)
+        if (!copy.IsWritable)
             throw new ArgumentOutOfRangeException(nameof(path), "Every point of a path is a number a PDF can hold: finite, and below 10^15 in magnitude.");
+
+        return copy;
     }
 
-    private static void RequireWritable(LineStyle style)
+    /// <summary>A copy of <paramref name="style"/> with its own dashes, which a later change to the caller's list does not reach, checked.</summary>
+    private static LineStyle WritableCopy(LineStyle style)
     {
-        if (!Writable.Is(style.Weight) || !Writable.Is(style.MiterLimit) || !Writable.Is(style.DashOffset) || (style.Dashes is { } dashes && !dashes.All(Writable.Is)))
+        LineStyle copy = style with { Dashes = style.Dashes?.ToArray() };
+
+        if (!Writable.Is(copy.Weight) || !Writable.Is(copy.MiterLimit) || !Writable.Is(copy.DashOffset) || (copy.Dashes is { } dashes && !dashes.All(Writable.Is)))
             throw new ArgumentOutOfRangeException(nameof(style), "A line's weight, miter limit and dashes are numbers a PDF can hold: finite, and below 10^15 in magnitude.");
+
+        return copy;
     }
 
     /// <summary>The bounds of <paramref name="path"/>, across which <paramref name="gradient"/> is laid.</summary>
