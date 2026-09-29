@@ -1,0 +1,7 @@
+# The documentation site's toolchain. docs/requirements.txt pins it, with hashes, for Linux and Python 3.12 as CI runs it:
+#
+#     uv pip compile docs/requirements.in --python-platform linux --python-version 3.12 --generate-hashes -o docs/requirements.txt
+#
+# MkDocs 2 drops the plugin and theme system Material is built on, so both stay on their 1.x and 9.x lines.
+mkdocs==1.6.1
+mkdocs-material==9.7.7

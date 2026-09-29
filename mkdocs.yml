@@ -1,0 +1,112 @@
+# The documentation site, served by GitHub Pages: the pages in docs/, and the API reference DocFX generates from
+# the packages' XML documentation into api/ (docs/api/docfx.json). Built and deployed by .github/workflows/docs.yml.
+#
+#     mkdocs serve        preview while writing (pip install -r docs/requirements.txt first)
+
+site_name: Rustaveli.Pdf
+site_description: A completely free, fully featured PDF generator for C# and .NET.
+site_url: https://themidnightgospel.github.io/Rustaveli.Pdf/
+repo_url: https://github.com/themidnightgospel/Rustaveli.Pdf
+repo_name: themidnightgospel/Rustaveli.Pdf
+edit_uri: edit/main/docs/
+copyright: MIT licence
+
+docs_dir: docs
+strict: true
+
+# The API reference is built by DocFX into api/ separately; the requirements are the build's own.
+exclude_docs: |
+  api/
+  requirements.*
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: README.md
+  - Getting started:
+      - guide/getting-started.md
+      - Coming from QuestPDF: guide/coming-from-questpdf.md
+  - Guides:
+      - guide/README.md
+      - Layout: guide/layout.md
+      - Text: guide/text.md
+      - Images and artwork: guide/images-and-artwork.md
+      - Output: guide/output.md
+      - Existing files: guide/existing-files.md
+      - Preview and debugging: guide/preview-and-debugging.md
+  - How it works:
+      - How layout works: architecture.md
+      - How it's tested: testing.md
+      - Performance: performance.md
+  - Reference:
+      - API reference: https://themidnightgospel.github.io/Rustaveli.Pdf/api/
+      - Features: features.md
+      - Glossary: GLOSSARY.md
+      - Known limitations: limitations.md
+      - QuestPDF parity: parity/PARITY.md
+  - Project:
+      - About: about.md
+      - Decision records:
+          - adr/README.md
+          - adr/0001-managed-pdf-writer.md
+          - adr/0002-print-vocabulary.md
+          - adr/0003-api-shape-and-style-sheets.md
+          - adr/0004-ink-colour-model.md
+          - adr/0005-target-frameworks.md
+          - adr/0006-packages-and-dependencies.md
+          - adr/0007-quality-gates.md
+          - adr/0008-clean-room.md
+          - adr/0009-performance-targets.md
+          - adr/0010-preview-tooling.md
+          - adr/0011-delivery-workflow.md
+          - adr/0012-parents-allot-final-size.md
+          - adr/0013-span-compatibility-package.md
+          - adr/0014-text-is-shaped-once.md
+          - adr/0015-text-engine-layers.md
+          - adr/0016-drawing-ahead.md
+          - adr/0017-draw-order.md
+          - adr/0018-tagged-structure.md
+          - adr/0019-operations-on-existing-files.md
+      - Conventions: CONVENTIONS.md
+      - Changelog: https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CHANGELOG.md
+      - Contributing: https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CONTRIBUTING.md
+      - Security: https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/SECURITY.md

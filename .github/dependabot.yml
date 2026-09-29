@@ -31,6 +31,25 @@ updates:
           - "SkiaSharp*"
           - "HarfBuzzSharp*"
 
+  # The documentation site's toolchain, pinned with hashes in docs/requirements.txt.
+  - package-ecosystem: "pip"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Tbilisi"
+    ignore:
+      # MkDocs 2 drops the plugin and theme system Material for MkDocs is built on; neither moves a major version
+      # until the two are known to work together.
+      - dependency-name: "mkdocs"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "mkdocs-material"
+        update-types: ["version-update:semver-major"]
+    groups:
+      docs:
+        patterns:
+          - "*"
+
   # The SDK in global.json.
   - package-ecosystem: "dotnet-sdk"
     directory: "/"

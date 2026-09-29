@@ -487,3 +487,7 @@ BenchmarkDotNet.Artifacts/
 
 # The coverage gate's thresholds are configuration, not coverage output.
 !eng/coverage-thresholds.json
+
+# The API reference DocFX generates, and the site it builds.
+docs/api/reference/
+docs/api/_site/
