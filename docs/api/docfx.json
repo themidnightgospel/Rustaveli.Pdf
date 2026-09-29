@@ -20,12 +20,17 @@
       { "files": [ "index.md", "toc.yml" ] },
       { "files": [ "reference/**.yml", "reference/index.md" ] }
     ],
+    "resource": [
+      { "files": [ "images/logo.png" ], "src": ".." }
+    ],
     "output": "_site",
     "template": [ "default", "modern" ],
     "globalMetadata": {
       "_appName": "Rustaveli.Pdf",
       "_appTitle": "Rustaveli.Pdf API",
       "_appFooter": "MIT licence",
+      "_appLogoPath": "images/logo.png",
+      "_appFaviconPath": "images/logo.png",
       "_enableSearch": true,
       "_disableContribution": true
     }

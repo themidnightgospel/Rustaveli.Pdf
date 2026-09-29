@@ -21,6 +21,8 @@ exclude_docs: |
 
 theme:
   name: material
+  logo: images/logo.png
+  favicon: images/logo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

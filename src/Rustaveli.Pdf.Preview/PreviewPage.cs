@@ -15,6 +15,7 @@ internal static class PreviewPage
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Preview</title>
+        <link rel="icon" type="image/png" href="/icon.png">
         <style>
           :root { --ink: #e53935; --panel: #262626; --line: #3d3d3d; --dim: #9a9a9a; }
           body { margin: 0; height: 100vh; display: flex; background: #3a3a3a; color: #eee; font: 13px system-ui, sans-serif; }
@@ -244,4 +245,15 @@ internal static class PreviewPage
         </body>
         </html>
         """;
+
+    /// <summary>The library's logo, the icon of the browser tab the preview is shown in.</summary>
+    public static byte[] Icon { get; } = ReadIcon();
+
+    private static byte[] ReadIcon()
+    {
+        using Stream stream = typeof(PreviewPage).Assembly.GetManifestResourceStream("Rustaveli.Pdf.Preview.Icon.png")!;
+        using MemoryStream copy = new MemoryStream();
+        stream.CopyTo(copy);
+        return copy.ToArray();
+    }
 }
