@@ -15,7 +15,9 @@ internal sealed class AnchorBlock : EnclosingBlock
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        context.Pagination.RegisterAnchor(Name, context.Pagination.Folio);
+        if (!context.DrawsAhead)
+            context.Pagination.RegisterAnchor(Name, context.Pagination.Folio);
+
         context.Surface.DrawDestination(Name);
 
         base.RenderCore(availableSpace, context);

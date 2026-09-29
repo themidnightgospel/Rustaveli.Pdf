@@ -191,4 +191,43 @@ public class FlowColumnsTests
         Assert.Equal(3, pages.Count);
         Assert.Equal([6, 6, 2], pages.Select(page => Units(page).Count));
     }
+
+    [Fact]
+    public void AnAnchorInTheStoryIsWhereTheStoryIsDrawnNotWhereItWasTried()
+    {
+        // The story is poured on the first page to see whether it fits there, and it does not, so it is kept for the
+        // second. The anchor inside it is on the second page, however many pages it was tried on.
+        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        {
+            section.Trim = new Extent(100, 102);
+            section.RunningFoot().Text(text => text.FolioOf("story"));
+            section.Body().Stack(stack =>
+            {
+                stack.Add().Compose(frame => frame.Slot().Child = new FixedBlock(10, 60));
+                stack.Add().KeepTogether().FlowColumns(columns =>
+                {
+                    columns.Gutter(10);
+                    columns.Story().Anchor("story").Compose(frame => frame.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 30));
+                });
+            });
+        }))).Pages;
+
+        Assert.Equal(2, pages.Count);
+        Assert.Equal(["2", "2"], pages.Select(page => page.Content));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AStoryIsCapturedWhereItIsDrawnNotWhereItWasTried(bool balanced)
+    {
+        CaptureBlock story = new CaptureBlock { Name = "story", Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
+        FlowColumnsBlock columns = new FlowColumnsBlock { Count = 2, Gutter = 10, Balanced = balanced, Story = story };
+        PlanContext context = LayoutHarness.Context();
+
+        LayoutHarness.Draw(columns, new Extent(100, 90), context);
+
+        // Once for each column the story is drawn in, and none for the pours that only tried it.
+        Assert.Equal([new Offset(0, 0), new Offset(55, 0)], context.Pagination.PositionsOf("story").Select(captured => captured.Position));
+    }
 }

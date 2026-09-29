@@ -108,7 +108,7 @@ internal sealed class FlowColumnsBlock : Block
     private Pour Measure(float width, float height, PlanContext context)
     {
         using CountingPageSink nowhere = new CountingPageSink();
-        RenderContext ahead = new RenderContext(nowhere, context);
+        RenderContext ahead = new RenderContext(nowhere, context) { DrawsAhead = true };
 
         Pour full = Trial(height);
 

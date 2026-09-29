@@ -21,6 +21,12 @@ internal sealed class RenderContext(ISurface surface, PlanContext layout, Struct
     /// <summary>Where every frame drawn is recorded, for a preview's inspector; null when not inspecting.</summary>
     public LayoutInspection? Inspection { get; init; }
 
+    /// <summary>
+    /// True while content is drawn ahead only to see where it would end (ADR 0016): what it would record about where it
+    /// lands — an anchor's page, a captured position — is not where it will land, so it records nothing.
+    /// </summary>
+    public bool DrawsAhead { get; init; }
+
     /// <summary>The structure being drawn inside, when the output is tagged.</summary>
     public TagStack Tags { get; } = new TagStack(surface, structure);
 
