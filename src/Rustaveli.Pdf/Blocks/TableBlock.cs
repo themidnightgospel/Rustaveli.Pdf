@@ -32,6 +32,15 @@ internal sealed class TableBlock : Block
 
         public int[] GroupEnd { get; set; } = Array.Empty<int>();
 
+        /// <summary>Why a body cell cannot be set in the row it is given, or null when every one can.</summary>
+        public string? BodyUnset { get; set; }
+
+        /// <summary>Why a header or footer cell cannot be set in the row it is given, or null when every one can.</summary>
+        public string? BandUnset { get; set; }
+
+        /// <summary>Why the table cannot be drawn with a cell of each row whole, or null when it can.</summary>
+        public string? Unset => BodyUnset ?? BandUnset;
+
         public float HeaderHeight => HeaderHeights.Sum();
 
         public float FooterHeight => FooterHeights.Sum();
@@ -116,6 +125,9 @@ internal sealed class TableBlock : Block
         if (layout is null)
             return Fit.Defer("The table columns do not fit within the available width.");
 
+        if (layout.Unset is { } unset)
+            return Fit.Defer(unset);
+
         if (_completedRows >= layout.BodyHeights.Length)
             return Fit.Nothing();
 
@@ -139,6 +151,7 @@ internal sealed class TableBlock : Block
         TableLayout? layout = BuildLayout(availableSpace, context.Planning);
 
         if (layout is null
+            || layout.Unset is not null
             || _completedRows >= layout.BodyHeights.Length
             || layout.BandHeight > availableSpace.Height + Extent.Epsilon)
         {
@@ -389,7 +402,8 @@ internal sealed class TableBlock : Block
             Direction = direction
         };
 
-        layout.BodyHeights = MeasureRowHeights(Cells, layout, context);
+        layout.BodyHeights = MeasureRowHeights(Cells, layout, context, "body", out string? bodyUnset);
+        layout.BodyUnset = bodyUnset;
         layout.GroupEnd = BuildGroupBoundaries(Cells, layout.BodyHeights.Length);
 
         _cachedLayout = layout;
@@ -412,8 +426,9 @@ internal sealed class TableBlock : Block
     /// </remarks>
     private void MeasureBands(TableLayout layout, PlanContext context)
     {
-        layout.HeaderHeights = MeasureRowHeights(HeaderCells, layout, context);
-        layout.FooterHeights = MeasureRowHeights(FooterCells, layout, context);
+        layout.HeaderHeights = MeasureRowHeights(HeaderCells, layout, context, "header", out string? headerUnset);
+        layout.FooterHeights = MeasureRowHeights(FooterCells, layout, context, "footer", out string? footerUnset);
+        layout.BandUnset = headerUnset ?? footerUnset;
     }
 
     /// <summary>
@@ -443,22 +458,28 @@ internal sealed class TableBlock : Block
 
     /// <summary>
     /// Measures every cell at its natural height, then distributes the height of vertically spanned cells across
-    /// the rows they cover.
+    /// the rows they cover. <paramref name="unset"/> says why a cell cannot be set in the rows it is given, if one
+    /// cannot.
     /// </summary>
-    private static float[] MeasureRowHeights(List<CellBlock> cells, TableLayout layout, PlanContext context)
+    private static float[] MeasureRowHeights(List<CellBlock> cells, TableLayout layout, PlanContext context, string band, out string? unset)
     {
+        unset = null;
+
         if (cells.Count == 0)
             return [];
 
         int rowCount = cells.Max(cell => cell.LastRow);
         float[] heights = new float[rowCount];
+        List<CellBlock>? unmeasured = null;
 
         // Unspanned cells set the baseline height of the row they sit in.
         foreach (CellBlock cell in cells.Where(cell => cell.RowSpan <= 1))
         {
             Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
-            if (!plan.IsDeferred)
+            if (plan.IsDeferred)
+                (unmeasured ??= []).Add(cell);
+            else
                 heights[cell.Row - 1] = Math.Max(heights[cell.Row - 1], plan.Size.Height);
         }
 
@@ -469,18 +490,44 @@ internal sealed class TableBlock : Block
             Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
             if (plan.IsDeferred)
+            {
+                (unmeasured ??= []).Add(cell);
                 continue;
+            }
 
-            float spannedHeight = 0f;
-
-            for (int row = cell.Row; row <= cell.LastRow; row++)
-                spannedHeight += heights[row - 1];
+            float spannedHeight = SpannedHeight(cell, heights);
 
             if (plan.Size.Height > spannedHeight)
                 heights[cell.LastRow - 1] += plan.Size.Height - spannedHeight;
         }
 
+        // A cell that cannot be measured in unlimited height takes no part in sizing its row — content sized by the
+        // height it is given, such as an image fitted to it — but it must fit the row the others make, or it would be
+        // drawn in a row that cannot hold it and lost without a word.
+        foreach (CellBlock cell in unmeasured ?? [])
+        {
+            Extent space = new Extent(layout.SpanWidth(cell), SpannedHeight(cell, heights));
+            Fit plan = cell.Plan(space, context);
+
+            if (plan.IsDeferred)
+            {
+                unset = $"The cell at row {cell.Row}, column {cell.Column} of the {band} cannot be set in the {space} its row gives it. Reason: {plan.DeferReason}";
+                break;
+            }
+        }
+
         return heights;
+    }
+
+    /// <summary>The combined height of the rows <paramref name="cell"/> covers.</summary>
+    private static float SpannedHeight(CellBlock cell, float[] heights)
+    {
+        float height = 0f;
+
+        for (int row = cell.Row; row <= cell.LastRow; row++)
+            height += heights[row - 1];
+
+        return height;
     }
 
     /// <summary>Splits the available width across columns: constants keep their size, relatives share the rest.</summary>

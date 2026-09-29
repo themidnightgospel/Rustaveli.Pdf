@@ -549,4 +549,70 @@ public class TableTests
         Approximately.Equal(100f, plan.Size.Height);
         Approximately.Equal(30f, page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Blue).Position.Y);
     }
+
+    [Theory]
+    [InlineData("body", "row 2, column 2 of the body")]
+    [InlineData("header", "row 1, column 2 of the header")]
+    [InlineData("span", "row 3, column 2 of the body")]
+    public void ACellThatCannotBeSetInItsColumnIsReportedRatherThanDropped(string where, string named)
+    {
+        // Content wider than its column cannot be drawn in it at any height. Left out of the row's height, it was
+        // drawn in a row too short to hold anything, and lost without a word.
+        Document document = Document.Compose(container => container.Section(page =>
+        {
+            page.Trim = new Extent(200, 100);
+            page.Body().Table(table =>
+            {
+                table.Columns(columns =>
+                {
+                    columns.Fixed(40);
+                    columns.Fixed(80);
+                });
+
+                if (where == "header")
+                {
+                    table.HeaderRows(rows =>
+                    {
+                        Fill(rows.Cell(), 10, 10);
+                        Fill(rows.Cell(), 120, 10);
+                    });
+                }
+
+                Fill(table.Cell(), 10, 10);
+                Fill(table.Cell(), 10, 10);
+                Fill(table.Cell(), 10, 10);
+                Fill(table.Cell(), where == "body" ? 120 : 10, 10);
+
+                if (where == "span")
+                {
+                    Fill(table.Cell().AtRow(3).AtColumn(1).SpanRows(2), 10, 10);
+                    Fill(table.Cell().AtRow(3).AtColumn(2).SpanRows(2), 120, 10);
+                }
+            });
+        }));
+
+        OversetException exception = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
+
+        Assert.Contains(named, exception.Message);
+    }
+
+    [Fact]
+    public void ACellSizedByTheHeightOfItsRowIsDrawnInIt()
+    {
+        // Content that takes its width from the height it is given cannot be measured in unlimited height, but it
+        // fits the row the other cells make, and is drawn there.
+        RecordedPage page = LayoutHarness.Draw(container => container.Table(table =>
+        {
+            table.Columns(columns =>
+            {
+                columns.Fixed(40);
+                columns.Fixed(80);
+            });
+
+            Fill(table.Cell(), 10, 30);
+            table.Cell().Proportion(2, ProportionFit.Height).Compose(inner => inner.Slot().Child = new FixedBlock(10, 10, TestInks.Red));
+        }), new Extent(200, 100));
+
+        Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
+    }
 }
