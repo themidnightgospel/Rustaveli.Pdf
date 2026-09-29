@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Rustaveli.Pdf;
 
 /// <summary>
@@ -35,10 +37,36 @@ public static class DocumentPreview
         options ??= new PreviewOptions();
         PreviewSession session = new PreviewSession(compose, options);
 
-        if (options.OpenBrowser)
-            PdfExport.Open(session.Url.ToString());
+        try
+        {
+            if (options.OpenBrowser)
+                OpenBrowser(session.Url);
+        }
+        catch
+        {
+            // The session is already listening on its port, on a thread of its own; a caller that never receives it
+            // cannot stop either.
+            session.Dispose();
+            throw;
+        }
 
         return session;
+    }
+
+    /// <summary>
+    /// Opens <paramref name="url"/> in the system's browser where there is one to open. A machine without one — a
+    /// Linux server without xdg-open, a container — still serves the preview, so it is said where to find it instead.
+    /// </summary>
+    private static void OpenBrowser(Uri url)
+    {
+        try
+        {
+            PdfExport.Open(url.ToString());
+        }
+        catch (Exception exception) when (exception is Win32Exception or PlatformNotSupportedException)
+        {
+            Console.Error.WriteLine($"No browser could be opened ({exception.Message}); open {url} to see the preview.");
+        }
     }
 
     /// <summary>Calls <paramref name="stop"/> when Ctrl+C is pressed, instead of ending the process, until disposed.</summary>

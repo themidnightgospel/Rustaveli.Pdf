@@ -293,6 +293,51 @@ public class PreviewTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task APreviewStartsEvenWhereNoBrowserCanBeOpened(bool unsupported)
+    {
+        Action<string> open = PdfExport.Open;
+
+        // As Process.Start fails on a Linux machine without xdg-open, and on a platform with no processes to start.
+        PdfExport.Open = _ => throw (unsupported ? new PlatformNotSupportedException() : (Exception)new System.ComponentModel.Win32Exception(2, "No such file or directory"));
+
+        try
+        {
+            using PreviewSession session = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { Resolution = 72 });
+
+            Assert.Contains("\"version\":1", await Get(session, "/state"), StringComparison.Ordinal);
+        }
+        finally
+        {
+            PdfExport.Open = open;
+        }
+    }
+
+    [Fact]
+    public void APreviewThatFailsToStartLetsItsPortGo()
+    {
+        TcpListener probe = new TcpListener(IPAddress.Loopback, 0);
+        probe.Start();
+        int port = ((IPEndPoint)probe.LocalEndpoint).Port;
+        probe.Stop();
+        Action<string> open = PdfExport.Open;
+        PdfExport.Open = _ => throw new NotSupportedException("Not here.");
+
+        try
+        {
+            Assert.Throws<NotSupportedException>(() => DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { Port = port }));
+        }
+        finally
+        {
+            PdfExport.Open = open;
+        }
+
+        using PreviewSession again = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
+        Assert.Equal(port, again.Url.Port);
+    }
+
     [Fact]
     public void JsonTextIsEscaped() =>
         Assert.Equal("\"q\\\"b\\\\n\\n\\r\\t\\u0001é\"", PreviewSession.Quote("q\"b\\n\n\r\t\u0001é"));
