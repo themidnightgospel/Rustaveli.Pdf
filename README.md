@@ -110,15 +110,16 @@ invoice.ExportPdf("invoice.pdf");
 - **Tooling** — a live preview in the browser that redraws as you edit, with an inspector that opens the line of
   code behind any frame.
 - **Small files** — fonts subset to the glyphs used and images embedded as encoded: from 4% to 55% of QuestPDF's
-  file size on the benchmark documents ([performance](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/performance.md)).
+  file size on the benchmark documents ([performance](https://themidnightgospel.github.io/Rustaveli.Pdf/performance/)).
 
 ## Documentation
 
-- [The documentation](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/README.md), starting with
-  [getting started](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/guide/getting-started.md)
-- [Coming from QuestPDF](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/guide/coming-from-questpdf.md)
-- [Features](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/features.md) and
-  [known limitations](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/limitations.md)
+- [The documentation](https://themidnightgospel.github.io/Rustaveli.Pdf/), starting with
+  [getting started](https://themidnightgospel.github.io/Rustaveli.Pdf/guide/getting-started/)
+- [API reference](https://themidnightgospel.github.io/Rustaveli.Pdf/api/)
+- [Coming from QuestPDF](https://themidnightgospel.github.io/Rustaveli.Pdf/guide/coming-from-questpdf/)
+- [Features](https://themidnightgospel.github.io/Rustaveli.Pdf/features/) and
+  [known limitations](https://themidnightgospel.github.io/Rustaveli.Pdf/limitations/)
 - [Changelog](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CHANGELOG.md)
 
 ## Licence

@@ -22,6 +22,7 @@
 ## The project
 
 - [About](about.md) — why the library exists, and how it was built
-- [Contributing](../CONTRIBUTING.md) and [conventions](CONVENTIONS.md)
-- [Security policy](../SECURITY.md)
-- [Changelog](../CHANGELOG.md)
+- [Contributing](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CONTRIBUTING.md) and
+  [conventions](CONVENTIONS.md)
+- [Security policy](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/SECURITY.md)
+- [Changelog](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CHANGELOG.md)

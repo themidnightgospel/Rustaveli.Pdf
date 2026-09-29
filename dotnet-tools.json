@@ -15,6 +15,13 @@
         "dotnet-stryker"
       ],
       "rollForward": false
+    },
+    "docfx": {
+      "version": "2.81.0",
+      "commands": [
+        "docfx"
+      ],
+      "rollForward": false
     }
   }
 }

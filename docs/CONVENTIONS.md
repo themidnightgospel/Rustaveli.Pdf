@@ -1,7 +1,7 @@
 # Conventions
 
 Standing decisions about how code in this repository is written. Each entry records the rule, the reasoning,
-and how it is enforced. Rules that a machine can check are configured in [`.editorconfig`](../.editorconfig) and
+and how it is enforced. Rules that a machine can check are configured in [`.editorconfig`](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/.editorconfig) and
 fail the build; the rest are here so they are at least written down rather than remembered.
 
 New remarks get appended here, not just applied to the file that prompted them.

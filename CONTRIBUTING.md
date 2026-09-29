@@ -40,6 +40,20 @@ and macOS have and Debian or Ubuntu get from `fonts-noto-core` and `fonts-noto-c
 - **Say what changed** in [`CHANGELOG.md`](CHANGELOG.md) when users will notice it, and in the
   [parity checklist](docs/parity/PARITY.md) when it adds or completes a capability.
 
+## Documentation
+
+The [documentation site](https://themidnightgospel.github.io/Rustaveli.Pdf/) is built from `docs/` by MkDocs
+Material, and its API reference from the packages' XML documentation by DocFX. To preview it while writing:
+
+```bash
+python -m pip install --require-hashes -r docs/requirements.txt
+mkdocs serve                              # the pages, redrawn as you save
+dotnet docfx docs/api/docfx.json --serve  # the API reference
+```
+
+A page must be listed in `mkdocs.yml` to appear in the navigation, and every link must resolve: the build is strict,
+and a pull request that breaks it fails. Every C# example in the guides is compiled and run by the tests.
+
 ## Pull requests
 
 Every push to a pull request runs the build and the tests on Linux (with the coverage gate) and on Windows (on
