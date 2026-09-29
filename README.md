@@ -1,4 +1,8 @@
-![Rustaveli.Pdf](https://raw.githubusercontent.com/themidnightgospel/Rustaveli.Pdf/main/docs/images/logo.png)
+<!-- github-only -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/themidnightgospel/Rustaveli.Pdf/main/docs/images/logo.png" alt="Rustaveli.Pdf" width="128">
+</p>
+<!-- /github-only -->
 
 # Rustaveli.Pdf
 
