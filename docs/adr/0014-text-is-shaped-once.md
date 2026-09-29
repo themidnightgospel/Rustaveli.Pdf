@@ -35,7 +35,7 @@ refusing the document; only when no face at all is available does export fail.
 - Measuring and drawing cannot disagree, and kerned text now matches what print tools and QuestPDF set.
 - Every future backend — page images through Skia, or anything else — draws from the same walk and inherits the
   same layout, instead of shaping text its own way.
-- The walk is where the text engine grows ([phase 3](../../README.md#roadmap)): ligatures and other `GSUB` features,
+- The walk is where the text engine grows ([phase 3](../about.md#history)): ligatures and other `GSUB` features,
   mark positioning, bidirectional reordering and complex scripts change what the walk yields, not its callers.
 - Export streams pages out as they finish, so a failed export to a caller's stream leaves part of a document there;
   export to a path writes beside the target and moves into place.
