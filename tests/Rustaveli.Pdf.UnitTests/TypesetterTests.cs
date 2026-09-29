@@ -213,7 +213,7 @@ public class TypesetterTests
     [Fact]
     public void ThrowsWhenContentCanNeverFit()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
@@ -240,7 +240,7 @@ public class TypesetterTests
     [Fact]
     public void ThrowsWhenMarginsLeaveNoRoom()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(100f, 100f);
@@ -257,7 +257,7 @@ public class TypesetterTests
     [Fact]
     public void ThrowsWhenTheHeaderAndFooterFillThePage()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 100f);
@@ -529,7 +529,7 @@ public class TypesetterTests
     [InlineData(-10f, 100f, "(Width: -10.000, Height: 100.000)")]
     public void RejectsAPageSizeWithoutAreaInEitherDimension(float width, float height, string formattedSize)
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(width, height);
@@ -547,7 +547,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsHorizontalMarginsThatConsumeExactlyTheWholeWidth()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(100, 100);
@@ -563,7 +563,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsVerticalMarginsThatConsumeExactlyTheWholeHeight()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(100, 100);
@@ -617,7 +617,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAHeaderThatDoesNotFitOnThePage()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
@@ -638,7 +638,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAHeaderThatClaimsMoreThanItWasOffered()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
@@ -654,7 +654,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAHeaderThatExpandsToFillThePage()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
@@ -676,7 +676,7 @@ public class TypesetterTests
     [Fact]
     public void RejectsAFooterThatClaimsMoreThanTheHeaderLeft()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 200);

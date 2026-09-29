@@ -28,7 +28,7 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
         if (!_hasStarted && availableSpace.Height + Extent.Epsilon < MinHeight)
         {
             return Fit.Defer(
-                $"Only {availableSpace.Height:F1} points remain but {MinHeight:F1} was required before this content may start.");
+                FormattableString.Invariant($"Only {availableSpace.Height:F1} points remain but {MinHeight:F1} was required before this content may start."));
         }
 
         return base.PlanCore(availableSpace, context);

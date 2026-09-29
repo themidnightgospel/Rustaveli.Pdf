@@ -9,6 +9,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 
 - A table cell pinned to a row with no room left in it covered a cell already there; it is now refused with a
   `CompositionException` naming the row.
+- Layout error messages, and `Extent` and `Offset` as text, wrote numbers in the current culture — `0,000` on a
+  machine that writes decimals with a comma. They read the same in every culture now.
 - SVG artwork with numbers beyond what a PDF can hold (10^15), or transforms, clips, gradients and view boxes that
   reach beyond it, failed the export; what reaches beyond it is left out. `ArtworkComposer` refuses such numbers
   when they are given.

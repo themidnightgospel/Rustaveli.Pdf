@@ -156,13 +156,13 @@ internal static class Typesetter
 
         if (contentWidth <= 0)
             throw new OversetException(
-                $"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {largest.Width:F1} points wide.");
+                FormattableString.Invariant($"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {largest.Width:F1} points wide."));
 
         float availableHeight = largest.Height - section.Margins.Vertical;
 
         if (availableHeight <= 0)
             throw new OversetException(
-                $"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {largest.Height:F1} points tall.");
+                FormattableString.Invariant($"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {largest.Height:F1} points tall."));
 
         Bands bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
         float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
@@ -171,7 +171,7 @@ internal static class Typesetter
         // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
         if (contentHeight < -Extent.Epsilon)
             throw new OversetException(
-                $"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body.");
+                FormattableString.Invariant($"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body."));
 
         Extent bodySpace = new Extent(contentWidth, contentHeight);
         layout.PageBody = bodySpace;
@@ -282,13 +282,13 @@ internal static class Typesetter
         Extent remaining = new Extent(available.Width, available.Height - headPlan.Size.Height);
 
         if (remaining.IsNegative)
-            throw new OversetException($"The running head ({headPlan.Size.Height:F1} points) is taller than the page.");
+            throw new OversetException(FormattableString.Invariant($"The running head ({headPlan.Size.Height:F1} points) is taller than the page."));
 
         // A running head that swallows the whole page nearly always holds content that expands to fill whatever
         // it is offered — vertical placement or Expand — in a band with no height of its own to work with.
         if (remaining.Height <= Extent.Epsilon)
             throw new OversetException(
-                $"The running head took all {available.Height:F1} points available, leaving no room for the body or the running foot. " +
+                FormattableString.Invariant($"The running head took all {available.Height:F1} points available, leaving no room for the body or the running foot. ") +
                 "This usually means it holds content that expands to fill the space offered to it, such as " +
                 "Expand. Give the running head an explicit Height, or remove the expanding content.");
 

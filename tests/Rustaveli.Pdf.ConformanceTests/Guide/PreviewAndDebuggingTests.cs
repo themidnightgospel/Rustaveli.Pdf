@@ -41,7 +41,8 @@ public class PreviewAndDebuggingTests
     [Fact]
     public void ReadingALayoutFailure()
     {
-        using CultureScope culture = new CultureScope(CultureInfo.InvariantCulture);
+        // Messages read the same in every culture: this one writes decimals with a comma.
+        using CultureScope culture = new CultureScope(new CultureInfo("de-DE"));
 
         Document document = Document.Compose(composition => composition.Section(section =>
         {

@@ -22,10 +22,10 @@ internal sealed class ConstraintBlock : EnclosingBlock
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (MinWidth > availableSpace.Width + Extent.Epsilon)
-            return Fit.Defer($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1}).");
+            return Fit.Defer(FormattableString.Invariant($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1})."));
 
         if (MinHeight > availableSpace.Height + Extent.Epsilon)
-            return Fit.Defer($"The requested minimum height ({MinHeight:F1}) exceeds the available height ({availableSpace.Height:F1}).");
+            return Fit.Defer(FormattableString.Invariant($"The requested minimum height ({MinHeight:F1}) exceeds the available height ({availableSpace.Height:F1})."));
 
         Extent innerSpace = new Extent(
             Math.Min(availableSpace.Width, MaxWidth ?? availableSpace.Width),

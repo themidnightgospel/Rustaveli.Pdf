@@ -70,7 +70,7 @@ public class DebuggingTests
     [Fact]
     public void AFailureTracesThePathDownToTheFrameThatCouldNotFit()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
         Document document = Document.Compose(composition => composition.Section(page =>
         {
             page.Trim = new Extent(200, 100);

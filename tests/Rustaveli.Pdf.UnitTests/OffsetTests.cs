@@ -23,7 +23,7 @@ public class OffsetTests
     [Fact]
     public void FormatsBothCoordinatesToThreeDecimals()
     {
-        using CultureScope culture = CultureScope.Invariant();
+        using CultureScope culture = CultureScope.DecimalComma();
 
         Assert.Equal("(X: 1.500, Y: -2.346)", new Offset(1.5f, -2.3456f).ToString());
     }
