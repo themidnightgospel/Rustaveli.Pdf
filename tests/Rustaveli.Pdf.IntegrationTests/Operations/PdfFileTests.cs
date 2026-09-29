@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Operations.Reading;
+using Rustaveli.Pdf.Writing;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Outline;
 
@@ -181,6 +183,27 @@ public class PdfFileTests
 
             Assert.All(saved, file => Assert.Equal(expected, file));
         }
+    }
+
+    /// <summary>How many form XObjects the file holds.</summary>
+    private static int Forms(byte[] pdf)
+    {
+        PdfSource source = PdfSource.Open(pdf);
+        return source.ObjectNumbers.Count(number => source.GetObject(number) is SourceStream stream
+            && stream.Dictionary.TryGetValue(PdfNames.Subtype, out PdfValue subtype) && subtype.Kind == PdfValueKind.Name && subtype.AsName().Value == "Form");
+    }
+
+    [Fact]
+    public void APageLaidOnManyIsWrittenOnce()
+    {
+        byte[] pages = Pages("One", "Two", "Three");
+        byte[] laid = PdfFile.Open(pages)
+            .Overlay(PdfFile.Open(Layer("Stamp")))
+            .Underlay(PdfFile.Open(Layer("Head")), onto: "1-2")
+            .ToArray();
+
+        Assert.Equal(["HeadOneStamp", "HeadTwoStamp", "ThreeStamp"], Drawn(laid));
+        Assert.Equal(Forms(pages) + 2, Forms(laid));
     }
 
     [Fact]

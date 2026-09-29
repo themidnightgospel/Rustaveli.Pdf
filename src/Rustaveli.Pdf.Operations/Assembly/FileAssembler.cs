@@ -90,15 +90,24 @@ internal static class FileAssembler
         bool whole = first.Pages.Count <= pages.Count
             && first.Pages.Select((page, index) => ReferenceEquals(pages[index].Page, page)).All(same => same);
 
+        // A page laid on many — a letterhead under every page — is written as a form once, and drawn wherever it is laid.
+        Dictionary<(PdfSource, int), PdfReference> forms = [];
+
         for (int index = 0; index < pages.Count; index++)
-            WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first));
+            WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first), forms);
 
         CopyDocument(writer, copier, first, whole, settings);
         copier.Flush();
         writer.Finish();
     }
 
-    private static void WritePage(PdfDocumentWriter writer, ObjectCopier copier, PageEntry entry, (PdfReference Page, PdfReference Parent) placed, bool keepStructure)
+    private static void WritePage(
+        PdfDocumentWriter writer,
+        ObjectCopier copier,
+        PageEntry entry,
+        (PdfReference Page, PdfReference Parent) placed,
+        bool keepStructure,
+        Dictionary<(PdfSource, int), PdfReference> forms)
     {
         SourcePage page = entry.Page;
         PdfSource source = page.Source;
@@ -107,7 +116,7 @@ internal static class FileAssembler
         copied[PdfNames.Parent] = placed.Parent;
 
         if (entry.Beneath.Count > 0 || entry.Over.Count > 0)
-            Layer(writer, copier, entry, copied);
+            Layer(writer, copier, entry, copied, forms);
 
         writer.File.Write(placed.Page, copied);
     }
@@ -116,7 +125,7 @@ internal static class FileAssembler
     /// Draws the pages laid beneath and over a page around its own content, each as a form of its own, the page's
     /// content kept in a saved state so it cannot disturb what is drawn over it.
     /// </summary>
-    private static void Layer(PdfDocumentWriter writer, ObjectCopier copier, PageEntry entry, PdfDictionary page)
+    private static void Layer(PdfDocumentWriter writer, ObjectCopier copier, PageEntry entry, PdfDictionary page, Dictionary<(PdfSource, int), PdfReference> written)
     {
         PdfSource source = entry.Page.Source;
         PdfDictionary own = entry.Page.Dictionary;
@@ -146,7 +155,13 @@ internal static class FileAssembler
                 }
                 while (forms.ContainsKey(name));
 
-                forms[name] = FormOf(writer, copier, layer);
+                if (!written.TryGetValue((layer.Source, layer.ObjectNumber), out PdfReference form))
+                {
+                    form = FormOf(writer, copier, layer);
+                    written[(layer.Source, layer.ObjectNumber)] = form;
+                }
+
+                forms[name] = form;
                 content.Append("q\n").Append(Encoding.ASCII.GetString(name.Encoded.ToArray())).Append(" Do\nQ\n");
             }
         }
