@@ -24,6 +24,12 @@ internal sealed class TableBlock : Block
 
         public required ReadingDirection Direction { get; init; }
 
+        public required BandCells Head { get; init; }
+
+        public required BandCells Body { get; init; }
+
+        public required BandCells Foot { get; init; }
+
         public float[] HeaderHeights { get; set; } = Array.Empty<float>();
 
         public float[] FooterHeights { get; set; } = Array.Empty<float>();
@@ -66,6 +72,83 @@ internal sealed class TableBlock : Block
                 width += ColumnWidths[column - 1];
 
             return width;
+        }
+    }
+
+    /// <summary>
+    /// The cells of one band found by the row they start in, so that drawing a page looks only at the rows on it.
+    /// </summary>
+    private sealed class BandCells
+    {
+        private readonly List<CellBlock> _cells;
+
+        /// <summary>For each row, the places in the band's list of the cells starting in it, in list order.</summary>
+        private readonly List<int>[] _rows;
+
+        private bool[]? _lastInColumns;
+
+        public BandCells(List<CellBlock> cells)
+        {
+            _cells = cells;
+            _rows = new List<int>[cells.Count == 0 ? 0 : cells.Max(cell => cell.Row)];
+
+            for (int row = 0; row < _rows.Length; row++)
+                _rows[row] = [];
+
+            for (int place = 0; place < cells.Count; place++)
+                _rows[cells[place].Row - 1].Add(place);
+        }
+
+        /// <summary>
+        /// The places in the band's list of the cells starting in rows <paramref name="firstRow"/> to
+        /// <paramref name="lastRow"/>, in list order, as a walk of the whole list would find them.
+        /// </summary>
+        public List<int> Starting(int firstRow, int lastRow)
+        {
+            List<int> places = [];
+
+            for (int row = firstRow; row <= Math.Min(lastRow, _rows.Length); row++)
+                places.AddRange(_rows[row - 1]);
+
+            places.Sort();
+            return places;
+        }
+
+        public CellBlock this[int place] => _cells[place];
+
+        /// <summary>Whether no other cell starts below the cell at <paramref name="place"/> in any column it covers.</summary>
+        public bool IsLastInItsColumns(int place)
+        {
+            _lastInColumns ??= LastInTheirColumns();
+            return _lastInColumns[place];
+        }
+
+        /// <summary>
+        /// For every cell, whether it is the last of its columns: once the lowest start in each column is known, a
+        /// cell is last when none of its columns has a cell starting below it.
+        /// </summary>
+        private bool[] LastInTheirColumns()
+        {
+            int[] lowestStart = new int[_cells.Max(cell => cell.LastColumn) + 1];
+
+            foreach (CellBlock cell in _cells)
+            {
+                for (int column = cell.Column; column <= cell.LastColumn; column++)
+                    lowestStart[column] = Math.Max(lowestStart[column], cell.Row);
+            }
+
+            bool[] last = new bool[_cells.Count];
+
+            for (int place = 0; place < _cells.Count; place++)
+            {
+                CellBlock cell = _cells[place];
+                last[place] = true;
+
+                for (int column = cell.Column; column <= cell.LastColumn; column++)
+                    last[place] &= lowestStart[column] <= cell.LastRow;
+            }
+
+            return last;
         }
     }
 
@@ -183,18 +266,18 @@ internal sealed class TableBlock : Block
         if (layout.HeaderHeights.Length != 0)
         {
             using (tagging && repeat ? tags.Untag() : default(TagStack.Scope))
-                DrawBand(HeaderCells, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head, heads: true);
+                DrawBand(layout.Head, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head, heads: true);
 
             top += layout.HeaderHeight;
         }
 
-        DrawBand(Cells, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, body, heads: false, ExtendLastCells);
+        DrawBand(layout.Body, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, body, heads: false, ExtendLastCells);
         top += takenHeight;
 
         if (layout.FooterHeights.Length != 0)
         {
             using TagStack.Scope scope = tagging && repeat ? tags.Untag() : default;
-            DrawBand(FooterCells, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context, foot, heads: false);
+            DrawBand(layout.Foot, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context, foot, heads: false);
         }
 
         _completedRows = lastRow;
@@ -264,7 +347,7 @@ internal sealed class TableBlock : Block
     }
 
     private void DrawBand(
-        List<CellBlock> cells,
+        BandCells cells,
         float[] rowHeights,
         TableLayout layout,
         int firstRow,
@@ -275,20 +358,20 @@ internal sealed class TableBlock : Block
         bool heads,
         bool extendLastCells = false)
     {
+        List<int> places = cells.Starting(firstRow, lastRow);
+
         if (group is not null)
-            TagCells(cells, firstRow, lastRow, group, heads, context.Tags);
+            TagCells(places.Select(place => cells[place]), group, heads, context.Tags);
 
-        foreach (CellBlock cell in cells)
+        foreach (int place in places)
         {
-            if (cell.Row < firstRow || cell.Row > lastRow)
-                continue;
-
+            CellBlock cell = cells[place];
             StructureElement? element = null;
             _cellTags?.TryGetValue(cell, out element);
             using TagStack.Scope scope = context.Tags.Enter(element);
 
             // The last cell of its columns reaches down to the last row drawn here.
-            int bottomRow = extendLastCells && IsLastInItsColumns(cell, cells) ? lastRow : cell.LastRow;
+            int bottomRow = extendLastCells && cells.IsLastInItsColumns(place) ? lastRow : cell.LastRow;
 
             float cellTop = bandTop;
 
@@ -315,13 +398,12 @@ internal sealed class TableBlock : Block
     /// Creates the rows about to be drawn in <paramref name="group"/>, in order, and their cells in column order:
     /// headings of their columns in a header band, of their rows where marked, data otherwise.
     /// </summary>
-    private void TagCells(List<CellBlock> cells, int firstRow, int lastRow, StructureElement group, bool heads, TagStack tags)
+    private void TagCells(IEnumerable<CellBlock> cells, StructureElement group, bool heads, TagStack tags)
     {
         _cellTags ??= [];
         using TagStack.Scope inGroup = tags.Enter(group);
 
         IEnumerable<IGrouping<int, CellBlock>> rows = cells
-            .Where(cell => cell.Row >= firstRow && cell.Row <= lastRow)
             .OrderBy(cell => cell.Row)
             .ThenBy(cell => cell.Column)
             .GroupBy(cell => cell.Row);
@@ -339,18 +421,6 @@ internal sealed class TableBlock : Block
                 _cellTags[cell] = element;
             }
         }
-    }
-
-    /// <summary>Whether no other cell starts below <paramref name="cell"/> in any column it covers.</summary>
-    private static bool IsLastInItsColumns(CellBlock cell, List<CellBlock> cells)
-    {
-        foreach (CellBlock other in cells)
-        {
-            if (other.Row > cell.LastRow && other.Column <= cell.LastColumn && other.LastColumn >= cell.Column)
-                return false;
-        }
-
-        return true;
     }
 
     /// <summary>
@@ -395,7 +465,10 @@ internal sealed class TableBlock : Block
             ColumnWidths = columnWidths,
             ColumnOffsets = columnOffsets,
             TotalWidth = columnWidths.Sum(),
-            Direction = direction
+            Direction = direction,
+            Head = new BandCells(HeaderCells),
+            Body = new BandCells(Cells),
+            Foot = new BandCells(FooterCells)
         };
 
         layout.BodyHeights = MeasureRowHeights(Cells, layout, context, "body", out string? bodyUnset);
