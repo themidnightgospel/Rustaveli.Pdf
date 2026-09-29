@@ -1,0 +1,48 @@
+# Weekly update pull requests, grouped so a week's updates arrive as one pull request per group rather than one per
+# package. Each is an ordinary pull request: CI runs on it, and nothing merges without review.
+
+version: 2
+updates:
+  # Every package version is in Directory.Packages.props; the tools in dotnet-tools.json are updated with them.
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Tbilisi"
+    ignore:
+      # The behavioural oracle, pinned to 2026.5.0: the last release under an MIT grant. Later releases forbid using
+      # QuestPDF to develop a competing PDF library. Never upgrade it.
+      - dependency-name: "QuestPDF"
+    groups:
+      # SkiaSharp and HarfBuzzSharp ship native libraries that must come from one build, so they move together.
+      # Check each update against the pin comment in Directory.Packages.props — the glibc floor, and libfontconfig
+      # on linux-arm64 — which CI does not exercise.
+      native-graphics:
+        patterns:
+          - "SkiaSharp*"
+          - "HarfBuzzSharp*"
+      # A package matches only the first group it fits, so this takes everything else.
+      nuget:
+        patterns:
+          - "*"
+
+  # The SDK in global.json.
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Tbilisi"
+
+  # The actions the workflows in .github/workflows use.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Tbilisi"
+    groups:
+      actions:
+        patterns:
+          - "*"
