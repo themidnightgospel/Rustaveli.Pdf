@@ -114,6 +114,18 @@ public class ComplexScriptTests
     }
 
     [Fact]
+    public void AControlCharacterInAShapedRunIsSetAsNothing()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Shaped.Shaper);
+        List<ShapedGlyph> glyphs = Shape(Shaped, Salaam + "\u0001", Arabic);
+
+        Assert.Equal(4, glyphs.Count);
+        Assert.DoesNotContain(glyphs, glyph => glyph.Glyph == 0);
+        Assert.Equal(Salaam + "\u0001", string.Concat(glyphs.Select(glyph => glyph.ReadsAs)));
+        Assert.Equal(measurer.MeasureWidth(Salaam, Arabic), measurer.MeasureWidth(Salaam + "\u0001", Arabic), 0.001f);
+    }
+
+    [Fact]
     public void ADevanagariVowelSignIsDrawnBeforeTheConsonantItFollows()
     {
         // Ka followed by the vowel sign i: typed after the consonant, the sign is written before it.

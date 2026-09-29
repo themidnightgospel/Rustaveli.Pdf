@@ -200,6 +200,58 @@ public class ShapingTests
         Assert.Equal([('a', 0, 1), (0xD835, 1, 1)], Shape("a\uD835", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
     }
 
+    [Theory]
+    [InlineData("©️")]
+    [InlineData("©\U000E0100")]
+    [InlineData("©᠎")]
+    [InlineData("©\u0001")]
+    [InlineData("©️\u0001")]
+    public void AnInvisibleCharacterTheFaceLacksIsSetAsNothing(string text)
+    {
+        // Noto Sans has no glyph for a variation selector, a Mongolian vowel separator or a control character, none of
+        // which is drawn: each goes with the character before it, rather than being set as a missing-glyph box.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        ShapedGlyph copyright = Assert.Single(Shape(text, Sans));
+
+        Assert.Equal(Shape("©", Sans).Single().Glyph, copyright.Glyph);
+        Assert.Equal((0, text.Length, text), (copyright.Start, copyright.Length, copyright.ReadsAs));
+        Assert.Equal(measurer.MeasureWidth("©", Sans), measurer.MeasureWidth(text, Sans));
+        Assert.Empty(measurer.MissingCodepoints);
+    }
+
+    [Fact]
+    public void AnInvisibleCharacterIsSetAsNothingInAFaceWithoutSubstitutions()
+    {
+        TypefaceLibrary library = TestFonts.NewLibrary(includeInstalled: false);
+        library.RegisterFile(FontAssets.PathOf("SpecimenCff-Regular.otf"));
+        TypeStyle specimen = TypeStyle.Default.WithTypeface("Specimen Cff").WithPointSize(20);
+        List<ShapedGlyph> glyphs = [];
+
+        foreach (ShapedGlyph glyph in library.Shaper.Walk("a️b\t".AsSpan(), specimen))
+            glyphs.Add(glyph);
+
+        Assert.Equal([(0, 2, "a️"), (2, 1, "b"), (3, 1, " ")], glyphs.Select(glyph => (glyph.Start, glyph.Length, glyph.ReadsAs)));
+        Assert.DoesNotContain(glyphs, glyph => glyph.Glyph == 0);
+    }
+
+    [Fact]
+    public void AnInvisibleCharacterWithNothingBeforeItIsLeftOut()
+    {
+        Assert.Equal([(1, 1, "a")], Shape("️a", Sans).Select(glyph => (glyph.Start, glyph.Length, glyph.ReadsAs)));
+        Assert.Empty(Shape("️", Sans));
+    }
+
+    [Fact]
+    public void ATabIsSetAsASpace()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        List<ShapedGlyph> glyphs = Shape("a\tb", Sans);
+
+        Assert.Equal(Shape(" ", Sans).Single().Glyph, glyphs[1].Glyph);
+        Assert.Equal(" ", glyphs[1].ReadsAs);
+        Assert.Equal(measurer.MeasureWidth("a b", Sans), measurer.MeasureWidth("a\tb", Sans));
+    }
+
     [Fact]
     public void BracketsReadingRightToLeftAreMirrored()
     {

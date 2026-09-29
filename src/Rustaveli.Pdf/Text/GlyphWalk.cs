@@ -117,34 +117,75 @@ internal ref struct GlyphWalk
             return true;
         }
 
-        if (_buffer is not null)
+        while (true)
         {
-            if (_bufferIndex < _buffer.Count)
+            if (_buffer is not null)
             {
-                EmitShaped();
-                return true;
+                while (_bufferIndex < _buffer.Count)
+                {
+                    if (EmitShaped())
+                        return true;
+                }
+
+                Release();
             }
 
-            Release();
-        }
+            if (_next >= _text.Length)
+                return false;
 
-        if (_next >= _text.Length)
-            return false;
+            int start = _next;
+            (int codepoint, int length) = Read(start);
+            OpenTypeFont face = FaceFor(codepoint, _previousFace);
 
-        int start = _next;
-        (int codepoint, int length) = Read(start);
-        OpenTypeFont face = _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
+            if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) && Shape(face, start, length))
+                continue;
 
-        if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) && Shape(face, start, length))
-        {
-            EmitShaped();
+            ushort glyph = face.GetGlyphId(codepoint);
+            int end = PastNothing(face, start + length);
+            _next = end;
+
+            // One with nothing before it to go with is left out.
+            if (glyph == 0 && InvisibleCharacters.Contains(codepoint))
+                continue;
+
+            if (codepoint == InvisibleCharacters.Tab)
+                (codepoint, glyph) = (' ', face.GetGlyphId(' '));
+
+            Emit(face, glyph, codepoint, start, end - start, end - start > length ? _text.Slice(start, end - start).ToString() : null);
             return true;
         }
+    }
 
-        ushort glyph = face.GetGlyphId(codepoint);
-        Emit(face, glyph, codepoint, start, length, text: null);
-        _next = start + length;
-        return true;
+    /// <summary>
+    /// The face that sets <paramref name="codepoint"/>, after a character set in <paramref name="previous"/>: an
+    /// invisible character goes with the one before it, and any other is set in the first face that has it.
+    /// </summary>
+    private readonly OpenTypeFont FaceFor(int codepoint, OpenTypeFont? previous) =>
+        InvisibleCharacters.Contains(codepoint) || codepoint == InvisibleCharacters.Tab
+            ? previous ?? _primary
+            : _shaper.FaceFor(_primary, _request, _fallbacks, codepoint);
+
+    /// <summary>Whether a character is drawn as nothing in <paramref name="face"/>: an invisible one it has no glyph for.</summary>
+    private static bool IsSetAsNothing(OpenTypeFont face, int codepoint) =>
+        InvisibleCharacters.Contains(codepoint) && !face.HasGlyph(codepoint);
+
+    /// <summary>
+    /// Where the characters from <paramref name="index"/> that <paramref name="face"/> sets as nothing end, so that
+    /// they go with the glyph before them.
+    /// </summary>
+    private readonly int PastNothing(OpenTypeFont face, int index)
+    {
+        while (index < _text.Length)
+        {
+            (int codepoint, int length) = Read(index);
+
+            if (!IsSetAsNothing(face, codepoint))
+                break;
+
+            index += length;
+        }
+
+        return index;
     }
 
     /// <summary>Hands the shaping buffer back if the walk was left before its end.</summary>
@@ -162,7 +203,7 @@ internal ref struct GlyphWalk
         {
             (int codepoint, int length) = Read(end);
 
-            if (!ReferenceEquals(_shaper.FaceFor(_primary, _request, _fallbacks, codepoint), face))
+            if (!ReferenceEquals(FaceFor(codepoint, face), face))
                 break;
 
             end += length;
@@ -239,18 +280,26 @@ internal ref struct GlyphWalk
     }
 
     /// <summary>
-    /// The next glyph of the shaped run. The first glyph of a cluster stands for its characters; any further glyphs
-    /// of the cluster, from a substitution that made several of one, stand for none, so text read back is not doubled.
+    /// The next glyph of the shaped run. The first glyph of a cluster stands for its characters, and for any after it
+    /// that are set as nothing; any further glyphs of the cluster, from a substitution that made several of one, stand
+    /// for none, so text read back is not doubled. False, and nothing handed out, for a glyph set as nothing.
     /// </summary>
-    private void EmitShaped()
+    private bool EmitShaped()
     {
         GlyphBuffer buffer = _buffer!;
         int index = _bufferIndex++;
+
+        // Invisible characters the face has no glyph for went with the glyph before them, or, with none before them,
+        // are left out.
+        if (IsNothing(buffer, index))
+            return false;
+
         int cluster = buffer.Clusters[index];
         bool opens = index == 0 || buffer.Clusters[index - 1] != cluster;
         int start = _runStart + cluster;
-        int length = opens ? buffer.GetClusterEnd(index, _runLength) - cluster : 0;
+        int length = opens ? ClusterEnd(buffer, index) - cluster : 0;
         (int codepoint, int single) = Read(start);
+        ushort glyph = buffer.Glyphs[index];
 
         string? text = !opens ? string.Empty
             : length > single ? _text.Slice(start, length).ToString()
@@ -259,7 +308,54 @@ internal ref struct GlyphWalk
         List<ComplexGlyph> placements = _scratch!.Placements;
         ComplexGlyph? placed = placements.Count > 0 ? placements[index] : null;
 
-        Emit(_bufferFace!, buffer.Glyphs[index], codepoint, start, length, text, placed);
+        if (opens && codepoint == InvisibleCharacters.Tab)
+            (codepoint, glyph, placed) = (' ', _bufferFace!.GetGlyphId(' '), null);
+
+        Emit(_bufferFace!, glyph, codepoint, start, length, text, placed);
+        return true;
+    }
+
+    /// <summary>
+    /// Whether the glyph at <paramref name="index"/> stands for nothing drawn: the face's missing glyph for a cluster
+    /// of invisible characters.
+    /// </summary>
+    private readonly bool IsNothing(GlyphBuffer buffer, int index)
+    {
+        if (buffer.Glyphs[index] != 0)
+            return false;
+
+        int end = _runStart + buffer.GetClusterEnd(index, _runLength);
+
+        for (int at = _runStart + buffer.Clusters[index]; at < end;)
+        {
+            (int codepoint, int length) = Read(at);
+
+            if (!InvisibleCharacters.Contains(codepoint))
+                return false;
+
+            at += length;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Where the characters the cluster at <paramref name="index"/> stands for end, counting the clusters after it
+    /// that stand for nothing drawn, in code units from the start of the run.
+    /// </summary>
+    private readonly int ClusterEnd(GlyphBuffer buffer, int index)
+    {
+        ReadOnlySpan<int> clusters = buffer.Clusters;
+        int end = buffer.GetClusterEnd(index, _runLength);
+        int next = index + 1;
+
+        while (next < clusters.Length && clusters[next] == clusters[index])
+            next++;
+
+        for (; next < clusters.Length && IsNothing(buffer, next); next++)
+            end = buffer.GetClusterEnd(next, _runLength);
+
+        return end;
     }
 
     private void Emit(OpenTypeFont face, ushort glyph, int codepoint, int start, int length, string? text, ComplexGlyph? placed = null)
