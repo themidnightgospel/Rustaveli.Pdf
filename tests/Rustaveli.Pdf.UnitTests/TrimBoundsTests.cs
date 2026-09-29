@@ -107,12 +107,48 @@ public class TrimBoundsTests
         Approximately.Equal(new Extent(180, 130), fill.Size);
     }
 
-    [Fact]
-    public void AMaximumBeyondWhatPdfAllowsIsHeldToIt()
+    public static TheoryData<string, Action<Section>> SizesThatCannotBeDrawn => new()
     {
-        Section section = new Section { MaximumTrim = new Extent(20_000, 20_000) };
+        { "Trim", section => section.Trim = new Extent(0, 100) },
+        { "Trim", section => section.Trim = new Extent(100, -1) },
+        { "Trim", section => section.Trim = new Extent(float.NaN, 100) },
+        { "Trim", section => section.Trim = new Extent(100, float.PositiveInfinity) },
+        { "Trim", section => section.Trim = new Extent(20_000, 100) },
+        { "MinimumTrim", section => section.MinimumTrim = new Extent(-1, 100) },
+        { "MinimumTrim", section => section.MinimumTrim = new Extent(100, float.NaN) },
+        { "MinimumTrim", section => section.MinimumTrim = new Extent(100, 14_401) },
+        { "MaximumTrim", section => section.MaximumTrim = new Extent(200, 0) },
+        { "MaximumTrim", section => section.MaximumTrim = new Extent(float.NaN, 200) },
+        { "MaximumTrim", section => section.MaximumTrim = new Extent(20_000, 20_000) },
+        { "Margins", section => section.Margins = Sides.All(float.NaN) },
+        { "Margins", section => section.Margins = new Sides(0, 0, -1, 0) },
+        { "Margins", section => section.Margins = new Sides(0, float.PositiveInfinity, 0, 0) },
+    };
 
-        Assert.Equal(Extent.Max, section.LargestTrim);
+    [Theory]
+    [MemberData(nameof(SizesThatCannotBeDrawn))]
+    public void ASizeThatCannotBeDrawnIsRefusedWhereItIsSet(string property, Action<Section> set)
+    {
+        ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() => set(new Section()));
+
+        Assert.Equal(property, refused.ParamName);
+    }
+
+    [Fact]
+    public void TrimsUpToWhatPdfAllowsAreAccepted()
+    {
+        Section section = new Section
+        {
+            Trim = Extent.Max,
+            MinimumTrim = Extent.Zero,
+            MaximumTrim = Extent.Max,
+            Margins = Sides.All(0),
+        };
+
+        section.MinimumTrim = null;
+        section.MaximumTrim = null;
+
+        Assert.Equal((Extent.Max, Extent.Max), (section.SmallestTrim, section.LargestTrim));
     }
 
     [Fact]
@@ -144,17 +180,5 @@ public class TrimBoundsTests
         }));
 
         Assert.Contains("The smallest trim", exception.Message);
-    }
-
-    [Fact]
-    public void ALargestTrimOfNoSizeIsRefused()
-    {
-        OversetException exception = Assert.Throws<OversetException>(() => Render(section =>
-        {
-            section.MinimumTrim = Extent.Zero;
-            section.MaximumTrim = new Extent(200, 0);
-        }));
-
-        Assert.Contains("cannot be drawn", exception.Message);
     }
 }

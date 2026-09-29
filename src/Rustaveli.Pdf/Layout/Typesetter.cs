@@ -149,13 +149,10 @@ internal static class Typesetter
         section.UnderlaySlot.ResetState(includeDocumentProgress: false);
         section.OverlaySlot.ResetState(includeDocumentProgress: false);
 
-        // A page is sized by its content between these bounds; a fixed page is one whose bounds are equal.
+        // A page is sized by its content between these bounds; a fixed page is one whose bounds are equal. Each is
+        // greater than nothing, as the section checks when it is set.
         Extent smallest = section.SmallestTrim;
         Extent largest = section.LargestTrim;
-
-        if (largest.Width <= 0 || largest.Height <= 0)
-            throw new OversetException(
-                $"The trim size {largest} cannot be drawn. Both dimensions must be greater than zero.");
 
         if (smallest.Width > largest.Width || smallest.Height > largest.Height)
             throw new OversetException(
