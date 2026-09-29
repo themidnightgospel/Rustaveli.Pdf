@@ -18,8 +18,8 @@ namespace Rustaveli.Pdf.Text;
 /// </para>
 /// <para>
 /// A character the face lacks is set in the first face that has it: the configured fallback typefaces in order,
-/// then the registered faces, then the installed ones. Faces found that way are remembered per style, so a run of
-/// CJK text resolves its fallback once rather than once per character.
+/// then the registered faces, then the installed ones. The face found is remembered per character and style, so a
+/// run of CJK text searches once for each character it uses rather than once for each time it uses it.
 /// </para>
 /// <para>Safe for concurrent use; one shaper serves every document set with its catalog.</para>
 /// </remarks>
@@ -40,7 +40,6 @@ internal sealed class TypeShaper
     // Fallbacks are searched for in the weight and slant asked for, so those are part of what is remembered: one face
     // can be the primary of several weights, and each weight wants its own fallback.
     private readonly ConcurrentDictionary<(OpenTypeFont Primary, FaceStyle Style, TypefaceFallbacks Fallbacks, int Codepoint), OpenTypeFont> _fallbacks = new();
-    private readonly ConcurrentDictionary<(OpenTypeFont Primary, FaceStyle Style, TypefaceFallbacks Fallbacks), OpenTypeFont[]> _discovered = new();
     private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups = new();
 
     [ThreadStatic]
@@ -269,33 +268,21 @@ internal sealed class TypeShaper
 
     private static FontFaceInfo? Embeddable(FontFaceInfo? face) => face is { IsEmbeddable: true } ? face : null;
 
+    /// <remarks>
+    /// Every character is searched for in the order the faces are tried, rather than first among the faces found for
+    /// earlier characters: those may come later in the order than one that has this character, and which characters
+    /// came earlier would then decide the face — even in another document, through a shared library. The search is
+    /// made once per character and style, and the catalog keeps what makes it cheap: which face matches a family, and
+    /// which installed faces cover each block.
+    /// </remarks>
     private OpenTypeFont FindFallback(OpenTypeFont primary, FontRequest request, TypefaceFallbacks fallbacks, int codepoint)
     {
-        OpenTypeFont[] known = _discovered.GetOrAdd((primary, request.Style, fallbacks), static _ => []);
-
-        foreach (OpenTypeFont candidate in known)
-        {
-            if (candidate.HasGlyph(codepoint))
-                return candidate;
-        }
-
         // The style's own fallbacks come first, then the library's.
         IReadOnlyList<string> families = fallbacks.Names.Count == 0 ? _fallbackTypefaces : [.. fallbacks.Names, .. _fallbackTypefaces];
-        OpenTypeFont? found = _catalog.FindFallback(codepoint, request, families)
-            ?? BundledTypefaces.Covering(codepoint, request.Style);
 
         // No face anywhere has the character, so the primary sets it as its missing-glyph box.
-        if (found is null)
-            return primary;
-
-        // Rare and cheap next to the search above, so a lock is simpler than a lock-free swap.
-        lock (_discovered)
-        {
-            OpenTypeFont[] faces = _discovered.GetOrAdd((primary, request.Style, fallbacks), static _ => []);
-            if (!faces.Contains(found))
-                _discovered[(primary, request.Style, fallbacks)] = [.. faces, found];
-        }
-
-        return found;
+        return _catalog.FindFallback(codepoint, request, families)
+            ?? BundledTypefaces.Covering(codepoint, request.Style)
+            ?? primary;
     }
 }

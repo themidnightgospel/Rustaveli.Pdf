@@ -188,6 +188,17 @@ public class FontFallbackTests
     }
 
     [Fact]
+    public void AStylesFallbacksKeepTheirOrderWhateverWasFoundBefore()
+    {
+        TypefaceLibrary library = CommittedLibrary();
+        TypeStyle style = TypeStyle.Default.WithTypeface("Noto Sans Georgian", "Specimen Sans", TestFonts.Sans);
+
+        // Specimen Sans has no ß, so Noto Sans sets it; A, which both have, is still set in Specimen Sans, named first.
+        Assert.Equal(TestFonts.Sans, FamilyOf(library, "ß", style));
+        Assert.Equal("Specimen Sans", FamilyOf(library, "A", style));
+    }
+
+    [Fact]
     public void StylesWithDifferentFallbacksDoNotShareWhatTheyFound()
     {
         TypefaceLibrary library = CommittedLibrary();
