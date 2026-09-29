@@ -1,7 +1,11 @@
+using System.IO.Compression;
+using System.Text;
 using Rustaveli.Pdf.Output;
+using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
 using UglyToad.PdfPig;
 using PdfDocumentWriter = Rustaveli.Pdf.Writing.PdfDocumentWriter;
+using PdfWriterOptions = Rustaveli.Pdf.Writing.PdfWriterOptions;
 using UglyToad.PdfPig.Actions;
 using UglyToad.PdfPig.Annotations;
 using UglyToad.PdfPig.Content;
@@ -287,6 +291,25 @@ public class PdfSurfaceTests
 
         Assert.True(path.IsFilled);
         Assert.False(path.IsStroked);
+    }
+
+    [Theory]
+    [InlineData(0, 10, 10, 10)]
+    [InlineData(10, 0, 10, 10)]
+    [InlineData(10, 10, 0, 10)]
+    [InlineData(10, 10, 10, 0)]
+    public void ACornerWithNoRadiusStaysSquareWhileTheOthersRound(float topLeft, float topRight, float bottomRight, float bottomLeft)
+    {
+        using PdfDocument parsed = Render(canvas =>
+            canvas.DrawRoundedRectangle(new Offset(20, 30), new Extent(60, 40), new Corners(topLeft, topRight, bottomRight, bottomLeft), Brick));
+
+        PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
+
+        Assert.Equal(3, path.SelectMany(subpath => subpath.Commands).Count(command => command is PdfSubpath.CubicBezierCurve));
+        AssertBounds(path.GetBoundingRectangle(), left: 20, top: 30, width: 60, height: 40);
+
+        // The square corner takes nothing off either long side it joins, so one of them runs 60 - 10 straight.
+        Assert.Equal(50, LongestStraightEdge(path), Tolerance);
     }
 
     [Theory]
@@ -708,6 +731,86 @@ public class PdfSurfaceTests
         using PdfDocument parsed = Render(canvas => canvas.DrawDestination(name!));
 
         Assert.False(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("Names")));
+    }
+
+    // ---- Tagging -----------------------------------------------------------------------------------------------
+
+    /// <summary>A document and a paragraph in it, for a tagged surface to be told what it draws belongs to.</summary>
+    private static (StructureElement Document, StructureElement Paragraph) Structure()
+    {
+        StructureElement document = new StructureElement("Document", null);
+        StructureElement paragraph = new StructureElement("P", document);
+        document.Kids.Add(paragraph);
+        return (document, paragraph);
+    }
+
+    /// <summary>Draws a single square page on a surface writing the structure, and returns the file uncompressed.</summary>
+    private static string RenderTagged(Action<PdfSurface> draw)
+    {
+        using MemoryStream stream = new MemoryStream();
+
+        using (PdfDocumentWriter writer = new PdfDocumentWriter(stream, new PdfWriterOptions { CompressionLevel = CompressionLevel.NoCompression }))
+        {
+            using PdfSurface surface = new PdfSurface(writer, TypefaceLibrary.Shared.Shaper, new PdfExportOptions { Tagged = true });
+            surface.BeginPage(new Extent(PageSide, PageSide));
+            draw(surface);
+            surface.EndPage();
+            surface.Finish();
+        }
+
+        return Encoding.Latin1.GetString(stream.ToArray());
+    }
+
+    [Fact]
+    public void ATaggedPageOfDecorationAloneLeavesTheStructureOut()
+    {
+        string pdf = RenderTagged(canvas =>
+        {
+            canvas.Tag(null);
+            canvas.DrawRectangle(new Offset(20, 30), new Extent(60, 40), Brick);
+        });
+
+        Assert.Matches(@"/Artifact\s+BMC", pdf);
+        Assert.Matches(@"/Tabs\s*/S\b", pdf);
+        Assert.DoesNotContain("/StructParents", pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/StructTreeRoot", pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DecorationBeforeTheFirstElementStaysDecorationAndTheTreeGrowsFromThatElementsDocument()
+    {
+        (_, StructureElement paragraph) = Structure();
+
+        string pdf = RenderTagged(canvas =>
+        {
+            canvas.Tag(null);
+            canvas.DrawRectangle(new Offset(20, 30), new Extent(60, 40), Brick);
+            canvas.Tag(paragraph);
+            canvas.DrawText("Text", new Offset(10, 120), Style);
+        });
+
+        Assert.Matches(@"/Artifact\s+BMC[\s\S]*/P\s*<<\s*/MCID 0\s*>>\s*BDC", pdf);
+        Assert.Matches(@"/StructTreeRoot \d+ 0 R", pdf);
+        Assert.Matches(@"/S\s*/Document", pdf);
+        Assert.Matches(@"/StructParents 0\b", pdf);
+    }
+
+    [Fact]
+    public void ALinkDrawnInsideAnotherElementIsALinkElementWithinIt()
+    {
+        (_, StructureElement paragraph) = Structure();
+
+        string pdf = RenderTagged(canvas =>
+        {
+            canvas.Tag(paragraph);
+            canvas.DrawExternalLink("https://example.com/", new Extent(80, 15));
+        });
+
+        StructureElement link = Assert.IsType<StructureElement>(Assert.Single(paragraph.Kids));
+        Assert.Equal("Link", link.Role);
+        Assert.Single(link.Kids);
+        Assert.Matches(@"/S\s*/Link\b", pdf);
+        Assert.Matches(@"/Subtype\s*/Link[\s\S]*?/StructParent 0\b", pdf);
     }
 
     // ---- Transforms --------------------------------------------------------------------------------------------

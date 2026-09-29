@@ -68,6 +68,19 @@ public class FontDiscoveryTests
     }
 
     [Fact]
+    public void ListsAFileOnceWhenItsFolderIsNamedTwoWays()
+    {
+        // A trailing separator names the same folder by a different path, so the folder is searched twice; its files
+        // must still be listed once.
+        using TemporaryFolder folder = new TemporaryFolder();
+        string font = folder.Write("a.ttf", [1]);
+
+        IReadOnlyList<string> files = FontFileEnumerator.Enumerate([folder.Path, folder.Path + Path.DirectorySeparatorChar]);
+
+        Assert.Equal(new[] { font }, files);
+    }
+
+    [Fact]
     public void RecognisesFontFileExtensions()
     {
         Assert.True(FontFileEnumerator.IsFontFile("font.TTC"));

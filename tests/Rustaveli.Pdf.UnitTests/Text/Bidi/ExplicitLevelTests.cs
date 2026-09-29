@@ -58,6 +58,17 @@ public class ExplicitLevelTests
     }
 
     [Fact]
+    public void IgnoresAPdfInsideAnIsolateThatOverflowed()
+    {
+        // The RLI overflows, so the PDF inside it has nothing of its own to close and may not close the RLE outside:
+        // the text after it stays at 125, raised to 126, until the PDI; only the PDF after that closes the RLE.
+        Assert.Equal(
+            BidiClasses.Repeat("x", 63) + " 125 126 x 126 125 x 124",
+            BidiClasses.Levels(
+                BidiClasses.Repeat("LRE", 62) + " RLE RLI L PDF L PDI PDF L", BidiDirection.LeftToRight));
+    }
+
+    [Fact]
     public void ClosesEmbeddingsLeftOpenInsideAnIsolate() =>
         Assert.Equal("0 x 4 0 0", BidiClasses.Levels("LRI RLE L PDI L", BidiDirection.LeftToRight));
 

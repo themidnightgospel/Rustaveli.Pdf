@@ -12,8 +12,13 @@ internal static class SfntWriter
     /// <summary>What the checksum of a whole font must come to once the adjustment is in place.</summary>
     private const uint ChecksumMagic = 0xB1B0AFBA;
 
+    /// <summary>The font file of <paramref name="tables"/>, which include <c>head</c>, as every font's tables do.</summary>
     public static byte[] Write(uint sfntVersion, IReadOnlyList<KeyValuePair<uint, byte[]>> tables)
     {
+        // The whole file's checksum is settled in head; without one there is nowhere to write it.
+        if (!tables.Any(static table => table.Key == TableTag.Head))
+            throw new ArgumentException("A font file needs a head table.", nameof(tables));
+
         KeyValuePair<uint, byte[]>[] sorted = tables.OrderBy(static table => table.Key).ToArray();
         int count = sorted.Length;
         int length = HeaderSize + (count * RecordSize);
@@ -36,7 +41,7 @@ internal static class SfntWriter
         BigEndian.WriteUInt16(file, 10, (ushort)((count * RecordSize) - searchRange));
 
         int offset = HeaderSize + (count * RecordSize);
-        int headOffset = -1;
+        int headOffset = 0;
 
         for (int index = 0; index < count; index++)
         {
@@ -59,11 +64,8 @@ internal static class SfntWriter
             offset += Padded(data.Length);
         }
 
-        if (headOffset >= 0)
-        {
-            uint adjustment = ChecksumMagic - Checksum(file);
-            BigEndian.WriteUInt32(file, headOffset + HeadTable.ChecksumAdjustmentOffset, adjustment);
-        }
+        uint adjustment = ChecksumMagic - Checksum(file);
+        BigEndian.WriteUInt32(file, headOffset + HeadTable.ChecksumAdjustmentOffset, adjustment);
 
         return file;
     }

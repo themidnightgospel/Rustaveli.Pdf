@@ -52,7 +52,7 @@ internal readonly struct CffIndex
     /// <summary>The position and length of item <paramref name="item"/> within the CFF data.</summary>
     public (int Start, int Length) GetItem(ReadOnlySpan<byte> cff, int item)
     {
-        if (item < 0 || item >= Count)
+        if ((uint)item >= (uint)Count)
             throw new FontFormatException($"The CFF INDEX has no item {item}.");
 
         uint start = OffsetAt(cff, item);

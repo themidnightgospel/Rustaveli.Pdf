@@ -45,6 +45,8 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
 
         Fit plan = Child.Plan(Unscale(availableSpace, scale.Value), context);
 
+        // The content fitted at this scale when it was chosen; should it not now — content that answers differently
+        // when asked again — its answer stands, rather than being taken for content of no size.
         if (plan.IsDeferred || plan.IsNothing)
             return plan;
 

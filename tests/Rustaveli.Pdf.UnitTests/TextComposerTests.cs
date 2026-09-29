@@ -153,6 +153,21 @@ public class TextComposerTests
     }
 
     [Fact]
+    public void AnInlineFrameLeftEmptyAddsNothingToTheParagraph()
+    {
+        TextBlock element = new TextBlock();
+        TextComposer text = new TextComposer(element);
+
+        text.Run("ab");
+        text.Inline(_ => { });
+        text.Run("cd");
+
+        // A paragraph holding an inline frame has its lines rebuilt on every pass; an empty one must not cost that.
+        Assert.DoesNotContain(element.Runs, run => run.Inline is not null);
+        Assert.Equal("abcd", Assert.Single(LayoutHarness.Draw(element, Space).Texts).Text);
+    }
+
+    [Fact]
     public void ComposeRefusesAMissingHandler()
     {
         TextBlock element = new TextBlock();

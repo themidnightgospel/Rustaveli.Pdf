@@ -493,7 +493,11 @@ public class JpegTests
         byte[] quantisation = TestJpeg.Segment(0xDB, new byte[65]);
         byte[] reserved = TestJpeg.Segment(0xC8, [1, 2, 3]);
 
-        JpegFile jpeg = Parse(TestJpeg.Build(comment, quantisation, reserved, TestJpeg.Frame(10, 20, 3)));
+        // Tables whose markers sit among the frame markers, and which are not frames.
+        byte[] huffman = TestJpeg.Segment(0xC4, new byte[17]);
+        byte[] conditioning = TestJpeg.Segment(0xCC, [0x00, 0x10]);
+
+        JpegFile jpeg = Parse(TestJpeg.Build(comment, quantisation, reserved, huffman, conditioning, TestJpeg.Frame(10, 20, 3)));
 
         Assert.Equal(20, jpeg.Height);
     }

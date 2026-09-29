@@ -11,15 +11,12 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class AnchorBlock : EnclosingBlock
 {
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; init; }
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (!string.IsNullOrEmpty(Name))
-        {
-            context.Pagination.RegisterAnchor(Name, context.Pagination.Folio);
-            context.Surface.DrawDestination(Name);
-        }
+        context.Pagination.RegisterAnchor(Name, context.Pagination.Folio);
+        context.Surface.DrawDestination(Name);
 
         base.RenderCore(availableSpace, context);
     }

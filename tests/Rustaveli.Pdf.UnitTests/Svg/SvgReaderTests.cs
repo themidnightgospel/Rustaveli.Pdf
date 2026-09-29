@@ -37,6 +37,7 @@ public class SvgReaderTests
     [InlineData("width='50%' viewBox='0 0 40 20'", 15f, 15f)]
     [InlineData("", 225f, 112.5f)]
     [InlineData("viewBox='0 0 0 20'", 225f, 112.5f)]
+    [InlineData("viewBox='0 0 40 0'", 225f, 112.5f)]
     public void TheArtworkTakesTheSizeTheDocumentGivesItself(string size, float width, float height) =>
         Assert.Equal(new Extent(width, height), Read(string.Empty, size).Size);
 
@@ -139,7 +140,7 @@ public class SvgReaderTests
     [Fact]
     public void ShapesOfNoSizeAreNotDrawn() =>
         Assert.Empty(Painted(
-            "<rect width='0' height='5'/><rect width='5'/><circle r='0'/><ellipse rx='5'/>" +
+            "<rect width='0' height='5'/><rect width='5'/><circle r='0'/><ellipse rx='5'/><ellipse ry='5'/>" +
             "<polyline points='1 2'/><polygon/><path/><unknown/>"));
 
     [Theory]
@@ -229,6 +230,7 @@ public class SvgReaderTests
     {
         Assert.Empty(Painted("<g display='none'><rect width='5' height='5'/></g>"));
         Assert.Empty(Painted("<g visibility='hidden'><rect width='5' height='5'/></g>"));
+        Assert.Empty(Painted("<g visibility='collapse'><rect width='5' height='5'/></g>"));
         Assert.Single(Painted("<g visibility='hidden'><rect width='5' height='5' visibility='visible'/></g>"));
         Assert.Empty(Painted("<defs><rect width='5' height='5'/></defs><title>x</title><symbol><rect width='5' height='5'/></symbol>"));
     }
@@ -447,8 +449,25 @@ public class SvgReaderTests
     [InlineData("<text>  </text>")]
     [InlineData("<text fill='none'>x</text>")]
     [InlineData("<text visibility='hidden'>x</text>")]
+    [InlineData("<text visibility='collapse'>x</text>")]
     public void TextWithNothingToShowIsNotSet(string text) =>
         Assert.Empty(Draw(text).OfType<TextOperation>());
+
+    [Theory]
+    [InlineData("font-weight='bold'", TypeWeight.Bold, false)]
+    [InlineData("font-weight='bolder'", TypeWeight.Bold, false)]
+    [InlineData("font-weight='600'", TypeWeight.Bold, false)]
+    [InlineData("font-weight='500'", TypeWeight.Normal, false)]
+    [InlineData("font-weight='lighter'", TypeWeight.Normal, false)]
+    [InlineData("font-style='italic'", TypeWeight.Normal, true)]
+    [InlineData("font-style='oblique'", TypeWeight.Normal, true)]
+    [InlineData("font-style='normal'", TypeWeight.Normal, false)]
+    public void TextIsBoldOrItalicAsItsStyleSays(string attributes, TypeWeight weight, bool italic)
+    {
+        TextOperation text = Draw($"<text {attributes}>x</text>").OfType<TextOperation>().Single();
+
+        Assert.Equal((weight, italic), (text.Style.Weight, text.Style.IsItalic));
+    }
 
     [Fact]
     public void TextIsSetInSansSerifByDefault()

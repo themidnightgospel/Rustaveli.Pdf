@@ -175,6 +175,32 @@ public class ShapingTests
     }
 
     [Fact]
+    public void ALetterSetAsTwoGlyphsKeepsThemInOrderRightToLeft()
+    {
+        // Noto Sans sets ḿ as an m and a combining acute, the acute standing for no character of its own: displayed
+        // right to left, the two move together, before the a that came before them, and in their own order.
+        List<ShapedGlyph> letter = Shape("ḿ", Sans);
+        ushort a = Shape("a", Sans).Single().Glyph;
+
+        Assert.Equal([letter[0].Glyph, letter[1].Glyph, a], ShapeRightToLeft("aḿ", Sans).Select(glyph => glyph.Glyph));
+    }
+
+    [Fact]
+    public void ACharacterBeyondTheBasicPlaneIsDisplayedAsACharacterOfItsOwn()
+    {
+        // U+10301, an Old Italic letter, shares its low sixteen bits with U+0301, a combining acute. Read as the
+        // acute, it would be held after the a it follows rather than displayed before it.
+        Assert.Equal([1, 0], ShapeRightToLeft("a\U00010301", Sans).Select(glyph => glyph.Start));
+    }
+
+    [Fact]
+    public void ASurrogateWithoutItsPartnerIsSetAsACharacterOfItsOwn()
+    {
+        Assert.Equal([(0xD835, 0, 1), ('a', 1, 1)], Shape("\uD835a", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
+        Assert.Equal([('a', 0, 1), (0xD835, 1, 1)], Shape("a\uD835", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
+    }
+
+    [Fact]
     public void BracketsReadingRightToLeftAreMirrored()
     {
         ushort opening = Shape("(", Sans).Single().Glyph;

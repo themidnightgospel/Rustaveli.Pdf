@@ -550,7 +550,9 @@ internal sealed class TextBlock : Block
 
         List<TextLine> lines = BuildLinesAfresh(maxWidth, maxHeight, blockStyle, context, out blocker);
 
-        if (reusable && blocker is null)
+        // Only an inline frame can block the lines, and a paragraph holding one is never reused, so what is reusable
+        // was built whole.
+        if (reusable)
             _built = new BuiltLines(maxWidth, blockStyle, context.ReadingDirection, context.Measurer, lines);
 
         return lines;

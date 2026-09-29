@@ -1,5 +1,6 @@
 using Rustaveli.Pdf.Images;
 using Rustaveli.Pdf.Output;
+using Rustaveli.Pdf.UnitTests.Images;
 
 namespace Rustaveli.Pdf.UnitTests;
 
@@ -89,6 +90,21 @@ public class ImageAdjusterTests
 
         Assert.Same(first, second);
         Assert.Single(processor.Requests);
+    }
+
+    [Theory]
+    [InlineData(null, 95)]
+    [InlineData(60, 60)]
+    public void ACmykImageUnderPdfABecomesRgbFinelyCompressedUnlessAskedOtherwise(int? quality, int expected)
+    {
+        Recorder processor = new Recorder();
+        RasterImage cmyk = RasterImage.FromBytes(TestJpeg.Build(TestJpeg.Frame(40, 20, 4)));
+        ImageAdjuster adjuster = new ImageAdjuster(new PdfExportOptions { ImageProcessor = processor, ImageQuality = quality, Conformance = PdfAConformance.PdfA2B });
+
+        adjuster.Adjust(cmyk, new Extent(40, 20));
+
+        ImageProcessing request = Assert.Single(processor.Requests);
+        Assert.Equal((40, 20, (int?)expected), (request.PixelWidth, request.PixelHeight, request.Quality));
     }
 
     [Fact]

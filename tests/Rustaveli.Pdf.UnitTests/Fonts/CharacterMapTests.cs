@@ -196,7 +196,7 @@ public class CharacterMapTests
     [Fact]
     public void FindsSymbolFontCharactersInThePrivateUseArea()
     {
-        CharacterMap map = Map((3, 0, SyntheticTables.Format4((0xF041, 8), (0x263A, 9))));
+        CharacterMap map = Map((3, 0, SyntheticTables.Format4((0xEFFF, 7), (0xF041, 8), (0x263A, 9))));
 
         Assert.Equal(CharacterEncoding.Symbol, map.Encoding);
         Assert.Equal(8, map.GetGlyph('A'));
@@ -204,6 +204,9 @@ public class CharacterMapTests
         Assert.Equal(9, map.GetGlyph(0x263A));
         Assert.Equal(0, map.GetGlyph('B'));
         Assert.Equal(0, map.GetGlyph(0x263B));
+
+        // Only a code a byte can hold is moved into the private use area; -1 moved there would be U+EFFF.
+        Assert.Equal(0, map.GetGlyph(-1));
     }
 
     [Fact]

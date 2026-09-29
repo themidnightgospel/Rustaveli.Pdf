@@ -42,13 +42,15 @@ public class GeneratedContentTests
         Assert.Empty(LayoutHarness.Draw(frame => frame.Artwork(_ => null), new Extent(10, 10)).Operations);
     }
 
-    [Fact]
-    public void NothingIsGeneratedForABoxOfNoSize()
+    [Theory]
+    [InlineData(0f, 10f)]
+    [InlineData(10f, 0f)]
+    public void NothingIsGeneratedForABoxOfNoSize(float width, float height)
     {
         int calls = 0;
 
-        LayoutHarness.Draw(frame => frame.Image(_ => { calls++; return Pixel; }), new Extent(0, 10));
-        LayoutHarness.Draw(frame => frame.Artwork(_ => { calls++; return null; }), new Extent(10, 0));
+        LayoutHarness.Draw(frame => frame.Image(_ => { calls++; return Pixel; }), new Extent(width, height));
+        LayoutHarness.Draw(frame => frame.Artwork(_ => { calls++; return null; }), new Extent(width, height));
 
         Assert.Equal(0, calls);
     }

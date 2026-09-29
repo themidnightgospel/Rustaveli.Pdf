@@ -177,6 +177,53 @@ public class LineBreakerTests
         Assert.Equal("a\u201C ÷" + Ideograph, Marked("a\u201C " + Ideograph));
     }
 
+    [Theory]
+    [InlineData("\u2028")]
+    [InlineData("\r")]
+    [InlineData("\n")]
+    [InlineData("\u0085")]
+    [InlineData(" ")]
+    [InlineData("\u200B")]
+    [InlineData("\u00A0")]
+    [InlineData("(")]
+    [InlineData("\"")]
+    [InlineData("\u201C")]
+    [InlineData("\u201D")]
+    public void AnInitialQuotationMarkOpensAQuotationAfterEveryClassTheRuleNames(string before)
+    {
+        Assert.EndsWith("\u201C " + Ideograph, Marked(before + "\u201C " + Ideograph));
+    }
+
+    [Theory]
+    [InlineData("a")]
+    [InlineData("\u2060")]
+    public void AnInitialQuotationMarkAfterAnythingElseOpensNoQuotation(string before)
+    {
+        Assert.EndsWith("\u201C ÷" + Ideograph, Marked(before + "\u201C " + Ideograph));
+    }
+
+    [Theory]
+    [InlineData("\u2028")]
+    [InlineData("\r")]
+    [InlineData("\n")]
+    [InlineData("\u0085")]
+    [InlineData(" ")]
+    [InlineData("\u200B")]
+    [InlineData("\u2060")]
+    [InlineData("\u00A0")]
+    [InlineData("}")]
+    [InlineData(")")]
+    [InlineData("!")]
+    [InlineData(",")]
+    [InlineData("/")]
+    [InlineData("\"")]
+    [InlineData("\u201C")]
+    [InlineData("\u201D")]
+    public void AFinalQuotationMarkClosesAQuotationBeforeEveryClassTheRuleNames(string after)
+    {
+        Assert.StartsWith(Ideograph + " \u201D", Marked(Ideograph + " \u201D" + after));
+    }
+
     [Fact]
     public void KeepsAFinalQuotationMarkThatClosesAQuotationWithWhatPrecedes()
     {

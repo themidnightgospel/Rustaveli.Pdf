@@ -13,10 +13,21 @@ public class SvgSyntaxTests
     public void NumbersNeedNoSeparatorWhereASignOrPointStartsTheNext() =>
         Assert.Equal([1f, -2.5f, 0.5f, 300f, 0.1f, 4f], new SvgNumbers("1-2.5.5 3e2,1e-1 +4").Rest());
 
-    [Fact]
-    public void AnExponentMustHaveDigits()
+    [Theory]
+    [InlineData("1e2", 100f)]
+    [InlineData("1E2", 100f)]
+    [InlineData("1e+2", 100f)]
+    [InlineData("1e-2", 0.01f)]
+    public void ExponentsTakeEitherCaseAndEitherSign(string text, float number) =>
+        Assert.Equal(number, new SvgNumbers(text).Next());
+
+    [Theory]
+    [InlineData("5em")]
+    [InlineData("5e")]
+    [InlineData("5e+")]
+    public void AnExponentMustHaveDigits(string text)
     {
-        SvgNumbers numbers = new SvgNumbers("5em");
+        SvgNumbers numbers = new SvgNumbers(text);
 
         Assert.Equal(5f, numbers.Next());
         Assert.Equal('e', numbers.Peek());
@@ -28,6 +39,7 @@ public class SvgSyntaxTests
         Assert.Equal([1f, 2f], new SvgNumbers("1 2 x 3").Rest());
         Assert.Throws<FormatException>(() => new SvgNumbers("x").Next());
         Assert.Throws<FormatException>(() => new SvgNumbers("-").Next());
+        Assert.Throws<FormatException>(() => new SvgNumbers(" ").Next());
     }
 
     [Fact]
@@ -172,6 +184,13 @@ public class SvgSyntaxTests
     [InlineData("2ex", 16f)]
     [InlineData("50%", 100f)]
     [InlineData("1e1", 10f)]
+    [InlineData("1E1", 10f)]
+    [InlineData("1e+1", 10f)]
+    [InlineData("5e-1", 0.5f)]
+    [InlineData("-12", -12f)]
+    [InlineData("+12", 12f)]
+    [InlineData("2e", 2f)]
+    [InlineData("2E", 2f)]
     [InlineData("3furlongs", 3f)]
     [InlineData(" 7 ", 7f)]
     public void LengthsAreReadInPixels(string text, float pixels) =>
@@ -241,6 +260,12 @@ public class SvgSyntaxTests
     public void AnUnreadableChannelIsNothing() =>
         Assert.Equal(Ink.Rgb(0, 20, 30), SvgColour.Read("rgb(x, 20, 30)"));
 
+    [Theory]
+    [InlineData("#102030zz", 0x10, 0x20, 0x30)]
+    [InlineData("#123z", 0x11, 0x22, 0x33)]
+    public void AnUnreadableAlphaLeavesTheColourOpaque(string text, byte red, byte green, byte blue) =>
+        Assert.Equal(Ink.Rgb(red, green, blue), SvgColour.Read(text));
+
     // ---- Style sheets ----------------------------------------------------------------------------------------
 
     private static Dictionary<string, string> Styled(string css, string element)
@@ -297,6 +322,10 @@ public class SvgSyntaxTests
         Assert.Empty(Styled("rect", "<rect/>"));
         Assert.Empty(Styled("/* never closed", "<rect/>"));
     }
+
+    [Fact]
+    public void AnEmptySelectorMatchesNothing() =>
+        Assert.Equal(new Dictionary<string, string> { ["stroke"] = "blue" }, Styled("{ fill: red } rect, { stroke: blue }", "<rect/>"));
 
     [Fact]
     public void AClassRuleNeedsEveryClass() =>

@@ -51,8 +51,8 @@ internal sealed class PlanTrace
             // Frames above give up because the one below did; only the last says why.
             text.Append("does not fit");
 
-            if (next is null && node.Result!.Value.DeferReason is { Length: > 0 } reason)
-                text.Append(" — ").Append(reason);
+            if (next is null)
+                text.Append(" — ").Append(node.Result!.Value.DeferReason);
 
             node = next;
         }

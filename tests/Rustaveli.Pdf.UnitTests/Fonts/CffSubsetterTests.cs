@@ -133,6 +133,7 @@ public class CffSubsetterTests
         version2[0] = 2;
 
         Assert.Null(CffSubsetter.TrySubset(version2, 1000, []));
+        Assert.Null(CffSubsetter.TrySubset(cff.AsMemory(0, 3), 1000, []));
         Assert.Null(CffSubsetter.TrySubset(cff.AsMemory(0, 40), 1000, []));
         Assert.Null(CffSubsetter.TrySubset(CffOf(Subrs), 1000,[(5000, 5000)]));
     }

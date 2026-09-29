@@ -55,6 +55,17 @@ public class PagingControlTests
     }
 
     [Fact]
+    public void ARepeatedColumnTooTallForALaterPageIsLeftOutWhileItsNeighbourGoesOn()
+    {
+        SplittableBlock neighbour = new SplittableBlock(unitCount: 6, unitHeight: 30);
+        ColumnsBlock row = Row(new RepeatBlock { Child = new FixedBlock(30, 50, TestInks.Red) }, neighbour);
+
+        Assert.Equal(1, Reds(LayoutHarness.Draw(row, new Extent(200, 60))));
+        Assert.Equal(0, Reds(LayoutHarness.Draw(row, new Extent(200, 40))));
+        Assert.Equal(3, neighbour.Remaining);
+    }
+
+    [Fact]
     public void RepeatedContentStartsAgainFromItsBeginning()
     {
         // Two units fit on each page, so the repeated content is drawn whole and then starts over.

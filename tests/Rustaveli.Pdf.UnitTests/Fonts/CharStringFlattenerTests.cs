@@ -145,6 +145,7 @@ public class CharStringFlattenerTests
     [Theory]
     [InlineData(new byte[] { 139 + 1, 139 + 2, 139 + 3, 139 + 4, EndChar })]
     [InlineData(new byte[] { 139 + 1, 139 + 2, 12, 10, EndChar })]
+    [InlineData(new byte[] { 139 + 1, 139 + 2, 12, 38, EndChar })]
     [InlineData(new byte[] { 255, 0, 0, 0x80, 0, CallSubr, EndChar })]
     public void WhatCannotBeWrittenOutIsRefused(byte[] glyph) =>
         Assert.Throws<NotSupportedException>(() => Flatten(glyph, [[Return]]));
@@ -167,6 +168,7 @@ public class CharStringFlattenerTests
     [Theory]
     [InlineData(new byte[] { CallSubr, EndChar })]
     [InlineData(new byte[] { 139 + 5, CallSubr, EndChar })]
+    [InlineData(new byte[] { 251, 0, CallSubr, EndChar })]
     [InlineData(new byte[] { 139 + 1, 139 + 1, RLineTo })]
     [InlineData(new byte[] { 0, EndChar })]
     [InlineData(new byte[] { 139 + 1, 139 + 1, HStem, HintMask })]
