@@ -55,6 +55,16 @@ public class FontContainerTests
     }
 
     [Fact]
+    public void AFontFileIsNotWrittenWithoutAHeadTable()
+    {
+        // head carries the adjustment that settles the whole file's checksum: written without it, the file would
+        // take the adjustment in its table directory instead.
+        KeyValuePair<uint, byte[]>[] tables = [new(TableTag.Maxp, new byte[6])];
+
+        Assert.Throws<ArgumentException>(() => SfntWriter.Write(0x00010000, tables));
+    }
+
+    [Fact]
     public void LeavesOutACollectionFacesSignature()
     {
         SyntheticFont signed = SyntheticFont.Minimal().With("DSIG", [0, 0, 0, 1, 0, 0, 0, 0]);

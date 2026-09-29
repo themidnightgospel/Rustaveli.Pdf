@@ -15,6 +15,10 @@ internal static class SfntWriter
     /// <summary>The font file of <paramref name="tables"/>, which include <c>head</c>, as every font's tables do.</summary>
     public static byte[] Write(uint sfntVersion, IReadOnlyList<KeyValuePair<uint, byte[]>> tables)
     {
+        // The whole file's checksum is settled in head; without one there is nowhere to write it.
+        if (!tables.Any(static table => table.Key == TableTag.Head))
+            throw new ArgumentException("A font file needs a head table.", nameof(tables));
+
         KeyValuePair<uint, byte[]>[] sorted = tables.OrderBy(static table => table.Key).ToArray();
         int count = sorted.Length;
         int length = HeaderSize + (count * RecordSize);
