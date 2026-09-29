@@ -27,6 +27,7 @@ namespace Rustaveli.Pdf.Shaping;
 internal sealed class HarfBuzzShaper : IComplexShaper
 {
     private readonly ConcurrentDictionary<OpenTypeFont, Font> _fonts = new();
+    private readonly ConcurrentDictionary<TypeFeatures, Feature[]> _features = new();
 
     [ThreadStatic]
     private static Buffer? _buffer;
@@ -51,7 +52,8 @@ internal sealed class HarfBuzzShaper : IComplexShaper
     public void Shape(
         OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft, List<ComplexGlyph> output)
     {
-        Font font = _fonts.GetOrAdd(face, Create);
+        // Looked up before it is added, so that finding it does not make a delegate for the method each time.
+        Font font = _fonts.TryGetValue(face, out Font? made) ? made : _fonts.GetOrAdd(face, Create);
         Buffer buffer = _buffer ??= new Buffer();
 
         buffer.ClearContents();
@@ -85,25 +87,23 @@ internal sealed class HarfBuzzShaper : IComplexShaper
             ReverseClusters(output, first);
     }
 
-    /// <summary>Puts glyphs HarfBuzz set right to left back in logical order, cluster by cluster.</summary>
+    /// <summary>
+    /// Puts glyphs HarfBuzz set right to left back in logical order, cluster by cluster, in place: the whole run
+    /// reversed, then each cluster's glyphs turned back to the order HarfBuzz drew them in.
+    /// </summary>
     private static void ReverseClusters(List<ComplexGlyph> glyphs, int first)
     {
-        List<ComplexGlyph> display = glyphs.GetRange(first, glyphs.Count - first);
-        glyphs.RemoveRange(first, glyphs.Count - first);
+        glyphs.Reverse(first, glyphs.Count - first);
 
-        int end = display.Count;
-
-        while (end > 0)
+        for (int start = first; start < glyphs.Count;)
         {
-            int start = end - 1;
+            int end = start + 1;
 
-            while (start > 0 && display[start - 1].Cluster == display[end - 1].Cluster)
-                start--;
+            while (end < glyphs.Count && glyphs[end].Cluster == glyphs[start].Cluster)
+                end++;
 
-            for (int index = start; index < end; index++)
-                glyphs.Add(display[index]);
-
-            end = start;
+            glyphs.Reverse(start, end - start);
+            start = end;
         }
     }
 
@@ -124,6 +124,12 @@ internal sealed class HarfBuzzShaper : IComplexShaper
         return font;
     }
 
-    private static Feature[] FeaturesOf(TypeFeatures features) =>
-        features.Settings.Select(setting => Feature.Parse($"{setting.Tag}={setting.Value}")).ToArray();
+    /// <summary>
+    /// The features a style sets, as HarfBuzz takes them: parsed once per set of features, since every run is shaped
+    /// with them and few documents use more than a handful.
+    /// </summary>
+    private Feature[] FeaturesOf(TypeFeatures features) =>
+        _features.TryGetValue(features, out Feature[]? known)
+            ? known
+            : _features.GetOrAdd(features, static wanted => wanted.Settings.Select(setting => Feature.Parse($"{setting.Tag}={setting.Value}")).ToArray());
 }

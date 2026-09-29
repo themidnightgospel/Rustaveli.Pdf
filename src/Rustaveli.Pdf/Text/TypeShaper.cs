@@ -100,6 +100,19 @@ internal sealed class TypeShaper
     }
 
     /// <summary>
+    /// Walks <paramref name="text"/> as <see cref="Walk"/> does left to right, for measuring: the glyphs are the same, but
+    /// one standing for several characters does not carry them, which only reading the text back needs.
+    /// </summary>
+    public GlyphWalk Measure(ReadOnlySpan<char> text, TypeStyle style)
+    {
+        FontRequest request = RequestFor(style);
+
+        return new GlyphWalk(
+            this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces,
+            tracking: style.Tracking, keepText: false);
+    }
+
+    /// <summary>
     /// Glyphs shaped in logical order, put in the order a right-to-left run displays them: cluster by cluster, last
     /// first, each cluster — what a reader sees as one character: a letter and the marks that combine with it, an emoji
     /// sequence, a flag, and any glyphs made of them — kept in its own order, so a mark still follows the letter it

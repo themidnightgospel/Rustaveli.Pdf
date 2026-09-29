@@ -57,7 +57,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 
         float size = style.EffectivePointSize;
 
-        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in shaper.Measure(text.AsSpan(), style))
         {
             if (ReferenceEquals(glyph.Face, primary))
                 continue;
@@ -98,7 +98,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 
         float width = 0f;
 
-        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in shaper.Measure(text.AsSpan(), style))
         {
             width += Step(glyph);
 
@@ -127,7 +127,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         int cluster = 0;
         GraphemeBoundaries boundaries = default;
 
-        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in shaper.Measure(text.AsSpan(), style))
         {
             if (glyph.Length > 0 && boundaries.Begins(text.AsSpan(), glyph.Start, glyph.Length))
                 cluster = glyph.Start;

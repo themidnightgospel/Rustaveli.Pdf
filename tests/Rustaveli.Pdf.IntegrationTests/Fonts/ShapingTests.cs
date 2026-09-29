@@ -370,5 +370,28 @@ public class ShapingTests
         Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
         Assert.All(again, measured => Assert.Equal(width, measured));
     }
+
+    [Fact]
+    public void MeasuringALigatureAllocatesNothingOnceWarm()
+    {
+        // The characters a ligature stands for are what the text read back from a PDF needs, not what measuring does.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        const string Text = "An office affair.";
+        float width = measurer.MeasureWidth(Text, Sans);
+        measurer.MeasureCharactersFitting(Text, Sans, width / 2);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int round = 0; round < 10; round++)
+        {
+            measurer.MeasureWidth(Text, Sans);
+            measurer.MeasureCharactersFitting(Text, Sans, width / 2);
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
+        Assert.Contains(Shape(Text, Sans), glyph => glyph.ReadsAs == "ffi");
+    }
 #endif
 }

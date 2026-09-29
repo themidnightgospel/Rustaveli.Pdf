@@ -372,4 +372,27 @@ public class ComplexScriptTests
     [InlineData(0x1E960)]
     public void CharactersJustOutsideTheBlocksAreNot(int character) =>
         Assert.False(ComplexScriptCharacters.Contains(character), $"U+{character:X4}");
+
+#if NET
+    [Fact]
+    public void MeasuringShapedTextAllocatesNothingOnceWarm()
+    {
+        // Every word is measured, and in a right-to-left script each is shaped right to left and put back in logical
+        // order; with a feature of the style's own, that is handed to HarfBuzz as well.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Shaped.Shaper);
+        TypeStyle featured = Arabic.WithFeature("calt", 0);
+        float width = measurer.MeasureWidth(Salaam, featured);
+        measurer.MeasureWidth(Salaam, featured);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int round = 0; round < 10; round++)
+            measurer.MeasureWidth(Salaam, featured);
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
+        Assert.Equal(width, measurer.MeasureWidth(Salaam, featured));
+    }
+#endif
 }

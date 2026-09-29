@@ -47,6 +47,7 @@ internal ref struct GlyphWalk
     private List<ShapedGlyph>? _replay;
     private int _replayed;
     private readonly float _tracking;
+    private readonly bool _keepText;
     private GraphemeBoundaries _boundaries;
     private bool _previousJoined;
 
@@ -64,6 +65,10 @@ internal ref struct GlyphWalk
     /// right.
     /// </param>
     /// <param name="tracking">The style's tracking, which each glyph says whether it takes.</param>
+    /// <param name="keepText">
+    /// Whether a glyph standing for several characters carries them as <see cref="ShapedGlyph.Text"/>, as drawing
+    /// needs; measuring does not, and is spared the string.
+    /// </param>
     internal GlyphWalk(
         TypeShaper shaper,
         OpenTypeFont primary,
@@ -74,9 +79,11 @@ internal ref struct GlyphWalk
         TypeFeatures? features = null,
         TypefaceFallbacks? fallbacks = null,
         ReadOnlySpan<char> typed = default,
-        float tracking = 0f)
+        float tracking = 0f,
+        bool keepText = true)
     {
         _tracking = tracking;
+        _keepText = keepText;
         _boundaries = default;
         _previousJoined = false;
         _shaper = shaper;
@@ -159,7 +166,7 @@ internal ref struct GlyphWalk
             if (codepoint == InvisibleCharacters.Tab)
                 (codepoint, glyph) = (' ', face.GetGlyphId(' '));
 
-            Emit(face, glyph, codepoint, start, end - start, end - start > length ? _text.Slice(start, end - start).ToString() : null);
+            Emit(face, glyph, codepoint, start, end - start, end - start > length ? TextOf(start, end - start) : null);
             return true;
         }
     }
@@ -320,7 +327,7 @@ internal ref struct GlyphWalk
         ushort glyph = buffer.Glyphs[index];
 
         string? text = !opens ? string.Empty
-            : length > single ? _text.Slice(start, length).ToString()
+            : length > single ? TextOf(start, length)
             : null;
 
         List<ComplexGlyph> placements = _scratch!.Placements;
@@ -378,6 +385,12 @@ internal ref struct GlyphWalk
         return end;
     }
 
+    /// <summary>
+    /// The characters a glyph standing for several stands for, as the text read back from a PDF needs them; none when
+    /// the walk only measures, which would otherwise allocate a string for every ligature of every word.
+    /// </summary>
+    private readonly string? TextOf(int start, int length) => _keepText ? _text.Slice(start, length).ToString() : null;
+
     private void Emit(OpenTypeFont face, ushort glyph, int codepoint, int start, int length, string? text, ComplexGlyph? placed = null)
     {
         // A glyph a complex shaper placed moves the pen as it said, kerning included, and is drawn where it said.
@@ -387,8 +400,9 @@ internal ref struct GlyphWalk
             : 0f;
 
         // Word spacing widens the spaces between words, the no-break space among them; it is carried by the space
-        // itself, so a space measured on its own is as wide as it will be set.
-        float extra = text is null && codepoint is ' ' or NoBreakSpace ? _wordSpacing : 0f;
+        // itself, so a space measured on its own is as wide as it will be set. A glyph standing for more than the
+        // space is no word space.
+        float extra = length == 1 && codepoint is ' ' or NoBreakSpace ? _wordSpacing : 0f;
 
         Current = new ShapedGlyph(
             face, glyph, codepoint, start, length, advance, kerning, extra, text, placed?.XOffset ?? 0f, placed?.YOffset ?? 0f,
