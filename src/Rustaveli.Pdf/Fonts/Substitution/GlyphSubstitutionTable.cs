@@ -22,7 +22,9 @@ namespace Rustaveli.Pdf.Fonts.Substitution;
 /// <para>
 /// Lookups are parsed on first use and kept; threads racing to parse one may each do so, and one result is kept, so
 /// one table may shape text on several threads at once without a lock on the path every glyph takes.
-/// Malformed data throws <see cref="FontFormatException"/> from whichever call first reads it.
+/// Malformed script, feature and lookup lists throw <see cref="FontFormatException"/> from whichever call first
+/// reads them; a malformed lookup is read as far as it can be, and a subtable of it that cannot be read is left out,
+/// so the rest of the font's substitutions still apply. Damage that only shows while applying a subtable throws.
 /// </para>
 /// </remarks>
 internal sealed class GlyphSubstitutionTable
@@ -41,6 +43,9 @@ internal sealed class GlyphSubstitutionTable
     /// billions of them.
     /// </summary>
     private const int MaximumSubtables = 1 << 18;
+
+    /// <summary>What a lookup the font got wrong is read as: one that substitutes nothing.</summary>
+    private static readonly SubstitutionLookup Nothing = new SubstitutionLookup(0, LookupFlags.None, [], null, null);
 
     private readonly ReadOnlyMemory<byte> _table;
     private readonly GlyphDefinitionTable? _definitions;
@@ -259,25 +264,44 @@ internal sealed class GlyphSubstitutionTable
         }
     }
 
+    /// <summary>
+    /// Reads a lookup, leaving out what the font got wrong: a subtable that cannot be read is dropped and the rest
+    /// kept, and a lookup whose own header cannot be read, or that would take more subtables than the allowance has
+    /// left, substitutes nothing. That is what HarfBuzz makes of the same damage, and it is kept like any other
+    /// lookup — read again at every run, a malformed lookup would spend the allowance each time and in the end leave
+    /// every lookup not yet read unreadable, so what a font set would depend on how much text came before it.
+    /// </summary>
     private SubstitutionLookup ReadLookup(int index)
     {
         ReadOnlySpan<byte> span = _table.Span;
-        int lookup = _lookupList + BigEndian.UInt16(span, _lookupList + 2 + (index * 2));
-        int type = BigEndian.UInt16(span, lookup);
-        LookupFlags flags = (LookupFlags)BigEndian.UInt16(span, lookup + 2);
-        int count = BigEndian.UInt16(span, lookup + 4);
-        _ = BigEndian.Slice(span, lookup + 6L, count * 2L);
+        int lookup;
+        int type;
+        LookupFlags flags;
+        int count;
+        CoverageTable? markFilteringSet;
 
-        _subtableBudget -= count;
+        try
+        {
+            lookup = _lookupList + BigEndian.UInt16(span, _lookupList + 2 + (index * 2));
+            type = BigEndian.UInt16(span, lookup);
+            flags = (LookupFlags)BigEndian.UInt16(span, lookup + 2);
+            count = BigEndian.UInt16(span, lookup + 4);
+            _ = BigEndian.Slice(span, lookup + 6L, count * 2L);
 
-        if (_subtableBudget < 0)
-            throw new FontFormatException("The GSUB table declares more subtables than a font can use.");
+            markFilteringSet = (flags & LookupFlags.UseMarkFilteringSet) != 0
+                ? _definitions?.GetMarkGlyphSet(BigEndian.UInt16(span, lookup + 6 + (count * 2)))
+                : null;
+        }
+        catch (FontFormatException)
+        {
+            return Nothing;
+        }
 
-        CoverageTable? markFilteringSet = (flags & LookupFlags.UseMarkFilteringSet) != 0
-            ? _definitions?.GetMarkGlyphSet(BigEndian.UInt16(span, lookup + 6 + (count * 2)))
-            : null;
+        // Threads may read the same lookup at once, so the allowance is spent atomically.
+        if (Interlocked.Add(ref _subtableBudget, -count) < 0)
+            return Nothing;
 
-        SubstitutionSubtable[] subtables = new SubstitutionSubtable[count];
+        List<SubstitutionSubtable> subtables = new List<SubstitutionSubtable>(count);
         int lookupType = type;
 
         for (int subtable = 0; subtable < count; subtable++)
@@ -285,20 +309,28 @@ internal sealed class GlyphSubstitutionTable
             int offset = lookup + BigEndian.UInt16(span, lookup + 6 + (subtable * 2));
             int subtableType = type;
 
-            if (type == ExtensionType)
+            try
             {
-                subtableType = BigEndian.UInt16(span, offset + 2);
-                offset = ResolveExtension(span, offset, subtableType);
+                if (type == ExtensionType)
+                {
+                    subtableType = BigEndian.UInt16(span, offset + 2);
 
-                // All of an extension lookup's subtables have the same type, which is what decides its direction.
-                if (subtable == 0)
-                    lookupType = subtableType;
+                    // All of an extension lookup's subtables have the same type, which is what decides its direction.
+                    if (subtable == 0)
+                        lookupType = subtableType;
+
+                    offset = ResolveExtension(span, offset, subtableType);
+                }
+
+                subtables.Add(SubstitutionSubtable.Read(_table, subtableType, offset));
             }
-
-            subtables[subtable] = SubstitutionSubtable.Read(_table, subtableType, offset);
+            catch (FontFormatException)
+            {
+                // Left out, as HarfBuzz leaves out a subtable that fails its checks; the lookup's others still apply.
+            }
         }
 
-        return new SubstitutionLookup(lookupType, flags, subtables, _definitions, markFilteringSet);
+        return new SubstitutionLookup(lookupType, flags, [.. subtables], _definitions, markFilteringSet);
     }
 
     /// <summary>Where an extension subtable's 32-bit offset leads.</summary>

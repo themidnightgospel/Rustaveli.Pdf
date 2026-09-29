@@ -55,6 +55,6 @@ public class AlternateSubstitutionTests
         byte[] subtable = Alternate(Cover(2), [20]);
         BigEndian.WriteUInt16(subtable, 4, 5000);
 
-        Assert.Throws<FontFormatException>(() => Apply(OneLookup(3, subtable), [2]));
+        Assert.Throws<FontFormatException>(() => ReadSubtable(3, subtable));
     }
 }

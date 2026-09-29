@@ -47,6 +47,13 @@ internal static class SubstitutionHarness
 
     public static int[] Clusters(GlyphBuffer buffer) => buffer.Clusters.ToArray();
 
+    /// <summary>
+    /// Reads a subtable of lookup type <paramref name="type"/> on its own. A table leaves out a subtable it cannot
+    /// read, so the error a damaged one raises is seen only here.
+    /// </summary>
+    public static SubstitutionSubtable ReadSubtable(int type, byte[] subtable) =>
+        SubstitutionSubtable.Read(subtable, type, 0);
+
     /// <summary>A one-lookup table of the given type, the lookup being the feature's.</summary>
     public static byte[] OneLookup(int type, params byte[][] subtables) =>
         SyntheticSubstitution.Gsub([SyntheticSubstitution.Lookup(type, subtables)]);

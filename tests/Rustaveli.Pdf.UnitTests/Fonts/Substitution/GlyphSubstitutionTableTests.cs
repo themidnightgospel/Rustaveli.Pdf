@@ -334,22 +334,25 @@ public class GlyphSubstitutionTableTests
     [InlineData(8, 2)]
     public void RejectsLookupTypesAndFormatsThatDoNotExist(int type, int format)
     {
-        byte[] gsub = OneLookup(type, new FontBytes().U16(format).U16(6).U16(0).Bytes(Cover(1)).ToArray());
+        byte[] subtable = new FontBytes().U16(format).U16(6).U16(0).Bytes(Cover(1)).ToArray();
 
-        FontFormatException error = Assert.Throws<FontFormatException>(() => Apply(gsub, [1]));
+        FontFormatException error = Assert.Throws<FontFormatException>(() => ReadSubtable(type, subtable));
 
         Assert.Contains($"type {type} has no subtable format {format}", error.Message);
+        Assert.Empty(Table(OneLookup(type, subtable)).GetLookup(0)!.Subtables);
+        Assert.Equal(new[] { 1 }, Glyphs(Apply(OneLookup(type, subtable), [1])));
     }
 
     [Fact]
-    public void RejectsASubtableArrayLongerThanTheLookup()
+    public void ReadsALookupWhoseSubtableArrayOverrunsTheTableAsNothing()
     {
         byte[] gsub = SyntheticSubstitution.Gsub(Lookups(1));
         int lookupList = BigEndian.UInt16(gsub, 8);
         int lookup = lookupList + BigEndian.UInt16(gsub, lookupList + 2);
         BigEndian.WriteUInt16(gsub, lookup + 4, 5000);
 
-        Assert.Throws<FontFormatException>(() => Table(gsub).GetLookup(0));
+        Assert.Empty(Table(gsub).GetLookup(0)!.Subtables);
+        Assert.Equal(new[] { 1 }, Glyphs(Apply(gsub, [1])));
     }
 
     [Fact]
@@ -364,30 +367,56 @@ public class GlyphSubstitutionTableTests
         GlyphSubstitutionTable table = Table(gsub);
 
         for (int attempt = 0; attempt < 5; attempt++)
-            Assert.Throws<FontFormatException>(() => table.GetLookup(0));
+            Assert.Empty(table.GetLookup(0)!.Subtables);
 
-        Assert.NotNull(table.GetLookup(1));
+        Assert.Single(table.GetLookup(1)!.Subtables);
     }
 
     [Fact]
-    public void RejectsAnExtensionOfAnExtension()
+    public void CountsTheSubtablesOfAMalformedLookupOnceHoweverOftenItIsAskedFor()
+    {
+        // Lookup 0 lists one subtable of a format that does not exist 16 384 times: well within the allowance once,
+        // but were it read afresh at every run, seventeen runs would use the allowance up and leave lookup 1 — never
+        // yet read, and intact — unreadable for the rest of the process.
+        byte[] malformed = SyntheticLayout.SharedLookup(1, 16384, new FontBytes().U16(9).U16(6).U16(0).ToArray());
+        byte[] gsub = SyntheticSubstitution.Gsub([malformed, Lookup(1, SingleFormat2(Cover(1), 11))], 0, 1);
+        GlyphSubstitutionTable table = Table(gsub);
+
+        for (int run = 0; run < 20; run++)
+            Assert.Empty(table.GetLookup(0)!.Subtables);
+
+        Assert.Single(table.GetLookup(1)!.Subtables);
+    }
+
+    [Fact]
+    public void KeepsTheOtherLookupsOfARunWhenOneIsMalformed()
+    {
+        // Lookup 0 lists a subtable of a format that does not exist beside one that turns glyph 2 into 20; lookup 1
+        // turns glyph 1 into 11. Only the damaged subtable is left out.
+        byte[] damaged = new FontBytes().U16(9).U16(6).U16(0).ToArray();
+        byte[] gsub = SyntheticSubstitution.Gsub(
+            [Lookup(1, damaged, SingleFormat2(Cover(2), 20)), Lookup(1, SingleFormat2(Cover(1), 11))], 0, 1);
+
+        Assert.Equal(new[] { 11, 20 }, Glyphs(Apply(gsub, [1, 2])));
+    }
+
+    [Fact]
+    public void LeavesOutAnExtensionOfAnExtension()
     {
         byte[] gsub = OneLookup(7, Extension(7, Extension(1, SingleFormat1(Cover(1), 1))));
 
-        FontFormatException error = Assert.Throws<FontFormatException>(() => Table(gsub).GetLookup(0));
-
-        Assert.Contains("another extension", error.Message);
+        Assert.Empty(Table(gsub).GetLookup(0)!.Subtables);
     }
 
     [Theory]
     [InlineData(0x7FFFFFF0L)]
     [InlineData(0xFFFFFFFFL)]
-    public void RejectsAnExtensionPastTheTable(long offset)
+    public void LeavesOutAnExtensionPastTheTable(long offset)
     {
         byte[] extension = Extension(1, SingleFormat1(Cover(1), 1));
         BigEndian.WriteUInt32(extension, 4, (uint)offset);
 
-        Assert.Throws<FontFormatException>(() => Table(OneLookup(7, extension)).GetLookup(0));
+        Assert.Empty(Table(OneLookup(7, extension)).GetLookup(0)!.Subtables);
     }
 
     [Fact]
@@ -422,10 +451,11 @@ public class GlyphSubstitutionTableTests
     }
 
     [Fact]
-    public void RejectsMoreSubtablesThanAFontCanUse()
+    public void ReadsNothingOfSubtablesPastWhatAFontCanUse()
     {
         // Seventeen lookup list entries share one lookup listing one subtable 16 384 times: small on disk, but more
-        // subtables than the limit once every entry is read — sixteen of them exactly reach it.
+        // subtables than the limit once every entry is read — sixteen of them exactly reach it, and the seventeenth
+        // is read as a lookup that substitutes nothing.
         byte[] lookup = SyntheticLayout.SharedLookup(1, 16384, SingleFormat1(Cover(1), 1));
         FontBytes lookupList = new FontBytes().U16(17);
 
@@ -441,11 +471,9 @@ public class GlyphSubstitutionTableTests
         GlyphSubstitutionTable table = Table(gsub);
 
         for (int index = 0; index < 16; index++)
-            Assert.NotNull(table.GetLookup(index));
+            Assert.Equal(16384, table.GetLookup(index)!.Subtables.Count);
 
-        FontFormatException error = Assert.Throws<FontFormatException>(() => table.GetLookup(16));
-
-        Assert.Contains("more subtables", error.Message);
+        Assert.Empty(table.GetLookup(16)!.Subtables);
     }
 
     [Fact]

@@ -277,7 +277,7 @@ public class ContextSubstitutionTests
 
         BigEndian.WriteUInt16(subtable, format == 1 ? 4 : 6, 5000);
 
-        Assert.Throws<FontFormatException>(() => Apply(Table(subtable), [1]));
+        Assert.Throws<FontFormatException>(() => ReadSubtable(5, subtable));
     }
 
     [Fact]
