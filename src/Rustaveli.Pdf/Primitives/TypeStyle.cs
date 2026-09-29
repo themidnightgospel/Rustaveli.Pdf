@@ -340,10 +340,7 @@ public sealed record TypeStyle
 
     /// <summary><paramref name="value"/>, a size or a multiplier: zero or more, and a number a PDF can write.</summary>
     /// <exception cref="ArgumentOutOfRangeException">It is negative, NaN, or 10^15 or more.</exception>
-    internal static float Size(float value, string name) =>
-        value >= 0 && Writable.Is(value)
-            ? value
-            : throw new ArgumentOutOfRangeException(name, value, "Must be zero or more, and less than 10^15, the largest number a PDF can write.");
+    internal static float Size(float value, string name) => Numbers.NotNegative(value, name);
 
     /// <summary>Checks a typeface's name and the list of its fallbacks, as a style set in them needs them.</summary>
     /// <exception cref="ArgumentException"><paramref name="fontFamily"/> is null, empty or only white space.</exception>
@@ -368,8 +365,5 @@ public sealed record TypeStyle
 
     /// <summary><paramref name="value"/>, a spacing that may tighten as well as loosen: a number a PDF can write.</summary>
     /// <exception cref="ArgumentOutOfRangeException">It is NaN, or 10^15 or more either way.</exception>
-    internal static float Spacing(float value, string name) =>
-        Writable.Is(value)
-            ? value
-            : throw new ArgumentOutOfRangeException(name, value, "Must be a number less than 10^15 either way, the largest a PDF can write.");
+    internal static float Spacing(float value, string name) => Numbers.AnyWay(value, name);
 }

@@ -692,4 +692,91 @@ public class FrameModifiersTests
         Assert.Equal("anchor", Assert.ThrowsAny<ArgumentException>(() => container.CrossReference(target!)).ParamName);
         Assert.Null(container.Slot().Child);
     }
+
+    // ---- Numbers ---------------------------------------------------------------------------------------------
+
+    public static TheoryData<string, Action<IFrame>> NumbersThatCannotBeLaidOut => new()
+    {
+        { "value", frame => frame.Inset(float.NaN) },
+        { "value", frame => frame.InsetHorizontal(float.PositiveInfinity) },
+        { "value", frame => frame.InsetVertical(2e15f) },
+        { "value", frame => frame.InsetLeft(float.NaN) },
+        { "value", frame => frame.InsetRight(float.NaN) },
+        { "value", frame => frame.InsetTop(float.NaN) },
+        { "value", frame => frame.InsetBottom(float.NegativeInfinity) },
+        { "weight", frame => frame.Stroke(-1) },
+        { "weight", frame => frame.StrokeLeft(float.NaN) },
+        { "weight", frame => frame.StrokeRight(float.NaN) },
+        { "weight", frame => frame.StrokeTop(float.NaN) },
+        { "weight", frame => frame.StrokeBottom(float.PositiveInfinity) },
+        { "value", frame => frame.Width(-1) },
+        { "value", frame => frame.MinWidth(float.NaN) },
+        { "value", frame => frame.MaxWidth(float.NaN) },
+        { "value", frame => frame.Height(float.NaN) },
+        { "value", frame => frame.MinHeight(-5) },
+        { "value", frame => frame.MaxHeight(float.PositiveInfinity) },
+        { "ratio", frame => frame.Proportion(float.NaN) },
+        { "ratio", frame => frame.Proportion(0) },
+        { "ratio", frame => frame.Proportion(-2) },
+        { "minScale", frame => frame.ShrinkToFit(float.NaN) },
+        { "minScale", frame => frame.ShrinkToFit(0) },
+        { "minScale", frame => frame.ShrinkToFit(1.5f) },
+        { "value", frame => frame.ShiftAcross(float.NaN) },
+        { "value", frame => frame.ShiftDown(float.PositiveInfinity) },
+        { "factor", frame => frame.Scale(0) },
+        { "factor", frame => frame.Scale(float.NaN) },
+        { "scaleX", frame => frame.Scale(float.NaN, 1) },
+        { "scaleY", frame => frame.Scale(1, 0) },
+        { "degrees", frame => frame.Rotate(float.NaN) },
+        { "minHeight", frame => frame.RequireSpace(-1) },
+        { "minHeight", frame => frame.RequireSpace(float.NaN) },
+        { "weight", frame => frame.Rule(-1) },
+        { "weight", frame => frame.Rule(float.NaN, TestInks.Red, [2f, 1f]) },
+        { "weight", frame => frame.Rule(float.NaN, Gradient.Across(TestInks.Red, TestInks.Blue)) },
+        { "weight", frame => frame.Rule(float.NaN, Gradient.Across(TestInks.Red, TestInks.Blue), [2f, 1f]) },
+        { "weight", frame => frame.VerticalRule(float.PositiveInfinity) },
+        { "weight", frame => frame.VerticalRule(-1, TestInks.Red, [2f, 1f]) },
+        { "weight", frame => frame.VerticalRule(float.NaN, Gradient.Across(TestInks.Red, TestInks.Blue)) },
+        { "weight", frame => frame.VerticalRule(float.NaN, Gradient.Across(TestInks.Red, TestInks.Blue), [2f, 1f]) },
+        { "value", frame => frame.Stack(stack => stack.SpaceBetween(float.NaN)) },
+        { "value", frame => frame.Columns(columns => columns.Gutter(-1)) },
+        { "weight", frame => frame.Columns(columns => columns.Share(float.NaN)) },
+        { "width", frame => frame.Columns(columns => columns.Fixed(-1)) },
+        { "value", frame => frame.Flow(flow => flow.Gutter(float.NaN)) },
+        { "value", frame => frame.Flow(flow => flow.SpaceBetweenLines(-1)) },
+        { "value", frame => frame.Grid(grid => grid.Gutter(float.NaN)) },
+        { "value", frame => frame.Grid(grid => grid.SpaceBetweenRows(float.PositiveInfinity)) },
+        { "width", frame => frame.List(list => list.MarkerIndent(float.NaN)) },
+        { "value", frame => frame.List(list => list.SpaceBetween(-1)) },
+        { "value", frame => frame.FlowColumns(columns => columns.Gutter(float.NaN)) },
+        { "indent", frame => frame.Text(text => text.FirstLineIndent(float.NaN)) },
+        { "spacing", frame => frame.Text(text => text.SpaceBetweenParagraphs(-1)) },
+        { "weight", frame => frame.Table(table => table.Columns(columns => columns.Share(-1))) },
+        { "width", frame => frame.Table(table => table.Columns(columns => columns.Fixed(float.NaN))) },
+    };
+
+    [Theory]
+    [MemberData(nameof(NumbersThatCannotBeLaidOut))]
+    public void ANumberThatCannotBeLaidOutIsRefusedWhereItIsGiven(string parameter, Action<IFrame> compose)
+    {
+        ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() => LayoutHarness.Build(frame => compose(frame)));
+
+        Assert.Equal(parameter, refused.ParamName);
+    }
+
+    [Fact]
+    public void NumbersThatCanBeLaidOutAreAccepted()
+    {
+        Block root = LayoutHarness.Build(frame => frame
+            .Inset(-5).ShiftAcross(-3).ShiftDown(-2).Rotate(-45).Scale(-1, 2).Scale(0.5f).Width(0).MinHeight(0)
+            .Proportion(0.5f).ShrinkToFit(1).RequireSpace(0).Stroke(0)
+            .Stack(stack =>
+            {
+                stack.SpaceBetween(0);
+                stack.Add().Rule(0);
+                stack.Add().VerticalRule(0);
+            }));
+
+        Assert.NotNull(root);
+    }
 }

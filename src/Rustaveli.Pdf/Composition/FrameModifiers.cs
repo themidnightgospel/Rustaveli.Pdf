@@ -20,26 +20,29 @@ public static class FrameModifiers
 
     // ---- Padding -------------------------------------------------------------------------------------------
 
+    // Numbers are checked where they are given, not when the page is laid out, where a NaN surfaces as a failure far
+    // from the code that passed it. An inset may be negative, drawing the content out past the frame, as for a bleed.
+
     public static IFrame Inset(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Inset = Sides.All(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.All(Numbers.AnyWay(value, nameof(value))) });
 
     public static IFrame InsetHorizontal(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Inset = Sides.Symmetric(value, 0) });
+        Attach(parent, new InsetBlock { Inset = Sides.Symmetric(Numbers.AnyWay(value, nameof(value)), 0) });
 
     public static IFrame InsetVertical(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Inset = Sides.Symmetric(0, value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Symmetric(0, Numbers.AnyWay(value, nameof(value))) });
 
     public static IFrame InsetLeft(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithLeft(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithLeft(Numbers.AnyWay(value, nameof(value))) });
 
     public static IFrame InsetRight(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithRight(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithRight(Numbers.AnyWay(value, nameof(value))) });
 
     public static IFrame InsetTop(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithTop(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithTop(Numbers.AnyWay(value, nameof(value))) });
 
     public static IFrame InsetBottom(this IFrame parent, float value) =>
-        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithBottom(value) });
+        Attach(parent, new InsetBlock { Inset = Sides.Zero.WithBottom(Numbers.AnyWay(value, nameof(value))) });
 
     // ---- Painting ------------------------------------------------------------------------------------------
 
@@ -54,19 +57,19 @@ public static class FrameModifiers
         Attach(parent, new FillBlock { Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)) });
 
     public static IFrame Stroke(this IFrame parent, float weight) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.All(weight) });
+        Attach(parent, new StrokeBlock { Weight = Sides.All(Numbers.NotNegative(weight, nameof(weight))) });
 
     public static IFrame StrokeLeft(this IFrame parent, float weight) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithLeft(weight) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithLeft(Numbers.NotNegative(weight, nameof(weight))) });
 
     public static IFrame StrokeRight(this IFrame parent, float weight) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithRight(weight) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithRight(Numbers.NotNegative(weight, nameof(weight))) });
 
     public static IFrame StrokeTop(this IFrame parent, float weight) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithTop(weight) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithTop(Numbers.NotNegative(weight, nameof(weight))) });
 
     public static IFrame StrokeBottom(this IFrame parent, float weight) =>
-        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithBottom(weight) });
+        Attach(parent, new StrokeBlock { Weight = Sides.Zero.WithBottom(Numbers.NotNegative(weight, nameof(weight))) });
 
     /// <summary>
     /// Sets the ink of the stroke this directly follows.
@@ -181,23 +184,29 @@ public static class FrameModifiers
 
     // ---- Sizing --------------------------------------------------------------------------------------------
 
-    public static IFrame Width(this IFrame parent, float value) =>
-        Attach(parent, new ConstraintBlock { MinWidth = value, MaxWidth = value });
+    public static IFrame Width(this IFrame parent, float value)
+    {
+        Numbers.NotNegative(value, nameof(value));
+        return Attach(parent, new ConstraintBlock { MinWidth = value, MaxWidth = value });
+    }
 
     public static IFrame MinWidth(this IFrame parent, float value) =>
-        Attach(parent, new ConstraintBlock { MinWidth = value });
+        Attach(parent, new ConstraintBlock { MinWidth = Numbers.NotNegative(value, nameof(value)) });
 
     public static IFrame MaxWidth(this IFrame parent, float value) =>
-        Attach(parent, new ConstraintBlock { MaxWidth = value });
+        Attach(parent, new ConstraintBlock { MaxWidth = Numbers.NotNegative(value, nameof(value)) });
 
-    public static IFrame Height(this IFrame parent, float value) =>
-        Attach(parent, new ConstraintBlock { MinHeight = value, MaxHeight = value });
+    public static IFrame Height(this IFrame parent, float value)
+    {
+        Numbers.NotNegative(value, nameof(value));
+        return Attach(parent, new ConstraintBlock { MinHeight = value, MaxHeight = value });
+    }
 
     public static IFrame MinHeight(this IFrame parent, float value) =>
-        Attach(parent, new ConstraintBlock { MinHeight = value });
+        Attach(parent, new ConstraintBlock { MinHeight = Numbers.NotNegative(value, nameof(value)) });
 
     public static IFrame MaxHeight(this IFrame parent, float value) =>
-        Attach(parent, new ConstraintBlock { MaxHeight = value });
+        Attach(parent, new ConstraintBlock { MaxHeight = Numbers.NotNegative(value, nameof(value)) });
 
     public static IFrame Expand(this IFrame parent) =>
         Attach(parent, new ExpandBlock { Horizontally = true, Vertically = true });
@@ -224,11 +233,19 @@ public static class FrameModifiers
         Attach(parent, new FitToContentBlock { Across = false });
 
     public static IFrame Proportion(this IFrame parent, float ratio, ProportionFit fit = ProportionFit.Width) =>
-        Attach(parent, new ProportionBlock { Ratio = ratio, Fit = fit });
+        Attach(parent, new ProportionBlock { Ratio = Numbers.Positive(ratio, nameof(ratio)), Fit = fit });
 
-    /// <summary>Shrinks the content just enough to fit the space available.</summary>
-    public static IFrame ShrinkToFit(this IFrame parent, float minScale = 0.25f) =>
-        Attach(parent, new ShrinkToFitBlock { MinScale = minScale });
+    /// <summary>
+    /// Shrinks the content just enough to fit the space available, to no less than <paramref name="minScale"/> of its
+    /// size: more than zero, and at most 1.
+    /// </summary>
+    public static IFrame ShrinkToFit(this IFrame parent, float minScale = 0.25f)
+    {
+        if (!(minScale > 0) || minScale > 1)
+            throw new ArgumentOutOfRangeException(nameof(minScale), minScale, "Must be more than zero, and at most 1.");
+
+        return Attach(parent, new ShrinkToFitBlock { MinScale = minScale });
+    }
 
     /// <summary>Mirrors the content left to right.</summary>
     public static IFrame MirrorHorizontal(this IFrame parent) =>
@@ -277,16 +294,21 @@ public static class FrameModifiers
     // ---- Transforms ----------------------------------------------------------------------------------------
 
     public static IFrame ShiftAcross(this IFrame parent, float value) =>
-        Attach(parent, new ShiftBlock { Offset = new Offset(value, 0) });
+        Attach(parent, new ShiftBlock { Offset = new Offset(Numbers.AnyWay(value, nameof(value)), 0) });
 
     public static IFrame ShiftDown(this IFrame parent, float value) =>
-        Attach(parent, new ShiftBlock { Offset = new Offset(0, value) });
+        Attach(parent, new ShiftBlock { Offset = new Offset(0, Numbers.AnyWay(value, nameof(value))) });
 
-    public static IFrame Scale(this IFrame parent, float factor) =>
-        Attach(parent, new ScaleBlock { ScaleX = factor, ScaleY = factor });
+    /// <summary>Scales the content by <paramref name="factor"/> each way: negative mirrors it, zero is refused.</summary>
+    public static IFrame Scale(this IFrame parent, float factor)
+    {
+        Numbers.NotZero(factor, nameof(factor));
+        return Attach(parent, new ScaleBlock { ScaleX = factor, ScaleY = factor });
+    }
 
+    /// <summary>Scales the content across and down: negative mirrors it, zero is refused.</summary>
     public static IFrame Scale(this IFrame parent, float scaleX, float scaleY) =>
-        Attach(parent, new ScaleBlock { ScaleX = scaleX, ScaleY = scaleY });
+        Attach(parent, new ScaleBlock { ScaleX = Numbers.NotZero(scaleX, nameof(scaleX)), ScaleY = Numbers.NotZero(scaleY, nameof(scaleY)) });
 
     /// <summary>Rotates a quarter turn anticlockwise, swapping the layout axes.</summary>
     public static IFrame TurnLeft(this IFrame parent) =>
@@ -302,7 +324,7 @@ public static class FrameModifiers
     /// <see cref="TurnLeft"/> or <see cref="TurnRight"/>.
     /// </summary>
     public static IFrame Rotate(this IFrame parent, float degrees) =>
-        Attach(parent, new RotateBlock { Degrees = degrees });
+        Attach(parent, new RotateBlock { Degrees = Numbers.AnyWay(degrees, nameof(degrees)) });
 
     /// <summary>
     /// Sets the order the frame is drawn in: content of a higher order is drawn over content of a lower one wherever
@@ -422,7 +444,7 @@ public static class FrameModifiers
     /// or short block is never stranded at the bottom of a page.
     /// </summary>
     public static IFrame RequireSpace(this IFrame parent, float minHeight) =>
-        Attach(parent, new RequireSpaceBlock { MinHeight = minHeight });
+        Attach(parent, new RequireSpaceBlock { MinHeight = Numbers.NotNegative(minHeight, nameof(minHeight)) });
 
     // ---- Rules and placeholders ----------------------------------------------------------------------------
 
@@ -431,38 +453,38 @@ public static class FrameModifiers
     /// wavy rule takes three times its weight, the wave swinging a weight either side of its centre.
     /// </summary>
     public static void Rule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new RuleBlock { Weight = weight, Ink = ink ?? Ink.Black, Style = style });
+        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink ?? Ink.Black, Style = style });
 
     /// <summary>
     /// Draws a horizontal rule across the available width in dashes and gaps of the lengths in
     /// <paramref name="dashes"/>, alternating and starting with a dash: <c>[4, 2]</c> is dashes of 4 points 2 apart.
     /// </summary>
     public static void Rule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
-        Attach(parent, new RuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
+        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink, Dashes = Checked(dashes) });
 
     /// <summary>Draws a horizontal rule across the available width in a gradient along its length.</summary>
     public static void Rule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new RuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
 
     /// <summary>Draws a horizontal rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
     public static void Rule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
-        Attach(parent, new RuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
+        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
 
     /// <summary>Draws a vertical rule down the available height, solid unless <paramref name="style"/> says otherwise.</summary>
     public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink ?? Ink.Black, Style = style });
+        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink ?? Ink.Black, Style = style });
 
     /// <summary>Draws a vertical rule down the available height in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
     public static void VerticalRule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
-        Attach(parent, new VerticalRuleBlock { Weight = weight, Ink = ink, Dashes = Checked(dashes) });
+        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink, Dashes = Checked(dashes) });
 
     /// <summary>Draws a vertical rule down the available height in a gradient along its length.</summary>
     public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new VerticalRuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
 
     /// <summary>Draws a vertical rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
     public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
-        Attach(parent, new VerticalRuleBlock { Weight = weight, Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
+        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
 
     /// <summary>
     /// A copy of a dash pattern, checked now rather than when the page is drawn: a pattern of no lengths, a negative

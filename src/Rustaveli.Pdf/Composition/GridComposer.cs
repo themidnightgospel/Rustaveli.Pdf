@@ -33,10 +33,10 @@ public sealed class GridComposer
     }
 
     /// <summary>Sets the gap between neighbouring cells in a row.</summary>
-    public void Gutter(float value) => _gutter = value;
+    public void Gutter(float value) => _gutter = Numbers.NotNegative(value, nameof(value));
 
     /// <summary>Sets the gap between one row and the next.</summary>
-    public void SpaceBetweenRows(float value) => _spaceBetweenRows = value;
+    public void SpaceBetweenRows(float value) => _spaceBetweenRows = Numbers.NotNegative(value, nameof(value));
 
     /// <summary>Sets a row the cells do not fill against the left, the default.</summary>
     public void FlushLeft() => _placement = HorizontalPlacement.Left;

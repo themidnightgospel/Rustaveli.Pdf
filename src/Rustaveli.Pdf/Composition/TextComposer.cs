@@ -159,13 +159,13 @@ public sealed class TextComposer
     /// <summary>Indents the opening line of every paragraph in this block.</summary>
     public void FirstLineIndent(float indent)
     {
-        _block.FirstLineIndent = indent;
+        _block.FirstLineIndent = Numbers.NotNegative(indent, nameof(indent));
     }
 
     /// <summary>Inserts a vertical gap before every paragraph after the first.</summary>
     public void SpaceBetweenParagraphs(float spacing)
     {
-        _block.SpaceBetweenParagraphs = spacing;
+        _block.SpaceBetweenParagraphs = Numbers.NotNegative(spacing, nameof(spacing));
     }
 
     /// <summary>

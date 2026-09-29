@@ -22,7 +22,7 @@ public sealed class FlowColumnsComposer
     }
 
     /// <summary>Sets the gap between neighbouring columns.</summary>
-    public void Gutter(float value) => _block.Gutter = value;
+    public void Gutter(float value) => _block.Gutter = Numbers.NotNegative(value, nameof(value));
 
     /// <summary>Ends the columns of the story's last page level, rather than filling each before the next.</summary>
     public void Balanced() => _block.Balanced = true;
