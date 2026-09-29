@@ -195,6 +195,18 @@ public class ContextSubstitutionTests
         Assert.Equal(new[] { 1 + SubstitutionSession.MaximumNesting }, Glyphs(Apply(gsub, [1])));
     }
 
+    [Theory]
+    [InlineData(1, new[] { 1, 2 })]
+    [InlineData(2, new[] { 1, 2 })]
+    [InlineData(3, new[] { 101, 2 })]
+    public void StopsTryingRulesOnceTheWorkIsSpent(int work, int[] expected)
+    {
+        // One unit to try the subtable, one for its rule, and one for the subtable of the lookup the rule calls.
+        byte[] gsub = Table(ContextFormat1(Cover(1), [Rule([], (0, 1))]));
+
+        Assert.Equal(expected, Glyphs(ApplyWithLimits(gsub, [1, 2], work, 100)));
+    }
+
     // ---- Format 2 ------------------------------------------------------------------------------------------------
 
     [Fact]

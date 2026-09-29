@@ -214,17 +214,30 @@ public class TrueTypeSubsetterTests
         Assert.Equal(-100, result.Post.UnderlinePosition);
     }
 
-    [Fact]
-    public void SubsetsAFontWithoutOptionalTables()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SubsetsAFontWithoutOptionalTables(bool keepHinting)
     {
         OpenTypeFont font = SyntheticFont.Minimal().Load();
-        OpenTypeFont result = Reparse(TrueTypeSubsetter.Subset(font, [2]));
+        OpenTypeFont result = Reparse(TrueTypeSubsetter.Subset(font, [2], keepHinting));
 
         Assert.Equal(2, result.GlyphCount);
         Assert.Equal(1, result.GetGlyphId('B'));
         Assert.Equal(0, result.GetGlyphId('A'));
         Assert.Equal(0f, result.Post!.ItalicAngle);
         Assert.False(result.TryGetTable(TableTag.Fpgm, out _));
+    }
+
+    [Fact]
+    public void WritesAPostWithAnEmptyHeaderForAFontWhosePostIsCutShort()
+    {
+        // The version and italic angle alone: a header cut short is not copied a part at a time.
+        OpenTypeFont font = SyntheticFont.Minimal().With("post", SyntheticTables.Post(italicAngle: -12).Take(8).ToArray()).Load();
+        OpenTypeFont result = Reparse(TrueTypeSubsetter.Subset(font, [2]));
+
+        Assert.Equal(0f, result.Post!.ItalicAngle);
+        Assert.Equal(0, result.Post.UnderlinePosition);
     }
 
     [Fact]

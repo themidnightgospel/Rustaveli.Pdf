@@ -1,10 +1,32 @@
+using System.IO.Compression;
 using System.Text;
+using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Output;
+using Rustaveli.Pdf.UnitTests.Fonts;
+using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.UnitTests.Output;
 
 public class EmbeddedFontTests
 {
+    /// <summary>The PDF objects that embed <paramref name="face"/>, having shown each glyph for its character.</summary>
+    private static string Embed(OpenTypeFont face, params (ushort Glyph, char Character)[] shown)
+    {
+        using MemoryStream stream = new MemoryStream();
+        using (PdfFileWriter file = new PdfFileWriter(stream, new PdfWriterOptions { CompressionLevel = CompressionLevel.NoCompression }))
+        {
+            EmbeddedFont font = new EmbeddedFont(face, file.Reserve());
+
+            foreach ((ushort glyph, char character) in shown)
+                font.CodeFor(new ShapedGlyph(face, glyph, character, 0, 1, 10, 0));
+
+            font.Write(file);
+            file.Finish(file.Write(new PdfDictionary()));
+        }
+
+        return Encoding.Latin1.GetString(stream.ToArray());
+    }
+
     [Fact]
     public void BaseFontIsThePostScriptName()
     {
@@ -68,5 +90,26 @@ public class EmbeddedFontTests
         Assert.Equal(2, map.Split(["100 beginbfchar"], StringSplitOptions.None).Length - 1);
         Assert.Contains("50 beginbfchar", map);
         Assert.Equal(3, map.Split(["endbfchar"], StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void AFaceThatShowedOnlyMissingCharactersHasNoToUnicodeMap()
+    {
+        OpenTypeFont face = SyntheticFont.Minimal().Load();
+
+        // .notdef stands for every missing character, so reads back as none of them, and a map of nothing is left out.
+        Assert.DoesNotContain("/ToUnicode", Embed(face, (0, '\u4E16')), StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", Embed(face, (0, '\u4E16'), (1, 'A')), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AFaceWithoutAnXHeightWritesNone()
+    {
+        // Minimal has neither an OS/2 table nor an "x" to measure.
+        OpenTypeFont withoutOne = SyntheticFont.Minimal().Load();
+        OpenTypeFont withOne = SyntheticFont.Minimal().With("OS/2", SyntheticTables.Os2(xHeight: 480)).Load();
+
+        Assert.DoesNotContain("/XHeight", Embed(withoutOne, (1, 'A')), StringComparison.Ordinal);
+        Assert.Matches(@"/XHeight 480\b", Embed(withOne, (1, 'A')));
     }
 }

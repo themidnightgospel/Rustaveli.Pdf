@@ -60,10 +60,13 @@ public class FontMetricsTests
         Assert.Equal(0, font.Os2.XHeight);
     }
 
-    [Fact]
-    public void IgnoresVersionTwoFieldsInAnOlderTable()
+    [Theory]
+    [InlineData(1, null)]
+    [InlineData(2, 86)]
+    public void IgnoresVersionTwoFieldsInAnOlderOrTruncatedTable(int version, int? length)
     {
-        OpenTypeFont font = WithOs2(SyntheticTables.Os2(version: 1, xHeight: 500, capHeight: 700));
+        // The second: a version 2 table that ends where version 1 does, before the fields version 2 added.
+        OpenTypeFont font = WithOs2(SyntheticTables.Os2(version: version, xHeight: 500, capHeight: 700, length: length));
 
         Assert.Equal(0, font.Os2!.XHeight);
         Assert.Equal(0, font.Os2.CapHeight);
@@ -266,6 +269,36 @@ public class FontMetricsTests
         Assert.Equal(0f, font.Descriptor.ItalicAngle);
         Assert.Equal(700, font.Descriptor.MaxWidth);
         Assert.Equal(500, font.Descriptor.MissingWidth);
+    }
+
+    [Fact]
+    public void FallsBackToTheAscentForCapHeightWhenItsGlyphIsEmpty()
+    {
+        (byte[] glyf, byte[] loca) = SyntheticTables.GlyphData(
+            longOffsets: false, SyntheticTables.SimpleGlyph(50, 0, 450, 700), [], []);
+        OpenTypeFont font = SyntheticFont.Minimal()
+            .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4(('H', 1), ('x', 2)))))
+            .With("glyf", glyf)
+            .With("loca", loca)
+            .Load();
+
+        Assert.Equal(800, font.Descriptor.CapHeight);
+        Assert.Equal(0, font.Descriptor.XHeight);
+    }
+
+    [Fact]
+    public void FallsBackToTheAscentForCapHeightInACffFontWhoseOs2LacksIt()
+    {
+        // CFF outlines are not read for their bounds, so an "H" and an "x" the font has are no help.
+        SyntheticFont font = SyntheticFont.Minimal().Without("glyf").Without("loca")
+            .With("CFF ", SyntheticLayout.Cff("Test", 3))
+            .With("cmap", SyntheticTables.Cmap((3, 1, SyntheticTables.Format4(('H', 1), ('x', 2)))));
+        font.Version = "OTTO";
+
+        FontDescriptorInfo descriptor = font.Load().Descriptor;
+
+        Assert.Equal(800, descriptor.CapHeight);
+        Assert.Equal(0, descriptor.XHeight);
     }
 
     [Fact]

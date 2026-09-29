@@ -44,6 +44,9 @@ public class CffDictTests
         Assert.Equal(9, entry.Integer(1));
         Assert.Throws<FontFormatException>(() => entry.Integer(2));
         Assert.Throws<FontFormatException>(() => Assert.Single(CffDict.Read([30, 0x1A, 0x5F, 18])).Integer());
+
+        // 1E10, a whole number too large for an integer: cast, it would come back as some other number.
+        Assert.Throws<FontFormatException>(() => Assert.Single(CffDict.Read([30, 0x1B, 0x10, 0xFF, 18])).Integer());
     }
 
     [Theory]

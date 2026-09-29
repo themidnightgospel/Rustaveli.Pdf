@@ -303,8 +303,11 @@ internal static class CffSubsetter
     {
         FontDataWriter copy = new FontDataWriter();
 
-        foreach (CffDictEntry entry in entries.Where(entry => keeps(entry.Operator)))
-            copy.Bytes(dict.Slice(entry.Start, entry.Length));
+        foreach (CffDictEntry entry in entries)
+        {
+            if (keeps(entry.Operator))
+                copy.Bytes(dict.Slice(entry.Start, entry.Length));
+        }
 
         return copy.ToArray();
     }
