@@ -22,10 +22,14 @@ updates:
         patterns:
           - "SkiaSharp*"
           - "HarfBuzzSharp*"
-      # A package matches only the first group it fits, so this takes everything else.
+      # Everything else. The native packages are excluded by name rather than left to the order of the groups:
+      # left to it, Dependabot folded them into this group's pull request and closed their own.
       nuget:
         patterns:
           - "*"
+        exclude-patterns:
+          - "SkiaSharp*"
+          - "HarfBuzzSharp*"
 
   # The SDK in global.json.
   - package-ecosystem: "dotnet-sdk"
