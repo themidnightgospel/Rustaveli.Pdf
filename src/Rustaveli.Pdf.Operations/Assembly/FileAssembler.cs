@@ -23,6 +23,8 @@ internal static class FileAssembler
     private static readonly PdfName MarkInfo = new PdfName("MarkInfo");
     private static readonly PdfName Marked = new PdfName("Marked");
     private static readonly PdfName StructParents = new PdfName("StructParents");
+    private static readonly PdfName StructParent = new PdfName("StructParent");
+    private static readonly PdfName P = new PdfName("P");
     private static readonly PdfName EmbeddedFiles = new PdfName("EmbeddedFiles");
     private static readonly PdfName Associated = new PdfName("AF");
     private static readonly PdfName Perms = new PdfName("Perms");
@@ -81,12 +83,14 @@ internal static class FileAssembler
 
         // A page kept twice is referred to as the first it became.
         HashSet<(PdfSource, int)> assigned = [];
+        bool[] again = new bool[pages.Count];
 
         for (int index = 0; index < pages.Count; index++)
         {
             SourcePage page = pages[index].Page;
+            again[index] = !assigned.Add((page.Source, page.ObjectNumber));
 
-            if (assigned.Add((page.Source, page.ObjectNumber)))
+            if (!again[index])
                 copier.Redirect(page.Source, page.ObjectNumber, placed[index].Page);
         }
 
@@ -98,7 +102,7 @@ internal static class FileAssembler
         Dictionary<(PdfSource, int), PdfReference> forms = [];
 
         for (int index = 0; index < pages.Count; index++)
-            WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first), forms);
+            WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first), forms, again[index]);
 
         CopyDocument(writer, copier, first, whole, settings);
         copier.Flush();
@@ -111,18 +115,49 @@ internal static class FileAssembler
         PageEntry entry,
         (PdfReference Page, PdfReference Parent) placed,
         bool keepStructure,
-        Dictionary<(PdfSource, int), PdfReference> forms)
+        Dictionary<(PdfSource, int), PdfReference> forms,
+        bool again)
     {
         SourcePage page = entry.Page;
         PdfSource source = page.Source;
-        PdfName[] leaving = keepStructure ? [PdfNames.Parent] : [PdfNames.Parent, StructParents];
+
+        // The structure tree knows a page kept twice only as the first it became, whose place in it the copy must not claim.
+        PdfName[] leaving = keepStructure && !again ? [PdfNames.Parent] : [PdfNames.Parent, StructParents];
         PdfDictionary copied = copier.CopyDictionary(source, page.Dictionary, leaving);
         copied[PdfNames.Parent] = placed.Parent;
+
+        if (again && page.Dictionary.TryGetValue(PdfNames.Annots, out PdfValue listed) && source.Resolve(listed) is { Kind: PdfValueKind.Array } annotations)
+            copied[PdfNames.Annots] = CopyAnnotations(writer, copier, source, annotations.AsArray(), placed.Page);
 
         if (entry.Beneath.Count > 0 || entry.Over.Count > 0)
             Layer(writer, copier, entry, copied, forms);
 
         writer.File.Write(placed.Page, copied);
+    }
+
+    /// <summary>
+    /// The annotations of a page kept again, each written anew for <paramref name="page"/>: an annotation belongs to
+    /// one page, which its <c>/P</c> names, and one place in the structure, which the first copy keeps.
+    /// </summary>
+    private static PdfArray CopyAnnotations(PdfDocumentWriter writer, ObjectCopier copier, PdfSource source, PdfArray annotations, PdfReference page)
+    {
+        PdfArray copies = new PdfArray(annotations.Count);
+
+        foreach (PdfValue item in annotations)
+        {
+            if (source.Resolve(item) is { Kind: PdfValueKind.Dictionary } annotation)
+            {
+                PdfDictionary copy = copier.CopyDictionary(source, annotation.AsDictionary(), StructParent, P);
+                copy[P] = page;
+                copies.Add(writer.File.Write(copy));
+            }
+            else
+            {
+                copies.Add(copier.Copy(source, item));
+            }
+        }
+
+        return copies;
     }
 
     /// <summary>

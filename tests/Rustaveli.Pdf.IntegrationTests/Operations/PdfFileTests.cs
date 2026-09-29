@@ -330,6 +330,63 @@ public class PdfFileTests
         Assert.Equal(artifact, content.IndexOf("/Artifact BMC\nq\n/Layer0 Do\nQ\nEMC", StringComparison.Ordinal) >= 0);
     }
 
+    /// <summary>A page linking to a web address, tagged if <paramref name="tagged"/> says.</summary>
+    private static byte[] Linked(bool tagged)
+    {
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(200, 200);
+            section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
+            section.Body().Link("https://example.com").Text("Linked");
+        }));
+        document.Info.Title = "Linked";
+        document.Info.Language = "en";
+        return document.ExportPdf(new PdfExportOptions { Tagged = tagged });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void APageKeptTwiceHasAnnotationsOfItsOwn(bool tagged)
+    {
+        PdfName structParents = new PdfName("StructParents");
+        PdfName structParent = new PdfName("StructParent");
+        PdfSource source = PdfSource.Open(PdfFile.Open(Linked(tagged)).KeepPages("1, 1").ToArray());
+
+        List<PdfReference> annotations = source.Pages.Select(page => Assert.Single(source.Resolve(page.Dictionary[PdfNames.Annots]).AsArray()).AsReference()).ToList();
+        PdfDictionary first = source.Resolve(annotations[0]).AsDictionary();
+        PdfDictionary second = source.Resolve(annotations[1]).AsDictionary();
+
+        Assert.NotEqual(annotations[0].ObjectNumber, annotations[1].ObjectNumber);
+        Assert.Equal(first[PdfNames.Subtype].AsName(), second[PdfNames.Subtype].AsName());
+        Assert.False(second.ContainsKey(structParent));
+        Assert.False(source.Pages[1].Dictionary.ContainsKey(structParents));
+        Assert.Equal(tagged, first.ContainsKey(structParent));
+        Assert.Equal(tagged, source.Pages[0].Dictionary.ContainsKey(structParents));
+
+        foreach ((PdfDictionary annotation, int index) in new[] { (first, 0), (second, 1) })
+        {
+            if (annotation.TryGetValue(new PdfName("P"), out PdfValue page))
+                Assert.Equal(source.Pages[index].ObjectNumber, page.AsReference().ObjectNumber);
+        }
+    }
+
+    [Fact]
+    public void APageKeptTwiceKeepsWhatItsAnnotationsListHoldsBesideAnnotations()
+    {
+        byte[] page = Turned(200, 200, 0, "XYZ", extra: "/Annots[<</Type/Annot/Subtype/Square/Rect[0 0 9 9]/StructParent 4>> 7]");
+        PdfSource source = PdfSource.Open(PdfFile.Open(page).KeepPages("1, 1").ToArray());
+
+        PdfArray again = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray();
+        PdfDictionary square = source.Resolve(again[0]).AsDictionary();
+
+        Assert.Equal(PdfValueKind.Reference, again[0].Kind);
+        Assert.Equal(7L, again[1].AsInteger());
+        Assert.Equal("Square", square[PdfNames.Subtype].AsName().Value);
+        Assert.False(square.ContainsKey(new PdfName("StructParent")));
+        Assert.Equal(source.Pages[1].ObjectNumber, square[new PdfName("P")].AsReference().ObjectNumber);
+    }
+
     [Fact]
     public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
     {
