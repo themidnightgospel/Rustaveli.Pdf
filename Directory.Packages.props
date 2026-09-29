@@ -15,11 +15,11 @@
       Debian 10 (mono/SkiaSharp#3201), and 3.119.0/3.119.1 dropped libfontconfig from the linux-arm64 binary
       (#3369). The 4.x line is clear of both. The two packages must move together.
     -->
-    <PackageVersion Include="SkiaSharp" Version="4.151.0" />
-    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.151.0" />
+    <PackageVersion Include="SkiaSharp" Version="4.153.0" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.153.0" />
     <!-- The HarfBuzz release SkiaSharp 4.151 pairs with, so the two native libraries come from one build. -->
-    <PackageVersion Include="HarfBuzzSharp" Version="14.2.1" />
-    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1" />
+    <PackageVersion Include="HarfBuzzSharp" Version="14.2.1.300" />
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.300" />
   </ItemGroup>
 
   <!--
@@ -33,7 +33,7 @@
 
   <!-- Build-time only: never reach a consumer. -->
   <ItemGroup>
-    <PackageVersion Include="Polyfill" Version="11.4.0" />
+    <PackageVersion Include="Polyfill" Version="11.4.1" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
   </ItemGroup>
 
@@ -41,10 +41,10 @@
   <ItemGroup>
     <!-- PDFium, as an independent renderer for visual snapshots: pages are never judged by our own reader. -->
     <PackageVersion Include="bblanchon.PDFium" Version="156.0.8066" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="CsCheck" Version="4.9.1" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageVersion Include="PdfPig" Version="0.1.15" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
 
     <!--
       The behavioural oracle for the equivalence suite. Pinned to 2026.5.0, the last release distributed under an
@@ -54,7 +54,7 @@
     <PackageVersion Include="QuestPDF" Version="2026.5.0" />
 
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>
 
   <!-- Benchmarks. -->
