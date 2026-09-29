@@ -7,6 +7,10 @@ namespace Rustaveli.Pdf;
 /// <remarks>
 /// Restrictions are honoured by readers, not enforced by the encryption: anyone who can open a file can read it. Only
 /// a user password keeps a file closed.
+/// <para>
+/// Only <see cref="EncryptionLevel.AesWith256Bits"/> takes a password in any script; the older levels take PDFDocEncoding,
+/// roughly Latin-1, and a password with other characters is refused rather than weakened.
+/// </para>
 /// </remarks>
 public sealed class Protection
 {

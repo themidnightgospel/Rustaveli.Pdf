@@ -94,6 +94,12 @@ internal sealed class PdfEncryption
         // RC4 below revision 4 always encrypts the metadata.
         metadata |= revision < 4;
 
+        // Below revision 5 a password is PDFDocEncoding, and reading a file maps every character outside it to '?', so
+        // two passwords in another script would open each other's files. Only creating is refused; a file already
+        // made that way still opens.
+        RequireDocEncoding(protection.UserPassword, "user");
+        RequireDocEncoding(owner, "owner");
+
         byte[] ownerEntry = StandardSecurity.Owner(owner, protection.UserPassword, revision, length);
         byte[] key = StandardSecurity.FileKey(StandardSecurity.Pad(protection.UserPassword), ownerEntry, permissions, id, revision, length, metadata);
 
@@ -119,6 +125,20 @@ internal sealed class PdfEncryption
         }
 
         return new PdfEncryption(key, cipher, cipher, metadata, dictionary, id);
+    }
+
+    private static void RequireDocEncoding(string password, string which)
+    {
+        foreach (char character in password)
+        {
+            if (PdfDocEncoding.Encode(character) < 0)
+            {
+                throw new ArgumentException(
+                    $"The {which} password has characters that RC4 and 128-bit AES encryption cannot hold: they take only " +
+                    $"PDFDocEncoding, roughly Latin-1. Use {nameof(EncryptionLevel)}.{nameof(EncryptionLevel.AesWith256Bits)}, which takes any password.",
+                    "protection");
+            }
+        }
     }
 
     private static PdfEncryption CreateAes256(string userPassword, string ownerPassword, int permissions, bool metadata, byte[] id)

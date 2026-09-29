@@ -256,6 +256,38 @@ public class EncryptionTests
         Assert.Equal(new byte[5], encryption.DecryptString(1, new byte[5]));
     }
 
+    [Theory]
+    [InlineData(EncryptionLevel.Rc4With40Bits)]
+    [InlineData(EncryptionLevel.Rc4With128Bits)]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    public void APasswordBelowAes256IsRefusedWhereItsCharactersWouldBeLost(EncryptionLevel level)
+    {
+        // Below revision 5 a password is PDFDocEncoding, and every character outside it would become the same '?', so
+        // "пароль" would open a file protected with "секрет".
+        ArgumentException user = Assert.Throws<ArgumentException>(() => PdfEncryption.Create(new Protection { UserPassword = "секрет", Encryption = level }));
+        ArgumentException owner = Assert.Throws<ArgumentException>(() => PdfEncryption.Create(new Protection { OwnerPassword = "секрет", Encryption = level }));
+
+        Assert.Contains(nameof(EncryptionLevel.AesWith256Bits), user.Message);
+        Assert.Contains("user", user.Message);
+        Assert.Contains("owner", owner.Message);
+
+        // Latin-1 letters are in PDFDocEncoding, and are kept.
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "café", OwnerPassword = "naïve", Encryption = level });
+        Assert.NotNull(Reopen(written, "café"));
+        Assert.NotNull(Reopen(written, "naïve"));
+        Assert.Null(Reopen(written, "cafe"));
+    }
+
+    [Fact]
+    public void Aes256KeepsAPasswordInAnyScript()
+    {
+        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "секрет", OwnerPassword = "ქართული" });
+
+        Assert.NotNull(Reopen(written, "секрет"));
+        Assert.NotNull(Reopen(written, "ქართული"));
+        Assert.Null(Reopen(written, "пароль"));
+    }
+
     [Fact]
     public void ThePasswordIsPaddedOrCutTo32Bytes()
     {
