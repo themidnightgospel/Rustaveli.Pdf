@@ -164,6 +164,26 @@ public class PdfFileTests
     }
 
     [Fact]
+    public void OneStampLaidOnFilesSavedAtOnceGoesOnEachAsOnOne()
+    {
+        byte[] page = Pages("One");
+        byte[] stamp = Layer("Stamp");
+        byte[] expected = PdfFile.Open(page).Overlay(PdfFile.Open(stamp)).ToArray();
+
+        for (int round = 0; round < 10; round++)
+        {
+            // The files share the stamp's pages, and with them the one reading of its file.
+            PdfFile shared = PdfFile.Open(stamp);
+            PdfFile[] files = Enumerable.Range(0, 8).Select(_ => PdfFile.Open(page).Overlay(shared)).ToArray();
+            byte[][] saved = new byte[files.Length][];
+
+            Parallel.For(0, files.Length, index => saved[index] = files[index].ToArray());
+
+            Assert.All(saved, file => Assert.Equal(expected, file));
+        }
+    }
+
+    [Fact]
     public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
     {
         byte[] linear = PdfFile.Open(Pages("One", "Two", "Three")).Overlay(PdfFile.Open(Layer("Stamp")), onto: "2").OptimizeForWeb().ToArray();

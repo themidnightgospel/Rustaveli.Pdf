@@ -13,10 +13,15 @@ namespace Rustaveli.Pdf.Operations.Reading;
 /// read it: the whole file is scanned for objects, the last of each number kept, and the trailer taken from the last
 /// one written.
 /// </para>
-/// <para>Not thread-safe: objects are read and kept as they are first asked for.</para>
+/// <para>
+/// Objects are read and kept as they are first asked for, under a lock: one file laid as a stamp on, or appended to,
+/// several files shares its reading with all of them, and they may be saved on several threads at once.
+/// </para>
 /// </remarks>
 internal sealed class PdfSource
 {
+    private readonly object _gate = new object();
+
     private static readonly PdfName Root = new PdfName("Root");
     private static readonly PdfName Encrypt = new PdfName("Encrypt");
     private static readonly PdfName Prev = new PdfName("Prev");
@@ -69,7 +74,14 @@ internal sealed class PdfSource
             : throw new UnreadableFileException("The file is not a PDF this library can read: it has no catalog.");
 
     /// <summary>The object numbers the file holds, in order.</summary>
-    public IEnumerable<int> ObjectNumbers => _entries.Keys.OrderBy(number => number);
+    public IEnumerable<int> ObjectNumbers
+    {
+        get
+        {
+            lock (_gate)
+                return _entries.Keys.OrderBy(number => number).ToList();
+        }
+    }
 
     /// <summary>How the file is encrypted, when it is, opened with the password it was given.</summary>
     public PdfEncryption? Encryption { get; private set; }
@@ -191,37 +203,40 @@ internal sealed class PdfSource
     /// </summary>
     public object GetObject(int number)
     {
-        if (_objects.TryGetValue(number, out object? known))
-            return known;
-
-        // An object whose length refers back to itself would otherwise be read forever.
-        if (!_loading.Add(number))
-            return PdfValue.Null;
-
-        try
+        lock (_gate)
         {
-            object loaded = Load(number);
+            if (_objects.TryGetValue(number, out object? known))
+                return known;
 
-            if (ReferenceEquals(loaded, Misplaced))
+            // An object whose length refers back to itself would otherwise be read forever.
+            if (!_loading.Add(number))
+                return PdfValue.Null;
+
+            try
             {
-                if (_rebuilt)
-                {
-                    loaded = PdfValue.Null;
-                }
-                else
-                {
-                    Rebuild();
-                    _loading.Remove(number);
-                    return GetObject(number);
-                }
-            }
+                object loaded = Load(number);
 
-            _objects[number] = loaded;
-            return loaded;
-        }
-        finally
-        {
-            _loading.Remove(number);
+                if (ReferenceEquals(loaded, Misplaced))
+                {
+                    if (_rebuilt)
+                    {
+                        loaded = PdfValue.Null;
+                    }
+                    else
+                    {
+                        Rebuild();
+                        _loading.Remove(number);
+                        return GetObject(number);
+                    }
+                }
+
+                _objects[number] = loaded;
+                return loaded;
+            }
+            finally
+            {
+                _loading.Remove(number);
+            }
         }
     }
 
@@ -245,15 +260,26 @@ internal sealed class PdfSource
     public byte[] Decode(SourceStream stream) => StreamDecoder.Decode(stream.Dictionary, stream.Data, Resolve);
 
     /// <summary>The pages, in order, with what each inherits from the page tree.</summary>
-    public IReadOnlyList<SourcePage> Pages => _pages ??= ReadPages();
+    public IReadOnlyList<SourcePage> Pages
+    {
+        get
+        {
+            lock (_gate)
+                return _pages ??= ReadPages();
+        }
+    }
 
     /// <summary>The objects of the page tree, pages and the nodes above them alike.</summary>
     public IReadOnlyCollection<int> PageTree
     {
         get
         {
-            _ = Pages;
-            return _pageTree;
+            // A copy: a repair on another thread reads the tree anew into the set.
+            lock (_gate)
+            {
+                _ = Pages;
+                return _pageTree.ToArray();
+            }
         }
     }
 
