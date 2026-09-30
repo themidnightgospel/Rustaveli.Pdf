@@ -1,169 +1,140 @@
-using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Stacks children vertically, flowing whatever does not fit onto the next page.
+/// Sets its items one below another, and runs on to the next page between items, or within one that splits.
 /// </summary>
 /// <remarks>
-/// The column remembers how many children it has finished so that a continuation on the following page resumes
-/// rather than restarting. A child that only partially rendered keeps its own internal position, so the column
-/// deliberately does not advance past it.
+/// Planning and drawing share one walk down the items, so that what is drawn on a page is exactly what was planned
+/// for it: drawing only records, in addition, where each item went.
 /// </remarks>
 internal sealed class StackBlock : Block
 {
-    private int _completedItems;
+    /// <summary>How many items, from the top, have been drawn in full on earlier pages.</summary>
+    private int _finished;
 
+    /// <summary>The items, top to bottom.</summary>
     public List<Block> Items { get; } = [];
 
-    /// <summary>Vertical gap inserted between consecutive items.</summary>
+    /// <summary>The room left between two items that both take some height.</summary>
     public float SpaceBetween { get; set; }
 
     public override IEnumerable<Block?> GetChildren() => Items;
 
-    protected override void ResetOwnState() => _completedItems = 0;
+    protected override void ResetOwnState() => _finished = 0;
 
-    protected override object? SaveOwnProgress() => _completedItems;
+    protected override object? SaveOwnProgress() => _finished;
 
-    protected override void RestoreOwnProgress(object progress) => _completedItems = (int)progress;
+    protected override void RestoreOwnProgress(object progress) => _finished = (int)progress;
 
-    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
-    {
-        LayoutResult result = Layout(availableSpace, context, static (_, _, _, _) => { });
-
-        return result.ToSpacePlan();
-    }
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
+        Walk(availableSpace, context, placed: null).Outcome;
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        ISurface surface = context.Surface;
-        float offset = 0f;
+        List<Placed> placed = [];
+        Page page = Walk(availableSpace, context.Planning, placed);
 
-        LayoutResult result = Layout(availableSpace, context.Planning, (item, itemSpace, measuredHeight, top) =>
+        if (placed.Count == 0)
+            return;
+
+        foreach (Placed item in placed)
         {
-            Offset delta = new Offset(0, top - offset);
-            surface.MoveOrigin(delta);
-            offset = top;
-            context.RenderAllotted(item, itemSpace, measuredHeight);
-        });
+            Offset top = new Offset(0, item.Top);
+            context.Surface.MoveOrigin(top);
+            context.RenderAllotted(Items[item.Index], new Extent(availableSpace.Width, item.Height), item.Offered);
+            context.Surface.MoveOrigin(top.Reverse());
+        }
 
-        surface.MoveOrigin(new Offset(0, -offset));
-
-        // Exhausted and wrapped results carry no progress, so leave the cursor where it was.
-        if (result.DrewContent)
-            _completedItems = result.CompletedItems;
+        _finished = page.Resume;
     }
 
     /// <summary>
-    /// Walks the remaining items, accumulating height and invoking <paramref name="onItem"/> for each one that
-    /// fits, with the box it is drawn in, the height of the room it was measured in, and where its top is. Measuring and
-    /// drawing share this so the two passes can never disagree about what fits.
+    /// Goes down the items not yet finished, placing each that fits in the room left, until one does not, one splits,
+    /// or none are left. Drawing passes a list to record each item placed in; planning passes none.
     /// </summary>
-    private LayoutResult Layout(Extent availableSpace, PlanContext context, Action<Block, Extent, float, float> onItem)
+    private Page Walk(Extent room, PlanContext context, List<Placed>? placed)
     {
-        if (_completedItems >= Items.Count)
-            return LayoutResult.Exhausted();
+        float used = 0f;
+        float widest = 0f;
+        bool anyPlaced = false;
+        bool anyTall = false;
+        int index = _finished;
 
-        float totalHeight = 0f;
-        float maxWidth = 0f;
-        int completed = _completedItems;
-        bool drewAnything = false;
-        bool hasVisibleContent = false;
-        bool pending = false;
+        // The item the page ends before or within, if it ends early; an item past it is still to come.
+        int? stoppedAt = null;
 
-        for (int index = _completedItems; index < Items.Count; index++)
+        for (; index < Items.Count; index++)
         {
-            float spacing = hasVisibleContent ? SpaceBetween : 0f;
-            float heightLeft = availableSpace.Height - totalHeight;
+            float left = room.Height - used;
 
-            // Offered less than nothing: there is no box to hand any item, not even one of no height.
-            if (heightLeft < -Extent.Epsilon)
+            // Room already overdrawn — by an item planned as taller than the room — takes nothing more.
+            if (left < -Extent.Epsilon)
             {
-                pending = true;
+                stoppedAt = index;
                 break;
             }
 
-            // Room remains, but not for the gap — as when a column is drawn at exactly the height it measured. An
-            // item that occupies no height needs no gap, though, and still has to be drawn on this page: its side
-            // effects (a destination, a "skip once" state change) belong here. Offer it the space without the gap
-            // and keep it only if it claims none.
-            bool gapOverflows = heightLeft - spacing < -Extent.Epsilon;
+            Block item = Items[index];
+            float gap = anyTall ? SpaceBetween : 0f;
 
-            Extent itemSpace = new Extent(availableSpace.Width, gapOverflows ? Math.Max(0f, heightLeft) : heightLeft - spacing);
-            Fit plan = Items[index].Plan(itemSpace, context);
-
-            if (gapOverflows && !plan.IsNothing && (plan.IsDeferred || plan.Size.Height > Extent.Epsilon))
-            {
-                pending = true;
-                break;
-            }
+            // With no room for the gap, only an item taking no height may still be set here: an anchor or a marker
+            // has to be drawn on this page for what it records.
+            bool gapFits = left - gap >= -Extent.Epsilon;
+            float offered = gapFits ? left - gap : left;
+            Fit plan = item.Plan(new Extent(room.Width, offered), context);
 
             if (plan.IsNothing)
-            {
-                completed = index + 1;
                 continue;
-            }
 
-            if (plan.IsDeferred)
+            bool tall = plan.Size.Height > Extent.Epsilon;
+
+            if (plan.IsDeferred || (!gapFits && tall))
             {
-                // Nothing rendered yet means even a fresh page would look identical; report the wrap upwards so
-                // the engine can distinguish "needs a new page" from "can never fit".
-                if (!drewAnything)
-                    return LayoutResult.Wrapped(plan.DeferReason ?? "An item did not fit in the available space.");
+                if (!anyPlaced && plan.IsDeferred)
+                    return new Page(Fit.Defer(plan.DeferReason ?? "An item did not fit in the available space."), _finished);
 
-                pending = true;
+                stoppedAt = index;
                 break;
             }
 
-            // Only an item that actually occupies space earns a gap before it. Hidden content still has to be
-            // drawn — a "skip once" marker advances its state during Draw — but it must leave no visible trace,
-            // otherwise toggling a section on and off would shift everything below it.
-            bool occupiesSpace = plan.Size.Height > Extent.Epsilon;
+            // A gap belongs between two items that take height; one taking none is set flush where the gap would be.
+            float top = tall ? used + gap : used;
+            placed?.Add(new Placed(index, top, plan.Size.Height, offered));
 
-            if (occupiesSpace)
-                totalHeight += spacing;
-
-            // The item's final size: the column's full width, and the height it measured (ADR 0012).
-            onItem(Items[index], new Extent(availableSpace.Width, plan.Size.Height), itemSpace.Height, totalHeight);
-
-            totalHeight += plan.Size.Height;
-            maxWidth = Math.Max(maxWidth, plan.Size.Width);
-            drewAnything = true;
-            hasVisibleContent |= occupiesSpace;
+            anyPlaced = true;
+            anyTall |= tall;
+            widest = Math.Max(widest, plan.Size.Width);
+            used = top + plan.Size.Height;
 
             if (plan.IsPartial)
             {
-                pending = true;
+                // The item runs on to the next page, and stays the current one until it is finished.
+                stoppedAt = index;
                 break;
             }
-
-            completed = index + 1;
         }
 
-        if (!drewAnything)
-            return completed >= Items.Count ? LayoutResult.Exhausted() : LayoutResult.Wrapped("No item fitted in the available space.");
-
-        return new LayoutResult(new Extent(maxWidth, totalHeight), completed, pending || completed < Items.Count);
-    }
-
-    private readonly record struct LayoutResult(Extent Size, int CompletedItems, bool HasMore, string? DeferReason = null, bool IsExhausted = false)
-    {
-        public static LayoutResult Exhausted() => new(Extent.Zero, 0, false, null, true);
-
-        public static LayoutResult Wrapped(string reason) => new(Extent.Zero, 0, false, reason);
-
-        public bool DrewContent => !IsExhausted && DeferReason is null;
-
-        public Fit ToSpacePlan()
+        if (!anyPlaced)
         {
-            if (IsExhausted)
-                return Fit.Nothing();
-
-            if (DeferReason is not null)
-                return Fit.Defer(DeferReason);
-
-            return HasMore ? Fit.Partial(Size) : Fit.Complete(Size);
+            return stoppedAt is null
+                ? new Page(Fit.Nothing(), _finished)
+                : new Page(Fit.Defer("No item fitted in the available space."), _finished);
         }
+
+        Extent size = new Extent(widest, used);
+        return stoppedAt is { } resume
+            ? new Page(Fit.Partial(size), resume)
+            : new Page(Fit.Complete(size), Items.Count);
     }
+
+    /// <summary>What a walk found: the stack's outcome, and the first item to start from on the next page.</summary>
+    private readonly record struct Page(Fit Outcome, int Resume);
+
+    /// <summary>
+    /// An item placed on the page: where it starts down the page, the height it takes, and the height it was
+    /// planned in.
+    /// </summary>
+    private readonly record struct Placed(int Index, float Top, float Height, float Offered);
 }

@@ -3,40 +3,45 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Draws children on top of one another in declaration order, sized by the primary layer.
+/// Draws layers one over another, in the order they are listed. The base layer decides how much room the whole takes
+/// and whether it runs on; the others are drawn over the same room, and again in full on every page.
 /// </summary>
-/// <remarks>
-/// Layers before the primary one act as a background and those after it as an overlay, which is how watermarks
-/// and underlays are expressed without a separate element for each.
-/// </remarks>
 internal sealed class LayersBlock : Block
 {
-    public List<Layer> Layers { get; } = new List<Layer>();
+    /// <summary>The layers, bottom first.</summary>
+    public List<Layer> Layers { get; } = [];
 
-    public override IEnumerable<Block?> GetChildren()
-    {
-        return Layers;
-    }
+    public override IEnumerable<Block?> GetChildren() => Layers;
 
-    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
-    {
-        return Layers.FirstOrDefault(layer => layer.IsBase)?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
-    }
+    /// <summary>The base layer's plan; without one, the layers take no room.</summary>
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
+        Base() is { } layer ? layer.Plan(availableSpace, context) : Fit.Complete(Extent.Zero);
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        Fit plan = Plan(availableSpace, context.Planning);
-
-        if (plan.IsDeferred || plan.IsNothing)
+        if (!PlanCore(availableSpace, context.Planning).PlacesContent)
             return;
 
-        // Every layer shares the whole box the stack occupies (ADR 0012). The primary layer decides how big that
-        // box is when nothing else does, but a secondary layer aligned to the bottom must reach the bottom of the
-        // box, not of the primary layer's content.
+        // Each layer gets the whole room rather than the base layer's size, so a layer placed against the bottom
+        // reaches the bottom of the box.
         foreach (Layer layer in Layers)
             layer.Render(availableSpace, context);
 
-        foreach (Layer layer in Layers.Where(layer => !layer.IsBase))
-            layer.ResetState(includeDocumentProgress: false);
+        foreach (Layer layer in Layers)
+        {
+            if (!layer.IsBase)
+                layer.ResetState(includeDocumentProgress: false);
+        }
+    }
+
+    private Layer? Base()
+    {
+        foreach (Layer layer in Layers)
+        {
+            if (layer.IsBase)
+                return layer;
+        }
+
+        return null;
     }
 }

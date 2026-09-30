@@ -1,63 +1,72 @@
+using System.Globalization;
 using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Lays children out side by side, sizing each according to its <see cref="ColumnSizing" />.
+/// Sets its items side by side in one row, and runs on to the next page with every item that has not finished kept
+/// in the same place across the row.
 /// </summary>
 /// <remarks>
-/// A row is as tall as its tallest item. When any item runs out of room the whole row reports a partial render,
-/// and on the next page the items that already finished report themselves empty while the unfinished ones
-/// continue — which is what keeps multi-column content aligned across a page break.
+/// Each item's width is decided by the width of the row alone, never by the height left on the page, so an item keeps
+/// its place from page to page and the items beside it do not move.
 /// </remarks>
 internal sealed class ColumnsBlock : Block
 {
-    private bool[]? _completed;
+    /// <summary>For each item, whether it has been drawn in full.</summary>
+    private bool[] _finished = [];
 
-    private float[]? _cachedWidths;
+    /// <summary>
+    /// The widths last worked out, and the width of the row they were worked out for: a natural item is measured to
+    /// find its width, which is too costly to repeat every time the row is planned or drawn.
+    /// </summary>
+    private float[]? _widths;
 
-    private float _cachedAvailableWidth = float.NaN;
+    private float _widthsFor;
 
+    /// <summary>The items, in reading order.</summary>
     public List<ColumnSlot> Items { get; } = [];
 
-    /// <summary>Horizontal gap inserted between consecutive items.</summary>
+    /// <summary>The room left between two neighbouring items.</summary>
     public float Gutter { get; set; }
 
     /// <summary>
-    /// When above zero, the row is a row of a grid of this many columns, and each item's value is how many of them
-    /// it spans rather than a sizing of its own.
+    /// When above zero, the row is laid on a grid of this many equal columns, and each item's
+    /// <see cref="ColumnSlot.Value"/> is how many of them it spans.
     /// </summary>
     public int GridColumns { get; set; }
 
-    /// <summary>Overrides the inherited flow direction. Null follows the surrounding context.</summary>
+    /// <summary>
+    /// On a grid, how many of its columns, with the gutter after each, are left unused before the first item: a half
+    /// or a whole number, to set a row the items do not fill in the middle or at the end.
+    /// </summary>
+    public float LeadingGridColumns { get; set; }
+
+    /// <summary>Which way the row reads, when it reads other than the content around it.</summary>
     public ReadingDirection? ReadingDirection { get; set; }
+
+    private bool OnGrid => GridColumns > 0;
 
     public override IEnumerable<Block?> GetChildren() => Items;
 
     protected override void ResetOwnState()
     {
-        _completed = null;
-        _cachedWidths = null;
-        _cachedAvailableWidth = float.NaN;
+        _finished = [];
+        _widths = null;
     }
 
-    // The completion flags change in place, so they are copied, both ways: returned to, the saved copy must stay as it
-    // was for the next return to it. The widths are replaced whole, never changed.
-    protected override object? SaveOwnProgress() => (_completed?.ToArray(), _cachedWidths, _cachedAvailableWidth);
+    /// <remarks>
+    /// The finished flags are changed in place as items finish, so the copy saved must be one of its own, and so must
+    /// the copy restored: the same progress may be returned to more than once.
+    /// </remarks>
+    protected override object? SaveOwnProgress() => new Saved((bool[])_finished.Clone(), _widths, _widthsFor);
 
     protected override void RestoreOwnProgress(object progress)
     {
-        (bool[]? completed, _cachedWidths, _cachedAvailableWidth) = ((bool[]?, float[]?, float))progress;
-        _completed = completed?.ToArray();
-    }
-
-    /// <summary>Lazily sizes the per-item completion flags to the current item count.</summary>
-    private bool[] Completion()
-    {
-        if (_completed is null || _completed.Length != Items.Count)
-            _completed = new bool[Items.Count];
-
-        return _completed;
+        Saved saved = (Saved)progress;
+        _finished = (bool[])saved.Finished.Clone();
+        _widths = saved.Widths;
+        _widthsFor = saved.WidthsFor;
     }
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
@@ -65,28 +74,26 @@ internal sealed class ColumnsBlock : Block
         if (Items.Count == 0)
             return Fit.Complete(Extent.Zero);
 
-        // Constant columns cannot shrink, so a row whose fixed widths already overflow can never be laid out
-        // here however much vertical room arrives. Wrapping sends it to a fresh page, where the engine's
-        // non-termination guard turns a second failure into a diagnostic instead of silent overflow.
-        float fixedWidth = Items.Where(item => item.Sizing == ColumnSizing.Fixed).Sum(item => Math.Max(0f, item.Value))
-            + (Gutter * Math.Max(0, Items.Count - 1));
+        float needed = Gutter * (Items.Count - 1) + (OnGrid ? 0f : FixedWidth());
 
-        if (fixedWidth > availableSpace.Width + Extent.Epsilon)
+        if (needed > availableSpace.Width + Extent.Epsilon)
         {
-            return Fit.Defer(
-                FormattableString.Invariant($"The fixed columns need {fixedWidth:F1} points but only {availableSpace.Width:F1} are available."));
+            return Fit.Defer(string.Format(
+                CultureInfo.InvariantCulture,
+                "The row's fixed columns and gutters need {0:0.#} pt across, but only {1:0.#} pt is available.",
+                needed,
+                availableSpace.Width));
         }
 
-        float[] widths = ResolveWidths(availableSpace, context);
-        bool[] completed = Completion();
-
-        float maxHeight = 0f;
-        bool anyPartial = false;
+        float[] widths = Widths(availableSpace.Width, context);
+        bool[] finished = Finished();
+        float tallest = 0f;
         bool anyContent = false;
+        bool anyPartial = false;
 
         for (int index = 0; index < Items.Count; index++)
         {
-            if (completed[index])
+            if (finished[index])
                 continue;
 
             Fit plan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context);
@@ -98,151 +105,157 @@ internal sealed class ColumnsBlock : Block
                 continue;
 
             anyContent = true;
-            maxHeight = Math.Max(maxHeight, plan.Size.Height);
             anyPartial |= plan.IsPartial;
+            tallest = Math.Max(tallest, plan.Size.Height);
         }
 
         if (!anyContent)
             return Fit.Nothing();
 
-        Extent size = new Extent(availableSpace.Width, maxHeight);
-
+        Extent size = new Extent(availableSpace.Width, tallest);
         return anyPartial ? Fit.Partial(size) : Fit.Complete(size);
     }
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (Items.Count == 0)
+        Fit row = PlanCore(availableSpace, context.Planning);
+
+        if (!row.PlacesContent)
             return;
 
-        float[] widths = ResolveWidths(availableSpace, context.Planning);
-        Fit plan = Plan(availableSpace, context.Planning);
-
-        if (plan.IsDeferred || plan.IsNothing)
-            return;
-
-        // Every item is drawn against the row's own height so that cell backgrounds and borders line up
-        // regardless of how much content each one holds.
-        float rowHeight = plan.Size.Height;
-        float offset = 0f;
-        ReadingDirection direction = ReadingDirection ?? context.Planning.ReadingDirection;
-        bool[] completed = Completion();
+        float[] widths = Widths(availableSpace.Width, context.Planning);
+        bool[] finished = Finished();
+        bool rightToLeft = (ReadingDirection ?? context.Planning.ReadingDirection) == Pdf.ReadingDirection.RightToLeft;
+        float along = OnGrid ? LeadingGridColumns * (GridColumn(availableSpace.Width) + Gutter) : 0f;
 
         for (int index = 0; index < Items.Count; index++)
         {
-            // A repeated column finished on an earlier page is drawn again beside the columns still going, at their
-            // height; it takes no part in deciding that height, so it never keeps the row going by itself.
-            if (!completed[index] || Items[index].Repeats)
+            ColumnSlot item = Items[index];
+            float width = widths[index];
+
+            // Content drawn again on every page is drawn beside the rest, finished or not; it has no say in the
+            // row's height, which was planned without it.
+            if (!finished[index] || item.Repeats)
             {
-                Fit itemPlan = Items[index].Plan(new Extent(widths[index], availableSpace.Height), context.Planning);
+                Fit plan = item.Plan(new Extent(width, availableSpace.Height), context.Planning);
 
-                if (!itemPlan.IsDeferred && !itemPlan.IsNothing)
+                if (plan.PlacesContent)
                 {
-                    float position = direction == Pdf.ReadingDirection.LeftToRight
-                        ? offset
-                        : availableSpace.Width - offset - widths[index];
-
-                    context.Surface.MoveOrigin(new Offset(position, 0f));
-                    context.RenderAllotted(Items[index], new Extent(widths[index], rowHeight), availableSpace.Height);
-                    context.Surface.MoveOrigin(new Offset(-position, 0f));
+                    Offset left = new Offset(rightToLeft ? availableSpace.Width - along - width : along, 0);
+                    context.Surface.MoveOrigin(left);
+                    context.RenderAllotted(item, new Extent(width, row.Size.Height), availableSpace.Height);
+                    context.Surface.MoveOrigin(left.Reverse());
                 }
 
-                if (itemPlan.IsComplete || itemPlan.IsNothing)
-                    completed[index] = true;
+                if (plan.IsComplete || plan.IsNothing)
+                    finished[index] = true;
             }
 
-            // Advanced for every item, finished or not. A column that completed on an earlier page still owns
-            // its slot, and skipping it here would slide every later column left on the continuation page.
-            offset += widths[index] + Gutter;
+            // Every item keeps its place across the row, finished or not, so the ones still running do not move.
+            along += width + Gutter;
         }
     }
 
-    /// <summary>
-    /// Splits the available width across items: constants first, then measured auto items, and whatever
-    /// survives is shared among the relative items by weight.
-    /// </summary>
-    private float[] ResolveWidths(Extent availableSpace, PlanContext context)
+    /// <summary>The flags of which items are finished, made afresh for a row whose items have changed.</summary>
+    private bool[] Finished()
     {
-        // Sizing an auto column means measuring its content, and both Measure and Draw need the widths on every
-        // page. The result depends only on the offered width, so it is cached rather than recomputed.
-        if (_cachedWidths is not null
-            && _cachedWidths.Length == Items.Count
-            && Math.Abs(_cachedAvailableWidth - availableSpace.Width) < Extent.Epsilon)
+        if (_finished.Length != Items.Count)
+            _finished = new bool[Items.Count];
+
+        return _finished;
+    }
+
+    private float FixedWidth()
+    {
+        float total = 0f;
+
+        foreach (ColumnSlot item in Items)
         {
-            return _cachedWidths;
+            if (item.Sizing == ColumnSizing.Fixed)
+                total += Math.Max(0f, item.Value);
         }
 
-        float[] widths = new float[Items.Count];
+        return total;
+    }
 
-        if (GridColumns > 0)
+    private float GridColumn(float width) => (width - Gutter * (GridColumns - 1)) / GridColumns;
+
+    private float[] Widths(float width, PlanContext context)
+    {
+        if (OnGrid)
         {
-            // A cell spans whole columns of the grid and the gutters between them, whatever else shares its row, so
-            // the columns line up from one row to the next.
-            float column = (availableSpace.Width - (Gutter * (GridColumns - 1))) / GridColumns;
+            float column = GridColumn(width);
+            float[] spans = new float[Items.Count];
 
             for (int index = 0; index < Items.Count; index++)
-                widths[index] = Math.Max(0f, (Items[index].Value * column) + ((Items[index].Value - 1) * Gutter));
+            {
+                float span = Items[index].Value;
+                spans[index] = Math.Max(0f, span * column + (span - 1) * Gutter);
+            }
 
-            _cachedWidths = widths;
-            _cachedAvailableWidth = availableSpace.Width;
-            return widths;
+            return spans;
         }
 
-        float totalSpacing = Gutter * Math.Max(0, Items.Count - 1);
-        float available = Math.Max(0f, availableSpace.Width - totalSpacing);
-        float consumed = 0f;
+        if (_widths is { } known && known.Length == Items.Count && Math.Abs(_widthsFor - width) <= Extent.Epsilon)
+            return known;
 
-        for (int index = 0; index < Items.Count; index++)
-        {
-            if (Items[index].Sizing != ColumnSizing.Fixed)
-                continue;
-
-            widths[index] = Math.Max(0f, Items[index].Value);
-            consumed += widths[index];
-        }
-
+        float[] widths = new float[Items.Count];
+        float left = Math.Max(0f, width - Gutter * (Items.Count - 1)) - FixedWidth();
+        float weights = 0f;
         bool settled = true;
 
         for (int index = 0; index < Items.Count; index++)
         {
-            if (Items[index].Sizing != ColumnSizing.Natural)
-                continue;
+            ColumnSlot item = Items[index];
 
-            // Measured in all the height there could be, not in the room this page happens to leave: the width is
-            // kept for every page the row goes on to, so it is the width of all the content, not of what fits here.
-            Extent offered = new Extent(Math.Max(0f, available - consumed), Extent.Max.Height);
-            Fit plan = Items[index].Plan(offered, context);
+            switch (item.Sizing)
+            {
+                case ColumnSizing.Fixed:
+                    widths[index] = Math.Max(0f, item.Value);
+                    break;
 
-            // Content that cannot be measured at this width gets none, but only for now: kept, that would hold
-            // for every page after, where it might have fitted.
-            settled &= !plan.IsDeferred;
-            widths[index] = plan.IsDeferred ? 0f : Math.Min(plan.Size.Width, offered.Width);
-            consumed += widths[index];
+                case ColumnSizing.Natural:
+                    // Measured without a limit on height, so the width is that of all the content, not only of the
+                    // part that fits on this page.
+                    float room = Math.Max(0f, left);
+                    Fit measured = item.Plan(new Extent(room, Extent.Max.Height), context);
+
+                    if (measured.IsDeferred)
+                    {
+                        // Too wide for now; the room may be larger on a later page, so the answer is not kept.
+                        settled = false;
+                        break;
+                    }
+
+                    widths[index] = Math.Min(measured.Size.Width, room);
+                    left -= widths[index];
+                    break;
+
+                case ColumnSizing.Share:
+                    weights += Math.Max(0f, item.Value);
+                    break;
+            }
         }
 
-        float totalWeight = Items
-            .Where(item => item.Sizing == ColumnSizing.Share)
-            .Sum(item => Math.Max(0f, item.Value));
-
-        if (totalWeight > 0f)
+        if (weights > 0)
         {
-            float leftover = Math.Max(0f, available - consumed);
+            float shared = Math.Max(0f, left);
 
             for (int index = 0; index < Items.Count; index++)
             {
-                if (Items[index].Sizing != ColumnSizing.Share)
-                    continue;
-
-                widths[index] = leftover * Math.Max(0f, Items[index].Value) / totalWeight;
+                if (Items[index].Sizing == ColumnSizing.Share)
+                    widths[index] = shared * Math.Max(0f, Items[index].Value) / weights;
             }
         }
 
         if (settled)
         {
-            _cachedWidths = widths;
-            _cachedAvailableWidth = availableSpace.Width;
+            _widths = widths;
+            _widthsFor = width;
         }
 
         return widths;
     }
+
+    private sealed record Saved(bool[] Finished, float[]? Widths, float WidthsFor);
 }

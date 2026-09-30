@@ -4,8 +4,13 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Composition methods that place content into a container.
+/// The content a frame can hold: text, pictures, and the arrangements — stacks, rows, grids, tables and more — that
+/// hold further frames of their own.
 /// </summary>
+/// <remarks>
+/// Each method fills the frame it is called on and returns nothing, because content is where a chain of modifiers
+/// ends. A frame holds one piece of content, so filling it a second time fails.
+/// </remarks>
 public static class FrameContent
 {
     /// <summary>Adds a paragraph of styled text.</summary>
@@ -16,11 +21,11 @@ public static class FrameContent
         handler(new TextComposer(element));
     }
 
-    /// <summary>Adds a paragraph consisting of a single unstyled run.</summary>
-    public static void Text(this IFrame parent, string text)
-    {
-        parent.Text(descriptor => descriptor.Run(text));
-    }
+    /// <summary>
+    /// Adds a paragraph of plain text, styled only by the style it inherits from around it: the same as a paragraph of
+    /// one run of <paramref name="text"/> with nothing set on it.
+    /// </summary>
+    public static void Text(this IFrame parent, string text) => parent.Text(paragraph => paragraph.Run(text));
 
     /// <summary>Adds an image scaled according to <paramref name="fit" />.</summary>
     public static void Image(this IFrame parent, IImage image, ImageFitting fit = ImageFitting.FitWidth)
@@ -108,14 +113,17 @@ public static class FrameContent
         grid.Build(element);
     }
 
-    /// <summary>Adds a grid with sized columns and optional repeating bands.</summary>
+    /// <summary>
+    /// Adds a table of cells in declared columns, which runs on to the next page between rows. Its cells are placed
+    /// and checked once <paramref name="handler"/> returns, so a table that cannot be laid out fails here.
+    /// </summary>
     public static void Table(this IFrame parent, Action<TableComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        TableBlock element = FrameAttachment.Attach(parent, new TableBlock());
-        TableComposer tableDescriptor = new TableComposer(element);
-        handler(tableDescriptor);
-        tableDescriptor.PlaceAutomaticCells();
+        TableBlock table = FrameAttachment.Attach(parent, new TableBlock());
+        TableComposer composer = new TableComposer(table);
+        handler(composer);
+        composer.PlaceAutomaticCells();
     }
 
     /// <summary>Adds a bulleted or numbered list.</summary>
@@ -144,7 +152,8 @@ public static class FrameContent
     }
 
     /// <summary>
-    /// Applies a composition function, letting shared layout be factored into an ordinary method.
+    /// Hands the frame itself to <paramref name="handler"/>, which fills it: a step of composing written as a method of
+    /// its own and applied in the middle of a chain. This places nothing itself.
     /// </summary>
     public static void Compose(this IFrame parent, Action<IFrame> handler)
     {
@@ -173,26 +182,24 @@ public static class FrameContent
         FrameAttachment.Attach(parent, new DynamicBlock<TState>(content));
     }
 
-    /// <summary>Composes a reusable component into this container.</summary>
+    /// <summary>
+    /// Has <paramref name="snippet"/> compose its content into this frame, exactly as if its composing were written out
+    /// here: it adds no frame, room or structure of its own, so the modifiers before it apply to its content as they
+    /// would to anything else.
+    /// </summary>
     public static void Snippet(this IFrame parent, ISnippet snippet)
     {
         ArgumentNullException.ThrowIfNull(snippet);
         snippet.Compose(parent);
     }
 
-    /// <summary>Composes a reusable component into this container.</summary>
-    public static void Snippet<T>(this IFrame parent) where T : ISnippet, new()
-    {
-        parent.Snippet(new T());
-    }
+    /// <summary>Makes a new <typeparamref name="T"/> and has it compose its content into this frame.</summary>
+    public static void Snippet<T>(this IFrame parent) where T : ISnippet, new() => parent.Snippet(new T());
 
     /// <summary>
-    /// Marks the container as deliberately blank.
+    /// States that the frame is left empty on purpose, so that code reading as incomplete says what it means. It
+    /// changes nothing, and fails for a frame that already holds content, which it would not remove.
     /// </summary>
-    /// <remarks>
-    /// Refuses a container that already holds content. Blanking it would discard a whole subtree with no
-    /// diagnostic — the very thing <see cref="FrameAttachment.Attach{T}"/> exists to prevent.
-    /// </remarks>
     public static void Blank(this IFrame parent)
     {
         ArgumentNullException.ThrowIfNull(parent);

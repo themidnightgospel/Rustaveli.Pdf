@@ -3,84 +3,103 @@ using Rustaveli.Pdf.Blocks;
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Builds a table: its columns, body cells and optional repeating header and footer bands.
+/// Declares a table's columns and adds its cells: those of the body, and those of header and footer rows drawn again
+/// on every page the table runs on to.
 /// </summary>
+/// <remarks>
+/// One set of columns serves the body, the header and the footer alike. A cell not given a row or a column is placed
+/// in the next slot free, left to right and then top to bottom, each band laid out on its own. The cells are placed
+/// and checked against the columns as soon as the table is composed, so a table that cannot be laid out fails where it
+/// is written rather than when the document is exported.
+/// </remarks>
 public sealed class TableComposer
 {
-    private readonly TableBlock _block;
+    private readonly TableBlock _table;
+    private readonly TableBand _body;
+    private readonly TableBand _header;
+    private readonly TableBand _footer;
 
-    internal TableComposer(TableBlock block) => _block = block;
+    internal TableComposer(TableBlock table)
+    {
+        _table = table;
+        _body = new TableBand(table.Cells);
+        _header = new TableBand(table.HeaderCells);
+        _footer = new TableBand(table.FooterCells);
+    }
 
+    /// <summary>Declares columns, after any declared already.</summary>
     public void Columns(Action<TableColumns> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        handler(new TableColumns(_block));
+        handler(new TableColumns(_table));
     }
 
-    /// <summary>Adds a body cell. Without an explicit position it is placed in the next free slot.</summary>
-    public CellFrame Cell()
-    {
-        CellBlock tableCell = new CellBlock();
-        _block.Cells.Add(tableCell);
-        return new CellFrame(tableCell);
-    }
+    /// <summary>Adds a cell to the body of the table.</summary>
+    public CellFrame Cell() => _body.Cell();
 
     /// <summary>
-    /// Stretches the last cell of every column down to the bottom of the table on each page, so a column that ends
-    /// early, beside cells spanning further down, still reaches the table's foot.
+    /// Stretches, on every page, each cell that is the last in every column it covers down to the bottom of the rows on
+    /// that page, so that a column ending early still reaches the foot of the table.
     /// </summary>
-    public void ExtendLastCellsToBottom() => _block.ExtendLastCells = true;
+    public void ExtendLastCellsToBottom() => _table.ExtendLastCells = true;
 
-    /// <summary>Declares rows repeated at the top of every page the table spans.</summary>
+    /// <summary>Adds cells to the rows drawn at the top of every page the table runs on to, after any added already.</summary>
     public void HeaderRows(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        handler(new TableBand(_block.HeaderCells));
+        handler(_header);
     }
 
-    /// <summary>Declares rows repeated at the bottom of every page the table spans.</summary>
+    /// <summary>Adds cells to the rows drawn at the bottom of every page the table runs on to, after any added already.</summary>
     public void FooterRows(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        handler(new TableBand(_block.FooterCells));
+        handler(_footer);
     }
 
     /// <summary>
-    /// Assigns positions to cells that did not specify one. Run once composition is complete, because a cell's
-    /// span is only known after the caller has finished configuring it.
+    /// Gives every cell not placed by hand its slot, and makes sure every cell lies within the columns declared: run
+    /// once, when the composing of the table is done.
     /// </summary>
+    /// <exception cref="CompositionException">
+    /// The table has cells but no columns, or a cell reaches past the last column.
+    /// </exception>
     internal void PlaceAutomaticCells()
     {
-        // Cells without columns would pass placement as one column and then fail at export, saying only that the
-        // columns do not fit — nothing about the columns never having been declared.
-        if (_block.Columns.Count == 0 && (_block.Cells.Count > 0 || _block.HeaderCells.Count > 0 || _block.FooterCells.Count > 0))
-            throw new CompositionException("A table declares its columns with Columns(...) before its cells can be placed.");
+        int columns = _table.Columns.Count;
+        (List<CellBlock> Cells, string Name)[] bands =
+        [
+            (_table.Cells, "body"),
+            (_table.HeaderCells, "header"),
+            (_table.FooterCells, "footer"),
+        ];
 
-        int columnCount = _block.Columns.Count;
-        CellPlacement.Apply(_block.Cells, columnCount, "body");
-        CellPlacement.Apply(_block.HeaderCells, columnCount, "header");
-        CellPlacement.Apply(_block.FooterCells, columnCount, "footer");
-        Validate(_block.Cells, columnCount, "body");
-        Validate(_block.HeaderCells, columnCount, "header");
-        Validate(_block.FooterCells, columnCount, "footer");
-    }
-
-    /// <summary>
-    /// Rejects cells that fall outside the declared columns, while the composing code is still on the stack.
-    /// </summary>
-    /// <remarks>
-    /// Left unchecked these surface much later as an <see cref="System.IndexOutOfRangeException" /> from deep inside
-    /// the layout engine, which says nothing about the cell that caused it.
-    /// </remarks>
-    private static void Validate(List<CellBlock> cells, int columnCount, string band)
-    {
-        foreach (CellBlock cell in cells)
+        if (columns == 0)
         {
-            if (cell.LastColumn <= columnCount)
+            // A table of nothing at all is harmless, and draws nothing.
+            foreach ((List<CellBlock> cells, string _) in bands)
             {
-                continue;
+                if (cells.Count > 0)
+                    throw new CompositionException("A table declares its columns with Columns(...) before its cells can be placed.");
             }
-            throw new CompositionException($"A {band} cell occupies columns {cell.Column} to {cell.LastColumn}, but the table declares only {columnCount}. Add more columns, or reduce the cell's column or span.");
+
+            return;
+        }
+
+        foreach ((List<CellBlock> cells, string name) in bands)
+            CellPlacement.Apply(cells, columns, name);
+
+        foreach ((List<CellBlock> cells, string name) in bands)
+        {
+            foreach (CellBlock cell in cells)
+            {
+                if (cell.LastColumn > columns)
+                {
+                    throw new CompositionException(
+                        $"A {name} cell occupies columns {cell.Column} to {cell.LastColumn}, but the table declares only {columns}. " +
+                        "Add more columns, or reduce the cell's column or span.");
+                }
+            }
         }
     }
 }

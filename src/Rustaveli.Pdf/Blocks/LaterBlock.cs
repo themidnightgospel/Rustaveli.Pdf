@@ -3,21 +3,20 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Composes its content only when layout first reaches it, and lets it go once it is drawn in full, so a very large
-/// document holds only the content of the pages being drawn.
+/// Composes its content only when layout first reaches it, and lets the content go once it is drawn in full, so that a
+/// long document holds only the content of the pages still being set.
 /// </summary>
-/// <remarks>
-/// Kept, the content is composed once and held for every later pass instead. Let go, it is composed afresh in each
-/// pass over the document, as the page count is settled.
-/// </remarks>
 internal sealed class LaterBlock : Block
 {
     private Frame? _content;
-    private bool _done;
+    private bool _finished;
 
+    /// <summary>Composes the content into the frame it is given.</summary>
     public required Action<IFrame> Compose { get; init; }
 
-    /// <summary>Whether the content is kept once composed rather than let go when drawn.</summary>
+    /// <summary>
+    /// Whether the content, once composed, is held for every later pass rather than let go and composed afresh.
+    /// </summary>
     public bool Keep { get; init; }
 
     public override IEnumerable<Block?> GetChildren()
@@ -25,25 +24,33 @@ internal sealed class LaterBlock : Block
         yield return _content;
     }
 
+    /// <remarks>
+    /// A new pass starts from the beginning. Content not kept is let go here too, so that each pass composes its own;
+    /// kept content stays, and is reset with the rest of the tree beneath this block.
+    /// </remarks>
     protected override void ResetOwnState()
     {
-        _done = false;
+        _finished = false;
 
         if (!Keep)
             _content = null;
     }
 
-    // The content itself is saved as the tree beneath is; here only whether it is held, and whether it is done.
-    protected override object? SaveOwnProgress() => (_content, _done);
+    /// <remarks>
+    /// The content's own progress is saved with the tree beneath, which includes the content held at the time; holding
+    /// on to the reference here is what lets a restore find that content again after it was let go.
+    /// </remarks>
+    protected override object? SaveOwnProgress() => (_content, _finished);
 
-    protected override void RestoreOwnProgress(object progress) => (_content, _done) = ((Frame?, bool))progress;
+    protected override void RestoreOwnProgress(object progress) =>
+        (_content, _finished) = ((Frame?, bool))progress;
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
-        _done ? Fit.Nothing() : Content().Plan(availableSpace, context);
+        _finished ? Fit.Nothing() : Content().Plan(availableSpace, context);
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (_done)
+        if (_finished)
             return;
 
         Frame content = Content();
@@ -54,22 +61,21 @@ internal sealed class LaterBlock : Block
 
         content.Render(availableSpace, context);
 
-        if (!plan.IsComplete && !plan.IsNothing)
-            return;
+        if (plan.IsComplete || plan.IsNothing)
+        {
+            _finished = true;
 
-        _done = true;
-
-        if (!Keep)
-            _content = null;
+            if (!Keep)
+                _content = null;
+        }
     }
 
     private Frame Content()
     {
         if (_content is null)
         {
-            Frame frame = new Frame();
-            Compose(frame);
-            _content = frame;
+            _content = new Frame();
+            Compose(_content);
         }
 
         return _content;

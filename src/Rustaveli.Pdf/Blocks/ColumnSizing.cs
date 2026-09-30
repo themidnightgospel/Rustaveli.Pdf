@@ -1,16 +1,14 @@
 namespace Rustaveli.Pdf.Blocks;
 
-/// <summary>
-/// How a row allocates horizontal space to one of its items.
-/// </summary>
+/// <summary>How the width of one item in a row of columns is decided.</summary>
 internal enum ColumnSizing
 {
-    /// <summary>Takes exactly as much width as the content needs.</summary>
-    Natural,
+    /// <summary>A share of the width the other items leave, in proportion to the item's weight.</summary>
+    Share,
 
-    /// <summary>Takes a fixed width in points.</summary>
+    /// <summary>A width in points.</summary>
     Fixed,
 
-    /// <summary>Shares the leftover width with other relative items, in proportion to its weight.</summary>
-    Share
+    /// <summary>As wide as the item's content needs.</summary>
+    Natural,
 }

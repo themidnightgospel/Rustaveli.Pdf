@@ -3,7 +3,8 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Reports the full available size on the chosen axes regardless of how little the child needs.
+/// Takes all the room it is offered across, down, or both, however little its child needs: a fill or stroke around
+/// it then reaches the edges of that room.
 /// </summary>
 internal sealed class ExpandBlock : EnclosingBlock
 {
@@ -13,18 +14,12 @@ internal sealed class ExpandBlock : EnclosingBlock
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        Fit childPlan = Child?.Plan(availableSpace, context) ?? Fit.Complete(Extent.Zero);
-
-        if (childPlan.IsDeferred)
-            return childPlan;
-
-        if (childPlan.IsNothing)
-            return Fit.Nothing();
+        Fit plan = base.PlanCore(availableSpace, context);
 
         Extent size = new Extent(
-            Horizontally ? availableSpace.Width : childPlan.Size.Width,
-            Vertically ? availableSpace.Height : childPlan.Size.Height);
+            Horizontally ? availableSpace.Width : plan.Size.Width,
+            Vertically ? availableSpace.Height : plan.Size.Height);
 
-        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
+        return Resized(plan, size);
     }
 }

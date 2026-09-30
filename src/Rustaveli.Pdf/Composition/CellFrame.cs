@@ -4,7 +4,8 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Positions a single table cell and exposes it as a container for content.
+/// One table cell: the frame its content goes into, and where in the table it sits and how many rows and columns
+/// it spans. Rows and columns are numbered from 1.
 /// </summary>
 public sealed class CellFrame : IFrameSlot
 {

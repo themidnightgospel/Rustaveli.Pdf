@@ -18,11 +18,11 @@ public sealed class StackComposer
         _block.SpaceBetween = Numbers.NotNegative(value, nameof(value));
     }
 
-    /// <summary>Adds an item to the bottom of the stack and returns its container.</summary>
+    /// <summary>Adds an item to the bottom of the stack and returns the frame its content goes into.</summary>
     public IFrame Add()
     {
-        Frame container = new Frame();
-        _block.Items.Add(container);
-        return container;
+        Frame item = new Frame();
+        _block.Items.Add(item);
+        return item;
     }
 }

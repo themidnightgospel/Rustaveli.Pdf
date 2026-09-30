@@ -1,22 +1,21 @@
-using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Sandwiches paginated content between two fixed bands that repeat on every page.
+/// A body between a head band and a foot band, both drawn again on every page the body runs on to. Only the body
+/// flows; the bands are drawn whole each time.
 /// </summary>
-/// <remarks>
-/// Only the middle section flows; the bands are re-drawn in full each time. This is the building block for
-/// repeating captions and section headers that must accompany content wherever it breaks.
-/// </remarks>
 internal sealed class BandsBlock : Block
 {
-    public Frame Head { get; } = new();
+    /// <summary>The band drawn above the body on every page.</summary>
+    public Frame Head { get; } = new Frame();
 
-    public Frame Body { get; } = new();
+    /// <summary>The content that flows between the bands.</summary>
+    public Frame Body { get; } = new Frame();
 
-    public Frame Foot { get; } = new();
+    /// <summary>The band drawn below the body on every page.</summary>
+    public Frame Foot { get; } = new Frame();
 
     public override IEnumerable<Block?> GetChildren()
     {
@@ -25,88 +24,80 @@ internal sealed class BandsBlock : Block
         yield return Foot;
     }
 
-    protected override Fit PlanCore(Extent availableSpace, PlanContext context)
-    {
-        (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context);
-
-        if (bands is null)
-            return Fit.Defer("The space available is too small for the head and foot bands.");
-
-        (Extent beforeSize, Extent afterSize) = bands.Value;
-        float contentHeight = availableSpace.Height - beforeSize.Height - afterSize.Height;
-
-        if (contentHeight < -Extent.Epsilon)
-            return Fit.Defer("The head and foot bands leave no room for the body.");
-
-        Fit contentPlan = Body.Plan(new Extent(availableSpace.Width, contentHeight), context);
-
-        if (contentPlan.IsDeferred)
-            return contentPlan;
-
-        if (contentPlan.IsNothing)
-            return Fit.Nothing();
-
-        Extent size = new Extent(
-            Math.Max(contentPlan.Size.Width, Math.Max(beforeSize.Width, afterSize.Width)),
-            beforeSize.Height + contentPlan.Size.Height + afterSize.Height);
-
-        return contentPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
-    }
+    protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
+        Arrange(availableSpace, context).Outcome;
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        (Extent Before, Extent After)? bands = MeasureBands(availableSpace, context.Planning);
+        Arrangement arrangement = Arrange(availableSpace, context.Planning);
 
-        if (bands is null)
+        if (!arrangement.Outcome.PlacesContent)
             return;
 
-        (Extent beforeSize, Extent afterSize) = bands.Value;
-        float contentHeight = availableSpace.Height - beforeSize.Height - afterSize.Height;
+        float width = availableSpace.Width;
+        float bodyRoom = availableSpace.Height - arrangement.Head - arrangement.Foot;
 
-        if (contentHeight < -Extent.Epsilon)
-            return;
+        context.RenderAllotted(Head, new Extent(width, arrangement.Head), availableSpace.Height);
 
-        Fit contentPlan = Body.Plan(new Extent(availableSpace.Width, contentHeight), context.Planning);
+        Offset belowHead = new Offset(0, arrangement.Head);
+        context.Surface.MoveOrigin(belowHead);
+        Body.Render(new Extent(width, bodyRoom), context);
+        context.Surface.MoveOrigin(belowHead.Reverse());
 
-        if (contentPlan.IsDeferred || contentPlan.IsNothing)
-            return;
+        // The foot follows the body as planned, not the bottom of the room the body was given.
+        Offset belowBody = new Offset(0, arrangement.Head + arrangement.Body);
+        context.Surface.MoveOrigin(belowBody);
+        context.RenderAllotted(Foot, new Extent(width, arrangement.Foot), availableSpace.Height - arrangement.Head);
+        context.Surface.MoveOrigin(belowBody.Reverse());
 
-        ISurface surface = context.Surface;
-
-        context.RenderAllotted(Head, new Extent(availableSpace.Width, beforeSize.Height), availableSpace.Height);
-
-        surface.MoveOrigin(new Offset(0, beforeSize.Height));
-        Body.Render(new Extent(availableSpace.Width, contentHeight), context);
-        surface.MoveOrigin(new Offset(0, -beforeSize.Height));
-
-        float afterTop = beforeSize.Height + contentPlan.Size.Height;
-        surface.MoveOrigin(new Offset(0, afterTop));
-        context.RenderAllotted(Foot, new Extent(availableSpace.Width, afterSize.Height), availableSpace.Height - beforeSize.Height);
-        surface.MoveOrigin(new Offset(0, -afterTop));
-
-        // The bands repeat on every page, but their content tracks how much of itself it has drawn and would
-        // report nothing left next time. Reset after drawing so measurement stays free of side effects.
+        // The bands go back to their beginning to be drawn whole on the next page, while what counts across the
+        // document, such as content shown once, keeps count.
         Head.ResetState(includeDocumentProgress: false);
         Foot.ResetState(includeDocumentProgress: false);
     }
 
-    private (Extent Before, Extent After)? MeasureBands(Extent availableSpace, PlanContext context)
+    /// <summary>
+    /// Plans the bands and then the body in the room they leave, giving the outcome for the whole and the heights the
+    /// head, body and foot take.
+    /// </summary>
+    private Arrangement Arrange(Extent room, PlanContext context)
     {
-        Fit beforePlan = Head.Plan(availableSpace, context);
+        Fit head = Head.Plan(room, context);
+        Extent footRoom = new Extent(room.Width, room.Height - head.Size.Height);
 
-        if (beforePlan.IsDeferred)
-            return null;
+        // A head that claims more than the room — content may report more than it was offered — leaves the foot a
+        // room below nothing, which it is never asked to be planned in.
+        if (head.IsDeferred || footRoom.IsNegative)
+            return BandsDoNotFit;
 
-        Extent remaining = new Extent(availableSpace.Width, availableSpace.Height - beforePlan.Size.Height);
+        Fit foot = Foot.Plan(footRoom, context);
 
-        if (remaining.IsNegative)
-            return null;
+        if (foot.IsDeferred)
+            return BandsDoNotFit;
 
-        Fit afterPlan = Foot.Plan(remaining, context);
+        float headHeight = head.Size.Height;
+        float footHeight = foot.Size.Height;
+        float bodyHeight = room.Height - headHeight - footHeight;
 
-        if (afterPlan.IsDeferred)
-            return null;
+        if (bodyHeight < -Extent.Epsilon)
+            return new Arrangement(Fit.Defer("The head and foot bands leave no room for the body."), 0, 0, 0);
 
-        return (beforePlan.Size, afterPlan.Size);
+        Fit body = Body.Plan(new Extent(room.Width, bodyHeight), context);
+
+        // With the body used up the bands have nothing left to accompany, and take no more pages of their own.
+        if (!body.PlacesContent)
+            return new Arrangement(body, 0, 0, 0);
+
+        Extent size = new Extent(
+            Math.Max(body.Size.Width, Math.Max(head.Size.Width, foot.Size.Width)),
+            headHeight + body.Size.Height + footHeight);
+
+        Fit whole = body.IsPartial ? Fit.Partial(size) : Fit.Complete(size);
+        return new Arrangement(whole, headHeight, body.Size.Height, footHeight);
     }
+
+    private static Arrangement BandsDoNotFit =>
+        new Arrangement(Fit.Defer("The space available is too small for the head and foot bands."), 0, 0, 0);
+
+    private readonly record struct Arrangement(Fit Outcome, float Head, float Body, float Foot);
 }

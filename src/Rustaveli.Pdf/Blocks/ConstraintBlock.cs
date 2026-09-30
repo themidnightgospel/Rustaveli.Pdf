@@ -1,13 +1,14 @@
+using System.Globalization;
 using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Clamps the space offered to its child, and the size reported back to its parent, between optional bounds.
+/// Holds the room its child is given below a maximum, and the room the child takes above a minimum, on either axis.
 /// </summary>
 /// <remarks>
-/// Setting a minimum and maximum to the same value pins the element to an exact size. A minimum larger than the
-/// space available produces a wrap rather than an overflow, which lets the engine try again on an empty page.
+/// A minimum larger than the maximum is not refused: the minimum wins what the child reports, the maximum what it is
+/// offered.
 /// </remarks>
 internal sealed class ConstraintBlock : EnclosingBlock
 {
@@ -21,41 +22,41 @@ internal sealed class ConstraintBlock : EnclosingBlock
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        if (MinWidth > availableSpace.Width + Extent.Epsilon)
-            return Fit.Defer(FormattableString.Invariant($"The requested minimum width ({MinWidth:F1}) exceeds the available width ({availableSpace.Width:F1})."));
+        if (Exceeds(MinWidth, availableSpace.Width))
+            return Fit.Defer(Shortfall("width", MinWidth!.Value, availableSpace.Width));
 
-        if (MinHeight > availableSpace.Height + Extent.Epsilon)
-            return Fit.Defer(FormattableString.Invariant($"The requested minimum height ({MinHeight:F1}) exceeds the available height ({availableSpace.Height:F1})."));
+        if (Exceeds(MinHeight, availableSpace.Height))
+            return Fit.Defer(Shortfall("height", MinHeight!.Value, availableSpace.Height));
 
-        Extent innerSpace = new Extent(
-            Math.Min(availableSpace.Width, MaxWidth ?? availableSpace.Width),
-            Math.Min(availableSpace.Height, MaxHeight ?? availableSpace.Height));
+        Fit plan = base.PlanCore(Capped(availableSpace), context);
 
-        Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
-
-        if (childPlan.IsDeferred)
-            return childPlan;
-
-        if (childPlan.IsNothing)
-            return Fit.Nothing();
-
-        // Grow to the minimum, but never past what the parent offered.
+        // Resizing leaves Nothing as it is: content used up leaves no box for a minimum to hold open.
         Extent size = new Extent(
-            Math.Min(Math.Max(childPlan.Size.Width, MinWidth ?? 0), availableSpace.Width),
-            Math.Min(Math.Max(childPlan.Size.Height, MinHeight ?? 0), availableSpace.Height));
+            Raised(plan.Size.Width, MinWidth, availableSpace.Width),
+            Raised(plan.Size.Height, MinHeight, availableSpace.Height));
 
-        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
+        return Resized(plan, size);
     }
 
-    protected override void RenderCore(Extent availableSpace, RenderContext context)
-    {
-        if (Child is null)
-            return;
+    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
+        Child?.Render(Capped(availableSpace), context);
 
-        Extent innerSpace = new Extent(
-            Math.Min(availableSpace.Width, MaxWidth ?? availableSpace.Width),
-            Math.Min(availableSpace.Height, MaxHeight ?? availableSpace.Height));
+    /// <summary>The room offered, no larger than the maximums on the axes that have one.</summary>
+    private Extent Capped(Extent room) => new Extent(
+        MaxWidth is { } width ? Math.Min(room.Width, width) : room.Width,
+        MaxHeight is { } height ? Math.Min(room.Height, height) : room.Height);
 
-        Child.Render(innerSpace, context);
-    }
+    private static bool Exceeds(float? minimum, float available) =>
+        minimum is { } length && length > available + Extent.Epsilon;
+
+    /// <summary>A length raised to its minimum, where there is one, but never past the room there is.</summary>
+    private static float Raised(float length, float? minimum, float available) =>
+        Math.Min(minimum is { } floor ? Math.Max(length, floor) : length, available);
+
+    private static string Shortfall(string axis, float minimum, float available) => string.Format(
+        CultureInfo.InvariantCulture,
+        "The content asks for a minimum {0} of {1:0.0} pt, but only {2:0.0} pt is available.",
+        axis,
+        minimum,
+        available);
 }
