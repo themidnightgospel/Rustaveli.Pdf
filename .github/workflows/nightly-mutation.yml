@@ -25,7 +25,9 @@ jobs:
   # first test run alone takes some twenty minutes and a shard of more than about 300 mutants outruns the timeout.
   # Each shard must clear the 80% floor on its own, which is stricter than a single overall score. Rebalance a shard
   # by file name once its area grows past that size, and split a file too large alone by character span —
-  # "File.cs{0..23000}" — a span counting characters, not lines; shards beyond the concurrent-job limit simply queue.
+  # "File.cs{0..23000}" — a span counting characters, not lines. At most twelve shards run at once, the rest queueing
+  # behind them: the account runs twenty jobs at a time, and GitHub can start a scheduled run hours late, into the
+  # working day, where taking every runner would hold pull requests' checks until the shards finish.
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
     runs-on: ${{ matrix.shard.os || 'ubuntu-latest' }}
@@ -35,6 +37,7 @@ jobs:
         shell: bash
     strategy:
       fail-fast: false
+      max-parallel: 12
       matrix:
         shard:
           - name: text-block-a
