@@ -4,7 +4,7 @@ public class TableComposerTests
 {
     private static TableBlock Compose(Action<TableComposer> compose)
     {
-        Block root = LayoutHarness.Build(container => container.Table(compose));
+        Block root = LayoutHarness.Build(frame => frame.Table(compose));
 
         return Assert.IsType<TableBlock>(((Frame)root).Child);
     }
@@ -77,10 +77,10 @@ public class TableComposerTests
     [Fact]
     public void AcceptsACellEndingExactlyOnTheLastColumn()
     {
-        TableBlock table = Compose(descriptor =>
+        TableBlock table = Compose(composer =>
         {
-            TwoColumns(descriptor);
-            descriptor.Cell().AtColumn(1).SpanColumns(2);
+            TwoColumns(composer);
+            composer.Cell().AtColumn(1).SpanColumns(2);
         });
 
         CellBlock cell = Assert.Single(table.Cells);

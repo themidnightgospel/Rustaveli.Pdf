@@ -16,20 +16,20 @@ internal sealed class TreeComposer
     /// <summary>Every non-space character composed into the document, in composition order.</summary>
     public string WrittenText => _written.ToString();
 
-    public void Compose(IFrame container, TreeNode node)
+    public void Compose(IFrame frame, TreeNode node)
     {
         switch (node.Kind)
         {
             case NodeKind.Text:
-                container.Text(Words(node.Amount));
+                frame.Text(Words(node.Amount));
                 break;
 
             case NodeKind.Box:
-                FrameAttachment.Attach(container, new FixedBlock(20, node.Amount));
+                FrameAttachment.Attach(frame, new FixedBlock(20, node.Amount));
                 break;
 
             case NodeKind.Column:
-                container.Stack(column =>
+                frame.Stack(column =>
                 {
                     column.SpaceBetween(node.Amount);
                     foreach (TreeNode child in node.Children)
@@ -38,7 +38,7 @@ internal sealed class TreeComposer
                 break;
 
             case NodeKind.Row:
-                container.Columns(row =>
+                frame.Columns(row =>
                 {
                     for (int index = 0; index < node.Children.Count; index++)
                         Compose(node.Sizes[index] == 0 ? row.Share() : row.Fixed(node.Sizes[index]), node.Children[index]);
@@ -46,7 +46,7 @@ internal sealed class TreeComposer
                 break;
 
             case NodeKind.Table:
-                container.Table(table =>
+                frame.Table(table =>
                 {
                     table.Columns(columns =>
                     {
@@ -59,15 +59,15 @@ internal sealed class TreeComposer
                 break;
 
             case NodeKind.Padding:
-                Compose(container.Inset(node.Amount), node.Children[0]);
+                Compose(frame.Inset(node.Amount), node.Children[0]);
                 break;
 
             case NodeKind.Background:
-                Compose(container.Fill(TestInks.GreyLighten3), node.Children[0]);
+                Compose(frame.Fill(TestInks.GreyLighten3), node.Children[0]);
                 break;
 
             case NodeKind.Border:
-                Compose(container.Stroke(1).StrokeInk(TestInks.Grey), node.Children[0]);
+                Compose(frame.Stroke(1).StrokeInk(TestInks.Grey), node.Children[0]);
                 break;
 
             default:

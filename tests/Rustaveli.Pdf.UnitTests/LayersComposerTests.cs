@@ -4,25 +4,25 @@ public class LayersComposerTests
 {
     private static readonly Extent Space = new Extent(200, 200);
 
-    private static void Fill(IFrame container, float width, float height, Ink color) =>
-        container.Compose(inner => inner.Slot().Child = new FixedBlock(width, height, color));
+    private static void Fill(IFrame frame, float width, float height, Ink color) =>
+        frame.Compose(inner => inner.Slot().Child = new FixedBlock(width, height, color));
 
     [Fact]
     public void TheBaseLayerSizesTheStack()
     {
-        Block root = LayoutHarness.Build(container => container.Layered(layers =>
+        Block root = LayoutHarness.Build(frame => frame.Layered(layers =>
         {
             layers.Layer().Placeholder(TestInks.Red);
             Fill(layers.BaseLayer(), 50, 20, TestInks.Blue);
         }));
 
-        Approximately.Equal(new Extent(50, 20), LayoutHarness.Measure(root, Space).Size);
+        Approximately.Equal(new Extent(50, 20), LayoutHarness.Plan(root, Space).Size);
     }
 
     [Fact]
     public void OnlyOneLayerIsTheBase()
     {
-        CompositionException exception = Assert.Throws<CompositionException>(() => LayoutHarness.Build(container => container.Layered(layers =>
+        CompositionException exception = Assert.Throws<CompositionException>(() => LayoutHarness.Build(frame => frame.Layered(layers =>
         {
             Fill(layers.BaseLayer(), 50, 20, TestInks.Blue);
             layers.Layer().Placeholder(TestInks.Red);
@@ -35,16 +35,16 @@ public class LayersComposerTests
     [Fact]
     public void AnOrdinaryLayerContributesNothingToTheSize()
     {
-        Block root = LayoutHarness.Build(container => container.Layered(layers =>
+        Block root = LayoutHarness.Build(frame => frame.Layered(layers =>
             Fill(layers.Layer(), 50, 20, TestInks.Blue)));
 
-        Approximately.Equal(Extent.Zero, LayoutHarness.Measure(root, Space).Size);
+        Approximately.Equal(Extent.Zero, LayoutHarness.Plan(root, Space).Size);
     }
 
     [Fact]
     public void PaintsLayersInDeclarationOrder()
     {
-        Block root = LayoutHarness.Build(container => container.Layered(layers =>
+        Block root = LayoutHarness.Build(frame => frame.Layered(layers =>
         {
             layers.Layer().Placeholder(TestInks.Red);
             Fill(layers.BaseLayer(), 50, 20, TestInks.Blue);
@@ -52,10 +52,10 @@ public class LayersComposerTests
         }));
 
         List<RectangleOperation> rectangles =
-            LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().ToList();
+            LayoutHarness.Render(root, Space).Operations.OfType<RectangleOperation>().ToList();
 
-        // Layers before the primary one sit underneath it and those after it on top. How far each layer extends
-        // is the stack's painting business, not the descriptor's, so only the order is asserted.
+        // Layers before the base one sit underneath it and those after it on top. How far each layer extends
+        // is the stack's painting business, not the composer's, so only the order is asserted.
         Assert.Equal(3, rectangles.Count);
         Assert.Equal((Ink)TestInks.Red, rectangles[0].Ink);
         Assert.Equal((Ink)TestInks.Blue, rectangles[1].Ink);

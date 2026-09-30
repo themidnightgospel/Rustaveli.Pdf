@@ -4,8 +4,8 @@ using Rustaveli.Pdf.Tagging;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Sets the language its content is in, for screen readers to pronounce it by. Elements created inside carry it;
-/// inside an element that holds text itself, such as a paragraph, the content becomes a span in that language.
+/// Sets the language its content is in, for screen readers to pronounce it by. Blocks made inside carry it;
+/// inside a block that holds text itself, such as a paragraph, the content becomes a span in that language.
 /// </summary>
 internal sealed class LanguageBlock : EnclosingBlock
 {

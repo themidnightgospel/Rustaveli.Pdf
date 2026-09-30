@@ -5,7 +5,7 @@ using System.Globalization;
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>
-/// While switched on for a thread, records for each element made on it the first line of code outside this library
+/// While switched on for a thread, records for each block made on it the first line of code outside this library
 /// that led to it — the line of the document's own code — so a preview can lead back to it.
 /// </summary>
 /// <remarks>
@@ -14,7 +14,7 @@ namespace Rustaveli.Pdf.Layout;
 /// </remarks>
 internal static class SourceCapture
 {
-    /// <summary>The library's own assemblies, whose frames lie between an element and the code that asked for it.</summary>
+    /// <summary>The library's own assemblies, whose frames lie between a block and the code that asked for it.</summary>
     private static readonly HashSet<string> Library = new HashSet<string>(StringComparer.Ordinal)
     {
         "Rustaveli.Pdf", "Rustaveli.Pdf.Operations", "Rustaveli.Pdf.Preview", "Rustaveli.Pdf.Raster", "Rustaveli.Pdf.Shaping",
@@ -23,7 +23,7 @@ internal static class SourceCapture
     [ThreadStatic]
     private static bool _on;
 
-    /// <summary>Records where elements come from on this thread until the scope ends.</summary>
+    /// <summary>Records where blocks come from on this thread until the scope ends.</summary>
     public static Scope Record()
     {
         Scope scope = new Scope(_on);

@@ -5,11 +5,11 @@ public class ShrinkToFitRegressionTests
     [Fact]
     public void PassesSplittableContentThroughRatherThanFailingTheDocument()
     {
-        // Content that can only ever render in instalments cannot be made to fit at any scale. Reporting Wrap
+        // Content that can only ever render in instalments cannot be made to fit at any scale. Deferring it
         // makes the engine give up on the whole document; passing it through lets it paginate normally.
-        ShrinkToFitBlock element = new ShrinkToFitBlock { Child = new SplittableBlock(unitCount: 50, unitHeight: 20) };
+        ShrinkToFitBlock block = new ShrinkToFitBlock { Child = new SplittableBlock(unitCount: 50, unitHeight: 20) };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 100));
 
         Assert.False(plan.IsDeferred);
         Assert.True(plan.IsPartial);
@@ -18,15 +18,15 @@ public class ShrinkToFitRegressionTests
     [Fact]
     public void LongDocumentContentStillPaginates()
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 100);
             page.Body().ShrinkToFit().Compose(inner => inner.Slot().Child = new SplittableBlock(unitCount: 40, unitHeight: 20));
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.True(canvas.Pages.Count > 1);
+        Assert.True(surface.Pages.Count > 1);
     }
 
     [Fact]
@@ -40,17 +40,17 @@ public class ShrinkToFitRegressionTests
         FixedBlock bare = new FixedBlock(120, 50);
 
         Approximately.Equal(
-            LayoutHarness.Measure(bare, space).Size,
-            LayoutHarness.Measure(wrapped, space).Size);
+            LayoutHarness.Plan(bare, space).Size,
+            LayoutHarness.Plan(wrapped, space).Size);
 
-        Assert.True(LayoutHarness.Measure(wrapped, space).IsComplete);
+        Assert.True(LayoutHarness.Plan(wrapped, space).IsComplete);
     }
 
     [Fact]
     public void AMinimumScaleOfZeroMeansNoLowerBound()
     {
-        ShrinkToFitBlock element = new ShrinkToFitBlock { MinScale = 0f, Child = new FixedBlock(400, 300) };
+        ShrinkToFitBlock block = new ShrinkToFitBlock { MinScale = 0f, Child = new FixedBlock(400, 300) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 100)).IsComplete);
+        Assert.True(LayoutHarness.Plan(block, new Extent(200, 100)).IsComplete);
     }
 }

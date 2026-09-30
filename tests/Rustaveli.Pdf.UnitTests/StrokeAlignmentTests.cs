@@ -8,7 +8,7 @@ public class StrokeAlignmentTests
 {
     private static List<RectangleOperation> Sides(StrokeAlignment alignment, Sides weight)
     {
-        StrokeBlock element = new StrokeBlock
+        StrokeBlock block = new StrokeBlock
         {
             Weight = weight,
             Ink = TestInks.Black,
@@ -16,7 +16,7 @@ public class StrokeAlignmentTests
             Child = new FixedBlock(50, 20, TestInks.White)
         };
 
-        return LayoutHarness.Draw(element, new Extent(50, 20)).Operations.OfType<RectangleOperation>()
+        return LayoutHarness.Render(block, new Extent(50, 20)).Operations.OfType<RectangleOperation>()
             .Where(operation => operation.Ink == TestInks.Black)
             .ToList();
     }
@@ -56,7 +56,7 @@ public class StrokeAlignmentTests
     [InlineData(StrokeAlignment.Outside, -1f, 52f, 22f, 6f)]
     public void ARoundedStrokeKeepsItsRadiusOnTheSideItAlignsTo(StrokeAlignment alignment, float inset, float width, float height, float radius)
     {
-        StrokeBlock element = new StrokeBlock
+        StrokeBlock block = new StrokeBlock
         {
             Weight = Rustaveli.Pdf.Sides.All(2),
             Ink = TestInks.Black,
@@ -65,7 +65,7 @@ public class StrokeAlignmentTests
             Child = new FixedBlock(50, 20)
         };
 
-        RoundedRectangleOperation outline = Assert.Single(LayoutHarness.Draw(element, new Extent(50, 20)).Operations.OfType<RoundedRectangleOperation>());
+        RoundedRectangleOperation outline = Assert.Single(LayoutHarness.Render(block, new Extent(50, 20)).Operations.OfType<RoundedRectangleOperation>());
 
         // The outline is the stroke's centre line: half its weight in from where the stroke's edge must fall.
         Approximately.Equal(new Offset(inset, inset), outline.Position);
@@ -77,7 +77,7 @@ public class StrokeAlignmentTests
     [Fact]
     public void ASquareCornerStaysSquareWhereverTheStrokeLies()
     {
-        StrokeBlock element = new StrokeBlock
+        StrokeBlock block = new StrokeBlock
         {
             Weight = Rustaveli.Pdf.Sides.All(2),
             Ink = TestInks.Black,
@@ -86,7 +86,7 @@ public class StrokeAlignmentTests
             Child = new FixedBlock(50, 20)
         };
 
-        RoundedRectangleOperation outline = Assert.Single(LayoutHarness.Draw(element, new Extent(50, 20)).Operations.OfType<RoundedRectangleOperation>());
+        RoundedRectangleOperation outline = Assert.Single(LayoutHarness.Render(block, new Extent(50, 20)).Operations.OfType<RoundedRectangleOperation>());
 
         Assert.Equal(new Corners(6, 0, 6, 0), outline.Corners);
     }
@@ -125,9 +125,9 @@ public class StrokeAlignmentTests
     [Fact]
     public void AFillIsDrawnWithEachCornersRadius()
     {
-        FillBlock element = new FillBlock { Ink = TestInks.Red, Corners = new Corners(1, 2, 3, 4), Child = new FixedBlock(50, 20) };
+        FillBlock block = new FillBlock { Ink = TestInks.Red, Corners = new Corners(1, 2, 3, 4), Child = new FixedBlock(50, 20) };
 
-        RoundedRectangleOperation shape = Assert.Single(LayoutHarness.Draw(element, new Extent(50, 20)).Operations.OfType<RoundedRectangleOperation>());
+        RoundedRectangleOperation shape = Assert.Single(LayoutHarness.Render(block, new Extent(50, 20)).Operations.OfType<RoundedRectangleOperation>());
 
         Assert.Equal(new Corners(1, 2, 3, 4), shape.Corners);
     }

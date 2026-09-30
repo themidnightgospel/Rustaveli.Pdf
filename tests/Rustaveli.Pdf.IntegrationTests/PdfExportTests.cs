@@ -12,7 +12,7 @@ public class PdfExportTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
     private static Document TextDocument(string text = "Generated") =>
-        Document.Compose(container => container.Section(page =>
+        Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 200);
             page.Margins = Sides.All(10);
@@ -21,7 +21,7 @@ public class PdfExportTests
 
     /// <summary>A document whose drawing fails part-way through its only page.</summary>
     private static Document FailingDocument() =>
-        Document.Compose(container => container.Section(page =>
+        Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 200);
             page.Body().Image(new ForeignImage());
@@ -32,7 +32,7 @@ public class PdfExportTests
     /// state, which is the hazard the render gate exists to prevent.
     /// </summary>
     private static Document ShapeDocument() =>
-        Document.Compose(container => container.Section(page =>
+        Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 200);
             page.Body().Height(50).Placeholder(TestInks.Red);
@@ -43,7 +43,7 @@ public class PdfExportTests
     /// pausing its render at a point where any gate it passed through is held.
     /// </summary>
     private static Document PausingDocument(ManualResetEventSlim entered, ManualResetEventSlim release) =>
-        Document.Compose(container => container.Section(page =>
+        Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 200);
             page.Body()
@@ -356,7 +356,7 @@ public class PdfExportTests
     [Fact]
     public void FontsAreEmbeddedWithoutHintingUnlessAskedToKeepIt()
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
             page.Body().Text("Hello, world");

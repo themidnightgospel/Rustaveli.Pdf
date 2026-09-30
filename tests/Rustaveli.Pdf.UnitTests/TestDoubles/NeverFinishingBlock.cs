@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
 /// <summary>
-/// An element that always reports content remaining yet never consumes any space.
+/// A block that always reports content remaining yet never consumes any space.
 /// </summary>
 /// <remarks>
 /// The classic non-terminating layout: every page it is given ends with a promise of more, so pagination would

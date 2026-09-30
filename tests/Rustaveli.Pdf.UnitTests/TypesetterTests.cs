@@ -4,9 +4,9 @@ public class TypesetterTests
 {
     private static Document Build(Action<Section> configure)
     {
-        return Document.Compose(container =>
+        return Document.Compose(frame =>
         {
-            container.Section(configure);
+            frame.Section(configure);
         });
     }
 
@@ -16,9 +16,9 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(50f, 50f);
+                frame.Slot().Child = new FixedBlock(50f, 50f);
             });
         });
         Assert.Single(LayoutHarness.Render(document).Pages);
@@ -31,9 +31,9 @@ public class TypesetterTests
         {
             page.Trim = new Extent(200f, 200f);
             page.Margins = Sides.All(10f);
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new SplittableBlock(10, 50f);
+                frame.Slot().Child = new SplittableBlock(10, 50f);
             });
         });
         Assert.Equal(4, LayoutHarness.Render(document).Pages.Count);
@@ -46,9 +46,9 @@ public class TypesetterTests
         {
             page.Trim = new Extent(200f, 200f);
             page.Margins = new Sides(15f, 25f, 0f, 0f);
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 10f);
+                frame.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
         RecordingSurface surface = LayoutHarness.Render(document);
@@ -62,13 +62,13 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.RunningHead().Compose(container =>
+            page.RunningHead().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(50f, 20f, TestInks.Red);
+                frame.Slot().Child = new FixedBlock(50f, 20f, TestInks.Red);
             });
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new SplittableBlock(6, 60f);
+                frame.Slot().Child = new SplittableBlock(6, 60f);
             });
         });
         RecordingSurface surface = LayoutHarness.Render(document);
@@ -86,13 +86,13 @@ public class TypesetterTests
         {
             page.Trim = new Extent(200f, 200f);
             page.Margins = Sides.All(10f);
-            page.RunningFoot().Compose(container =>
+            page.RunningFoot().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(50f, 20f, TestInks.Green);
+                frame.Slot().Child = new FixedBlock(50f, 20f, TestInks.Green);
             });
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 10f);
+                frame.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
         RecordingSurface surface = LayoutHarness.Render(document);
@@ -106,13 +106,13 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.RunningHead().Compose(container =>
+            page.RunningHead().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(50f, 30f, TestInks.Red);
+                frame.Slot().Child = new FixedBlock(50f, 30f, TestInks.Red);
             });
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 10f, TestInks.Blue);
+                frame.Slot().Child = new FixedBlock(10f, 10f, TestInks.Blue);
             });
         });
         RecordingSurface surface = LayoutHarness.Render(document);
@@ -133,9 +133,9 @@ public class TypesetterTests
                 text.Run(" of ");
                 text.PageCount();
             });
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new SplittableBlock(4, 100f);
+                frame.Slot().Child = new SplittableBlock(4, 100f);
             });
         });
         RecordingSurface surface = LayoutHarness.Render(document);
@@ -151,13 +151,13 @@ public class TypesetterTests
         {
             page.Trim = new Extent(200f, 300f);
             page.Margins = Sides.All(20f);
-            page.Underlay().Compose(container =>
+            page.Underlay().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(200f, 300f, TestInks.Amber);
+                frame.Slot().Child = new FixedBlock(200f, 300f, TestInks.Amber);
             });
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 10f);
+                frame.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
         RecordingSurface surface = LayoutHarness.Render(document);
@@ -172,13 +172,13 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.Overlay().Compose(container =>
+            page.Overlay().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(200f, 200f, TestInks.Cyan);
+                frame.Slot().Child = new FixedBlock(200f, 200f, TestInks.Cyan);
             });
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 10f, TestInks.Blue);
+                frame.Slot().Child = new FixedBlock(10f, 10f, TestInks.Blue);
             });
         });
         List<RectangleOperation> list = LayoutHarness.Render(document).Page(1).Operations.OfType<RectangleOperation>().ToList();
@@ -196,14 +196,14 @@ public class TypesetterTests
             page.Trim = new Extent(200f, 200f);
             page.Body().Stack(column =>
             {
-                column.Add().Compose(container =>
+                column.Add().Compose(frame =>
                 {
-                    container.Slot().Child = new FixedBlock(10f, 10f);
+                    frame.Slot().Child = new FixedBlock(10f, 10f);
                 });
                 column.Add().NewPage();
-                column.Add().Compose(container =>
+                column.Add().Compose(frame =>
                 {
-                    container.Slot().Child = new FixedBlock(10f, 10f);
+                    frame.Slot().Child = new FixedBlock(10f, 10f);
                 });
             });
         });
@@ -217,10 +217,10 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 200f);
-            page.RunningHead().Compose(container => container.Slot().Child = new FixedBlock(10f, 50f));
-            page.Body().Compose(container =>
+            page.RunningHead().Compose(frame => frame.Slot().Child = new FixedBlock(10f, 50f));
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 500f);
+                frame.Slot().Child = new FixedBlock(10f, 500f);
             });
         });
         OversetException ex = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
@@ -245,9 +245,9 @@ public class TypesetterTests
         {
             page.Trim = new Extent(100f, 100f);
             page.Margins = Sides.All(60f);
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 10f);
+                frame.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
         OversetException ex = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
@@ -261,17 +261,17 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200f, 100f);
-            page.RunningHead().Compose(container =>
+            page.RunningHead().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 60f);
+                frame.Slot().Child = new FixedBlock(10f, 60f);
             });
-            page.RunningFoot().Compose(container =>
+            page.RunningFoot().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 60f);
+                frame.Slot().Child = new FixedBlock(10f, 60f);
             });
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(10f, 10f);
+                frame.Slot().Child = new FixedBlock(10f, 10f);
             });
         });
         OversetException ex = Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
@@ -291,9 +291,9 @@ public class TypesetterTests
         {
             page.Trim = new Extent(200f, 800f);
             page.Continuous = true;
-            page.Body().Compose(container =>
+            page.Body().Compose(frame =>
             {
-                container.Slot().Child = new FixedBlock(100f, 60f);
+                frame.Slot().Child = new FixedBlock(100f, 60f);
             });
         });
         RecordingSurface surface = LayoutHarness.Render(document);
@@ -304,9 +304,9 @@ public class TypesetterTests
     [Fact]
     public void RendersEachPageRunInOrder()
     {
-        Document document = Document.Compose(container =>
+        Document document = Document.Compose(frame =>
         {
-            container.Section(page =>
+            frame.Section(page =>
             {
                 page.Trim = new Extent(200f, 200f);
                 page.Body().Compose(inner =>
@@ -314,7 +314,7 @@ public class TypesetterTests
                     inner.Slot().Child = new FixedBlock(10f, 10f, TestInks.Red);
                 });
             });
-            container.Section(page =>
+            frame.Section(page =>
             {
                 page.Trim = new Extent(300f, 300f);
                 page.Body().Compose(inner =>
@@ -337,13 +337,13 @@ public class TypesetterTests
             page.Trim = new Extent(200f, 200f);
             page.Body().Stack(column =>
             {
-                column.Add().Compose(container =>
+                column.Add().Compose(frame =>
                 {
-                    container.Slot().Child = new SplittableBlock(3, 150f);
+                    frame.Slot().Child = new SplittableBlock(3, 150f);
                 });
-                column.Add().Anchor("end").Compose(container =>
+                column.Add().Anchor("end").Compose(frame =>
                 {
-                    container.Slot().Child = new FixedBlock(10f, 10f);
+                    frame.Slot().Child = new FixedBlock(10f, 10f);
                 });
             });
         });
@@ -511,18 +511,18 @@ public class TypesetterTests
     public void RejectsMissingArgumentsByName()
     {
         Document document = Build(page => page.Body().Text("x"));
-        RecordingSurface canvas = new RecordingSurface();
+        RecordingSurface surface = new RecordingSurface();
         ITypeMeasurer measurer = LayoutHarness.Measurer;
 
         Assert.Equal(
             "document",
-            Assert.Throws<ArgumentNullException>(() => Typesetter.Render(null!, canvas, measurer)).ParamName);
+            Assert.Throws<ArgumentNullException>(() => Typesetter.Render(null!, surface, measurer)).ParamName);
         Assert.Equal(
             "pages",
             Assert.Throws<ArgumentNullException>(() => Typesetter.Render(document, null!, measurer)).ParamName);
         Assert.Equal(
             "measurer",
-            Assert.Throws<ArgumentNullException>(() => Typesetter.Render(document, canvas, null!)).ParamName);
+            Assert.Throws<ArgumentNullException>(() => Typesetter.Render(document, surface, null!)).ParamName);
     }
 
     [Theory]
@@ -577,7 +577,7 @@ public class TypesetterTests
             page.Trim = new Extent(200, 100);
             page.Margins = Sides.Symmetric(horizontal: 0, vertical: 60);
             page.Continuous = true;
-            page.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
+            page.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
@@ -593,9 +593,9 @@ public class TypesetterTests
             page.Trim = new Extent(200, 100);
             page.Margins = new Sides(Left: 0, Top: 10, Right: 0, Bottom: 20);
             page.Continuous = true;
-            page.RunningHead().Compose(container => container.Slot().Child = new FixedBlock(50, 15, TestInks.Red));
-            page.Body().Compose(container => container.Slot().Child = new FixedBlock(50, 500, TestInks.Blue));
-            page.RunningFoot().Compose(container => container.Slot().Child = new FixedBlock(50, 25, TestInks.Green));
+            page.RunningHead().Compose(frame => frame.Slot().Child = new FixedBlock(50, 15, TestInks.Red));
+            page.Body().Compose(frame => frame.Slot().Child = new FixedBlock(50, 500, TestInks.Blue));
+            page.RunningFoot().Compose(frame => frame.Slot().Child = new FixedBlock(50, 25, TestInks.Green));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
@@ -613,8 +613,8 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
-            page.RunningHead().Compose(container => container.Slot().Child = new FixedBlock(10, 150));
-            page.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
+            page.RunningHead().Compose(frame => frame.Slot().Child = new FixedBlock(10, 150));
+            page.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10));
         });
 
         OversetException exception =
@@ -634,7 +634,7 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
-            page.RunningHead().Compose(container => container.Slot().Child = new OversizedBlock(10, 300));
+            page.RunningHead().Compose(frame => frame.Slot().Child = new OversizedBlock(10, 300));
         });
 
         OversetException exception =
@@ -672,8 +672,8 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 200);
-            page.RunningHead().Compose(container => container.Slot().Child = new FixedBlock(10, 50));
-            page.RunningFoot().Compose(container => container.Slot().Child = new OversizedBlock(10, 200));
+            page.RunningHead().Compose(frame => frame.Slot().Child = new FixedBlock(10, 50));
+            page.RunningFoot().Compose(frame => frame.Slot().Child = new OversizedBlock(10, 200));
         });
 
         OversetException exception =
@@ -687,13 +687,13 @@ public class TypesetterTests
     [Fact]
     public void AcceptsBandsThatOvershootThePageOnlyWithinTheLayoutTolerance()
     {
-        // Every element treats an overshoot below Size.Epsilon as fitting, so a footer may legitimately report a
+        // Every block treats an overshoot below Size.Epsilon as fitting, so a footer may legitimately report a
         // fraction of a thousandth more than it was offered. The page must accept what its own footer accepted.
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 200);
-            page.RunningHead().Compose(container => container.Slot().Child = new FixedBlock(10, 50, TestInks.Red));
-            page.RunningFoot().Compose(container => container.Slot().Child = new FixedBlock(10, 150.0005f, TestInks.Green));
+            page.RunningHead().Compose(frame => frame.Slot().Child = new FixedBlock(10, 50, TestInks.Red));
+            page.RunningFoot().Compose(frame => frame.Slot().Child = new FixedBlock(10, 150.0005f, TestInks.Green));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);
@@ -705,10 +705,10 @@ public class TypesetterTests
     public void WrapsADrawingFailureWithThePageItHappenedOn()
     {
         InvalidOperationException failure = new InvalidOperationException("The image could not be decoded.");
-        Document document = Document.Compose(container =>
+        Document document = Document.Compose(frame =>
         {
-            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(10, 10)));
-            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure)));
+            frame.Section(page => page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(10, 10)));
+            frame.Section(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure)));
         });
 
         RenderingException exception =
@@ -722,10 +722,10 @@ public class TypesetterTests
     public void WrapsAFailureWhileMeasuringWithThePageItHappenedOn()
     {
         InvalidOperationException failure = new InvalidOperationException("The component could not measure itself.");
-        Document document = Document.Compose(container =>
+        Document document = Document.Compose(frame =>
         {
-            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(10, 10)));
-            container.Section(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
+            frame.Section(page => page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(10, 10)));
+            frame.Section(page => page.Body().Compose(inner => inner.Slot().Child = new ThrowingBlock(failure, whileMeasured: true)));
         });
 
         RenderingException exception = Assert.Throws<RenderingException>(() => LayoutHarness.Render(document));
@@ -778,7 +778,7 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(100, 100);
-            page.Body().Compose(container => container.Slot().Child = new NeverFinishingBlock());
+            page.Body().Compose(frame => frame.Slot().Child = new NeverFinishingBlock());
         });
 
         OversetException exception =
@@ -796,7 +796,7 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(20, 10);
-            page.Body().Compose(container => container.Slot().Child = new SplittableBlock(10_000, 10f));
+            page.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(10_000, 10f));
         });
 
         Assert.Equal(10_000, LayoutHarness.Render(document).Pages.Count);
@@ -808,7 +808,7 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(20, 10);
-            page.Body().Compose(container => container.Slot().Child = new SplittableBlock(10_001, 10f));
+            page.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(10_001, 10f));
         });
 
         OversetException exception =
@@ -825,12 +825,12 @@ public class TypesetterTests
             composition.Section(page =>
             {
                 page.Trim = new Extent(20, 10);
-                page.Body().Compose(container => container.Slot().Child = new SplittableBlock(3, 10f));
+                page.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(3, 10f));
             });
             composition.Section(page =>
             {
                 page.Trim = new Extent(20, 10);
-                page.Body().Compose(container => container.Slot().Child = new SplittableBlock(2, 10f));
+                page.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(2, 10f));
             });
         });
 
@@ -858,8 +858,8 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
-            page.Underlay().Compose(container => container.Slot().Child = recorder);
-            page.Body().Compose(container => container.Slot().Child = new SplittableBlock(3, 100f));
+            page.Underlay().Compose(frame => frame.Slot().Child = recorder);
+            page.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(3, 100f));
         });
 
         LayoutHarness.Render(document);
@@ -886,15 +886,15 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 100);
-            page.Body().Compose(container => container.Slot().Child = content);
+            page.Body().Compose(frame => frame.Slot().Child = content);
         });
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
         // Five counting passes alternate between one and two pages, ending on one; the drawing pass is then told
         // the document is one page long, which this content answers with two.
         Assert.Equal(6, content.Passes);
-        Assert.Equal(2, canvas.Pages.Count);
+        Assert.Equal(2, surface.Pages.Count);
     }
 
     [Fact]
@@ -904,17 +904,17 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 200);
-            page.Underlay().Compose(container => container.Slot().Child = new SplittableBlock(1, 5f, width: 13));
-            page.RunningHead().Compose(container => container.Slot().Child = new SplittableBlock(1, 20f, width: 11));
-            page.Body().Compose(container => container.Slot().Child = new SplittableBlock(3, 160f, width: 15));
-            page.RunningFoot().Compose(container => container.Slot().Child = new SplittableBlock(1, 20f, width: 12));
-            page.Overlay().Compose(container => container.Slot().Child = new SplittableBlock(1, 5f, width: 14));
+            page.Underlay().Compose(frame => frame.Slot().Child = new SplittableBlock(1, 5f, width: 13));
+            page.RunningHead().Compose(frame => frame.Slot().Child = new SplittableBlock(1, 20f, width: 11));
+            page.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(3, 160f, width: 15));
+            page.RunningFoot().Compose(frame => frame.Slot().Child = new SplittableBlock(1, 20f, width: 12));
+            page.Overlay().Compose(frame => frame.Slot().Child = new SplittableBlock(1, 5f, width: 14));
         });
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Equal(3, canvas.Pages.Count);
-        foreach (RecordedPage page in canvas.Pages)
+        Assert.Equal(3, surface.Pages.Count);
+        foreach (RecordedPage page in surface.Pages)
         {
             float[] widthsInDrawOrder = page.Operations
                 .OfType<RectangleOperation>()
@@ -934,13 +934,13 @@ public class TypesetterTests
         Document document = Build(page =>
         {
             page.Trim = new Extent(200, 200);
-            page.RunningHead().Once().Compose(container => container.Slot().Child = new FixedBlock(50, 20, TestInks.Red));
-            page.Body().Compose(container => container.Slot().Child = new SplittableBlock(3, 150f));
+            page.RunningHead().Once().Compose(frame => frame.Slot().Child = new FixedBlock(50, 20, TestInks.Red));
+            page.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(3, 150f));
         });
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        int[] headersPerPage = canvas.Pages
+        int[] headersPerPage = surface.Pages
             .Select(page => page.Operations.OfType<RectangleOperation>().Count(operation => operation.Ink == TestInks.Red))
             .ToArray();
         Assert.Equal(new[] { 1, 0, 0 }, headersPerPage);
@@ -983,10 +983,10 @@ public class TypesetterTests
         {
             page.Trim = new Extent(200, 300);
             page.Margins = Sides.All(20);
-            page.RunningHead().Compose(container => container.Slot().Child = new FixedBlock(50, 30, TestInks.Red));
-            page.Body().Compose(container => container.Slot().Child = new FixedBlock(50, 10, TestInks.Blue));
-            page.RunningFoot().Compose(container => container.Slot().Child = new FixedBlock(50, 30, TestInks.Green));
-            page.Overlay().Compose(container => container.Slot().Child = new FixedBlock(200, 300, TestInks.Cyan));
+            page.RunningHead().Compose(frame => frame.Slot().Child = new FixedBlock(50, 30, TestInks.Red));
+            page.Body().Compose(frame => frame.Slot().Child = new FixedBlock(50, 10, TestInks.Blue));
+            page.RunningFoot().Compose(frame => frame.Slot().Child = new FixedBlock(50, 30, TestInks.Green));
+            page.Overlay().Compose(frame => frame.Slot().Child = new FixedBlock(200, 300, TestInks.Cyan));
         });
 
         RecordedPage page = Assert.Single(LayoutHarness.Render(document).Pages);

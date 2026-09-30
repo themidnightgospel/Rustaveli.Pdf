@@ -31,7 +31,7 @@ public class ComposeLaterTests
         Assert.Equal(0, composed());
         Assert.Empty(block.GetChildren().OfType<Block>());
 
-        LayoutHarness.Measure(block, Page);
+        LayoutHarness.Plan(block, Page);
 
         Assert.Equal(1, composed());
     }
@@ -41,15 +41,15 @@ public class ComposeLaterTests
     {
         (LaterBlock block, Func<int> composed) = Later(keep: false);
 
-        Assert.True(LayoutHarness.Measure(block, Page).IsPartial);
-        Assert.Equal(2, LayoutHarness.Draw(block, Page).Operations.Count);
-        Assert.True(LayoutHarness.Measure(block, Page).IsComplete);
-        Assert.Equal(2, LayoutHarness.Draw(block, Page).Operations.Count);
+        Assert.True(LayoutHarness.Plan(block, Page).IsPartial);
+        Assert.Equal(2, LayoutHarness.Render(block, Page).Operations.Count);
+        Assert.True(LayoutHarness.Plan(block, Page).IsComplete);
+        Assert.Equal(2, LayoutHarness.Render(block, Page).Operations.Count);
 
         Assert.Equal(1, composed());
         Assert.Empty(block.GetChildren().OfType<Block>());
-        Assert.True(LayoutHarness.Measure(block, Page).IsNothing);
-        Assert.Empty(LayoutHarness.Draw(block, Page).Operations);
+        Assert.True(LayoutHarness.Plan(block, Page).IsNothing);
+        Assert.Empty(LayoutHarness.Render(block, Page).Operations);
     }
 
     [Fact]
@@ -57,9 +57,9 @@ public class ComposeLaterTests
     {
         (LaterBlock block, Func<int> composed) = Later(keep: false, units: 1);
 
-        LayoutHarness.Draw(block, Page);
+        LayoutHarness.Render(block, Page);
         block.ResetState();
-        LayoutHarness.Draw(block, Page);
+        LayoutHarness.Render(block, Page);
 
         Assert.Equal(2, composed());
     }
@@ -69,11 +69,11 @@ public class ComposeLaterTests
     {
         (LaterBlock block, Func<int> composed) = Later(keep: true, units: 1);
 
-        LayoutHarness.Draw(block, Page);
+        LayoutHarness.Render(block, Page);
         Assert.Single(block.GetChildren().OfType<Block>());
 
         block.ResetState();
-        Assert.Single(LayoutHarness.Draw(block, Page).Operations);
+        Assert.Single(LayoutHarness.Render(block, Page).Operations);
 
         Assert.Equal(1, composed());
     }
@@ -83,28 +83,28 @@ public class ComposeLaterTests
     {
         (LaterBlock block, _) = Later(keep: false);
 
-        Assert.Empty(LayoutHarness.Draw(block, new Extent(100, 20)).Operations);
-        Assert.True(LayoutHarness.Measure(block, Page).IsPartial);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(100, 20)).Operations);
+        Assert.True(LayoutHarness.Plan(block, Page).IsPartial);
     }
 
     [Fact]
     public void ProgressIsSavedWithTheContentHeld()
     {
         (LaterBlock block, _) = Later(keep: false);
-        LayoutHarness.Draw(block, Page);
+        LayoutHarness.Render(block, Page);
 
         Progress saved = block.SaveProgress();
-        LayoutHarness.Draw(block, Page);
+        LayoutHarness.Render(block, Page);
         block.RestoreProgress(saved);
 
-        Assert.Equal(2, LayoutHarness.Draw(block, Page).Operations.Count);
+        Assert.Equal(2, LayoutHarness.Render(block, Page).Operations.Count);
     }
 
     [Fact]
     public void ADocumentComposesItsContentLater()
     {
         int composed = 0;
-        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = Page;
             section.Body().ComposeLater(frame =>

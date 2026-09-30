@@ -11,7 +11,7 @@ public class DrawOrderTests
     private static readonly Ink Green = Ink.Rgb(0, 255, 0);
 
     private static RecordedPage Render(Action<StackComposer> compose) =>
-        Assert.Single(LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        Assert.Single(LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(200, 200);
             section.Margins = Sides.All(10);
@@ -196,9 +196,9 @@ public class DrawOrderTests
     [Fact]
     public void ADrawOrderOutsideAPageDrawsItsContent()
     {
-        DrawOrderBlock element = new DrawOrderBlock { Order = 3, Child = new FixedBlock(20, 20, TestInks.Red) };
+        DrawOrderBlock block = new DrawOrderBlock { Order = 3, Child = new FixedBlock(20, 20, TestInks.Red) };
 
-        Assert.Single(LayoutHarness.Draw(element, new Extent(50, 50)).Operations);
+        Assert.Single(LayoutHarness.Render(block, new Extent(50, 50)).Operations);
     }
 
     [Fact]
@@ -217,7 +217,7 @@ public class DrawOrderTests
     [Fact]
     public void EveryPageStartsAfresh()
     {
-        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(100, 100);
             section.Body().Stack(stack =>
@@ -237,9 +237,9 @@ public class DrawOrderTests
     {
         using RecordingSurface pages = new RecordingSurface();
         LayeredPageSink layers = new LayeredPageSink(pages) { Order = 4 };
-        DrawOrderBlock element = new DrawOrderBlock { Order = 9, Child = new ThrowingBlock(new InvalidOperationException("Broken.")) };
+        DrawOrderBlock block = new DrawOrderBlock { Order = 9, Child = new ThrowingBlock(new InvalidOperationException("Broken.")) };
 
-        Assert.Throws<InvalidOperationException>(() => element.Render(new Extent(10, 10), new RenderContext(layers, LayoutHarness.Context())));
+        Assert.Throws<InvalidOperationException>(() => block.Render(new Extent(10, 10), new RenderContext(layers, LayoutHarness.Context())));
 
         Assert.Equal(4, layers.Order);
     }

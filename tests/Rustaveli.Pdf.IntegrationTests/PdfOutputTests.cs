@@ -8,14 +8,14 @@ namespace Rustaveli.Pdf.IntegrationTests;
 /// End-to-end checks that the Skia backend emits PDFs a third-party reader can parse.
 /// </summary>
 /// <remarks>
-/// The unit tests verify layout against a recording canvas; these verify that what the layout engine decides
+/// The unit tests verify layout against a recording surface; these verify that what the layout engine decides
 /// actually survives serialisation into a real file. PdfPig is used as an independent reader so the assertions
 /// do not depend on our own writing code being correct.
 /// </remarks>
 public class PdfOutputTests
 {
     private static Document SimpleDocument(Action<Section> configure) =>
-        Document.Compose(container => container.Section(page =>
+        Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = PaperSizes.A4;
             page.Margins = Sides.All(30);
@@ -150,15 +150,15 @@ public class PdfOutputTests
     [Fact]
     public void RendersMultiplePageRunsWithDifferentSizes()
     {
-        Document document = Document.Compose(container =>
+        Document document = Document.Compose(frame =>
         {
-            container.Section(page =>
+            frame.Section(page =>
             {
                 page.Trim = PaperSizes.A4;
                 page.Body().Text("Portrait");
             });
 
-            container.Section(page =>
+            frame.Section(page =>
             {
                 page.Trim = PaperSizes.A4.Landscape();
                 page.Body().Text("Landscape");
@@ -174,7 +174,7 @@ public class PdfOutputTests
     [Fact]
     public void ContinuousPagesAdoptTheHeightOfTheirContent()
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(300, 2000);
             page.Continuous = true;
@@ -286,7 +286,7 @@ public class PdfOutputTests
     [Fact]
     public void RequireSpaceMovesContentRatherThanStrandingIt()
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(300, 160);
             page.Margins = Sides.All(10);

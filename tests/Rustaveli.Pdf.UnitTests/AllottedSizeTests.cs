@@ -8,8 +8,8 @@ public class AllottedSizeTests
 {
     private static readonly Ink Marker = TestInks.Red;
 
-    private static void Box(IFrame container, float width, float height, Ink? color = null) =>
-        FrameAttachment.Attach(container, color is null ? new FixedBlock(width, height) : new FixedBlock(width, height, color.Value));
+    private static void Box(IFrame frame, float width, float height, Ink? color = null) =>
+        FrameAttachment.Attach(frame, color is null ? new FixedBlock(width, height) : new FixedBlock(width, height, color.Value));
 
     private static RectangleOperation MarkerRectangle(RecordedPage page) =>
         page.Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == Marker);
@@ -17,8 +17,8 @@ public class AllottedSizeTests
     [Fact]
     public void AFillInAStackItemSpansTheStackWidthAtTheItemsHeight()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Stack(column => column.Add().Fill(Marker).Compose(item => Box(item, 50, 20))),
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Stack(column => column.Add().Fill(Marker).Compose(item => Box(item, 50, 20))),
             new Extent(200, 300));
 
         RectangleOperation background = MarkerRectangle(page);
@@ -29,8 +29,8 @@ public class AllottedSizeTests
     [Fact]
     public void AFillInATableCellFillsTheCellIncludingTheRowHeightSetByItsNeighbour()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Table(table =>
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Table(table =>
             {
                 table.Columns(columns =>
                 {
@@ -48,8 +48,8 @@ public class AllottedSizeTests
     [Fact]
     public void AStrokeOnAColumnSurroundsTheWholeColumnNotItsContent()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Columns(row =>
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Columns(row =>
             {
                 row.Share().Stroke(1).StrokeInk(Marker).Compose(item => Box(item, 10, 10));
                 row.Fixed(50).Compose(item => Box(item, 50, 30));
@@ -69,8 +69,8 @@ public class AllottedSizeTests
     [Fact]
     public void EveryLayerIsGivenTheWholeBoxSoASecondaryLayerCanAlignToItsFarCorner()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Height(100).Layered(layers =>
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Height(100).Layered(layers =>
             {
                 layers.BaseLayer().Compose(layer => Box(layer, 50, 20));
                 layers.Layer().FlushRight().FlushBottom().Compose(layer => Box(layer, 10, 10, Marker));
@@ -83,12 +83,12 @@ public class AllottedSizeTests
     [Fact]
     public void BandsSpanTheWidthAndTheFootBandFollowsTheBody()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Stack(column => column.Add().Banded(decoration =>
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Stack(column => column.Add().Banded(bands =>
             {
-                decoration.Head().Fill(Marker).Compose(band => Box(band, 10, 10));
-                decoration.Body().Compose(content => Box(content, 10, 25));
-                decoration.Foot().Fill(TestInks.Blue).Compose(band => Box(band, 10, 10));
+                bands.Head().Fill(Marker).Compose(band => Box(band, 10, 10));
+                bands.Body().Compose(content => Box(content, 10, 25));
+                bands.Foot().Fill(TestInks.Blue).Compose(band => Box(band, 10, 10));
             })),
             new Extent(200, 300));
 
@@ -105,7 +105,7 @@ public class AllottedSizeTests
     {
         // Right-to-left text aligns itself to the right of whatever box it is drawn in. Drawn in the full width
         // after the alignment had already moved it, it was pushed off the far edge of the page.
-        RecordedPage page = LayoutHarness.Draw(container => container.RightToLeft().Centered().Text("Hello"), new Extent(100, 100));
+        RecordedPage page = LayoutHarness.Render(frame => frame.RightToLeft().Centered().Text("Hello"), new Extent(100, 100));
 
         TextOperation text = page.Texts.Single();
         float width = LayoutHarness.Measurer.MeasureWidth("Hello", TypeStyle.Default);
@@ -116,8 +116,8 @@ public class AllottedSizeTests
     [Fact]
     public void AQuarterTurnFillsTheBoxItWasGiven()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Width(80).Height(40).TurnLeft().Fill(Marker).Compose(inner => Box(inner, 10, 10)),
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Width(80).Height(40).TurnLeft().Fill(Marker).Compose(inner => Box(inner, 10, 10)),
             new Extent(200, 300));
 
         Bounds bounds = MarkerRectangle(page).Bounds;
@@ -130,8 +130,8 @@ public class AllottedSizeTests
     [Fact]
     public void AMirrorReflectsContentAcrossTheBoxItWasGiven()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Width(100).Height(20).MirrorHorizontal().Compose(inner => Box(inner, 10, 10, Marker)),
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Width(100).Height(20).MirrorHorizontal().Compose(inner => Box(inner, 10, 10, Marker)),
             new Extent(200, 300));
 
         Bounds bounds = MarkerRectangle(page).Bounds;
@@ -142,8 +142,8 @@ public class AllottedSizeTests
     [Fact]
     public void ALinkCoversTheBoxItWasGiven()
     {
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Stack(column => column.Add().Link("https://example.com").Compose(item => Box(item, 10, 10))),
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Stack(column => column.Add().Link("https://example.com").Compose(item => Box(item, 10, 10))),
             new Extent(200, 300));
 
         Approximately.Equal(new Extent(200, 10), page.Operations.OfType<ExternalLinkOperation>().Single().Size);
@@ -155,8 +155,8 @@ public class AllottedSizeTests
         // Drawn at its final height, a column has no room left for the gap before a trailing item. An item that
         // occupies no height needs no gap, and must still be drawn: its side effects — here a destination, and
         // for markers such as "skip once" a change of state — belong to the page it was measured on.
-        RecordedPage page = LayoutHarness.Draw(
-            container => container.Stack(outer => outer.Add().Stack(inner =>
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Stack(outer => outer.Add().Stack(inner =>
             {
                 inner.SpaceBetween(10);
                 inner.Add().Compose(item => Box(item, 50, 20));

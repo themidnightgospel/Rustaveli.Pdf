@@ -17,8 +17,8 @@ public static class FrameContent
     public static void Text(this IFrame parent, Action<TextComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        TextBlock element = FrameAttachment.Attach(parent, new TextBlock());
-        handler(new TextComposer(element));
+        TextBlock block = FrameAttachment.Attach(parent, new TextBlock());
+        handler(new TextComposer(block));
     }
 
     /// <summary>
@@ -69,16 +69,16 @@ public static class FrameContent
     public static void Stack(this IFrame parent, Action<StackComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        StackBlock element = FrameAttachment.Attach(parent, new StackBlock());
-        handler(new StackComposer(element));
+        StackBlock block = FrameAttachment.Attach(parent, new StackBlock());
+        handler(new StackComposer(block));
     }
 
     /// <summary>Places content side by side.</summary>
     public static void Columns(this IFrame parent, Action<ColumnsComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ColumnsBlock element = FrameAttachment.Attach(parent, new ColumnsBlock());
-        handler(new ColumnsComposer(element));
+        ColumnsBlock block = FrameAttachment.Attach(parent, new ColumnsBlock());
+        handler(new ColumnsComposer(block));
     }
 
     /// <summary>
@@ -87,8 +87,8 @@ public static class FrameContent
     public static void FlowColumns(this IFrame parent, Action<FlowColumnsComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        FlowColumnsBlock element = FrameAttachment.Attach(parent, new FlowColumnsBlock());
-        handler(new FlowColumnsComposer(element));
+        FlowColumnsBlock block = FrameAttachment.Attach(parent, new FlowColumnsBlock());
+        handler(new FlowColumnsComposer(block));
     }
 
     /// <summary>
@@ -97,8 +97,8 @@ public static class FrameContent
     public static void Flow(this IFrame parent, Action<FlowComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        FlowBlock element = FrameAttachment.Attach(parent, new FlowBlock());
-        handler(new FlowComposer(element));
+        FlowBlock block = FrameAttachment.Attach(parent, new FlowBlock());
+        handler(new FlowComposer(block));
     }
 
     /// <summary>
@@ -107,10 +107,10 @@ public static class FrameContent
     public static void Grid(this IFrame parent, Action<GridComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        StackBlock element = FrameAttachment.Attach(parent, new StackBlock());
+        StackBlock block = FrameAttachment.Attach(parent, new StackBlock());
         GridComposer grid = new GridComposer();
         handler(grid);
-        grid.Build(element);
+        grid.Build(block);
     }
 
     /// <summary>
@@ -130,25 +130,25 @@ public static class FrameContent
     public static void List(this IFrame parent, Action<ListComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ListBlock listElement = FrameAttachment.Attach(parent, new ListBlock());
-        handler(new ListComposer(listElement));
-        listElement.Build();
+        ListBlock list = FrameAttachment.Attach(parent, new ListBlock());
+        handler(new ListComposer(list));
+        list.Build();
     }
 
     /// <summary>Draws content in overlapping layers.</summary>
     public static void Layered(this IFrame parent, Action<LayersComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        LayersBlock element = FrameAttachment.Attach(parent, new LayersBlock());
-        handler(new LayersComposer(element));
+        LayersBlock block = FrameAttachment.Attach(parent, new LayersBlock());
+        handler(new LayersComposer(block));
     }
 
     /// <summary>Adds flowing content framed by bands that repeat on every page.</summary>
     public static void Banded(this IFrame parent, Action<BandsComposer> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        BandsBlock element = FrameAttachment.Attach(parent, new BandsBlock());
-        handler(new BandsComposer(element));
+        BandsBlock block = FrameAttachment.Attach(parent, new BandsBlock());
+        handler(new BandsComposer(block));
     }
 
     /// <summary>

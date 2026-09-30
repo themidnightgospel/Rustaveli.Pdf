@@ -11,7 +11,7 @@ public class GeneratedContentTests
     public void AnImageIsAskedForItsBoxAndThePixelsThatTakes()
     {
         List<ImageRequest> requests = [];
-        RecordedPage page = LayoutHarness.Draw(frame => frame.Image(request => { requests.Add(request); return Pixel; }), new Extent(100, 50));
+        RecordedPage page = LayoutHarness.Render(frame => frame.Image(request => { requests.Add(request); return Pixel; }), new Extent(100, 50));
 
         // 288 pixels an inch unless the export says otherwise: four pixels to the point.
         Assert.Equal(new ImageRequest(new Extent(100, 50), 400, 200, 288), Assert.Single(requests));
@@ -20,7 +20,7 @@ public class GeneratedContentTests
 
     [Fact]
     public void AGeneratedImageTakesAllTheRoomThereIs() =>
-        Assert.Equal(new Extent(80, 30), LayoutHarness.Measure(frame => frame.Image(_ => Pixel), new Extent(80, 30)).Size);
+        Assert.Equal(new Extent(80, 30), LayoutHarness.Plan(frame => frame.Image(_ => Pixel), new Extent(80, 30)).Size);
 
     [Fact]
     public void AnImageIsGeneratedAtTheResolutionInForce()
@@ -29,7 +29,7 @@ public class GeneratedContentTests
         PlanContext context = LayoutHarness.Context();
         context.Resolution = 72;
 
-        LayoutHarness.Draw(LayoutHarness.Build(frame => frame.Image(request => { asked = request; return Pixel; })), new Extent(10.5f, 10), context);
+        LayoutHarness.Render(LayoutHarness.Build(frame => frame.Image(request => { asked = request; return Pixel; })), new Extent(10.5f, 10), context);
 
         Assert.Equal((11, 10, 72f), (asked!.Value.PixelWidth, asked.Value.PixelHeight, asked.Value.Resolution));
     }
@@ -37,9 +37,9 @@ public class GeneratedContentTests
     [Fact]
     public void NothingGeneratedLeavesTheBoxEmpty()
     {
-        Assert.Empty(LayoutHarness.Draw(frame => frame.Image(_ => null), new Extent(10, 10)).Operations);
-        Assert.Empty(LayoutHarness.Draw(frame => frame.Image(_ => []), new Extent(10, 10)).Operations);
-        Assert.Empty(LayoutHarness.Draw(frame => frame.Artwork(_ => null), new Extent(10, 10)).Operations);
+        Assert.Empty(LayoutHarness.Render(frame => frame.Image(_ => null), new Extent(10, 10)).Operations);
+        Assert.Empty(LayoutHarness.Render(frame => frame.Image(_ => []), new Extent(10, 10)).Operations);
+        Assert.Empty(LayoutHarness.Render(frame => frame.Artwork(_ => null), new Extent(10, 10)).Operations);
     }
 
     [Theory]
@@ -49,8 +49,8 @@ public class GeneratedContentTests
     {
         int calls = 0;
 
-        LayoutHarness.Draw(frame => frame.Image(_ => { calls++; return Pixel; }), new Extent(width, height));
-        LayoutHarness.Draw(frame => frame.Artwork(_ => { calls++; return null; }), new Extent(width, height));
+        LayoutHarness.Render(frame => frame.Image(_ => { calls++; return Pixel; }), new Extent(width, height));
+        LayoutHarness.Render(frame => frame.Artwork(_ => { calls++; return null; }), new Extent(width, height));
 
         Assert.Equal(0, calls);
     }
@@ -59,7 +59,7 @@ public class GeneratedContentTests
     public void ContentIsGeneratedOnlyForThePassThatDraws()
     {
         int images = 0, artworks = 0;
-        Document document = Document.Compose(container => container.Section(section =>
+        Document document = Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(100, 100);
             section.Body().Stack(stack =>
@@ -79,7 +79,7 @@ public class GeneratedContentTests
     public void ArtworkIsGeneratedForItsBoxAndStretchedToIt()
     {
         Extent? asked = null;
-        RecordedPage page = LayoutHarness.Draw(
+        RecordedPage page = LayoutHarness.Render(
             frame => frame.Artwork(size =>
             {
                 asked = size;

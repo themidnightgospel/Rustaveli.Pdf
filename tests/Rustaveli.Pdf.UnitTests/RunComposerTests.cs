@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf.UnitTests;
 
 /// <summary>
-/// Span refinements, observed as the style the canvas is actually asked to draw with.
+/// Span refinements, observed as the style the surface is actually asked to draw with.
 /// </summary>
 public class RunComposerTests
 {
@@ -14,11 +14,11 @@ public class RunComposerTests
         Func<RunComposer, RunComposer> refine,
         Func<TypeStyle, TypeStyle>? inherited = null)
     {
-        Block root = LayoutHarness.Build(container => container
+        Block root = LayoutHarness.Build(frame => frame
             .DefaultType(inherited ?? (style => style))
             .Text(text => refine(text.Run("x"))));
 
-        return Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Texts).Style;
+        return Assert.Single(LayoutHarness.Render(root, new Extent(200, 200)).Texts).Style;
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class RunComposerTests
     public void ANumberThatCannotBeSetIsRefusedWhereItIsGiven(string parameter, Func<RunComposer, RunComposer> refine)
     {
         // Composing alone, without laying anything out: the run's style is not worked out until layout.
-        ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() => LayoutHarness.Build(container => container.Text(text => refine(text.Run("x")))));
+        ArgumentOutOfRangeException refused = Assert.Throws<ArgumentOutOfRangeException>(() => LayoutHarness.Build(frame => frame.Text(text => refine(text.Run("x")))));
 
         Assert.Equal(parameter, refused.ParamName);
     }
@@ -65,7 +65,7 @@ public class RunComposerTests
     public void ARefinementThatCannotApplyIsRefusedWhereItIsGiven(string parameter, Action<TextComposer> compose)
     {
         // Composing alone, without laying anything out: the run's style is not worked out until layout.
-        ArgumentException refused = Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(container => container.Text(compose)));
+        ArgumentException refused = Assert.ThrowsAny<ArgumentException>(() => LayoutHarness.Build(frame => frame.Text(compose)));
 
         Assert.Equal(parameter, refused.ParamName);
     }
@@ -229,13 +229,13 @@ public class RunComposerTests
     [Fact]
     public void ARefinementStaysWithItsOwnSpan()
     {
-        Block root = LayoutHarness.Build(container => container.Text(text =>
+        Block root = LayoutHarness.Build(frame => frame.Text(text =>
         {
             text.Run("a").Bold();
             text.Run("b");
         }));
 
-        List<TextOperation> texts = LayoutHarness.Draw(root, new Extent(200, 200)).Texts.ToList();
+        List<TextOperation> texts = LayoutHarness.Render(root, new Extent(200, 200)).Texts.ToList();
 
         Assert.Equal(TypeWeight.Bold, texts.Single(text => text.Text == "a").Style.Weight);
         Assert.Equal(TypeWeight.Normal, texts.Single(text => text.Text == "b").Style.Weight);

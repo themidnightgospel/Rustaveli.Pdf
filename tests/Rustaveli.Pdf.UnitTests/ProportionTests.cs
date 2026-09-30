@@ -5,9 +5,9 @@ public class ProportionTests
     [Fact]
     public void DerivesHeightFromWidth()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Width };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Width };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 500));
 
         Approximately.Equal(new Extent(200, 100), plan.Size);
     }
@@ -15,9 +15,9 @@ public class ProportionTests
     [Fact]
     public void DerivesWidthFromHeight()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Height };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Height };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(500, 50));
+        Fit plan = LayoutHarness.Plan(block, new Extent(500, 50));
 
         Approximately.Equal(new Extent(100, 50), plan.Size);
     }
@@ -26,9 +26,9 @@ public class ProportionTests
     public void FallsBackToHeightWhenWidthWouldOverflow()
     {
         // Fitting the 300pt width would need 300pt of height, but only 100 is available.
-        ProportionBlock element = new ProportionBlock { Ratio = 1f, Fit = ProportionFit.Area };
+        ProportionBlock block = new ProportionBlock { Ratio = 1f, Fit = ProportionFit.Area };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(300, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(300, 100));
 
         Approximately.Equal(new Extent(100, 100), plan.Size);
     }
@@ -36,9 +36,9 @@ public class ProportionTests
     [Fact]
     public void FitAreaKeepsTheFullWidthWhenTheHeightAllowsIt()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Area };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Area };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 500));
 
         Approximately.Equal(new Extent(200, 100), plan.Size);
     }
@@ -46,9 +46,9 @@ public class ProportionTests
     [Fact]
     public void AnUnrecognisedOptionFitsTheWidth()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = (ProportionFit)99 };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Fit = (ProportionFit)99 };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 500));
 
         Approximately.Equal(new Extent(200, 100), plan.Size);
     }
@@ -56,9 +56,9 @@ public class ProportionTests
     [Fact]
     public void RejectsANonPositiveRatio()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 0f };
+        ProportionBlock block = new ProportionBlock { Ratio = 0f };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(100, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(100, 100));
 
         Assert.True(plan.IsDeferred);
         Assert.Contains("greater than zero", plan.DeferReason);
@@ -67,12 +67,12 @@ public class ProportionTests
     [Theory]
     [InlineData(100f, false)]
     [InlineData(99f, true)]
-    public void WrapsWhenTheDerivedHeightDoesNotFit(float availableHeight, bool wraps)
+    public void DefersWhenTheDerivedHeightDoesNotFit(float availableHeight, bool wraps)
     {
         // Fitting the full 200pt width at 2:1 needs exactly 100pt of height.
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Width };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Fit = ProportionFit.Width };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, availableHeight));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, availableHeight));
 
         Assert.Equal(wraps, plan.IsDeferred);
     }
@@ -80,41 +80,41 @@ public class ProportionTests
     [Fact]
     public void ReportsTheRatioBoxRatherThanTheChildSize()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Child = new FixedBlock(20, 10) };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Child = new FixedBlock(20, 10) };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 500));
 
         Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(200, 100), plan.Size);
     }
 
     [Fact]
-    public void PassesTheChildsWrapThroughUnchanged()
+    public void PassesTheChildsDeferralThroughUnchanged()
     {
-        // The child is measured against the ratio box, not the space offered to the element.
+        // The child is measured against the ratio box, not the space offered to the block.
         FixedBlock child = new FixedBlock(300, 10);
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Child = child };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Child = child };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 500));
 
-        Assert.Equal(LayoutHarness.Measure(child, new Extent(200, 100)), plan);
+        Assert.Equal(LayoutHarness.Plan(child, new Extent(200, 100)), plan);
     }
 
     [Fact]
     public void ReportsEmptyForAnExhaustedChild()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Child = new ScriptedBlock(Fit.Nothing()) };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Child = new ScriptedBlock(Fit.Nothing()) };
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 500)).IsNothing);
+        Assert.True(LayoutHarness.Plan(block, new Extent(200, 500)).IsNothing);
     }
 
     [Fact]
     public void KeepsAPartialChildPartialAtTheRatioSize()
     {
         // The 200x100 box holds three of the four 30pt units.
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 500));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 500));
 
         Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(200, 100), plan.Size);
@@ -123,19 +123,19 @@ public class ProportionTests
     [Fact]
     public void DrawsTheChildIntoTheRatioBox()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f, Child = new PlaceholderBlock() };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f, Child = new PlaceholderBlock() };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 500));
-        RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
+        RecordedPage page = LayoutHarness.Render(block, new Extent(200, 500));
+        RectangleOperation box = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
-        Approximately.Equal(new Extent(200, 100), block.Size);
+        Approximately.Equal(new Extent(200, 100), box.Size);
     }
 
     [Fact]
     public void DrawsNothingWithoutContent()
     {
-        ProportionBlock element = new ProportionBlock { Ratio = 2f };
+        ProportionBlock block = new ProportionBlock { Ratio = 2f };
 
-        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 500)).Operations);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(200, 500)).Operations);
     }
 }

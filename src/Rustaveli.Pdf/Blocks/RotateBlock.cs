@@ -19,7 +19,7 @@ internal sealed class RotateBlock : EnclosingBlock
         if (Child is null)
             return;
 
-        // The pivot is the box this element was given (ADR 0012), which is what the child is drawn into.
+        // The pivot is the box this block was given (ADR 0012), which is what the child is drawn into.
         Offset centre = new Offset(availableSpace.Width / 2, availableSpace.Height / 2);
 
         context.Surface.Save();

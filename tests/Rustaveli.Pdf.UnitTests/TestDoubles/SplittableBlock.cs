@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
 /// <summary>
-/// An element made of equally sized units that renders as many as fit and continues on the next page.
+/// A block made of equally sized units that renders as many as fit and continues on the next page.
 /// </summary>
 /// <remarks>
 /// Stands in for genuinely splittable content such as a long paragraph, letting pagination be tested without

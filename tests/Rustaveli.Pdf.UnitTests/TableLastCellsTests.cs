@@ -28,7 +28,7 @@ public class TableLastCellsTests
             }
         }));
 
-        return LayoutHarness.Draw(root, space ?? new Extent(100, 100)).Operations.OfType<RectangleOperation>()
+        return LayoutHarness.Render(root, space ?? new Extent(100, 100)).Operations.OfType<RectangleOperation>()
             .Where(operation => operation.Ink == TestInks.Red)
             .ToList();
     }
@@ -76,7 +76,7 @@ public class TableLastCellsTests
             table.Cell().AtRow(3).AtColumn(2).Height(10).Blank();
         }));
 
-        RectangleOperation spanning = LayoutHarness.Draw(root, new Extent(100, 100)).Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Red);
+        RectangleOperation spanning = LayoutHarness.Render(root, new Extent(100, 100)).Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Red);
 
         Assert.Equal(10f, spanning.Size.Height);
     }
@@ -98,7 +98,7 @@ public class TableLastCellsTests
             table.Cell().AtRow(2).AtColumn(2).Fill(TestInks.Yellow).Height(10).Blank();
         }));
 
-        List<RectangleOperation> fills = LayoutHarness.Draw(root, new Extent(100, 100)).Operations.OfType<RectangleOperation>().ToList();
+        List<RectangleOperation> fills = LayoutHarness.Render(root, new Extent(100, 100)).Operations.OfType<RectangleOperation>().ToList();
 
         // Only the first column's cell in row two ends its column; the second column goes on to row three.
         Assert.Equal([TestInks.Red, TestInks.Green, TestInks.Blue, TestInks.Yellow], fills.Select(fill => fill.Ink));

@@ -62,9 +62,9 @@ public class TypefaceFallbacksTests
     [Fact]
     public void TheRunComposerSetsTheTypefaceAndItsFallbacks()
     {
-        Block root = LayoutHarness.Build(container => container.Text(text => text.Run("x").Typeface("Inter", "Noto Sans")));
+        Block root = LayoutHarness.Build(frame => frame.Text(text => text.Run("x").Typeface("Inter", "Noto Sans")));
 
-        TypeStyle style = Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Texts).Style;
+        TypeStyle style = Assert.Single(LayoutHarness.Render(root, new Extent(200, 200)).Texts).Style;
 
         Assert.Equal("Inter", style.Typeface);
         Assert.Equal(["Noto Sans"], style.Fallbacks);

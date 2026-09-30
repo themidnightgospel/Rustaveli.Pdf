@@ -17,8 +17,8 @@ public class FlowColumnsTests
         FlowColumnsBlock columns = Columns(new SplittableBlock(unitCount: 5, unitHeight: 30));
         Extent space = new Extent(100, 90);
 
-        Fit plan = LayoutHarness.Measure(columns, space);
-        List<Offset> units = Units(LayoutHarness.Draw(columns, space));
+        Fit plan = LayoutHarness.Plan(columns, space);
+        List<Offset> units = Units(LayoutHarness.Render(columns, space));
 
         Assert.True(plan.IsComplete);
         Assert.Equal(new Extent(100, 90), plan.Size);
@@ -32,16 +32,16 @@ public class FlowColumnsTests
         FlowColumnsBlock columns = Columns(story);
         Extent space = new Extent(100, 90);
 
-        Assert.True(LayoutHarness.Measure(columns, space).IsPartial);
-        Assert.Equal(6, Units(LayoutHarness.Draw(columns, space)).Count);
+        Assert.True(LayoutHarness.Plan(columns, space).IsPartial);
+        Assert.Equal(6, Units(LayoutHarness.Render(columns, space)).Count);
         Assert.Equal(2, story.Remaining);
 
-        Fit next = LayoutHarness.Measure(columns, space);
+        Fit next = LayoutHarness.Plan(columns, space);
         Assert.True(next.IsComplete);
         Assert.Equal(60f, next.Size.Height);
-        Assert.Equal(2, Units(LayoutHarness.Draw(columns, space)).Count);
+        Assert.Equal(2, Units(LayoutHarness.Render(columns, space)).Count);
 
-        Assert.True(LayoutHarness.Measure(columns, space).IsNothing);
+        Assert.True(LayoutHarness.Plan(columns, space).IsNothing);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class FlowColumnsTests
     {
         SplittableBlock story = new SplittableBlock(unitCount: 8, unitHeight: 30);
 
-        LayoutHarness.Measure(Columns(story, balanced: true), new Extent(100, 90));
+        LayoutHarness.Plan(Columns(story, balanced: true), new Extent(100, 90));
 
         Assert.Equal(8, story.Remaining);
     }
@@ -60,8 +60,8 @@ public class FlowColumnsTests
         FlowColumnsBlock columns = Columns(new SplittableBlock(unitCount: 4, unitHeight: 30), balanced: true);
         Extent space = new Extent(100, 150);
 
-        Fit plan = LayoutHarness.Measure(columns, space);
-        List<Offset> units = Units(LayoutHarness.Draw(columns, space));
+        Fit plan = LayoutHarness.Plan(columns, space);
+        List<Offset> units = Units(LayoutHarness.Render(columns, space));
 
         Assert.Equal(60f, plan.Size.Height, 1);
         Assert.Equal([new Offset(0, 0), new Offset(0, 30), new Offset(55, 0), new Offset(55, 30)], units);
@@ -72,7 +72,7 @@ public class FlowColumnsTests
     {
         FlowColumnsBlock columns = Columns(new SplittableBlock(unitCount: 8, unitHeight: 30), balanced: true);
 
-        Assert.Equal(90f, LayoutHarness.Measure(columns, new Extent(100, 90)).Size.Height);
+        Assert.Equal(90f, LayoutHarness.Plan(columns, new Extent(100, 90)).Size.Height);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class FlowColumnsTests
     {
         FlowColumnsBlock columns = Columns(new SplittableBlock(unitCount: 2, unitHeight: 30), balanced: true);
 
-        Assert.Equal(30f, LayoutHarness.Measure(columns, new Extent(100, 150)).Size.Height, 1);
+        Assert.Equal(30f, LayoutHarness.Plan(columns, new Extent(100, 150)).Size.Height, 1);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class FlowColumnsTests
     {
         FlowColumnsBlock columns = new FlowColumnsBlock { Count = 1, Balanced = true, Story = new SplittableBlock(unitCount: 2, unitHeight: 30) };
 
-        Assert.Equal(60f, LayoutHarness.Measure(columns, new Extent(100, 150)).Size.Height);
+        Assert.Equal(60f, LayoutHarness.Plan(columns, new Extent(100, 150)).Size.Height);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class FlowColumnsTests
             Between = new VerticalRuleBlock { Weight = 1, Ink = TestInks.Red },
         };
 
-        List<RectangleOperation> rules = LayoutHarness.Draw(columns, new Extent(100, 60)).Operations.OfType<RectangleOperation>()
+        List<RectangleOperation> rules = LayoutHarness.Render(columns, new Extent(100, 60)).Operations.OfType<RectangleOperation>()
             .Where(operation => operation.Ink == TestInks.Red)
             .ToList();
 
@@ -119,7 +119,7 @@ public class FlowColumnsTests
         PlanContext context = LayoutHarness.Context();
         context.ReadingDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(columns, new Extent(100, 60), context);
+        RecordedPage page = LayoutHarness.Render(columns, new Extent(100, 60), context);
 
         Assert.Equal([new Offset(55, 0), new Offset(55, 30), new Offset(0, 0), new Offset(0, 30)], Units(page));
         Approximately.Equal(new Offset(45, 0), page.Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Red).Position);
@@ -130,8 +130,8 @@ public class FlowColumnsTests
     {
         FlowColumnsBlock columns = Columns(new SplittableBlock(unitCount: 2, unitHeight: 30));
 
-        Assert.True(LayoutHarness.Measure(columns, new Extent(100, 20)).IsDeferred);
-        Assert.Empty(LayoutHarness.Draw(columns, new Extent(100, 20)).Operations);
+        Assert.True(LayoutHarness.Plan(columns, new Extent(100, 20)).IsDeferred);
+        Assert.Empty(LayoutHarness.Render(columns, new Extent(100, 20)).Operations);
     }
 
     [Fact]
@@ -139,15 +139,15 @@ public class FlowColumnsTests
     {
         FlowColumnsBlock columns = new FlowColumnsBlock { Count = 3, Gutter = 60, Story = new SplittableBlock(unitCount: 2, unitHeight: 30) };
 
-        Assert.True(LayoutHarness.Measure(columns, new Extent(100, 90)).IsDeferred);
-        Assert.Empty(LayoutHarness.Draw(columns, new Extent(100, 90)).Operations);
+        Assert.True(LayoutHarness.Plan(columns, new Extent(100, 90)).IsDeferred);
+        Assert.Empty(LayoutHarness.Render(columns, new Extent(100, 90)).Operations);
     }
 
     [Fact]
     public void ColumnsWithoutAStoryAreEmpty()
     {
-        Assert.Equal(Extent.Zero, LayoutHarness.Measure(new FlowColumnsBlock(), new Extent(100, 90)).Size);
-        Assert.Empty(LayoutHarness.Draw(new FlowColumnsBlock(), new Extent(100, 90)).Operations);
+        Assert.Equal(Extent.Zero, LayoutHarness.Plan(new FlowColumnsBlock(), new Extent(100, 90)).Size);
+        Assert.Empty(LayoutHarness.Render(new FlowColumnsBlock(), new Extent(100, 90)).Operations);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class FlowColumnsTests
     [Fact]
     public void ADocumentFlowsItsStoryThroughTheColumnsOfEveryPage()
     {
-        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(100, 90);
             section.Body().FlowColumns(columns =>
@@ -215,7 +215,7 @@ public class FlowColumnsTests
     {
         // The story is poured on the first page to see whether it fits there, and it does not, so it is kept for the
         // second. The anchor inside it is on the second page, however many pages it was tried on.
-        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(100, 102);
             section.RunningFoot().Text(text => text.FolioOf("story"));
@@ -242,7 +242,7 @@ public class FlowColumnsTests
         SavingCounted story = new SavingCounted { Child = new SplittableBlock(unitCount: 4, unitHeight: 30) };
         FlowColumnsBlock columns = new FlowColumnsBlock { Count = 2, Gutter = 10, Balanced = true, Story = story };
 
-        Fit plan = LayoutHarness.Measure(columns, new Extent(100, 90));
+        Fit plan = LayoutHarness.Plan(columns, new Extent(100, 90));
 
         Assert.Equal(60f, plan.Size.Height, 0.01f);
         Assert.Equal(1, story.Saves);
@@ -257,7 +257,7 @@ public class FlowColumnsTests
         FlowColumnsBlock columns = new FlowColumnsBlock { Count = 2, Gutter = 10, Balanced = balanced, Story = story };
         PlanContext context = LayoutHarness.Context();
 
-        LayoutHarness.Draw(columns, new Extent(100, 90), context);
+        LayoutHarness.Render(columns, new Extent(100, 90), context);
 
         // Once for each column the story is drawn in, and none for the pours that only tried it.
         Assert.Equal([new Offset(0, 0), new Offset(55, 0)], context.Pagination.PositionsOf("story").Select(captured => captured.Position));

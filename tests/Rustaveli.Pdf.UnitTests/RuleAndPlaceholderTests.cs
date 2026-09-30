@@ -5,9 +5,9 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void HorizontalRuleSpansTheWidthAtItsThickness()
     {
-        Block root = LayoutHarness.Build(container => container.Rule(3, TestInks.Red));
+        Block root = LayoutHarness.Build(frame => frame.Rule(3, TestInks.Red));
 
-        Fit plan = LayoutHarness.Measure(root, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(root, new Extent(200, 100));
 
         Approximately.Equal(new Extent(200, 3), plan.Size);
     }
@@ -15,9 +15,9 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void VerticalRuleSpansTheHeightAtItsThickness()
     {
-        Block root = LayoutHarness.Build(container => container.VerticalRule(2));
+        Block root = LayoutHarness.Build(frame => frame.VerticalRule(2));
 
-        Fit plan = LayoutHarness.Measure(root, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(root, new Extent(200, 100));
 
         Approximately.Equal(new Extent(2, 100), plan.Size);
     }
@@ -25,9 +25,9 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void PlaceholderFillsTheSpaceOfferedToIt()
     {
-        Block root = LayoutHarness.Build(container => container.Placeholder());
+        Block root = LayoutHarness.Build(frame => frame.Placeholder());
 
-        RecordedPage page = LayoutHarness.Draw(root, new Extent(80, 40));
+        RecordedPage page = LayoutHarness.Render(root, new Extent(80, 40));
         RectangleOperation block = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         Approximately.Equal(new Extent(80, 40), block.Size);
@@ -36,7 +36,7 @@ public class RuleAndPlaceholderTests
     [Fact]
     public void PlaceholderClaimsTheSpaceOfferedToIt()
     {
-        Fit plan = LayoutHarness.Measure(new PlaceholderBlock(), new Extent(80, 40));
+        Fit plan = LayoutHarness.Plan(new PlaceholderBlock(), new Extent(80, 40));
 
         Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(80, 40), plan.Size);
@@ -45,19 +45,19 @@ public class RuleAndPlaceholderTests
     [Theory]
     [InlineData(5f, false)]
     [InlineData(4.9f, true)]
-    public void HorizontalRuleWrapsWhenThickerThanTheSpace(float availableHeight, bool wraps)
+    public void HorizontalRuleDefersWhenThickerThanTheSpace(float availableHeight, bool wraps)
     {
-        RuleBlock element = new RuleBlock { Weight = 5 };
+        RuleBlock block = new RuleBlock { Weight = 5 };
 
-        Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(200, availableHeight)).IsDeferred);
+        Assert.Equal(wraps, LayoutHarness.Plan(block, new Extent(200, availableHeight)).IsDeferred);
     }
 
     [Fact]
     public void HorizontalRuleIsPaintedAcrossTheWidthInItsColour()
     {
-        RuleBlock element = new RuleBlock { Weight = 3, Ink = TestInks.Red };
+        RuleBlock block = new RuleBlock { Weight = 3, Ink = TestInks.Red };
 
-        RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
+        RectangleOperation rule = Assert.Single(LayoutHarness.Render(block, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
         Assert.Equal(new Bounds(0, 0, 200, 3), rule.Bounds);
         Assert.Equal(TestInks.Red, rule.Ink);
@@ -66,19 +66,19 @@ public class RuleAndPlaceholderTests
     [Theory]
     [InlineData(5f, false)]
     [InlineData(4.9f, true)]
-    public void VerticalRuleWrapsWhenThickerThanTheSpace(float availableWidth, bool wraps)
+    public void VerticalRuleDefersWhenThickerThanTheSpace(float availableWidth, bool wraps)
     {
-        VerticalRuleBlock element = new VerticalRuleBlock { Weight = 5 };
+        VerticalRuleBlock block = new VerticalRuleBlock { Weight = 5 };
 
-        Assert.Equal(wraps, LayoutHarness.Measure(element, new Extent(availableWidth, 100)).IsDeferred);
+        Assert.Equal(wraps, LayoutHarness.Plan(block, new Extent(availableWidth, 100)).IsDeferred);
     }
 
     [Fact]
     public void VerticalRuleIsPaintedDownTheHeightInItsColour()
     {
-        VerticalRuleBlock element = new VerticalRuleBlock { Weight = 2, Ink = TestInks.Blue };
+        VerticalRuleBlock block = new VerticalRuleBlock { Weight = 2, Ink = TestInks.Blue };
 
-        RectangleOperation rule = Assert.Single(LayoutHarness.Draw(element, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
+        RectangleOperation rule = Assert.Single(LayoutHarness.Render(block, new Extent(200, 100)).Operations.OfType<RectangleOperation>());
 
         Assert.Equal(new Bounds(0, 0, 2, 100), rule.Bounds);
         Assert.Equal(TestInks.Blue, rule.Ink);

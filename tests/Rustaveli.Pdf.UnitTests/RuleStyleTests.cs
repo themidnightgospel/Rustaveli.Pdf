@@ -10,7 +10,7 @@ public class RuleStyleTests
     [Fact]
     public void ASolidRuleIsABar()
     {
-        RecordedPage page = LayoutHarness.Draw(frame => frame.Rule(2, TestInks.Red), Space);
+        RecordedPage page = LayoutHarness.Render(frame => frame.Rule(2, TestInks.Red), Space);
 
         RectangleOperation bar = Assert.Single(page.Operations.OfType<RectangleOperation>());
         Assert.Equal(new Extent(100, 2), bar.Size);
@@ -26,9 +26,9 @@ public class RuleStyleTests
     {
         Block root = LayoutHarness.Build(frame => frame.Rule(2, TestInks.Red, style));
 
-        LineOperation line = Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<LineOperation>());
+        LineOperation line = Assert.Single(LayoutHarness.Render(root, Space).Operations.OfType<LineOperation>());
 
-        Approximately.Equal(new Extent(100, breadth), LayoutHarness.Measure(root, Space).Size);
+        Approximately.Equal(new Extent(100, breadth), LayoutHarness.Plan(root, Space).Size);
         Approximately.Equal(new Offset(0, breadth / 2), line.Position);
         Approximately.Equal(new Offset(100, breadth / 2), line.End);
         Assert.Equal(style, line.Style);
@@ -41,9 +41,9 @@ public class RuleStyleTests
     {
         Block root = LayoutHarness.Build(frame => frame.Rule(2, TestInks.Red, [4, 1, 1, 1]));
 
-        LineOperation line = Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<LineOperation>());
+        LineOperation line = Assert.Single(LayoutHarness.Render(root, Space).Operations.OfType<LineOperation>());
 
-        Approximately.Equal(new Extent(100, 2), LayoutHarness.Measure(root, Space).Size);
+        Approximately.Equal(new Extent(100, 2), LayoutHarness.Plan(root, Space).Size);
         Approximately.Equal(new Offset(0, 1), line.Position);
         Assert.Equal([4f, 1f, 1f, 1f], line.Dashes!);
     }
@@ -55,7 +55,7 @@ public class RuleStyleTests
         Block root = LayoutHarness.Build(frame => frame.Rule(2, TestInks.Red, dashes));
         dashes[0] = 9;
 
-        Assert.Equal([4f, 1f], Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<LineOperation>()).Dashes!);
+        Assert.Equal([4f, 1f], Assert.Single(LayoutHarness.Render(root, Space).Operations.OfType<LineOperation>()).Dashes!);
     }
 
     [Fact]
@@ -63,13 +63,13 @@ public class RuleStyleTests
     {
         Block root = LayoutHarness.Build(frame => frame.Rule(2, TestInks.Red, StrokeStyle.Wavy));
 
-        Assert.True(LayoutHarness.Measure(root, new Extent(100, 5)).IsDeferred);
+        Assert.True(LayoutHarness.Plan(root, new Extent(100, 5)).IsDeferred);
     }
 
     [Fact]
     public void AVerticalSolidRuleIsABar()
     {
-        RectangleOperation bar = Assert.Single(LayoutHarness.Draw(frame => frame.VerticalRule(2, TestInks.Red), Space).Operations.OfType<RectangleOperation>());
+        RectangleOperation bar = Assert.Single(LayoutHarness.Render(frame => frame.VerticalRule(2, TestInks.Red), Space).Operations.OfType<RectangleOperation>());
 
         Assert.Equal(new Extent(2, 30), bar.Size);
     }
@@ -81,9 +81,9 @@ public class RuleStyleTests
     {
         Block root = LayoutHarness.Build(frame => frame.VerticalRule(2, TestInks.Red, style));
 
-        LineOperation line = Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<LineOperation>());
+        LineOperation line = Assert.Single(LayoutHarness.Render(root, Space).Operations.OfType<LineOperation>());
 
-        Approximately.Equal(new Extent(breadth, 30), LayoutHarness.Measure(root, Space).Size);
+        Approximately.Equal(new Extent(breadth, 30), LayoutHarness.Plan(root, Space).Size);
         Approximately.Equal(new Offset(breadth / 2, 0), line.Position);
         Approximately.Equal(new Offset(breadth / 2, 30), line.End);
         Assert.Equal(style, line.Style);
@@ -94,7 +94,7 @@ public class RuleStyleTests
     {
         Block root = LayoutHarness.Build(frame => frame.VerticalRule(2, TestInks.Red, [3, 3]));
 
-        LineOperation line = Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<LineOperation>());
+        LineOperation line = Assert.Single(LayoutHarness.Render(root, Space).Operations.OfType<LineOperation>());
 
         Approximately.Equal(new Offset(1, 0), line.Position);
         Assert.Equal([3f, 3f], line.Dashes!);
@@ -105,7 +105,7 @@ public class RuleStyleTests
     {
         Block root = LayoutHarness.Build(frame => frame.VerticalRule(2, TestInks.Red, StrokeStyle.Wavy));
 
-        Assert.True(LayoutHarness.Measure(root, new Extent(5, 100)).IsDeferred);
+        Assert.True(LayoutHarness.Plan(root, new Extent(5, 100)).IsDeferred);
     }
 
     [Fact]
@@ -143,6 +143,6 @@ public class RuleStyleTests
     {
         Block root = LayoutHarness.Build(frame => frame.Rule(1, TestInks.Red, [2, 0]));
 
-        Assert.Single(LayoutHarness.Draw(root, Space).Operations.OfType<LineOperation>());
+        Assert.Single(LayoutHarness.Render(root, Space).Operations.OfType<LineOperation>());
     }
 }

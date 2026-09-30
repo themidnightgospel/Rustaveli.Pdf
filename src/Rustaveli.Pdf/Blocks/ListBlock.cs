@@ -51,12 +51,12 @@ internal sealed class ListBlock : Block
         {
             ListEntry listItem = Items[i];
             listItem.Marker = ListMarkers.Format(Numbering, i + 1);
-            ColumnsBlock rowElement = new ColumnsBlock();
-            TextBlock textElement = new TextBlock
+            ColumnsBlock row = new ColumnsBlock();
+            TextBlock label = new TextBlock
             {
                 DefaultTypeRefinement = MarkerType
             };
-            textElement.Runs.Add(new TextRun
+            label.Runs.Add(new TextRun
             {
                 Text = listItem.Marker
             });
@@ -66,7 +66,7 @@ internal sealed class ListBlock : Block
             {
                 Sizing = ColumnSizing.Fixed,
                 Value = MarkerIndent,
-                Child = new TagBlock { Tag = ContentTag.ListLabel, Child = textElement }
+                Child = new TagBlock { Tag = ContentTag.ListLabel, Child = label }
             };
             ColumnSlot item = new ColumnSlot
             {
@@ -74,9 +74,9 @@ internal sealed class ListBlock : Block
                 Value = 1f,
                 Child = new TagBlock { Tag = ContentTag.ListBody, Child = listItem }
             };
-            rowElement.Items.Add(rowItem);
-            rowElement.Items.Add(item);
-            _layout.Items.Add(new TagBlock { Tag = ContentTag.ListItem, Child = rowElement });
+            row.Items.Add(rowItem);
+            row.Items.Add(item);
+            _layout.Items.Add(new TagBlock { Tag = ContentTag.ListItem, Child = row });
         }
         _builtItemCount = Items.Count;
     }
@@ -87,7 +87,7 @@ internal sealed class ListBlock : Block
     /// <remarks>
     /// Every member needed to populate a list is public, so one can legitimately be assembled without the fluent
     /// helper that calls <see cref="ListBlock.Build" /> — and would otherwise render nothing at all, with its items
-    /// unreachable from the element tree.
+    /// unreachable from the tree of blocks.
     /// </remarks>
     private void EnsureBuilt()
     {

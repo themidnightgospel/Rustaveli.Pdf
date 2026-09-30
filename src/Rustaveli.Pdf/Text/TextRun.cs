@@ -32,7 +32,7 @@ internal sealed class TextRun
     /// Content placed inline with the surrounding words rather than text.
     /// </summary>
     /// <remarks>
-    /// The element is treated as a single unbreakable word: it sits where <see cref="InlinePosition"/> puts it,
+    /// The block is treated as a single unbreakable word: it sits where <see cref="InlinePosition"/> puts it,
     /// wraps to the next line as a unit, and contributes its height to the line it lands on. Used for an icon, a
     /// logo or a small chart sitting mid-sentence.
     /// </remarks>

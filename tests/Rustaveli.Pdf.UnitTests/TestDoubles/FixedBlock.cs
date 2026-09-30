@@ -1,7 +1,7 @@
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
 /// <summary>
-/// An element of a fixed intrinsic size that wraps when it does not fit.
+/// A block of a fixed intrinsic size that wraps when it does not fit.
 /// </summary>
 /// <remarks>
 /// Layout behaviour is far easier to assert against a shape of known size than against real content, whose
