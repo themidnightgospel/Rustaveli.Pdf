@@ -3,9 +3,10 @@
 Versions follow [semantic versioning](https://semver.org/). Before 1.0 the public surface may still change from one
 minor version to the next; from 1.0, nothing public changes incompatibly within a major version.
 
-## Unreleased
+## 0.2.0
 
-Fixes from a review of the whole library, each found by a test that failed first.
+Fixes from a review of the whole library, each found by a test that failed first. 0.1.0 and 0.1.1 are unlisted in
+favour of this release.
 
 **Fixed**
 
