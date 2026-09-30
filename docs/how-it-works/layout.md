@@ -123,8 +123,8 @@ To explain it, the typesetter first plans the body once more with tracing switch
 doing it again is safe — and the message follows the refusal down from the page to the frame that could not fit:
 
 ```text
-The body cannot be set even on an empty page, so no further page would help. Space available: (Width: 200.000,
-Height: 150.000). Reason: ...
+The body cannot be set even on an empty page, so no further page would help. Space available: 200 × 150 pt.
+Reason: ...
 Where it did not fit, from the page down:
   Image, offered 200 × 150: does not fit — ...
 ```
