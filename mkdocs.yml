@@ -98,9 +98,11 @@ nav:
       - Features: features.md
       - Glossary: GLOSSARY.md
       - Known limitations: limitations.md
-      - QuestPDF parity: parity/PARITY.md
   - Project:
       - About: about.md
+      - Rustaveli.Pdf and QuestPDF:
+          - questpdf.md
+          - Parity checklist: parity/PARITY.md
       - Decision records:
           - adr/README.md
           - adr/0001-managed-pdf-writer.md

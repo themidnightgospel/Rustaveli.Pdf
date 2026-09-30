@@ -17,14 +17,14 @@ Every phase must pass, before merge:
   next pull request to fix. Pull requests are not mutation-tested: even mutating only the files a pull request
   changes held merges for hours. Arguments to exception constructors — the words of an error message — are not
   mutated.
-- **Unit tests** against a deterministic fake measurer and a recording canvas, so expected values are computable by
+- **Unit tests** against a deterministic fake measurer and a recording surface, so expected values are computable by
   hand.
 - **Integration tests** reading real output back with PdfPig.
 - **Conformance validators**: qpdf `--check` on generated files; veraPDF for PDF/A and PDF/UA output.
 - **Visual regression**: pages rendered by an independent renderer (PDFium) and compared with approved snapshots.
-- **Property-based tests and fuzzing** (CsCheck): random element trees must paginate, terminate and produce valid
+- **Property-based tests and fuzzing** (CsCheck): random block trees must paginate, terminate and produce valid
   output; font parsing survives malformed input.
-- **Equivalence** with the QuestPDF oracle for features both libraries share.
+- **Equivalence** with a reference library's output for the features both share ([ADR 0008](0008-clean-room.md)).
 
 ## Consequences
 - Slower phases, far fewer regressions. The expensive gates (benchmarks, macOS) run once per pull request when it

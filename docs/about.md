@@ -10,7 +10,7 @@ Rustaveli.Pdf exists to give .NET a PDF tool that is:
   second library.
 - **Dependable** — tested against independent validators, and released with signed provenance.
 
-It is written from scratch, as a design of its own:
+It is a design of its own:
 
 - **A vocabulary drawn from print and typesetting** — trims, margins, running heads, folios, inks
   ([glossary](GLOSSARY.md)) — so the API reads like the documents it makes.
@@ -41,6 +41,8 @@ The first release was built in ten phases, each merged only once it met every qu
 | 9 | Documentation, and the first release |
 
 
-## Independence
+## Inspiration
 
-This project is independent and is not affiliated with, endorsed by, or sponsored by QuestPDF.
+The idea of describing a document as a fluent tree of content that breaks into pages by itself comes from QuestPDF.
+How the two libraries relate — that inspiration, what QuestPDF is used for in this repository, and the clean-room
+rewrite of this library's earliest code — is set out in [Rustaveli.Pdf and QuestPDF](questpdf.md).

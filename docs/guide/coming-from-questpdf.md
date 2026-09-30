@@ -1,10 +1,13 @@
 # Coming from QuestPDF
 
-Rustaveli.Pdf does what QuestPDF does — the [parity checklist](../parity/PARITY.md) goes through every feature — and
-the ideas carry straight across: a fluent description of the document, containers that take one child, modifiers
-that wrap them, and layout that paginates on its own. What changes is the words. This library names things as print
-and page layout do ([ADR 0002](../adr/0002-print-vocabulary.md)): a page's size is its *trim*, padding is an
-*inset*, a page number is a *folio*.
+Rustaveli.Pdf offers the capabilities QuestPDF offers — the [parity checklist](../parity/PARITY.md) follows each
+one — through an API of its own. Both describe a document in C# as a fluent tree of content that breaks into pages
+by itself, so the overall shape of your code carries over; the names, and a good many details, do not. This library
+names things as print and page layout do ([ADR 0002](../adr/0002-print-vocabulary.md)): a page's size is its *trim*,
+padding is an *inset*, a page number is a *folio*.
+
+How the two libraries relate — the design inspiration, licensing, and the clean-room rewrite of this library's
+earliest code — is set out in [Rustaveli.Pdf and QuestPDF](../questpdf.md).
 
 ## The same ideas, by their print names
 
@@ -40,7 +43,8 @@ and page layout do ([ADR 0002](../adr/0002-print-vocabulary.md)): a page's size 
 | `ShowInCompanion`, `ShowInPreviewer` | `DocumentPreview.Preview` |
 | `DocumentLayoutException` | `OversetException` |
 
-The [glossary](../GLOSSARY.md) has every public name, and its *Replaces* column names what each was called there.
+The [glossary](../GLOSSARY.md) defines every public name, and the [parity checklist](../parity/PARITY.md) gives the
+counterpart of each QuestPDF feature.
 
 ## What works differently
 
@@ -113,6 +117,7 @@ Document statement = Document.Compose(composition => composition.Section(section
 }));
 ```
 
-Read against the table above, it is the QuestPDF document you would have written, line for line: `Page` became
-`Section`, `Header` became `RunningHead`, `PaddingBottom` became `InsetBottom`, `ColumnsDefinition` became `Columns`,
-`BorderBottom` became `StrokeBottom`, `AlignRight` became `FlushRight`, and `CurrentPageNumber` became `Folio`.
+Read against the table above, each line has a counterpart in the QuestPDF document you would have written: `Page`
+became `Section`, `Header` became `RunningHead`, `PaddingBottom` became `InsetBottom`, `ColumnsDefinition` became
+`Columns`, `BorderBottom` became `StrokeBottom`, `AlignRight` became `FlushRight`, and `CurrentPageNumber` became
+`Folio`.

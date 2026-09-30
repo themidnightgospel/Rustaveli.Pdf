@@ -115,15 +115,16 @@ invoice.ExportPdf("invoice.pdf");
 - **Existing files** — merge, overlay and stamp, attach files (electronic invoices included), protect and linearise.
 - **Tooling** — a live preview in the browser that redraws as you edit, with an inspector that opens the line of
   code behind any frame.
-- **Small files** — fonts subset to the glyphs used and images embedded as encoded: from 4% to 55% of QuestPDF's
-  file size on the benchmark documents ([performance](https://themidnightgospel.github.io/Rustaveli.Pdf/performance/)).
+- **Small files** — fonts subset to the glyphs used and images embedded as encoded: an 85-page report in 171 KB
+  ([performance](https://themidnightgospel.github.io/Rustaveli.Pdf/performance/)).
 
 ## Documentation
 
 - [The documentation](https://themidnightgospel.github.io/Rustaveli.Pdf/), starting with
   [getting started](https://themidnightgospel.github.io/Rustaveli.Pdf/guide/getting-started/)
 - [API reference](https://themidnightgospel.github.io/Rustaveli.Pdf/api/)
-- [Coming from QuestPDF](https://themidnightgospel.github.io/Rustaveli.Pdf/guide/coming-from-questpdf/)
+- [Coming from QuestPDF](https://themidnightgospel.github.io/Rustaveli.Pdf/guide/coming-from-questpdf/), and how
+  the two libraries relate: [Rustaveli.Pdf and QuestPDF](https://themidnightgospel.github.io/Rustaveli.Pdf/questpdf/)
 - [Features](https://themidnightgospel.github.io/Rustaveli.Pdf/features/) and
   [known limitations](https://themidnightgospel.github.io/Rustaveli.Pdf/limitations/)
 - [Changelog](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CHANGELOG.md)
@@ -132,4 +133,3 @@ invoice.ExportPdf("invoice.pdf");
 
 MIT — see [LICENSE](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/LICENSE). The bundled Noto Sans is
 under the [SIL Open Font License](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/src/Rustaveli.Pdf/Fonts/Bundled/OFL.txt).
-This project is independent and not affiliated with QuestPDF.

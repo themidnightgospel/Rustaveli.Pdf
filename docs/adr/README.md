@@ -13,8 +13,8 @@ so the history of *why* survives.
 | [0005](0005-target-frameworks.md) | Target net10.0 and netstandard2.0 | Accepted |
 | [0006](0006-packages-and-dependencies.md) | A dependency-free core; native code only by opt-in | Accepted |
 | [0007](0007-quality-gates.md) | Quality gates: coverage, mutation, validators, snapshots | Accepted |
-| [0008](0008-clean-room.md) | QuestPDF is a behavioural reference, never a source | Accepted |
-| [0009](0009-performance-targets.md) | Performance targets, measured against QuestPDF | Accepted |
+| [0008](0008-clean-room.md) | Another library is a reference for behaviour, never a source | Accepted |
+| [0009](0009-performance-targets.md) | Performance targets, measured against a reference | Accepted |
 | [0010](0010-preview-tooling.md) | Developer tooling: a dotnet tool with a browser UI | Accepted |
 | [0011](0011-delivery-workflow.md) | Delivery in phases, one pull request each | Accepted |
 | [0012](0012-parents-allot-final-size.md) | Parents allot the final size; decorators fill it | Accepted |
