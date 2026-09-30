@@ -58,7 +58,7 @@ and a pull request that breaks it fails. Every C# example in the guides is compi
 
 Every push to a pull request runs the build and the tests on Linux (with the coverage gate) and on Windows (on
 .NET 10 and .NET Framework 4.8). Once a pull request is ready, the `ready-to-merge` label runs the costlier checks
-too: macOS, and the benchmarks against QuestPDF. A pull request merges when all of them are green. Mutation testing
+too: macOS, and the benchmarks. A pull request merges when all of them are green. Mutation testing
 is not run on pull requests; it runs over `main` every night, and a shard below its floor opens an issue. A pull
 request that touches the library is also fuzzed for a few minutes; [`fuzz/README.md`](fuzz/README.md) says how to
 replay an input it fails on.
@@ -69,9 +69,10 @@ Why the checks are what they are is recorded in the [architecture decision recor
 ## Dependencies
 
 Package versions are set in [`Directory.Packages.props`](Directory.Packages.props) alone, and Dependabot proposes
-updates weekly. Two pins are deliberate and explained where they are set: QuestPDF stays at 2026.5.0, its last MIT
-release, as the tests' oracle — never upgrade it — and SkiaSharp and HarfBuzzSharp move together, checked against
-the glibc and libfontconfig notes beside them.
+updates weekly. Two pins are deliberate and explained where they are set: the reference library the tests and
+benchmarks compare against stays at the release its licence allows — never upgrade it
+([why](docs/questpdf.md#what-questpdf-is-used-for-here)) — and SkiaSharp and HarfBuzzSharp move together, checked
+against the glibc and libfontconfig notes beside them.
 
 ## Reporting security issues
 

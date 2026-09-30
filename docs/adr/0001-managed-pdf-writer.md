@@ -19,8 +19,8 @@ characteristics fixed.
 
 ## Decision
 Write PDF output in managed code: object model, content streams, compression, font parsing and subsetting, image
-embedding, annotations and document structure. The layout engine already talks to rendering only through `ICanvas`;
-the managed writer becomes the implementation behind it.
+embedding, annotations and document structure. The layout engine already talks to rendering only through one drawing
+surface; the managed writer becomes the implementation behind it.
 
 Skia remains, in an optional package, for what it is genuinely good at: rasterising pages to PNG/JPEG/WebP and
 powering the preview tool.

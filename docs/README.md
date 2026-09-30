@@ -22,13 +22,14 @@
 - [Existing files](how-it-works/existing-files.md) — reading, repairing, combining and protecting PDF files
 - [Page images and preview](how-it-works/rendering-and-preview.md) — Skia rendering and the live preview
 - [How it's tested](testing.md) — unit, property-based, integration, conformance and mutation tests, and fuzzing
-- [Performance](performance.md) — benchmarks and file sizes against QuestPDF
+- [Performance](performance.md) — benchmarks and file sizes
 - [Architecture decision records](adr/README.md) — the choices behind the design, and why
-- [Parity checklist](parity/PARITY.md) — each of QuestPDF's capabilities and where it is covered
 
 ## The project
 
 - [About](about.md) — why the library exists, and how it was built
+- [Rustaveli.Pdf and QuestPDF](questpdf.md) — the design inspiration and licensing, with the
+  [parity checklist](parity/PARITY.md)
 - [Contributing](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CONTRIBUTING.md) and
   [conventions](CONVENTIONS.md)
 - [Security policy](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/SECURITY.md)

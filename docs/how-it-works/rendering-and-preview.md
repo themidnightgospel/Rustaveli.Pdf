@@ -191,8 +191,8 @@ set". The next change that fixes the code brings the pages back.
 
 For content that cannot be set, the message traces the way down to it. When layout fails with
 [`OversetException`](https://themidnightgospel.github.io/Rustaveli.Pdf/api/reference/Rustaveli.Pdf.OversetException.html),
-the typesetter measures the failing part again with tracing switched on, recording each measurement within the one
-that asked for it. Measuring changes nothing, so doing it twice is safe, and the trace costs nothing when layout
+the typesetter plans the failing part again with tracing switched on, recording each plan within the one that asked
+for it. Planning changes nothing, so doing it twice is safe, and the trace costs nothing when layout
 succeeds. The trace lists each frame from the page down with the room it was offered, and the last says why it could
 not fit; the guide shows [an example](../guide/preview-and-debugging.md#reading-a-layout-failure).
 
@@ -207,12 +207,12 @@ Moving the pointer over a page finds the innermost frame under it, searching the
 outlines it. Clicking selects it, opens its place in the tree, and shows where it lies and its size.
 
 Each frame also knows the line of code that made it. While the preview calls the compose function — and only then —
-each element made records the first place on the call stack outside this library's own assemblies and .NET's that
+each block made records the first place on the call stack outside this library's own assemblies and .NET's that
 has a file name. That is the line in the document's code, and the inspector links to it with a `vscode://file/`
 address, which opens it in Visual Studio Code. Reading the stack is slow, so an ordinary export never does it.
 
 A file name and line are known only where the calling code was built with its symbols, as it is by default. Code
-built without them, such as a helper package, is passed over to the code that called it. Elements made outside the
+built without them, such as a helper package, is passed over to the code that called it. Blocks made outside the
 compose function record no line.
 
 ## ShowFrameEdges and Named
