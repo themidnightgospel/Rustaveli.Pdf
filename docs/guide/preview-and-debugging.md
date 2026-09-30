@@ -92,7 +92,7 @@ OversetException failure = Assert.Throws<OversetException>(() => document.Export
 ```
 
 ```text
-The body cannot be set even on an empty page, so no further page would help. Space available: (Width: 260.000, Height: 160.000). Reason: The requested minimum height (400.0) exceeds the available height (140.0).
+The body cannot be set even on an empty page, so no further page would help. Space available: 260 × 160 pt. Reason: The requested minimum height (400.0) exceeds the available height (140.0).
 Where it did not fit, from the page down:
   Stack, offered 260 × 160: does not fit
     "Totals", offered 260 × 160: does not fit

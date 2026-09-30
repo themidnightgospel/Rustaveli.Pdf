@@ -42,7 +42,7 @@ internal static class Typesetter
 
         // Content composed as pages are set — per page, or later — names styles as content composed up front does.
         using StyleSheet.Scope styles = document.Styles.Use();
-        Pagination pageContext = new Pagination();
+        Pagination pagination = new Pagination();
         int[] counted = [];
 
         // Counting is repeated until it settles. Feeding the total back in can change the answer: "of 9" is
@@ -53,33 +53,33 @@ internal static class Typesetter
         {
             using CountingPageSink probe = new CountingPageSink();
 
-            int[] pagesByPart = RunPass(document, probe, measurer, pageContext, resolution);
+            int[] pagesByPart = RunPass(document, probe, measurer, pagination, resolution);
 
             // Settled only when the pass also found anchors and captured positions where the pass before it did: a
             // cross-reference that moved what it refers to, without changing the count, would otherwise print the
             // page or place it read rather than the one it is drawn on.
-            bool settled = pagesByPart.SequenceEqual(counted) && pageContext.FoundWhatWasKnown();
+            bool settled = pagesByPart.SequenceEqual(counted) && pagination.FoundWhatWasKnown();
 
             counted = pagesByPart;
-            pageContext.PageCount = counted.Sum();
-            pageContext.PartPageCounts = counted;
-            pageContext.IsPageCountKnown = true;
+            pagination.PageCount = counted.Sum();
+            pagination.PartPageCounts = counted;
+            pagination.IsPageCountKnown = true;
 
             // Content that read none of the page count, an anchor's page or a captured position drew nothing that
             // depends on them, so another pass would find exactly what this one did.
-            if (settled || !pageContext.ReadsWhatPassesSettle)
+            if (settled || !pagination.ReadsWhatPassesSettle)
                 break;
         }
 
-        RunPass(document, pages, measurer, pageContext, resolution, tagged ? new StructureElement("Document", null) : null, inspection);
+        RunPass(document, pages, measurer, pagination, resolution, tagged ? new StructureElement("Document", null) : null, inspection);
     }
 
     /// <summary>Runs the document once through <paramref name="pages"/>; returns how many pages each merged document took.</summary>
-    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pageContext, float resolution, StructureElement? structure = null, LayoutInspection? inspection = null)
+    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pagination, float resolution, StructureElement? structure = null, LayoutInspection? inspection = null)
     {
-        pageContext.ResetForNewPass();
+        pagination.ResetForNewPass();
 
-        PlanContext layout = new PlanContext(measurer, pageContext) { Resolution = resolution };
+        PlanContext layout = new PlanContext(measurer, pagination) { Resolution = resolution };
         RenderContext direct = new RenderContext(pages, layout, structure) { Inspection = inspection };
         int pageNumber = 0;
         int[] pagesByPart = new int[document.PartCount];
@@ -96,12 +96,12 @@ internal static class Typesetter
             // Content composed as its pages are set names styles from the document it came from.
             using StyleSheet.Scope styles = document.StylesOf(part).Use();
 
-            pageContext.Section = index;
+            pagination.Section = index;
 
             // Pages whose content sets a draw order are held back and drawn in that order; counted pages are thrown
             // away, so they need no order. Whether the content does is learnt from the counting passes, which have
             // drawn it all: content composed only as it is reached cannot be found in the document beforehand.
-            bool ordered = pages is not CountingPageSink && pageContext.SetsDrawOrder(index);
+            bool ordered = pages is not CountingPageSink && pagination.SetsDrawOrder(index);
             IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
             RenderContext context = ordered ? new RenderContext(sink, layout, structure) { Inspection = inspection } : direct;
 
@@ -120,14 +120,14 @@ internal static class Typesetter
                 }
 
                 pagesByPart[part]++;
-                pageContext.Folio = document.NumbersPartsApart ? pagesByPart[part] : pageNumber;
+                pagination.Folio = document.NumbersPartsApart ? pagesByPart[part] : pageNumber;
 
                 // Until the real total is known, quote the page count as the current page so that dynamic text
                 // such as "3 of 3" occupies a realistic width and does not shift the layout on the second pass.
-                if (!pageContext.CountKnown)
-                    pageContext.PageCount = pageContext.Folio;
-                else if (document.NumbersPartsApart && pageContext.PartPageCounts is { } counts && part < counts.Length)
-                    pageContext.PageCount = counts[part];
+                if (!pagination.CountKnown)
+                    pagination.PageCount = pagination.Folio;
+                else if (document.NumbersPartsApart && pagination.PartPageCounts is { } counts && part < counts.Length)
+                    pagination.PageCount = counts[part];
 
                 bool hasMore = RenderPage(section, sink, context, layout);
 
@@ -262,7 +262,7 @@ internal static class Typesetter
                 // The paper lies beneath everything, even content drawn beneath the rest.
                 LayeredPageSink? layers = pages as LayeredPageSink;
                 layers?.Order = int.MinValue;
-                surface.DrawRectangle(Offset.Zero, pageSize, section.Paper);
+                surface.FillRectangle(Offset.Zero, pageSize, section.Paper);
                 layers?.Order = 0;
             }
 
@@ -271,7 +271,7 @@ internal static class Typesetter
         }
 
         Offset origin = new Offset(margin.Left, margin.Top);
-        surface.Translate(origin);
+        surface.MoveOrigin(origin);
 
         // A band with content is drawn even at no height: what takes no room — an anchor, a bookmark, a marker — must
         // still take effect.
@@ -283,23 +283,23 @@ internal static class Typesetter
 
         // Each part was measured in the room left by those above it, on the tallest page allowed; a page sized to its
         // content is drawn shorter than that.
-        surface.Translate(new Offset(0, bands.HeadHeight));
+        surface.MoveOrigin(new Offset(0, bands.HeadHeight));
         context.RenderAllotted(section.BodySlot, contentSpace, measuredHeight - bands.HeadHeight - bands.FootHeight);
-        surface.Translate(new Offset(0, -bands.HeadHeight));
+        surface.MoveOrigin(new Offset(0, -bands.HeadHeight));
 
         if (section.RunningFootSlot.Child is not null)
         {
             // The footer sits against the bottom margin rather than immediately after the content.
             float footTop = pageSize.Height - margin.Vertical - bands.FootHeight;
-            surface.Translate(new Offset(0, footTop));
+            surface.MoveOrigin(new Offset(0, footTop));
 
             using (context.Tags.Untag())
                 context.RenderAllotted(section.RunningFootSlot, new Extent(contentSpace.Width, bands.FootHeight), measuredHeight - bands.HeadHeight);
 
-            surface.Translate(new Offset(0, -footTop));
+            surface.MoveOrigin(new Offset(0, -footTop));
         }
 
-        surface.Translate(origin.Reverse());
+        surface.MoveOrigin(origin.Reverse());
 
         using (context.Tags.Untag())
             section.OverlaySlot.Render(pageSize, context);

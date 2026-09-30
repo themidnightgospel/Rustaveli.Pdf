@@ -47,6 +47,6 @@ internal sealed class FillBlock : EnclosingBlock
         if (Corners.IsRounded)
             surface.DrawRoundedRectangle(Offset.Zero, size, Corners, ink);
         else
-            surface.DrawRectangle(Offset.Zero, size, ink);
+            surface.FillRectangle(Offset.Zero, size, ink);
     }
 }

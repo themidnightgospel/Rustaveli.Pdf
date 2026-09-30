@@ -69,8 +69,8 @@ internal sealed class TurnBlock : EnclosingBlock
         };
 
         context.Surface.Save();
-        context.Surface.Translate(recentre);
-        context.Surface.Rotate(QuarterTurns * 90f);
+        context.Surface.MoveOrigin(recentre);
+        context.Surface.RotateClockwise(QuarterTurns * 90f);
         Child.Render(innerSpace, context);
         context.Surface.Restore();
     }

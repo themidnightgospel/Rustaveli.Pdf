@@ -21,10 +21,10 @@ public class OffsetTests
     }
 
     [Fact]
-    public void FormatsBothCoordinatesToThreeDecimals()
+    public void FormatsBothCoordinatesToAtMostThreeDecimals()
     {
         using CultureScope culture = CultureScope.DecimalComma();
 
-        Assert.Equal("(X: 1.500, Y: -2.346)", new Offset(1.5f, -2.3456f).ToString());
+        Assert.Equal("(1.5, -2.346)", new Offset(1.5f, -2.3456f).ToString());
     }
 }

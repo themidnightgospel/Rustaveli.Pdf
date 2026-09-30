@@ -81,9 +81,9 @@ internal sealed class FlowBlock : Block
                 };
 
                 Offset at = new Offset(rightToLeft ? availableSpace.Width - x - size.Width : x, y);
-                context.Surface.Translate(at);
+                context.Surface.MoveOrigin(at);
                 context.RenderAllotted(Items[index], size, availableSpace.Height);
-                context.Surface.Translate(at.Reverse());
+                context.Surface.MoveOrigin(at.Reverse());
 
                 // An item of no size has no gap after it.
                 x += takesPlace ? size.Width + gap : 0f;

@@ -388,9 +388,9 @@ internal sealed class TableBlock : Block
             Extent cellSpace = new Extent(layout.SpanWidth(cell), cellHeight);
             Offset offset = new Offset(layout.ColumnLeft(cell, cellSpace.Width), cellTop);
 
-            context.Surface.Translate(offset);
+            context.Surface.MoveOrigin(offset);
             context.RenderAllotted(cell, cellSpace, Extent.Max.Height);
-            context.Surface.Translate(offset.Reverse());
+            context.Surface.MoveOrigin(offset.Reverse());
         }
     }
 
@@ -597,8 +597,10 @@ internal sealed class TableBlock : Block
         return height;
     }
 
-    /// <summary>Splits the available width across columns: constants keep their size, relatives share the rest.</summary>
-    /// <remarks>Null means the table cannot be laid out at this width, which the caller turns into a wrap.</remarks>
+    /// <summary>
+    /// Splits the available width across columns: fixed columns keep their width, and share columns divide the rest.
+    /// </summary>
+    /// <remarks>Null means the table cannot be laid out at this width, which the caller turns into a Defer.</remarks>
     private float[]? ResolveColumnWidths(float availableWidth)
     {
         if (Columns.Count == 0)

@@ -1,8 +1,9 @@
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>
-/// A transparent container used purely as an attachment point. Composing the fluent API produces a chain of
-/// these, which keeps every builder method uniform: it sets a child and hands back a new slot.
+/// A frame: a block that adds nothing of its own and only holds the content placed into it. Composing produces a
+/// chain of frames, which keeps every composing method uniform: it places a block into one frame and hands back the
+/// frame inside that block.
 /// </summary>
 internal sealed class Frame : EnclosingBlock
 {

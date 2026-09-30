@@ -281,20 +281,20 @@ internal sealed class PdfSurface : IPageSink
         }
     }
 
-    public void Translate(Offset offset)
+    public void MoveOrigin(Offset distance)
     {
-        if (offset.X != 0 || offset.Y != 0)
-            Concatenate(Transform.Translation(offset.X, offset.Y));
+        if (distance.X != 0 || distance.Y != 0)
+            Concatenate(Transform.Translation(distance.X, distance.Y));
     }
 
-    public void Scale(float scaleX, float scaleY)
+    public void ScaleAxes(float horizontal, float vertical)
     {
-        if (scaleX != 1 || scaleY != 1)
-            Concatenate(Transform.Scaling(scaleX, scaleY));
+        if (horizontal != 1 || vertical != 1)
+            Concatenate(Transform.Scaling(horizontal, vertical));
     }
 
     // In the flipped, Y-down space the engine draws in, this matrix turns clockwise.
-    public void Rotate(float degrees) => Concatenate(Transform.Rotation(degrees));
+    public void RotateClockwise(float degrees) => Concatenate(Transform.Rotation(degrees));
 
     public void Concatenate(float a, float b, float c, float d, float e, float f) => Concatenate(new Transform(a, b, c, d, e, f));
 
@@ -409,15 +409,15 @@ internal sealed class PdfSurface : IPageSink
         content.EndPath();
     }
 
-    public void DrawRectangle(Offset position, Extent size, Ink color)
+    public void FillRectangle(Offset topLeft, Extent size, Ink ink)
     {
-        if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
+        if (ink.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
 
         Mark(text: false);
 
-        SetFill(color);
-        Content.Rectangle(position.X, position.Y, size.Width, size.Height);
+        SetFill(ink);
+        Content.Rectangle(topLeft.X, topLeft.Y, size.Width, size.Height);
         Content.Fill();
     }
 
@@ -530,7 +530,7 @@ internal sealed class PdfSurface : IPageSink
         content.Stroke();
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
+    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
         float size = style.EffectivePointSize;
         if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
@@ -546,14 +546,14 @@ internal sealed class PdfSurface : IPageSink
 
         EmbeddedFont? current = null;
         int pending = 0;
-        double pen = baselineStart.X;
+        double pen = baseline.X;
         float previousAdvance = 0f;
         float previousExtra = 0f;
         float previousShortfall = 0f;
         bool first = true;
         bool placed = false;
 
-        foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style, rightToLeft))
+        foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style, direction == ReadingDirection.RightToLeft))
         {
             // Beyond the widths and character spacing a reader applies itself: kerning, word spacing after a space,
             // and any difference between the advance the glyph was set with and the width the font declares for it.
@@ -580,7 +580,7 @@ internal sealed class PdfSurface : IPageSink
                 if (!ReferenceEquals(font, current))
                     content.SetFont(Page.Resources.GetFontName(font.Reference), size);
 
-                content.SetTextMatrix(1, 0, 0, -1, pen + glyph.XOffset, baselineStart.Y - glyph.YOffset);
+                content.SetTextMatrix(1, 0, 0, -1, pen + glyph.XOffset, baseline.Y - glyph.YOffset);
                 content.BeginTextArray();
                 current = font;
             }
@@ -605,7 +605,7 @@ internal sealed class PdfSurface : IPageSink
         content.EndText();
     }
 
-    public void DrawImage(IImage image, Extent size)
+    public void PaintImage(IImage image, Extent size)
     {
         ArgumentNullException.ThrowIfNull(image);
 
@@ -679,35 +679,35 @@ internal sealed class PdfSurface : IPageSink
         content.RestoreState();
     }
 
-    public void DrawExternalLink(string url, Extent size)
+    public void LinkToUrl(string url, Offset topLeft, Extent size)
     {
         if (string.IsNullOrEmpty(url))
             return;
 
         (PdfDictionary Entries, StructureElement Link)? tagged = LinkEntries(url);
-        PdfReference annotation = Page.AddUriLink(PageArea(size), url, tagged?.Entries);
+        PdfReference annotation = Page.AddUriLink(PageArea(topLeft, size), url, tagged?.Entries);
         tagged?.Link.Kids.Add(new ObjectReference(annotation, Page.Reference));
     }
 
-    public void DrawInternalLink(string destinationName, Extent size)
+    public void LinkToDestination(string destination, Offset topLeft, Extent size)
     {
-        if (string.IsNullOrEmpty(destinationName))
+        if (string.IsNullOrEmpty(destination))
             return;
 
-        (PdfDictionary Entries, StructureElement Link)? tagged = LinkEntries(destinationName);
-        PdfReference annotation = Page.AddDestinationLink(PageArea(size), destinationName, tagged?.Entries);
+        (PdfDictionary Entries, StructureElement Link)? tagged = LinkEntries(destination);
+        PdfReference annotation = Page.AddDestinationLink(PageArea(topLeft, size), destination, tagged?.Entries);
         tagged?.Link.Kids.Add(new ObjectReference(annotation, Page.Reference));
     }
 
-    public void DrawDestination(string destinationName)
+    public void NameDestination(string name, Offset at)
     {
-        if (string.IsNullOrEmpty(destinationName))
+        if (string.IsNullOrEmpty(name))
             return;
 
-        (double x, double y) = _state.Matrix.Apply(0, 0);
+        (double x, double y) = _state.Matrix.Apply(at.X, at.Y);
 
         // The first anchor of a name wins, as it does for a reader following the link.
-        _writer.AddNamedDestination(destinationName, Page.Reference, x, y);
+        _writer.AddNamedDestination(name, Page.Reference, x, y);
     }
 
     public void DrawBookmark(string title, int level)
@@ -760,14 +760,21 @@ internal sealed class PdfSurface : IPageSink
         _state.Matrix = _state.Matrix.After(transform);
     }
 
-    /// <summary>A rectangle at the current origin, in the page's own space, as annotations need it.</summary>
-    private PdfRectangle PageArea(Extent size)
+    /// <summary>
+    /// The upright box holding a rectangle of the drawing, in the page's own space, as annotations need it: under a
+    /// turn or a scale the rectangle's corners are carried to the page one by one and the box taken around them.
+    /// </summary>
+    private PdfRectangle PageArea(Offset topLeft, Extent size)
     {
         Transform matrix = _state.Matrix;
-        (double x0, double y0) = matrix.Apply(0, 0);
-        (double x1, double y1) = matrix.Apply(size.Width, 0);
-        (double x2, double y2) = matrix.Apply(0, size.Height);
-        (double x3, double y3) = matrix.Apply(size.Width, size.Height);
+        double left = topLeft.X;
+        double top = topLeft.Y;
+        double right = left + size.Width;
+        double bottom = top + size.Height;
+        (double x0, double y0) = matrix.Apply(left, top);
+        (double x1, double y1) = matrix.Apply(right, top);
+        (double x2, double y2) = matrix.Apply(left, bottom);
+        (double x3, double y3) = matrix.Apply(right, bottom);
 
         return new PdfRectangle(
             Math.Min(Math.Min(x0, x1), Math.Min(x2, x3)),

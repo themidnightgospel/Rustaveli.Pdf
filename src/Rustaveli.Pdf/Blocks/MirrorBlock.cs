@@ -35,8 +35,8 @@ internal sealed class MirrorBlock : EnclosingBlock
             Vertically ? availableSpace.Height : 0);
 
         context.Surface.Save();
-        context.Surface.Translate(offset);
-        context.Surface.Scale(scaleX, scaleY);
+        context.Surface.MoveOrigin(offset);
+        context.Surface.ScaleAxes(scaleX, scaleY);
         Child.Render(availableSpace, context);
         context.Surface.Restore();
     }

@@ -92,9 +92,9 @@ internal sealed class FlowColumnsBlock : Block
 
             // Drawn afresh in every gutter, as a layer is on every page.
             Between.ResetState(includeDocumentProgress: false);
-            surface.Translate(at);
+            surface.MoveOrigin(at);
             Between.Render(new Extent(Gutter, drawn.Height), context);
-            surface.Translate(at.Reverse());
+            surface.MoveOrigin(at.Reverse());
         }
     }
 
@@ -177,9 +177,9 @@ internal sealed class FlowColumnsBlock : Block
             tallest = Math.Max(tallest, plan.Size.Height);
 
             Offset at = place(index);
-            render.Surface.Translate(at);
+            render.Surface.MoveOrigin(at);
             Story.Render(column, render);
-            render.Surface.Translate(at.Reverse());
+            render.Surface.MoveOrigin(at.Reverse());
 
             if (plan.IsComplete)
                 return new Pour(index + 1, tallest, height, Done: true);

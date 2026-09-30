@@ -42,11 +42,11 @@ public class PdfSurfaceTests
     {
         ["Save"] = canvas => canvas.Save(),
         ["Restore"] = canvas => canvas.Restore(),
-        ["Translate"] = canvas => canvas.Translate(new Offset(5, 5)),
-        ["Scale"] = canvas => canvas.Scale(2, 2),
-        ["Rotate"] = canvas => canvas.Rotate(90),
+        ["MoveOrigin"] = canvas => canvas.MoveOrigin(new Offset(5, 5)),
+        ["ScaleAxes"] = canvas => canvas.ScaleAxes(2, 2),
+        ["RotateClockwise"] = canvas => canvas.RotateClockwise(90),
         ["ClipRectangle"] = canvas => canvas.ClipRectangle(new Extent(10, 10)),
-        ["DrawRectangle"] = canvas => canvas.DrawRectangle(Offset.Zero, new Extent(10, 10), Brick),
+        ["FillRectangle"] = canvas => canvas.FillRectangle(Offset.Zero, new Extent(10, 10), Brick),
         ["DrawRoundedRectangle"] = canvas => canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), Brick),
         ["DrawLine"] = canvas => canvas.DrawLine(Offset.Zero, new Offset(10, 0), 1, Brick),
         ["DrawDashedLine"] = canvas => canvas.DrawDashedLine(Offset.Zero, new Offset(10, 0), 1, Brick, [2, 1]),
@@ -54,15 +54,15 @@ public class PdfSurfaceTests
         ["FillPath"] = canvas => canvas.FillPath(new VectorPath().AddRectangle(0, 0, 5, 5), Brick, FillRule.NonZero),
         ["StrokePath"] = canvas => canvas.StrokePath(new VectorPath().AddRectangle(0, 0, 5, 5), Brick, new LineStyle(1)),
         ["ClipPath"] = canvas => canvas.ClipPath(new VectorPath().AddRectangle(0, 0, 5, 5), FillRule.NonZero),
-        ["DrawText"] = canvas => canvas.DrawText("Text", new Offset(10, 30), Style),
-        ["DrawImage"] = canvas =>
+        ["ShowText"] = canvas => canvas.ShowText("Text", new Offset(10, 30), Style, ReadingDirection.LeftToRight),
+        ["PaintImage"] = canvas =>
         {
             RasterImage image = RasterImage.FromBytes(TestImages.Png(4, 2));
-            canvas.DrawImage(image, new Extent(10, 5));
+            canvas.PaintImage(image, new Extent(10, 5));
         },
-        ["DrawExternalLink"] = canvas => canvas.DrawExternalLink("https://example.com", new Extent(10, 10)),
-        ["DrawInternalLink"] = canvas => canvas.DrawInternalLink("target", new Extent(10, 10)),
-        ["DrawDestination"] = canvas => canvas.DrawDestination("target")
+        ["LinkToUrl"] = canvas => canvas.LinkToUrl("https://example.com", Offset.Zero, new Extent(10, 10)),
+        ["LinkToDestination"] = canvas => canvas.LinkToDestination("target", Offset.Zero, new Extent(10, 10)),
+        ["NameDestination"] = canvas => canvas.NameDestination("target", Offset.Zero)
     };
 
     /// <summary>Runs <paramref name="script"/>, which opens and closes its own pages, and returns the file.</summary>
@@ -119,11 +119,11 @@ public class PdfSurfaceTests
         byte[] pdf = RenderDocument(canvas =>
         {
             canvas.BeginPage(new Extent(300, 150));
-            canvas.DrawText("First", new Offset(10, 50), Style);
+            canvas.ShowText("First", new Offset(10, 50), Style, ReadingDirection.LeftToRight);
             canvas.EndPage();
 
             canvas.BeginPage(new Extent(120, 400));
-            canvas.DrawText("Second", new Offset(10, 50), Style);
+            canvas.ShowText("Second", new Offset(10, 50), Style, ReadingDirection.LeftToRight);
             canvas.EndPage();
         });
 
@@ -141,11 +141,11 @@ public class PdfSurfaceTests
     [Theory]
     [InlineData("Save")]
     [InlineData("Restore")]
-    [InlineData("Translate")]
-    [InlineData("Scale")]
-    [InlineData("Rotate")]
+    [InlineData("MoveOrigin")]
+    [InlineData("ScaleAxes")]
+    [InlineData("RotateClockwise")]
     [InlineData("ClipRectangle")]
-    [InlineData("DrawRectangle")]
+    [InlineData("FillRectangle")]
     [InlineData("DrawRoundedRectangle")]
     [InlineData("DrawLine")]
     [InlineData("DrawDashedLine")]
@@ -153,11 +153,11 @@ public class PdfSurfaceTests
     [InlineData("FillPath")]
     [InlineData("StrokePath")]
     [InlineData("ClipPath")]
-    [InlineData("DrawText")]
-    [InlineData("DrawImage")]
-    [InlineData("DrawExternalLink")]
-    [InlineData("DrawInternalLink")]
-    [InlineData("DrawDestination")]
+    [InlineData("ShowText")]
+    [InlineData("PaintImage")]
+    [InlineData("LinkToUrl")]
+    [InlineData("LinkToDestination")]
+    [InlineData("NameDestination")]
     public void EveryOperationNeedsAnOpenPage(string operation)
     {
         RenderDocument(canvas =>
@@ -178,10 +178,10 @@ public class PdfSurfaceTests
         byte[] pdf = RenderDocument(canvas =>
         {
             canvas.BeginPage(new Extent(PageSide, PageSide));
-            canvas.DrawText("Drawn", new Offset(10, 50), Style);
+            canvas.ShowText("Drawn", new Offset(10, 50), Style, ReadingDirection.LeftToRight);
             canvas.EndPage();
 
-            Assert.Throws<InvalidOperationException>(() => canvas.DrawText("Late", new Offset(10, 90), Style));
+            Assert.Throws<InvalidOperationException>(() => canvas.ShowText("Late", new Offset(10, 90), Style, ReadingDirection.LeftToRight));
         });
 
         using PdfDocument parsed = PdfDocument.Open(pdf);
@@ -193,10 +193,10 @@ public class PdfSurfaceTests
     // ---- Rectangles --------------------------------------------------------------------------------------------
 
     [Fact]
-    public void DrawRectangleFillsTheAreaInTheColourGiven()
+    public void FillRectangleFillsTheAreaInTheColourGiven()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Offset(20, 30), new Extent(50, 40), Brick));
+            canvas.FillRectangle(new Offset(20, 30), new Extent(50, 40), Brick));
 
         PdfPath path = Assert.Single(parsed.GetPage(1).Paths);
 
@@ -210,7 +210,7 @@ public class PdfSurfaceTests
     public void APartiallyTransparentRectangleIsStillDrawn()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Offset(20, 30), new Extent(50, 40), Brick.WithOpacity(1 / 255f)));
+            canvas.FillRectangle(new Offset(20, 30), new Extent(50, 40), Brick.WithOpacity(1 / 255f)));
 
         Assert.Single(parsed.GetPage(1).Paths);
     }
@@ -221,11 +221,11 @@ public class PdfSurfaceTests
     [InlineData(50, 0, 255)]
     [InlineData(-50, 40, 255)]
     [InlineData(50, -40, 255)]
-    public void DrawRectangleDrawsNothingThatCouldNotBeSeen(float width, float height, byte alpha)
+    public void FillRectangleDrawsNothingThatCouldNotBeSeen(float width, float height, byte alpha)
     {
         // A negative extent is not merely empty: Skia would normalise it and paint the mirror-image rectangle.
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawRectangle(new Offset(100, 100), new Extent(width, height), Brick.WithOpacity(alpha / 255f)));
+            canvas.FillRectangle(new Offset(100, 100), new Extent(width, height), Brick.WithOpacity(alpha / 255f)));
 
         Assert.Empty(parsed.GetPage(1).Paths);
     }
@@ -504,10 +504,10 @@ public class PdfSurfaceTests
     // ---- Text --------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void DrawTextStartsOnTheBaselineAtThePositionGiven()
+    public void ShowTextStartsOnTheBaselineAtThePositionGiven()
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawText("Baseline", new Offset(40, 120), Style.WithInk(Brick)));
+            canvas.ShowText("Baseline", new Offset(40, 120), Style.WithInk(Brick), ReadingDirection.LeftToRight));
 
         Page page = parsed.GetPage(1);
         Letter first = page.Letters[0];
@@ -523,10 +523,10 @@ public class PdfSurfaceTests
     [InlineData(null, 255)]
     [InlineData("", 255)]
     [InlineData("Invisible", 0)]
-    public void DrawTextDrawsNothingThatCouldNotBeSeen(string? text, byte alpha)
+    public void ShowTextDrawsNothingThatCouldNotBeSeen(string? text, byte alpha)
     {
         using PdfDocument parsed = Render(canvas =>
-            canvas.DrawText(text!, new Offset(40, 120), Style.WithInk(Brick.WithOpacity(alpha / 255f))));
+            canvas.ShowText(text!, new Offset(40, 120), Style.WithInk(Brick.WithOpacity(alpha / 255f)), ReadingDirection.LeftToRight));
 
         Assert.Empty(parsed.GetPage(1).Letters);
     }
@@ -536,7 +536,7 @@ public class PdfSurfaceTests
     {
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText("Hello世界", new Offset(40, 120), Style));
+        using PdfDocument parsed = Render(canvas => canvas.ShowText("Hello世界", new Offset(40, 120), Style, ReadingDirection.LeftToRight));
         Page page = parsed.GetPage(1);
 
         Assert.Equal(40 + measurer.MeasureWidth("Hello", Style), LetterOf(page, "世").StartBaseLine.X, Tolerance);
@@ -549,7 +549,7 @@ public class PdfSurfaceTests
         TypeStyle spaced = Style.WithWordSpacing(12);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText("A B C", new Offset(20, 120), spaced));
+        using PdfDocument parsed = Render(canvas => canvas.ShowText("A B C", new Offset(20, 120), spaced, ReadingDirection.LeftToRight));
         Page page = parsed.GetPage(1);
 
         Assert.Equal(20 + measurer.MeasureWidth("A ", spaced), LetterOf(page, "B").StartBaseLine.X, Tolerance);
@@ -562,7 +562,7 @@ public class PdfSurfaceTests
         TypeStyle spaced = Style.WithTracking(6);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText("ABCD", new Offset(40, 120), spaced));
+        using PdfDocument parsed = Render(canvas => canvas.ShowText("ABCD", new Offset(40, 120), spaced, ReadingDirection.LeftToRight));
         IReadOnlyList<Letter> letters = parsed.GetPage(1).Letters;
 
         Assert.Equal("ABCD", string.Concat(letters.Select(letter => letter.Value)));
@@ -583,7 +583,7 @@ public class PdfSurfaceTests
         TypeStyle spaced = Style.WithFeature("ccmp", 0).WithTracking(6);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText("aéb", new Offset(40, 120), spaced));
+        using PdfDocument parsed = Render(canvas => canvas.ShowText("aéb", new Offset(40, 120), spaced, ReadingDirection.LeftToRight));
         Page page = parsed.GetPage(1);
 
         Assert.Equal(40 + measurer.MeasureWidth("ae", spaced) + 6, LetterOf(page, "b").StartBaseLine.X, Tolerance);
@@ -598,7 +598,7 @@ public class PdfSurfaceTests
         TypeStyle spaced = Style.WithTracking(6);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText($"A{MathBoldA}B", new Offset(40, 120), spaced));
+        using PdfDocument parsed = Render(canvas => canvas.ShowText($"A{MathBoldA}B", new Offset(40, 120), spaced, ReadingDirection.LeftToRight));
         Page page = parsed.GetPage(1);
 
         // Split halves would each be an unmapped fragment and cost a second gap; whole, the pair is one glyph.
@@ -609,14 +609,14 @@ public class PdfSurfaceTests
     // ---- Images ------------------------------------------------------------------------------------------------
 
     [Fact]
-    public void DrawImagePlacesTheImageAtTheOriginAtTheSizeGiven()
+    public void PaintImagePlacesTheImageAtTheOriginAtTheSizeGiven()
     {
         RasterImage image = RasterImage.FromBytes(TestImages.Png(64, 32));
 
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Offset(30, 40));
-            canvas.DrawImage(image, new Extent(120, 60));
+            canvas.MoveOrigin(new Offset(30, 40));
+            canvas.PaintImage(image, new Extent(120, 60));
         });
 
         IPdfImage placed = Assert.Single(parsed.GetPage(1).GetImages());
@@ -634,11 +634,11 @@ public class PdfSurfaceTests
     [InlineData(120, 0)]
     [InlineData(-120, 60)]
     [InlineData(120, -60)]
-    public void DrawImageDrawsNothingIntoAnEmptyArea(float width, float height)
+    public void PaintImageDrawsNothingIntoAnEmptyArea(float width, float height)
     {
         RasterImage image = RasterImage.FromBytes(TestImages.Png(64, 32));
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawImage(image, new Extent(width, height)));
+        using PdfDocument parsed = Render(canvas => canvas.PaintImage(image, new Extent(width, height)));
 
         Assert.Empty(parsed.GetPage(1).GetImages());
     }
@@ -663,11 +663,11 @@ public class PdfSurfaceTests
             }
             else
             {
-                canvas.DrawRectangle(Offset.Zero, new Extent(5, 5), Ocean.WithOpacity(0.3f));
+                canvas.FillRectangle(Offset.Zero, new Extent(5, 5), Ocean.WithOpacity(0.3f));
             }
 
             canvas.StrokePath(square, Brick.WithOpacity(0.6f), new LineStyle(1));
-            canvas.DrawImage(image, new Extent(10, 5));
+            canvas.PaintImage(image, new Extent(10, 5));
         });
 
         Page page = parsed.GetPage(1);
@@ -700,8 +700,8 @@ public class PdfSurfaceTests
         // Each scale is written as it is; together they reach beyond what a pattern's matrix can hold.
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Scale(1e10f, 1e10f);
-            canvas.Scale(1e10f, 1e10f);
+            canvas.ScaleAxes(1e10f, 1e10f);
+            canvas.ScaleAxes(1e10f, 1e10f);
             canvas.BeginGradient(Gradient.Across(Brick, Ocean), Offset.Zero, new Extent(5, 5));
             canvas.FillPath(square, Brick, FillRule.NonZero);
             canvas.StrokePath(square, Brick, new LineStyle(1));
@@ -713,11 +713,11 @@ public class PdfSurfaceTests
     }
 
     [Fact]
-    public void DrawImageRejectsAnImageItDidNotDecode()
+    public void PaintImageRejectsAnImageItDidNotDecode()
     {
         using PdfDocument parsed = Render(canvas =>
         {
-            ArgumentException error = Assert.Throws<ArgumentException>(() => canvas.DrawImage(new ForeignImage(), new Extent(40, 20)));
+            ArgumentException error = Assert.Throws<ArgumentException>(() => canvas.PaintImage(new ForeignImage(), new Extent(40, 20)));
 
             Assert.Equal("image", error.ParamName);
             Assert.Contains(nameof(RasterImage), error.Message);
@@ -729,12 +729,12 @@ public class PdfSurfaceTests
     // ---- Links and destinations --------------------------------------------------------------------------------
 
     [Fact]
-    public void DrawExternalLinkMakesTheAreaAtTheOriginClickable()
+    public void LinkToUrlMakesTheAreaAtTheOriginClickable()
     {
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Offset(20, 30));
-            canvas.DrawExternalLink("https://example.com/report", new Extent(80, 15));
+            canvas.MoveOrigin(new Offset(20, 30));
+            canvas.LinkToUrl("https://example.com/report", Offset.Zero, new Extent(80, 15));
         });
 
         Annotation link = Assert.Single(parsed.GetPage(1).GetAnnotations());
@@ -747,12 +747,32 @@ public class PdfSurfaceTests
         Assert.Equal(15, link.Rectangle.Height, Tolerance);
     }
 
+    [Fact]
+    public void ALinkAwayFromTheOriginIsPlacedThroughTheWholeTransform()
+    {
+        // Turned a quarter clockwise about (100, 100), the box 40 across and 10 down at (10, 0) stands 10 across and 40
+        // down, with its corners from x 90 to 100 and y 110 to 150 on the page.
+        using PdfDocument parsed = Render(canvas =>
+        {
+            canvas.MoveOrigin(new Offset(100, 100));
+            canvas.RotateClockwise(90);
+            canvas.LinkToUrl("https://example.com/turned", new Offset(10, 0), new Extent(40, 10));
+        });
+
+        Annotation link = Assert.Single(parsed.GetPage(1).GetAnnotations());
+
+        Assert.Equal(90, link.Rectangle.Left, Tolerance);
+        Assert.Equal(PageSide - 110, link.Rectangle.Top, Tolerance);
+        Assert.Equal(10, link.Rectangle.Width, Tolerance);
+        Assert.Equal(40, link.Rectangle.Height, Tolerance);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     public void AnExternalLinkWithNoTargetIsNotDrawn(string? url)
     {
-        using PdfDocument parsed = Render(canvas => canvas.DrawExternalLink(url!, new Extent(80, 15)));
+        using PdfDocument parsed = Render(canvas => canvas.LinkToUrl(url!, Offset.Zero, new Extent(80, 15)));
 
         Assert.Empty(parsed.GetPage(1).GetAnnotations());
     }
@@ -763,13 +783,13 @@ public class PdfSurfaceTests
         byte[] pdf = RenderDocument(canvas =>
         {
             canvas.BeginPage(new Extent(PageSide, PageSide));
-            canvas.Translate(new Offset(10, 10));
-            canvas.DrawInternalLink("appendix", new Extent(60, 12));
+            canvas.MoveOrigin(new Offset(10, 10));
+            canvas.LinkToDestination("appendix", Offset.Zero, new Extent(60, 12));
             canvas.EndPage();
 
             canvas.BeginPage(new Extent(PageSide, PageSide));
-            canvas.Translate(new Offset(0, 50));
-            canvas.DrawDestination("appendix");
+            canvas.MoveOrigin(new Offset(0, 50));
+            canvas.NameDestination("appendix", Offset.Zero);
             canvas.EndPage();
         });
 
@@ -791,17 +811,17 @@ public class PdfSurfaceTests
     {
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.DrawInternalLink(destination!, new Extent(60, 12));
-            canvas.DrawDestination("elsewhere");
+            canvas.LinkToDestination(destination!, Offset.Zero, new Extent(60, 12));
+            canvas.NameDestination("elsewhere", Offset.Zero);
         });
 
         Assert.Empty(parsed.GetPage(1).GetAnnotations());
     }
 
     [Fact]
-    public void DrawDestinationRegistersANamedDestination()
+    public void NameDestinationRegistersANamedDestination()
     {
-        using PdfDocument parsed = Render(canvas => canvas.DrawDestination("chapter-one"));
+        using PdfDocument parsed = Render(canvas => canvas.NameDestination("chapter-one", Offset.Zero));
 
         // Where it points is checked through a link that resolves it, in AnInternalLinkJumpsToWhereItsDestinationWasDrawn.
         Assert.True(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("Names")));
@@ -812,7 +832,7 @@ public class PdfSurfaceTests
     [InlineData("")]
     public void ADestinationWithNoNameIsNotRegistered(string? name)
     {
-        using PdfDocument parsed = Render(canvas => canvas.DrawDestination(name!));
+        using PdfDocument parsed = Render(canvas => canvas.NameDestination(name!, Offset.Zero));
 
         Assert.False(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("Names")));
     }
@@ -851,7 +871,7 @@ public class PdfSurfaceTests
         string pdf = RenderTagged(canvas =>
         {
             canvas.Tag(null);
-            canvas.DrawRectangle(new Offset(20, 30), new Extent(60, 40), Brick);
+            canvas.FillRectangle(new Offset(20, 30), new Extent(60, 40), Brick);
         });
 
         Assert.Matches(@"/Artifact\s+BMC", pdf);
@@ -868,9 +888,9 @@ public class PdfSurfaceTests
         string pdf = RenderTagged(canvas =>
         {
             canvas.Tag(null);
-            canvas.DrawRectangle(new Offset(20, 30), new Extent(60, 40), Brick);
+            canvas.FillRectangle(new Offset(20, 30), new Extent(60, 40), Brick);
             canvas.Tag(paragraph);
-            canvas.DrawText("Text", new Offset(10, 120), Style);
+            canvas.ShowText("Text", new Offset(10, 120), Style, ReadingDirection.LeftToRight);
         });
 
         Assert.Matches(@"/Artifact\s+BMC[\s\S]*/P\s*<<\s*/MCID 0\s*>>\s*BDC", pdf);
@@ -887,7 +907,7 @@ public class PdfSurfaceTests
         string pdf = RenderTagged(canvas =>
         {
             canvas.Tag(paragraph);
-            canvas.DrawExternalLink("https://example.com/", new Extent(80, 15));
+            canvas.LinkToUrl("https://example.com/", Offset.Zero, new Extent(80, 15));
         });
 
         StructureElement link = Assert.IsType<StructureElement>(Assert.Single(paragraph.Kids));
@@ -905,10 +925,10 @@ public class PdfSurfaceTests
         using PdfDocument parsed = Render(canvas =>
         {
             canvas.Save();
-            canvas.Translate(new Offset(50, 60));
-            canvas.DrawText("M", new Offset(10, 40), Style);
+            canvas.MoveOrigin(new Offset(50, 60));
+            canvas.ShowText("M", new Offset(10, 40), Style, ReadingDirection.LeftToRight);
             canvas.Restore();
-            canvas.DrawText("H", new Offset(10, 40), Style);
+            canvas.ShowText("H", new Offset(10, 40), Style, ReadingDirection.LeftToRight);
         });
 
         Page page = parsed.GetPage(1);
@@ -924,8 +944,8 @@ public class PdfSurfaceTests
     {
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Scale(2, 3);
-            canvas.DrawRectangle(new Offset(10, 10), new Extent(20, 20), Brick);
+            canvas.ScaleAxes(2, 3);
+            canvas.FillRectangle(new Offset(10, 10), new Extent(20, 20), Brick);
         });
 
         AssertBounds(Assert.Single(parsed.GetPage(1).Paths).GetBoundingRectangle(), left: 20, top: 30, width: 40, height: 60);
@@ -937,9 +957,9 @@ public class PdfSurfaceTests
         // A bar running right from the origin must end up hanging downwards from it, to the left of the X axis.
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Offset(100, 100));
-            canvas.Rotate(90);
-            canvas.DrawRectangle(Offset.Zero, new Extent(40, 10), Brick);
+            canvas.MoveOrigin(new Offset(100, 100));
+            canvas.RotateClockwise(90);
+            canvas.FillRectangle(Offset.Zero, new Extent(40, 10), Brick);
         });
 
         AssertBounds(Assert.Single(parsed.GetPage(1).Paths).GetBoundingRectangle(), left: 90, top: 100, width: 10, height: 40);
@@ -952,9 +972,9 @@ public class PdfSurfaceTests
         // the page. PdfPig bounds a rectangle by two of its corners, so the matrix is what is checked.
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Offset(100, 100));
-            canvas.Rotate(45);
-            canvas.DrawRectangle(Offset.Zero, new Extent(20, 20), Brick);
+            canvas.MoveOrigin(new Offset(100, 100));
+            canvas.RotateClockwise(45);
+            canvas.FillRectangle(Offset.Zero, new Extent(20, 20), Brick);
         });
 
         string content = System.Text.Encoding.ASCII.GetString(parsed.GetPage(1).Operations
@@ -973,9 +993,9 @@ public class PdfSurfaceTests
         // the conformance suite's job.
         using PdfDocument parsed = Render(canvas =>
         {
-            canvas.Translate(new Offset(100, 100));
+            canvas.MoveOrigin(new Offset(100, 100));
             canvas.ClipRectangle(new Extent(90, 50));
-            canvas.DrawText("Inside", new Offset(5, 30), Style);
+            canvas.ShowText("Inside", new Offset(5, 30), Style, ReadingDirection.LeftToRight);
         });
 
         string content = System.Text.Encoding.ASCII.GetString(parsed.GetPage(1).Operations
@@ -997,11 +1017,11 @@ public class PdfSurfaceTests
         {
             PdfSurface surface = new PdfSurface(writer, TypefaceLibrary.Shared.Shaper);
             surface.BeginPage(new Extent(PageSide, PageSide));
-            surface.DrawText("Unfinished", new Offset(10, 50), Style);
+            surface.ShowText("Unfinished", new Offset(10, 50), Style, ReadingDirection.LeftToRight);
 
             surface.Dispose();
 
-            Assert.Throws<InvalidOperationException>(() => surface.DrawText("Late", new Offset(10, 90), Style));
+            Assert.Throws<InvalidOperationException>(() => surface.ShowText("Late", new Offset(10, 90), Style, ReadingDirection.LeftToRight));
             surface.Finish();
         }
 
@@ -1044,7 +1064,7 @@ public class PdfSurfaceTests
 
         surface.Dispose();
 
-        Assert.Throws<InvalidOperationException>(() => surface.DrawText("Late", new Offset(10, 90), Style));
+        Assert.Throws<InvalidOperationException>(() => surface.ShowText("Late", new Offset(10, 90), Style, ReadingDirection.LeftToRight));
     }
 
     [Fact]
@@ -1053,7 +1073,7 @@ public class PdfSurfaceTests
         // Longer than the surface's first buffer of glyph codes, with no kerning pair to break it up.
         string text = new string('l', 300);
 
-        using PdfDocument parsed = Render(canvas => canvas.DrawText(text, new Offset(4, 50), Style.WithPointSize(2)));
+        using PdfDocument parsed = Render(canvas => canvas.ShowText(text, new Offset(4, 50), Style.WithPointSize(2), ReadingDirection.LeftToRight));
 
         Assert.Equal(text, parsed.GetPage(1).Text);
     }

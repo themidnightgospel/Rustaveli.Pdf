@@ -50,8 +50,8 @@ internal sealed class ScaleBlock : EnclosingBlock
         // Undoing a scale by multiplying by its reciprocal loses precision, and the error compounds through
         // nested scales. Save and restore the transform instead, which is exact.
         context.Surface.Save();
-        context.Surface.Translate(MirrorOffset(innerSpace, context.Planning));
-        context.Surface.Scale(ScaleX, ScaleY);
+        context.Surface.MoveOrigin(MirrorOffset(innerSpace, context.Planning));
+        context.Surface.ScaleAxes(ScaleX, ScaleY);
         Child.Render(innerSpace, context);
         context.Surface.Restore();
     }

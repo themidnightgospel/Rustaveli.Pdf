@@ -67,10 +67,16 @@ public class ExtentTests
     }
 
     [Fact]
-    public void FormatsBothDimensionsToThreeDecimals()
+    public void FormatsBothDimensionsInPointsToAtMostThreeDecimals()
     {
         using CultureScope culture = CultureScope.DecimalComma();
 
-        Assert.Equal("(Width: 1.500, Height: 2.346)", new Extent(1.5f, 2.3456f).ToString());
+        Assert.Equal("1.5 × 2.346 pt", new Extent(1.5f, 2.3456f).ToString());
+    }
+
+    [Fact]
+    public void FormatsWholeDimensionsWithoutDecimals()
+    {
+        Assert.Equal("200 × 0 pt", new Extent(200, -0.0001f).ToString());
     }
 }

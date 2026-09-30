@@ -27,6 +27,6 @@ internal sealed class FixedBlock(Extent size, Ink? color = null) : Block
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         if (size.FitsIn(availableSpace))
-            context.Surface.DrawRectangle(Offset.Zero, size, Color);
+            context.Surface.FillRectangle(Offset.Zero, size, Color);
     }
 }
