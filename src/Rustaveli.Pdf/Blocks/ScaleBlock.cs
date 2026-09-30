@@ -31,9 +31,6 @@ internal sealed class ScaleBlock : EnclosingBlock
         Extent room = Unscaled(availableSpace);
         Fit plan = Child.Plan(room, context.Planning);
 
-        if (!plan.PlacesContent)
-            return;
-
         // Mirrored through the origin, the content would land on the far side of it, off the box this block reports;
         // moving the origin across that box first brings it back over it.
         Offset across = new Offset(
