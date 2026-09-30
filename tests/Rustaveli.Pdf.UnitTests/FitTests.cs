@@ -70,7 +70,7 @@ public class FitTests
     [Fact]
     public void WrapDescribesItselfWithItsReason()
     {
-        Assert.Equal("Defer (too narrow)", Fit.Defer("too narrow").ToString());
+        Assert.Equal("Defer: too narrow", Fit.Defer("too narrow").ToString());
     }
 
     [Fact]
@@ -84,8 +84,8 @@ public class FitTests
     {
         using CultureScope culture = CultureScope.DecimalComma();
 
-        Assert.Equal("Complete (Width: 1.500, Height: 2.250)", Fit.Complete(1.5f, 2.25f).ToString());
-        Assert.Equal("Partial (Width: 3.000, Height: 4.000)", Fit.Partial(3, 4).ToString());
+        Assert.Equal("Complete, 1.5 × 2.25 pt", Fit.Complete(1.5f, 2.25f).ToString());
+        Assert.Equal("Partial, 3 × 4 pt", Fit.Partial(3, 4).ToString());
     }
 
     private static bool[] Flags(Fit plan) => [plan.IsDeferred, plan.IsNothing, plan.IsComplete, plan.IsPartial];

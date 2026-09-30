@@ -16,4 +16,7 @@ public readonly record struct Offset(float X, float Y)
     public Offset Reverse() => new Offset(-X, -Y);
 
     public static Offset operator +(Offset left, Offset right) => new Offset(left.X + right.X, left.Y + right.Y);
+
+    /// <summary>The two coordinates in points, across then down: <c>(1.5, -2.25)</c>.</summary>
+    public override string ToString() => "(" + PointText.Of(X) + ", " + PointText.Of(Y) + ")";
 }

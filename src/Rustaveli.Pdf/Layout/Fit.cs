@@ -47,4 +47,15 @@ internal readonly record struct Fit
     public static Fit Complete(Extent size) => new Fit(FitKind.Complete, size, null);
 
     public static Fit Complete(float width, float height) => Complete(new Extent(width, height));
+
+    /// <summary>
+    /// The outcome as a trace or a failure quotes it: <c>Nothing</c>, <c>Defer: </c> and the reason, or the kind
+    /// and the size, as in <c>Complete, 1.5 × 2.25 pt</c>.
+    /// </summary>
+    public override string ToString() => Kind switch
+    {
+        FitKind.Nothing => "Nothing",
+        FitKind.Defer => "Defer: " + DeferReason,
+        _ => Kind + ", " + Size,
+    };
 }

@@ -43,4 +43,7 @@ public readonly record struct Extent(float Width, float Height)
     /// </summary>
     public bool FitsIn(Extent available) =>
         Width <= available.Width + Epsilon && Height <= available.Height + Epsilon;
+
+    /// <summary>The size as a reader writes it, width by height: <c>1.5 × 2.25 pt</c>.</summary>
+    public override string ToString() => PointText.Of(Width) + " × " + PointText.Of(Height) + " pt";
 }
