@@ -15,12 +15,12 @@ public class BidirectionalTextTests
 
     private static RecordedPage Draw(Action<TextComposer> compose, ReadingDirection direction = ReadingDirection.LeftToRight, float width = 500)
     {
-        TextBlock element = new TextBlock();
-        compose(new TextComposer(element));
+        TextBlock block = new TextBlock();
+        compose(new TextComposer(block));
         PlanContext context = LayoutHarness.Context();
         context.ReadingDirection = direction;
 
-        return LayoutHarness.Draw(element, new Extent(width, 500), context);
+        return LayoutHarness.Render(block, new Extent(width, 500), context);
     }
 
     /// <summary>Each piece of text drawn, as it shows from left to right.</summary>
@@ -39,7 +39,7 @@ public class BidirectionalTextTests
         System.Globalization.TextElementEnumerator enumerator = System.Globalization.StringInfo.GetTextElementEnumerator(operation.Text);
 
         while (enumerator.MoveNext())
-            elements.Add(enumerator.GetTextElement() switch { "(" => ")", ")" => "(", string element => element });
+            elements.Add(enumerator.GetTextElement() switch { "(" => ")", ")" => "(", string grapheme => grapheme });
 
         elements.Reverse();
         return string.Concat(elements);

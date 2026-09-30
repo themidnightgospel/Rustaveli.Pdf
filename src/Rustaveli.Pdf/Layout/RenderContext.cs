@@ -5,7 +5,7 @@ using Rustaveli.Pdf.Text;
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>
-/// Everything an element needs while drawing: the measurement services, the surface to draw onto, and the structure
+/// Everything a block needs while drawing: the measurement services, the surface to draw onto, and the structure
 /// elements it is drawn inside.
 /// </summary>
 internal sealed class RenderContext(ISurface surface, PlanContext layout, StructureElement? structure = null)

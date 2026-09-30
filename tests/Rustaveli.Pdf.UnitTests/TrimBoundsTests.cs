@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class TrimBoundsTests
 {
     private static List<RecordedPage> Render(Action<Section> configure) =>
-        LayoutHarness.Render(Document.Compose(container => container.Section(configure))).Pages;
+        LayoutHarness.Render(Document.Compose(frame => frame.Section(configure))).Pages;
 
     [Fact]
     public void APageTakesItsContentsSizeWithinTheBounds()

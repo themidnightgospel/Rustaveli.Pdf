@@ -11,5 +11,5 @@ internal sealed class CaptionSnippet(string caption) : ISnippet
     {
     }
 
-    public void Compose(IFrame container) => container.Text(caption);
+    public void Compose(IFrame frame) => frame.Text(caption);
 }

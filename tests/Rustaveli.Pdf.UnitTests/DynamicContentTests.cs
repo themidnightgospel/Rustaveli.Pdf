@@ -33,7 +33,7 @@ public class DynamicContentTests
     }
 
     private static List<RecordedPage> Render(Action<Section> configure) =>
-        LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(200, 100);
             configure(section);
@@ -71,9 +71,9 @@ public class DynamicContentTests
         DynamicBlock<int> block = new DynamicBlock<int>(rows);
         PlanContext context = LayoutHarness.Context();
 
-        LayoutHarness.Measure(block, new Extent(200, 100), context);
-        LayoutHarness.Measure(block, new Extent(200, 100), context);
-        LayoutHarness.Draw(block, new Extent(200, 100), context);
+        LayoutHarness.Plan(block, new Extent(200, 100), context);
+        LayoutHarness.Plan(block, new Extent(200, 100), context);
+        LayoutHarness.Render(block, new Extent(200, 100), context);
 
         Assert.Single(rows.Composed);
     }
@@ -83,12 +83,12 @@ public class DynamicContentTests
     {
         DynamicBlock<int> block = new DynamicBlock<int>(new Rows(2));
 
-        Fit plan = LayoutHarness.Measure(block, new Extent(200, 100));
-        LayoutHarness.Draw(block, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 100));
+        LayoutHarness.Render(block, new Extent(200, 100));
 
         Assert.True(plan.IsComplete);
-        Assert.True(LayoutHarness.Measure(block, new Extent(200, 100)).IsNothing);
-        Assert.Empty(LayoutHarness.Draw(block, new Extent(200, 100)).Operations);
+        Assert.True(LayoutHarness.Plan(block, new Extent(200, 100)).IsNothing);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(200, 100)).Operations);
     }
 
     [Fact]
@@ -96,8 +96,8 @@ public class DynamicContentTests
     {
         DynamicBlock<int> block = new DynamicBlock<int>(new Fixed(new FixedBlock(500, 10)));
 
-        Assert.True(LayoutHarness.Measure(block, new Extent(200, 100)).IsDeferred);
-        Assert.Empty(LayoutHarness.Draw(block, new Extent(200, 100)).Operations);
+        Assert.True(LayoutHarness.Plan(block, new Extent(200, 100)).IsDeferred);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(200, 100)).Operations);
     }
 
     [Fact]
@@ -105,20 +105,20 @@ public class DynamicContentTests
     {
         DynamicBlock<int> block = new DynamicBlock<int>(new Fixed(null));
 
-        Assert.Equal(Extent.Zero, LayoutHarness.Measure(block, new Extent(200, 100)).Size);
+        Assert.Equal(Extent.Zero, LayoutHarness.Plan(block, new Extent(200, 100)).Size);
     }
 
     [Fact]
     public void ProgressIsSavedAndRestored()
     {
         DynamicBlock<int> block = new DynamicBlock<int>(new Rows(12));
-        LayoutHarness.Draw(block, new Extent(200, 100));
+        LayoutHarness.Render(block, new Extent(200, 100));
 
         Progress saved = block.SaveProgress();
-        string ahead = LayoutHarness.Draw(block, new Extent(200, 100)).Content;
+        string ahead = LayoutHarness.Render(block, new Extent(200, 100)).Content;
         block.RestoreProgress(saved);
 
-        Assert.Equal(ahead, LayoutHarness.Draw(block, new Extent(200, 100)).Content);
+        Assert.Equal(ahead, LayoutHarness.Render(block, new Extent(200, 100)).Content);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class DynamicContentTests
     {
         DynamicBlock<int> block = new DynamicBlock<int>(new Nothing());
 
-        Assert.Throws<InvalidOperationException>(() => LayoutHarness.Measure(block, new Extent(200, 100)));
+        Assert.Throws<InvalidOperationException>(() => LayoutHarness.Plan(block, new Extent(200, 100)));
     }
 
     [Fact]

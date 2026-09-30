@@ -13,7 +13,7 @@ public class FitToContentTests
         Block root = LayoutHarness.Build(frame => fit(frame.Reading(direction)).Fill(TestInks.Red).Compose(inner =>
             inner.Slot().Child = new FixedBlock(30, 10)));
 
-        return LayoutHarness.Draw(root, Box).Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Red);
+        return LayoutHarness.Render(root, Box).Operations.OfType<RectangleOperation>().Single(operation => operation.Ink == TestInks.Red);
     }
 
     [Fact]
@@ -54,15 +54,15 @@ public class FitToContentTests
     {
         Block root = LayoutHarness.Build(frame => frame.FitToContent().Compose(inner => inner.Slot().Child = new FixedBlock(30, 10)));
 
-        Assert.Equal(new Extent(30, 10), LayoutHarness.Measure(root, Box).Size);
+        Assert.Equal(new Extent(30, 10), LayoutHarness.Plan(root, Box).Size);
     }
 
     [Fact]
     public void ContentThatDoesNotFitIsNotDrawn()
     {
-        FitToContentBlock element = new FitToContentBlock { Child = new FixedBlock(300, 10, TestInks.Red) };
+        FitToContentBlock block = new FitToContentBlock { Child = new FixedBlock(300, 10, TestInks.Red) };
 
-        Assert.Empty(LayoutHarness.Draw(element, Box).Operations);
-        Assert.Empty(LayoutHarness.Draw(new FitToContentBlock(), Box).Operations);
+        Assert.Empty(LayoutHarness.Render(block, Box).Operations);
+        Assert.Empty(LayoutHarness.Render(new FitToContentBlock(), Box).Operations);
     }
 }

@@ -11,7 +11,7 @@ public sealed class TableColumns
 
     internal TableColumns(TableBlock block) => _block = block;
 
-    /// <summary>Adds a column that shares leftover width with other relative columns, proportional to its weight.</summary>
+    /// <summary>Adds a column that takes a share of the width the fixed columns leave, in proportion to its weight.</summary>
     public void Share(float weight = 1f) => _block.Columns.Add(TableColumnSpec.Share(Numbers.NotNegative(weight, nameof(weight))));
 
     /// <summary>Adds a column of fixed width in points.</summary>

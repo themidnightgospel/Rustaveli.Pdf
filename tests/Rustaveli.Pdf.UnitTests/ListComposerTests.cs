@@ -5,7 +5,7 @@ public class ListComposerTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static Block BuildList(Action<ListComposer> compose) =>
-        LayoutHarness.Build(container => container.List(compose));
+        LayoutHarness.Build(frame => frame.List(compose));
 
     [Fact]
     public void UnorderedSwitchesANumberedListBackToBullets()
@@ -17,7 +17,7 @@ public class ListComposerTests
             list.Add().Text("alpha");
         });
 
-        string content = LayoutHarness.Draw(root, Space).Content;
+        string content = LayoutHarness.Render(root, Space).Content;
 
         Assert.Contains("•", content);
         Assert.DoesNotContain("1.", content);
@@ -32,7 +32,7 @@ public class ListComposerTests
             list.Add().Text("alpha");
         });
 
-        List<TextOperation> texts = LayoutHarness.Draw(root, Space).Texts.ToList();
+        List<TextOperation> texts = LayoutHarness.Render(root, Space).Texts.ToList();
 
         Approximately.Equal(20f, texts.Single(text => text.Text == "•").Style.PointSize);
         Approximately.Equal(TypeStyle.Default.PointSize, texts.Single(text => text.Text == "alpha").Style.PointSize);
@@ -48,9 +48,9 @@ public class ListComposerTests
             list.Add().Compose(inner => inner.Slot().Child = new FixedBlock(10, 20, TestInks.Red));
         });
 
-        Fit plan = LayoutHarness.Measure(root, Space);
+        Fit plan = LayoutHarness.Plan(root, Space);
         List<RectangleOperation> items =
-            LayoutHarness.Draw(root, Space).Operations.OfType<RectangleOperation>().ToList();
+            LayoutHarness.Render(root, Space).Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(50f, plan.Size.Height);
         Approximately.Equal(30f, items[1].Position.Y);

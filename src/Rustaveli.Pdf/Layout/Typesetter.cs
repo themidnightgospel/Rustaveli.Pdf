@@ -179,7 +179,7 @@ internal static class Typesetter
             bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
             float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
 
-            // Tolerate the same sub-epsilon overshoot every element accepts as fitting. A footer that fits by that
+            // Tolerate the same sub-epsilon overshoot every block accepts as fitting. A footer that fits by that
             // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
             if (contentHeight < -Extent.Epsilon)
                 throw new OversetException(

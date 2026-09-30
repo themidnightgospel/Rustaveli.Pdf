@@ -8,7 +8,7 @@ public class GridTests
     private static readonly Extent Space = new Extent(120, 400);
 
     private static List<RectangleOperation> Cells(Action<GridComposer> compose) =>
-        LayoutHarness.Draw(frame => frame.Grid(compose), Space).Operations.OfType<RectangleOperation>()
+        LayoutHarness.Render(frame => frame.Grid(compose), Space).Operations.OfType<RectangleOperation>()
             .Where(operation => operation.Ink == TestInks.Red)
             .ToList();
 
@@ -121,7 +121,7 @@ public class GridTests
     [Fact]
     public void EveryCellInARowIsAsTallAsTheTallest()
     {
-        List<RectangleOperation> fills = LayoutHarness.Draw(frame => frame.Grid(grid =>
+        List<RectangleOperation> fills = LayoutHarness.Render(frame => frame.Grid(grid =>
         {
             grid.Columns(2);
             Filled(grid.Cell());
@@ -156,7 +156,7 @@ public class GridTests
 
     [Fact]
     public void AGridWithNoCellsIsEmpty() =>
-        Assert.Empty(LayoutHarness.Draw(frame => frame.Grid(grid => grid.Columns(3)), Space).Operations);
+        Assert.Empty(LayoutHarness.Render(frame => frame.Grid(grid => grid.Columns(3)), Space).Operations);
 
     [Fact]
     public void ACellSpansAtLeastOneColumn()

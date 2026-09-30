@@ -17,7 +17,7 @@ public class LayoutPropertyTests
     private static (Document Document, string Written) Build(TreeNode tree)
     {
         TreeComposer composer = new TreeComposer();
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = PageSize;
             page.Margins = Sides.All(20);
@@ -28,8 +28,8 @@ public class LayoutPropertyTests
         return (document, composer.WrittenText);
     }
 
-    private static string Drawn(RecordingSurface canvas) =>
-        string.Concat(canvas.Pages.SelectMany(page => page.Texts).Select(text => text.Text)).Replace(" ", string.Empty);
+    private static string Drawn(RecordingSurface surface) =>
+        string.Concat(surface.Pages.SelectMany(page => page.Texts).Select(text => text.Text)).Replace(" ", string.Empty);
 
     private static string Sorted(string text) => new string(text.OrderBy(character => character).ToArray());
 
@@ -67,9 +67,9 @@ public class LayoutPropertyTests
     {
         TreeGenerator.Tree.Sample(tree =>
         {
-            RecordingSurface canvas = LayoutHarness.Render(Build(tree).Document);
+            RecordingSurface surface = LayoutHarness.Render(Build(tree).Document);
 
-            foreach (RecordedPage page in canvas.Pages)
+            foreach (RecordedPage page in surface.Pages)
             {
                 foreach (RectangleOperation rectangle in page.Operations.OfType<RectangleOperation>())
                 {
@@ -94,15 +94,15 @@ public class LayoutPropertyTests
         TreeGenerator.Tree.Sample(tree =>
         {
             TreeComposer composer = new TreeComposer();
-            Block root = LayoutHarness.Build(container => composer.Compose(container, tree));
+            Block root = LayoutHarness.Build(frame => composer.Compose(frame, tree));
             Size space = new Size(360, 460);
 
-            Fit first = LayoutHarness.Measure(root, space);
-            Fit second = LayoutHarness.Measure(root, space);
-            RecordedPage drawnAfterMeasuring = LayoutHarness.Draw(root, first.IsDeferred || first.IsNothing ? space : first.Size);
+            Fit first = LayoutHarness.Plan(root, space);
+            Fit second = LayoutHarness.Plan(root, space);
+            RecordedPage drawnAfterMeasuring = LayoutHarness.Render(root, first.IsDeferred || first.IsNothing ? space : first.Size);
 
-            Block fresh = LayoutHarness.Build(container => new TreeComposer().Compose(container, tree));
-            RecordedPage drawnFresh = LayoutHarness.Draw(fresh, first.IsDeferred || first.IsNothing ? space : first.Size);
+            Block fresh = LayoutHarness.Build(frame => new TreeComposer().Compose(frame, tree));
+            RecordedPage drawnFresh = LayoutHarness.Render(fresh, first.IsDeferred || first.IsNothing ? space : first.Size);
 
             Assert.Equal(first, second);
             Assert.Equal(drawnFresh.Operations, drawnAfterMeasuring.Operations);

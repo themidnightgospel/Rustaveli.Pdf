@@ -45,7 +45,7 @@ internal sealed class FlowColumnsBlock : Block
         if (width <= 0)
             return Fit.Defer(FormattableString.Invariant($"{Count} columns with gutters of {Gutter:F1} leave no width in {availableSpace.Width:F1} points."));
 
-        Pour pour = Measure(width, availableSpace.Height, context);
+        Pour pour = Forecast(width, availableSpace.Height, context);
 
         if (pour.Columns == 0)
         {
@@ -68,15 +68,15 @@ internal sealed class FlowColumnsBlock : Block
         if (width <= 0)
             return;
 
-        Pour measured = Measure(width, availableSpace.Height, context.Planning);
+        Pour forecast = Forecast(width, availableSpace.Height, context.Planning);
 
-        if (measured.Columns == 0)
+        if (forecast.Columns == 0)
             return;
 
         ISurface surface = context.Surface;
         bool rightToLeft = context.Planning.ReadingDirection == ReadingDirection.RightToLeft;
 
-        Pour drawn = Flow(width, measured.ColumnHeight, context.Planning, context, column =>
+        Pour drawn = Flow(width, forecast.ColumnHeight, context.Planning, context, column =>
         {
             float x = column * (width + Gutter);
             return new Offset(rightToLeft ? availableSpace.Width - x - width : x, 0);
@@ -105,7 +105,7 @@ internal sealed class FlowColumnsBlock : Block
     /// leaving it where it was. Balanced, the story is poured into the shortest columns it fits whenever it ends on
     /// this page.
     /// </summary>
-    private Pour Measure(float width, float height, PlanContext context)
+    private Pour Forecast(float width, float height, PlanContext context)
     {
         using CountingPageSink nowhere = new CountingPageSink();
         RenderContext ahead = new RenderContext(nowhere, context) { DrawsAhead = true };

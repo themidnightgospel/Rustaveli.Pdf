@@ -28,7 +28,7 @@ internal sealed class MirrorBlock : EnclosingBlock
         float scaleY = Vertically ? -1f : 1f;
 
         // Scaling by -1 reflects through the origin, which would put the content off the far side of it, so
-        // translate by the full extent first to bring it back over its own box. The box is the one this element
+        // translate by the full extent first to bring it back over its own box. The box is the one this block
         // was given (ADR 0012): the child is drawn into it, so it is also the extent to mirror across.
         Offset offset = new Offset(
             Horizontally ? availableSpace.Width : 0,
