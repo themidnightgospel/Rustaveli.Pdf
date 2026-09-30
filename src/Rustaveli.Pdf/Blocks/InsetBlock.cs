@@ -3,7 +3,8 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Insets its child by a fixed amount on each side.
+/// Sets its child in from each side of its room by a fixed amount, and takes that much room around the child. An
+/// amount below zero sets the child out past that side instead.
 /// </summary>
 internal sealed class InsetBlock : EnclosingBlock
 {
@@ -11,43 +12,28 @@ internal sealed class InsetBlock : EnclosingBlock
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        Extent innerSpace = new Extent(
-            availableSpace.Width - Inset.Horizontal,
-            availableSpace.Height - Inset.Vertical);
+        Extent inner = Inner(availableSpace);
 
-        if (innerSpace.IsNegative)
+        if (inner.IsNegative)
             return Fit.Defer("The space available is smaller than the inset.");
 
-        Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
-
-        if (childPlan.IsDeferred)
-            return childPlan;
-
-        // A child with nothing left to draw must not resurrect the padding on the next page.
-        if (childPlan.IsNothing)
-            return Fit.Nothing();
-
-        Extent size = new Extent(
-            childPlan.Size.Width + Inset.Horizontal,
-            childPlan.Size.Height + Inset.Vertical);
-
-        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
+        // Content used up stays Nothing, so the inset does not linger as a band of blank room on later pages.
+        Fit plan = base.PlanCore(inner, context);
+        return Resized(plan, new Extent(plan.Size.Width + Inset.Horizontal, plan.Size.Height + Inset.Vertical));
     }
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (Child is null)
+        Extent inner = Inner(availableSpace);
+
+        if (Child is null || inner.IsNegative)
             return;
 
-        Extent innerSpace = new Extent(
-            availableSpace.Width - Inset.Horizontal,
-            availableSpace.Height - Inset.Vertical);
-
-        if (innerSpace.IsNegative)
-            return;
-
-        context.Surface.MoveOrigin(new Offset(Inset.Left, Inset.Top));
-        Child.Render(innerSpace, context);
-        context.Surface.MoveOrigin(new Offset(Inset.Left, Inset.Top).Reverse());
+        Offset corner = new Offset(Inset.Left, Inset.Top);
+        context.Surface.MoveOrigin(corner);
+        Child.Render(inner, context);
+        context.Surface.MoveOrigin(corner.Reverse());
     }
+
+    private Extent Inner(Extent room) => new Extent(room.Width - Inset.Horizontal, room.Height - Inset.Vertical);
 }

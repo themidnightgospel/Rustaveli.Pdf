@@ -2,14 +2,11 @@ using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf.Blocks;
 
-/// <summary>
-/// One layer of a <see cref="LayersBlock"/>.
-/// </summary>
+/// <summary>One layer of a <see cref="LayersBlock"/>: the frame its content goes into.</summary>
 internal sealed class Layer : EnclosingBlock
 {
     /// <summary>
-    /// Whether this layer determines the size of the stack. Exactly one layer should be primary; the others
-    /// are painted into whatever space it claims.
+    /// Whether this is the base layer, whose size the layers take and whose content flows from page to page.
     /// </summary>
     public bool IsBase { get; set; }
 }

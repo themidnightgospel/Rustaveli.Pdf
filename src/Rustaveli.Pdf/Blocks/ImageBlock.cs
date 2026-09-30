@@ -37,22 +37,10 @@ internal sealed class ImageBlock : Block
         context.Surface.PaintImage(Image, size);
     }
 
+    /// <summary>The box the image is drawn in; an image with no height in pixels is taken to be square.</summary>
     private Extent ResolveSize(Extent availableSpace)
     {
-        // Width divided by height, used to derive layout size from one known dimension. Computed here rather than
-        // as a default interface member, which the netstandard2.0 runtime cannot dispatch.
-        float ratio = (Image!.PixelHeight == 0) ? 1f : ((float)Image.PixelWidth / (float)Image.PixelHeight);
-
-        Extent fromWidth = new Extent(availableSpace.Width, availableSpace.Width / ratio);
-        Extent fromHeight = new Extent(availableSpace.Height * ratio, availableSpace.Height);
-
-        return Fit switch
-        {
-            ImageFitting.FitWidth => fromWidth,
-            ImageFitting.FitHeight => fromHeight,
-            ImageFitting.Proportionally => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
-            ImageFitting.Stretch => availableSpace,
-            _ => fromWidth
-        };
+        float aspect = Image!.PixelHeight == 0 ? 1f : (float)Image.PixelWidth / Image.PixelHeight;
+        return PictureBox.Of(Fit, aspect, availableSpace);
     }
 }

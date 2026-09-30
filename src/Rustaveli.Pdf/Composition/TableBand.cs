@@ -3,7 +3,7 @@ using Rustaveli.Pdf.Blocks;
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Builds one band of a table — its body, header or footer.
+/// Adds the cells of a table's header rows or footer rows, which are drawn again on every page the table runs on to.
 /// </summary>
 public sealed class TableBand
 {
@@ -11,7 +11,9 @@ public sealed class TableBand
 
     internal TableBand(List<CellBlock> cells) => _cells = cells;
 
-    /// <summary>Adds a cell. Without an explicit position it is placed in the next free slot.</summary>
+    /// <summary>
+    /// Adds a cell to the band, placed in the next free slot unless it is given a row or column of its own.
+    /// </summary>
     public CellFrame Cell()
     {
         CellBlock cell = new CellBlock();

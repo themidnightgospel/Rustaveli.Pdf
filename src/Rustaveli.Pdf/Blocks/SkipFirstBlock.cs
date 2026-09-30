@@ -3,35 +3,37 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Suppresses its child the first time it would render, and shows it on every occasion after that.
+/// Leaves its child out the first time it is drawn and shows it every time after: a "continued" note that belongs on
+/// every page of a run but its first.
 /// </summary>
-/// <remarks>
-/// The complement of <see cref="OnceBlock"/>: useful for a "continued" marker that should not appear on
-/// the opening page.
-/// </remarks>
 internal sealed class SkipFirstBlock : EnclosingBlock
 {
-    private bool _hasSkipped;
+    private bool _skipped;
 
+    /// <summary>Kept through the reset a running head gets for each page, or the note would skip every page.</summary>
     protected override bool TracksDocumentProgress => true;
 
-    protected override void ResetOwnState() => _hasSkipped = false;
+    protected override void ResetOwnState() => _skipped = false;
 
-    protected override object? SaveOwnProgress() => _hasSkipped;
+    protected override object? SaveOwnProgress() => _skipped;
 
-    protected override void RestoreOwnProgress(object progress) => _hasSkipped = (bool)progress;
+    protected override void RestoreOwnProgress(object progress) => _skipped = (bool)progress;
 
+    /// <remarks>
+    /// Until it has skipped, it is Complete and takes no room rather than Nothing: a parent passes over Nothing without
+    /// drawing it, and only being drawn records that the first occurrence went by.
+    /// </remarks>
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
-        _hasSkipped ? base.PlanCore(availableSpace, context) : Fit.Complete(Extent.Zero);
+        _skipped ? base.PlanCore(availableSpace, context) : Fit.Complete(Extent.Zero);
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (_hasSkipped)
+        if (!_skipped)
         {
-            base.RenderCore(availableSpace, context);
+            _skipped = true;
             return;
         }
 
-        _hasSkipped = true;
+        base.RenderCore(availableSpace, context);
     }
 }

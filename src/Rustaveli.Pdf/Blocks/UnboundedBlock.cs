@@ -3,40 +3,38 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Measures its child against unlimited space, letting it exceed what the parent offered.
+/// Lets its child take all the room it wants while telling its parent it takes none, so the content around it is laid
+/// out as if it were not there: the place for an overlay or an annotation.
 /// </summary>
-/// <remarks>
-/// Reports zero size to its parent, so surrounding content lays out as though nothing were here. Useful for
-/// overlays and annotations that should not disturb the flow they sit in.
-/// </remarks>
 internal sealed class UnboundedBlock : EnclosingBlock
 {
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        Fit childPlan = Child?.Plan(Extent.Max, context) ?? Fit.Complete(Extent.Zero);
+        if (Child is null)
+            return Fit.Complete(Extent.Zero);
 
-        if (childPlan.IsNothing)
-            return Fit.Nothing();
+        Fit plan = Child.Plan(Extent.Max, context);
 
-        // Even unbounded space has a ceiling — the largest page PDF allows. Content that cannot fit inside that
-        // is reported rather than swallowed, otherwise Measure would promise a render that Draw silently skips.
-        if (childPlan.IsDeferred)
-            return childPlan;
+        return plan.Kind switch
+        {
+            FitKind.Complete => Fit.Complete(Extent.Zero),
 
-        if (childPlan.IsPartial)
-            return Fit.Defer("Unbounded content does not fit even on the largest page, so the rest would be lost.");
-
-        return Fit.Complete(Extent.Zero);
+            // The room offered is already the largest page there is, so the rest has nowhere further to go.
+            FitKind.Partial => Fit.Defer("Unbounded content does not fit even on the largest page, so the rest would be lost."),
+            _ => plan,
+        };
     }
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        Fit childPlan = Child?.Plan(Extent.Max, context.Planning) ?? Fit.Complete(Extent.Zero);
-
-        if (childPlan.IsDeferred || childPlan.IsNothing)
+        if (Child is null)
             return;
 
-        if (Child is not null)
-            context.RenderAllotted(Child, childPlan.Size, Extent.Max.Height);
+        Fit plan = Child.Plan(Extent.Max, context.Planning);
+
+        if (!plan.PlacesContent)
+            return;
+
+        context.RenderAllotted(Child, plan.Size, Extent.Max.Height);
     }
 }

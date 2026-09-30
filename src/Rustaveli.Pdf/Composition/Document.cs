@@ -12,7 +12,8 @@ namespace Rustaveli.Pdf;
 /// </remarks>
 public sealed class Document : IComposition
 {
-    private readonly List<Section> _pages = new List<Section>();
+    /// <summary>The document's sections, in the order they were composed and are set.</summary>
+    private readonly List<Section> _sections = [];
 
     /// <summary>The section each document merged into this one begins at; this document alone is one, from 0.</summary>
     private readonly List<int> _partStarts = [0];
@@ -49,7 +50,7 @@ public sealed class Document : IComposition
         }
     }
 
-    internal IReadOnlyList<Section> Sections => _pages;
+    internal IReadOnlyList<Section> Sections => _sections;
 
     /// <summary>Whether each merged document numbers its pages from 1 and counts only its own.</summary>
     internal bool NumbersPartsApart { get; private set; }
@@ -92,10 +93,10 @@ public sealed class Document : IComposition
             // becoming one part whose sheet — the merge's own, which its content never named styles from — is empty.
             // A fresh copy always carries its style sheets, one for a document composed alone.
             Document fresh = part.Recompose();
-            int offset = merged._pages.Count;
+            int offset = merged._sections.Count;
             merged._partStarts.AddRange(fresh._partStarts.Select(start => offset + start));
             merged._partStyles.AddRange(fresh._partStyles);
-            merged._pages.AddRange(fresh._pages);
+            merged._sections.AddRange(fresh._sections);
         }
 
         // Each document may take the pages it allows, so together they may take them all.
@@ -179,12 +180,17 @@ public sealed class Document : IComposition
         return document;
     }
 
+    /// <remarks>
+    /// The section joins the document only once its handler has returned, so a handler that fails leaves no section
+    /// composed halfway behind it.
+    /// </remarks>
     void IComposition.Section(Action<Section> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        Section pageDescriptor = new Section();
-        handler(pageDescriptor);
-        _pages.Add(pageDescriptor);
+
+        Section section = new Section();
+        handler(section);
+        _sections.Add(section);
     }
 
     /// <summary>The document one export lays out; disposing it hands a document's own tree back for the next.</summary>

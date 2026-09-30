@@ -7,16 +7,16 @@ namespace Rustaveli.Pdf;
 /// Composition methods for spacing, sizing, alignment and flow control.
 /// </summary>
 /// <remarks>
-/// Most methods attach one element to the container they are called on and return that element as the next
-/// container, so a chain such as <c>.Inset(10).Fill(...)</c> nests rather than accumulating flags. The
-/// exceptions are the configurators — <c>StrokeInk</c>, <c>AlignStroke</c> and <c>RoundCorners</c> — which attach
-/// nothing and return the element they just adjusted, and the alignment methods, which fold into an adjacent empty
-/// aligner.
+/// Most methods place one block into the frame they are called on and return the frame inside that block, so a chain
+/// such as <c>.Inset(10).Fill(...)</c> nests one block in the next rather than collecting settings on one. The
+/// exceptions are the stroke and fill configurators — <c>StrokeInk</c>, <c>AlignStroke</c> and <c>RoundCorners</c> —
+/// which place nothing and adjust the block placed just before them, and the alignment methods, which combine with
+/// one another while the block they placed still holds nothing.
 /// </remarks>
 public static class FrameModifiers
 {
-    private static T Attach<T>(IFrame parent, T element) where T : Block =>
-        FrameAttachment.Attach(parent, element);
+    private static T Attach<T>(IFrame parent, T block) where T : Block =>
+        FrameAttachment.Attach(parent, block);
 
     // ---- Padding -------------------------------------------------------------------------------------------
 
@@ -274,8 +274,8 @@ public static class FrameModifiers
     public static IFrame FlushBottom(this IFrame parent) => Place(parent, vertical: VerticalPlacement.Bottom);
 
     /// <summary>
-    /// Reuses an adjacent alignment element when one is already present, so that <c>.FlushRight().Middle()</c>
-    /// aligns on both axes instead of nesting two elements that each claim the full space.
+    /// Adds to the alignment just placed while it still holds nothing, so that <c>.FlushRight().Middle()</c> aligns
+    /// on both axes in one block instead of nesting two, the inner of which would be given only its content's size.
     /// </summary>
     private static IFrame Place(IFrame parent, HorizontalPlacement? horizontal = null, VerticalPlacement? vertical = null)
     {
@@ -350,7 +350,7 @@ public static class FrameModifiers
         Attach(parent, new WhenBlock { OnPage = condition ?? throw new ArgumentNullException(nameof(condition)) });
 
     /// <summary>
-    /// Draws the content again on every page its container continues onto: a row's column is drawn afresh beside
+    /// Draws the content again on every page the frame around it continues onto: a row's column is drawn afresh beside
     /// the columns still going, instead of being left empty once its content is used up.
     /// </summary>
     public static IFrame RepeatOnEachPage(this IFrame parent) =>
@@ -515,7 +515,7 @@ public static class FrameModifiers
 
     public static IFrame Link(this IFrame parent, string url)
     {
-        // An empty target makes the element draw no annotation at all, so the region would look linked in the
+        // An empty target makes the block draw no annotation at all, so the region would look linked in the
         // source and do nothing in the file.
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
 

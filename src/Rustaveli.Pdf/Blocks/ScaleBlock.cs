@@ -3,8 +3,8 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Scales its child about the top-left corner. The reported size is scaled to match, so surrounding content
-/// reflows around the visual result.
+/// Scales its child from its top left corner and takes the room the scaled child covers, so the content around it
+/// makes way. A factor below zero mirrors the child along that axis.
 /// </summary>
 internal sealed class ScaleBlock : EnclosingBlock
 {
@@ -12,63 +12,38 @@ internal sealed class ScaleBlock : EnclosingBlock
 
     public float ScaleY { get; set; } = 1f;
 
+    private bool Collapses => ScaleX == 0 || ScaleY == 0;
+
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        if (ScaleX == 0 || ScaleY == 0)
+        if (Collapses)
             return Fit.Defer("A scale factor of zero collapses the content entirely.");
 
-        // The child is measured in its own unscaled coordinate space, so expand the offered space by the
-        // inverse of the scale before handing it over.
-        Extent innerSpace = new Extent(
-            availableSpace.Width / Math.Abs(ScaleX),
-            availableSpace.Height / Math.Abs(ScaleY));
-
-        Fit childPlan = Child?.Plan(innerSpace, context) ?? Fit.Complete(Extent.Zero);
-
-        if (childPlan.IsDeferred)
-            return childPlan;
-
-        if (childPlan.IsNothing)
-            return Fit.Nothing();
-
-        Extent size = new Extent(
-            childPlan.Size.Width * Math.Abs(ScaleX),
-            childPlan.Size.Height * Math.Abs(ScaleY));
-
-        return childPlan.IsComplete ? Fit.Complete(size) : Fit.Partial(size);
+        Fit plan = base.PlanCore(Unscaled(availableSpace), context);
+        return Resized(plan, new Extent(plan.Size.Width * Math.Abs(ScaleX), plan.Size.Height * Math.Abs(ScaleY)));
     }
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (Child is null || ScaleX == 0 || ScaleY == 0)
+        if (Child is null || Collapses)
             return;
 
-        Extent innerSpace = new Extent(
-            availableSpace.Width / Math.Abs(ScaleX),
-            availableSpace.Height / Math.Abs(ScaleY));
+        Extent room = Unscaled(availableSpace);
+        Fit plan = Child.Plan(room, context.Planning);
 
-        // Undoing a scale by multiplying by its reciprocal loses precision, and the error compounds through
-        // nested scales. Save and restore the transform instead, which is exact.
+        // Mirrored through the origin, the content would land on the far side of it, off the box this block reports;
+        // moving the origin across that box first brings it back over it.
+        Offset across = new Offset(
+            ScaleX < 0 ? plan.Size.Width * -ScaleX : 0,
+            ScaleY < 0 ? plan.Size.Height * -ScaleY : 0);
+
         context.Surface.Save();
-        context.Surface.MoveOrigin(MirrorOffset(innerSpace, context.Planning));
+        context.Surface.MoveOrigin(across);
         context.Surface.ScaleAxes(ScaleX, ScaleY);
-        Child.Render(innerSpace, context);
+        Child.Render(room, context);
         context.Surface.Restore();
     }
 
-    /// <summary>
-    /// A negative factor reflects the content through the origin, onto the far side of the box Measure reported.
-    /// Shifting by the scaled extent on each mirrored axis brings it back over that box, as a flip does.
-    /// </summary>
-    private Offset MirrorOffset(Extent innerSpace, PlanContext context)
-    {
-        if (ScaleX > 0 && ScaleY > 0)
-            return Offset.Zero;
-
-        Extent childSize = Child!.Plan(innerSpace, context).Size;
-
-        return new Offset(
-            ScaleX < 0 ? childSize.Width * -ScaleX : 0f,
-            ScaleY < 0 ? childSize.Height * -ScaleY : 0f);
-    }
+    /// <summary>The room the child has in its own units, which scaling makes into the room offered.</summary>
+    private Extent Unscaled(Extent room) => new Extent(room.Width / Math.Abs(ScaleX), room.Height / Math.Abs(ScaleY));
 }

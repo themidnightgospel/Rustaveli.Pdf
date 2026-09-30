@@ -3,56 +3,53 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Shrinks its child just enough to fit the space available.
+/// Draws its child scaled down evenly, just far enough for the whole of it to fit the room it is given.
 /// </summary>
 /// <remarks>
-/// The scale is found by bisection rather than arithmetic, because content does not scale linearly: narrowing a
-/// paragraph re-wraps it, which changes its height by a step rather than a proportion. Each probe measures the
-/// child at the candidate scale and asks whether the result fits.
+/// The scale cannot be worked out from the child's size, because content need not grow in proportion to its room:
+/// text given a wider line breaks into fewer lines and gets shorter. So the scale is searched for, by halving an interval known to
+/// hold the answer, asking the child at each step whether it fits.
 /// </remarks>
 internal sealed class ShrinkToFitBlock : EnclosingBlock
 {
     /// <summary>
-    /// The smallest scale that will be tried before the content is passed through unscaled.
+    /// The floor used when <see cref="MinScale"/> sets none. It stands for "no floor at all": content shrunk further
+    /// than this would be too small to read, so no real content is refused for it, while the search still starts from
+    /// a scale content can be planned at.
     /// </summary>
-    /// <remarks>
-    /// Zero or less means no lower bound. One or more disables shrinking altogether, making this element a
-    /// pass-through rather than an unsatisfiable constraint.
-    /// </remarks>
+    private const float NoFloor = 1f / 128;
+
+    /// <summary>
+    /// How close to the largest fitting scale the search comes before it stops, as a share of that scale: close
+    /// enough to be invisible on the page, and few enough steps that text is not laid out needlessly often.
+    /// </summary>
+    private const float Precision = 1f / 1024;
+
+    /// <summary>
+    /// The smallest scale the content may be drawn at, a quarter unless set. Zero, a negative number or NaN sets no
+    /// floor; one or more means the content is never shrunk.
+    /// </summary>
     public float MinScale { get; set; } = 0.25f;
-
-    /// <summary>The floor actually searched from, with "no lower bound" resolved to a usable smallest step.</summary>
-    private float EffectiveMinScale => MinScale <= 0f || float.IsNaN(MinScale) ? SmallestScale : MinScale;
-
-    /// <summary>Below this the content is illegible anyway, so it stands in for "no lower bound".</summary>
-    private const float SmallestScale = 0.01f;
-
-    // Eight probes resolve the scale to under half a percent. Content height is a step function of width, so
-    // finer probing buys nothing visible and every probe costs a full measurement of the subtree.
-    private const int ProbeCount = 8;
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
         if (Child is null)
             return Fit.Complete(Extent.Zero);
 
-        float? scale = ResolveScale(availableSpace, context);
+        if (ChooseScale(availableSpace, context) is not { } scale)
+        {
+            // Content that fits at no scale is left to itself: content that splits goes on paginating as it would,
+            // rather than being refused outright.
+            return Child.Plan(availableSpace, context);
+        }
 
-        // Content that can only ever render in instalments cannot be made to fit at any scale. Refusing it would
-        // abort the whole document, so it is passed through instead and paginates as it would have unscaled.
-        if (scale is null)
-            return base.PlanCore(availableSpace, context);
+        // Asked again at the scale chosen, content may answer differently; its answer is passed on as it is, so
+        // content that no longer fits moves on instead of passing for content of no size.
+        Fit plan = Child.Plan(Divide(availableSpace, scale), context);
 
-        Fit plan = Child.Plan(Unscale(availableSpace, scale.Value), context);
-
-        // The content fitted at this scale when it was chosen; should it not now — content that answers differently
-        // when asked again — its answer stands, rather than being taken for content of no size.
-        if (plan.IsDeferred || plan.IsNothing)
-            return plan;
-
-        Extent size = new Extent(plan.Size.Width * scale.Value, plan.Size.Height * scale.Value);
-
-        return Fit.Complete(size);
+        return plan.PlacesContent
+            ? Fit.Complete(plan.Size.Width * scale, plan.Size.Height * scale)
+            : plan;
     }
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
@@ -60,65 +57,54 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
         if (Child is null)
             return;
 
-        float? scale = ResolveScale(availableSpace, context.Planning);
-
-        // Matches Measure: content that could not be made to fit is drawn unscaled and left to paginate.
-        if (scale is null)
+        if (ChooseScale(availableSpace, context.Planning) is not { } scale || scale >= 1f)
         {
-            base.RenderCore(availableSpace, context);
+            Child.Render(availableSpace, context);
             return;
         }
 
         context.Surface.Save();
-        context.Surface.ScaleAxes(scale.Value, scale.Value);
-
-        Child.Render(Unscale(availableSpace, scale.Value), context);
-
+        context.Surface.ScaleAxes(scale, scale);
+        Child.Render(Divide(availableSpace, scale), context);
         context.Surface.Restore();
     }
 
-    private static Extent Unscale(Extent availableSpace, float scale) =>
-        new(availableSpace.Width / scale, availableSpace.Height / scale);
-
     /// <summary>
-    /// Finds the largest scale at or below 1 whose content fits, or null if even <see cref="MinScale"/> fails.
+    /// The largest scale, down to the floor, at which the child fits whole — within <see cref="Precision"/> of it, and
+    /// never above it — or null when there is none.
     /// </summary>
-    private float? ResolveScale(Extent availableSpace, PlanContext context)
+    private float? ChooseScale(Extent room, PlanContext context)
     {
-        // A full-size render needs no search, and it is also the answer whenever shrinking is disallowed.
-        if (Fits(availableSpace, 1f, context))
+        if (FitsAt(1f, room, context))
             return 1f;
 
-        float floor = EffectiveMinScale;
+        float floor = MinScale > 0 ? MinScale : NoFloor;
 
-        // "Never shrink" is a no-op rather than an unsatisfiable constraint.
-        if (floor >= 1f)
+        if (floor >= 1f || !FitsAt(floor, room, context))
             return null;
 
-        if (!Fits(availableSpace, floor, context))
-            return null;
+        // The child fits at the low end and not at the high end; each step keeps that true of a half as wide.
+        float fits = floor;
+        float fails = 1f;
 
-        float low = floor;
-        float high = 1f;
-
-        for (int probe = 0; probe < ProbeCount; probe++)
+        while (fails - fits > fails * Precision)
         {
-            float middle = (low + high) / 2;
+            float middle = (fits + fails) / 2;
 
-            if (Fits(availableSpace, middle, context))
-                low = middle;
+            if (FitsAt(middle, room, context))
+                fits = middle;
             else
-                high = middle;
+                fails = middle;
         }
 
-        return low;
+        return fits;
     }
 
-    private bool Fits(Extent availableSpace, float scale, PlanContext context)
+    private bool FitsAt(float scale, Extent room, PlanContext context)
     {
-        Fit plan = Child!.Plan(Unscale(availableSpace, scale), context);
-
-        // Only a complete render counts: content that wrapped or split has not been made to fit.
+        Fit plan = Child!.Plan(Divide(room, scale), context);
         return plan.IsComplete || plan.IsNothing;
     }
+
+    private static Extent Divide(Extent room, float scale) => new Extent(room.Width / scale, room.Height / scale);
 }

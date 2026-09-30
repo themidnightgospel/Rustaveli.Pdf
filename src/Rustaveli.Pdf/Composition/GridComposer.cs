@@ -4,26 +4,31 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// Builds a grid: cells flowing into rows of a set number of equal columns, each cell spanning one or more, a row
-/// starting afresh wherever the next cell would not fit.
+/// Adds the cells of a grid: rows divided into equal columns, twelve unless set, with each cell spanning one or more
+/// of them and the cells filling each row in turn.
 /// </summary>
 /// <remarks>
-/// Every cell in a row is as tall as the row's tallest. A row the cells do not fill sits flush left unless the grid
-/// says otherwise.
+/// A cell goes into the row being filled if the columns left in it are enough for its span, and starts the next row
+/// if they are not. Because every row is divided the same way, column edges line up from row to row whatever the
+/// cells span. Each row is as tall as its tallest cell, and every cell in it is drawn that tall. Rows run on from page
+/// to page as the items of a stack do, and read right to left, mirrored, where the reading direction says so.
 /// </remarks>
 public sealed class GridComposer
 {
-    private readonly List<ColumnSlot> _cells = [];
+    private readonly List<(ColumnSlot Cell, int Span)> _cells = [];
     private int _columns = 12;
     private float _gutter;
-    private float _spaceBetweenRows;
+    private float _rowSpace;
     private HorizontalPlacement _placement = HorizontalPlacement.Left;
 
     internal GridComposer()
     {
     }
 
-    /// <summary>Sets how many equal columns each row is divided into; twelve unless set.</summary>
+    /// <summary>
+    /// Sets how many equal columns each row is divided into; twelve unless set. The number set last applies, whether
+    /// before the cells are added or after.
+    /// </summary>
     public void Columns(int count)
     {
         if (count < 1)
@@ -32,51 +37,57 @@ public sealed class GridComposer
         _columns = count;
     }
 
-    /// <summary>Sets the gap between neighbouring cells in a row.</summary>
+    /// <summary>Sets the room between neighbouring columns, in points; none unless set.</summary>
     public void Gutter(float value) => _gutter = Numbers.NotNegative(value, nameof(value));
 
-    /// <summary>Sets the gap between one row and the next.</summary>
-    public void SpaceBetweenRows(float value) => _spaceBetweenRows = Numbers.NotNegative(value, nameof(value));
+    /// <summary>Sets the room between one row and the next, in points; none unless set.</summary>
+    public void SpaceBetweenRows(float value) => _rowSpace = Numbers.NotNegative(value, nameof(value));
 
-    /// <summary>Sets a row the cells do not fill against the left, the default.</summary>
+    /// <summary>Sets a row its cells do not fill against the start of the row. This is how rows are set unless told otherwise.</summary>
     public void FlushLeft() => _placement = HorizontalPlacement.Left;
 
-    /// <summary>Centres a row the cells do not fill.</summary>
+    /// <summary>Sets a row its cells do not fill in the middle, with the columns left over shared either side.</summary>
     public void Centered() => _placement = HorizontalPlacement.Center;
 
-    /// <summary>Sets a row the cells do not fill against the right.</summary>
+    /// <summary>Sets a row its cells do not fill against the end of the row.</summary>
     public void FlushRight() => _placement = HorizontalPlacement.Right;
 
-    /// <summary>Adds a cell spanning <paramref name="span"/> columns and returns its frame.</summary>
+    /// <summary>Adds a cell spanning <paramref name="span"/> columns, and returns the frame its content goes into.</summary>
     public IFrame Cell(int span = 1)
     {
         if (span < 1)
             throw new ArgumentOutOfRangeException(nameof(span), span, "A cell spans at least one column.");
 
-        ColumnSlot cell = new ColumnSlot { Sizing = ColumnSizing.Share, Value = span };
-        _cells.Add(cell);
+        ColumnSlot cell = new ColumnSlot { Value = span };
+        _cells.Add((cell, span));
         return cell;
     }
 
-    /// <summary>Lays the cells out in <paramref name="stack"/>, a row of columns at a time.</summary>
-    internal void Build(StackBlock stack)
+    /// <summary>
+    /// Fills <paramref name="rows"/> with the grid's rows, once the composing is done and the number of columns is
+    /// settled.
+    /// </summary>
+    /// <exception cref="CompositionException">A cell spans more columns than the grid has.</exception>
+    internal void Build(StackBlock rows)
     {
-        stack.SpaceBetween = _spaceBetweenRows;
+        foreach ((ColumnSlot _, int span) in _cells)
+        {
+            if (span > _columns)
+                throw new CompositionException($"A cell spans {span} columns of a grid of {_columns}.");
+        }
+
+        rows.SpaceBetween = _rowSpace;
+
         ColumnsBlock? row = null;
         int used = 0;
 
-        foreach (ColumnSlot cell in _cells)
+        foreach ((ColumnSlot cell, int span) in _cells)
         {
-            int span = (int)cell.Value;
-
-            if (span > _columns)
-                throw new CompositionException($"A cell spans {span} columns of a grid of {_columns}.");
-
             if (row is null || used + span > _columns)
             {
                 Close(row, used);
-                row = new ColumnsBlock { Gutter = _gutter, GridColumns = _columns };
-                stack.Items.Add(row);
+                row = new ColumnsBlock { GridColumns = _columns, Gutter = _gutter };
+                rows.Items.Add(row);
                 used = 0;
             }
 
@@ -87,30 +98,19 @@ public sealed class GridComposer
         Close(row, used);
     }
 
-    /// <summary>Places a row the cells do not fill, with empty columns making up the rest.</summary>
+    /// <summary>Moves a row its cells do not fill along by the columns left over, as the placement asks.</summary>
     private void Close(ColumnsBlock? row, int used)
     {
-        int empty = _columns - used;
-
-        if (row is null || empty == 0)
+        if (row is null)
             return;
 
-        switch (_placement)
+        int unused = _columns - used;
+
+        row.LeadingGridColumns = _placement switch
         {
-            case HorizontalPlacement.Center:
-                row.Items.Insert(0, Empty(empty / 2f));
-                row.Items.Add(Empty(empty / 2f));
-                break;
-
-            case HorizontalPlacement.Right:
-                row.Items.Insert(0, Empty(empty));
-                break;
-
-            default:
-                row.Items.Add(Empty(empty));
-                break;
-        }
+            HorizontalPlacement.Center => unused / 2f,
+            HorizontalPlacement.Right => unused,
+            _ => 0f,
+        };
     }
-
-    private static ColumnSlot Empty(float span) => new ColumnSlot { Sizing = ColumnSizing.Share, Value = span };
 }

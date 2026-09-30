@@ -3,16 +3,11 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Draws its child again on every page its container continues onto, rather than once.
+/// Draws its child afresh on every page its parent continues onto: a label beside a column that runs on for pages.
 /// </summary>
-/// <remarks>
-/// A column of a row is ordinarily drawn until its content is used up and then left empty while its neighbours carry
-/// on; repeated, it is drawn afresh beside them on each page, as a side label or a running rule is. Once drawn in
-/// full, its content is reset, so text starts from its beginning again. It never keeps its container going by
-/// itself: the container ends with the content that is not repeated.
-/// </remarks>
 internal sealed class RepeatBlock : EnclosingBlock
 {
+    /// <summary>Always, whatever the content: that is what this block is for.</summary>
     internal override bool Repeats => true;
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
@@ -22,12 +17,13 @@ internal sealed class RepeatBlock : EnclosingBlock
 
         Fit plan = Child.Plan(availableSpace, context.Planning);
 
-        if (plan.IsDeferred || plan.IsNothing)
+        if (!plan.PlacesContent)
             return;
 
         Child.Render(availableSpace, context);
 
-        // Only content drawn in full starts again: what has more to come continues on the next page as usual.
+        // Drawn whole, the content goes back to its beginning for the next page. Content still running on keeps its
+        // place and continues as any other would.
         if (plan.IsComplete)
             Child.ResetState(includeDocumentProgress: false);
     }

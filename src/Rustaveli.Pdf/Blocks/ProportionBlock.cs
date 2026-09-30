@@ -3,13 +3,15 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Forces its child into a fixed width-to-height ratio.
+/// Gives its child a box of a fixed ratio of width to height, as large as the room allows along the dimension chosen,
+/// and takes exactly that box whatever the child needs of it.
 /// </summary>
 internal sealed class ProportionBlock : EnclosingBlock
 {
-    /// <summary>Width divided by height. Must be greater than zero.</summary>
+    /// <summary>Width divided by height; one, a square, unless set.</summary>
     public float Ratio { get; set; } = 1f;
 
+    /// <summary>Which dimension of the room the box is fitted to; the width unless set.</summary>
     public ProportionFit Fit { get; set; } = ProportionFit.Width;
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
@@ -17,37 +19,35 @@ internal sealed class ProportionBlock : EnclosingBlock
         if (Ratio <= 0)
             return Layout.Fit.Defer("The proportion must be greater than zero.");
 
-        Extent size = ResolveSize(availableSpace);
+        Extent box = Box(availableSpace);
 
-        if (!size.FitsIn(availableSpace))
+        if (!box.FitsIn(availableSpace))
             return Layout.Fit.Defer("The space available is too small for the requested proportion.");
 
-        Fit childPlan = Child?.Plan(size, context) ?? Layout.Fit.Complete(Extent.Zero);
-
-        if (childPlan.IsDeferred)
-            return childPlan;
-
-        if (childPlan.IsNothing)
-            return Layout.Fit.Nothing();
-
-        return childPlan.IsComplete ? Layout.Fit.Complete(size) : Layout.Fit.Partial(size);
+        return Resized(base.PlanCore(box, context), box);
     }
 
-    protected override void RenderCore(Extent availableSpace, RenderContext context) =>
-        Child?.Render(ResolveSize(availableSpace), context);
-
-    private Extent ResolveSize(Extent availableSpace)
+    protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        Extent fromWidth = new Extent(availableSpace.Width, availableSpace.Width / Ratio);
-        Extent fromHeight = new Extent(availableSpace.Height * Ratio, availableSpace.Height);
+        if (Child is null || Ratio <= 0)
+            return;
+
+        // The box starts at the top left, right to left as well: the box is the whole of what this block takes.
+        Child.Render(Box(availableSpace), context);
+    }
+
+    private Extent Box(Extent room)
+    {
+        Extent acrossTheWidth = new Extent(room.Width, room.Width / Ratio);
+        Extent downTheHeight = new Extent(room.Height * Ratio, room.Height);
 
         return Fit switch
         {
-            ProportionFit.Width => fromWidth,
-            ProportionFit.Height => fromHeight,
-            // Pick whichever axis binds first so the result stays inside the offered space.
-            ProportionFit.Area => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
-            _ => fromWidth
+            ProportionFit.Height => downTheHeight,
+
+            // The larger box that fits: the full width, unless that runs past the bottom of the room.
+            ProportionFit.Area => acrossTheWidth.Height <= room.Height + Extent.Epsilon ? acrossTheWidth : downTheHeight,
+            _ => acrossTheWidth,
         };
     }
 }

@@ -31,7 +31,7 @@ public sealed class TextComposer
         });
     }
 
-    /// <summary>Appends a blank line.</summary>
+    /// <summary>Ends the paragraph's current line with an empty one after it.</summary>
     public void BlankLine()
     {
         Add(new TextRun
@@ -136,7 +136,7 @@ public sealed class TextComposer
     /// Places content inline among the words — an icon, a logo, a small chart.
     /// </summary>
     /// <remarks>
-    /// The element behaves as one unbreakable word: it sits where <paramref name="position"/> puts it, moves to the
+    /// The frame behaves as one unbreakable word: it sits where <paramref name="position"/> puts it, moves to the
     /// next line whole if it does not fit, and deepens the line it lands on to accommodate its height.
     /// </remarks>
     /// <param name="handler">Composes the frame.</param>
@@ -144,13 +144,13 @@ public sealed class TextComposer
     public void Inline(Action<IFrame> handler, InlinePosition position = InlinePosition.OnBaseline)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        Frame container = new Frame();
-        handler(container);
-        if (container.Child != null)
+        Frame frame = new Frame();
+        handler(frame);
+        if (frame.Child != null)
         {
             _block.Runs.Add(new TextRun
             {
-                Inline = container,
+                Inline = frame,
                 InlinePosition = position
             });
         }

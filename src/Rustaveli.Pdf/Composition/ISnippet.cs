@@ -1,13 +1,15 @@
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// A reusable piece of document structure.
+/// A piece of composing packaged for reuse: a heading style, an address block, a table layout used on many pages.
 /// </summary>
 /// <remarks>
-/// Components are the unit of reuse: they compose into a container exactly as inline code would, so a component
-/// can be dropped anywhere an element is accepted without the surrounding layout treating it differently.
+/// Applied with <see cref="FrameContent.Snippet(IFrame, ISnippet)"/>, a snippet composes into the frame it is given
+/// exactly as the same code written out in place would. Only the library makes frames, so this, rather than a frame of
+/// one's own, is how composing is packaged outside it.
 /// </remarks>
 public interface ISnippet
 {
-    void Compose(IFrame container);
+    /// <summary>Composes the snippet's content into <paramref name="frame"/>.</summary>
+    void Compose(IFrame frame);
 }
