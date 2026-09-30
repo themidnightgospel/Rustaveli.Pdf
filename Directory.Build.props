@@ -37,7 +37,7 @@
   <PropertyGroup>
     <!-- Semantic versioning. Before 1.0 the public surface may still change from one minor version to the next; from
          1.0, a breaking change waits for the next major version. -->
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <Authors>Rustaveli.Pdf contributors</Authors>
     <PackageTags>pdf;document;report;invoice;generation;layout;typesetting;pdf-a;pdf-ua</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -120,7 +120,7 @@
 
   <!--
     The companion packages are built against the core's internals, which change from one release to the next, so each
-    depends on exactly the core it was built with: a project reference packs as [0.1.1], not as the floating ">= 0.1.1"
+    depends on exactly the core it was built with: a project reference packs as [1.2.3], not as the floating ">= 1.2.3"
     NuGet writes by default, under which a newer core could be restored beside an older companion and fail at run time.
     NuGet reads the version of each referenced project into _ProjectReferencesWithVersions; this brackets it.
   -->
