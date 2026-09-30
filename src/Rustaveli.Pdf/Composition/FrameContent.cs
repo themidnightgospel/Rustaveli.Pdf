@@ -3,9 +3,6 @@ using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf;
 
-/// <summary>
-/// Composition methods that place content into a container.
-/// </summary>
 public static class FrameContent
 {
     /// <summary>Adds a paragraph of styled text.</summary>
@@ -16,11 +13,7 @@ public static class FrameContent
         handler(new TextComposer(element));
     }
 
-    /// <summary>Adds a paragraph consisting of a single unstyled run.</summary>
-    public static void Text(this IFrame parent, string text)
-    {
-        parent.Text(descriptor => descriptor.Run(text));
-    }
+    public static void Text(this IFrame parent, string text) => throw new NotImplementedException("To be written anew from its specification.");
 
     /// <summary>Adds an image scaled according to <paramref name="fit" />.</summary>
     public static void Image(this IFrame parent, IImage image, ImageFitting fit = ImageFitting.FitWidth)
@@ -108,15 +101,7 @@ public static class FrameContent
         grid.Build(element);
     }
 
-    /// <summary>Adds a grid with sized columns and optional repeating bands.</summary>
-    public static void Table(this IFrame parent, Action<TableComposer> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        TableBlock element = FrameAttachment.Attach(parent, new TableBlock());
-        TableComposer tableDescriptor = new TableComposer(element);
-        handler(tableDescriptor);
-        tableDescriptor.PlaceAutomaticCells();
-    }
+    public static void Table(this IFrame parent, Action<TableComposer> handler) => throw new NotImplementedException("To be written anew from its specification.");
 
     /// <summary>Adds a bulleted or numbered list.</summary>
     public static void List(this IFrame parent, Action<ListComposer> handler)
@@ -143,14 +128,7 @@ public static class FrameContent
         handler(new BandsComposer(element));
     }
 
-    /// <summary>
-    /// Applies a composition function, letting shared layout be factored into an ordinary method.
-    /// </summary>
-    public static void Compose(this IFrame parent, Action<IFrame> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        handler(parent);
-    }
+    public static void Compose(this IFrame parent, Action<IFrame> handler) => throw new NotImplementedException("To be written anew from its specification.");
 
     /// <summary>
     /// Composes the frame's content only when layout first reaches it, and lets it go once it is drawn in full, so a
@@ -173,26 +151,10 @@ public static class FrameContent
         FrameAttachment.Attach(parent, new DynamicBlock<TState>(content));
     }
 
-    /// <summary>Composes a reusable component into this container.</summary>
-    public static void Snippet(this IFrame parent, ISnippet snippet)
-    {
-        ArgumentNullException.ThrowIfNull(snippet);
-        snippet.Compose(parent);
-    }
+    public static void Snippet(this IFrame parent, ISnippet snippet) => throw new NotImplementedException("To be written anew from its specification.");
 
-    /// <summary>Composes a reusable component into this container.</summary>
-    public static void Snippet<T>(this IFrame parent) where T : ISnippet, new()
-    {
-        parent.Snippet(new T());
-    }
+    public static void Snippet<T>(this IFrame parent) where T : ISnippet, new() => throw new NotImplementedException("To be written anew from its specification.");
 
-    /// <summary>
-    /// Marks the container as deliberately blank.
-    /// </summary>
-    /// <remarks>
-    /// Refuses a container that already holds content. Blanking it would discard a whole subtree with no
-    /// diagnostic — the very thing <see cref="FrameAttachment.Attach{T}"/> exists to prevent.
-    /// </remarks>
     public static void Blank(this IFrame parent)
     {
         ArgumentNullException.ThrowIfNull(parent);

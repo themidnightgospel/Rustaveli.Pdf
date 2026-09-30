@@ -2,14 +2,6 @@ using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf;
 
-/// <summary>
-/// Configuration and content slots for one run of pages sharing a size and margin.
-/// </summary>
-/// <remarks>
-/// Header and footer are drawn complete on every page and never paginate. Only <see cref="Body"/> flows,
-/// which is what determines how many pages the run produces. Background and foreground ignore margins and cover
-/// the whole sheet, making them the natural home for watermarks.
-/// </remarks>
 public sealed class Section
 {
     private Extent _trim = PaperSizes.A4;
@@ -47,11 +39,6 @@ public sealed class Section
     /// <summary>Style inherited by any text that does not override it.</summary>
     public TypeStyle DefaultType { get; set; } = TypeStyle.Default;
 
-    /// <summary>
-    /// When set, the page grows vertically to fit its content instead of using a fixed height, capped at the
-    /// PDF maximum of 14400 points: a page as wide as <see cref="Trim"/>, sized by its content between no height and
-    /// that maximum.
-    /// </summary>
     public bool Continuous { get; set; }
 
     /// <summary>
@@ -77,10 +64,9 @@ public sealed class Section
     }
 
     /// <summary>The smallest a page of this section may be.</summary>
-    internal Extent SmallestTrim => MinimumTrim ?? (Continuous ? new Extent(Trim.Width, 0) : Trim);
+    internal Extent SmallestTrim => throw new NotImplementedException("To be written anew from its specification.");
 
-    /// <summary>The largest a page of this section may be; the sizes it is made from are all within what PDF allows.</summary>
-    internal Extent LargestTrim => MaximumTrim ?? (Continuous ? new Extent(Trim.Width, Extent.Max.Height) : Trim);
+    internal Extent LargestTrim => throw new NotImplementedException("To be written anew from its specification.");
 
     internal Frame RunningHeadSlot { get; } = new();
 

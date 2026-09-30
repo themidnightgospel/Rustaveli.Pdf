@@ -179,13 +179,7 @@ public sealed class Document : IComposition
         return document;
     }
 
-    void IComposition.Section(Action<Section> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        Section pageDescriptor = new Section();
-        handler(pageDescriptor);
-        _pages.Add(pageDescriptor);
-    }
+    void IComposition.Section(Action<Section> handler) => throw new NotImplementedException("To be written anew from its specification.");
 
     /// <summary>The document one export lays out; disposing it hands a document's own tree back for the next.</summary>
     internal readonly struct ExportLease(Document document, Document? held) : IDisposable
