@@ -37,22 +37,5 @@ internal sealed class ImageBlock : Block
         context.Surface.PaintImage(Image, size);
     }
 
-    private Extent ResolveSize(Extent availableSpace)
-    {
-        // Width divided by height, used to derive layout size from one known dimension. Computed here rather than
-        // as a default interface member, which the netstandard2.0 runtime cannot dispatch.
-        float ratio = (Image!.PixelHeight == 0) ? 1f : ((float)Image.PixelWidth / (float)Image.PixelHeight);
-
-        Extent fromWidth = new Extent(availableSpace.Width, availableSpace.Width / ratio);
-        Extent fromHeight = new Extent(availableSpace.Height * ratio, availableSpace.Height);
-
-        return Fit switch
-        {
-            ImageFitting.FitWidth => fromWidth,
-            ImageFitting.FitHeight => fromHeight,
-            ImageFitting.Proportionally => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
-            ImageFitting.Stretch => availableSpace,
-            _ => fromWidth
-        };
-    }
+    private Extent ResolveSize(Extent availableSpace) => throw new NotImplementedException("To be written anew from its specification.");
 }

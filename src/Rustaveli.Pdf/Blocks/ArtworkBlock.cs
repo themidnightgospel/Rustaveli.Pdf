@@ -42,18 +42,5 @@ internal sealed class ArtworkBlock : Block
         context.Surface.Restore();
     }
 
-    private Extent ResolveSize(Extent availableSpace)
-    {
-        float ratio = Artwork.Size.Width / Artwork.Size.Height;
-        Extent fromWidth = new Extent(availableSpace.Width, availableSpace.Width / ratio);
-        Extent fromHeight = new Extent(availableSpace.Height * ratio, availableSpace.Height);
-
-        return Fit switch
-        {
-            ImageFitting.FitHeight => fromHeight,
-            ImageFitting.Proportionally => fromWidth.Height <= availableSpace.Height ? fromWidth : fromHeight,
-            ImageFitting.Stretch => availableSpace,
-            _ => fromWidth,
-        };
-    }
+    private Extent ResolveSize(Extent availableSpace) => throw new NotImplementedException("To be written anew from its specification.");
 }
