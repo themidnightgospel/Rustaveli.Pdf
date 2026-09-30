@@ -13,13 +13,13 @@ public class ColumnsTests
         new() { Sizing = sizing, Value = value, Child = child };
 
     [Fact]
-    public void SplitsWidthBetweenRelativeItemsByWeight()
+    public void SplitsWidthBetweenSharedColumnsByWeight()
     {
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)),
             Item(ColumnSizing.Share, 3, new FixedBlock(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // Weights 1:3 across 200pt place the second item at 50.
@@ -28,26 +28,26 @@ public class ColumnsTests
     }
 
     [Fact]
-    public void GivesConstantItemsTheirExactWidth()
+    public void GivesFixedColumnsTheirExactWidth()
     {
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Fixed, 60, new FixedBlock(1, 10)),
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(60f, rectangles[1].Position.X);
     }
 
     [Fact]
-    public void SizesAutoItemsToTheirContent()
+    public void SizesNaturalColumnsToTheirContent()
     {
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Natural, 0, new FixedBlock(35, 10)),
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(35f, rectangles[1].Position.X);
@@ -60,7 +60,7 @@ public class ColumnsTests
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)),
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // 200 less 20 of spacing leaves 90 each, so the second item starts at 90 + 20.
@@ -74,7 +74,7 @@ public class ColumnsTests
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)),
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 45)));
 
-        Fit plan = LayoutHarness.Measure(row, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(row, new Extent(200, 100));
 
         Approximately.Equal(45f, plan.Size.Height);
         Approximately.Equal(200f, plan.Size.Width);
@@ -88,7 +88,7 @@ public class ColumnsTests
             Item(ColumnSizing.Fixed, 50, new FixedBlock(1, 10)));
         row.ReadingDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 100));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // The first declared item sits at the right edge.
@@ -99,7 +99,7 @@ public class ColumnsTests
     [Fact]
     public void KeepsAutoColumnWidthOnContinuationPages()
     {
-        // An Auto item is sized from what its content measures. A stateful child reports only what it has left,
+        // A natural column is sized from what its content measures. A stateful child reports only what it has left,
         // so recomputing on page two would collapse the column and shift every column beside it.
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Natural, 0, new SplittableBlock(unitCount: 4, unitHeight: 30, width: 40)),
@@ -107,12 +107,12 @@ public class ColumnsTests
 
         Extent space = new Extent(200, 60);
 
-        RecordedPage firstPage = LayoutHarness.Draw(row, space);
-        RecordedPage secondPage = LayoutHarness.Draw(row, space);
+        RecordedPage firstPage = LayoutHarness.Render(row, space);
+        RecordedPage secondPage = LayoutHarness.Render(row, space);
 
         RectangleOperation firstRed = firstPage.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
 
-        // The constant column must stay put; on page two the finished item is not redrawn at all.
+        // The fixed column must stay put; on page two the finished item is not redrawn at all.
         Approximately.Equal(40f, firstRed.Position.X);
         Assert.DoesNotContain(secondPage.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
     }
@@ -127,8 +127,8 @@ public class ColumnsTests
 
         Extent space = new Extent(200, 60);
 
-        RecordedPage firstPage = LayoutHarness.Draw(row, space);
-        RecordedPage secondPage = LayoutHarness.Draw(row, space);
+        RecordedPage firstPage = LayoutHarness.Render(row, space);
+        RecordedPage secondPage = LayoutHarness.Render(row, space);
 
         Assert.Contains(firstPage.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
         Assert.DoesNotContain(secondPage.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
@@ -141,7 +141,7 @@ public class ColumnsTests
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10)),
             Item(ColumnSizing.Share, 1, new SplittableBlock(unitCount: 4, unitHeight: 30)));
 
-        Fit plan = LayoutHarness.Measure(row, new Extent(200, 60));
+        Fit plan = LayoutHarness.Plan(row, new Extent(200, 60));
 
         Assert.True(plan.IsPartial);
     }
@@ -151,24 +151,24 @@ public class ColumnsTests
     {
         ColumnsBlock row = Row(10);
 
-        Fit plan = LayoutHarness.Measure(row, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(row, new Extent(200, 100));
 
         Assert.True(plan.IsComplete);
         Approximately.Equal(Extent.Zero, plan.Size);
-        Assert.Empty(LayoutHarness.Draw(row, new Extent(200, 100)).Operations);
+        Assert.Empty(LayoutHarness.Render(row, new Extent(200, 100)).Operations);
     }
 
     [Theory]
     [InlineData(100f, false)]
     [InlineData(99f, true)]
-    public void WrapsWhenItsFixedColumnsAndSpacingCannotFit(float availableWidth, bool wraps)
+    public void DefersWhenItsFixedColumnsAndSpacingCannotFit(float availableWidth, bool wraps)
     {
-        // 60 + 30 of constant columns plus one 10pt gap need exactly 100pt.
+        // 60 + 30 of fixed columns plus one 10pt gap need exactly 100pt.
         ColumnsBlock row = Row(10,
             Item(ColumnSizing.Fixed, 60, new FixedBlock(1, 10)),
             Item(ColumnSizing.Fixed, 30, new FixedBlock(1, 10)));
 
-        Fit plan = LayoutHarness.Measure(row, new Extent(availableWidth, 100));
+        Fit plan = LayoutHarness.Plan(row, new Extent(availableWidth, 100));
 
         Assert.Equal(wraps, plan.IsDeferred);
     }
@@ -180,7 +180,7 @@ public class ColumnsTests
             Item(ColumnSizing.Fixed, -50, new FixedBlock(0, 10, TestInks.Red)),
             Item(ColumnSizing.Share, 1, new FixedBlock(1, 10, TestInks.Blue)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(20, 100));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(20, 100));
         RectangleOperation relative = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Blue);
 
         Approximately.Equal(0f, relative.Position.X);
@@ -195,7 +195,7 @@ public class ColumnsTests
         ColumnsBlock row = Row(0, Item(ColumnSizing.Share, 1, shortItem), Item(ColumnSizing.Share, 1, tallItem));
 
         // Offered exactly the row's own height, so the answer does not depend on who decides it.
-        LayoutHarness.Draw(row, new Extent(200, 45));
+        LayoutHarness.Render(row, new Extent(200, 45));
 
         Approximately.Equal(new Extent(100, 45), Assert.Single(shortItem.DrawnWith));
         Approximately.Equal(new Extent(100, 45), Assert.Single(tallItem.DrawnWith));
@@ -209,10 +209,10 @@ public class ColumnsTests
             Item(ColumnSizing.Share, 1, new FixedBlock(10, 10)));
 
         Extent space = new Extent(200, 60);
-        LayoutHarness.Draw(row, space);
+        LayoutHarness.Render(row, space);
 
-        Assert.True(LayoutHarness.Measure(row, space).IsNothing);
-        Assert.Empty(LayoutHarness.Draw(row, space).Operations);
+        Assert.True(LayoutHarness.Plan(row, space).IsNothing);
+        Assert.Empty(LayoutHarness.Render(row, space).Operations);
     }
 
     [Fact]
@@ -222,14 +222,14 @@ public class ColumnsTests
         ColumnsBlock row = Row(0, Item(ColumnSizing.Share, 1, finished), Item(ColumnSizing.Share, 1, new FixedBlock(10, 30, TestInks.Blue)));
         Extent space = new Extent(200, 60);
 
-        Fit plan = LayoutHarness.Measure(row, space);
-        RecordedPage page = LayoutHarness.Draw(row, space);
+        Fit plan = LayoutHarness.Plan(row, space);
+        RecordedPage page = LayoutHarness.Render(row, space);
 
         Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(200, 30), plan.Size);
         Assert.Empty(finished.DrawnWith);
         Approximately.Equal(new Offset(100, 0), Assert.Single(page.Operations.OfType<RectangleOperation>()).Position);
-        Assert.True(LayoutHarness.Measure(row, space).IsNothing);
+        Assert.True(LayoutHarness.Plan(row, space).IsNothing);
     }
 
     [Fact]
@@ -241,8 +241,8 @@ public class ColumnsTests
             Item(ColumnSizing.Fixed, 50, new FixedBlock(10, 10, TestInks.Red)),
             Item(ColumnSizing.Share, 1, new FixedBlock(10, 200, TestInks.Blue)));
 
-        RecordedPage cramped = LayoutHarness.Draw(row, new Extent(200, 100));
-        RecordedPage roomy = LayoutHarness.Draw(row, new Extent(200, 300));
+        RecordedPage cramped = LayoutHarness.Render(row, new Extent(200, 100));
+        RecordedPage roomy = LayoutHarness.Render(row, new Extent(200, 300));
 
         Assert.Empty(cramped.Operations);
         Assert.Contains(roomy.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
@@ -254,7 +254,7 @@ public class ColumnsTests
     {
         // The row is first measured in the last few points of a page, where its text has no room to be measured in.
         // The width it is given must not be fixed by that, or it collapses to nothing on every page after.
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 100);
             page.Body().Stack(column =>
@@ -268,11 +268,11 @@ public class ColumnsTests
             });
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Equal(2, canvas.Pages.Count);
-        Assert.Equal("Qtyitem", canvas.Page(2).Content);
-        Assert.Equal(18f, canvas.Page(2).Texts.Single(text => text.Text == "item").Position.X);
+        Assert.Equal(2, surface.Pages.Count);
+        Assert.Equal("Qtyitem", surface.Page(2).Content);
+        Assert.Equal(18f, surface.Page(2).Texts.Single(text => text.Text == "item").Position.X);
     }
 
     [Fact]
@@ -288,29 +288,29 @@ public class ColumnsTests
             Item(ColumnSizing.Natural, 0, content),
             Item(ColumnSizing.Share, 1, new FixedBlock(10, 10, TestInks.Red)));
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(200, 40));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 40));
 
         Approximately.Equal(60f, page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red).Position.X);
     }
 
     [Fact]
-    public void AnAutoItemTooWideForTheRowMakesItWrapUntilItIsOfferedMore()
+    public void ANaturalColumnTooWideForTheRowMakesItDeferUntilItIsOfferedMore()
     {
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Natural, 0, new FixedBlock(300, 10)),
             Item(ColumnSizing.Share, 1, new FixedBlock(10, 10)));
 
-        Assert.True(LayoutHarness.Measure(row, new Extent(200, 100)).IsDeferred);
-        Assert.True(LayoutHarness.Measure(row, new Extent(400, 100)).IsComplete);
+        Assert.True(LayoutHarness.Plan(row, new Extent(200, 100)).IsDeferred);
+        Assert.True(LayoutHarness.Plan(row, new Extent(400, 100)).IsComplete);
     }
 
     [Fact]
-    public void AnAutoItemThatCannotFitMakesTheRowWrap()
+    public void ANaturalColumnThatCannotFitMakesTheRowDefer()
     {
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Natural, 0, new FixedBlock(30, 500)),
             Item(ColumnSizing.Share, 1, new FixedBlock(10, 10)));
 
-        Assert.True(LayoutHarness.Measure(row, new Extent(200, 100)).IsDeferred);
+        Assert.True(LayoutHarness.Plan(row, new Extent(200, 100)).IsDeferred);
     }
 }

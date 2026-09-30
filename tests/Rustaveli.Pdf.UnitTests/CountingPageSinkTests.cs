@@ -7,51 +7,51 @@ public class CountingPageSinkTests
     [Fact]
     public void StartsWithNoPages()
     {
-        using CountingPageSink canvas = new CountingPageSink();
+        using CountingPageSink surface = new CountingPageSink();
 
-        Assert.Equal(0, canvas.PageCount);
+        Assert.Equal(0, surface.PageCount);
     }
 
     [Fact]
     public void CountsEveryPageBegun()
     {
-        using CountingPageSink canvas = new CountingPageSink();
+        using CountingPageSink surface = new CountingPageSink();
 
         for (int page = 0; page < 3; page++)
         {
-            canvas.BeginPage(new Extent(100, 100));
-            canvas.EndPage();
+            surface.BeginPage(new Extent(100, 100));
+            surface.EndPage();
         }
 
-        Assert.Equal(3, canvas.PageCount);
+        Assert.Equal(3, surface.PageCount);
     }
 
     [Fact]
     public void AcceptsEveryDrawingOperationWithoutAffectingTheCount()
     {
-        // The counting pass runs the real layout against this canvas, so every operation an element can issue
+        // The counting pass runs the real layout against this surface, so every operation a block can issue
         // must be accepted and discarded.
-        using CountingPageSink canvas = new CountingPageSink();
-        canvas.BeginPage(new Extent(100, 100));
+        using CountingPageSink surface = new CountingPageSink();
+        surface.BeginPage(new Extent(100, 100));
 
-        canvas.Save();
-        canvas.MoveOrigin(new Offset(5, 5));
-        canvas.ScaleAxes(2, 2);
-        canvas.RotateClockwise(90);
-        canvas.ClipRectangle(new Extent(10, 10));
-        canvas.FillRectangle(Offset.Zero, new Extent(10, 10), TestInks.Red);
-        canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), TestInks.Red, 1);
-        canvas.DrawLine(Offset.Zero, new Offset(10, 10), 1, TestInks.Red);
-        canvas.ShowText("text", Offset.Zero, TypeStyle.Default, ReadingDirection.LeftToRight);
-        canvas.PaintImage(new FakeImage(10, 10), new Extent(10, 10));
-        canvas.LinkToUrl("https://example.com", Offset.Zero, new Extent(10, 10));
-        canvas.LinkToDestination("target", Offset.Zero, new Extent(10, 10));
-        canvas.NameDestination("target", Offset.Zero);
-        canvas.Tag(new Rustaveli.Pdf.Tagging.StructureElement("P", null));
-        canvas.Tag(null);
-        canvas.Restore();
-        canvas.EndPage();
+        surface.Save();
+        surface.MoveOrigin(new Offset(5, 5));
+        surface.ScaleAxes(2, 2);
+        surface.RotateClockwise(90);
+        surface.ClipRectangle(new Extent(10, 10));
+        surface.FillRectangle(Offset.Zero, new Extent(10, 10), TestInks.Red);
+        surface.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), TestInks.Red, 1);
+        surface.DrawLine(Offset.Zero, new Offset(10, 10), 1, TestInks.Red);
+        surface.ShowText("text", Offset.Zero, TypeStyle.Default, ReadingDirection.LeftToRight);
+        surface.PaintImage(new FakeImage(10, 10), new Extent(10, 10));
+        surface.LinkToUrl("https://example.com", Offset.Zero, new Extent(10, 10));
+        surface.LinkToDestination("target", Offset.Zero, new Extent(10, 10));
+        surface.NameDestination("target", Offset.Zero);
+        surface.Tag(new Rustaveli.Pdf.Tagging.StructureElement("P", null));
+        surface.Tag(null);
+        surface.Restore();
+        surface.EndPage();
 
-        Assert.Equal(1, canvas.PageCount);
+        Assert.Equal(1, surface.PageCount);
     }
 }

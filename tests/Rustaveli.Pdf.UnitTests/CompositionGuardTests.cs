@@ -5,22 +5,22 @@ public class CompositionGuardTests
     [Fact]
     public void BlankRefusesToDiscardExistingContent()
     {
-        // Empty declares that nothing was placed here. Letting it blank a filled container would destroy a
+        // Blank declares that nothing was placed here. Letting it clear a filled frame would destroy a
         // subtree with no diagnostic — exactly what the attach guard exists to prevent.
-        Frame container = new Frame();
-        container.Text("already here");
+        Frame frame = new Frame();
+        frame.Text("already here");
 
-        Assert.Throws<CompositionException>(() => container.Blank());
+        Assert.Throws<CompositionException>(() => frame.Blank());
     }
 
     [Fact]
     public void BlankIsFineOnAnUntouchedFrame()
     {
-        Frame container = new Frame();
+        Frame frame = new Frame();
 
-        container.Blank();
+        frame.Blank();
 
-        Assert.Null(container.Slot().Child);
+        Assert.Null(frame.Slot().Child);
     }
 
     [Fact]
@@ -42,26 +42,26 @@ public class CompositionGuardTests
     [Fact]
     public void RoundCornersRejectsASingleSidedStroke()
     {
-        // The element cannot round a corner where two thicknesses meet, so it would have ignored the radius.
+        // The block cannot round a corner where two thicknesses meet, so it would have ignored the radius.
         Assert.Throws<CompositionException>(() =>
-            LayoutHarness.Build(container => container.StrokeLeft(2).RoundCorners(8)));
+            LayoutHarness.Build(frame => frame.StrokeLeft(2).RoundCorners(8)));
     }
 
     [Fact]
     public void RoundCornersRejectsAZeroWidthStroke()
     {
         Assert.Throws<CompositionException>(() =>
-            LayoutHarness.Build(container => container.Stroke(0).RoundCorners(8)));
+            LayoutHarness.Build(frame => frame.Stroke(0).RoundCorners(8)));
     }
 
     [Fact]
     public void RoundCornersAcceptsAUniformStroke()
     {
-        Block root = LayoutHarness.Build(container => container
+        Block root = LayoutHarness.Build(frame => frame
             .Stroke(2).RoundCorners(8)
             .Compose(inner => inner.Slot().Child = new FixedBlock(40, 20, TestInks.White)));
 
-        Assert.Single(LayoutHarness.Draw(root, new Extent(200, 200)).Operations.OfType<RoundedRectangleOperation>());
+        Assert.Single(LayoutHarness.Render(root, new Extent(200, 200)).Operations.OfType<RoundedRectangleOperation>());
     }
 
     [Theory]

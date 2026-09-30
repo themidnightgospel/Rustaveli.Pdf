@@ -3,7 +3,7 @@ using Rustaveli.Pdf.Text;
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>
-/// Services and state available to an element while it is being measured.
+/// Services and state available to a block while it is being planned.
 /// </summary>
 internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
 {
@@ -22,7 +22,7 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
 
     /// <summary>
     /// The direction sibling content flows in. Inherited by rows, tables and text that do not state their own,
-    /// so a right-to-left document reverses throughout without every element repeating it.
+    /// so a right-to-left document reverses throughout without every block repeating it.
     /// </summary>
     public ReadingDirection ReadingDirection { get; internal set; } = ReadingDirection.LeftToRight;
 
@@ -54,12 +54,12 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
     internal PlanTrace? Trace { get; set; }
 
     /// <summary>
-    /// Runs <paramref name="action" /> with a different content direction in force, restoring the previous one
+    /// Runs <paramref name="action" /> with a different reading direction in force, restoring the previous one
     /// afterwards even if it throws.
     /// </summary>
     internal void WithReadingDirection(ReadingDirection direction, Action action)
     {
-        ReadingDirection contentDirection = ReadingDirection;
+        ReadingDirection previous = ReadingDirection;
         ReadingDirection = direction;
         try
         {
@@ -67,14 +67,14 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
         }
         finally
         {
-            ReadingDirection = contentDirection;
+            ReadingDirection = previous;
         }
     }
 
-    /// <summary>Runs <paramref name="function" /> with a different content direction in force.</summary>
+    /// <summary>Runs <paramref name="function" /> with a different reading direction in force.</summary>
     internal T WithReadingDirection<T>(ReadingDirection direction, Func<T> function)
     {
-        ReadingDirection contentDirection = ReadingDirection;
+        ReadingDirection previous = ReadingDirection;
         ReadingDirection = direction;
         try
         {
@@ -82,7 +82,7 @@ internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
         }
         finally
         {
-            ReadingDirection = contentDirection;
+            ReadingDirection = previous;
         }
     }
 }

@@ -8,7 +8,7 @@ public class ArtworkTests
     private static readonly VectorPath Square = new VectorPath().AddRectangle(0, 0, 10, 10);
 
     private static List<DrawOperation> Draw(Artwork artwork, Extent? space = null, ImageFitting fit = ImageFitting.FitWidth) =>
-        LayoutHarness.Draw(frame => frame.Artwork(artwork, fit), space ?? new Extent(100, 100)).Operations;
+        LayoutHarness.Render(frame => frame.Artwork(artwork, fit), space ?? new Extent(100, 100)).Operations;
 
     [Fact]
     public void FillsStrokesAndTextAreDrawnInOrder()
@@ -49,7 +49,7 @@ public class ArtworkTests
         Artwork artwork = Artwork.Draw(50, 25, art => { });
         Block root = LayoutHarness.Build(frame => frame.Artwork(artwork, fit));
 
-        Assert.Equal(new Extent(width, height), LayoutHarness.Measure(root, new Extent(100, fit == ImageFitting.FitWidth ? 100 : 30)).Size);
+        Assert.Equal(new Extent(width, height), LayoutHarness.Plan(root, new Extent(100, fit == ImageFitting.FitWidth ? 100 : 30)).Size);
     }
 
     [Fact]
@@ -58,8 +58,8 @@ public class ArtworkTests
         Artwork artwork = Artwork.Draw(50, 25, art => art.Fill(Square, TestInks.Red));
         Block root = LayoutHarness.Build(frame => frame.Artwork(artwork));
 
-        Assert.True(LayoutHarness.Measure(root, new Extent(100, 20)).IsDeferred);
-        Assert.Empty(LayoutHarness.Draw(root, new Extent(100, 20)).Operations);
+        Assert.True(LayoutHarness.Plan(root, new Extent(100, 20)).IsDeferred);
+        Assert.Empty(LayoutHarness.Render(root, new Extent(100, 20)).Operations);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class ArtworkTests
         using MemoryStream stream = new MemoryStream(latin);
         Artwork artwork = Artwork.FromSvg(stream);
 
-        Assert.Equal("Café", LayoutHarness.Draw(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<TextOperation>().Single().Text);
+        Assert.Equal("Café", LayoutHarness.Render(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<TextOperation>().Single().Text);
     }
 
     [Theory]

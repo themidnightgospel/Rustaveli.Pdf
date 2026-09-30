@@ -57,7 +57,7 @@ internal sealed class StrokeBlock : EnclosingBlock
         if (Gradient is null && Ink.IsTransparent)
             return;
 
-        // Drawn around the whole box this element occupies (ADR 0012), not around its content's natural extent.
+        // Drawn around the whole box this block occupies (ADR 0012), not around its content's natural extent.
         Extent size = availableSpace;
         ISurface surface = context.Surface;
         float beyond = Beyond;

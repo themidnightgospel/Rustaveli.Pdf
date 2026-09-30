@@ -18,7 +18,7 @@ public static class FrameModifiers
     private static T Attach<T>(IFrame parent, T block) where T : Block =>
         FrameAttachment.Attach(parent, block);
 
-    // ---- Padding -------------------------------------------------------------------------------------------
+    // ---- Insets --------------------------------------------------------------------------------------------
 
     // Numbers are checked where they are given, not when the page is laid out, where a NaN surfaces as a failure far
     // from the code that passed it. An inset may be negative, drawing the content out past the frame, as for a bleed.

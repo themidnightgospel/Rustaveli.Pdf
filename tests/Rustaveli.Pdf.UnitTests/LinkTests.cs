@@ -8,10 +8,10 @@ public class LinkTests
     [Fact]
     public void ALinkCoversExactlyItsContent()
     {
-        LinkBlock element = new LinkBlock { Url = "https://example.com", Child = new FixedBlock(50, 20) };
+        LinkBlock block = new LinkBlock { Url = "https://example.com", Child = new FixedBlock(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(50, 20));
         ExternalLinkOperation link = Assert.Single(page.Operations.OfType<ExternalLinkOperation>());
 
         Assert.Equal("https://example.com", link.Url);
@@ -34,9 +34,9 @@ public class LinkTests
     [Fact]
     public void ALinkWithoutAUrlDrawsOnlyItsContent()
     {
-        LinkBlock element = new LinkBlock { Child = new FixedBlock(50, 20) };
+        LinkBlock block = new LinkBlock { Child = new FixedBlock(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(200, 200));
 
         Assert.Empty(page.Operations.OfType<ExternalLinkOperation>());
         Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -48,9 +48,9 @@ public class LinkTests
     public void ALinkAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
-        LinkBlock element = new LinkBlock { Url = "https://example.com", Child = child };
+        LinkBlock block = new LinkBlock { Url = "https://example.com", Child = child };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(200, 200));
 
         Assert.Empty(page.Operations);
         Assert.Empty(child.DrawnWith);
@@ -59,10 +59,10 @@ public class LinkTests
     [Fact]
     public void ACrossReferenceCoversExactlyItsContent()
     {
-        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
+        CrossReferenceBlock block = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
         // Offered exactly the content's size, so the clickable box is the same however it is decided.
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(50, 20));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(50, 20));
         InternalLinkOperation link = Assert.Single(page.Operations.OfType<InternalLinkOperation>());
 
         Assert.Equal("intro", link.Destination);
@@ -73,9 +73,9 @@ public class LinkTests
     [Fact]
     public void ACrossReferenceWithoutAnAnchorDrawsOnlyItsContent()
     {
-        CrossReferenceBlock element = new CrossReferenceBlock { Child = new FixedBlock(50, 20) };
+        CrossReferenceBlock block = new CrossReferenceBlock { Child = new FixedBlock(50, 20) };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(200, 200));
 
         Assert.Empty(page.Operations.OfType<InternalLinkOperation>());
         Assert.Single(page.Operations.OfType<RectangleOperation>());
@@ -87,9 +87,9 @@ public class LinkTests
     public void ACrossReferenceAroundContentWithNothingToShowIsNotDrawn(string outcome)
     {
         ScriptedBlock child = ScriptedBlock.WithNothingToDraw(outcome);
-        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = child };
+        CrossReferenceBlock block = new CrossReferenceBlock { Anchor = "intro", Child = child };
 
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(200, 200));
 
         Assert.Empty(page.Operations);
         Assert.Empty(child.DrawnWith);
@@ -98,9 +98,9 @@ public class LinkTests
     [Fact]
     public void ACrossReferenceDoesNotChangeTheLayout()
     {
-        CrossReferenceBlock element = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
+        CrossReferenceBlock block = new CrossReferenceBlock { Anchor = "intro", Child = new FixedBlock(50, 20) };
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 200));
 
         Assert.True(plan.IsComplete);
         Approximately.Equal(new Extent(50, 20), plan.Size);
@@ -109,7 +109,7 @@ public class LinkTests
     [Fact]
     public void AnAnchorInARunningHeadOrFootOfNoHeightIsStillNamed()
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 100);
             page.RunningHead().Anchor("top");
@@ -117,16 +117,16 @@ public class LinkTests
             page.Body().CrossReference("top").Text("Back to the top");
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Equal(["top", "bottom"], canvas.Page(1).Operations.OfType<DestinationOperation>().Select(destination => destination.Name));
-        Assert.Equal("top", Assert.Single(canvas.Page(1).Operations.OfType<InternalLinkOperation>()).Destination);
+        Assert.Equal(["top", "bottom"], surface.Page(1).Operations.OfType<DestinationOperation>().Select(destination => destination.Name));
+        Assert.Equal("top", Assert.Single(surface.Page(1).Operations.OfType<InternalLinkOperation>()).Destination);
     }
 
     [Fact]
     public void ACrossReferenceReachesItsAnchorAcrossPages()
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 100);
             page.Body().Stack(column =>
@@ -137,9 +137,9 @@ public class LinkTests
             });
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Equal("appendix", Assert.Single(canvas.Page(1).Operations.OfType<InternalLinkOperation>()).Destination);
-        Assert.Equal("appendix", Assert.Single(canvas.Page(2).Operations.OfType<DestinationOperation>()).Name);
+        Assert.Equal("appendix", Assert.Single(surface.Page(1).Operations.OfType<InternalLinkOperation>()).Destination);
+        Assert.Equal("appendix", Assert.Single(surface.Page(2).Operations.OfType<DestinationOperation>()).Name);
     }
 }

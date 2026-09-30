@@ -143,9 +143,9 @@ public class GradientTests
     [Fact]
     public void AFillPaintsItsWholeBoxInTheGradient()
     {
-        FillBlock element = new FillBlock { Gradient = Blend, Child = new FixedBlock(50, 20, TestInks.White) };
+        FillBlock block = new FillBlock { Gradient = Blend, Child = new FixedBlock(50, 20, TestInks.White) };
 
-        List<DrawOperation> operations = LayoutHarness.Draw(element, new Extent(50, 20)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(block, new Extent(50, 20)).Operations;
 
         GradientOperation gradient = Assert.IsType<GradientOperation>(operations[0]);
         Assert.Same(Blend, gradient.Gradient);
@@ -158,9 +158,9 @@ public class GradientTests
     [Fact]
     public void ARoundedFillKeepsItsCornersInTheGradient()
     {
-        FillBlock element = new FillBlock { Gradient = Blend, Corners = Corners.All(4), Child = new FixedBlock(50, 20) };
+        FillBlock block = new FillBlock { Gradient = Blend, Corners = Corners.All(4), Child = new FixedBlock(50, 20) };
 
-        List<DrawOperation> operations = LayoutHarness.Draw(element, new Extent(50, 20)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(block, new Extent(50, 20)).Operations;
 
         Assert.Equal(Corners.All(4), Assert.IsType<RoundedRectangleOperation>(operations[1]).Corners);
     }
@@ -168,15 +168,15 @@ public class GradientTests
     [Fact]
     public void AGradientIsPaintedWhateverTheInk()
     {
-        FillBlock element = new FillBlock { Gradient = Blend, Ink = Ink.Transparent, Child = new FixedBlock(50, 20) };
+        FillBlock block = new FillBlock { Gradient = Blend, Ink = Ink.Transparent, Child = new FixedBlock(50, 20) };
 
-        Assert.Single(LayoutHarness.Draw(element, new Extent(50, 20)).Operations.OfType<GradientOperation>());
+        Assert.Single(LayoutHarness.Render(block, new Extent(50, 20)).Operations.OfType<GradientOperation>());
     }
 
     [Fact]
     public void AStrokeLaysOneBlendAcrossEverythingItCovers()
     {
-        StrokeBlock element = new StrokeBlock
+        StrokeBlock block = new StrokeBlock
         {
             Weight = Sides.All(2),
             Gradient = Blend,
@@ -184,7 +184,7 @@ public class GradientTests
             Child = new FixedBlock(50, 20),
         };
 
-        List<DrawOperation> operations = LayoutHarness.Draw(element, new Extent(50, 20)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(block, new Extent(50, 20)).Operations;
         GradientOperation gradient = Assert.Single(operations.OfType<GradientOperation>());
         int begin = operations.IndexOf(gradient);
 
@@ -196,9 +196,9 @@ public class GradientTests
     [Fact]
     public void ARoundedStrokeIsPaintedInTheGradient()
     {
-        StrokeBlock element = new StrokeBlock { Weight = Sides.All(2), Gradient = Blend, Corners = Corners.All(5), Child = new FixedBlock(50, 20) };
+        StrokeBlock block = new StrokeBlock { Weight = Sides.All(2), Gradient = Blend, Corners = Corners.All(5), Child = new FixedBlock(50, 20) };
 
-        List<DrawOperation> operations = LayoutHarness.Draw(element, new Extent(50, 20)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(block, new Extent(50, 20)).Operations;
 
         Assert.Equal(new Bounds(0, 0, 50, 20), Assert.Single(operations.OfType<GradientOperation>()).Bounds);
         Assert.Single(operations.OfType<RoundedRectangleOperation>());
@@ -207,15 +207,15 @@ public class GradientTests
     [Fact]
     public void AStrokeWithNeitherInkNorGradientIsNotDrawn()
     {
-        StrokeBlock element = new StrokeBlock { Weight = Sides.All(2), Ink = Ink.Transparent };
+        StrokeBlock block = new StrokeBlock { Weight = Sides.All(2), Ink = Ink.Transparent };
 
-        Assert.Empty(LayoutHarness.Draw(element, new Extent(50, 20)).Operations);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(50, 20)).Operations);
     }
 
     [Fact]
     public void ARuleIsPaintedAlongItsLength()
     {
-        List<DrawOperation> operations = LayoutHarness.Draw(frame => frame.Rule(2, Blend), new Extent(100, 30)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(frame => frame.Rule(2, Blend), new Extent(100, 30)).Operations;
 
         Assert.Equal(new Bounds(0, 0, 100, 2), Assert.IsType<GradientOperation>(operations[0]).Bounds);
         Assert.IsType<RectangleOperation>(operations[1]);
@@ -225,7 +225,7 @@ public class GradientTests
     [Fact]
     public void AWavyRuleIsPaintedAcrossItsWholeBreadth()
     {
-        List<DrawOperation> operations = LayoutHarness.Draw(frame => frame.Rule(2, Blend, StrokeStyle.Wavy), new Extent(100, 30)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(frame => frame.Rule(2, Blend, StrokeStyle.Wavy), new Extent(100, 30)).Operations;
 
         Assert.Equal(new Bounds(0, 0, 100, 6), Assert.IsType<GradientOperation>(operations[0]).Bounds);
         Assert.Equal(StrokeStyle.Wavy, Assert.IsType<LineOperation>(operations[1]).Style);
@@ -234,7 +234,7 @@ public class GradientTests
     [Fact]
     public void ADashedRuleIsPaintedInTheGradient()
     {
-        List<DrawOperation> operations = LayoutHarness.Draw(frame => frame.Rule(2, Blend, [3, 1]), new Extent(100, 30)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(frame => frame.Rule(2, Blend, [3, 1]), new Extent(100, 30)).Operations;
 
         Assert.Equal([3f, 1f], Assert.IsType<LineOperation>(operations[1]).Dashes!);
     }
@@ -242,7 +242,7 @@ public class GradientTests
     [Fact]
     public void AVerticalRuleIsPaintedDownItsLength()
     {
-        List<DrawOperation> operations = LayoutHarness.Draw(frame => frame.VerticalRule(2, Blend), new Extent(100, 30)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(frame => frame.VerticalRule(2, Blend), new Extent(100, 30)).Operations;
 
         Assert.Equal(new Bounds(0, 0, 2, 30), Assert.IsType<GradientOperation>(operations[0]).Bounds);
         Assert.Equal(new Extent(2, 30), Assert.IsType<RectangleOperation>(operations[1]).Size);
@@ -251,7 +251,7 @@ public class GradientTests
     [Fact]
     public void ADashedVerticalRuleIsPaintedInTheGradient()
     {
-        List<DrawOperation> operations = LayoutHarness.Draw(frame => frame.VerticalRule(2, Blend, [3, 1]), new Extent(100, 30)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(frame => frame.VerticalRule(2, Blend, [3, 1]), new Extent(100, 30)).Operations;
 
         Assert.IsType<GradientOperation>(operations[0]);
         Assert.Equal([3f, 1f], Assert.IsType<LineOperation>(operations[1]).Dashes!);
@@ -260,7 +260,7 @@ public class GradientTests
     [Fact]
     public void AStyledVerticalRuleIsPaintedInTheGradient()
     {
-        List<DrawOperation> operations = LayoutHarness.Draw(frame => frame.VerticalRule(2, Blend, StrokeStyle.Dotted), new Extent(100, 30)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(frame => frame.VerticalRule(2, Blend, StrokeStyle.Dotted), new Extent(100, 30)).Operations;
 
         Assert.Equal(StrokeStyle.Dotted, Assert.IsType<LineOperation>(operations[1]).Style);
     }

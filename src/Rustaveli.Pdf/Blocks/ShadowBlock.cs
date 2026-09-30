@@ -19,7 +19,7 @@ internal sealed class ShadowBlock : EnclosingBlock
         if (plan.IsDeferred || plan.IsNothing)
             return;
 
-        // Cast from the whole box this element occupies (ADR 0012), as a fill behind it would cover it.
+        // Cast from the whole box this block occupies (ADR 0012), as a fill behind it would cover it.
         context.Surface.DrawShadow(Offset.Zero, availableSpace, Corners, Shadow);
         Child?.Render(availableSpace, context);
     }

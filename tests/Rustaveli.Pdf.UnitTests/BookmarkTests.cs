@@ -8,7 +8,7 @@ public class BookmarkTests
     [Fact]
     public void ABookmarkIsAddedWhereItsContentStartsAndOnlyThere()
     {
-        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        List<RecordedPage> pages = LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(100, 60);
             section.Body().Stack(stack =>
@@ -28,8 +28,8 @@ public class BookmarkTests
     {
         BookmarkBlock block = new BookmarkBlock { Title = "Late", Level = 1, Child = new FixedBlock(10, 50) };
 
-        Assert.Empty(LayoutHarness.Draw(block, new Extent(10, 20)).Operations);
-        Assert.Single(LayoutHarness.Draw(block, new Extent(10, 60)).Operations.OfType<BookmarkOperation>());
+        Assert.Empty(LayoutHarness.Render(block, new Extent(10, 20)).Operations);
+        Assert.Single(LayoutHarness.Render(block, new Extent(10, 60)).Operations.OfType<BookmarkOperation>());
     }
 
     [Fact]
@@ -38,17 +38,17 @@ public class BookmarkTests
         BookmarkBlock block = new BookmarkBlock { Title = "Again", Level = 1, Child = new FixedBlock(10, 10) };
         Progress saved = block.SaveProgress();
 
-        LayoutHarness.Draw(block, new Extent(10, 20));
+        LayoutHarness.Render(block, new Extent(10, 20));
         block.RestoreProgress(saved);
 
-        Assert.Single(LayoutHarness.Draw(block, new Extent(10, 20)).Operations.OfType<BookmarkOperation>());
-        Assert.Empty(LayoutHarness.Draw(block, new Extent(10, 20)).Operations.OfType<BookmarkOperation>());
+        Assert.Single(LayoutHarness.Render(block, new Extent(10, 20)).Operations.OfType<BookmarkOperation>());
+        Assert.Empty(LayoutHarness.Render(block, new Extent(10, 20)).Operations.OfType<BookmarkOperation>());
     }
 
     [Fact]
     public void ABookmarkIsHeldWithTheContentOfItsDrawOrder()
     {
-        List<DrawOperation> operations = Assert.Single(LayoutHarness.Render(Document.Compose(container => container.Section(section =>
+        List<DrawOperation> operations = Assert.Single(LayoutHarness.Render(Document.Compose(frame => frame.Section(section =>
         {
             section.Trim = new Extent(100, 100);
             section.Body().Stack(stack =>

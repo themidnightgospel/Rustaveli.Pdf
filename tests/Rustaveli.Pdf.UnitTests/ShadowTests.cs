@@ -134,9 +134,9 @@ public class ShadowTests
     [Fact]
     public void AShadowIsCastBeneathTheFrame()
     {
-        ShadowBlock element = new ShadowBlock { Shadow = Soft, Corners = Corners.All(4), Child = new FixedBlock(50, 20, TestInks.Red) };
+        ShadowBlock block = new ShadowBlock { Shadow = Soft, Corners = Corners.All(4), Child = new FixedBlock(50, 20, TestInks.Red) };
 
-        List<DrawOperation> operations = LayoutHarness.Draw(element, new Extent(50, 20)).Operations;
+        List<DrawOperation> operations = LayoutHarness.Render(block, new Extent(50, 20)).Operations;
 
         ShadowOperation shadow = Assert.IsType<ShadowOperation>(operations[0]);
         Assert.Equal(new Bounds(0, 0, 50, 20), shadow.Bounds);
@@ -147,14 +147,14 @@ public class ShadowTests
 
     [Fact]
     public void AShadowTakesNoRoom() =>
-        Assert.Equal(new Extent(50, 20), LayoutHarness.Measure(new ShadowBlock { Shadow = Soft, Child = new FixedBlock(50, 20) }, new Extent(200, 200)).Size);
+        Assert.Equal(new Extent(50, 20), LayoutHarness.Plan(new ShadowBlock { Shadow = Soft, Child = new FixedBlock(50, 20) }, new Extent(200, 200)).Size);
 
     [Fact]
     public void ContentThatDoesNotFitCastsNoShadow()
     {
-        ShadowBlock element = new ShadowBlock { Shadow = Soft, Child = new FixedBlock(500, 20) };
+        ShadowBlock block = new ShadowBlock { Shadow = Soft, Child = new FixedBlock(500, 20) };
 
-        Assert.Empty(LayoutHarness.Draw(element, new Extent(50, 20)).Operations);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(50, 20)).Operations);
     }
 
     [Fact]
