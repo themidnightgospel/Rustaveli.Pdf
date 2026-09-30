@@ -2,6 +2,23 @@ using Rustaveli.Pdf.Layout;
 
 namespace Rustaveli.Pdf;
 
+/// <summary>
+/// A run of pages that share a size, margins, paper and running bands, and the five frames their content goes into.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Only the body flows: it is set page after page until it is used up, and it alone decides how many pages the
+/// section takes. The running head and running foot are composed once and drawn whole on every page, inside the
+/// margins, the head at the top of the room they leave and the foot against the bottom margin, with the body between
+/// them. The underlay and the overlay are drawn on every page too, across the whole sheet from its corner, margins
+/// or not: the underlay beneath everything else, the place for a background, and the overlay above everything else,
+/// the place for a stamp over the text. The paper is painted across the whole sheet first.
+/// </para>
+/// <para>
+/// Sizes are checked where they are set, so a page size no PDF can hold fails at the line that sets it rather than
+/// when the document is laid out.
+/// </para>
+/// </remarks>
 public sealed class Section
 {
     private Extent _trim = PaperSizes.A4;
@@ -39,6 +56,10 @@ public sealed class Section
     /// <summary>Style inherited by any text that does not override it.</summary>
     public TypeStyle DefaultType { get; set; } = TypeStyle.Default;
 
+    /// <summary>
+    /// Whether the section is set as one long page: as wide as <see cref="Trim"/>, and as tall as its content, from
+    /// nothing up to the 14,400 points a PDF page may be. The margins and the running bands count within that height.
+    /// </summary>
     public bool Continuous { get; set; }
 
     /// <summary>
@@ -63,10 +84,17 @@ public sealed class Section
         set => _maximumTrim = value is { } size ? PageSize(size, nameof(MaximumTrim), allowNothing: false) : null;
     }
 
-    /// <summary>The smallest a page of this section may be.</summary>
-    internal Extent SmallestTrim => throw new NotImplementedException("To be written anew from its specification.");
+    /// <summary>
+    /// The smallest a page of this section may be: the minimum when one is set, otherwise the trim — for a continuous
+    /// section only its width, since its height starts from nothing.
+    /// </summary>
+    internal Extent SmallestTrim => MinimumTrim ?? (Continuous ? new Extent(Trim.Width, 0) : Trim);
 
-    internal Extent LargestTrim => throw new NotImplementedException("To be written anew from its specification.");
+    /// <summary>
+    /// The largest a page of this section may be: the maximum when one is set, otherwise the trim — for a continuous
+    /// section as tall as a PDF page may be.
+    /// </summary>
+    internal Extent LargestTrim => MaximumTrim ?? (Continuous ? new Extent(Trim.Width, Extent.Max.Height) : Trim);
 
     internal Frame RunningHeadSlot { get; } = new();
 
@@ -78,14 +106,19 @@ public sealed class Section
 
     internal Frame OverlaySlot { get; } = new();
 
+    /// <summary>The frame drawn whole at the top of every page, inside the margins.</summary>
     public IFrame RunningHead() => RunningHeadSlot;
 
+    /// <summary>The frame whose content flows from page to page, between the running head and foot.</summary>
     public IFrame Body() => BodySlot;
 
+    /// <summary>The frame drawn whole at the foot of every page, against the bottom margin.</summary>
     public IFrame RunningFoot() => RunningFootSlot;
 
+    /// <summary>The frame drawn beneath everything else on every page, across the whole sheet.</summary>
     public IFrame Underlay() => UnderlaySlot;
 
+    /// <summary>The frame drawn above everything else on every page, across the whole sheet.</summary>
     public IFrame Overlay() => OverlaySlot;
 
     internal IEnumerable<Block> Slots()
