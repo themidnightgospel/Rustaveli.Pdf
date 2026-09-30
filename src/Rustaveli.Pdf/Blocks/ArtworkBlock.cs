@@ -42,5 +42,6 @@ internal sealed class ArtworkBlock : Block
         context.Surface.Restore();
     }
 
-    private Extent ResolveSize(Extent availableSpace) => throw new NotImplementedException("To be written anew from its specification.");
+    private Extent ResolveSize(Extent availableSpace) =>
+        PictureBox.Of(Fit, Artwork.Size.Width / Artwork.Size.Height, availableSpace);
 }

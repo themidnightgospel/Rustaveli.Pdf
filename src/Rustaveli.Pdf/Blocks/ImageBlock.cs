@@ -37,5 +37,10 @@ internal sealed class ImageBlock : Block
         context.Surface.PaintImage(Image, size);
     }
 
-    private Extent ResolveSize(Extent availableSpace) => throw new NotImplementedException("To be written anew from its specification.");
+    /// <summary>The box the image is drawn in; an image with no height in pixels is taken to be square.</summary>
+    private Extent ResolveSize(Extent availableSpace)
+    {
+        float aspect = Image!.PixelHeight == 0 ? 1f : (float)Image.PixelWidth / Image.PixelHeight;
+        return PictureBox.Of(Fit, aspect, availableSpace);
+    }
 }
