@@ -26,7 +26,7 @@ public sealed class ListComposer
     /// <summary>Sets the vertical gap between items.</summary>
     public void SpaceBetween(float value) => _block.SpaceBetween = Numbers.NotNegative(value, nameof(value));
 
-    /// <summary>Adds an item and returns its container.</summary>
+    /// <summary>Adds an item and returns the frame its content goes into.</summary>
     public IFrame Add()
     {
         ListEntry item = new ListEntry();
