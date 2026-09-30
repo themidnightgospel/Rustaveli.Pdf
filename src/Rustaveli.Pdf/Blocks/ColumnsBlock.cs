@@ -142,9 +142,9 @@ internal sealed class ColumnsBlock : Block
                         ? offset
                         : availableSpace.Width - offset - widths[index];
 
-                    context.Surface.Translate(new Offset(position, 0f));
+                    context.Surface.MoveOrigin(new Offset(position, 0f));
                     context.RenderAllotted(Items[index], new Extent(widths[index], rowHeight), availableSpace.Height);
-                    context.Surface.Translate(new Offset(-position, 0f));
+                    context.Surface.MoveOrigin(new Offset(-position, 0f));
                 }
 
                 if (itemPlan.IsComplete || itemPlan.IsNothing)

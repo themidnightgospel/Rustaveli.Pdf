@@ -160,16 +160,16 @@ public class DrawOrderTests
         LayeredPageSink layers = new LayeredPageSink(pages);
 
         layers.BeginPage(new Extent(100, 100));
-        layers.Translate(new Offset(10, 20));
+        layers.MoveOrigin(new Offset(10, 20));
         layers.Save();
-        layers.Rotate(90);
+        layers.RotateClockwise(90);
         layers.ClipRectangle(new Extent(5, 5));
         layers.Order = 1;
-        layers.DrawRectangle(Offset.Zero, new Extent(5, 5), TestInks.Red);
-        layers.DrawRectangle(new Offset(5, 0), new Extent(5, 5), Green);
+        layers.FillRectangle(Offset.Zero, new Extent(5, 5), TestInks.Red);
+        layers.FillRectangle(new Offset(5, 0), new Extent(5, 5), Green);
         layers.Restore();
         layers.Order = 0;
-        layers.DrawRectangle(Offset.Zero, new Extent(5, 5), Blue);
+        layers.FillRectangle(Offset.Zero, new Extent(5, 5), Blue);
         layers.EndPage();
 
         List<RectangleOperation> drawn = pages.Pages[0].Operations.OfType<RectangleOperation>().ToList();

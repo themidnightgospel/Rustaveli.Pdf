@@ -23,9 +23,9 @@ internal sealed class RotateBlock : EnclosingBlock
         Offset centre = new Offset(availableSpace.Width / 2, availableSpace.Height / 2);
 
         context.Surface.Save();
-        context.Surface.Translate(centre);
-        context.Surface.Rotate(Degrees);
-        context.Surface.Translate(centre.Reverse());
+        context.Surface.MoveOrigin(centre);
+        context.Surface.RotateClockwise(Degrees);
+        context.Surface.MoveOrigin(centre.Reverse());
         Child.Render(availableSpace, context);
         context.Surface.Restore();
     }

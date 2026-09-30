@@ -30,6 +30,6 @@ internal sealed class GeneratedImageBlock : Block
             resolution);
 
         if (Generate(request) is { Length: > 0 } image)
-            context.Surface.DrawImage(RasterImage.FromBytes(image), availableSpace);
+            context.Surface.PaintImage(RasterImage.FromBytes(image), availableSpace);
     }
 }

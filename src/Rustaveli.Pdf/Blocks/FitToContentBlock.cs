@@ -31,8 +31,8 @@ internal sealed class FitToContentBlock : EnclosingBlock
             ? availableSpace.Width - size.Width
             : 0f;
 
-        context.Surface.Translate(new Offset(start, 0));
+        context.Surface.MoveOrigin(new Offset(start, 0));
         context.RenderAllotted(Child, size, availableSpace.Height);
-        context.Surface.Translate(new Offset(-start, 0));
+        context.Surface.MoveOrigin(new Offset(-start, 0));
     }
 }

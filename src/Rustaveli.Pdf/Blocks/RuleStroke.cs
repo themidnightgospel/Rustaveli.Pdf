@@ -36,7 +36,7 @@ internal readonly record struct RuleStroke(float Weight, Ink Ink, StrokeStyle St
     {
         if (Dashes is null && Style == StrokeStyle.Solid)
         {
-            surface.DrawRectangle(Offset.Zero, across ? new Extent(size.Width, Weight) : new Extent(Weight, size.Height), ink);
+            surface.FillRectangle(Offset.Zero, across ? new Extent(size.Width, Weight) : new Extent(Weight, size.Height), ink);
             return;
         }
 

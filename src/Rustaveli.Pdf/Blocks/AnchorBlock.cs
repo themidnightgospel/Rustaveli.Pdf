@@ -18,7 +18,7 @@ internal sealed class AnchorBlock : EnclosingBlock
         if (!context.DrawsAhead)
             context.Pagination.RegisterAnchor(Name, context.Pagination.Folio);
 
-        context.Surface.DrawDestination(Name);
+        context.Surface.NameDestination(Name, Offset.Zero);
 
         base.RenderCore(availableSpace, context);
     }

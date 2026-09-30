@@ -46,8 +46,8 @@ internal sealed class InsetBlock : EnclosingBlock
         if (innerSpace.IsNegative)
             return;
 
-        context.Surface.Translate(new Offset(Inset.Left, Inset.Top));
+        context.Surface.MoveOrigin(new Offset(Inset.Left, Inset.Top));
         Child.Render(innerSpace, context);
-        context.Surface.Translate(new Offset(Inset.Left, Inset.Top).Reverse());
+        context.Surface.MoveOrigin(new Offset(Inset.Left, Inset.Top).Reverse());
     }
 }

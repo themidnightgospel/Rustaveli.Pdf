@@ -43,12 +43,12 @@ internal sealed class StackBlock : Block
         LayoutResult result = Layout(availableSpace, context.Planning, (item, itemSpace, measuredHeight, top) =>
         {
             Offset delta = new Offset(0, top - offset);
-            surface.Translate(delta);
+            surface.MoveOrigin(delta);
             offset = top;
             context.RenderAllotted(item, itemSpace, measuredHeight);
         });
 
-        surface.Translate(new Offset(0, -offset));
+        surface.MoveOrigin(new Offset(0, -offset));
 
         // Exhausted and wrapped results carry no progress, so leave the cursor where it was.
         if (result.DrewContent)

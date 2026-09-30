@@ -39,7 +39,7 @@ internal sealed class PlaceholderBlock : Block
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        context.Surface.DrawRectangle(Offset.Zero, availableSpace, Ink);
+        context.Surface.FillRectangle(Offset.Zero, availableSpace, Ink);
 
         if (_label is null)
             return;
@@ -51,9 +51,9 @@ internal sealed class PlaceholderBlock : Block
             return;
 
         Offset offset = new Offset(0, (availableSpace.Height - fit.Size.Height) / 2);
-        context.Surface.Translate(offset);
+        context.Surface.MoveOrigin(offset);
         _label.Render(new Extent(availableSpace.Width, fit.Size.Height), context);
-        context.Surface.Translate(offset.Reverse());
+        context.Surface.MoveOrigin(offset.Reverse());
         _label.ResetState();
     }
 }

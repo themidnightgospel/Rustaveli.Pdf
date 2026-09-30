@@ -81,11 +81,11 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
     public void Restore() => Canvas.Restore();
 
-    public void Translate(Offset offset) => Canvas.Translate(offset.X, offset.Y);
+    public void MoveOrigin(Offset distance) => Canvas.Translate(distance.X, distance.Y);
 
-    public void Scale(float scaleX, float scaleY) => Canvas.Scale(scaleX, scaleY);
+    public void ScaleAxes(float horizontal, float vertical) => Canvas.Scale(horizontal, vertical);
 
-    public void Rotate(float degrees) => Canvas.RotateDegrees(degrees);
+    public void RotateClockwise(float degrees) => Canvas.RotateDegrees(degrees);
 
     public void Concatenate(float a, float b, float c, float d, float e, float f)
     {
@@ -174,13 +174,13 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
     public void ClipRectangle(Extent size) => Canvas.ClipRect(SKRect.Create(0, 0, size.Width, size.Height), antialias: true);
 
-    public void DrawRectangle(Offset position, Extent size, Ink color)
+    public void FillRectangle(Offset topLeft, Extent size, Ink ink)
     {
-        if (color.IsTransparent || size.Width <= 0 || size.Height <= 0)
+        if (ink.IsTransparent || size.Width <= 0 || size.Height <= 0)
             return;
 
-        using SKPaint paint = ShapePaint(color);
-        Canvas.DrawRect(SKRect.Create(position.X, position.Y, size.Width, size.Height), paint);
+        using SKPaint paint = ShapePaint(ink);
+        Canvas.DrawRect(SKRect.Create(topLeft.X, topLeft.Y, size.Width, size.Height), paint);
     }
 
     public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
@@ -264,7 +264,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
             Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
+    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
         float size = style.EffectivePointSize;
         if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
@@ -275,11 +275,11 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         List<ushort> glyphs = [];
         List<SKPoint> positions = [];
         OpenTypeFont? face = null;
-        float pen = baselineStart.X;
+        float pen = baseline.X;
         float previousStep = 0f;
         bool first = true;
 
-        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style, rightToLeft))
+        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style, direction == ReadingDirection.RightToLeft))
         {
             // The glyph before moved the pen by its advance and any word spacing it carries; tracking, where the glyph
             // takes it, and kerning fall between the two.
@@ -296,7 +296,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
             face = glyph.Face;
             glyphs.Add(glyph.Glyph);
-            positions.Add(new SKPoint(pen + glyph.XOffset, baselineStart.Y - glyph.YOffset));
+            positions.Add(new SKPoint(pen + glyph.XOffset, baseline.Y - glyph.YOffset));
             previousStep = glyph.Advance + glyph.Extra;
             first = false;
         }
@@ -308,7 +308,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
             Canvas.DrawText(blob, 0, 0, paint);
     }
 
-    public void DrawImage(IImage image, Extent size)
+    public void PaintImage(IImage image, Extent size)
     {
         ArgumentNullException.ThrowIfNull(image);
 
@@ -334,15 +334,15 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
     }
 
     // Links and anchors are for readers that can follow them; an image has none.
-    public void DrawExternalLink(string url, Extent size)
+    public void LinkToUrl(string url, Offset topLeft, Extent size)
     {
     }
 
-    public void DrawInternalLink(string destinationName, Extent size)
+    public void LinkToDestination(string destination, Offset topLeft, Extent size)
     {
     }
 
-    public void DrawDestination(string destinationName)
+    public void NameDestination(string name, Offset at)
     {
     }
 

@@ -286,16 +286,15 @@ internal sealed class TextBlock : Block
                 Extent inlineSize = new Extent(run.Width, run.Height);
                 Offset inlineTop = new Offset(x, baseline + line.InlineTop(run));
 
-                surface.Translate(inlineTop);
+                surface.MoveOrigin(inlineTop);
                 run.Inline.Render(inlineSize, context);
+                surface.MoveOrigin(inlineTop.Reverse());
 
                 if (run.Url is not null)
-                    surface.DrawExternalLink(run.Url, inlineSize);
+                    surface.LinkToUrl(run.Url, inlineTop, inlineSize);
 
                 if (run.Destination is not null)
-                    surface.DrawInternalLink(run.Destination, inlineSize);
-
-                surface.Translate(inlineTop.Reverse());
+                    surface.LinkToDestination(run.Destination, inlineTop, inlineSize);
 
                 x += run.Width;
                 continue;
@@ -307,9 +306,10 @@ internal sealed class TextBlock : Block
             Extent runSize = new Extent(run.Width, metrics.Ascent + metrics.Descent);
 
             if (!style.Highlight.IsTransparent)
-                surface.DrawRectangle(new Offset(x, runTop), runSize, style.Highlight);
+                surface.FillRectangle(new Offset(x, runTop), runSize, style.Highlight);
 
-            surface.DrawText(run.Text, new Offset(x, baseline + style.BaselineOffset), style, run.RightToLeft);
+            ReadingDirection direction = run.RightToLeft ? ReadingDirection.RightToLeft : ReadingDirection.LeftToRight;
+            surface.ShowText(run.Text, new Offset(x, baseline + style.BaselineOffset), style, direction);
 
             if (style.HasUnderline || style.HasStrikeThrough || style.HasOverline)
                 DrawStrokes(surface, style, metrics, x, run.Width, baseline + style.BaselineOffset);
@@ -319,18 +319,10 @@ internal sealed class TextBlock : Block
             bool clickable = !string.IsNullOrWhiteSpace(run.Text) || string.IsNullOrWhiteSpace(run.Source?.Text);
 
             if (run.Url is not null && clickable)
-            {
-                surface.Translate(new Offset(x, runTop));
-                surface.DrawExternalLink(run.Url, runSize);
-                surface.Translate(new Offset(x, runTop).Reverse());
-            }
+                surface.LinkToUrl(run.Url, new Offset(x, runTop), runSize);
 
             if (run.Destination is not null && clickable)
-            {
-                surface.Translate(new Offset(x, runTop));
-                surface.DrawInternalLink(run.Destination, runSize);
-                surface.Translate(new Offset(x, runTop).Reverse());
-            }
+                surface.LinkToDestination(run.Destination, new Offset(x, runTop), runSize);
 
             x += run.Width;
         }
@@ -655,7 +647,7 @@ internal sealed class TextBlock : Block
                 if (inlinePlan.IsNothing)
                     continue;
 
-                // Wrap and PartialRender both mean content is left over, and an inline run has no way to carry
+                // Defer and Partial both mean content is left over, and an inline run has no way to carry
                 // a remainder onto the next line. Dropping it here deletes it from the document with no error,
                 // so the paragraph defers as a whole instead and the engine reports it if no page can hold it.
                 if (inlinePlan.IsDeferred || inlinePlan.IsPartial)

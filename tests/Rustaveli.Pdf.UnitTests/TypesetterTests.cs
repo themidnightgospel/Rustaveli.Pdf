@@ -1156,7 +1156,7 @@ public class TypesetterTests
         protected override void RenderCore(Extent availableSpace, RenderContext context)
         {
             Used = Seen(context.Planning);
-            context.Surface.DrawRectangle(Offset.Zero, new Extent(10f, Height(Used)), TestInks.Red);
+            context.Surface.FillRectangle(Offset.Zero, new Extent(10f, Height(Used)), TestInks.Red);
         }
 
         private static float? Seen(PlanContext context) =>
