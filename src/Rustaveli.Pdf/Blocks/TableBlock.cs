@@ -430,7 +430,7 @@ internal sealed class TableBlock : Block
     /// <remarks>
     /// Caching is not merely an optimisation here, it is a correctness improvement. Row heights depend only on
     /// the content and the column widths, both of which are fixed for the life of a render pass — but measuring
-    /// a cell that has already been drawn returns Empty, so recomputing on a later page would report the wrong
+    /// a cell that has already been drawn plans to nothing, so recomputing on a later page would report the wrong
     /// heights for rows behind the cursor. Computing once, while every cell is still fresh, avoids that.
     ///
     /// Without it the cost is quadratic: every page re-measures every cell in the table, and the number of pages

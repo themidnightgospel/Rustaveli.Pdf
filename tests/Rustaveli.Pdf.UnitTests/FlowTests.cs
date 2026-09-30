@@ -17,14 +17,14 @@ public class FlowTests
         }));
 
     private static List<Offset> Positions(Block flow, Extent? space = null) =>
-        LayoutHarness.Draw(flow, space ?? Space).Operations.OfType<RectangleOperation>().Select(operation => operation.Position).ToList();
+        LayoutHarness.Render(flow, space ?? Space).Operations.OfType<RectangleOperation>().Select(operation => operation.Position).ToList();
 
     [Fact]
     public void ItemsWrapWhereTheNextWouldNotFit()
     {
         Block flow = Flow(flow => flow.Gutter(10), (40, 10), (40, 20), (40, 10));
 
-        Assert.Equal(new Extent(90, 30), LayoutHarness.Measure(flow, Space).Size);
+        Assert.Equal(new Extent(90, 30), LayoutHarness.Plan(flow, Space).Size);
         Assert.Equal([new Offset(0, 0), new Offset(50, 0), new Offset(0, 20)], Positions(flow));
     }
 
@@ -120,13 +120,13 @@ public class FlowTests
         Block flow = Flow(flow => { }, (60, 30), (60, 30), (60, 30));
         Extent page = new Extent(100, 70);
 
-        Assert.True(LayoutHarness.Measure(flow, page).IsPartial);
+        Assert.True(LayoutHarness.Plan(flow, page).IsPartial);
         Assert.Equal(2, Positions(flow, page).Count);
 
-        Assert.True(LayoutHarness.Measure(flow, page).IsComplete);
+        Assert.True(LayoutHarness.Plan(flow, page).IsComplete);
         Assert.Single(Positions(flow, page));
 
-        Assert.True(LayoutHarness.Measure(flow, page).IsNothing);
+        Assert.True(LayoutHarness.Plan(flow, page).IsNothing);
         Assert.Empty(Positions(flow, page));
     }
 
@@ -135,7 +135,7 @@ public class FlowTests
     {
         Block flow = Flow(flow => { }, (160, 10));
 
-        Assert.True(LayoutHarness.Measure(flow, Space).IsDeferred);
+        Assert.True(LayoutHarness.Plan(flow, Space).IsDeferred);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class FlowTests
     {
         Block flow = Flow(flow => { }, (60, 30));
 
-        Assert.True(LayoutHarness.Measure(flow, new Extent(100, 20)).IsDeferred);
+        Assert.True(LayoutHarness.Plan(flow, new Extent(100, 20)).IsDeferred);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class FlowTests
         flow.Items.Add(new FixedBlock(40, 10, TestInks.Red));
         flow.Items.Add(new SplittableBlock(unitCount: 5, unitHeight: 30));
 
-        Fit plan = LayoutHarness.Measure(flow, new Extent(100, 60));
+        Fit plan = LayoutHarness.Plan(flow, new Extent(100, 60));
 
         Assert.True(plan.IsPartial);
         Assert.Equal(new Extent(40, 10), plan.Size);
@@ -169,10 +169,10 @@ public class FlowTests
         flow.Items.Add(new FixedBlock(40, 10, TestInks.Red));
 
         // The hidden item and, once shown, the used-up one leave only the gutter between the two that remain.
-        LayoutHarness.Draw(flow, Space);
+        LayoutHarness.Render(flow, Space);
         flow.ResetState(includeDocumentProgress: false);
 
-        Assert.Equal([new Offset(0, 0), new Offset(50, 0)], LayoutHarness.Draw(flow, Space).Operations.OfType<RectangleOperation>().Select(operation => operation.Position));
+        Assert.Equal([new Offset(0, 0), new Offset(50, 0)], LayoutHarness.Render(flow, Space).Operations.OfType<RectangleOperation>().Select(operation => operation.Position));
     }
 
     [Fact]
@@ -184,9 +184,9 @@ public class FlowTests
         flow.Items.Add(new SkipFirstBlock { Child = new FixedBlock(40, 10, TestInks.Blue) });
         flow.Items.Add(new FixedBlock(40, 10, TestInks.Red));
 
-        List<RectangleOperation> first = LayoutHarness.Draw(flow, Space).Operations.OfType<RectangleOperation>().ToList();
+        List<RectangleOperation> first = LayoutHarness.Render(flow, Space).Operations.OfType<RectangleOperation>().ToList();
         flow.ResetState(includeDocumentProgress: false);
-        List<RectangleOperation> second = LayoutHarness.Draw(flow, Space).Operations.OfType<RectangleOperation>().ToList();
+        List<RectangleOperation> second = LayoutHarness.Render(flow, Space).Operations.OfType<RectangleOperation>().ToList();
 
         // Hidden, it takes no share of the space around the items either.
         Assert.Equal([new Offset(30, 0)], first.Select(operation => operation.Position));
@@ -201,8 +201,8 @@ public class FlowTests
         flow.Items.Add(new AnchorBlock { Name = "here" });
         PlanContext context = LayoutHarness.Context();
 
-        Fit plan = LayoutHarness.Measure(flow, Space, context);
-        LayoutHarness.Draw(flow, Space, context);
+        Fit plan = LayoutHarness.Plan(flow, Space, context);
+        LayoutHarness.Render(flow, Space, context);
 
         Assert.True(plan.IsComplete);
         Assert.Equal(Extent.Zero, plan.Size);
@@ -219,8 +219,8 @@ public class FlowTests
         flow.Items.Add(new AnchorBlock { Name = "end" });
         PlanContext context = LayoutHarness.Context();
 
-        Fit plan = LayoutHarness.Measure(flow, Space, context);
-        LayoutHarness.Draw(flow, Space, context);
+        Fit plan = LayoutHarness.Plan(flow, Space, context);
+        LayoutHarness.Render(flow, Space, context);
 
         Assert.Equal(new Extent(80, 25), plan.Size);
         Assert.Equal(1, context.Pagination.FolioOf("end"));
@@ -235,13 +235,13 @@ public class FlowTests
         flow.Items.Add(new FixedBlock(80, 20, TestInks.Red));
         PlanContext context = LayoutHarness.Context();
 
-        Fit cramped = LayoutHarness.Measure(flow, new Extent(100, 15), context);
-        LayoutHarness.Draw(flow, new Extent(100, 15), context);
+        Fit cramped = LayoutHarness.Plan(flow, new Extent(100, 15), context);
+        LayoutHarness.Render(flow, new Extent(100, 15), context);
 
         Assert.True(cramped.IsPartial);
         Assert.Equal(Extent.Zero, cramped.Size);
         Assert.Equal(1, context.Pagination.FolioOf("start"));
-        Assert.Equal(new Extent(80, 20), LayoutHarness.Measure(flow, new Extent(100, 30), context).Size);
+        Assert.Equal(new Extent(80, 20), LayoutHarness.Plan(flow, new Extent(100, 30), context).Size);
     }
 
     [Fact]
@@ -249,12 +249,12 @@ public class FlowTests
     {
         FlowBlock flow = new FlowBlock();
         flow.Items.Add(new OnceBlock { Child = new FixedBlock(10, 10) });
-        LayoutHarness.Draw(flow, Space);
+        LayoutHarness.Render(flow, Space);
         flow.ResetState(includeDocumentProgress: false);
 
-        Assert.True(LayoutHarness.Measure(flow, Space).IsNothing);
-        Assert.True(LayoutHarness.Measure(new FlowBlock(), Space).IsNothing);
-        Assert.Empty(LayoutHarness.Draw(new FlowBlock(), Space).Operations);
+        Assert.True(LayoutHarness.Plan(flow, Space).IsNothing);
+        Assert.True(LayoutHarness.Plan(new FlowBlock(), Space).IsNothing);
+        Assert.Empty(LayoutHarness.Render(new FlowBlock(), Space).Operations);
     }
 
     [Fact]

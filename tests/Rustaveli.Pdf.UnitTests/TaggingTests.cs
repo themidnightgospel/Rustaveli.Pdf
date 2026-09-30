@@ -46,7 +46,7 @@ public class TaggingTests
     [Fact]
     public void UntaggedOutputHearsNothingOfTheStructure()
     {
-        RecordedPage page = LayoutHarness.Draw(frame => frame.Tagged(ContentTag.Heading(1)).Text("Title"), Page);
+        RecordedPage page = LayoutHarness.Render(frame => frame.Tagged(ContentTag.Heading(1)).Text("Title"), Page);
 
         Assert.Empty(page.Operations.OfType<TagOperation>());
         Assert.Single(page.Operations.OfType<TextOperation>());
@@ -55,7 +55,7 @@ public class TaggingTests
     [Fact]
     public void TaggedContentIsOneElementUnderTheOneItIsDrawnIn()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Tagged(ContentTag.Section).Stack(stack =>
             {
                 stack.Add().Tagged(ContentTag.Heading(2)).Text("Title");
@@ -71,7 +71,7 @@ public class TaggingTests
     [Fact]
     public void ContentThatGoesOnToAnotherPageStaysOneElement()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Tagged(ContentTag.Paragraph).Text(text =>
             {
                 for (int line = 1; line <= 30; line++)
@@ -107,7 +107,7 @@ public class TaggingTests
     [Fact]
     public void TextNothingElseTagsIsAParagraph()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Stack(stack =>
             {
                 stack.Add().Text("One");
@@ -124,7 +124,7 @@ public class TaggingTests
     [Fact]
     public void AParagraphGoingOnToAnotherPageIsStillOne()
     {
-        (StructureElement root, _) = LayoutHarness.DrawTagged(
+        (StructureElement root, _) = LayoutHarness.RenderTagged(
             frame => frame.Text(text =>
             {
                 for (int line = 1; line <= 30; line++)
@@ -139,7 +139,7 @@ public class TaggingTests
     [Fact]
     public void UntaggedContentIsDecorationAndCreatesNothing()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Stack(stack =>
             {
                 stack.Add().Untagged().Tagged(ContentTag.Heading(1)).Text("Flourish");
@@ -154,7 +154,7 @@ public class TaggingTests
     [Fact]
     public void LinkedWordsAreALinkInTheirParagraph()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Text(text =>
             {
                 text.Run("See ");
@@ -176,7 +176,7 @@ public class TaggingTests
     [Fact]
     public void LinkedFramesAreLinks()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Stack(stack =>
             {
                 stack.Add().Link("https://example.com").Text("Site");
@@ -191,7 +191,7 @@ public class TaggingTests
     [Fact]
     public void ALanguageAmongGroupsIsCarriedByTheElementsInside()
     {
-        (StructureElement root, _) = LayoutHarness.DrawTagged(frame => frame.Language("ka").Text("გამარჯობა"), Page);
+        (StructureElement root, _) = LayoutHarness.RenderTagged(frame => frame.Language("ka").Text("გამარჯობა"), Page);
 
         StructureElement paragraph = Only(root);
         Assert.Equal(("P", "ka"), (paragraph.Role, paragraph.Language));
@@ -200,7 +200,7 @@ public class TaggingTests
     [Fact]
     public void ALanguageWithinTextIsASpan()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Tagged(ContentTag.Paragraph).Language("ka").Text("გამარჯობა"),
             Page);
 
@@ -212,7 +212,7 @@ public class TaggingTests
     [Fact]
     public void ASpanGoingOnToAnotherPageIsStillOne()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Tagged(ContentTag.Paragraph).Language("ka").Text(text =>
             {
                 for (int line = 1; line <= 30; line++)
@@ -229,7 +229,7 @@ public class TaggingTests
     [Fact]
     public void ALanguageInUntaggedOutputOnlyDrawsItsContent()
     {
-        RecordedPage page = LayoutHarness.Draw(frame => frame.Tagged(ContentTag.Paragraph).Language("ka").Text("გამარჯობა"), Page);
+        RecordedPage page = LayoutHarness.Render(frame => frame.Tagged(ContentTag.Paragraph).Language("ka").Text("გამარჯობა"), Page);
 
         Assert.Empty(page.Operations.OfType<TagOperation>());
         Assert.Equal("გამარჯობა", Assert.Single(page.Operations.OfType<TextOperation>()).Text);
@@ -238,7 +238,7 @@ public class TaggingTests
     [Fact]
     public void ALanguageUntaggedChangesNothing()
     {
-        (StructureElement root, _) = LayoutHarness.DrawTagged(frame => frame.Untagged().Language("ka").Text("გამარჯობა"), Page);
+        (StructureElement root, _) = LayoutHarness.RenderTagged(frame => frame.Untagged().Language("ka").Text("გამარჯობა"), Page);
 
         Assert.Empty(root.Kids);
     }
@@ -246,7 +246,7 @@ public class TaggingTests
     [Fact]
     public void AListIsTaggedAsOne()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.List(list =>
             {
                 list.Add().Text("First");
@@ -288,7 +288,7 @@ public class TaggingTests
     [Fact]
     public void ATableTaggedAsOneIsTaggedRowByRowAndCellByCell()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Tagged(ContentTag.Table).Table(table => Rows(table, 2, header: true, footer: true)),
             Page);
 
@@ -314,7 +314,7 @@ public class TaggingTests
     [Fact]
     public void ATableTaggedAsOneWithoutBandsHasABodyAlone()
     {
-        (StructureElement root, _) = LayoutHarness.DrawTagged(
+        (StructureElement root, _) = LayoutHarness.RenderTagged(
             frame => frame.Tagged(ContentTag.Table).Table(table =>
             {
                 Rows(table, 1);
@@ -330,7 +330,7 @@ public class TaggingTests
     [Fact]
     public void RepeatedBandsAreReadOnceAndDecorationAfter()
     {
-        (StructureElement root, RecordingSurface surface) = LayoutHarness.DrawTagged(
+        (StructureElement root, RecordingSurface surface) = LayoutHarness.RenderTagged(
             frame => frame.Tagged(ContentTag.Table).Table(table => Rows(table, 30, header: true, footer: true)),
             new Extent(300, 120),
             pages: 12);
@@ -353,7 +353,7 @@ public class TaggingTests
     [Fact]
     public void ATableNotTaggedAsOneIsLayoutAndItsTextParagraphs()
     {
-        (StructureElement root, _) = LayoutHarness.DrawTagged(frame => frame.Table(table => Rows(table, 1)), Page);
+        (StructureElement root, _) = LayoutHarness.RenderTagged(frame => frame.Table(table => Rows(table, 1)), Page);
 
         Assert.Equal("Document(P, P)", Tree(root));
     }
@@ -361,7 +361,7 @@ public class TaggingTests
     [Fact]
     public void ATableTaggedButUntaggedIsNotTagged()
     {
-        (StructureElement root, _) = LayoutHarness.DrawTagged(
+        (StructureElement root, _) = LayoutHarness.RenderTagged(
             frame => frame.Untagged().Tagged(ContentTag.Table).Table(table => Rows(table, 1, header: true)),
             Page);
 

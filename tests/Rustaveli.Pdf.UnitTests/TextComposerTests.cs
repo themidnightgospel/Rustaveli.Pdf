@@ -9,8 +9,8 @@ public class TextComposerTests
     private static readonly Extent Space = new Extent(200, 200);
 
     private static RecordedPage Draw(Action<TextComposer> compose, Pagination? page = null) =>
-        LayoutHarness.Draw(
-            LayoutHarness.Build(container => container.Text(compose)),
+        LayoutHarness.Render(
+            LayoutHarness.Build(frame => frame.Text(compose)),
             Space,
             LayoutHarness.Context(page));
 
@@ -47,16 +47,16 @@ public class TextComposerTests
     [Fact]
     public void FlushLeftOverridesTheRightToLeftDefault()
     {
-        Block aligned = LayoutHarness.Build(container => container.RightToLeft().Text(text =>
+        Block aligned = LayoutHarness.Build(frame => frame.RightToLeft().Text(text =>
         {
             text.FlushLeft();
             text.Run("Hello");
         }));
-        Block unaligned = LayoutHarness.Build(container => container.RightToLeft().Text("Hello"));
+        Block unaligned = LayoutHarness.Build(frame => frame.RightToLeft().Text("Hello"));
 
         // Right-to-left text hugs the right edge unless told otherwise: 200 less five 6pt characters.
-        Approximately.Equal(0f, Assert.Single(LayoutHarness.Draw(aligned, Space).Texts).Position.X);
-        Approximately.Equal(170f, Assert.Single(LayoutHarness.Draw(unaligned, Space).Texts).Position.X);
+        Approximately.Equal(0f, Assert.Single(LayoutHarness.Render(aligned, Space).Texts).Position.X);
+        Approximately.Equal(170f, Assert.Single(LayoutHarness.Render(unaligned, Space).Texts).Position.X);
     }
 
     [Theory]
@@ -73,7 +73,7 @@ public class TextComposerTests
     [InlineData("justified", true, 170f)]
     public void EachAlignmentSetsTheLineWhereItSays(string alignment, bool rightToLeft, float expectedX)
     {
-        Block root = LayoutHarness.Build(container => container.Reading(rightToLeft ? ReadingDirection.RightToLeft : ReadingDirection.LeftToRight).Text(text =>
+        Block root = LayoutHarness.Build(frame => frame.Reading(rightToLeft ? ReadingDirection.RightToLeft : ReadingDirection.LeftToRight).Text(text =>
         {
             // Set against the grain first, so each call is seen to replace what came before.
             text.FlushEnd();
@@ -91,7 +91,7 @@ public class TextComposerTests
             text.Run("Hello");
         }));
 
-        Approximately.Equal(expectedX, Assert.Single(LayoutHarness.Draw(root, Space).Texts).Position.X);
+        Approximately.Equal(expectedX, Assert.Single(LayoutHarness.Render(root, Space).Texts).Position.X);
     }
 
     [Fact]
@@ -155,27 +155,27 @@ public class TextComposerTests
     [Fact]
     public void AnInlineFrameLeftEmptyAddsNothingToTheParagraph()
     {
-        TextBlock element = new TextBlock();
-        TextComposer text = new TextComposer(element);
+        TextBlock block = new TextBlock();
+        TextComposer text = new TextComposer(block);
 
         text.Run("ab");
         text.Inline(_ => { });
         text.Run("cd");
 
         // A paragraph holding an inline frame has its lines rebuilt on every pass; an empty one must not cost that.
-        Assert.DoesNotContain(element.Runs, run => run.Inline is not null);
-        Assert.Equal("abcd", Assert.Single(LayoutHarness.Draw(element, Space).Texts).Text);
+        Assert.DoesNotContain(block.Runs, run => run.Inline is not null);
+        Assert.Equal("abcd", Assert.Single(LayoutHarness.Render(block, Space).Texts).Text);
     }
 
     [Fact]
     public void ComposeRefusesAMissingHandler()
     {
-        TextBlock element = new TextBlock();
+        TextBlock block = new TextBlock();
 
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
-            new TextComposer(element).Inline(null!));
+            new TextComposer(block).Inline(null!));
 
         Assert.Equal("handler", exception.ParamName);
-        Assert.Empty(element.Runs);
+        Assert.Empty(block.Runs);
     }
 }

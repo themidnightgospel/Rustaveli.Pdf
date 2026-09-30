@@ -5,16 +5,16 @@ public class CompositionTests
     [Fact]
     public void RefusesToReplaceContentAlreadyInTheFrame()
     {
-        Frame container = new Frame();
-        container.Inset(5);
+        Frame frame = new Frame();
+        frame.Inset(5);
 
         CompositionException exception = Assert.Throws<CompositionException>(() =>
-            container.Fill(TestInks.Red));
+            frame.Fill(TestInks.Red));
 
         // Both types are named so the message points at the two pieces of composition that collided.
         Assert.Contains("This frame already holds InsetBlock and cannot also hold FillBlock", exception.Message);
         Assert.Contains("use Stack, Columns or Layered", exception.Message);
-        Assert.IsType<InsetBlock>(container.Slot().Child);
+        Assert.IsType<InsetBlock>(frame.Slot().Child);
     }
 
     [Fact]
@@ -29,10 +29,10 @@ public class CompositionTests
     [Fact]
     public void HandsBackTheAttachedBlockAsTheNextFrame()
     {
-        Frame container = new Frame();
+        Frame frame = new Frame();
 
-        IFrame next = container.Inset(5);
+        IFrame next = frame.Inset(5);
 
-        Assert.Same(container.Slot().Child, next);
+        Assert.Same(frame.Slot().Child, next);
     }
 }

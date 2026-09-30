@@ -34,7 +34,7 @@ internal sealed class TextBlock : Block
     public List<Text.TextRun> Runs { get; } = [];
 
     /// <summary>
-    /// How lines are aligned. The default follows the inherited content direction, so right-to-left text aligns
+    /// How lines are aligned. The default follows the inherited reading direction, so right-to-left text aligns
     /// right without being told to.
     /// </summary>
     public LineAlignment Alignment { get; set; }
@@ -54,11 +54,11 @@ internal sealed class TextBlock : Block
     /// <summary>What ends the last line when <see cref="MaxLines"/> cuts text short.</summary>
     public string Ellipsis { get; set; } = "…";
 
-    // Inline elements are children of this paragraph, so the engine can reset their state between passes.
+    // Inline frames are children of this paragraph, so the engine can reset their state between passes.
     public override IEnumerable<Block?> GetChildren() => Runs.Select(span => span.Inline);
 
     /// <summary>
-    /// The edge a line that is not stretched sits against, resolving start and end by the content direction. A
+    /// The edge a line that is not stretched sits against, resolving start and end by the reading direction. A
     /// justified paragraph's last line sits against the start.
     /// </summary>
     private HorizontalPlacement ResolveAlignment(PlanContext context)
@@ -75,7 +75,7 @@ internal sealed class TextBlock : Block
         };
     }
 
-    /// <summary>The edge lines start from in the content direction, where the first-line indent goes.</summary>
+    /// <summary>The edge lines start from in the reading direction, where the first-line indent goes.</summary>
     private static HorizontalPlacement StartEdge(PlanContext context) =>
         context.ReadingDirection == ReadingDirection.RightToLeft ? HorizontalPlacement.Right : HorizontalPlacement.Left;
 
@@ -84,7 +84,7 @@ internal sealed class TextBlock : Block
     /// </summary>
     /// <remarks>
     /// Only text aligned to the edge lines start from is indented, so for any other alignment this is zero — and
-    /// it must be zero everywhere, not just at drawing time. Charging the wrap budget for an indent that is never
+    /// it must be zero everywhere, not just at drawing time. Charging the line budget for an indent that is never
     /// drawn silently costs a line's worth of room and shows nothing for it.
     /// </remarks>
     private float EffectiveIndent(PlanContext context) =>
@@ -108,7 +108,7 @@ internal sealed class TextBlock : Block
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        // Without usable width there is no wrapping that could succeed. Reporting a wrap sends the paragraph to
+        // Without usable width there is no wrapping that could succeed. Deferring sends the paragraph to
         // a fresh page, where the engine will either find room or raise a layout error naming the cause —
         // either is better than silently emitting one character per line forever.
         if (Runs.Count > 0 && float.IsNaN(_pinnedWidth)
@@ -148,7 +148,7 @@ internal sealed class TextBlock : Block
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        // A blocker means Measure reported a wrap, so this paragraph should not have been asked to draw here.
+        // A blocker means planning deferred, so this paragraph should not have been asked to draw here.
         List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);
 
         if (blocker is not null || _completedLines >= lines.Count)
@@ -179,7 +179,7 @@ internal sealed class TextBlock : Block
         }
 
         // Pin the wrapping itself, so continuation pages reproduce these exact lines rather than re-deriving
-        // them from inline elements whose state this very draw has just advanced.
+        // them from inline frames whose state this very draw has just advanced.
         if (float.IsNaN(_pinnedWidth))
             _pinnedWidth = availableSpace.Width;
 
@@ -541,7 +541,7 @@ internal sealed class TextBlock : Block
         blocker = null;
 
         // Once a page has been drawn the wrapping is frozen whole, not merely at its width. Rebuilding it
-        // re-measures every inline element, and an element already consumed on an earlier page reports Empty
+        // plans every inline frame again, and one already drawn on an earlier page plans to nothing
         // the second time — dropping its run, shifting every later line up by one, and leaving _completedLines
         // pointing at content that was never drawn. That deletes a line of text with no error.
         if (_pinnedWrapping is not null)
@@ -636,11 +636,11 @@ internal sealed class TextBlock : Block
 
             if (span.Inline is not null)
             {
-                // The element is unbreakable, so if it does not fit on this line it moves down whole, exactly
-                // like a word — but it is measured against the budget of a line it could actually occupy, and
+                // An inline frame is unbreakable, so if it does not fit on this line it moves down whole, exactly
+                // like a word — but it is planned against the budget of a line it could actually occupy, and
                 // against the height the paragraph really has. Offering an unbounded height instead makes any
-                // element that fills what it is given — AlignMiddle, Extend — report the full 14400pt and drag
-                // the whole paragraph into a wrap it can never satisfy.
+                // frame that fills what it is given — Middle, Expand — claim the full 14,400 points and defer
+                // the whole paragraph to a page it can never fit.
                 float lineBudget = current.StartsParagraph ? Math.Max(0, width - indent) : width;
                 Fit inlinePlan = span.Inline.Plan(new Extent(lineBudget, maxHeight), context);
 
@@ -1122,17 +1122,17 @@ internal sealed class TextBlock : Block
         float Width, TypeStyle Style, ReadingDirection Direction, ITypeMeasurer Measurer, List<TextLine> Lines);
 
     /// <summary>
-    /// One piece of a line: either a stretch of text, or an element sitting inline among the words.
+    /// One piece of a line: either a stretch of text, or a frame sitting inline among the words.
     /// </summary>
     /// <remarks>
-    /// What the piece links to, and the inline element and how it sits, are the run's it was cut from: it points there
+    /// What the piece links to, and the inline frame and how it sits, are the run's it was cut from: it points there
     /// rather than carrying copies, since a line holds a piece for every word and every space.
     /// </remarks>
-    /// <param name="Text">The text; empty for an inline element.</param>
+    /// <param name="Text">The text; empty for an inline frame.</param>
     /// <param name="Style">The type it is set in.</param>
     /// <param name="Width">Its width, stretched if the line is justified.</param>
     /// <param name="Source">The run it was cut from; none for an ellipsis, which comes from no run.</param>
-    /// <param name="Height">An inline element's height.</param>
+    /// <param name="Height">An inline frame's height.</param>
     /// <param name="Offset">Where it falls in its paragraph's text; -1 for an ellipsis, from outside it.</param>
     /// <param name="RightToLeft">Whether it is set right to left.</param>
     private sealed record TextRun(
@@ -1262,7 +1262,7 @@ internal sealed class TextBlock : Block
         {
             // A space that happens to land at the end of a line is not part of the line's ink. Counting it
             // would shift centred text left, leave right-aligned text short of the margin, and overstate the
-            // width that Auto columns and table cells are sized from.
+            // width that natural-width columns and table cells are sized from.
             //
             // The predicate has to agree with the tokeniser: a non-breaking space is deliberately treated as
             // ink, so trimming it would delete the very content it exists to hold together. A run carrying a

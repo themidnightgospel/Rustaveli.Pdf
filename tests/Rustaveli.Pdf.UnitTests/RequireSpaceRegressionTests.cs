@@ -8,16 +8,16 @@ public class RequireSpaceRegressionTests
         // A header measures against the whole page body and then draws with the band height it settled on.
         // Re-deriving the headroom decision from that smaller box would refuse content the parent had already
         // committed to, and the early return would drop it with no diagnostic.
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(300, 400);
             page.RunningHead().RequireSpace(100).Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.Red));
             page.Body().Compose(inner => inner.Slot().Child = new FixedBlock(50, 20, TestInks.Blue));
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Contains(canvas.Page(1).Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
+        Assert.Contains(surface.Page(1).Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class RequireSpaceRegressionTests
             Child = new RequireSpaceBlock { MinHeight = 100, Child = new FixedBlock(40, 20, TestInks.Red) }
         });
 
-        RecordedPage page = LayoutHarness.Draw(row, new Extent(300, 400));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(300, 400));
 
         Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
     }
@@ -41,7 +41,7 @@ public class RequireSpaceRegressionTests
     {
         // The outer stack measures the inner one against the whole page, then draws it at the height it measured. The
         // inner stack lays its items out again in that smaller box, where the heading's headroom test would fail.
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 400);
             page.Body().Stack(column =>
@@ -55,16 +55,16 @@ public class RequireSpaceRegressionTests
             });
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Single(canvas.Pages);
-        Assert.Equal("Chapterintroafter", canvas.Page(1).Content);
+        Assert.Single(surface.Pages);
+        Assert.Equal("Chapterintroafter", surface.Page(1).Content);
     }
 
     [Fact]
     public void SurvivesARowDrawnAtTheHeightItMeasured()
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 400);
             page.Body().Stack(column =>
@@ -78,17 +78,17 @@ public class RequireSpaceRegressionTests
             });
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Single(canvas.Pages);
-        Assert.Equal("Chaptersideafter", canvas.Page(1).Content);
+        Assert.Single(surface.Pages);
+        Assert.Equal("Chaptersideafter", surface.Page(1).Content);
     }
 
     [Fact]
     public void SurvivesAPageSizedToItsContent()
     {
         // The page is as tall as the body measured, far less than the room the body was measured in.
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = new Extent(200, 400);
             page.Continuous = true;
@@ -99,17 +99,17 @@ public class RequireSpaceRegressionTests
             });
         }));
 
-        RecordingSurface canvas = LayoutHarness.Render(document);
+        RecordingSurface surface = LayoutHarness.Render(document);
 
-        Assert.Single(canvas.Pages);
-        Assert.Equal("Chapterintro", canvas.Page(1).Content);
+        Assert.Single(surface.Pages);
+        Assert.Equal("Chapterintro", surface.Page(1).Content);
     }
 
     [Fact]
     public void SurvivesATableCellDrawnAtItsRowHeight()
     {
         // A cell is measured in unlimited height and drawn at the height of its row.
-        RecordedPage page = LayoutHarness.Draw(container => container.Table(table =>
+        RecordedPage page = LayoutHarness.Render(frame => frame.Table(table =>
         {
             table.Columns(columns => columns.Share());
             table.Cell().Stack(cell =>
@@ -138,7 +138,7 @@ public class RequireSpaceRegressionTests
         StackBlock page = new StackBlock();
         page.Items.Add(row);
 
-        RecordedPage drawn = LayoutHarness.Draw(page, new Extent(300, 70));
+        RecordedPage drawn = LayoutHarness.Render(page, new Extent(300, 70));
 
         Assert.Contains(drawn.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Blue);
         Assert.DoesNotContain(drawn.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
@@ -149,14 +149,14 @@ public class RequireSpaceRegressionTests
     {
         // Only content that actually occupied space counts as started. Otherwise a page rendering nothing would
         // permanently disarm the headroom guarantee for every page after it.
-        RequireSpaceBlock element = new RequireSpaceBlock
+        RequireSpaceBlock block = new RequireSpaceBlock
         {
             MinHeight = 80,
             Child = new WhenBlock { Condition = false, Child = new FixedBlock(10, 10) }
         };
 
-        LayoutHarness.Draw(element, new Extent(200, 100));
+        LayoutHarness.Render(block, new Extent(200, 100));
 
-        Assert.True(LayoutHarness.Measure(element, new Extent(200, 40)).IsDeferred);
+        Assert.True(LayoutHarness.Plan(block, new Extent(200, 40)).IsDeferred);
     }
 }

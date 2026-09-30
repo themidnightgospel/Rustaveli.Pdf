@@ -11,7 +11,7 @@ public class DebuggingTests
     [Fact]
     public void FrameEdgesOutlineTheRoomGivenOverTheContent()
     {
-        RecordedPage page = LayoutHarness.Draw(LayoutHarness.Build(frame => frame.ShowFrameEdges().Height(20).Fill(TestInks.Blue).Blank()), Space);
+        RecordedPage page = LayoutHarness.Render(LayoutHarness.Build(frame => frame.ShowFrameEdges().Height(20).Fill(TestInks.Blue).Blank()), Space);
 
         List<LineOperation> edges = page.Operations.OfType<LineOperation>().ToList();
 
@@ -31,7 +31,7 @@ public class DebuggingTests
     [Fact]
     public void FrameEdgesCarryTheirLabelOnATabOfTheirInk()
     {
-        RecordedPage page = LayoutHarness.Draw(LayoutHarness.Build(frame => frame.ShowFrameEdges("Address", TestInks.Green).Height(40).Blank()), Space);
+        RecordedPage page = LayoutHarness.Render(LayoutHarness.Build(frame => frame.ShowFrameEdges("Address", TestInks.Green).Height(40).Blank()), Space);
 
         RectangleOperation tab = Assert.Single(page.Operations.OfType<RectangleOperation>());
         TextOperation label = Assert.Single(page.Operations.OfType<TextOperation>());
@@ -52,7 +52,7 @@ public class DebuggingTests
     {
         FrameEdgesBlock block = new FrameEdgesBlock("Box", TestInks.Red) { Child = new FixedBlock(30, 10) };
 
-        Approximately.Equal(new Extent(30, 10), LayoutHarness.Measure(block, Space).Size);
+        Approximately.Equal(new Extent(30, 10), LayoutHarness.Plan(block, Space).Size);
         Assert.Equal("Box", block.Label);
         Assert.Null(new FrameEdgesBlock(null, TestInks.Red).Label);
         Assert.Equal(2, block.GetChildren().Count(child => child is not null));

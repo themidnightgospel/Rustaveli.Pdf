@@ -16,7 +16,7 @@ public class PerformanceReportTests(ITestOutputHelper output)
 {
     private static byte[] GenerateTable(int rowCount)
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = PaperSizes.A4;
             page.Margins = Sides.All(30);
@@ -51,7 +51,7 @@ public class PerformanceReportTests(ITestOutputHelper output)
 
     private static byte[] GenerateColumn(int itemCount)
     {
-        Document document = Document.Compose(container => container.Section(page =>
+        Document document = Document.Compose(frame => frame.Section(page =>
         {
             page.Trim = PaperSizes.A4;
             page.Margins = Sides.All(30);

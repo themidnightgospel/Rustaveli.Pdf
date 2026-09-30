@@ -2,20 +2,20 @@ namespace Rustaveli.Pdf.UnitTests;
 
 public class ColumnsComposerTests
 {
-    private static void Fill(IFrame container, float width = 1) =>
-        container.Compose(inner => inner.Slot().Child = new FixedBlock(width, 10));
+    private static void Fill(IFrame frame, float width = 1) =>
+        frame.Compose(inner => inner.Slot().Child = new FixedBlock(width, 10));
 
     /// <summary>The left edge of every item's content, across a 200pt row.</summary>
     private static List<float> ItemPositions(Action<ColumnsComposer> compose)
     {
-        Block root = LayoutHarness.Build(container => container.Columns(compose));
-        RecordedPage page = LayoutHarness.Draw(root, new Extent(200, 100));
+        Block root = LayoutHarness.Build(frame => frame.Columns(compose));
+        RecordedPage page = LayoutHarness.Render(root, new Extent(200, 100));
 
         return page.Operations.OfType<RectangleOperation>().Select(rectangle => rectangle.Position.X).ToList();
     }
 
     [Fact]
-    public void RelativeItemsShareTheWidthByWeight()
+    public void SharedColumnsShareTheWidthByWeight()
     {
         List<float> positions = ItemPositions(row =>
         {
@@ -29,7 +29,7 @@ public class ColumnsComposerTests
     }
 
     [Fact]
-    public void RelativeItemsWithoutAWeightShareEqually()
+    public void SharedColumnsWithoutAWeightShareEqually()
     {
         List<float> positions = ItemPositions(row =>
         {
@@ -41,7 +41,7 @@ public class ColumnsComposerTests
     }
 
     [Fact]
-    public void AConstantItemTakesExactlyItsWidth()
+    public void AFixedColumnTakesExactlyItsWidth()
     {
         List<float> positions = ItemPositions(row =>
         {
@@ -53,7 +53,7 @@ public class ColumnsComposerTests
     }
 
     [Fact]
-    public void AnAutoItemTakesTheWidthItsContentNeeds()
+    public void ANaturalColumnTakesTheWidthItsContentNeeds()
     {
         List<float> positions = ItemPositions(row =>
         {

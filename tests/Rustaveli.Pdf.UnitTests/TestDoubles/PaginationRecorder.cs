@@ -4,8 +4,8 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Occupies no space and records what the page context said every time it was drawn.
 /// </summary>
 /// <remarks>
-/// The counting passes draw to a canvas that discards everything, so the only way to observe them is from
-/// inside the element tree. Placed in a slot drawn on every page, this reveals each pass the engine made and the
+/// The counting passes draw to a surface that discards everything, so the only way to observe them is from
+/// inside the block tree. Placed in a slot drawn on every page, this reveals each pass the engine made and the
 /// page numbers it quoted while making it.
 /// </remarks>
 internal sealed class PaginationRecorder : Block

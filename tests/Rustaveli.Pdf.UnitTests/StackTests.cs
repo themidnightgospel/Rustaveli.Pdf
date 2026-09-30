@@ -14,7 +14,7 @@ public class StackTests
     {
         StackBlock column = Column(0, new FixedBlock(50, 20), new FixedBlock(80, 30));
 
-        Fit plan = LayoutHarness.Measure(column, new Extent(200, 200));
+        Fit plan = LayoutHarness.Plan(column, new Extent(200, 200));
 
         Approximately.Equal(new Extent(80, 50), plan.Size);
     }
@@ -24,7 +24,7 @@ public class StackTests
     {
         StackBlock column = Column(10, new FixedBlock(10, 20), new FixedBlock(10, 20), new FixedBlock(10, 20));
 
-        Fit plan = LayoutHarness.Measure(column, new Extent(200, 200));
+        Fit plan = LayoutHarness.Plan(column, new Extent(200, 200));
 
         // Three 20pt items plus two 10pt gaps.
         Approximately.Equal(80f, plan.Size.Height);
@@ -35,7 +35,7 @@ public class StackTests
     {
         StackBlock column = Column(5, new FixedBlock(10, 20), new FixedBlock(10, 30));
 
-        RecordedPage page = LayoutHarness.Draw(column, new Extent(200, 200));
+        RecordedPage page = LayoutHarness.Render(column, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(0f, rectangles[0].Position.Y);
@@ -47,7 +47,7 @@ public class StackTests
     {
         StackBlock column = Column(0, new FixedBlock(10, 60), new FixedBlock(10, 60));
 
-        Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(column, new Extent(200, 100));
 
         Assert.True(plan.IsPartial);
         Approximately.Equal(60f, plan.Size.Height);
@@ -59,22 +59,22 @@ public class StackTests
         StackBlock column = Column(0, new FixedBlock(10, 60), new FixedBlock(10, 60));
         Extent space = new Extent(200, 100);
 
-        LayoutHarness.Draw(column, space);
+        LayoutHarness.Render(column, space);
 
         // The first item is finished, so a second pass must start at the second one.
-        RecordedPage page = LayoutHarness.Draw(column, space);
+        RecordedPage page = LayoutHarness.Render(column, space);
         RectangleOperation rectangle = Assert.Single(page.Operations.OfType<RectangleOperation>());
 
         Approximately.Equal(0f, rectangle.Position.Y);
-        Assert.True(LayoutHarness.Measure(column, space).IsNothing);
+        Assert.True(LayoutHarness.Plan(column, space).IsNothing);
     }
 
     [Fact]
-    public void WrapsWhenEvenTheFirstItemDoesNotFit()
+    public void DefersWhenEvenTheFirstItemDoesNotFit()
     {
         StackBlock column = Column(0, new FixedBlock(10, 500));
 
-        Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(column, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
     }
@@ -85,9 +85,9 @@ public class StackTests
         StackBlock column = Column(0, new FixedBlock(10, 20));
         Extent space = new Extent(200, 200);
 
-        LayoutHarness.Draw(column, space);
+        LayoutHarness.Render(column, space);
 
-        Assert.True(LayoutHarness.Measure(column, space).IsNothing);
+        Assert.True(LayoutHarness.Plan(column, space).IsNothing);
     }
 
     [Fact]
@@ -97,10 +97,10 @@ public class StackTests
         StackBlock column = Column(0, splittable);
         Extent space = new Extent(200, 50);
 
-        Fit plan = LayoutHarness.Measure(column, space);
+        Fit plan = LayoutHarness.Plan(column, space);
         Assert.True(plan.IsPartial);
 
-        LayoutHarness.Draw(column, space);
+        LayoutHarness.Render(column, space);
 
         Assert.Equal(2, splittable.Remaining);
     }
@@ -112,7 +112,7 @@ public class StackTests
         StackBlock column = Column(0, item);
         Extent space = new Extent(200, 100);
 
-        Assert.Equal(LayoutHarness.Measure(item, space).DeferReason, LayoutHarness.Measure(column, space).DeferReason);
+        Assert.Equal(LayoutHarness.Plan(item, space).DeferReason, LayoutHarness.Plan(column, space).DeferReason);
     }
 
     [Fact]
@@ -120,16 +120,16 @@ public class StackTests
     {
         StackBlock column = Column(10, new ScriptedBlock(Fit.Nothing()), new ScriptedBlock(Fit.Nothing()));
 
-        Assert.True(LayoutHarness.Measure(column, new Extent(200, 200)).IsNothing);
+        Assert.True(LayoutHarness.Plan(column, new Extent(200, 200)).IsNothing);
     }
 
     [Fact]
-    public void WrapsWhenOfferedNegativeHeight()
+    public void DefersWhenOfferedNegativeHeight()
     {
         // A placeholder would happily claim a negative box; the column must refuse to hand one out.
         StackBlock column = Column(0, new PlaceholderBlock());
 
-        Assert.True(LayoutHarness.Measure(column, new Extent(200, -5)).IsDeferred);
+        Assert.True(LayoutHarness.Plan(column, new Extent(200, -5)).IsDeferred);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class StackTests
     {
         StackBlock column = Column(10, new FixedBlock(10, 95), new PlaceholderBlock());
 
-        Fit plan = LayoutHarness.Measure(column, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(column, new Extent(200, 100));
 
         Assert.True(plan.IsPartial);
         Approximately.Equal(new Extent(10, 95), plan.Size);
@@ -149,11 +149,11 @@ public class StackTests
         StackBlock column = Column(0, new FixedBlock(10, 20));
         Extent space = new Extent(200, 200);
 
-        LayoutHarness.Draw(column, space);
-        RecordedPage again = LayoutHarness.Draw(column, space);
+        LayoutHarness.Render(column, space);
+        RecordedPage again = LayoutHarness.Render(column, space);
 
         Assert.Empty(again.Operations);
-        Assert.True(LayoutHarness.Measure(column, space).IsNothing);
+        Assert.True(LayoutHarness.Plan(column, space).IsNothing);
     }
 
     [Fact]
@@ -161,9 +161,9 @@ public class StackTests
     {
         StackBlock column = Column(0, new FixedBlock(10, 10, TestInks.Red), new FixedBlock(10, 50, TestInks.Blue));
 
-        LayoutHarness.Draw(column, new Extent(200, 20));
-        RecordedPage cramped = LayoutHarness.Draw(column, new Extent(200, 5));
-        RecordedPage roomy = LayoutHarness.Draw(column, new Extent(200, 100));
+        LayoutHarness.Render(column, new Extent(200, 20));
+        RecordedPage cramped = LayoutHarness.Render(column, new Extent(200, 5));
+        RecordedPage roomy = LayoutHarness.Render(column, new Extent(200, 100));
 
         Assert.Empty(cramped.Operations);
 

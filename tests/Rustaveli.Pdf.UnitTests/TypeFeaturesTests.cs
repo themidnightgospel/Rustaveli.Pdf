@@ -138,7 +138,7 @@ public class TypeFeaturesTests
     [Fact]
     public void TheRunComposerSetsFeaturesOnTheRun()
     {
-        Block root = LayoutHarness.Build(container => container.Text(text =>
+        Block root = LayoutHarness.Build(frame => frame.Text(text =>
         {
             text.Run("a").Feature("ss01", 2);
             text.Run("b").Ligatures(false);
@@ -147,7 +147,7 @@ public class TypeFeaturesTests
             text.Run("e").TabularFigures();
         }));
 
-        List<TypeStyle> styles = LayoutHarness.Draw(root, new Extent(200, 200)).Texts.Select(text => text.Style).ToList();
+        List<TypeStyle> styles = LayoutHarness.Render(root, new Extent(200, 200)).Texts.Select(text => text.Style).ToList();
 
         Assert.Equal(Base.WithFeature("ss01", 2).Features, styles[0].Features);
         Assert.Equal(Base.Ligatures(false).Features, styles[1].Features);

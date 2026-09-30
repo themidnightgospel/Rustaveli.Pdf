@@ -1,13 +1,13 @@
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
 /// <summary>
-/// An element that reports the same plan whatever it is offered, and records every request to draw.
+/// A block that reports the same plan whatever it is offered, and records every request to draw.
 /// </summary>
 /// <remarks>
 /// Real content guards its own drawing: a fixed shape that does not fit simply paints nothing. That makes a
 /// parent which wrongly draws a wrapped or exhausted child indistinguishable from one that correctly skips it.
 /// Recording the call is what makes the parent's own guard observable. Reporting a fixed plan also stands in for
-/// a custom element that overstates its size, which the built-in containers must tolerate.
+/// a custom block that overstates its size, which the built-in containers must tolerate.
 /// </remarks>
 internal sealed class ScriptedBlock(Fit plan) : Block
 {

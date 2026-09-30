@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class FitTests
 {
     [Fact]
-    public void WrapCarriesItsReasonAndOccupiesNoSpace()
+    public void DeferCarriesItsReasonAndOccupiesNoSpace()
     {
         Fit plan = Fit.Defer("too narrow");
 
@@ -56,19 +56,19 @@ public class FitTests
     [Fact]
     public void EachOutcomeAnswersYesToExactlyItsOwnQuestion()
     {
-        Fit wrap = Fit.Defer("no");
+        Fit defer = Fit.Defer("no");
         Fit empty = Fit.Nothing();
         Fit full = Fit.Complete(1, 1);
         Fit partial = Fit.Partial(1, 1);
 
-        Assert.Equal(new[] { true, false, false, false }, Flags(wrap));
+        Assert.Equal(new[] { true, false, false, false }, Flags(defer));
         Assert.Equal(new[] { false, true, false, false }, Flags(empty));
         Assert.Equal(new[] { false, false, true, false }, Flags(full));
         Assert.Equal(new[] { false, false, false, true }, Flags(partial));
     }
 
     [Fact]
-    public void WrapDescribesItselfWithItsReason()
+    public void DeferDescribesItselfWithItsReason()
     {
         Assert.Equal("Defer: too narrow", Fit.Defer("too narrow").ToString());
     }

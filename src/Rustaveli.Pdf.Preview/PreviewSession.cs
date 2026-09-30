@@ -106,7 +106,7 @@ public sealed class PreviewSession : IDisposable
                 {
                     Document document;
 
-                    // Each element remembers the line that made it, so the inspector can lead back to it.
+                    // Each block remembers the line that made it, so the inspector can lead back to it.
                     using (SourceCapture.Record())
                         document = _compose() ?? throw new InvalidOperationException("The preview's compose function returned no document.");
 

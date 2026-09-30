@@ -4,22 +4,22 @@ public class BandsTests
 {
     private static BandsBlock Build(Action<BandsComposer> compose)
     {
-        BandsBlock element = new BandsBlock();
-        compose(new BandsComposer(element));
-        return element;
+        BandsBlock block = new BandsBlock();
+        compose(new BandsComposer(block));
+        return block;
     }
 
     [Fact]
     public void StacksTheBandsAroundTheContent()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 15, TestInks.Red));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 20, TestInks.Blue));
-            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(10, 25, TestInks.Green));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 15, TestInks.Red));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 20, TestInks.Blue));
+            bands.Foot().Compose(frame => frame.Slot().Child = new FixedBlock(10, 25, TestInks.Green));
         });
 
-        RecordedPage page = LayoutHarness.Draw(element, new Extent(200, 200));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(200, 200));
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         Approximately.Equal(0f, rectangles.Single(r => r.Ink == TestInks.Red).Position.Y);
@@ -30,14 +30,14 @@ public class BandsTests
     [Fact]
     public void SumsBandAndContentHeights()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 15));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 20));
-            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(10, 25));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 15));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 20));
+            bands.Foot().Compose(frame => frame.Slot().Child = new FixedBlock(10, 25));
         });
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 200));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 200));
 
         Approximately.Equal(60f, plan.Size.Height);
     }
@@ -45,13 +45,13 @@ public class BandsTests
     [Fact]
     public void ReportsPartialWhileContentRemains()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
-            decoration.Body().Compose(container => container.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10));
+            bands.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
         });
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 50));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 50));
 
         Assert.True(plan.IsPartial);
     }
@@ -61,16 +61,16 @@ public class BandsTests
     {
         // The bands accompany the content wherever it breaks, so their text must be redrawn in full each page
         // rather than being consumed on the first.
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Text("Continued");
-            decoration.Body().Compose(container => container.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
+            bands.Head().Text("Continued");
+            bands.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(unitCount: 4, unitHeight: 20));
         });
 
         Extent space = new Extent(200, 52);
 
-        RecordedPage firstPage = LayoutHarness.Draw(element, space);
-        RecordedPage secondPage = LayoutHarness.Draw(element, space);
+        RecordedPage firstPage = LayoutHarness.Render(block, space);
+        RecordedPage secondPage = LayoutHarness.Render(block, space);
 
         Assert.Equal("Continued", firstPage.Content);
         Assert.Equal("Continued", secondPage.Content);
@@ -79,14 +79,14 @@ public class BandsTests
     [Fact]
     public void TakesTheWidthOfItsWidestPart()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(80, 10));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(50, 20));
-            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(120, 5));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(80, 10));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(50, 20));
+            bands.Foot().Compose(frame => frame.Slot().Child = new FixedBlock(120, 5));
         });
 
-        Approximately.Equal(120f, LayoutHarness.Measure(element, new Extent(200, 200)).Size.Width);
+        Approximately.Equal(120f, LayoutHarness.Plan(block, new Extent(200, 200)).Size.Width);
     }
 
     [Fact]
@@ -96,14 +96,14 @@ public class BandsTests
         ScriptedBlock content = new ScriptedBlock(Fit.Complete(10, 20));
         ScriptedBlock after = new ScriptedBlock(Fit.Complete(10, 25));
 
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = before);
-            decoration.Body().Compose(container => container.Slot().Child = content);
-            decoration.Foot().Compose(container => container.Slot().Child = after);
+            bands.Head().Compose(frame => frame.Slot().Child = before);
+            bands.Body().Compose(frame => frame.Slot().Child = content);
+            bands.Foot().Compose(frame => frame.Slot().Child = after);
         });
 
-        LayoutHarness.Draw(element, new Extent(200, 100));
+        LayoutHarness.Render(block, new Extent(200, 100));
 
         // The content is offered everything between the bands, not just the height it reported.
         Approximately.Equal(new Extent(200, 15), Assert.Single(before.DrawnWith));
@@ -112,107 +112,107 @@ public class BandsTests
     }
 
     [Fact]
-    public void WrapsWhenTheLeadingBandDoesNotFit()
+    public void DefersWhenTheLeadingBandDoesNotFit()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 150));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 150));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10));
         });
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
         Assert.Contains("too small for the head and foot bands", plan.DeferReason);
     }
 
     [Fact]
-    public void WrapsWhenTheTrailingBandDoesNotFitBelowTheLeadingOne()
+    public void DefersWhenTheTrailingBandDoesNotFitBelowTheLeadingOne()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 60));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 1));
-            decoration.Foot().Compose(container => container.Slot().Child = new FixedBlock(10, 60));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 60));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 1));
+            bands.Foot().Compose(frame => frame.Slot().Child = new FixedBlock(10, 60));
         });
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
         Assert.Contains("too small for the head and foot bands", plan.DeferReason);
     }
 
     [Fact]
-    public void WrapsWhenALeadingBandOverstatesItsHeight()
+    public void DefersWhenALeadingBandOverstatesItsHeight()
     {
-        // A custom element can report more than it was offered. The trailing band must not then be measured
+        // A custom block can report more than it was offered. The trailing band must not then be measured
         // against a negative remainder.
-        BandsBlock element = Build(decoration =>
-            decoration.Head().Compose(container => container.Slot().Child = new ScriptedBlock(Fit.Complete(10, 150))));
+        BandsBlock block = Build(bands =>
+            bands.Head().Compose(frame => frame.Slot().Child = new ScriptedBlock(Fit.Complete(10, 150))));
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
         Assert.Contains("too small for the head and foot bands", plan.DeferReason);
     }
 
     [Fact]
-    public void WrapsWhenTheBandsLeaveNoRoomForTheContent()
+    public void DefersWhenTheBandsLeaveNoRoomForTheContent()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 60));
-            decoration.Foot().Compose(container => container.Slot().Child = new ScriptedBlock(Fit.Complete(10, 70)));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 60));
+            bands.Foot().Compose(frame => frame.Slot().Child = new ScriptedBlock(Fit.Complete(10, 70)));
         });
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 100));
 
         Assert.True(plan.IsDeferred);
         Assert.Contains("no room", plan.DeferReason);
     }
 
     [Fact]
-    public void PassesTheContentsWrapThroughUnchanged()
+    public void PassesTheContentsDeferralThroughUnchanged()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 200));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 200));
         });
 
-        Fit plan = LayoutHarness.Measure(element, new Extent(200, 100));
+        Fit plan = LayoutHarness.Plan(block, new Extent(200, 100));
 
         // The content is measured in the 90pt left below the leading band.
-        Assert.Equal(LayoutHarness.Measure(new FixedBlock(10, 200), new Extent(200, 90)), plan);
+        Assert.Equal(LayoutHarness.Plan(new FixedBlock(10, 200), new Extent(200, 90)), plan);
     }
 
     [Fact]
     public void ReportsEmptyOnceTheContentIsExhausted()
     {
         // The bands exist to accompany content; on their own they must not claim another page.
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10));
-            decoration.Body().Compose(container => container.Slot().Child = new SplittableBlock(unitCount: 1, unitHeight: 10));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10));
+            bands.Body().Compose(frame => frame.Slot().Child = new SplittableBlock(unitCount: 1, unitHeight: 10));
         });
 
         Extent space = new Extent(200, 100);
-        LayoutHarness.Draw(element, space);
+        LayoutHarness.Render(block, space);
 
-        Assert.True(LayoutHarness.Measure(element, space).IsNothing);
-        Assert.Empty(LayoutHarness.Draw(element, space).Operations);
+        Assert.True(LayoutHarness.Plan(block, space).IsNothing);
+        Assert.Empty(LayoutHarness.Render(block, space).Operations);
     }
 
     [Fact]
     public void DrawsNothingWhenTheBandsDoNotFit()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 150, TestInks.Red));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 10, TestInks.Blue));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 150, TestInks.Red));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10, TestInks.Blue));
         });
 
-        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(200, 100)).Operations);
     }
 
     [Fact]
@@ -220,25 +220,25 @@ public class BandsTests
     {
         ScriptedBlock after = new ScriptedBlock(Fit.Complete(10, 70));
 
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 60, TestInks.Red));
-            decoration.Foot().Compose(container => container.Slot().Child = after);
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 60, TestInks.Red));
+            bands.Foot().Compose(frame => frame.Slot().Child = after);
         });
 
-        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(200, 100)).Operations);
         Assert.Empty(after.DrawnWith);
     }
 
     [Fact]
     public void DoesNotDrawTheBandsWhenTheContentDoesNotFit()
     {
-        BandsBlock element = Build(decoration =>
+        BandsBlock block = Build(bands =>
         {
-            decoration.Head().Compose(container => container.Slot().Child = new FixedBlock(10, 10, TestInks.Red));
-            decoration.Body().Compose(container => container.Slot().Child = new FixedBlock(10, 200, TestInks.Blue));
+            bands.Head().Compose(frame => frame.Slot().Child = new FixedBlock(10, 10, TestInks.Red));
+            bands.Body().Compose(frame => frame.Slot().Child = new FixedBlock(10, 200, TestInks.Blue));
         });
 
-        Assert.Empty(LayoutHarness.Draw(element, new Extent(200, 100)).Operations);
+        Assert.Empty(LayoutHarness.Render(block, new Extent(200, 100)).Operations);
     }
 }

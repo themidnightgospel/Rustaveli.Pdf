@@ -72,16 +72,16 @@ public class ProgressTests
     public void ReturningToSavedProgressDrawsTheSameAgain(string kind)
     {
         Block content = Build(kind);
-        LayoutHarness.Draw(content, Page);
+        LayoutHarness.Render(content, Page);
 
         Progress saved = content.SaveProgress();
-        string ahead = Describe(LayoutHarness.Draw(content, Page));
-        string further = Describe(LayoutHarness.Draw(content, Page));
+        string ahead = Describe(LayoutHarness.Render(content, Page));
+        string further = Describe(LayoutHarness.Render(content, Page));
 
         content.RestoreProgress(saved);
 
-        Assert.Equal(ahead, Describe(LayoutHarness.Draw(content, Page)));
-        Assert.Equal(further, Describe(LayoutHarness.Draw(content, Page)));
+        Assert.Equal(ahead, Describe(LayoutHarness.Render(content, Page)));
+        Assert.Equal(further, Describe(LayoutHarness.Render(content, Page)));
     }
 
     [Theory]
@@ -90,16 +90,16 @@ public class ProgressTests
     {
         // Drawing ahead tries one layout after another from the same point, returning to it after each.
         Block content = Build(kind);
-        LayoutHarness.Draw(content, Page);
+        LayoutHarness.Render(content, Page);
 
         Progress saved = content.SaveProgress();
-        string ahead = Describe(LayoutHarness.Draw(content, Page));
+        string ahead = Describe(LayoutHarness.Render(content, Page));
 
         content.RestoreProgress(saved);
-        LayoutHarness.Draw(content, Page);
+        LayoutHarness.Render(content, Page);
         content.RestoreProgress(saved);
 
-        Assert.Equal(ahead, Describe(LayoutHarness.Draw(content, Page)));
+        Assert.Equal(ahead, Describe(LayoutHarness.Render(content, Page)));
     }
 
     [Fact]
@@ -112,12 +112,12 @@ public class ProgressTests
         Block content = Build("columns");
         Progress saved = content.SaveProgress();
 
-        LayoutHarness.Draw(content, Page);
-        LayoutHarness.Draw(content, Page);
+        LayoutHarness.Render(content, Page);
+        LayoutHarness.Render(content, Page);
         content.RestoreProgress(saved);
 
         // Returned to before anything was drawn, the fixed column is drawn again.
-        Assert.Contains(LayoutHarness.Draw(content, Page).Operations.OfType<RectangleOperation>(), operation => operation.Ink == TestInks.Red);
+        Assert.Contains(LayoutHarness.Render(content, Page).Operations.OfType<RectangleOperation>(), operation => operation.Ink == TestInks.Red);
     }
 
     private static string Describe(RecordedPage page) =>

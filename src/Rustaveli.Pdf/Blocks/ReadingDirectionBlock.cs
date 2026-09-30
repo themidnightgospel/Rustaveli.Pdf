@@ -3,7 +3,7 @@ using Rustaveli.Pdf.Layout;
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
-/// Overrides the content direction for everything beneath it.
+/// Overrides the reading direction for everything beneath it.
 /// </summary>
 /// <remarks>
 /// Lets a right-to-left passage sit inside a left-to-right document, or the reverse, without either having to

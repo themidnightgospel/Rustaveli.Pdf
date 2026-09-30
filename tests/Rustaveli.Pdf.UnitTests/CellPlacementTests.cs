@@ -7,7 +7,7 @@ public class CellPlacementTests
 {
     private static TableBlock Compose(int columns, Action<TableComposer> cells)
     {
-        Block root = LayoutHarness.Build(container => container.Table(table =>
+        Block root = LayoutHarness.Build(frame => frame.Table(table =>
         {
             table.Columns(definition =>
             {
@@ -41,7 +41,7 @@ public class CellPlacementTests
     }
 
     [Fact]
-    public void AnAutomaticCellWrapsWhenTheRestOfItsRowIsClaimed()
+    public void AnAutomaticCellDefersWhenTheRestOfItsRowIsClaimed()
     {
         IEnumerable<(int Row, int Column)> slots = Place(2, table =>
         {
@@ -54,7 +54,7 @@ public class CellPlacementTests
     }
 
     [Fact]
-    public void ASpanningAutomaticCellWrapsRatherThanOverhangingTheLastColumn()
+    public void ASpanningAutomaticCellDefersRatherThanOverhangingTheLastColumn()
     {
         IEnumerable<(int Row, int Column)> slots = Place(3, table =>
         {
@@ -253,19 +253,19 @@ public class CellPlacementTests
     [Fact]
     public void EachBandIsPlacedOnItsOwnGrid()
     {
-        TableBlock table = Compose(2, descriptor =>
+        TableBlock table = Compose(2, composer =>
         {
-            descriptor.HeaderRows(header =>
+            composer.HeaderRows(header =>
             {
                 header.Cell();
                 header.Cell();
             });
 
-            descriptor.Cell();
-            descriptor.Cell();
-            descriptor.Cell();
+            composer.Cell();
+            composer.Cell();
+            composer.Cell();
 
-            descriptor.FooterRows(footer =>
+            composer.FooterRows(footer =>
             {
                 footer.Cell();
                 footer.Cell();

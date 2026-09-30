@@ -4,7 +4,7 @@ namespace Rustaveli.Pdf;
 /// A composed document, ready to be rendered.
 /// </summary>
 /// <remarks>
-/// A document owns the element tree its composing built, and laying it out records progress in that tree — how many
+/// A document owns the tree of blocks its composing built, and laying it out records progress in that tree — how many
 /// lines of a paragraph have been drawn, which table rows remain. An export uses the tree when no other export is,
 /// and each resets it before it starts. An export that begins while another is under way composes the document
 /// afresh for itself, running the composing code again, so one document may be exported from any number of threads

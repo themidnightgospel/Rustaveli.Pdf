@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Blocks;
 /// Refuses to split its child across pages, deferring the whole thing rather than drawing part of it.
 /// </summary>
 /// <remarks>
-/// Converts a partial render into a wrap, which sends the content to the next page intact. If it cannot fit on
+/// Defers content that would only partly fit, which sends it to the next page intact. If it cannot fit on
 /// an empty page either, the engine reports a layout failure rather than silently truncating.
 /// </remarks>
 internal sealed class KeepTogetherBlock : EnclosingBlock

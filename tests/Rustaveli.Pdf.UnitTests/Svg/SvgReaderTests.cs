@@ -16,7 +16,7 @@ public class SvgReaderTests
     private static List<DrawOperation> Draw(string body, string size = "width='100' height='100'")
     {
         Artwork artwork = Read(body, size);
-        return LayoutHarness.Draw(frame => frame.Artwork(artwork), artwork.Size).Operations;
+        return LayoutHarness.Render(frame => frame.Artwork(artwork), artwork.Size).Operations;
     }
 
     private static List<PathOperation> Paths(string body, string size = "width='100' height='100'") =>
@@ -81,7 +81,7 @@ public class SvgReaderTests
             "<!DOCTYPE svg [<!ENTITY red 'red'>]>" +
             $"<svg {Namespaces} width='10' height='10'><rect width='10' height='10' fill='&red;'/></svg>");
 
-        Assert.Equal(Red, LayoutHarness.Draw(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<PathOperation>().Single().Ink);
+        Assert.Equal(Red, LayoutHarness.Render(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<PathOperation>().Single().Ink);
     }
 
     // ---- View boxes ------------------------------------------------------------------------------------------

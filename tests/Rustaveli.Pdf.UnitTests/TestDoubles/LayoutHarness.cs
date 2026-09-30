@@ -3,18 +3,18 @@ using Rustaveli.Pdf.Tagging;
 namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 
 /// <summary>
-/// Drives elements and documents through the layout engine with deterministic services attached.
+/// Drives blocks and documents through the layout engine with deterministic services attached.
 /// </summary>
 internal static class LayoutHarness
 {
     public static ITypeMeasurer Measurer { get; } = new FakeTypeMeasurer();
 
-    /// <summary>Composes a fragment and returns its root element, ready to be measured or drawn.</summary>
+    /// <summary>Composes a fragment and returns its root block, ready to be measured or drawn.</summary>
     public static Block Build(Action<IFrame> compose)
     {
-        Frame container = new Frame();
-        compose(container);
-        return container;
+        Frame frame = new Frame();
+        compose(frame);
+        return frame;
     }
 
     public static PlanContext Context(Pagination? page = null, TypeStyle? defaultStyle = null)
@@ -27,70 +27,70 @@ internal static class LayoutHarness
         return context;
     }
 
-    public static Fit Measure(Block element, Extent availableSpace, PlanContext? context = null) =>
-        element.Plan(availableSpace, context ?? Context());
+    public static Fit Plan(Block block, Extent availableSpace, PlanContext? context = null) =>
+        block.Plan(availableSpace, context ?? Context());
 
-    public static Fit Measure(Action<IFrame> compose, Extent availableSpace) =>
-        Measure(Build(compose), availableSpace);
+    public static Fit Plan(Action<IFrame> compose, Extent availableSpace) =>
+        Plan(Build(compose), availableSpace);
 
-    /// <summary>Draws an element onto a single synthetic page and returns everything it produced.</summary>
-    public static RecordedPage Draw(Block element, Extent availableSpace, PlanContext? context = null)
+    /// <summary>Draws a block onto a single synthetic page and returns everything it produced.</summary>
+    public static RecordedPage Render(Block block, Extent availableSpace, PlanContext? context = null)
     {
-        RecordingSurface canvas = new RecordingSurface();
+        RecordingSurface surface = new RecordingSurface();
         PlanContext layout = context ?? Context();
 
-        canvas.BeginPage(availableSpace);
-        element.Render(availableSpace, new RenderContext(canvas, layout));
+        surface.BeginPage(availableSpace);
+        block.Render(availableSpace, new RenderContext(surface, layout));
 
-        // Drawing must leave the canvas exactly as it found it. An element that translates without translating
+        // Drawing must leave the surface exactly as it found it. A block that translates without translating
         // back, or saves without restoring, shifts every sibling drawn after it — invisible to a test that draws
-        // one element and asserts one position, but wrong on every real page.
-        Assert.True(canvas.IsAtIdentity, $"{element.GetType().Name}.Draw left the transform displaced.");
-        Assert.True(canvas.PendingSaves == 0, $"{element.GetType().Name}.Draw left {canvas.PendingSaves} unmatched Save call(s).");
+        // one block and asserts one position, but wrong on every real page.
+        Assert.True(surface.IsAtIdentity, $"{block.GetType().Name}.Render left the transform displaced.");
+        Assert.True(surface.PendingSaves == 0, $"{block.GetType().Name}.Render left {surface.PendingSaves} unmatched Save call(s).");
 
-        canvas.EndPage();
+        surface.EndPage();
 
-        return canvas.Pages[0];
+        return surface.Pages[0];
     }
 
-    public static RecordedPage Draw(Action<IFrame> compose, Extent availableSpace) =>
-        Draw(Build(compose), availableSpace);
+    public static RecordedPage Render(Action<IFrame> compose, Extent availableSpace) =>
+        Render(Build(compose), availableSpace);
 
     /// <summary>
     /// Draws composed content tagged, on as many pages as it takes, and returns the document element it was drawn in and
     /// the pages.
     /// </summary>
-    public static (StructureElement Root, RecordingSurface Pages) DrawTagged(Action<IFrame> compose, Extent availableSpace, int pages = 1)
+    public static (StructureElement Root, RecordingSurface Pages) RenderTagged(Action<IFrame> compose, Extent availableSpace, int pages = 1)
     {
-        Block element = Build(compose);
-        RecordingSurface canvas = new RecordingSurface();
+        Block block = Build(compose);
+        RecordingSurface surface = new RecordingSurface();
         StructureElement root = new StructureElement("Document", null);
-        RenderContext context = new RenderContext(canvas, Context(), root);
+        RenderContext context = new RenderContext(surface, Context(), root);
 
         for (int page = 0; page < pages; page++)
         {
-            canvas.BeginPage(availableSpace);
-            element.Render(availableSpace, context);
-            canvas.EndPage();
+            surface.BeginPage(availableSpace);
+            block.Render(availableSpace, context);
+            surface.EndPage();
         }
 
         Assert.Same(root, context.Tags.Current);
-        return (root, canvas);
+        return (root, surface);
     }
 
     /// <summary>Renders a whole document tagged, returning its structure and every page it produced.</summary>
     public static (StructureElement Root, RecordingSurface Pages) RenderTagged(Document document)
     {
-        RecordingSurface canvas = new RecordingSurface();
-        Typesetter.Render(document, canvas, Measurer, tagged: true);
-        return (canvas.Root!, canvas);
+        RecordingSurface surface = new RecordingSurface();
+        Typesetter.Render(document, surface, Measurer, tagged: true);
+        return (surface.Root!, surface);
     }
 
     /// <summary>Renders a whole document, returning every page it produced.</summary>
     public static RecordingSurface Render(Document document)
     {
-        RecordingSurface canvas = new RecordingSurface();
-        Typesetter.Render(document, canvas, Measurer);
-        return canvas;
+        RecordingSurface surface = new RecordingSurface();
+        Typesetter.Render(document, surface, Measurer);
+        return surface;
     }
 }
