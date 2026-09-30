@@ -32,7 +32,7 @@ first for a missing character. A typeface nobody has is substituted, as a deskto
 refusing the document; only when no face at all is available does export fail.
 
 ## Consequences
-- Measuring and drawing cannot disagree, and kerned text now matches what print tools and QuestPDF set.
+- Measuring and drawing cannot disagree, and kerned text now matches what print tools set.
 - Every future backend — page images through Skia, or anything else — draws from the same walk and inherits the
   same layout, instead of shaping text its own way.
 - The walk is where the text engine grows ([phase 3](../about.md#history)): ligatures and other `GSUB` features,

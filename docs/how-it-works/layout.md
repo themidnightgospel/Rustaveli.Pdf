@@ -82,16 +82,16 @@ Three rules make this work.
 
 **`Plan` changes nothing that matters.** The engine plans speculatively, often several times for the same page, and
 throws most answers away. A block may remember results that do not depend on progress — a table keeps its column
-widths and row heights, a row its column widths — but it must never advance how far it has got while planning.
+widths and row heights, a row of columns their widths — but it must never advance how far it has got while planning.
 
 **`Render` uses only the room `Plan` promised.** A block that drew more would overflow silently, since its parent
 has already placed the next thing below it.
 
 **Parents allot the final size** ([ADR 0012](../adr/0012-parents-allot-final-size.md)). A stack gives each item the
-full width and the height the item measured; a row gives each item its column's width and the row's height; a table
+full width and the height the item planned; a row gives each column its width and the row's height; a table
 gives a cell the width of the columns it spans and the height of its rows; layers give every layer the whole box. The
-allotted size is never smaller than what the child measured, and decorators such as `Fill` and `Stroke` paint the size
-they are given rather than re-measuring their content. That is why a fill on a table cell reaches the edges of the cell,
+allotted size is never smaller than what the child planned, and decorators such as `Fill` and `Stroke` paint the size
+they are given rather than planning their content again. That is why a fill on a table cell reaches the edges of the cell,
 not just the end of its text.
 
 Some layout can only know where content ends by laying it out: text flowing through
@@ -164,10 +164,10 @@ since an empty page is no wider, that ends in an `OversetException`.
 Tables break only between rows, and never inside a group of rows joined by a cell that spans them: a cell spanning
 three rows moves with all three. Header and footer rows are set on every page the table reaches.
 
-On each page the table measures its header and footer rows and fits whole body rows into the room they leave, from
+On each page the table plans its header and footer rows and fits whole body rows into the room they leave, from
 where it stopped. A row is as tall as its tallest cell; a spanning cell that needs more height than its rows give it
-adds the difference to its last row. Body row heights are measured once per pass and kept, while the header and footer
-are measured afresh on every page, so that a `SkipFirst()` "continued" label can make the header taller after the
+adds the difference to its last row. Body row heights are worked out once per pass and kept, while the header and
+footer are planned afresh on every page, so that a `SkipFirst()` "continued" label can make the header taller after the
 first page.
 
 What happens to a table that does not fit:
@@ -200,10 +200,10 @@ blocks as the body, which track how much of themselves they have set: a paragrap
 So the typesetter resets them before every page, and tables and banded content reset their repeated rows after
 each page. This softer reset clears progress through the content but keeps progress through the document, so a
 `Once()` frame in a running head still appears only on the first page. Getting this distinction wrong is what once
-made table header rows vanish after the first page — a defect the QuestPDF comparison suite caught.
+made table header rows vanish after the first page — a defect the equivalence suite caught.
 
 The head sits against the top margin and the foot against the bottom margin, not directly below the body; the body is
-drawn in the whole room between them, which is at least the room it measured.
+drawn in the whole room between them, which is at least the room it planned.
 
 ## Counting passes
 
@@ -264,7 +264,7 @@ clips, shapes, paths, images, text, links, bookmarks and structure tags — and 
 | `CountingPageSink` | Rustaveli.Pdf | Discards everything; used by counting passes and by layout that draws ahead |
 | `LayeredPageSink` | Rustaveli.Pdf | Holds a page back and passes it on in draw order |
 
-Text crosses the seam as text, not as glyphs: `DrawText` takes the string and its `TypeStyle`, and each backend asks
+Text crosses the seam as text, not as glyphs: `ShowText` takes the string and its `TypeStyle`, and each backend asks
 the same shaper that layout measured with for the glyphs. The PDF and the page image of a document therefore agree
 glyph for glyph with each other and with the layout ([ADR 0014](../adr/0014-text-is-shaped-once.md)). How that shaper
 works is the subject of [the text engine](text.md).

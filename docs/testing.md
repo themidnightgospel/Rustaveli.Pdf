@@ -23,14 +23,10 @@ across pages, rendering is deterministic, nothing escapes the page, and measurin
 
 **Integration tests** generate real PDFs and read them back with [PdfPig](https://github.com/UglyToad/PdfPig) as
 an independent reader. Among them is an equivalence suite that renders identical recipes through this library and
-through QuestPDF, then compares what a reader recovers from each file: page count, per-page word distribution,
-word sequence and word positions. Others cover font handling, concurrency, and scaling.
-
-The equivalence suite's current agreement across text flow, header/footer pagination and multi-page tables:
-**identical page counts, identical word sequences, identical horizontal word positions and identical line spacing,
-with every line 0.24pt higher on the page** — a constant offset in where the first baseline falls below the top of
-the text area. Byte-level comparison is not meaningful — two PDF producers never emit identical bytes for the same
-document — so the comparison is behavioural throughout.
+through a reference library, then compares what a reader recovers from each file: page count, per-page word
+distribution, word sequence and word positions ([which library, and how they agree](questpdf.md#comparisons)).
+Byte-level comparison is not meaningful — two PDF producers never emit identical bytes for the same document — so
+the comparison is behavioural throughout. Other integration tests cover font handling, concurrency, and scaling.
 
 **Conformance tests** check a corpus of specimen documents with [qpdf](https://qpdf.readthedocs.io)'s strict
 structural validator, and render every page with PDFium — a renderer that shares no code with this library — to
@@ -52,9 +48,5 @@ must also read back without any exception at all. It runs for a few minutes on e
 library, and for longer every night; see [`fuzz/README.md`](https://github.com/themidnightgospel/Rustaveli.Pdf/tree/main/fuzz)
 for running it locally and replaying a failure.
 
-**Benchmarks** compare speed, allocations and file size with QuestPDF; see [performance](performance.md).
-
-> **On the QuestPDF test dependency.** The oracle is pinned to **2026.5.0**, the last release distributed under
-> an MIT grant. Releases from 2026.6.0 onwards carry a licence whose restrictions forbid using the software to
-> develop a competing PDF library, which would cover this test suite. Do not upgrade this reference.
+**Benchmarks** measure speed, allocations and file size; see [performance](performance.md).
 

@@ -248,7 +248,7 @@ Document document = Document.Compose(composition => composition.Section(section 
 | `KeepTogetherWherePossible()` | Moves whole when it would fit on the next page; splits only when longer than a page |
 | `RequireSpace(height)` | Starts a new page unless at least this much room is left |
 | `When(condition)` | Includes the frame only when a condition holds — or, given `PageFacts`, on the pages it accepts |
-| `RepeatOnEachPage()` | Draws the frame afresh on every page its container continues onto |
+| `RepeatOnEachPage()` | Draws the frame afresh on every page the frame around it continues onto |
 | `Once()` / `SkipFirst()` | Only the first time, or every time but the first — "continued" labels in repeated bands |
 | `DiscardOverset()` | Keeps what fits where the frame first appears and drops the rest |
 

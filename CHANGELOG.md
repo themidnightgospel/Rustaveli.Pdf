@@ -109,8 +109,7 @@ issues left from 0.1.0.
 
 ## 0.1.0
 
-The first release: every capability of QuestPDF 2026.5.0, its last MIT release, in a vocabulary drawn from print —
-see the [parity checklist](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/parity/PARITY.md) and
+The first release: a complete PDF generator in a vocabulary drawn from print — see the [parity checklist](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/parity/PARITY.md) and
 the [guides](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/guide/README.md).
 
 **Packages**

@@ -14,5 +14,4 @@ but the one that waits for Ctrl+C are run and their output checked, so what you 
 | [Preview and debugging](preview-and-debugging.md) | The live preview and its inspector; seeing and naming frames; reading a layout failure |
 | [Coming from QuestPDF](coming-from-questpdf.md) | The same ideas under their print names, side by side |
 
-The [glossary](../GLOSSARY.md) lists every public name and what it means; the [parity checklist](../parity/PARITY.md)
-maps QuestPDF's features to ours.
+The [glossary](../GLOSSARY.md) lists every public name and what it means.
