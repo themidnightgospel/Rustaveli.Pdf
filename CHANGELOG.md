@@ -5,7 +5,17 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 
 ## Unreleased
 
-Fixes from a review of the whole library, each found by a test that failed first.
+Fixes from a review of the whole library, each found by a test that failed first, and a clean-room rewrite of the
+layout engine's core.
+
+**Rewritten**
+
+- An audit found that parts of the earliest code followed the implementation of the library that inspired this
+  one's design too closely: the core types of the layout engine, most layout blocks, the drawing surface, and some
+  composers and their documentation. They were written anew in a clean room, from specifications of their behaviour,
+  and hold every test they held before. Earlier versions contain the older code;
+  [Rustaveli.Pdf and QuestPDF](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/questpdf.md) sets
+  out what was found, what was done, and the licence notice that applies to 0.1.0 and 0.1.1.
 
 **Fixed**
 
@@ -109,8 +119,7 @@ issues left from 0.1.0.
 
 ## 0.1.0
 
-The first release: every capability of QuestPDF 2026.5.0, its last MIT release, in a vocabulary drawn from print —
-see the [parity checklist](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/parity/PARITY.md) and
+The first release: a complete PDF generator in a vocabulary drawn from print — see the [parity checklist](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/parity/PARITY.md) and
 the [guides](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/docs/guide/README.md).
 
 **Packages**

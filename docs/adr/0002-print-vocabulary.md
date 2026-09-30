@@ -3,9 +3,9 @@
 **Status:** Accepted
 
 ## Context
-The initial public API borrowed its names almost wholesale from QuestPDF — `IContainer`, `Row`/`RelativeItem`,
-`Column`/`Item`, `ShowOnce`, `ScaleToFit`, even the internal `SpacePlan` outcomes. This library is its own design;
-a borrowed vocabulary makes it read as a clone and imports someone else's mental model along with the words.
+The first public API borrowed most of its names from the library that inspired its design
+([Rustaveli.Pdf and QuestPDF](../questpdf.md)), internals included. This library is its own design; a borrowed
+vocabulary makes it read as a copy and imports someone else's mental model along with the words.
 
 ## Decision
 Names come from the vocabulary of print and typesetting, at the level a user of InDesign, Word or LaTeX would
@@ -24,5 +24,5 @@ introduces them.
 
 ## Consequences
 - The API reads as a typesetting tool, which is what it is.
-- Developers migrating from QuestPDF must learn new names; the glossary doubles as a migration table.
+- Developers migrating from another library must learn new names; a migration guide maps them.
 - Every naming discussion has a rule to settle it: *what would a typesetter call it?*

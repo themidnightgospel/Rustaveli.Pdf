@@ -1,5 +1,5 @@
 # The checks too costly for every push, run once a pull request is labelled ready-to-merge (and again on any push
-# after that): benchmarks against QuestPDF, and the build and tests on macOS. A pull request merges only when both
+# after that): the benchmarks, and the build and tests on macOS. A pull request merges only when both
 # these and ci.yml are green. They can also be run by hand, on any branch.
 #
 # Mutation testing is not among them: it takes hours, so it runs only at night, on main (nightly-mutation.yml).
@@ -25,7 +25,7 @@ env:
 
 jobs:
   benchmarks:
-    name: benchmarks vs QuestPDF
+    name: benchmarks
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
     runs-on: ubuntu-latest
     timeout-minutes: 60

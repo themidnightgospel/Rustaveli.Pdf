@@ -1,9 +1,10 @@
 # Feature parity checklist
 
-What it takes to be a complete alternative to QuestPDF: every capability its last MIT release (2026.5.0) offers,
-whether we have it, and the phase that delivers it. The reference column names QuestPDF's public API so coverage
-can be audited against it; our own names come from [the glossary](../GLOSSARY.md) and will differ by design
-([ADR 0002](../adr/0002-print-vocabulary.md)).
+What it takes to be a complete alternative to QuestPDF: every capability its 2026.5.0 release offers, whether we
+have it, and the phase that delivered it. The reference column names QuestPDF's public API so coverage can be
+audited against it; our own names come from [the glossary](../GLOSSARY.md) and differ by design
+([ADR 0002](../adr/0002-print-vocabulary.md)). How the two libraries relate is set out in
+[Rustaveli.Pdf and QuestPDF](../questpdf.md).
 
 Source: `dotnet run eng/parity-surface.cs`, which enumerates the oracle's public API by reflection
 ([ADR 0008](../adr/0008-clean-room.md)). Rerun it and diff against this file when auditing.

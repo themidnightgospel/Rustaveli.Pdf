@@ -1,7 +1,6 @@
 # Features
 
-Everything the library does, by area. The [guides](guide/README.md) show how to use each, and the
-[parity checklist](parity/PARITY.md) maps them to QuestPDF's capabilities.
+Everything the library does, by area. The [guides](guide/README.md) show how to use each.
 
 **Layout** — sections with running heads and feet, underlays and overlays, fixed and continuous pages, margins,
 `Columns` (fixed, shared and natural widths, right-to-left), `Stack`, `Table` (fixed and shared columns, automatic

@@ -1,13 +1,14 @@
-# 0009 — Performance targets, measured against QuestPDF
+# 0009 — Performance targets, measured against a reference
 
 **Status:** Accepted
 
 ## Context
-"Faster" means nothing until it is measured. QuestPDF runs on native Skia and is the obvious yardstick.
+"Faster" means nothing until it is measured. The library whose capabilities this one offers runs on native Skia and
+is the obvious yardstick ([Rustaveli.Pdf and QuestPDF](../questpdf.md)).
 
 ## Decision
 A BenchmarkDotNet suite renders a fixed set of documents — a one-page invoice, a 100-page report, a 10 000-row
-table, text-heavy and image-heavy documents — through both libraries. Targets, against QuestPDF 2026.5.0:
+table, text-heavy and image-heavy documents — through both libraries. Targets, against the pinned reference release:
 
 | Metric | Target |
 |---|---|
