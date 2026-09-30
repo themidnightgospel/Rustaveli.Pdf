@@ -57,10 +57,10 @@ internal sealed class FrameEdgesBlock : EnclosingBlock
             return;
 
         Extent tab = new Extent(fit.Size.Width + 4, fit.Size.Height + 2);
-        context.Surface.DrawRectangle(Offset.Zero, tab, Ink);
-        context.Surface.Translate(new Offset(2, 1));
+        context.Surface.FillRectangle(Offset.Zero, tab, Ink);
+        context.Surface.MoveOrigin(new Offset(2, 1));
         _label.Render(fit.Size, context);
-        context.Surface.Translate(new Offset(-2, -1));
+        context.Surface.MoveOrigin(new Offset(-2, -1));
         _label.ResetState();
     }
 }

@@ -84,21 +84,21 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
         _transform.Restore();
     }
 
-    public void Translate(Offset offset)
+    public void MoveOrigin(Offset distance)
     {
-        _state = new Change(_state, surface => surface.Translate(offset));
-        _transform.Translate(offset);
+        _state = new Change(_state, surface => surface.MoveOrigin(distance));
+        _transform.Translate(distance);
     }
 
-    public void Scale(float scaleX, float scaleY)
+    public void ScaleAxes(float horizontal, float vertical)
     {
-        _state = new Change(_state, surface => surface.Scale(scaleX, scaleY));
-        _transform.Scale(scaleX, scaleY);
+        _state = new Change(_state, surface => surface.ScaleAxes(horizontal, vertical));
+        _transform.Scale(horizontal, vertical);
     }
 
-    public void Rotate(float degrees)
+    public void RotateClockwise(float degrees)
     {
-        _state = new Change(_state, surface => surface.Rotate(degrees));
+        _state = new Change(_state, surface => surface.RotateClockwise(degrees));
         _transform.Rotate(degrees);
     }
 
@@ -116,8 +116,8 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
 
     public void StrokePath(VectorPath path, Ink ink, LineStyle style) => Hold(surface => surface.StrokePath(path, ink, style));
 
-    public void DrawRectangle(Offset position, Extent size, Ink color) =>
-        Hold(surface => surface.DrawRectangle(position, size, color));
+    public void FillRectangle(Offset topLeft, Extent size, Ink ink) =>
+        Hold(surface => surface.FillRectangle(topLeft, size, ink));
 
     public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f) =>
         Hold(surface => surface.DrawRoundedRectangle(position, size, corners, color, strokeWidth));
@@ -136,17 +136,18 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
     public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow) =>
         Hold(surface => surface.DrawShadow(position, size, corners, shadow));
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false) =>
-        Hold(surface => surface.DrawText(text, baselineStart, style, rightToLeft));
+    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction) =>
+        Hold(surface => surface.ShowText(text, baseline, style, direction));
 
-    public void DrawImage(IImage image, Extent size) => Hold(surface => surface.DrawImage(image, size));
+    public void PaintImage(IImage image, Extent size) => Hold(surface => surface.PaintImage(image, size));
 
-    public void DrawExternalLink(string url, Extent size) => Hold(surface => surface.DrawExternalLink(url, size));
+    public void LinkToUrl(string url, Offset topLeft, Extent size) =>
+        Hold(surface => surface.LinkToUrl(url, topLeft, size));
 
-    public void DrawInternalLink(string destinationName, Extent size) =>
-        Hold(surface => surface.DrawInternalLink(destinationName, size));
+    public void LinkToDestination(string destination, Offset topLeft, Extent size) =>
+        Hold(surface => surface.LinkToDestination(destination, topLeft, size));
 
-    public void DrawDestination(string destinationName) => Hold(surface => surface.DrawDestination(destinationName));
+    public void NameDestination(string name, Offset at) => Hold(surface => surface.NameDestination(name, at));
 
     public void DrawBookmark(string title, int level) => Hold(surface => surface.DrawBookmark(title, level));
 

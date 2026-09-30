@@ -40,7 +40,7 @@ public sealed class ArtworkComposer
     {
         RequireWritable(x, nameof(x));
         RequireWritable(y, nameof(y));
-        _steps.Add((surface, _) => surface.Translate(new Offset(x, y)));
+        _steps.Add((surface, _) => surface.MoveOrigin(new Offset(x, y)));
     }
 
     /// <summary>Scales what follows, across and down.</summary>
@@ -48,14 +48,14 @@ public sealed class ArtworkComposer
     {
         RequireWritable(x, nameof(x));
         RequireWritable(y, nameof(y));
-        _steps.Add((surface, _) => surface.Scale(x, y));
+        _steps.Add((surface, _) => surface.ScaleAxes(x, y));
     }
 
     /// <summary>Turns what follows by <paramref name="degrees"/>, clockwise about the origin.</summary>
     public void Rotate(float degrees)
     {
         RequireWritable(degrees, nameof(degrees));
-        _steps.Add((surface, _) => surface.Rotate(degrees));
+        _steps.Add((surface, _) => surface.RotateClockwise(degrees));
     }
 
     /// <summary>
@@ -139,7 +139,7 @@ public sealed class ArtworkComposer
 
             // Text so large that its glyphs would be placed beyond the numbers a PDF can hold is left out.
             if (Writable.Is(start) && Writable.Is(start + width))
-                surface.DrawText(text, new Offset(start, y), style);
+                surface.ShowText(text, new Offset(start, y), style, ReadingDirection.LeftToRight);
         });
     }
 
@@ -193,7 +193,7 @@ public sealed class ArtworkComposer
                     // Text so large, or so far off, that its glyphs would be placed beyond the numbers a PDF can hold
                     // is left out; a run of spaces is only room.
                     if (set[index].Visible && set[index].Text.Trim().Length > 0 && Writable.Is(x) && Writable.Is(x + widths[index - start]) && Writable.Is(ys[index - start]))
-                        surface.DrawText(set[index].Text, new Offset(x, ys[index - start]), set[index].Style);
+                        surface.ShowText(set[index].Text, new Offset(x, ys[index - start]), set[index].Style, ReadingDirection.LeftToRight);
                 }
 
                 start = end;
@@ -212,8 +212,8 @@ public sealed class ArtworkComposer
         _steps.Add((surface, _) =>
         {
             surface.Save();
-            surface.Translate(new Offset(x, y));
-            surface.DrawImage(image, new Extent(width, height));
+            surface.MoveOrigin(new Offset(x, y));
+            surface.PaintImage(image, new Extent(width, height));
             surface.Restore();
         });
     }

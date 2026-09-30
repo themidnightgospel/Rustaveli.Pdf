@@ -1,17 +1,18 @@
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>
-/// Shared plumbing for attaching elements to containers.
+/// Shared plumbing for placing blocks into frames.
 /// </summary>
 internal static class FrameAttachment
 {
     /// <summary>
-    /// Places <paramref name="block"/> into <paramref name="parent"/> and returns it as the next container.
+    /// Places <paramref name="block"/> into the frame <paramref name="parent"/> and returns it, so the next call can
+    /// place content into it in turn.
     /// </summary>
     /// <remarks>
-    /// A container holds exactly one child. Assigning over an existing one would discard an entire subtree with
-    /// no diagnostic — a component that composes into the same slot twice would simply lose its first
-    /// contribution — so the second attempt is refused instead.
+    /// A frame holds at most one block. Placing another over it would discard a whole subtree without a word — a
+    /// snippet that composes into the same frame twice would simply lose what it placed first — so the second
+    /// attempt is refused instead.
     /// </remarks>
     public static T Attach<T>(IFrame parent, T block) where T : Block
     {

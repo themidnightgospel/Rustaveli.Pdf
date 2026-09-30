@@ -22,6 +22,6 @@ internal sealed class CrossReferenceBlock : EnclosingBlock
         base.RenderCore(availableSpace, context);
 
         if (!string.IsNullOrEmpty(Anchor))
-            context.Surface.DrawInternalLink(Anchor, availableSpace);
+            context.Surface.LinkToDestination(Anchor, Offset.Zero, availableSpace);
     }
 }

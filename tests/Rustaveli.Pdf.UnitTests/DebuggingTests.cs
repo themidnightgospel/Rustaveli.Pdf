@@ -88,8 +88,8 @@ public class DebuggingTests
             "\n  Stack, offered 200 × 100: does not fit" +
             "\n    \"Totals\", offered 200 × 100: does not fit" +
             "\n      Inset, offered 200 × 100: does not fit" +
-            "\n        Fixed, offered 190 × 90: does not fit — The block requires (Width: 10.000, Height: 500.000) " +
-            "but only (Width: 190.000, Height: 90.000) is available.",
+            "\n        Fixed, offered 190 × 90: does not fit — The block requires 10 × 500 pt " +
+            "but only 190 × 90 pt is available.",
             exception.Message.Substring(exception.Message.IndexOf("\nWhere", StringComparison.Ordinal)));
     }
 

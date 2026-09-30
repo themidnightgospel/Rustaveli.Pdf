@@ -1,88 +1,61 @@
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>
-/// The result of measuring an element against a given amount of space.
+/// The outcome of planning a block in a room: whether it draws there, how much of it, and how much room it takes.
 /// </summary>
 /// <remarks>
-/// The four outcomes drive pagination. <see cref="FitKind.Defer" /> asks the engine to retry on a fresh
-/// page; <see cref="FitKind.Partial" /> tells it to draw now and come back for the rest. An element
-/// that returns <see cref="FitKind.Defer" /> on a page that is already empty cannot ever fit, which is how
-/// the engine detects a non-terminating layout instead of looping forever.
+/// Planning is asked many times over, speculatively, before anything is drawn, so an outcome is a plain value that
+/// parents compare, pass on and resize freely. Only a Partial or Complete outcome has a size; Nothing and Defer take
+/// no room, and only Defer says why, so the reason can travel up to the message a failed layout ends with.
 /// </remarks>
 internal readonly record struct Fit
 {
+    private Fit(FitKind kind, Extent size, string? deferReason)
+    {
+        Kind = kind;
+        Size = size;
+        DeferReason = deferReason;
+    }
+
     public FitKind Kind { get; }
 
-    /// <summary>The space the element will occupy. Always <see cref="Extent.Zero" /> for <see cref="FitKind.Defer" />.</summary>
-
+    /// <summary>The room the block takes: zero unless it draws something.</summary>
     public Extent Size { get; }
 
-    /// <summary>Explains why the element could not be drawn. Populated only for <see cref="FitKind.Defer" />.</summary>
+    /// <summary>Why the block cannot be drawn in the room it was offered; null for every outcome but Defer.</summary>
     public string? DeferReason { get; }
-
-    public bool IsDeferred => Kind == FitKind.Defer;
 
     public bool IsNothing => Kind == FitKind.Nothing;
 
-    public bool IsComplete => Kind == FitKind.Complete;
+    public bool IsDeferred => Kind == FitKind.Defer;
 
     public bool IsPartial => Kind == FitKind.Partial;
 
-    /// <summary>True when the element produced geometry this pass, whether or not anything remains.</summary>
-    public bool PlacesContent
-    {
-        get
-        {
-            FitKind type = Kind;
-            if ((uint)(type - 2) <= 1u)
-            {
-                return true;
-            }
-            return false;
-        }
-    }
+    public bool IsComplete => Kind == FitKind.Complete;
 
-    private Fit(FitKind type, Extent size, string? wrapReason)
-    {
-        Kind = type;
-        Size = size;
-        DeferReason = wrapReason;
-    }
+    /// <summary>Whether the block draws something in the room, whether or not more of it remains.</summary>
+    public bool PlacesContent => Kind is FitKind.Partial or FitKind.Complete;
 
-    public static Fit Nothing()
-    {
-        return new Fit(FitKind.Nothing, Extent.Zero, null);
-    }
+    public static Fit Nothing() => new Fit(FitKind.Nothing, Extent.Zero, null);
 
-    public static Fit Defer(string reason)
-    {
-        return new Fit(FitKind.Defer, Extent.Zero, reason);
-    }
+    public static Fit Defer(string reason) => new Fit(FitKind.Defer, Extent.Zero, reason);
 
-    public static Fit Partial(Extent size)
-    {
-        return new Fit(FitKind.Partial, size, null);
-    }
+    public static Fit Partial(Extent size) => new Fit(FitKind.Partial, size, null);
 
-    public static Fit Partial(float width, float height)
-    {
-        return Partial(new Extent(width, height));
-    }
+    public static Fit Partial(float width, float height) => Partial(new Extent(width, height));
 
-    public static Fit Complete(Extent size)
-    {
-        return new Fit(FitKind.Complete, size, null);
-    }
+    public static Fit Complete(Extent size) => new Fit(FitKind.Complete, size, null);
 
-    public static Fit Complete(float width, float height)
-    {
-        return Complete(new Extent(width, height));
-    }
+    public static Fit Complete(float width, float height) => Complete(new Extent(width, height));
 
+    /// <summary>
+    /// The outcome as a trace or a failure quotes it: <c>Nothing</c>, <c>Defer: </c> and the reason, or the kind
+    /// and the size, as in <c>Complete, 1.5 × 2.25 pt</c>.
+    /// </summary>
     public override string ToString() => Kind switch
     {
-        FitKind.Defer => $"Defer ({DeferReason})",
         FitKind.Nothing => "Nothing",
-        _ => $"{Kind} {Size}"
+        FitKind.Defer => "Defer: " + DeferReason,
+        _ => Kind + ", " + Size,
     };
 }

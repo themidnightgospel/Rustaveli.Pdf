@@ -186,14 +186,14 @@ public class DynamicContentTests
     {
         using CountingPageSink sink = new CountingPageSink();
         sink.BeginPage(new Extent(100, 100));
-        sink.Translate(new Offset(10, 20));
+        sink.MoveOrigin(new Offset(10, 20));
         sink.Save();
-        sink.Scale(2, 2);
-        sink.Translate(new Offset(5, 5));
+        sink.ScaleAxes(2, 2);
+        sink.MoveOrigin(new Offset(5, 5));
         Assert.Equal(new Offset(20, 30), sink.Origin);
 
-        sink.Rotate(90);
-        sink.Translate(new Offset(10, 0));
+        sink.RotateClockwise(90);
+        sink.MoveOrigin(new Offset(10, 0));
         Approximately.Equal(new Offset(20, 50), sink.Origin);
 
         sink.Restore();
@@ -209,11 +209,11 @@ public class DynamicContentTests
         using RecordingSurface pages = new RecordingSurface();
         LayeredPageSink layers = new LayeredPageSink(pages);
         layers.BeginPage(new Extent(100, 100));
-        layers.Translate(new Offset(10, 20));
+        layers.MoveOrigin(new Offset(10, 20));
         layers.Save();
-        layers.Scale(2, 2);
-        layers.Rotate(90);
-        layers.Translate(new Offset(5, 0));
+        layers.ScaleAxes(2, 2);
+        layers.RotateClockwise(90);
+        layers.MoveOrigin(new Offset(5, 0));
 
         Approximately.Equal(new Offset(10, 30), layers.Origin);
 

@@ -3,18 +3,25 @@ using Rustaveli.Pdf.Tagging;
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
-/// Discards every drawing operation.
+/// A page sink that draws nothing and only counts the pages begun on it: the surface of the passes that work out how
+/// many pages a document takes, and of drawing ahead to measure.
 /// </summary>
 /// <remarks>
-/// Used for the counting pass, where the engine needs to know how many pages a document produces before it can
-/// resolve content such as "page 2 of 7". Running the identical layout against a sink that draws nothing keeps
-/// the two passes consistent without emitting output twice.
+/// <para>
+/// Those passes run the very layout the final pass runs, so every drawing member accepts whatever it is given and
+/// discards it without a word. The transform is followed all the same, because blocks read <see cref="Origin"/> to
+/// record where their content was placed, and those records must match the final pass.
+/// </para>
+/// <para>
+/// Blocks recognise this type to skip work nobody will see, such as shaping lines of plain text or generating
+/// pictures, so it stays a class of its own rather than an option on another sink.
+/// </para>
 /// </remarks>
 internal sealed class CountingPageSink : IPageSink
 {
-    // Nothing is drawn, but where content lands is still recorded, so the transforms are followed.
     private readonly TransformTracker _transform = new TransformTracker();
 
+    /// <summary>How many pages have been begun.</summary>
     public int PageCount { get; private set; }
 
     public Offset Origin => _transform.Origin;
@@ -33,19 +40,20 @@ internal sealed class CountingPageSink : IPageSink
 
     public void Restore() => _transform.Restore();
 
-    public void Translate(Offset offset) => _transform.Translate(offset);
+    public void MoveOrigin(Offset distance) => _transform.Translate(distance);
 
-    public void Scale(float scaleX, float scaleY) => _transform.Scale(scaleX, scaleY);
+    public void ScaleAxes(float horizontal, float vertical) => _transform.Scale(horizontal, vertical);
 
-    public void Rotate(float degrees) => _transform.Rotate(degrees);
+    public void RotateClockwise(float degrees) => _transform.Rotate(degrees);
 
-    public void Concatenate(float a, float b, float c, float d, float e, float f) => _transform.Concatenate(a, b, c, d, e, f);
+    public void Concatenate(float a, float b, float c, float d, float e, float f) =>
+        _transform.Concatenate(a, b, c, d, e, f);
 
     public void ClipRectangle(Extent size)
     {
     }
 
-    public void DrawRectangle(Offset position, Extent size, Ink color)
+    public void FillRectangle(Offset topLeft, Extent size, Ink ink)
     {
     }
 
@@ -85,23 +93,23 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
+    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
     }
 
-    public void DrawImage(IImage image, Extent size)
+    public void PaintImage(IImage image, Extent size)
     {
     }
 
-    public void DrawExternalLink(string url, Extent size)
+    public void LinkToUrl(string url, Offset topLeft, Extent size)
     {
     }
 
-    public void DrawInternalLink(string destinationName, Extent size)
+    public void LinkToDestination(string destination, Offset topLeft, Extent size)
     {
     }
 
-    public void DrawDestination(string destinationName)
+    public void NameDestination(string name, Offset at)
     {
     }
 
@@ -113,6 +121,7 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
+    /// <summary>There is nothing to let go of.</summary>
     public void Dispose()
     {
     }

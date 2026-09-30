@@ -56,9 +56,9 @@ public class RasterEdgeTests
             surface.StrokePath(square, Ink.Transparent, new LineStyle(1));
             surface.StrokePath(new VectorPath(), Ink.Black, new LineStyle(1));
             surface.StrokePath(square, Ink.Black, new LineStyle(0));
-            surface.DrawRectangle(from, new Extent(10, 10), Ink.Transparent);
-            surface.DrawRectangle(from, new Extent(0, 10), Ink.Black);
-            surface.DrawRectangle(from, new Extent(10, 0), Ink.Black);
+            surface.FillRectangle(from, new Extent(10, 10), Ink.Transparent);
+            surface.FillRectangle(from, new Extent(0, 10), Ink.Black);
+            surface.FillRectangle(from, new Extent(10, 0), Ink.Black);
             surface.DrawRoundedRectangle(from, new Extent(10, 10), Corners.All(2), Ink.Transparent);
             surface.DrawRoundedRectangle(from, new Extent(0, 10), Corners.All(2), Ink.Black);
             surface.DrawRoundedRectangle(from, new Extent(10, 0), Corners.All(2), Ink.Black);
@@ -66,8 +66,8 @@ public class RasterEdgeTests
             surface.DrawLine(from, to, 0, Ink.Black);
             surface.DrawDashedLine(from, to, 1, Ink.Transparent, [2, 2]);
             surface.DrawDashedLine(from, to, 0, Ink.Black, [2, 2]);
-            surface.DrawText(string.Empty, from, TypeStyle.Default.WithTypeface(TestFonts.Sans));
-            surface.DrawText("Hidden", from, TypeStyle.Default.WithTypeface(TestFonts.Sans).WithInk(Ink.Transparent));
+            surface.ShowText(string.Empty, from, TypeStyle.Default.WithTypeface(TestFonts.Sans), ReadingDirection.LeftToRight);
+            surface.ShowText("Hidden", from, TypeStyle.Default.WithTypeface(TestFonts.Sans).WithInk(Ink.Transparent), ReadingDirection.LeftToRight);
             surface.DrawShadow(from, new Extent(10, 10), Corners.Zero, new Shadow(Ink.Transparent, 2));
             surface.DrawShadow(from, Extent.Zero, Corners.Zero, new Shadow(Ink.Black, 0));
         });
@@ -80,7 +80,7 @@ public class RasterEdgeTests
     {
         string blank = Svg(_ => { });
 
-        Assert.NotEqual(blank, Svg(surface => surface.DrawRectangle(new Offset(10, 10), new Extent(10, 10), Ink.Black)));
+        Assert.NotEqual(blank, Svg(surface => surface.FillRectangle(new Offset(10, 10), new Extent(10, 10), Ink.Black)));
         Assert.NotEqual(blank, Svg(surface => surface.DrawLine(new Offset(10, 10), new Offset(90, 10), 1, Ink.Black)));
         Assert.NotEqual(blank, Svg(surface => surface.DrawShadow(new Offset(10, 10), new Extent(10, 10), Corners.Zero, new Shadow(Ink.Black, 2))));
     }
@@ -92,7 +92,7 @@ public class RasterEdgeTests
         typefaces.RegisterFile(TestFonts.PathOf("NotoSansGeorgian-Regular.ttf"));
         typefaces.Fallbacks = ["Noto Sans Georgian"];
 
-        string svg = Svg(surface => surface.DrawText("Hაb", new Offset(10, 50), TypeStyle.Default.WithTypeface(TestFonts.Sans)), typefaces);
+        string svg = Svg(surface => surface.ShowText("Hაb", new Offset(10, 50), TypeStyle.Default.WithTypeface(TestFonts.Sans), ReadingDirection.LeftToRight), typefaces);
 
         // The Latin letters are set in one face and the Georgian in another, each glyph once, in the order written.
         List<float> across = System.Text.RegularExpressions.Regex.Matches(svg, "<path[^>]*transform=\"translate\\(([0-9.]+)")
@@ -111,7 +111,7 @@ public class RasterEdgeTests
         Assert.Equal("No page is open. BeginPage must be called before drawing.", Assert.Throws<InvalidOperationException>(surface.EndPage).Message);
         Assert.Equal(
             "No page is open. BeginPage must be called before drawing.",
-            Assert.Throws<InvalidOperationException>(() => surface.DrawRectangle(Offset.Zero, new Extent(1, 1), Ink.Black)).Message);
+            Assert.Throws<InvalidOperationException>(() => surface.FillRectangle(Offset.Zero, new Extent(1, 1), Ink.Black)).Message);
 
         surface.BeginPage(new Extent(10, 10));
 

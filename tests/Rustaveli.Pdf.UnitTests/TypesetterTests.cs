@@ -229,11 +229,11 @@ public class TypesetterTests
         // follows the refusal down from the body to the frame that could not fit.
         Assert.Equal(
             "The body cannot be set even on an empty page, so no further page would help. " +
-            "Space available: (Width: 200.000, Height: 150.000). Reason: The block requires " +
-            "(Width: 10.000, Height: 500.000) but only (Width: 200.000, Height: 150.000) is available." +
+            "Space available: 200 × 150 pt. Reason: The block requires " +
+            "10 × 500 pt but only 200 × 150 pt is available." +
             "\nWhere it did not fit, from the page down:" +
-            "\n  Fixed, offered 200 × 150: does not fit — The block requires (Width: 10.000, Height: 500.000) but only " +
-            "(Width: 200.000, Height: 150.000) is available.",
+            "\n  Fixed, offered 200 × 150: does not fit — The block requires 10 × 500 pt but only " +
+            "200 × 150 pt is available.",
             ex.Message);
     }
 
@@ -278,8 +278,8 @@ public class TypesetterTests
 
         // The footer is offered only what the header left over.
         Assert.StartsWith(
-            "The running foot does not fit in (Width: 200.000, Height: 40.000). Reason: The block requires " +
-            "(Width: 10.000, Height: 60.000) but only (Width: 200.000, Height: 40.000) is available." +
+            "The running foot does not fit in 200 × 40 pt. Reason: The block requires " +
+            "10 × 60 pt but only 200 × 40 pt is available." +
             "\nWhere it did not fit, from the page down:\n  Fixed, offered 200 × 40: does not fit",
             ex.Message);
     }
@@ -621,8 +621,8 @@ public class TypesetterTests
             Assert.Throws<OversetException>(() => LayoutHarness.Render(document));
 
         Assert.StartsWith(
-            "The running head does not fit in (Width: 200.000, Height: 100.000). Reason: The block requires " +
-            "(Width: 10.000, Height: 150.000) but only (Width: 200.000, Height: 100.000) is available." +
+            "The running head does not fit in 200 × 100 pt. Reason: The block requires " +
+            "10 × 150 pt but only 200 × 100 pt is available." +
             "\nWhere it did not fit, from the page down:\n  Fixed, offered 200 × 100: does not fit",
             exception.Message);
     }
@@ -1156,7 +1156,7 @@ public class TypesetterTests
         protected override void RenderCore(Extent availableSpace, RenderContext context)
         {
             Used = Seen(context.Planning);
-            context.Surface.DrawRectangle(Offset.Zero, new Extent(10f, Height(Used)), TestInks.Red);
+            context.Surface.FillRectangle(Offset.Zero, new Extent(10f, Height(Used)), TestInks.Red);
         }
 
         private static float? Seen(PlanContext context) =>

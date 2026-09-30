@@ -34,7 +34,7 @@ internal sealed class ImageBlock : Block
         if (!size.FitsIn(availableSpace))
             return;
 
-        context.Surface.DrawImage(Image, size);
+        context.Surface.PaintImage(Image, size);
     }
 
     private Extent ResolveSize(Extent availableSpace)

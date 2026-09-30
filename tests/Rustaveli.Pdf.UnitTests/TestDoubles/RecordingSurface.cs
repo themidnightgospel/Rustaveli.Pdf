@@ -52,14 +52,14 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         _transform = _saved.Pop();
     }
 
-    public void Translate(Offset offset)
+    public void MoveOrigin(Offset distance)
     {
-        _transform = Matrix3x2.CreateTranslation(offset.X, offset.Y) * _transform;
+        _transform = Matrix3x2.CreateTranslation(distance.X, distance.Y) * _transform;
     }
 
-    public void Scale(float scaleX, float scaleY)
+    public void ScaleAxes(float horizontal, float vertical)
     {
-        _transform = Matrix3x2.CreateScale(scaleX, scaleY) * _transform;
+        _transform = Matrix3x2.CreateScale(horizontal, vertical) * _transform;
     }
 
     public void Concatenate(float a, float b, float c, float d, float e, float f)
@@ -92,7 +92,7 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         return new Bounds(points.Min(point => point.X), points.Min(point => point.Y), points.Max(point => point.X), points.Max(point => point.Y));
     }
 
-    public void Rotate(float degrees)
+    public void RotateClockwise(float degrees)
     {
         _transform = Matrix3x2.CreateRotation(degrees * (float)Math.PI / 180f) * _transform;
     }
@@ -101,9 +101,9 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
     {
     }
 
-    public void DrawRectangle(Offset position, Extent size, Ink color)
+    public void FillRectangle(Offset topLeft, Extent size, Ink ink)
     {
-        Current.Operations.Add(new RectangleOperation(Resolve(position), size, color, ResolveBounds(position, size)));
+        Current.Operations.Add(new RectangleOperation(Resolve(topLeft), size, ink, ResolveBounds(topLeft, size)));
     }
 
     public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
@@ -136,29 +136,29 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new ShadowOperation(Resolve(position), size, corners, shadow, ResolveBounds(position, size)));
     }
 
-    public void DrawText(string text, Offset baselineStart, TypeStyle style, bool rightToLeft = false)
+    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
-        Current.Operations.Add(new TextOperation(Resolve(baselineStart), text, style, rightToLeft));
+        Current.Operations.Add(new TextOperation(Resolve(baseline), text, style, direction == ReadingDirection.RightToLeft));
     }
 
-    public void DrawImage(IImage image, Extent size)
+    public void PaintImage(IImage image, Extent size)
     {
         Current.Operations.Add(new ImageOperation(Resolve(Offset.Zero), size, ResolveBounds(Offset.Zero, size)));
     }
 
-    public void DrawExternalLink(string url, Extent size)
+    public void LinkToUrl(string url, Offset topLeft, Extent size)
     {
-        Current.Operations.Add(new ExternalLinkOperation(Resolve(Offset.Zero), size, url, ResolveBounds(Offset.Zero, size)));
+        Current.Operations.Add(new ExternalLinkOperation(Resolve(topLeft), size, url, ResolveBounds(topLeft, size)));
     }
 
-    public void DrawInternalLink(string destinationName, Extent size)
+    public void LinkToDestination(string destination, Offset topLeft, Extent size)
     {
-        Current.Operations.Add(new InternalLinkOperation(Resolve(Offset.Zero), size, destinationName, ResolveBounds(Offset.Zero, size)));
+        Current.Operations.Add(new InternalLinkOperation(Resolve(topLeft), size, destination, ResolveBounds(topLeft, size)));
     }
 
-    public void DrawDestination(string destinationName)
+    public void NameDestination(string name, Offset at)
     {
-        Current.Operations.Add(new DestinationOperation(Resolve(Offset.Zero), destinationName));
+        Current.Operations.Add(new DestinationOperation(Resolve(at), name));
     }
 
     public void DrawBookmark(string title, int level)

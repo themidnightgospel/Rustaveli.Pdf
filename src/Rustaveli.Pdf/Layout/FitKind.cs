@@ -1,16 +1,19 @@
 namespace Rustaveli.Pdf.Layout;
 
+/// <summary>What a block would do with the room it was offered, as <see cref="Fit"/> records it.</summary>
 internal enum FitKind
 {
-    /// <summary>The element has nothing left to draw and occupies no space.</summary>
+    /// <summary>All of the block has been drawn already, so it takes no room and draws nothing.</summary>
     Nothing,
 
-    /// <summary>The element cannot be drawn at all in the offered space and must be deferred to the next page.</summary>
+    /// <summary>
+    /// The block cannot be drawn in this room. It takes none, and a fresh page with more room might be able to hold it.
+    /// </summary>
     Defer,
 
-    /// <summary>The element drew what it could; the remainder continues on the next page.</summary>
+    /// <summary>The block draws some of its content here, and the rest continues on the next page.</summary>
     Partial,
 
-    /// <summary>The element drew itself completely and has nothing left over.</summary>
+    /// <summary>The block draws all that is left of it here.</summary>
     Complete
 }

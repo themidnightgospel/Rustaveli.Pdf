@@ -22,6 +22,6 @@ internal sealed class LinkBlock : EnclosingBlock
         base.RenderCore(availableSpace, context);
 
         if (!string.IsNullOrEmpty(Url))
-            context.Surface.DrawExternalLink(Url, availableSpace);
+            context.Surface.LinkToUrl(Url, Offset.Zero, availableSpace);
     }
 }

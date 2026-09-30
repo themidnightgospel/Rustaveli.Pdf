@@ -70,7 +70,7 @@ internal sealed class ShrinkToFitBlock : EnclosingBlock
         }
 
         context.Surface.Save();
-        context.Surface.Scale(scale.Value, scale.Value);
+        context.Surface.ScaleAxes(scale.Value, scale.Value);
 
         Child.Render(Unscale(availableSpace, scale.Value), context);
 

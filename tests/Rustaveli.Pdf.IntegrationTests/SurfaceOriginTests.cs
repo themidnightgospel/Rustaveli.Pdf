@@ -12,9 +12,9 @@ public class SurfaceOriginTests
 {
     private static void Move(ISurface surface)
     {
-        surface.Translate(new Offset(10, 20));
-        surface.Scale(2, 2);
-        surface.Translate(new Offset(5, 5));
+        surface.MoveOrigin(new Offset(10, 20));
+        surface.ScaleAxes(2, 2);
+        surface.MoveOrigin(new Offset(5, 5));
     }
 
     [Fact]

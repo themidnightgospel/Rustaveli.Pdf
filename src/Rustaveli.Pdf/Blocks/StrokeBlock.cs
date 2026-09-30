@@ -98,16 +98,16 @@ internal sealed class StrokeBlock : EnclosingBlock
         float width = size.Width + left + right;
 
         if (Weight.Left > 0)
-            surface.DrawRectangle(new Offset(-left, -top), new Extent(Weight.Left, height), ink);
+            surface.FillRectangle(new Offset(-left, -top), new Extent(Weight.Left, height), ink);
 
         if (Weight.Top > 0)
-            surface.DrawRectangle(new Offset(-left, -top), new Extent(width, Weight.Top), ink);
+            surface.FillRectangle(new Offset(-left, -top), new Extent(width, Weight.Top), ink);
 
         if (Weight.Right > 0)
-            surface.DrawRectangle(new Offset(size.Width + right - Weight.Right, -top), new Extent(Weight.Right, height), ink);
+            surface.FillRectangle(new Offset(size.Width + right - Weight.Right, -top), new Extent(Weight.Right, height), ink);
 
         if (Weight.Bottom > 0)
-            surface.DrawRectangle(new Offset(-left, size.Height + bottom - Weight.Bottom), new Extent(width, Weight.Bottom), ink);
+            surface.FillRectangle(new Offset(-left, size.Height + bottom - Weight.Bottom), new Extent(width, Weight.Bottom), ink);
     }
 
     /// <summary>

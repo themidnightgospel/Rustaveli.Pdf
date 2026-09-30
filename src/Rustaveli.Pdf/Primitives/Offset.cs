@@ -1,15 +1,22 @@
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// An offset in PDF points from the top-left of the current coordinate space.
+/// A point, or a distance to move by, in PDF points: across from the left and down from the top, as layout measures
+/// a page.
 /// </summary>
 public readonly record struct Offset(float X, float Y)
 {
-    public static Offset Zero { get; } = new(0, 0);
+    /// <summary>The origin itself, or no move at all.</summary>
+    public static Offset Zero { get; } = new Offset(0, 0);
 
-    public Offset Reverse() => new(-X, -Y);
+    /// <summary>
+    /// The move that undoes this one: as far, in the opposite direction on both axes. Moving by an offset and then by
+    /// its reverse comes back to where it started.
+    /// </summary>
+    public Offset Reverse() => new Offset(-X, -Y);
 
-    public static Offset operator +(Offset a, Offset b) => new(a.X + b.X, a.Y + b.Y);
+    public static Offset operator +(Offset left, Offset right) => new Offset(left.X + right.X, left.Y + right.Y);
 
-    public override string ToString() => FormattableString.Invariant($"(X: {X:F3}, Y: {Y:F3})");
+    /// <summary>The two coordinates in points, across then down: <c>(1.5, -2.25)</c>.</summary>
+    public override string ToString() => "(" + PointText.Of(X) + ", " + PointText.Of(Y) + ")";
 }

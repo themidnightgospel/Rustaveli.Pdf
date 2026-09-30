@@ -100,12 +100,12 @@ public class TaggingOptionsTests
         sink.BeginPage(new Extent(100, 100));
         sink.Tag(heading);
         sink.Order = 1;
-        sink.DrawRectangle(Offset.Zero, new Extent(1, 1), TestInks.Red);
+        sink.FillRectangle(Offset.Zero, new Extent(1, 1), TestInks.Red);
         sink.Tag(paragraph);
         sink.Order = 0;
-        sink.DrawRectangle(Offset.Zero, new Extent(2, 2), TestInks.Red);
+        sink.FillRectangle(Offset.Zero, new Extent(2, 2), TestInks.Red);
         sink.Tag(null);
-        sink.DrawRectangle(Offset.Zero, new Extent(3, 3), TestInks.Red);
+        sink.FillRectangle(Offset.Zero, new Extent(3, 3), TestInks.Red);
         sink.EndPage();
 
         List<object?> drawn = pages.Pages[0].Operations
@@ -128,7 +128,7 @@ public class TaggingOptionsTests
         LayeredPageSink sink = new LayeredPageSink(pages);
 
         sink.BeginPage(new Extent(100, 100));
-        sink.DrawRectangle(Offset.Zero, new Extent(1, 1), TestInks.Red);
+        sink.FillRectangle(Offset.Zero, new Extent(1, 1), TestInks.Red);
         sink.EndPage();
 
         Assert.DoesNotContain(pages.Pages[0].Operations, operation => operation is TagOperation);

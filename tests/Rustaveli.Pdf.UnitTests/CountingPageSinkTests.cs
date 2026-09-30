@@ -35,18 +35,18 @@ public class CountingPageSinkTests
         canvas.BeginPage(new Extent(100, 100));
 
         canvas.Save();
-        canvas.Translate(new Offset(5, 5));
-        canvas.Scale(2, 2);
-        canvas.Rotate(90);
+        canvas.MoveOrigin(new Offset(5, 5));
+        canvas.ScaleAxes(2, 2);
+        canvas.RotateClockwise(90);
         canvas.ClipRectangle(new Extent(10, 10));
-        canvas.DrawRectangle(Offset.Zero, new Extent(10, 10), TestInks.Red);
+        canvas.FillRectangle(Offset.Zero, new Extent(10, 10), TestInks.Red);
         canvas.DrawRoundedRectangle(Offset.Zero, new Extent(10, 10), Corners.All(2), TestInks.Red, 1);
         canvas.DrawLine(Offset.Zero, new Offset(10, 10), 1, TestInks.Red);
-        canvas.DrawText("text", Offset.Zero, TypeStyle.Default);
-        canvas.DrawImage(new FakeImage(10, 10), new Extent(10, 10));
-        canvas.DrawExternalLink("https://example.com", new Extent(10, 10));
-        canvas.DrawInternalLink("target", new Extent(10, 10));
-        canvas.DrawDestination("target");
+        canvas.ShowText("text", Offset.Zero, TypeStyle.Default, ReadingDirection.LeftToRight);
+        canvas.PaintImage(new FakeImage(10, 10), new Extent(10, 10));
+        canvas.LinkToUrl("https://example.com", Offset.Zero, new Extent(10, 10));
+        canvas.LinkToDestination("target", Offset.Zero, new Extent(10, 10));
+        canvas.NameDestination("target", Offset.Zero);
         canvas.Tag(new Rustaveli.Pdf.Tagging.StructureElement("P", null));
         canvas.Tag(null);
         canvas.Restore();
