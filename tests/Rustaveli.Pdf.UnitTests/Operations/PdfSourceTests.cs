@@ -229,6 +229,22 @@ public class PdfSourceTests
     }
 
     [Fact]
+    public void AttachmentsUnderACryptFilterThatEncryptsNothingAreCarriedAsTheyAreWithoutThePassword()
+    {
+        PdfSource opened = Open(AttachmentsOnly("/CF<</StdCF<</CFM/None/AuthEvent/EFOpen/Length 16>>>>/StmF/Identity/StrF/Identity/EFF/StdCF"));
+        byte[] attached = ((SourceStream)opened.GetObject(6)).Data;
+
+        PdfFile file = PdfFile.Open(opened.Data);
+        PdfSource saved = PdfSource.Open(file.ToArray());
+        SourceStream carried = saved.ObjectNumbers.Select(saved.GetObject).OfType<SourceStream>()
+            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.AsName().Value == "EmbeddedFile");
+
+        Assert.True(file.WasProtected);
+        Assert.NotNull(saved.Encryption);
+        Assert.Equal(attached, saved.Decode(carried));
+    }
+
+    [Fact]
     public void AttachmentsAndStreamsNamingTheirOwnCryptFilterAreDecryptedWithIt()
     {
         PdfSource source = PdfSource.Open(AttachmentsOnly().ToArray(), "att");
