@@ -1,3 +1,7 @@
+using System.Text.Json;
+using Rustaveli.Pdf.Drawing;
+using Rustaveli.Pdf.Layout;
+using Rustaveli.Pdf.Text;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.ConformanceTests.Guide;
@@ -35,6 +39,54 @@ internal static class GuideOutput
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllBytes(path, OnPaper(image, trim));
     }
+
+    /// <summary>
+    /// The frames drawn on the first page of <paramref name="document"/>, as the preview's inspector records them, saved
+    /// beside its image as <c>docs/images/guide/<paramref name="name"/>-frames.json</c> for the home page's inspector.
+    /// </summary>
+    /// <param name="document">The document the example composed.</param>
+    /// <param name="name">The name its page image was saved under.</param>
+    /// <param name="page">The size of the document's pages, which positions are given as fractions of.</param>
+    /// <returns>Every frame on the page, outermost first, each followed by those it drew.</returns>
+    public static IReadOnlyList<InspectedFrame> Inspect(Document document, string name, Extent page)
+    {
+        LayoutInspection inspection = new LayoutInspection();
+
+        using (CountingPageSink nowhere = new CountingPageSink())
+            Typesetter.Render(document, nowhere, new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper), inspection: inspection);
+
+        List<InspectedFrame> frames = [];
+
+        foreach (LayoutInspection.Node node in inspection.Pages[0])
+            Flatten(node, 0, page, frames);
+
+        if (Environment.GetEnvironmentVariable("RUSTAVELI_GUIDE_IMAGES") == "1")
+        {
+            string path = Path.Combine(RepositoryPaths.Root, "docs", "images", "guide", name + "-frames.json");
+            File.WriteAllText(path, JsonSerializer.Serialize(frames, Json) + "\n");
+        }
+
+        return frames;
+    }
+
+    private static readonly JsonSerializerOptions Json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    private static void Flatten(LayoutInspection.Node node, int depth, Extent page, List<InspectedFrame> frames)
+    {
+        frames.Add(new InspectedFrame(
+            node.Name,
+            depth,
+            Math.Round(node.Origin.X / page.Width, 4),
+            Math.Round(node.Origin.Y / page.Height, 4),
+            Math.Round(node.Size.Width / page.Width, 4),
+            Math.Round(node.Size.Height / page.Height, 4)));
+
+        foreach (LayoutInspection.Node child in node.Children)
+            Flatten(child, depth + 1, page, frames);
+    }
+
+    /// <summary>A frame on the page: its name, how deep it is nested, and its box as fractions of the page.</summary>
+    public sealed record InspectedFrame(string Name, int Depth, double X, double Y, double Width, double Height);
 
     /// <summary>The page laid on white paper, as it prints: a page image is transparent wherever nothing is set.</summary>
     private static byte[] OnPaper(byte[] png, bool trim)

@@ -58,6 +58,7 @@ extra_css:
 
 extra_javascript:
   - javascripts/output-panel.js
+  - javascripts/inspector.js
 
 markdown_extensions:
   - admonition
