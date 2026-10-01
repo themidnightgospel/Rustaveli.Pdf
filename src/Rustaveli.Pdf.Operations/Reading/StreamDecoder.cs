@@ -82,9 +82,16 @@ internal static class StreamDecoder
             "ASCIIHexDecode" or "AHx" => AsciiHex(data),
             "ASCII85Decode" or "A85" => Ascii85(data),
             "RunLengthDecode" or "RL" => RunLength(data),
-            "Crypt" when parameters is null || !parameters.TryGetValue(Name, out PdfValue name) || resolve(name).AsName().Value == "Identity" => data,
+            "Crypt" when parameters is null || !parameters.TryGetValue(Name, out PdfValue name) || CryptFilterName(resolve(name)) == "Identity" => data,
             _ => throw new NotSupportedException($"Streams encoded with {filter.Value} are copied as they are, never decoded."),
         };
+
+    /// <summary>The crypt filter a <c>/Crypt</c> filter's parameters name.</summary>
+    /// <exception cref="UnreadableFileException">The parameters name it with something other than a name.</exception>
+    private static string CryptFilterName(PdfValue name) =>
+        name.Kind == PdfValueKind.Name
+            ? name.AsName().Value
+            : throw new UnreadableFileException("The file is not a PDF this library can read: a stream's crypt filter is named with something other than a name.");
 
     /// <summary>
     /// The most a stream is inflated to: far more than any page's content or object stream holds, and far less than the
