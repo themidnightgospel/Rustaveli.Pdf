@@ -136,6 +136,17 @@ internal sealed class PdfFileWriter : IDisposable
     }
 
     /// <summary>
+    /// Writes <paramref name="value"/> as a new indirect object at its own offset, never in an object stream, and returns
+    /// its reference.
+    /// </summary>
+    public PdfReference WriteOutsideObjectStreams(PdfValue value)
+    {
+        PdfReference reference = Reserve();
+        WriteDirect(reference, value, encrypted: true);
+        return reference;
+    }
+
+    /// <summary>
     /// Writes an object at its own offset, never in an object stream, its strings encrypted unless
     /// <paramref name="encrypted"/> is false — as the encryption dictionary must be written.
     /// </summary>

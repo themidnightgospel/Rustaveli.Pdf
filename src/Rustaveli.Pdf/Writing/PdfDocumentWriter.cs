@@ -240,7 +240,9 @@ internal sealed class PdfDocumentWriter : IDisposable
 
         File.Encryption?.DeclareExtension(catalog);
 
-        PdfReference root = File.Write(catalog);
+        // Readers look up the catalog while reading the trailer, often before they set up decryption, so an encrypted
+        // file keeps it out of the object streams, where it is read without decrypting anything first.
+        PdfReference root = File.Encryption is null ? File.Write(catalog) : File.WriteOutsideObjectStreams(catalog);
         PdfReference? info = InfoDictionary is { } copied ? File.Write(copied) : Info.IsEmpty ? null : File.Write(Info.ToDictionary());
         File.Finish(root, info);
         _finished = true;

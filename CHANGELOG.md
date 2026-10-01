@@ -13,6 +13,18 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Reading a PDF: a stream whose filter array held something other than a name threw an `InvalidOperationException`
   and failed the whole file; it is damage now, and an object stream so damaged holds nothing when the file is
   repaired.
+- An encrypted file with a cross-reference stream kept its catalog in an object stream. That is allowed, but readers
+  that look the catalog up before setting up decryption, PdfPig among them, could not open the file. The catalog of an
+  encrypted file is now written outside the object streams, as qpdf writes it.
+
+**Tests**
+
+- Existing files are now read as other writers lay them out: qpdf rewrites every specimen with object streams on and
+  off, streams uncompressed or compressed again, linearised, and encrypted with 40-bit RC4, 128-bit RC4 and AES, and
+  256-bit AES. Each is read page by page, saved, joined to a document of ours, and checked by qpdf.
+- Every package is held to the coverage gate. Operations, Shaping and Preview were outside it; new tests of the
+  reader, the assembler, the stream filters and the linearizer bring them in at 99.6% line and 98.8% branch coverage
+  overall.
 
 ## 0.2.0
 
