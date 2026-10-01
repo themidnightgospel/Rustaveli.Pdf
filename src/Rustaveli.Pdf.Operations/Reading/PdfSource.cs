@@ -47,7 +47,7 @@ internal sealed class PdfSource
     private readonly Dictionary<int, SourceEntry> _entries = [];
     private readonly HashSet<int> _freed = [];
     private readonly Dictionary<int, object> _objects = [];
-    private readonly Dictionary<int, (int[] Numbers, int[] Offsets, byte[] Data, int First)> _objectStreams = [];
+    private readonly Dictionary<int, (int[] Numbers, long[] Offsets, byte[] Data, long First)> _objectStreams = [];
     private readonly HashSet<int> _loading = [];
     private readonly HashSet<int> _pageTree = [];
     private IReadOnlyList<SourcePage>? _pages;
@@ -458,7 +458,7 @@ internal sealed class PdfSource
 
     private object LoadCompressed(int number, SourceEntry entry)
     {
-        if (!_objectStreams.TryGetValue(entry.Stream, out (int[] Numbers, int[] Offsets, byte[] Data, int First) held))
+        if (!_objectStreams.TryGetValue(entry.Stream, out (int[] Numbers, long[] Offsets, byte[] Data, long First) held))
         {
             if (GetObject(entry.Stream) is not SourceStream stream)
                 return Misplaced;
@@ -467,18 +467,19 @@ internal sealed class PdfSource
             int count = Resolve(stream.Dictionary.TryGetValue(PdfNames.N, out PdfValue n) ? n : PdfValue.Null) is { Kind: PdfValueKind.Integer } total
                 ? (int)total.AsInteger()
                 : 0;
-            int first = Resolve(stream.Dictionary.TryGetValue(First, out PdfValue f) ? f : PdfValue.Null) is { Kind: PdfValueKind.Integer } start
-                ? (int)start.AsInteger()
+            long first = Resolve(stream.Dictionary.TryGetValue(First, out PdfValue f) ? f : PdfValue.Null) is { Kind: PdfValueKind.Integer } start
+                ? start.AsInteger()
                 : 0;
 
             PdfParser header = new PdfParser(data);
             List<int> numbers = [];
-            List<int> offsets = [];
+            List<long> offsets = [];
 
+            // Kept at full width: cast to 32 bits, a number or offset too large wraps round to one that looks valid.
             for (int index = 0; index < count && header.TryReadInteger(out long contained) && header.TryReadInteger(out long offset); index++)
             {
-                numbers.Add((int)contained);
-                offsets.Add((int)offset);
+                numbers.Add(contained <= int.MaxValue ? (int)contained : -1);
+                offsets.Add(offset);
             }
 
             held = (numbers.ToArray(), offsets.ToArray(), data, first);
@@ -489,10 +490,16 @@ internal sealed class PdfSource
             ? entry.Index
             : Array.IndexOf(held.Numbers, number);
 
-        if (position < 0 || held.First + held.Offsets[position] >= held.Data.Length)
+        if (position < 0)
             return Misplaced;
 
-        return new PdfParser(held.Data, held.First + held.Offsets[position]).ReadValue();
+        // A damaged /First can put an object before the start of the data as easily as an offset can put it past the end.
+        long at = held.First + held.Offsets[position];
+
+        if (at < 0 || at >= held.Data.Length)
+            return Misplaced;
+
+        return new PdfParser(held.Data, (int)at).ReadValue();
     }
 
     private bool TryReadCrossReferences()
