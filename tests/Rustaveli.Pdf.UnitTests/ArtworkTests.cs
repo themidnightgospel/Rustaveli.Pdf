@@ -257,7 +257,29 @@ public class ArtworkTests
     }
 
     [Theory]
+    [InlineData("<?xml version='1.0' encoding='windows-1251'?>")]
+    [InlineData("<?xml version=\"1.0\" encoding = \"Windows-1251\" standalone=\"yes\"?>\n")]
+    public void SvgFromAStreamIsReadInACodePageItDeclares(string declaration)
+    {
+#if NET
+        System.Text.Encoding cyrillic = System.Text.CodePagesEncodingProvider.Instance.GetEncoding(1251)!;
+#else
+        System.Text.Encoding cyrillic = System.Text.Encoding.GetEncoding(1251);
+#endif
+        using MemoryStream stream = new MemoryStream(cyrillic.GetBytes(
+            declaration + "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='20'><text y='10'>Привет мир</text></svg>"));
+        Artwork artwork = Artwork.FromSvg(stream);
+
+        Assert.Equal("Привет мир", LayoutHarness.Render(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<TextOperation>().Single().Text);
+    }
+
+    [Theory]
     [InlineData("<?xml version='1.0' encoding='x-no-such-encoding'?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    [InlineData("<?xml version='1.0' encoding='x-no-such-encoding?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    [InlineData("<?xml version='1.0' encoding=windows-1251?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    [InlineData("<?xml version='1.0'?><svg xmlns='http://www.w3.org/2000/svg' encoding='windows-1251'><x/>")]
+    [InlineData("<?xml version='1.0' encoding='windows-1251'<svg xmlns='http://www.w3.org/2000/svg'/>")]
+    [InlineData("<?xml version='1.0' encoding=?><svg xmlns='http://www.w3.org/2000/svg'/>")]
     [InlineData("<?xml version='1.0' encoding='UTF-16'?><svg xmlns='http://www.w3.org/2000/svg'/>")]
     public void SvgFromAStreamInAnEncodingThatCannotBeReadIsNotAnSvg(string svg)
     {

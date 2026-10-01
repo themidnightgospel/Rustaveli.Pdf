@@ -29,7 +29,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   matched to the CFF2 face, which cannot be embedded, so its text was set in a substitute. A face that can be embedded
   is now chosen over a closer one that cannot.
 - Page images on macOS failed for text set in any face of a collection but its first, which Skia's font manager there
-  does not load. The face is now given to Skia as a font of its own, on every platform.
+  does not load — among them fallback faces macOS installs in collections, such as Apple SD Gothic Neo and Apple
+  Color Emoji. The face is now given to Skia as a font of its own, on every platform.
+- `Artwork.FromSvg(Stream)` on .NET refused a document declaring a code page such as Windows-1251 or Shift JIS, as
+  XML that was not well-formed; it is read in the encoding it declares, as on .NET Framework.
 
 **Performance**
 
@@ -51,6 +54,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Fonts in the formats the bundled Noto files never exercise — a variable TrueType font, a CFF2 font, a collection
   and a font kerned only by a `kern` table — are registered, measured, set, embedded and drawn, and their subsets
   checked by qpdf and veraPDF.
+- resvg's SVG test suite, 1,693 documents, is read and drawn: each as a page and an image at the size it gives
+  itself, with its frame drawn, in a PDF qpdf finds sound.
 
 ## 0.2.0
 
