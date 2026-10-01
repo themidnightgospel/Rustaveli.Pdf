@@ -28,6 +28,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - A family with both a CFF2 face and a TrueType face, as a variable font installed in both builds has, could be
   matched to the CFF2 face, which cannot be embedded, so its text was set in a substitute. A face that can be embedded
   is now chosen over a closer one that cannot.
+- Page images on macOS failed for text set in any face of a collection but its first, which Skia's font manager there
+  does not load. The face is now given to Skia as a font of its own, on every platform.
 
 **Performance**
 
