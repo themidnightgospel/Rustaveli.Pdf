@@ -17,10 +17,13 @@ strict: true
 # The API reference is built by DocFX into api/ separately; the requirements are the build's own.
 exclude_docs: |
   api/
+  overrides/
   requirements.*
 
 theme:
   name: material
+  # The home page's template; kept out of the pages by exclude_docs.
+  custom_dir: docs/overrides
   logo: images/logo.png
   favicon: images/logo.png
   # An editor's colours, dark first; docs/stylesheets/workbench.css sets them.
@@ -59,6 +62,7 @@ extra_javascript:
 markdown_extensions:
   - admonition
   - attr_list
+  - md_in_html
   - tables
   - toc:
       permalink: true

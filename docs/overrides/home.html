@@ -1,0 +1,32 @@
+{#-
+  The home page (docs/README.md): a hero under the header, then the page's own content, full width with no sidebars.
+-#}
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="rp-hero">
+    <div class="md-grid rp-hero__inner">
+      <div class="rp-hero__text">
+        <h1>Write C#. <span>See the page.</span></h1>
+        <p>
+          A free, fully featured PDF library for .NET. Compose documents in plain C#, export PDF, PDF/A or accessible
+          PDF/UA, and watch the page redraw in your browser as you save.
+        </p>
+        <div class="rp-hero__actions">
+          <a class="md-button md-button--primary" href="{{ 'guide/getting-started/' | url }}">Get started</a>
+          <a class="md-button" href="{{ 'features/' | url }}">Every feature</a>
+        </div>
+      </div>
+      <div class="rp-install">
+        <span class="rp-install__prompt">$</span>
+        <code>dotnet add package Rustaveli.Pdf</code>
+        <button class="md-clipboard md-icon" title="Copy to clipboard" data-clipboard-text="dotnet add package Rustaveli.Pdf"></button>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+  {{ page.content }}
+{% endblock %}
