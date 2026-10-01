@@ -1,3 +1,4 @@
+using System.Globalization;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.ConformanceTests.Specimens;
@@ -23,7 +24,8 @@ public static class SpecimenCatalog
         new Specimen("text-strokes", TextStrokes),
         new Specimen("paragraphs", Paragraphs),
         new Specimen("complex-scripts", ComplexScripts),
-        new Specimen("cff-fonts", CffFonts)
+        new Specimen("cff-fonts", CffFonts),
+        new Specimen("per-page-content", PerPageContent)
     ];
 
     public static TheoryData<Specimen> Cases()
@@ -48,6 +50,78 @@ public static class SpecimenCatalog
     /// Text in CFF fonts, each embedded as a subset: a name-keyed face whose glyphs call local and global subroutines,
     /// a CID-keyed Chinese face whose glyphs come from several font dicts, and a face with no subroutines at all.
     /// </summary>
+    /// <summary>
+    /// Content decided page by page or only when layout reaches it: a ledger composed for each page it reaches, bringing
+    /// its total forward and carrying it on; then content composed late, content let past its frame, placeholders, a
+    /// frame turned on its side and one held to a proportion.
+    /// </summary>
+    private static Document PerPageContent() => Document.Compose(composition => composition.Section(section =>
+    {
+        section.Trim = PaperSizes.A5;
+        section.Margins = Sides.All(30f);
+        section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(9f);
+
+        section.Body().Stack(stack =>
+        {
+            stack.SpaceBetween(10f);
+            stack.Add().Text(text => text.Run("Ledger, composed for each page").PointSize(14f).Bold());
+            stack.Add().ComposePerPage(new Ledger(entries: 40));
+            stack.Add().ComposeLater(frame => frame.Fill(TestInks.LimeLighten3).Inset(6f).Text("Composed only when layout reached it."));
+            stack.Add().Height(14f).Unbounded().Text("Unbounded: this line may run past the frame it was given, and is drawn whole.");
+
+            stack.Add().Columns(columns =>
+            {
+                columns.Gutter(10f);
+                columns.Share().Height(70f).Placeholder("Chart");
+                columns.Share().Height(70f).Placeholder(TestInks.IndigoLighten4);
+                columns.Fixed(40f).Height(70f).TurnRight().Fill(TestInks.PinkLighten3).Inset(4f).Text("Turned");
+            });
+
+            stack.Add().Width(160f).Proportion(2f).Fill(TestInks.AmberLighten4).Centered().Middle().Text("Two to one");
+        });
+    }));
+
+    /// <summary>Ledger entries, as many on each page as it holds, bringing the running total forward and carrying it on.</summary>
+    private sealed class Ledger(int entries) : IDynamicContent<int>
+    {
+        private const float RowHeight = 16f;
+
+        public int Initial => 0;
+
+        public DynamicPart<int> Compose(DynamicPage page, int state)
+        {
+            // Room for the brought-forward and carried-forward lines, then as many entries as the page holds.
+            int fits = Math.Max(1, (int)(page.Room.Height / RowHeight) - 2);
+            int taken = Math.Min(fits, entries - state);
+            int next = state + taken;
+
+            return new DynamicPart<int>(
+                frame => frame.Stack(stack =>
+                {
+                    if (state > 0)
+                        stack.Add().Height(RowHeight).FlushRight().Text("Brought forward " + Total(state).ToString(CultureInfo.InvariantCulture));
+
+                    for (int entry = state; entry < next; entry++)
+                    {
+                        stack.Add().Height(RowHeight).StrokeBottom(0.25f).Columns(columns =>
+                        {
+                            columns.Share().Text("Entry " + (entry + 1).ToString(CultureInfo.InvariantCulture));
+                            columns.Fixed(60f).FlushRight().Text(Amount(entry).ToString(CultureInfo.InvariantCulture));
+                        });
+                    }
+
+                    if (next < entries)
+                        stack.Add().Height(RowHeight).FlushRight().Text("Carried forward " + Total(next).ToString(CultureInfo.InvariantCulture));
+                }),
+                next,
+                next < entries);
+        }
+
+        private static int Amount(int entry) => (entry * 37 % 90) + 10;
+
+        private static int Total(int upTo) => Enumerable.Range(0, upTo).Sum(Amount);
+    }
+
     private static Document CffFonts() => Page(content => content.Stack(stack =>
     {
         stack.SpaceBetween(14f);

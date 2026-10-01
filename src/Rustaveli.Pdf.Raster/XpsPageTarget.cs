@@ -19,6 +19,8 @@ internal sealed class XpsPageTarget : ISkiaPageTarget
 
     public bool TextAsOutlines => false;
 
+    public bool IsPixels => false;
+
     public SKCanvas Begin(Extent size, out SKPoint unitsPerPoint)
     {
         if (_open)
