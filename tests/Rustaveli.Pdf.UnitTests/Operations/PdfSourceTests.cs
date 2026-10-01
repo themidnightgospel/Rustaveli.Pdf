@@ -505,6 +505,9 @@ public class PdfSourceTests
     [InlineData(@"/W\[[^\]]*\]", "/W[0 0 0]")]
     [InlineData(@"/Size \d+", "/Sizx 1")]
     [InlineData(@"/Size \d+", "/Size/A")]
+    [InlineData("/Type/XRef", "/Tipe/XRef")]
+    [InlineData("/Type/XRef", "/Type 1")]
+    [InlineData("/Type/XRef", "/Type/XRaf")]
     public void ACrossReferenceStreamThatDoesNotSayHowToReadItIsRebuilt(string pattern, string replacement)
     {
         string text = Encoding.Latin1.GetString(Written(PdfCrossReferenceFormat.Stream));
@@ -605,5 +608,365 @@ public class PdfSourceTests
 
         Assert.False(source.WasRepaired);
         Assert.Equal(2, source.Pages.Count);
+    }
+
+    private static string Text(PdfSource source, int number) => Encoding.ASCII.GetString(Value(source, number).AsString().Bytes.ToArray());
+
+    /// <summary>A row of a cross-reference stream placing object <paramref name="number"/> where it was written.</summary>
+    private static long[] InUse(HandmadePdf pdf, int number) => [1, pdf.OffsetOf(number), 0];
+
+    /// <summary>
+    /// The standard handler's dictionary for 128-bit RC4 under an empty user password and the identifier
+    /// <paramref name="id"/>, and the file key it opens with.
+    /// </summary>
+    private static (string Dictionary, byte[] FileKey) Rc4Encryption(byte[] id)
+    {
+        PdfDictionary written = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.Rc4With128Bits }, id).Dictionary;
+        long version = written[new PdfName("V")].AsInteger();
+        int revision = (int)written[new PdfName("R")].AsInteger();
+        int permissions = (int)written[new PdfName("P")].AsInteger();
+        byte[] owner = written[new PdfName("O")].AsString().Bytes.ToArray();
+        byte[] user = written[new PdfName("U")].AsString().Bytes.ToArray();
+        byte[] fileKey = StandardSecurity.FileKey(StandardSecurity.Pad(string.Empty), owner, permissions, id, revision, 16, encryptMetadata: true);
+
+        return ($"<</Filter/Standard/V {version}/R {revision}/Length 128/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>", fileKey);
+    }
+
+    [Fact]
+    public void ARootThatIsNotADictionaryIsUnreadable()
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(not a catalog)");
+        pdf.Section("/Root 4 0 R");
+
+        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(() => Open(pdf));
+
+        Assert.Contains("catalog", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnEncryptionDictionaryWrittenInTheTrailerDecryptsEveryObject()
+    {
+        byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
+        (string encrypt, byte[] fileKey) = Rc4Encryption(id);
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, $"<{Hex(Encrypted(fileKey, 4, 0, "secret", aes: false))}>");
+        pdf.Section($"/Root 1 0 R/Encrypt{encrypt}/ID[<{Hex(id)}><{Hex(id)}>]");
+
+        PdfSource source = Open(pdf);
+
+        Assert.NotNull(source.Encryption);
+        Assert.Equal("secret", Text(source, 4));
+    }
+
+    [Fact]
+    public void AnEncryptionDictionaryThatIsMissingIsUnreadable()
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage();
+        pdf.Section("/Root 1 0 R/Encrypt 9 0 R");
+
+        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(() => Open(pdf));
+
+        Assert.Contains("encryption dictionary", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/ID 7")]
+    [InlineData("/ID[]")]
+    [InlineData("/ID[7 8]")]
+    public void AFileWithoutAnIdentifierStringIsDecryptedWithAnEmptyOne(string identifier)
+    {
+        (string encrypt, byte[] fileKey) = Rc4Encryption([]);
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, $"<{Hex(Encrypted(fileKey, 4, 0, "secret", aes: false))}>").Object(5, encrypt);
+        pdf.Section($"/Root 1 0 R/Encrypt 5 0 R{identifier}");
+
+        PdfSource source = Open(pdf);
+
+        Assert.NotNull(source.Encryption);
+        Assert.Equal("secret", Text(source, 4));
+    }
+
+    [Fact]
+    public void ObjectStreamsOfARebuiltFileAreFoundAgainOnceItIsDecrypted()
+    {
+        // Its streams left plain, the object stream is read before the encryption is known, and read again after.
+        HandmadePdf pdf = AttachmentsOnly()
+            .Stream(12, "<</Type/ObjStm/N 1/First 5>>", "13 0 (packed)")
+            .Raw("startxref\n1\n%%EOF\n");
+
+        PdfSource source = Open(pdf);
+
+        Assert.True(source.WasRepaired);
+        Assert.NotNull(source.Encryption);
+        Assert.Equal("packed", Text(source, 13));
+    }
+
+    [Theory]
+    [InlineData(-1L)]
+    [InlineData(1_000_000L)]
+    public void AnOffsetOutsideTheFileIsRepairedByScanning(long offset)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(value)");
+        pdf.StreamSection(5, "/Size 5/Root 1 0 R", [1, 8, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [1, offset, 0]);
+
+        PdfSource source = Open(pdf);
+
+        Assert.False(source.WasRepaired);
+        Assert.Equal("value", Text(source, 4));
+        Assert.True(source.WasRepaired);
+    }
+
+    [Theory]
+    [InlineData("%x\n")]
+    [InlineData("%4 x\n")]
+    [InlineData("%4 0 R\n")]
+    public void AnOffsetWhereNoObjectHeaderBeginsIsRepairedByScanning(string decoy)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage().Raw(decoy).Object(4, "(value)");
+        int at = pdf.ToString().IndexOf(decoy, StringComparison.Ordinal) + 1;
+        pdf.Section("/Root 1 0 R", misplace: number => number == 4 ? at : pdf.OffsetOf(number));
+
+        PdfSource source = Open(pdf);
+
+        Assert.Equal("value", Text(source, 4));
+        Assert.True(source.WasRepaired);
+    }
+
+    [Theory]
+    [InlineData("<</Length 4>>\nstream\r\ndata\nendstream", "data")]
+    [InlineData("<</Length 4>>\nstream\rdata\nendstream", "data")]
+    [InlineData("<</Length 99>>\nstream\ndata\r\nendstream", "data")]
+    [InlineData("<</Length 99>>\nstream\ndata\rendstream", "data")]
+    [InlineData("<</Length 99>>\nstream\ndata endstream", "data ")]
+    [InlineData("<</Length 99>>\nstream\nendstream", "")]
+    public void AStreamsDataLeavesOutTheLineEndsAroundIt(string body, string data)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, body);
+        pdf.Section("/Root 1 0 R");
+
+        Assert.Equal(data, Encoding.ASCII.GetString(((SourceStream)Open(pdf).GetObject(4)).Data));
+    }
+
+    /// <summary>
+    /// One page, then a cross-reference table listing it and an object 4 written after the table, then
+    /// <paramref name="last"/>, with which the file ends.
+    /// </summary>
+    private static byte[] EndingWithObjectFour(string last)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage();
+        string file = pdf.ToString();
+
+        string Section(int four) =>
+            "xref\n0 5\n0000000000 65535 f\r\n"
+            + string.Concat(new[] { pdf.OffsetOf(1), pdf.OffsetOf(2), pdf.OffsetOf(3), four }.Select(offset => offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n\r\n"))
+            + $"trailer\n<</Root 1 0 R/Size 5>>\nstartxref\n{file.Length}\n%%EOF\n";
+
+        return Encoding.Latin1.GetBytes(file + Section(file.Length + Section(0).Length) + last);
+    }
+
+    [Theory]
+    [InlineData("stream")]
+    [InlineData("stream\r")]
+    public void AStreamCutOffAfterItsKeywordIsUnreadable(string keyword)
+    {
+        PdfSource source = PdfSource.Open(EndingWithObjectFour("4 0 obj\n<</Length 0>>\n" + keyword));
+
+        Assert.Single(source.Pages);
+        Assert.Throws<UnreadableFileException>(() => source.GetObject(4));
+    }
+
+    [Fact]
+    public void AStartxrefWithoutAnOffsetIsRebuilt()
+    {
+        PdfSource source = Open(HandmadePdf.OnePage().Raw("trailer\n<</Root 1 0 R>>\nstartxref\nnowhere\n%%EOF\n"));
+
+        Assert.True(source.WasRepaired);
+        Assert.Single(source.Pages);
+    }
+
+    [Theory]
+    [InlineData("xref\n0 2\n0000000000 65535 f\r\nabcdefghij 00000 n\r\ntrailer\n<</Root 1 0 R>>\n")]
+    [InlineData("xref\n0 2\n0000000000 65535 f\r\n-000000009 00000 n\r\ntrailer\n<</Root 1 0 R>>\n")]
+    [InlineData("xref\n0 2\n0000000000 65535 f\r\n0000000009 abcde n\r\ntrailer\n<</Root 1 0 R>>\n")]
+    [InlineData("xref\n0 2\n0000000000 65535 f\r\n0000000009 00000 x\r\ntrailer\n<</Root 1 0 R>>\n")]
+    [InlineData("xref\n0 1\n0000000000 65535 f\r\n")]
+    public void ACrossReferenceTableThatCannotBeReadIsRebuilt(string table)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage();
+        int offset = pdf.ToString().Length;
+
+        PdfSource source = Open(pdf.Raw($"{table}startxref\n{offset}\n%%EOF\n"));
+
+        Assert.True(source.WasRepaired);
+        Assert.Single(source.Pages);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ASubsectionThatTrulyBeginsAtObjectOneIsNotRenumbered(bool catalogFirst)
+    {
+        // Written before the header, the catalog is at offset 0, as the free head of a misnumbered subsection would be.
+        const string Catalog = "1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n";
+        HandmadePdf pdf = new HandmadePdf().Raw(catalogFirst ? string.Empty : Catalog)
+            .Object(2, "<</Type/Pages/Kids[3 0 R]/Count 1>>")
+            .Object(3, "<</Type/Page/Parent 2 0 R>>");
+        string prefix = catalogFirst ? Catalog : string.Empty;
+        string file = prefix + pdf.ToString();
+        long[] offsets = [catalogFirst ? 0 : "%PDF-1.7\n".Length, prefix.Length + pdf.OffsetOf(2), prefix.Length + pdf.OffsetOf(3)];
+
+        string section = "xref\n0 1\n0000000000 65535 f\r\n1 3\n"
+            + string.Concat(offsets.Select(offset => offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n\r\n"))
+            + $"trailer\n<</Root 1 0 R/Size 4>>\nstartxref\n{file.Length}\n%%EOF\n";
+
+        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes(file + section));
+
+        Assert.False(source.WasRepaired);
+        Assert.Equal([1, 2, 3], source.ObjectNumbers);
+        Assert.Single(source.Pages);
+    }
+
+    [Fact]
+    public void AnObjectAtTheVeryStartOfTheFileIsFoundByScanning()
+    {
+        HandmadePdf rest = new HandmadePdf()
+            .Object(2, "<</Type/Pages/Kids[3 0 R]/Count 1>>")
+            .Object(3, "<</Type/Page/Parent 2 0 R>>")
+            .Raw("%%EOF\n");
+
+        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes("1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n" + rest));
+
+        Assert.True(source.WasRepaired);
+        Assert.Single(source.Pages);
+    }
+
+    [Theory]
+    [InlineData("%50 obj\n")]
+    [InlineData("/A 0 obj\n")]
+    [InlineData("x5 0 obj\n")]
+    [InlineData("0 0 obj\n(zero)\nendobj\n")]
+    [InlineData("99999999999 0 obj\n(too large)\nendobj\n")]
+    [InlineData("%%EOF obj")]
+    public void ScanningTakesOnlyObjectsNumberedWithinRange(string text)
+    {
+        PdfSource source = Open(HandmadePdf.OnePage().Raw("trailer\n<</Root 1 0 R>>\n").Raw(text));
+
+        Assert.True(source.WasRepaired);
+        Assert.Equal([1, 2, 3], source.ObjectNumbers);
+    }
+
+    [Theory]
+    [InlineData("/XRefStm/None")]
+    [InlineData("/XRefStm 3 0 R")]
+    public void AHybridOffsetThatIsNotANumberIsIgnored(string hybrid)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage();
+        pdf.Section("/Root 1 0 R" + hybrid);
+
+        PdfSource source = Open(pdf);
+
+        Assert.False(source.WasRepaired);
+        Assert.Single(source.Pages);
+    }
+
+    [Theory]
+    [InlineData("5 x\n")]
+    [InlineData("5 0 R\n")]
+    [InlineData("5 0 obj\n(text)\nendobj\n")]
+    [InlineData("5 0 obj\n<</Type/XRef>>\nendobj\n")]
+    public void AnOffsetThatPointsAtNeitherATableNorAStreamIsRebuilt(string target)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage();
+        int offset = pdf.ToString().Length;
+
+        PdfSource source = Open(pdf.Raw(target).Raw($"trailer\n<</Root 1 0 R>>\nstartxref\n{offset}\n%%EOF\n"));
+
+        Assert.True(source.WasRepaired);
+        Assert.Single(source.Pages);
+    }
+
+    [Fact]
+    public void ACrossReferenceStreamWithNoTypeFieldListsEveryObjectInUse()
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage();
+        pdf.StreamSection(4, "/Index[1 3]/Root 1 0 R", [0, 4, 2], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3));
+
+        PdfSource source = Open(pdf);
+
+        Assert.False(source.WasRepaired);
+        Assert.Equal([1, 2, 3, 4], source.ObjectNumbers);
+        Assert.Single(source.Pages);
+    }
+
+    [Fact]
+    public void AnEntryOfAnUnknownTypeIsTheNullObject()
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(listed as neither)");
+        pdf.StreamSection(5, "/Size 5/Root 1 0 R", [1, 4, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [3, pdf.OffsetOf(4), 0]);
+
+        PdfSource source = Open(pdf);
+
+        Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
+        Assert.False(source.WasRepaired);
+    }
+
+    /// <summary>
+    /// <paramref name="pdf"/>, listed by a cross-reference stream that says object 4 is kept at <paramref name="index"/>
+    /// in object 5.
+    /// </summary>
+    private static PdfSource InObjectStream(HandmadePdf pdf, int index)
+    {
+        pdf.StreamSection(6, "/Size 6/Root 1 0 R", [1, 4, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [2, 5, index], InUse(pdf, 5));
+        return Open(pdf);
+    }
+
+    [Theory]
+    [InlineData("<</Type/ObjStm/N 2/First 8>>", "6 0 4 7 (other)(packed)", 0)]
+    [InlineData("<</Type/ObjStm/N 1/First 4>>", "4 0 (packed)", 5)]
+    [InlineData("<</Type/ObjStm/N 2/First 17>>", "4294967300 0 4 8 (wrong!)(packed)", 0)]
+    public void AnObjectNotAtTheIndexItsSectionGivesIsFoundByItsNumber(string dictionary, string data, int index)
+    {
+        // In the third, a number too large for 32 bits must not wrap round to pass for object 4.
+        PdfSource source = InObjectStream(HandmadePdf.OnePage().Stream(5, dictionary, data), index);
+
+        Assert.Equal("packed", Text(source, 4));
+        Assert.False(source.WasRepaired);
+    }
+
+    [Theory]
+    [InlineData("<</Type/ObjStm/First 4>>", "4 0 (packed)")]
+    [InlineData("<</Type/ObjStm/N/One/First 4>>", "4 0 (packed)")]
+    [InlineData("<</Type/ObjStm/N 1/First 4>>", "6 0 (packed)")]
+    [InlineData("(not a stream)", null)]
+    public void AnObjectStreamThatDoesNotHoldWhatItsSectionSaysTriggersARepair(string dictionary, string? data)
+    {
+        HandmadePdf pdf = HandmadePdf.OnePage();
+        PdfSource source = InObjectStream(data is null ? pdf.Object(5, dictionary) : pdf.Stream(5, dictionary, data), 0);
+
+        Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
+        Assert.True(source.WasRepaired);
+    }
+
+    [Theory]
+    [InlineData("<</Type/ObjStm/N 1>>")]
+    [InlineData("<</Type/ObjStm/N 1/First/Four>>")]
+    public void AnObjectStreamWithoutAFirstOffsetCountsFromTheStartOfItsData(string dictionary)
+    {
+        PdfSource source = Open(HandmadePdf.OnePage().Stream(5, dictionary, "4 4 (packed)").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n"));
+
+        Assert.True(source.WasRepaired);
+        Assert.Equal("packed", Text(source, 4));
+    }
+
+    [Theory]
+    [InlineData("<</Type/ObjStm/N 1/First 4/Filter/JBIG2Decode>>")]
+    [InlineData("<</Type/ObjStm/N 1/First 4/Filter[7]>>")]
+    public void AnObjectStreamThatCannotBeDecodedHoldsNothingWhenRebuilt(string dictionary)
+    {
+        // A filter that is not a name is damage: it once escaped as an InvalidOperationException and failed the whole file.
+        PdfSource source = Open(HandmadePdf.OnePage().Stream(5, dictionary, "4 0 (packed)").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n"));
+
+        Assert.True(source.WasRepaired);
+        Assert.Single(source.Pages);
+        Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
     }
 }
