@@ -78,6 +78,46 @@ public class DynamicContentTests
         Assert.Single(rows.Composed);
     }
 
+    /// <summary>Numbered rows, 20 points tall, that keep a line free on each page for "Continued", drawn only when they go on.</summary>
+    private sealed class RowsWithContinuation(int total) : IDynamicContent<int>
+    {
+        public int Initial => 0;
+
+        public DynamicPart<int> Compose(DynamicPage page, int state)
+        {
+            int taken = Math.Min((int)(page.Room.Height / 20) - 1, total - state);
+            int next = state + taken;
+
+            return new DynamicPart<int>(
+                frame => frame.Stack(stack =>
+                {
+                    for (int row = state; row < next; row++)
+                        stack.Add().Height(20).Text("Row " + (row + 1));
+
+                    if (next < total)
+                        stack.Add().Height(20).Text("Continued");
+                }),
+                next,
+                next < total);
+        }
+    }
+
+    [Fact]
+    public void ContentEndingOnAPageIsDrawnAsItWasComposedForTheRoomItWasOffered()
+    {
+        // On the second page the last two rows fit and the content ends, 40 points tall. Composed again for that 40-point
+        // box, it would keep a line free and fit only one row, and the last row would never be drawn.
+        List<RecordedPage> pages = Render(section => section.Body().Stack(stack =>
+        {
+            stack.Add().ComposePerPage(new RowsWithContinuation(6));
+            stack.Add().Text("After");
+        }));
+
+        Assert.Equal(2, pages.Count);
+        Assert.Equal("Row 1Row 2Row 3Row 4Continued", pages[0].Content);
+        Assert.Equal("Row 5Row 6After", pages[1].Content);
+    }
+
     [Fact]
     public void ContentThatEndsIsCompleteAndThenNothing()
     {

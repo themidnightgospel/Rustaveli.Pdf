@@ -41,6 +41,8 @@ internal sealed class SvgPageTarget : ISkiaPageTarget
 
     public bool TextAsOutlines => true;
 
+    public bool IsPixels => false;
+
     public void Dispose()
     {
         _canvas?.Dispose();

@@ -20,6 +20,11 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - An encrypted file with a cross-reference stream kept its catalog in an object stream. That is allowed, but readers
   that look the catalog up before setting up decryption, PdfPig among them, could not open the file. The catalog of an
   encrypted file is now written outside the object streams, as qpdf writes it.
+- Content composed per page (`ComposePerPage`) could lose the last of itself. Planned in the room left on a page, it
+  ended there; drawn in the smaller box its parent allotted, it was composed again, fitted less and went on — after
+  the parent had moved past it, so what it kept for the next page was never drawn. It is now drawn as it was planned.
+- Page images drew a fill thinner than a pixel, such as a 0.25-point rule, as a faint smear across two pixels. It is
+  drawn one pixel thick, on the pixel its middle falls in, as PDF viewers draw it. SVG and XPS keep it as thin as it is.
 
 **Tests**
 
@@ -29,6 +34,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Every package is held to the coverage gate. Operations, Shaping and Preview were outside it; new tests of the
   reader, the assembler, the stream filters and the linearizer bring them in at 99.6% line and 98.8% branch coverage
   overall.
+- A new specimen sets content no export had set before — composed per page, composed late, unbounded, placeholders, a
+  turned frame and a proportion — so each is now validated, compared visually and drawn by both renderers.
 
 ## 0.2.0
 

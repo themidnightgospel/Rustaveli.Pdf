@@ -39,6 +39,8 @@ internal sealed class RasterPageTarget(ImageExportOptions options) : ISkiaPageTa
 
     public bool TextAsOutlines => false;
 
+    public bool IsPixels => true;
+
     public void Dispose()
     {
         _surface?.Dispose();
