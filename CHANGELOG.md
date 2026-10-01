@@ -26,6 +26,11 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Page images drew a fill thinner than a pixel, such as a 0.25-point rule, as a faint smear across two pixels. It is
   drawn one pixel thick, on the pixel its middle falls in, as PDF viewers draw it. SVG and XPS keep it as thin as it is.
 
+**Performance**
+
+- Each word is shaped once per export when text is measured, however often it recurs and however many times layout
+  measures it: an 85-page report is laid out in about half the time.
+
 **Tests**
 
 - Existing files are now read as other writers lay them out: qpdf rewrites every specimen with object streams on and
