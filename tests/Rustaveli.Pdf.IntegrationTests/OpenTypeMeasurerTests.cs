@@ -119,6 +119,35 @@ public class OpenTypeMeasurerTests
     }
 
     [Fact]
+    public void AWordMeasuredBeforeIsMeasuredAgainInTheStyleItIsAskedIn()
+    {
+        // Widths are remembered by text and style, so the same word in another style is never answered from the first.
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
+        TypeStyle small = TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(10);
+        TypeStyle large = small.WithPointSize(20);
+        TypeStyle sameAsSmall = small.WithPointSize(10);
+
+        float first = measurer.MeasureWidth("Typesetting", small);
+
+        Assert.Equal(first, measurer.MeasureWidth("Typesetting", small));
+        Assert.Equal(first * 2, measurer.MeasureWidth("Typesetting", large), 3);
+        Assert.Equal(first, measurer.MeasureWidth("Typesetting", sameAsSmall));
+        Assert.NotEqual(first, measurer.MeasureWidth("Typeset", small));
+    }
+
+    [Fact]
+    public void ACharacterNoFaceHasIsCountedMissingHoweverOftenItsWordIsMeasured()
+    {
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(new TypefaceLibrary(includeInstalled: false).Shaper);
+        TypeStyle style = TypeStyle.Default.WithPointSize(10);
+
+        measurer.MeasureWidth("snow ☃", style);
+        measurer.MeasureWidth("snow ☃", style);
+
+        Assert.Equal([0x2603], measurer.MissingCodepoints);
+    }
+
+    [Fact]
     public void WiderGlyphsAndHeavierWeightsMeasureWider()
     {
         Assert.True(Measurer.MeasureWidth("WWWW", Style) > Measurer.MeasureWidth("iiii", Style));
