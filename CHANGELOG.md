@@ -10,6 +10,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Reading a PDF: an object stream whose `/First`, or an offset in its header, placed an object before the start of
   its data threw an `IndexOutOfRangeException`, and one beyond 32 bits could read the wrong bytes as the object.
   Such an object is now treated as one not where it is listed: the file is repaired, and the object reads as null.
+- Reading a PDF: a stream whose filter array held something other than a name threw an `InvalidOperationException`
+  and failed the whole file; it is damage now, and an object stream so damaged holds nothing when the file is
+  repaired.
 
 ## 0.2.0
 
