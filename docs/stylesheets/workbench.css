@@ -1,0 +1,238 @@
+/*
+  The site's look: a code editor's. Dark by default, with a light scheme behind the toggle; the header stays dark in
+  both, like an editor's chrome. Colours are set through Material's own variables, so every component follows them.
+*/
+
+:root > * {
+  --rp-gold: #e6b34a;
+  --rp-wine: #d4577f;
+  --rp-chrome: #151920;
+  --rp-chrome-raised: #1b2029;
+  --rp-chrome-line: #262c37;
+  --rp-chrome-fg: #d8dde6;
+  --rp-chrome-muted: #8892a3;
+
+  --md-primary-fg-color: var(--rp-chrome);
+  --md-primary-fg-color--light: var(--rp-chrome-raised);
+  --md-primary-fg-color--dark: #0e1014;
+  --md-primary-bg-color: var(--rp-chrome-fg);
+  --md-primary-bg-color--light: var(--rp-chrome-muted);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 220;
+  --rp-line: #262c37;
+  --rp-raised: #1b2029;
+  --rp-callout: rgba(230, 179, 74, 0.07);
+  --rp-callout-line: rgba(230, 179, 74, 0.35);
+
+  --md-default-bg-color: #0e1014;
+  --md-default-fg-color: #d8dde6;
+  --md-default-fg-color--light: #b4bccb;
+  --md-default-fg-color--lighter: #8892a3;
+  --md-default-fg-color--lightest: #262c37;
+  --md-accent-fg-color: var(--rp-gold);
+  --md-typeset-color: #c9d0db;
+  --md-typeset-a-color: var(--rp-gold);
+  --md-code-bg-color: #151920;
+  --md-code-fg-color: #d8dde6;
+  --md-code-hl-color: rgba(230, 179, 74, 0.12);
+  --md-code-hl-keyword-color: #d4577f;
+  --md-code-hl-string-color: #9fd8a7;
+  --md-code-hl-number-color: #e6b34a;
+  --md-code-hl-constant-color: #e6b34a;
+  --md-code-hl-function-color: #8cb4ff;
+  --md-code-hl-name-color: #d8dde6;
+  --md-code-hl-variable-color: #d8dde6;
+  --md-code-hl-operator-color: #9aa3b2;
+  --md-code-hl-punctuation-color: #9aa3b2;
+  --md-code-hl-comment-color: #6b7487;
+  --md-code-hl-generic-color: #8892a3;
+  --md-code-hl-special-color: #e6b34a;
+  --md-footer-bg-color: #0b0d10;
+  --md-footer-bg-color--dark: #08090b;
+}
+
+[data-md-color-scheme="default"] {
+  --rp-line: #e2e5ea;
+  --rp-raised: #f3f4f7;
+  --rp-callout: #fbf5e8;
+  --rp-callout-line: #e5c98c;
+
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: #161a21;
+  --md-accent-fg-color: #a8771f;
+  --md-typeset-color: #262b33;
+  --md-typeset-a-color: #8a5a12;
+  --md-code-bg-color: #f6f7f9;
+  --md-code-fg-color: #1d222a;
+  --md-code-hl-color: rgba(168, 119, 31, 0.12);
+  --md-code-hl-keyword-color: #a3214d;
+  --md-code-hl-string-color: #1f6b35;
+  --md-code-hl-number-color: #9a5b00;
+  --md-code-hl-constant-color: #9a5b00;
+  --md-code-hl-function-color: #1554a8;
+  --md-code-hl-name-color: #1d222a;
+  --md-code-hl-variable-color: #1d222a;
+  --md-code-hl-operator-color: #59616d;
+  --md-code-hl-punctuation-color: #59616d;
+  --md-code-hl-comment-color: #8a919a;
+  --md-code-hl-generic-color: #59616d;
+  --md-code-hl-special-color: #9a5b00;
+  --md-footer-bg-color: var(--rp-chrome);
+  --md-footer-bg-color--dark: #0e1014;
+}
+
+/* The chrome: header and tabs read as an editor's title bar. */
+.md-header,
+.md-tabs {
+  background-color: var(--rp-chrome);
+  color: var(--rp-chrome-fg);
+}
+
+.md-header {
+  box-shadow: none;
+  border-bottom: 1px solid var(--rp-chrome-line);
+}
+
+.md-header--shadow {
+  box-shadow: none;
+}
+
+.md-tabs {
+  border-bottom: 1px solid var(--rp-chrome-line);
+}
+
+.md-tabs__link {
+  font-family: var(--md-code-font-family);
+  font-size: 0.66rem;
+  opacity: 0.75;
+}
+
+.md-tabs__item--active .md-tabs__link {
+  color: var(--rp-gold);
+  opacity: 1;
+}
+
+.md-header__title {
+  font-weight: 600;
+}
+
+.md-search__form {
+  background-color: var(--rp-chrome-raised);
+  border: 1px solid var(--rp-chrome-line);
+  border-radius: 6px;
+}
+
+/* Headings: tight and plain, as on the home page. */
+.md-typeset h1 {
+  color: var(--md-default-fg-color);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--md-default-fg-color);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Navigation: the current page is marked as an editor marks the open file. */
+.md-nav__link--active {
+  color: var(--md-accent-fg-color);
+  font-weight: 500;
+}
+
+/* Code blocks: editor panes, with the file's name as a tab when the block names one. */
+.md-typeset .highlight,
+.md-typeset pre {
+  border-radius: 10px;
+}
+
+.md-typeset .highlight {
+  border: 1px solid var(--rp-line);
+  overflow: hidden;
+}
+
+.md-typeset .highlight pre {
+  margin: 0;
+  border-radius: 0;
+}
+
+.md-typeset .highlight span.filename {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0;
+  padding: 0.55em 1em;
+  border-bottom: 1px solid var(--rp-line);
+  border-radius: 0;
+  background-color: var(--rp-raised);
+  color: var(--md-default-fg-color--light);
+  font-family: var(--md-code-font-family);
+  font-size: 0.7rem;
+  font-weight: 400;
+  box-shadow: inset 0 -2px 0 var(--rp-gold);
+}
+
+.md-typeset .highlight span.filename + pre {
+  margin-top: 0;
+}
+
+.md-typeset :not(pre) > code {
+  border: 1px solid var(--rp-line);
+  border-radius: 4px;
+  background-color: var(--rp-raised);
+}
+
+/* Callouts: a gold note, never a coloured box per kind. */
+.md-typeset .admonition,
+.md-typeset details {
+  border: 1px solid var(--rp-callout-line);
+  border-radius: 10px;
+  background-color: var(--rp-callout);
+  box-shadow: none;
+  font-size: 0.72rem;
+}
+
+.md-typeset .admonition > .admonition-title,
+.md-typeset details > summary {
+  background-color: transparent;
+  color: var(--md-accent-fg-color);
+  font-weight: 600;
+}
+
+.md-typeset .admonition > .admonition-title::before,
+.md-typeset details > summary::before {
+  background-color: var(--md-accent-fg-color);
+}
+
+/* Tables: ruled, with a quiet head. */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--rp-line);
+  border-radius: 10px;
+  box-shadow: none;
+  font-size: 0.7rem;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--rp-raised);
+  color: var(--md-default-fg-color--light);
+  font-weight: 500;
+}
+
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--rp-line);
+}
+
+/* Footer: the editor's status bar. */
+.md-footer-meta {
+  border-top: 1px solid var(--rp-chrome-line);
+  font-family: var(--md-code-font-family);
+}
+
+/* A name in a table cell stays whole: package and member names do not break mid-word. */
+.md-typeset table:not([class]) code {
+  white-space: nowrap;
+}
