@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Rustaveli.Pdf.Operations.Linearization;
 using Rustaveli.Pdf.Operations.Reading;
 using Rustaveli.Pdf.Writing;
 
@@ -211,9 +212,26 @@ public class StreamDecoderTests
         Assert.Equal(Text("layered"), Decode(filters, hexOfZlib, new PdfArray { PdfValue.Null, PdfValue.Null }));
     }
 
-    [Fact]
-    public void NeverDecodesImageCodecs() =>
-        Assert.Throws<NotSupportedException>(() => Decode(new PdfName("DCTDecode"), [0xFF, 0xD8]));
+    [Theory]
+    [InlineData("DCTDecode")]
+    [InlineData("DCT")]
+    [InlineData("JPXDecode")]
+    [InlineData("CCITTFaxDecode")]
+    [InlineData("CCF")]
+    [InlineData("JBIG2Decode")]
+    public void NeverDecodesImageCodecs(string codec) =>
+        Assert.Throws<NotSupportedException>(() => Decode(new PdfName(codec), [0xFF, 0xD8]));
+
+    [Theory]
+    [InlineData("Flate")]
+    [InlineData("LZX")]
+    [InlineData("AHX")]
+    [InlineData("A86")]
+    [InlineData("RL2")]
+    [InlineData("RunLengthDecoder")]
+    [InlineData("crypt")]
+    public void RefusesFiltersItDoesNotKnowHoweverCloseTheirNames(string filter) =>
+        Assert.Throws<NotSupportedException>(() => Decode(new PdfName(filter), Text("data")));
 
     [Fact]
     public void AnIdentityCryptFilterPassesTheDataThrough()
@@ -222,6 +240,202 @@ public class StreamDecoderTests
 
         Assert.Equal(data, Decode(new PdfName("Crypt"), data));
         Assert.Equal(data, Decode(new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = new PdfName("Identity") }));
+        Assert.Equal(data, Decode(new PdfName("Crypt"), data, new PdfDictionary { [PdfNames.Type] = new PdfName("CryptFilterDecodeParms") }));
         Assert.Throws<NotSupportedException>(() => Decode(new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = new PdfName("StdCF") }));
+    }
+
+    /// <summary><paramref name="text"/> encoded with the filter named <paramref name="filter"/>, in full or abbreviated.</summary>
+    private static byte[] Encoded(string filter, string text) => filter switch
+    {
+        "FlateDecode" or "Fl" => Zlib(Text(text)),
+        "LZWDecode" or "LZW" => Lzw(Text(text), earlyChange: true),
+        "ASCIIHexDecode" or "AHx" => Text(BitConverter.ToString(Text(text)).Replace("-", string.Empty) + ">"),
+        "ASCII85Decode" or "A85" => Text(Ascii85(Text(text))),
+        _ => [(byte)(text.Length - 1), .. Text(text), 128],
+    };
+
+    [Theory]
+    [InlineData("Fl", "FlateDecode")]
+    [InlineData("LZW", "LZWDecode")]
+    [InlineData("AHx", "ASCIIHexDecode")]
+    [InlineData("A85", "ASCII85Decode")]
+    [InlineData("RL", "RunLengthDecode")]
+    public void AnAbbreviatedFilterNameDecodesAsTheFullName(string abbreviation, string name)
+    {
+        const string text = "abbreviated, as inline images name their filters";
+
+        Assert.Equal(Text(text), Decode(new PdfName(name), Encoded(name, text)));
+        Assert.Equal(Text(text), Decode(new PdfName(abbreviation), Encoded(abbreviation, text)));
+    }
+
+    [Fact]
+    public void ParametersInAnArrayGoWithTheFilterInTheSamePlace()
+    {
+        byte[] rows = [0, 10, 20, 30, 2, 1, 1, 1];
+        byte[] hexOfZlib = Text(BitConverter.ToString(Zlib(rows)).Replace("-", string.Empty) + ">");
+        PdfArray filters = new PdfArray { new PdfName("AHx"), new PdfName("FlateDecode") };
+        PdfArray parameters = new PdfArray { PdfValue.Null, new PdfDictionary { [Predictor] = 12, [Columns] = 3 } };
+
+        Assert.Equal<byte>([10, 20, 30, 11, 21, 31], Decode(filters, hexOfZlib, parameters));
+    }
+
+    [Fact]
+    public void AParameterThatIsNotAnIntegerIsTakenAsUnset()
+    {
+        byte[] rows = [2, 1, 1, 1];
+        PdfDictionary parameters = new PdfDictionary { [Predictor] = new PdfName("PNG"), [Columns] = 3 };
+
+        Assert.Equal(rows, Decode(new PdfName("FlateDecode"), Zlib(rows), parameters));
+    }
+
+    [Fact]
+    public void AnEmptyStreamInflatesToNothing() => Assert.Empty(StreamDecoder.Inflate([]));
+
+    [Fact]
+    public void RawDeflateWhoseFirstBytesOnlyLookLikeAZlibHeaderIsInflatedWhole()
+    {
+        // A stored block that is not the last, then an empty last one. 0x08 has the low nibble of zlib's deflate method,
+        // but 0x0805 is no multiple of 31, so neither byte is taken for a header.
+        byte[] raw = [0x08, 0x05, 0x00, 0xFA, 0xFF, .. Text("hello"), 0x01, 0x00, 0x00, 0xFF, 0xFF];
+
+        Assert.Equal(Text("hello"), StreamDecoder.Inflate(raw));
+    }
+
+    [Fact]
+    public void ThePaethPredictorTakesWhicheverNeighbourIsNearestItsEstimate()
+    {
+        // The second row's three bytes are predicted from above, from the left, and from above-left, in that order.
+        byte[] rows =
+        [
+            0, 5, 5, 10,
+            4, 0, 251, 1,
+        ];
+
+        PdfDictionary parameters = new PdfDictionary { [Predictor] = 14, [Columns] = 3 };
+
+        Assert.Equal<byte>([5, 5, 10, 5, 0, 6], Decode(new PdfName("FlateDecode"), Zlib(rows), parameters));
+    }
+
+    /// <summary>
+    /// LZW as the specification encodes it, with codes widening as the decoder's table grows and the table cleared
+    /// when full, to check decoding against.
+    /// </summary>
+    private static byte[] Lzw(byte[] data, bool earlyChange, bool endOfData = true)
+    {
+        BitWriter output = new BitWriter();
+        Dictionary<string, int> codes = [];
+        int width = 9;
+
+        // The decoder's table, which grows one code behind the encoder's: by one for each code but the first.
+        int decoded = 258;
+        bool first = true;
+
+        void Start()
+        {
+            codes.Clear();
+            for (int code = 0; code < 256; code++)
+                codes[((char)code).ToString()] = code;
+
+            width = 9;
+            decoded = 258;
+            first = true;
+        }
+
+        void Emit(int code)
+        {
+            output.Write(code, width);
+
+            if (first)
+                first = false;
+            else
+                decoded++;
+
+            if (decoded + (earlyChange ? 1 : 0) >= (1 << width) && width < 12)
+                width++;
+        }
+
+        Start();
+        output.Write(256, width);
+        string word = string.Empty;
+
+        foreach (byte value in data)
+        {
+            string longer = word + (char)value;
+
+            if (codes.ContainsKey(longer))
+            {
+                word = longer;
+                continue;
+            }
+
+            Emit(codes[word]);
+            codes[longer] = codes.Count + 2;
+            word = ((char)value).ToString();
+
+            if (codes.Count + 2 == 4096)
+            {
+                output.Write(256, width);
+                Start();
+            }
+        }
+
+        if (word.Length > 0)
+            Emit(codes[word]);
+
+        if (endOfData)
+            output.Write(257, width);
+
+        return output.ToArray();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DecodesLzwWideningItsCodesAndClearingItsTableWhenFull(bool earlyChange)
+    {
+        // Random bytes repeat little, so they fill the table, through every code width, more than once.
+        byte[] original = new byte[20000];
+        new Random(11).NextBytes(original);
+        PdfDictionary parameters = new PdfDictionary { [new PdfName("EarlyChange")] = earlyChange ? 1 : 0 };
+
+        Assert.Equal(original, Decode(new PdfName("LZWDecode"), Lzw(original, earlyChange), parameters));
+    }
+
+    [Fact]
+    public void AnLzwStreamWithoutItsEndCodeEndsWithItsData()
+    {
+        byte[] original = Text(string.Concat(Enumerable.Repeat("no end code ", 40)));
+
+        Assert.Equal(original, Decode(new PdfName("LZWDecode"), Lzw(original, earlyChange: true, endOfData: false)));
+    }
+
+    [Fact]
+    public void AnLzwCodeNoTableHoldsYetEndsTheStream()
+    {
+        // "A", a clear, then code 300 where only 258 codes exist and there is no previous string to extend.
+        BitWriter encoded = new BitWriter();
+        encoded.Write(65, 9);
+        encoded.Write(256, 9);
+        encoded.Write(300, 9);
+        encoded.Write(66, 9);
+
+        Assert.Equal(Text("A"), Decode(new PdfName("LZWDecode"), encoded.ToArray()));
+    }
+
+    [Fact]
+    public void Ascii85SkipsWhatIsNotADigitOfIt()
+    {
+        // Past 'u', below '!' without being whitespace, and a 'z' inside a group, where it cannot stand for zeros.
+        string encoded = Ascii85(Text("Hello Wo")).Insert(2, "v{\u0001z");
+
+        Assert.Equal(Text("Hello Wo"), Decode(new PdfName("ASCII85Decode"), Text(encoded)));
+    }
+
+    [Fact]
+    public void ARunCutShortOfTheByteItRepeatsRepeatsNothing()
+    {
+        byte[] encoded = [2, (byte)'a', (byte)'b', (byte)'c', 254];
+
+        Assert.Equal(Text("abc"), Decode(new PdfName("RunLengthDecode"), encoded));
     }
 }
