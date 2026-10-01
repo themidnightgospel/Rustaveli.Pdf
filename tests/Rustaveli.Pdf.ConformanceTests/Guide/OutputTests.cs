@@ -77,6 +77,8 @@ public class OutputTests
 
         byte[] accessible = document.ExportPdf(new PdfExportOptions { Accessibility = PdfUAConformance.PdfUA1 });
 
+        GuideOutput.Show(document, "accessible-document", trim: true);
+
         IReadOnlyDictionary<string, IReadOnlyList<string>> broken = VeraPdf.Validate(new Dictionary<string, byte[]>
         {
             ["archived"] = archived,

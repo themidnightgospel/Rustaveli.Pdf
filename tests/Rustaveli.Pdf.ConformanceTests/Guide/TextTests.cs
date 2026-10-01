@@ -25,6 +25,8 @@ public class TextTests
             });
         });
 
+        GuideOutput.Show(document, "paragraphs-and-runs", trim: true);
+
         // Tracked and raised letters are not gathered into words, so the runs are read letter by letter.
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
         string letters = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)).Replace(" ", string.Empty, StringComparison.Ordinal);
@@ -41,6 +43,7 @@ public class TextTests
             section.Body().DefaultType(type => type.WithInk(Ink.Hex("#37474F"))).Text("Slate grey, in Noto Sans at 10.5 points.");
         });
 
+        GuideOutput.Show(document, "inherited-type", trim: true);
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
         UglyToad.PdfPig.Content.Letter first = pdf.GetPage(1).Letters[0];
         Assert.Equal(10.5, first.PointSize, 1);
@@ -63,6 +66,7 @@ public class TextTests
             });
         });
 
+        GuideOutput.Show(document, "setting-a-paragraph");
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
         IReadOnlyList<UglyToad.PdfPig.Content.Letter> letters = pdf.GetPage(1).Letters;
 
@@ -104,6 +108,7 @@ public class TextTests
             });
         }));
 
+        GuideOutput.Show(document, "page-numbers-and-references");
         byte[] bytes = document.ExportPdf();
         IReadOnlyList<string> pages = GuideReader.PageTexts(bytes);
 
@@ -136,6 +141,8 @@ public class TextTests
 
         byte[] pdf = document.ExportPdf(new PdfExportOptions { Typefaces = typefaces, RequireEveryGlyph = true });
 
+        GuideOutput.Show(document, "typefaces", trim: true, typefaces: typefaces);
+
         Assert.Equal("Hello — გამარჯობა", GuideReader.Text(pdf));
     }
 
@@ -156,6 +163,8 @@ public class TextTests
         }));
 
         byte[] pdf = document.ExportPdf(new PdfExportOptions { Typefaces = typefaces });
+
+        GuideOutput.Show(document, "complex-scripts", trim: true, typefaces: typefaces);
 
         // Joined letters take their contextual forms, so the page is read letter by letter against what was set.
         using UglyToad.PdfPig.PdfDocument read = UglyToad.PdfPig.PdfDocument.Open(pdf);
@@ -178,6 +187,7 @@ public class TextTests
             });
         });
 
+        GuideOutput.Show(document, "opentype-features", trim: true);
         string text = GuideReader.Text(document.ExportPdf());
 
         Assert.Contains("No ligatures in office", text, StringComparison.Ordinal);
@@ -215,6 +225,7 @@ public class TextTests
             });
         });
 
+        GuideOutput.Show(document, "style-sheets", trim: true);
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
         List<UglyToad.PdfPig.Content.Word> words = pdf.GetPage(1).GetWords().ToList();
         UglyToad.PdfPig.Content.Letter findings = words.First(word => word.Text == "Findings").Letters[0];

@@ -32,6 +32,7 @@ public class PreviewAndDebuggingTests
             });
         }));
 
+        GuideOutput.Show(document, "frame-edges", trim: true);
         string text = GuideReader.Text(document.ExportPdf());
 
         Assert.Contains("Address", text, StringComparison.Ordinal);
