@@ -68,7 +68,59 @@ internal sealed class SvgReader
     /// The artwork the SVG in <paramref name="svg"/> draws, read in the encoding the document declares and left open.
     /// </summary>
     /// <exception cref="FormatException">The bytes are not an SVG document.</exception>
-    public static Artwork Read(Stream svg) => Read(settings => XmlReader.Create(svg, settings));
+    public static Artwork Read(Stream svg)
+    {
+#if NET
+        // .NET reads the Unicode encodings, ASCII and Latin-1 by itself; the code pages a document may also declare,
+        // Windows-1251 or Shift JIS, it reads only through a provider, which is asked here rather than registered for
+        // the whole process. .NET Framework reads them all.
+        using MemoryStream buffer = new MemoryStream();
+        svg.CopyTo(buffer);
+        byte[] data = buffer.ToArray();
+
+        if (DeclaredEncoding(data) is { } name && CodePagesEncodingProvider.Instance.GetEncoding(name) is { } codePage)
+        {
+            using StringReader text = new StringReader(codePage.GetString(data));
+            return Read(text);
+        }
+
+        return Read(settings => XmlReader.Create(new MemoryStream(data, writable: false), settings));
+#else
+        return Read(settings => XmlReader.Create(svg, settings));
+#endif
+    }
+
+#if NET
+    /// <summary>
+    /// The encoding the XML declaration at the start of <paramref name="data"/> names; none without a declaration, or
+    /// after a byte order mark, which names the encoding itself.
+    /// </summary>
+    private static string? DeclaredEncoding(byte[] data)
+    {
+        // A declaration is written in ASCII, whatever encoding it names, and is short.
+        string start = Encoding.Latin1.GetString(data, 0, Math.Min(data.Length, 256));
+
+        if (!start.StartsWith("<?xml", StringComparison.Ordinal))
+            return null;
+
+        int end = start.IndexOf("?>", StringComparison.Ordinal);
+        int at = start.IndexOf("encoding", StringComparison.Ordinal);
+
+        if (end < 0 || at < 0 || at > end)
+            return null;
+
+        at += "encoding".Length;
+
+        while (at < end && start[at] is ' ' or '\t' or '\r' or '\n' or '=')
+            at++;
+
+        if (at >= end || start[at] is not ('"' or '\''))
+            return null;
+
+        int close = start.IndexOf(start[at], at + 1);
+        return close < 0 || close > end ? null : start.Substring(at + 1, close - at - 1);
+    }
+#endif
 
     private static Artwork Read(Func<XmlReaderSettings, XmlReader> open)
     {
