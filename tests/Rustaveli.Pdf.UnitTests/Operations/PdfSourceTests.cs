@@ -591,6 +591,24 @@ public class PdfSourceTests
     }
 
     [Theory]
+    [InlineData("trailer\n<</Root 1 0 R>>\n")]
+    [InlineData("")]
+    public void AnObjectTooDamagedToReadIsLeftOutWhenTheFileIsRebuilt(string trailer)
+    {
+        // Rebuilding reads every object scanning finds — and, with no trailer to name the catalog, looks through them
+        // for it; one that cannot be read must not cost the rest of the file.
+        HandmadePdf pdf = HandmadePdf.OnePage()
+            .Raw(trailer)
+            .Raw("4 0 obj\n");
+
+        PdfSource source = Open(pdf);
+
+        Assert.True(source.WasRepaired);
+        Assert.Single(source.Pages);
+        Assert.Throws<UnreadableFileException>(() => source.GetObject(4));
+    }
+
+    [Theory]
     [InlineData("<</Type/ObjStm/N 1/First -20>>", "4 0 (lost)")]
     [InlineData("<</Type/ObjStm/N 1/First 4>>", "4 4294967290 (lost)")]
     [InlineData("<</Type/ObjStm/N 1/First 2147483647>>", "4 10 (lost)")]

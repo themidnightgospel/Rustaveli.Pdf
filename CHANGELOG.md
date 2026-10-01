@@ -13,6 +13,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Reading a PDF: a stream whose filter array held something other than a name threw an `InvalidOperationException`
   and failed the whole file; it is damage now, and an object stream so damaged holds nothing when the file is
   repaired.
+- Reading a PDF: a `/Crypt` filter naming its crypt filter with something other than a name threw an
+  `InvalidOperationException`; it is damage now, an `UnreadableFileException`.
+- Repairing a PDF: one object too damaged to read made the whole file unreadable. It is left out now, and the rest of
+  the file is read; the damaged object is still refused when it is asked for.
 - An encrypted file with a cross-reference stream kept its catalog in an object stream. That is allowed, but readers
   that look the catalog up before setting up decryption, PdfPig among them, could not open the file. The catalog of an
   encrypted file is now written outside the object streams, as qpdf writes it.
