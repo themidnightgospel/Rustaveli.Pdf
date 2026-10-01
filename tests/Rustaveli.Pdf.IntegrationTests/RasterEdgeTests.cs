@@ -75,6 +75,29 @@ public class RasterEdgeTests
         Assert.Equal(blank, drawn);
     }
 
+    [Theory]
+    [InlineData(0.25f)]
+    [InlineData(0.5f)]
+    public void AFillThinnerThanAPixelIsDrawnAsOneDarkRowAsPdfViewersDrawIt(float thickness)
+    {
+        // A 0.25-point rule is a third of a pixel at 96 dots an inch. Drawn as its share of a pixel it is a faint grey
+        // smear across two rows; PDF viewers draw it one crisp pixel thick, and a page image should look the same.
+        Document document = Document.Compose(composition => composition.Section(section =>
+        {
+            section.Trim = new Extent(100, 50);
+            section.Body().Stack(stack =>
+            {
+                stack.Add().Height(10.4f);
+                stack.Add().Height(thickness).Fill(Ink.Black);
+            });
+        }));
+
+        using SKBitmap image = SKBitmap.Decode(document.ExportImages(new ImageExportOptions { Resolution = 96, Format = PageImageFormat.Jpeg, Quality = 100 })[0]);
+        List<int> dark = Enumerable.Range(0, image.Height).Where(row => image.GetPixel(image.Width / 2, row).Red < 96).ToList();
+
+        Assert.Single(dark);
+    }
+
     [Fact]
     public void WhatShowsIsDrawn()
     {

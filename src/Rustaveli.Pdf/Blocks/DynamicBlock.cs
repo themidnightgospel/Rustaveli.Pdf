@@ -50,9 +50,13 @@ internal sealed class DynamicBlock<TState>(IDynamicContent<TState> content) : Bl
         if (_done)
             return;
 
-        Composed composed = Compose(availableSpace, context.Planning);
+        // The parent draws the content in the box its plan took, smaller than the room it was planned in. Composed
+        // again for that box, it could decide differently — fit less and go on — after the parent has moved past it,
+        // so it is composed for the room it was offered, and what was planned is what is drawn.
+        Extent offered = new Extent(availableSpace.Width, availableSpace.Height + context.Planning.RoomBelow);
+        Composed composed = Compose(offered, context.Planning);
 
-        if (composed.Frame.Plan(availableSpace, context.Planning).IsDeferred)
+        if (composed.Frame.Plan(offered, context.Planning).IsDeferred)
             return;
 
         composed.Frame.Render(availableSpace, context);
