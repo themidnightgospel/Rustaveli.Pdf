@@ -476,6 +476,35 @@ public class PdfDocumentWriterTests
         Assert.Equal(expected, adobe["ExtensionLevel"]);
     }
 
+    [Theory]
+    [InlineData(EncryptionLevel.AesWith256Bits)]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    [InlineData(EncryptionLevel.Rc4With128Bits)]
+    public void TheCatalogOfAnEncryptedFileIsWrittenOutsideTheObjectStreams(EncryptionLevel level)
+    {
+        // Readers look up the catalog while reading the trailer, before decryption is set up — PdfPig among them — so
+        // a catalog inside an encrypted object stream leaves them a file they cannot read.
+        using MemoryStream output = new MemoryStream();
+        PdfWriterOptions options = new PdfWriterOptions
+        {
+            CrossReferenceFormat = PdfCrossReferenceFormat.Stream,
+            Encryption = Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { Encryption = level }),
+        };
+
+        using (PdfDocumentWriter document = new PdfDocumentWriter(output, options))
+        {
+            document.EndPage(document.BeginPage(10, 10));
+            document.Finish();
+        }
+
+        PdfFileReader reader = new PdfFileReader(output.ToArray());
+        ParsedReference root = (ParsedReference)reader.Trailer["Root"]!;
+
+        Assert.True(reader.HasCrossReferenceStream);
+        Assert.Equal(1, reader.Entries[root.ObjectNumber].Type);
+        Assert.Contains(reader.Entries.Values, entry => entry.Type == 2);
+    }
+
     [Fact]
     public void RefusesToFinishWithoutPages()
     {
