@@ -571,6 +571,25 @@ public class PdfSourceTests
         Assert.Equal("only", Encoding.ASCII.GetString(Value(source, 8).AsString().Bytes.ToArray()));
     }
 
+    [Theory]
+    [InlineData("<</Type/ObjStm/N 1/First -20>>", "4 0 (lost)")]
+    [InlineData("<</Type/ObjStm/N 1/First 4>>", "4 4294967290 (lost)")]
+    [InlineData("<</Type/ObjStm/N 1/First 2147483647>>", "4 10 (lost)")]
+    [InlineData("<</Type/ObjStm/N 1/First 4294967296>>", "4 0 (lost)")]
+    public void AnObjectStreamPlacingAnObjectOutsideItsDataIsDamageNotACrash(string dictionary, string data)
+    {
+        // Found by fuzzing: a negative /First put an object before the start of the stream's data. Offsets and a /First
+        // too large for 32 bits must not wrap round to the same place.
+        HandmadePdf pdf = HandmadePdf.OnePage()
+            .Stream(5, dictionary, data)
+            .Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n");
+
+        PdfSource source = Open(pdf);
+
+        Assert.True(source.WasRepaired);
+        Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
+    }
+
     [Fact]
     public void AHybridFileFindsInItsStreamWhatItsTableMarksFree()
     {

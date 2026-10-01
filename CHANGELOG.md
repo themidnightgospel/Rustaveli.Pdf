@@ -3,6 +3,14 @@
 Versions follow [semantic versioning](https://semver.org/). Before 1.0 the public surface may still change from one
 minor version to the next; from 1.0, nothing public changes incompatibly within a major version.
 
+## Unreleased
+
+**Fixed**
+
+- Reading a PDF: an object stream whose `/First`, or an offset in its header, placed an object before the start of
+  its data threw an `IndexOutOfRangeException`, and one beyond 32 bits could read the wrong bytes as the object.
+  Such an object is now treated as one not where it is listed: the file is repaired, and the object reads as null.
+
 ## 0.2.0
 
 Fixes from a review of the whole library, each found by a test that failed first, and a clean-room rewrite of the
