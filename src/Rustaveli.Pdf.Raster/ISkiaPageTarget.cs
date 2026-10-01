@@ -15,4 +15,10 @@ internal interface ISkiaPageTarget : IDisposable
 
     /// <summary>Whether text is drawn as the outlines of its glyphs, for pages that must show without their fonts.</summary>
     bool TextAsOutlines { get; }
+
+    /// <summary>
+    /// Whether the page is pixels, where a fill thinner than one is drawn one pixel thick, as PDF viewers draw it; vector
+    /// pages keep every fill as thin as it is.
+    /// </summary>
+    bool IsPixels { get; }
 }

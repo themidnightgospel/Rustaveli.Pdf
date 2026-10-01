@@ -180,7 +180,40 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
             return;
 
         using SKPaint paint = ShapePaint(ink);
-        Canvas.DrawRect(SKRect.Create(topLeft.X, topLeft.Y, size.Width, size.Height), paint);
+        SKRect rectangle = SKRect.Create(topLeft.X, topLeft.Y, size.Width, size.Height);
+        Canvas.DrawRect(target.IsPixels ? AtLeastAPixel(rectangle) : rectangle, paint);
+    }
+
+    /// <summary>
+    /// <paramref name="rectangle"/>, made one pixel across wherever it is thinner, on the pixel its middle falls in. PDF
+    /// viewers draw thin fills so: a hairline rule shows as a crisp line rather than a faint smear across two pixels.
+    /// A page turned or slanted is drawn as given.
+    /// </summary>
+    private SKRect AtLeastAPixel(SKRect rectangle)
+    {
+        SKMatrix matrix = Canvas.TotalMatrix;
+
+        if (matrix.SkewX != 0 || matrix.SkewY != 0 || matrix.Persp0 != 0 || matrix.Persp1 != 0 || !matrix.TryInvert(out SKMatrix inverse))
+            return rectangle;
+
+        SKRect device = matrix.MapRect(rectangle);
+
+        if (device.Height >= 1 && device.Width >= 1)
+            return rectangle;
+
+        if (device.Height < 1)
+        {
+            float row = (float)Math.Floor(device.MidY);
+            device = new SKRect(device.Left, row, device.Right, row + 1);
+        }
+
+        if (device.Width < 1)
+        {
+            float column = (float)Math.Floor(device.MidX);
+            device = new SKRect(column, device.Top, column + 1, device.Bottom);
+        }
+
+        return inverse.MapRect(device);
     }
 
     public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f)
