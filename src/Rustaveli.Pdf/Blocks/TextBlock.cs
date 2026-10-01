@@ -407,7 +407,19 @@ internal sealed class TextBlock : Block
     /// </remarks>
     private static List<TextRun> Coalesced(List<TextRun> runs)
     {
-        List<TextRun> joined = new List<TextRun>(runs.Count);
+        // Most lines join into a piece or two, so the pieces are counted first, to hold no room for a run each.
+        int pieces = runs.Count == 0 ? 0 : 1;
+
+        for (int index = 1; index < runs.Count; index++)
+        {
+            if (!Joins(runs[index - 1], runs[index]))
+                pieces++;
+        }
+
+        if (pieces == runs.Count)
+            return runs;
+
+        List<TextRun> joined = new List<TextRun>(pieces);
         int start = 0;
 
         while (start < runs.Count)
@@ -593,7 +605,10 @@ internal sealed class TextBlock : Block
 
             current.Finalise(context.Measurer, blockStyle);
             lines.Add(current);
-            current = new TextLine { StartsParagraph = force };
+
+            // Lines of a paragraph hold about as many pieces as each other, so the next starts with room for as many
+            // as this one, rather than growing to it a piece at a time.
+            current = new TextLine(current.Runs.Count) { StartsParagraph = force };
         }
 
         // Each paragraph's text is gathered as its lines are built, every run recording where it falls in it, so the
@@ -1156,11 +1171,20 @@ internal sealed class TextBlock : Block
     private sealed class TextLine
     {
         public TextLine()
+            : this(0)
         {
+        }
+
+        /// <summary>An empty line with room for as many pieces as it is expected to hold.</summary>
+        /// <param name="capacity">The pieces it is expected to hold.</param>
+        public TextLine(int capacity)
+        {
+            Runs = new List<TextRun>(capacity);
         }
 
         /// <summary>Copies an in-progress line, used when a mid-word break commits the current content.</summary>
         public TextLine(TextLine source)
+            : this(source.Runs.Count)
         {
             Runs.AddRange(source.Runs);
             StartsParagraph = source.StartsParagraph;
@@ -1172,7 +1196,7 @@ internal sealed class TextBlock : Block
             TypeDescent = source.TypeDescent;
         }
 
-        public List<TextRun> Runs { get; } = [];
+        public List<TextRun> Runs { get; }
 
         /// <summary>True when this line opens a paragraph, and so takes the first-line indent and spacing.</summary>
         public bool StartsParagraph { get; set; }
