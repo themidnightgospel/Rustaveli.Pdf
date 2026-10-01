@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Fonts.Substitution;
 using static Rustaveli.Pdf.UnitTests.Fonts.Substitution.SyntheticSubstitution;
@@ -118,10 +119,33 @@ public class SubstitutionFuzzTests
         }
     }
 
+    /// <summary>
+    /// Runs the action on a thread of its own, so the time it is given is its own: queued to the thread pool, it could
+    /// wait out the patience behind other tests' work on a busy machine before it ever started.
+    /// </summary>
     private static void Survive(Action action)
     {
-        Task run = Task.Run(action);
-        Assert.True(run.Wait(Patience), "Shaping with the damaged font did not finish.");
+        Exception? failure = null;
+        Thread thread = new Thread(() =>
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        })
+        {
+            IsBackground = true,
+        };
+
+        thread.Start();
+        Assert.True(thread.Join(Patience), "Shaping with the damaged font did not finish.");
+
+        if (failure is not null)
+            ExceptionDispatchInfo.Capture(failure).Throw();
     }
 
     private static void Mutate(byte[] font, Seed seed, Random random)
