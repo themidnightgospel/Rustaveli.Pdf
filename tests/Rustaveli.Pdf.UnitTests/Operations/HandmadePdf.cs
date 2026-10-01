@@ -67,6 +67,33 @@ internal sealed class HandmadePdf
         return table;
     }
 
+    /// <summary>
+    /// Appends a cross-reference stream, object <paramref name="number"/>, with <paramref name="dictionary"/>'s entries,
+    /// its fields <paramref name="widths"/> bytes wide and its rows <paramref name="rows"/>, each a type, a second and
+    /// a third field; returns the stream's offset.
+    /// </summary>
+    public int StreamSection(int number, string dictionary, int[] widths, params long[][] rows)
+    {
+        StringBuilder data = new StringBuilder();
+
+        foreach (long[] row in rows)
+        {
+            for (int field = 0; field < widths.Length; field++)
+            {
+                for (int shift = widths[field] - 1; shift >= 0; shift--)
+                    data.Append((char)((row[field] >> (8 * shift)) & 0xFF));
+            }
+        }
+
+        int section = _file.Length;
+        Stream(number, $"<</Type/XRef/W[{string.Join(' ', widths)}]{dictionary}>>", data.ToString());
+        _file.Append("startxref\n").Append(section).Append("\n%%EOF\n");
+        return section;
+    }
+
+    /// <summary>Where object <paramref name="number"/> was last written.</summary>
+    public int OffsetOf(int number) => _offsets[number];
+
     /// <summary>A file of one page, US Letter unless the page says, with the given extra objects.</summary>
     public static HandmadePdf OnePage(string page = "") =>
         new HandmadePdf()

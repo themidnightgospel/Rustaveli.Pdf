@@ -25,6 +25,7 @@ internal static class StreamDecoder
     /// The stream's data with every filter it names undone, <paramref name="resolve"/> following references in its
     /// dictionary.
     /// </summary>
+    /// <exception cref="UnreadableFileException">A filter the stream names is not a name.</exception>
     public static byte[] Decode(PdfDictionary dictionary, byte[] data, Func<PdfValue, PdfValue> resolve)
     {
         List<PdfName> filters = [];
@@ -41,7 +42,11 @@ internal static class StreamDecoder
             else if (named.Kind == PdfValueKind.Array)
             {
                 foreach (PdfValue item in named.AsArray())
-                    filters.Add(resolve(item).AsName());
+                {
+                    filters.Add(resolve(item) is { Kind: PdfValueKind.Name } filter
+                        ? filter.AsName()
+                        : throw new UnreadableFileException("The file is not a PDF this library can read: a stream's filter is not a name."));
+                }
             }
         }
 
