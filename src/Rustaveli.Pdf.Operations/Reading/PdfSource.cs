@@ -740,7 +740,7 @@ internal sealed class PdfSource
     {
         foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderBy(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
         {
-            if (GetObject(number) is not SourceStream stream || !IsOfType(stream.Dictionary, ObjStm))
+            if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, ObjStm))
                 continue;
 
             try
@@ -758,6 +758,22 @@ internal sealed class PdfSource
             {
                 // An object stream that cannot be read holds nothing that can be recovered.
             }
+        }
+    }
+
+    /// <summary>
+    /// Object <paramref name="number"/>, or null when it is too damaged to read: rebuilding reads every object scanning
+    /// finds, and one that cannot be read must not cost the rest of the file. It stays unreadable when asked for.
+    /// </summary>
+    private object? Readable(int number)
+    {
+        try
+        {
+            return GetObject(number);
+        }
+        catch (UnreadableFileException)
+        {
+            return null;
         }
     }
 
@@ -821,7 +837,7 @@ internal sealed class PdfSource
         // was made with and the information are named there as well as the catalog.
         foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderByDescending(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
         {
-            if (GetObject(number) is not SourceStream stream || !IsOfType(stream.Dictionary, XRef))
+            if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, XRef))
                 continue;
 
             foreach (KeyValuePair<PdfName, PdfValue> entry in stream.Dictionary)
@@ -836,7 +852,12 @@ internal sealed class PdfSource
 
         foreach (int number in _entries.Keys.OrderByDescending(number => number))
         {
-            PdfValue value = GetObject(number) is SourceStream stream ? stream.Dictionary : (PdfValue)GetObject(number);
+            PdfValue value = Readable(number) switch
+            {
+                SourceStream stream => stream.Dictionary,
+                PdfValue read => read,
+                _ => PdfValue.Null,
+            };
 
             if (value.Kind == PdfValueKind.Dictionary && IsOfType(value.AsDictionary(), PdfNames.Catalog))
             {
