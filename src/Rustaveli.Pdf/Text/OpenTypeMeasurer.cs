@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Rustaveli.Pdf.Fonts;
 
 namespace Rustaveli.Pdf.Text;
@@ -15,6 +16,12 @@ namespace Rustaveli.Pdf.Text;
 internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 {
     private readonly HashSet<int> _missing = [];
+
+    /// <summary>
+    /// The width of each piece of text measured, in each style. Layout measures a document word by word, and most words
+    /// recur; a width depends on nothing but the text, the style and this measurer's faces, so each is shaped once.
+    /// </summary>
+    private readonly Dictionary<(string Text, TypeStyle Style), float> _widths = new Dictionary<(string Text, TypeStyle Style), float>(new ByTextAndStyle());
 
     /// <summary>
     /// The characters measured that no face has, which are set as missing-glyph boxes. Layout measures every word it
@@ -96,6 +103,9 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         if (string.IsNullOrEmpty(text))
             return 0f;
 
+        if (_widths.TryGetValue((text, style), out float known))
+            return known;
+
         float width = 0f;
 
         foreach (ShapedGlyph glyph in shaper.Measure(text.AsSpan(), style))
@@ -106,7 +116,22 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
                 _missing.Add(glyph.Codepoint);
         }
 
-        return Math.Max(0f, width);
+        width = Math.Max(0f, width);
+        _widths[(text, style)] = width;
+        return width;
+    }
+
+    /// <summary>
+    /// Text compared by its characters, a style by identity: styles are made once and shared by every run set in them,
+    /// and comparing two by their values on every word measured would cost what the width saves.
+    /// </summary>
+    private sealed class ByTextAndStyle : IEqualityComparer<(string Text, TypeStyle Style)>
+    {
+        public bool Equals((string Text, TypeStyle Style) x, (string Text, TypeStyle Style) y) =>
+            ReferenceEquals(x.Style, y.Style) && string.Equals(x.Text, y.Text, StringComparison.Ordinal);
+
+        public int GetHashCode((string Text, TypeStyle Style) key) =>
+            (StringComparer.Ordinal.GetHashCode(key.Text) * 31) + RuntimeHelpers.GetHashCode(key.Style);
     }
 
     /// <summary>Whether a character is drawn at all, so that a face without it shows a missing-glyph box.</summary>
