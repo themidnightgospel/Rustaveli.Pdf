@@ -20,6 +20,7 @@ public class GettingStartedTests
 
         document.ExportPdf("hello.pdf");
 
+        GuideOutput.Show(document, "first-document");
         Assert.Equal(["Hello from Rustaveli.Pdf."], GuideReader.PageTexts("hello.pdf"));
     }
 
@@ -43,6 +44,7 @@ public class GettingStartedTests
             });
         }));
 
+        GuideOutput.Show(document, "frames", trim: true);
         Assert.Equal("A note, inset from a rounded, filled and stroked frame.", GuideReader.Text(document.ExportPdf()));
     }
 
@@ -62,6 +64,7 @@ public class GettingStartedTests
             });
         }));
 
+        GuideOutput.Show(letter, "reusing-parts", trim: true);
         Assert.Equal("Tamar Beridze 12 Rustaveli Avenue Tbilisi 0108 Dear Tamar,", GuideReader.Text(letter.ExportPdf()));
     }
 

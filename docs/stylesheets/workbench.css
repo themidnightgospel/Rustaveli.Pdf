@@ -236,3 +236,93 @@
 .md-typeset table:not([class]) code {
   white-space: nowrap;
 }
+
+/*
+  What an example sets: the page the guide tests rendered from it (docs/javascripts/output-panel.js). Under the
+  example by default; on a screen wide enough for the right-hand column, in a panel there that follows the reading.
+*/
+[data-md-color-scheme="slate"] {
+  --rp-canvas: #2a2f39;
+}
+
+[data-md-color-scheme="default"] {
+  --rp-canvas: #e7e9ee;
+}
+
+.md-typeset p:has(> img.rp-output) {
+  margin-top: -0.4em;
+  text-align: center;
+  padding: 1.2rem;
+  border: 1px solid var(--rp-line);
+  border-radius: 10px;
+  background-color: var(--rp-canvas);
+}
+
+.md-typeset img.rp-output {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.rp-panel {
+  margin: 0.2rem 0.6rem 1rem;
+  overflow: hidden;
+  border: 1px solid var(--rp-line);
+  border-radius: 10px;
+  background-color: var(--rp-canvas);
+}
+
+.rp-panel__bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid var(--rp-line);
+  background-color: var(--rp-raised);
+  color: var(--md-default-fg-color--light);
+  font-family: var(--md-code-font-family);
+  font-size: 0.6rem;
+}
+
+.rp-panel__canvas {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.rp-panel__canvas img {
+  max-width: 100%;
+  max-height: calc(100vh - 12rem);
+  object-fit: contain;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Wide enough for the right-hand column: the panel takes it, so the outputs under the examples and the contents give way. */
+@media screen and (min-width: 76.25em) {
+  .rp-has-output .md-grid {
+    max-width: 72rem;
+  }
+
+  .rp-has-output .md-sidebar--secondary {
+    width: 19rem;
+  }
+
+  /* Material keeps a sidebar's content 11.5rem wide whatever the sidebar's width; the panel takes it all. */
+  .rp-has-output .md-sidebar--secondary .md-sidebar__inner {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .rp-has-output .md-sidebar--secondary .md-nav--secondary,
+  .rp-has-output .md-typeset p:has(> img.rp-output) {
+    display: none;
+  }
+}
+
+/* Too narrow for it: the panel is not shown, and each output stays under its example. */
+@media screen and (max-width: 76.234375em) {
+  .rp-panel {
+    display: none;
+  }
+}

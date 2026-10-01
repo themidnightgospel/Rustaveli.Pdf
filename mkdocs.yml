@@ -53,6 +53,9 @@ theme:
 extra_css:
   - stylesheets/workbench.css
 
+extra_javascript:
+  - javascripts/output-panel.js
+
 markdown_extensions:
   - admonition
   - attr_list

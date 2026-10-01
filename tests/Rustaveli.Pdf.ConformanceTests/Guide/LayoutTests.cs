@@ -34,6 +34,7 @@ public class LayoutTests
             });
         }));
 
+        GuideOutput.Show(document, "stacks-and-columns", trim: true);
         Assert.Equal(
             "Rustaveli Printing Ltd Invoice 2026-041 Billed to Nino Kapanadze, 3 Chavchavadze Avenue, Tbilisi",
             GuideReader.Text(document.ExportPdf()));
@@ -75,6 +76,7 @@ public class LayoutTests
             });
         });
 
+        GuideOutput.Show(document, "tables");
         IReadOnlyList<string> pages = GuideReader.PageTexts(document.ExportPdf());
 
         Assert.True(pages.Count > 1);
@@ -104,6 +106,7 @@ public class LayoutTests
             });
         });
 
+        GuideOutput.Show(document, "spanning-cells", trim: true);
         Assert.Equal("Two rows tall B C Two columns wide", GuideReader.Text(document.ExportPdf()));
     }
 
@@ -122,6 +125,7 @@ public class LayoutTests
             });
         });
 
+        GuideOutput.Show(document, "lists", trim: true);
         Assert.Equal("i. Read the brief. ii. Set the type. iii. Send the proofs.", GuideReader.Text(document.ExportPdf()));
     }
 
@@ -139,6 +143,8 @@ public class LayoutTests
                 layers.BaseLayer().Text(new SampleData(seed: 7).Paragraphs(3));
             });
         });
+
+        GuideOutput.Show(document, "layers");
 
         // Turned letters are not gathered into words, so the watermark is read letter by letter.
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
@@ -160,6 +166,7 @@ public class LayoutTests
             });
         });
 
+        GuideOutput.Show(document, "bands", page: 2);
         IReadOnlyList<string> pages = GuideReader.PageTexts(document.ExportPdf());
 
         Assert.True(pages.Count > 1);
@@ -206,6 +213,7 @@ public class LayoutTests
             });
         });
 
+        GuideOutput.Show(document, "grids-and-flows");
         string text = GuideReader.Text(document.ExportPdf());
 
         Assert.StartsWith("Half Quarter Quarter typesetting layout pdf invoices reports", text, StringComparison.Ordinal);
@@ -219,6 +227,7 @@ public class LayoutTests
             section.Body().FitToContent().Fill(Ink.Hex("#FFF9C4")).Inset(4).Text("Just this much yellow");
         });
 
+        GuideOutput.Show(document, "fit-to-content", trim: true);
         Assert.Equal("Just this much yellow", GuideReader.Text(document.ExportPdf()));
     }
 
@@ -246,6 +255,7 @@ public class LayoutTests
             });
         }));
 
+        GuideOutput.Show(document, "flow-across-pages", page: 2);
         IReadOnlyList<string> pages = GuideReader.PageTexts(document.ExportPdf());
 
         Assert.StartsWith("Annual report ", pages[0], StringComparison.Ordinal);

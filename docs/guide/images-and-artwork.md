@@ -27,6 +27,8 @@ Document document = Document.Compose(composition => composition.Section(section 
 }));
 ```
 
+![What this example sets](../images/guide/images.png){ .rp-output data-caption="page 1" }
+
 JPEG and PNG files — greyscale, RGB, CMYK, palettes, transparency, sixteen bits, ICC profiles — are embedded as they
 were encoded wherever PDF can carry them, so nothing is lost and nothing is recompressed. JPEGs are turned the right
 way up by their EXIF orientation. An image placed many times is embedded once.
@@ -62,6 +64,8 @@ Artwork logo = Artwork.FromSvgFile("logo.svg");
 section.Body().Width(120).Artwork(logo);
 ```
 
+![What this example sets](../images/guide/artwork-from-svg.png){ .rp-output data-caption="page 1" }
+
 What drawing tools write is read: shapes and paths, fills and strokes with their dashes, transforms, clip paths,
 linear gradients, text, embedded images, `use` and `viewBox`, and styles given as attributes, `style` or style
 sheets. The artwork is drawn as PDF paths, not as a picture of them. Radial gradients are drawn in the mean of their
@@ -83,6 +87,8 @@ Artwork badge = Artwork.Draw(120, 40, draw =>
 section.Body().Width(120).Artwork(badge);
 ```
 
+![What this example sets](../images/guide/drawing-artwork.png){ .rp-output data-caption="page 1" }
+
 Coordinates run from the top left, in points. `VectorPath` builds shapes from lines, Bézier curves and arcs;
 `SaveState`, `Translate`, `Scale`, `Rotate` and `Clip` work as in any vector drawing API.
 
@@ -101,6 +107,8 @@ section.Body().Height(160).Artwork(size => Artwork.FromSvg(FormattableString.Inv
     </svg>
     """)));
 ```
+
+![What this example sets](../images/guide/made-for-their-box.png){ .rp-output data-caption="page 1" }
 
 Numbers written into SVG take a decimal point whatever the culture the program runs in, so the text is formatted
 with `FormattableString.Invariant`: in a culture that writes a decimal comma, `123,45` is no length SVG can read.

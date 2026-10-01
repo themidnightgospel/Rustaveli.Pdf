@@ -22,6 +22,8 @@ section.Body().Text(text =>
 });
 ```
 
+![What this example sets](../images/guide/paragraphs-and-runs.png){ .rp-output data-caption="page 1" }
+
 A run inherits everything it does not set from the paragraph's default type, which inherits from the frame's, which
 inherits from the section's `DefaultType`. Refine the inherited type at any level:
 
@@ -30,6 +32,8 @@ section.DefaultType = TypeStyle.Default.WithTypeface("Noto Sans").WithPointSize(
 
 section.Body().DefaultType(type => type.WithInk(Ink.Hex("#37474F"))).Text("Slate grey, in Noto Sans at 10.5 points.");
 ```
+
+![What this example sets](../images/guide/inherited-type.png){ .rp-output data-caption="page 1" }
 
 `WithLeading` sets line spacing as a multiple of the font's own line height; `WithTracking` adds space between letters.
 
@@ -48,6 +52,8 @@ section.Body().Text(text =>
     text.Run(sample.Paragraphs(3));
 });
 ```
+
+![What this example sets](../images/guide/setting-a-paragraph.png){ .rp-output data-caption="page 1" }
 
 | Setting | Effect |
 |---|---|
@@ -98,6 +104,8 @@ Document document = Document.Compose(composition => composition.Section(section 
 }));
 ```
 
+![What this example sets](../images/guide/page-numbers-and-references.png){ .rp-output data-caption="page 1 of 2" }
+
 `Folio()` is the page number — the printer's word for it — and `PageCount()` the number of pages. An `Anchor`
 names a place: `FolioOf` gives the page it starts on, `LastFolioOf` the page its content ends on, `FolioWithin`
 this page's number counted from it and `PageCountOf` how many pages it spans — page numbers per chapter, say.
@@ -125,6 +133,8 @@ Document document = Document.Compose(composition => composition.Section(section 
 
 byte[] pdf = document.ExportPdf(new PdfExportOptions { Typefaces = typefaces, RequireEveryGlyph = true });
 ```
+
+![What this example sets](../images/guide/typefaces.png){ .rp-output data-caption="page 1" }
 
 A character a run's typeface lacks is looked for in the typefaces named after it in `WithTypeface("Noto Sans",
 "Noto Sans Symbols")`, then in the library's `Fallbacks`, then in any registered typeface, then in any installed
@@ -155,6 +165,8 @@ Document document = Document.Compose(composition => composition.Section(section 
 byte[] pdf = document.ExportPdf(new PdfExportOptions { Typefaces = typefaces });
 ```
 
+![What this example sets](../images/guide/complex-scripts.png){ .rp-output data-caption="page 1" }
+
 Text in both directions is ordered by the Unicode bidirectional algorithm, whatever the section's direction.
 
 ### OpenType features
@@ -172,6 +184,8 @@ section.Body().Text(text =>
     text.Line("Stylistic set one").Feature("ss01");
 });
 ```
+
+![What this example sets](../images/guide/opentype-features.png){ .rp-output data-caption="page 1" }
 
 A feature the typeface does not have is ignored.
 
@@ -209,6 +223,8 @@ Document document = Document.Compose(composition =>
     });
 });
 ```
+
+![What this example sets](../images/guide/style-sheets.png){ .rp-output data-caption="page 1" }
 
 A style is applied where it is named, as the document is composed, so it must be defined before content names it.
 Settings made after a named style add to it: `Style("Heading").Italic()` is an italic heading.
