@@ -71,7 +71,11 @@ one heavier first. So 600, in a family of 400 and 700, gets 700. The library doe
 version of a face itself: a weight a family lacks is set in the nearest weight it has.
 
 Faces whose outlines cannot go into a PDF are passed over: `CFF2` outlines, for which PDF has no font file type, and
-bitmap-only faces, such as some colour emoji fonts.
+bitmap-only faces, such as some colour emoji fonts. A family installed both ways, such as a variable font as TrueType
+and as `CFF2`, is set in the face that can be embedded.
+
+A variable font is one face, its default instance: its axes and named instances are not applied, so a weight it was
+not drawn at is set in that instance as any family's nearest weight is. Only the default outlines are embedded.
 
 ### A typeface nobody has
 
