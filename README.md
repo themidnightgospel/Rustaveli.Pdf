@@ -15,6 +15,26 @@
 
 ![An invoice, made by the quick start below](https://raw.githubusercontent.com/themidnightgospel/Rustaveli.Pdf/main/docs/images/invoice.png)
 
+<!-- github-only -->
+<p align="center">
+  <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/">Home page</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="#quick-start">Quick start</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/guide/">Guides</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/features/">Features</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/api/">API reference</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CHANGELOG.md">Changelog</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/LICENSE">Licence</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="https://www.nuget.org/packages/Rustaveli.Pdf">NuGet</a>
+</p>
+<!-- /github-only -->
+
 ## Why Rustaveli.Pdf
 
 - **Free, for everyone.** MIT-licensed: use it in commercial and closed-source software, with no revenue limits,
