@@ -23,21 +23,23 @@ theme:
   name: material
   logo: images/logo.png
   favicon: images/logo.png
+  # An editor's colours, dark first; docs/stylesheets/workbench.css sets them.
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: blue
-      accent: blue
-      toggle:
-        icon: material/weather-night
-        name: Dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: blue
-      accent: blue
+    - scheme: slate
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Light mode
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+  font:
+    text: IBM Plex Sans
+    code: JetBrains Mono
   features:
     - navigation.tabs
     - navigation.sections
@@ -47,6 +49,9 @@ theme:
     - search.highlight
     - content.code.copy
     - content.action.edit
+
+extra_css:
+  - stylesheets/workbench.css
 
 markdown_extensions:
   - admonition
