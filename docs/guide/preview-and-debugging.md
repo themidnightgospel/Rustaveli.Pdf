@@ -70,6 +70,8 @@ section.Body().Stack(stack =>
 });
 ```
 
+![What this example sets](../images/guide/frame-edges.png){ .rp-output data-caption="page 1" }
+
 ## Reading a layout failure
 
 Content that cannot fit even on an empty page — a frame taller than the page, a fixed width wider than it — cannot

@@ -48,6 +48,8 @@ Document document = Document.Compose(composition => composition.Section(section 
 }));
 ```
 
+![What this example sets](../images/guide/stacks-and-columns.png){ .rp-output data-caption="page 1" }
+
 A column is `Fixed` at a width, as wide as its content (`Natural`), or takes a `Share` of whatever width is left,
 in proportion to its weight: above, the first column takes all the room the second does not need.
 
@@ -88,6 +90,8 @@ section.Body().Table(table =>
 });
 ```
 
+![What this example sets](../images/guide/tables.png){ .rp-output data-caption="page 1" }
+
 A cell can span rows and columns, and can be placed explicitly with `AtRow` and `AtColumn` — the rest flow around
 it. A cell is a frame like any other, so it takes modifiers:
 
@@ -108,6 +112,8 @@ section.Body().Table(table =>
 });
 ```
 
+![What this example sets](../images/guide/spanning-cells.png){ .rp-output data-caption="page 1" }
+
 `ExtendLastCellsToBottom()` stretches the last cell of each column down to the bottom of the table on every page,
 so strokes on the cells run all the way down.
 
@@ -123,6 +129,8 @@ section.Body().List(list =>
     list.Add().Text("Send the proofs.");
 });
 ```
+
+![What this example sets](../images/guide/lists.png){ .rp-output data-caption="page 1" }
 
 `Bulleted()` sets bullets instead. Numbering carries on across pages; `MarkerIndent` sets the hanging indent the
 markers sit in, and `MarkerType` the type they are set in.
@@ -143,6 +151,8 @@ section.Body().Layered(layers =>
 });
 ```
 
+![What this example sets](../images/guide/layers.png){ .rp-output data-caption="page 1" }
+
 `Banded` gives content a head band and a foot band repeated on every page it spans, as a table's header and footer
 rows are — for a long section with its own heading, say:
 
@@ -154,6 +164,8 @@ section.Body().Banded(bands =>
     bands.Foot().InsetTop(6).FlushRight().Text("Balance carried forward");
 });
 ```
+
+![What this example sets](../images/guide/bands.png){ .rp-output data-caption="page 2" }
 
 ## Grids, flows and flowing columns
 
@@ -196,6 +208,8 @@ section.Body().Stack(stack =>
 });
 ```
 
+![What this example sets](../images/guide/grids-and-flows.png){ .rp-output data-caption="page 1" }
+
 ## Modifiers
 
 Modifiers wrap a frame and hand back the one inside. The common ones:
@@ -215,6 +229,8 @@ Modifiers wrap a frame and hand back the one inside. The common ones:
 ```csharp
 section.Body().FitToContent().Fill(Ink.Hex("#FFF9C4")).Inset(4).Text("Just this much yellow");
 ```
+
+![What this example sets](../images/guide/fit-to-content.png){ .rp-output data-caption="page 1" }
 
 ## Flow across pages
 
@@ -240,6 +256,8 @@ Document document = Document.Compose(composition => composition.Section(section 
     });
 }));
 ```
+
+![What this example sets](../images/guide/flow-across-pages.png){ .rp-output data-caption="page 2" }
 
 | Modifier | Effect |
 |---|---|

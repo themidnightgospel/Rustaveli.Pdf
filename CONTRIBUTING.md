@@ -52,7 +52,13 @@ dotnet docfx docs/api/docfx.json --serve  # the API reference
 ```
 
 A page must be listed in `mkdocs.yml` to appear in the navigation, and every link must resolve: the build is strict,
-and a pull request that breaks it fails. Every C# example in the guides is compiled and run by the tests.
+and a pull request that breaks it fails. Every C# example in the guides is compiled and run by the tests, and the
+page an example sets is shown beside it, as an image the same test renders. After changing an example, refresh its
+image:
+
+```bash
+RUSTAVELI_GUIDE_IMAGES=1 dotnet test tests/Rustaveli.Pdf.ConformanceTests --filter "FullyQualifiedName~.Guide."
+```
 
 ## Pull requests
 
