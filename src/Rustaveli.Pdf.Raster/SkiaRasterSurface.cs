@@ -553,8 +553,13 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
     private static SKTypeface Load(OpenTypeFont face)
     {
-        using SKData data = SKData.CreateCopy(face.FileData.Span);
-        return SKTypeface.FromData(data, face.FaceIndex)
+        // Skia's font manager on macOS loads only the first face of a collection, so any other is given to it as a font
+        // of its own, on every platform alike.
+        using SKData data = face.FaceIndex == 0
+            ? SKData.CreateCopy(face.FileData.Span)
+            : SKData.CreateCopy(face.ToStandaloneFile());
+
+        return SKTypeface.FromData(data, 0)
             ?? throw new InvalidOperationException($"Skia could not load the face {face.Names.FullName}.");
     }
 
