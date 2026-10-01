@@ -97,6 +97,8 @@ public class PdfParserTests
     [InlineData("(bare\r\nbreak)", "bare\nbreak")]
     [InlineData("(bare\rbreak)", "bare\nbreak")]
     [InlineData(@"(needless\q)", "needlessq")]
+    [InlineData("(joined\\\rline)", "joinedline")]
+    [InlineData(@"(\7)", "\u0007")]
     public void ReadsLiteralStrings(string text, string expected)
     {
         PdfString value = Read(text).AsString();
@@ -129,6 +131,10 @@ public class PdfParserTests
     [InlineData("")]
     [InlineData("   % only a comment")]
     [InlineData(")")]
+    [InlineData("(cut after a break\r")]
+    [InlineData("(cut after a backslash\\")]
+    [InlineData("(cut after an escaped break\\\r")]
+    [InlineData("(cut inside an octal code\\1")]
     public void RefusesDamagedObjects(string text) => Assert.Throws<UnreadableFileException>(() => Read(text));
 
     [Fact]
@@ -159,6 +165,15 @@ public class PdfParserTests
 
     [Fact]
     public void AReferenceToObjectZeroIsNull() => Assert.Equal(PdfValueKind.Null, Read("0 0 R").Kind);
+
+    [Fact]
+    public void AReferenceToAnObjectNoFileCanNumberIsNull()
+    {
+        PdfParser parser = new PdfParser(Encoding.Latin1.GetBytes("4294967296 0 R 7"));
+
+        Assert.Equal(PdfValueKind.Null, parser.ReadValue().Kind);
+        Assert.Equal(7L, parser.ReadValue().AsInteger());
+    }
 
     [Fact]
     public void AnRNotStandingAloneIsNotAReference()
