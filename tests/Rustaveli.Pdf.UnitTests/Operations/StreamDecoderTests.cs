@@ -244,6 +244,17 @@ public class StreamDecoderTests
         Assert.Throws<NotSupportedException>(() => Decode(new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = new PdfName("StdCF") }));
     }
 
+    [Fact]
+    public void ACryptFilterNamingItsFilterWithSomethingOtherThanANameIsDamage()
+    {
+        byte[] data = [1, 2, 3];
+
+        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(
+            () => Decode(new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = 7 }));
+
+        Assert.Contains("crypt filter", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary><paramref name="text"/> encoded with the filter named <paramref name="filter"/>, in full or abbreviated.</summary>
     private static byte[] Encoded(string filter, string text) => filter switch
     {
