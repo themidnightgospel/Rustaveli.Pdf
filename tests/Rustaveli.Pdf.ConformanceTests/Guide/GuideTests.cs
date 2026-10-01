@@ -18,7 +18,7 @@ public class GuideTests
 
     public static TheoryData<string> Documents()
     {
-        TheoryData<string> documents = new TheoryData<string> { "README.md" };
+        TheoryData<string> documents = new TheoryData<string> { "README.md", "docs/README.md" };
 
         foreach (string guide in Directory.GetFiles(Path.Combine(RepositoryPaths.Root, "docs", "guide"), "*.md").OrderBy(path => path, StringComparer.Ordinal))
             documents.Add("docs/guide/" + Path.GetFileName(guide));

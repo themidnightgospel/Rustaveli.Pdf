@@ -326,3 +326,344 @@
     display: none;
   }
 }
+
+/* ---------- The home page (docs/overrides/home.html, docs/README.md) ---------- */
+
+/* The hero continues the editor's chrome below the header, in both schemes. */
+.rp-hero {
+  border-bottom: 1px solid var(--rp-chrome-line);
+  background-color: var(--md-primary-fg-color--dark);
+  color: var(--rp-chrome-fg);
+}
+
+.rp-hero__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.6rem 2.4rem;
+  padding: 2.8rem 0.8rem 2.2rem;
+}
+
+.rp-hero__text {
+  max-width: 34rem;
+}
+
+.rp-hero h1 {
+  margin: 0 0 0.8rem;
+  color: var(--rp-chrome-fg);
+  font-size: 2.6rem;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.rp-hero h1 span {
+  color: var(--rp-gold);
+}
+
+.rp-hero p {
+  margin: 0 0 1.4rem;
+  color: var(--rp-chrome-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.rp-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* The hero sits outside the page's content, where Material does not style buttons, so they are styled here in full. */
+.rp-hero .md-button {
+  display: inline-block;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--rp-chrome-line);
+  border-radius: 8px;
+  color: var(--rp-chrome-fg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.rp-hero .md-button--primary {
+  border-color: var(--rp-gold);
+  background-color: var(--rp-gold);
+  color: #1b1405;
+}
+
+.rp-hero .md-button:hover {
+  border-color: var(--rp-gold);
+  background-color: var(--rp-gold);
+  color: #1b1405;
+}
+
+.rp-install {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.5rem 0.55rem 0.8rem;
+  border: 1px solid var(--rp-chrome-line);
+  border-radius: 8px;
+  background-color: var(--rp-chrome);
+  font-family: var(--md-code-font-family);
+  font-size: 0.7rem;
+}
+
+.rp-install__prompt {
+  color: var(--rp-gold);
+}
+
+.rp-install code {
+  background: none;
+  color: var(--rp-chrome-fg);
+}
+
+.rp-install .md-clipboard {
+  position: static;
+  color: var(--rp-chrome-muted);
+}
+
+/* The editor: tabs for files, the code on the left, the page it sets on the right. */
+.md-typeset .rp-editor .tabbed-set {
+  margin: 0 0 1.2rem;
+  overflow: hidden;
+  border: 1px solid var(--rp-line);
+  border-radius: 12px;
+  background-color: var(--md-code-bg-color);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.md-typeset .rp-editor .tabbed-labels {
+  padding-left: 3.6rem;
+  border-bottom: 1px solid var(--rp-line);
+  background:
+    radial-gradient(circle, var(--rp-line) 0.22rem, transparent 0.24rem) 0.9rem 50% / 0.8rem 0.8rem no-repeat,
+    radial-gradient(circle, var(--rp-line) 0.22rem, transparent 0.24rem) 1.7rem 50% / 0.8rem 0.8rem no-repeat,
+    radial-gradient(circle, var(--rp-line) 0.22rem, transparent 0.24rem) 2.5rem 50% / 0.8rem 0.8rem no-repeat,
+    var(--rp-raised);
+  box-shadow: none;
+}
+
+.md-typeset .rp-editor .tabbed-labels > label {
+  padding: 0.75rem 0.9rem;
+  font-family: var(--md-code-font-family);
+  font-size: 0.65rem;
+  font-weight: 400;
+}
+
+.md-typeset .rp-editor .tabbed-block {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+}
+
+/* Material shows the chosen tab's block with display: block; the editor's is a grid, by Material's own selectors. */
+.md-typeset .rp-editor .tabbed-set > input:nth-child(1):checked ~ .tabbed-content > :nth-child(1),
+.md-typeset .rp-editor .tabbed-set > input:nth-child(2):checked ~ .tabbed-content > :nth-child(2),
+.md-typeset .rp-editor .tabbed-set > input:nth-child(3):checked ~ .tabbed-content > :nth-child(3),
+.md-typeset .rp-editor .tabbed-set > input:nth-child(4):checked ~ .tabbed-content > :nth-child(4) {
+  display: grid;
+}
+
+.md-typeset .rp-editor .tabbed-block > .highlight {
+  margin: 0;
+  border: 0;
+  border-right: 1px solid var(--rp-line);
+  border-radius: 0;
+}
+
+.md-typeset .rp-editor .tabbed-block > .highlight pre > code {
+  max-height: 30rem;
+}
+
+.md-typeset .rp-editor .tabbed-block > p {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1.6rem;
+  background-color: var(--rp-canvas);
+}
+
+.md-typeset .rp-editor img.rp-page {
+  max-width: 100%;
+  max-height: 26rem;
+  height: auto;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.md-typeset .rp-editor .rp-caption {
+  color: var(--md-default-fg-color--lighter);
+  font-family: var(--md-code-font-family);
+  font-size: 0.6rem;
+}
+
+/* The facts and the packages: rows of plain cells, ruled like the tables. */
+.md-typeset .rp-facts,
+.md-typeset .rp-packages {
+  display: grid;
+  gap: 1px;
+  margin: 1.2rem 0 2rem;
+  overflow: hidden;
+  border: 1px solid var(--rp-line);
+  border-radius: 12px;
+  background-color: var(--rp-line);
+}
+
+.md-typeset .rp-facts {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.md-typeset .rp-packages {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media screen and (max-width: 60em) {
+  .md-typeset .rp-packages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 30em) {
+  .md-typeset .rp-packages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The core package across the top; the four that add to it in the row below. */
+.md-typeset .rp-packages > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.md-typeset .rp-facts > div,
+.md-typeset .rp-packages > div {
+  padding: 0.9rem 1rem;
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color--light);
+  font-size: 0.7rem;
+}
+
+.md-typeset .rp-facts strong,
+.md-typeset .rp-packages strong {
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset .rp-packages strong code {
+  border: 0;
+  background: none;
+  color: var(--md-accent-fg-color);
+}
+
+@media screen and (max-width: 60em) {
+  .md-typeset .rp-editor .tabbed-block {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .md-typeset .rp-editor .tabbed-block > .highlight {
+    border-right: 0;
+    border-bottom: 1px solid var(--rp-line);
+  }
+
+  .rp-hero h1 {
+    font-size: 2rem;
+  }
+}
+
+/* The inspector: the frames of the invoice's page on the left, the page on the right with the chosen one outlined. */
+.md-typeset .rp-inspector {
+  display: grid;
+  grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 32rem);
+  margin: 1.2rem 0 2rem;
+  overflow: hidden;
+  border: 1px solid var(--rp-line);
+  border-radius: 12px;
+}
+
+.md-typeset .rp-inspector__tree {
+  padding: 0.6rem 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--rp-line);
+  background-color: var(--md-code-bg-color);
+}
+
+.md-typeset .rp-inspector__row {
+  display: block;
+  width: 100%;
+  padding: 0.15rem 0.8rem 0.15rem calc(0.8rem + var(--depth, 0) * 0.8rem);
+  border: 0;
+  background: none;
+  color: var(--md-default-fg-color--light);
+  font-family: var(--md-code-font-family);
+  font-size: 0.65rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.md-typeset .rp-inspector__row[aria-pressed="true"] {
+  background-color: var(--md-code-hl-color);
+  color: var(--md-default-fg-color);
+  box-shadow: inset 2px 0 var(--md-accent-fg-color);
+}
+
+.md-typeset .rp-inspector__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 1.6rem;
+  background-color: var(--rp-canvas);
+}
+
+.md-typeset .rp-inspector__page {
+  position: relative;
+  max-width: 100%;
+  line-height: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.md-typeset .rp-inspector__page img {
+  max-width: 100%;
+  max-height: 26rem;
+  height: auto;
+}
+
+.md-typeset .rp-inspector__outline {
+  position: absolute;
+  outline: 2px solid var(--rp-gold);
+  background-color: rgba(230, 179, 74, 0.14);
+  pointer-events: none;
+  transition: left 0.12s, top 0.12s, width 0.12s, height 0.12s;
+}
+
+.md-typeset .rp-inspector__label {
+  color: var(--md-default-fg-color--lighter);
+  font-family: var(--md-code-font-family);
+  font-size: 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .rp-inspector__outline {
+    transition: none;
+  }
+}
+
+@media screen and (max-width: 45em) {
+  .md-typeset .rp-inspector {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .md-typeset .rp-inspector__tree {
+    max-height: 12rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--rp-line);
+  }
+}
