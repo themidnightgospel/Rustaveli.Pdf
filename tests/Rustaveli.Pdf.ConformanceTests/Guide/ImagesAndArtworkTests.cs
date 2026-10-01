@@ -39,6 +39,7 @@ public class ImagesAndArtworkTests
             ImageProcessor = SkiaImageProcessor.Instance,
         });
 
+        GuideOutput.Show(document, "images");
         using UglyToad.PdfPig.PdfDocument read = UglyToad.PdfPig.PdfDocument.Open(pdf);
         List<UglyToad.PdfPig.Content.IPdfImage> images = read.GetPage(1).GetImages().ToList();
         Assert.Equal(3, images.Count);
@@ -61,6 +62,7 @@ public class ImagesAndArtworkTests
             section.Body().Width(120).Artwork(logo);
         });
 
+        GuideOutput.Show(document, "artwork-from-svg", trim: true);
         using UglyToad.PdfPig.PdfDocument read = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
         Assert.Empty(read.GetPage(1).GetImages());
         Assert.NotEmpty(read.GetPage(1).Paths);
@@ -82,6 +84,7 @@ public class ImagesAndArtworkTests
             section.Body().Width(120).Artwork(badge);
         });
 
+        GuideOutput.Show(document, "drawing-artwork", trim: true);
         Assert.Equal("Approved", GuideReader.Text(document.ExportPdf()));
     }
 
@@ -116,6 +119,7 @@ public class ImagesAndArtworkTests
                 """)));
         });
 
+        GuideOutput.Show(document, "made-for-their-box", trim: true);
         using UglyToad.PdfPig.PdfDocument read = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
         List<(double R, double G, double B)> fills = read.GetPage(1).Paths
             .Where(path => path.IsFilled && path.FillColor is not null)

@@ -34,6 +34,8 @@ Document document = Document.Compose(composition => composition.Section(section 
 document.ExportPdf("hello.pdf");
 ```
 
+![What this example sets](../images/guide/first-document.png){ .rp-output data-caption="hello.pdf" }
+
 A document is composed of **sections**. A section is a run of pages sharing one page setup: its `Trim` (the page
 size), its `Margins`, the `DefaultType` its text is set in, and the frames every page is made of:
 
@@ -69,6 +71,8 @@ Document document = Document.Compose(composition => composition.Section(section 
     });
 }));
 ```
+
+![What this example sets](../images/guide/frames.png){ .rp-output data-caption="page 1" }
 
 Order matters as it would with real frames: the fill above is inside the stroke, and the inset inside the fill.
 Content that holds several frames — a `Stack`, `Columns`, a `Table` — hands out a new frame for each, and so on
@@ -106,6 +110,8 @@ Document letter = Document.Compose(composition => composition.Section(section =>
     });
 }));
 ```
+
+![What this example sets](../images/guide/reusing-parts.png){ .rp-output data-caption="page 1" }
 
 ## Exporting
 

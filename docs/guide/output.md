@@ -95,6 +95,8 @@ document.Info.Language = "en";
 byte[] accessible = document.ExportPdf(new PdfExportOptions { Accessibility = PdfUAConformance.PdfUA1 });
 ```
 
+![What this example sets](../images/guide/accessible-document.png){ .rp-output data-caption="page 1" }
+
 Text nothing else tags is a paragraph; lists, tables, links and their parts are tagged without asking; running heads
 and feet are left out as page furniture. `Tagged` gives the rest their part — headings, figures with their
 alternative text, formulas, quotes, notes and the like — and `Untagged` leaves decoration out. A table's header rows
