@@ -19,6 +19,9 @@ glyph, different line breaks, different page breaks — and passes or fails depe
 All are licensed under the SIL Open Font License 1.1 ([OFL.txt](OFL.txt)), which permits redistribution with
 software, and modified versions under the same licence.
 
+[`corpus/`](corpus/README.md) holds fonts in formats these never exercise — a variable TrueType font, a `CFF2` font,
+a TrueType collection and a font kerned by a `kern` table — with where each comes from and its licence.
+
 `derive-cff.py` builds the two CFF subsetting specimens from their published sources, which are too large to commit
 — the Chinese font is 16 MB — and names the URLs to download them from. Subsetting keeps the subroutines the kept
 glyphs call; both fonts are renamed, since the sources' names are reserved by their licence.

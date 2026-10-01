@@ -25,6 +25,11 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   the parent had moved past it, so what it kept for the next page was never drawn. It is now drawn as it was planned.
 - Page images drew a fill thinner than a pixel, such as a 0.25-point rule, as a faint smear across two pixels. It is
   drawn one pixel thick, on the pixel its middle falls in, as PDF viewers draw it. SVG and XPS keep it as thin as it is.
+- A family with both a CFF2 face and a TrueType face, as a variable font installed in both builds has, could be
+  matched to the CFF2 face, which cannot be embedded, so its text was set in a substitute. A face that can be embedded
+  is now chosen over a closer one that cannot.
+- Page images on macOS failed for text set in any face of a collection but its first, which Skia's font manager there
+  does not load. The face is now given to Skia as a font of its own, on every platform.
 
 **Performance**
 
@@ -43,6 +48,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   overall.
 - A new specimen sets content no export had set before — composed per page, composed late, unbounded, placeholders, a
   turned frame and a proportion — so each is now validated, compared visually and drawn by both renderers.
+- Fonts in the formats the bundled Noto files never exercise — a variable TrueType font, a CFF2 font, a collection
+  and a font kerned only by a `kern` table — are registered, measured, set, embedded and drawn, and their subsets
+  checked by qpdf and veraPDF.
 
 ## 0.2.0
 

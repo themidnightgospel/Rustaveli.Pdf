@@ -26,15 +26,19 @@ public class FontCatalogTests
                 "NotoSans-Bold", "NotoSans-BoldItalic", "NotoSans-Italic", "NotoSans-Regular", "NotoSansArabic-Regular",
                 "NotoSansDevanagari-Regular", "NotoSansGeorgian-Regular",
                 "SpecimenCff-Regular", "SpecimenCjk-Regular", "SpecimenLayout-Regular", "SpecimenSans-Regular",
-                "SpecimenSans-SemiBold", "SpecimenSans-Italic", "SpecimenSubrs-Regular"
+                "SpecimenSans-SemiBold", "SpecimenSans-Italic", "SpecimenSubrs-Regular",
+
+                // The corpus folder inside it, read after the folder's own files: a kern-table font, a collection, and
+                // the CFF2 and TrueType builds of a variable font.
+                "KernTableTest-Regular", "NotoSans-Regular", "NotoSans-Bold", "SourceSans3VF-ExtraLight", "SourceSans3VF-ExtraLight"
             },
             index.Faces.Select(face => face.Names.PostScriptName));
         Assert.All(index.Faces, face => Assert.False(face.IsLoaded));
         Assert.Equal(
             new[]
             {
-                "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Georgian", "Specimen Cff", "Specimen Cjk",
-                "Specimen Layout", "Specimen Sans", "Specimen Subrs"
+                "Kern Table Test", "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Georgian", "SourceSans3VF",
+                "Specimen Cff", "Specimen Cjk", "Specimen Layout", "Specimen Sans", "Specimen Subrs"
             },
             index.Families.Families);
         Assert.Equal(new[] { TestFonts.Directory }, index.Directories);
@@ -239,6 +243,17 @@ public class FontCatalogTests
         Assert.Equal(OutlineFormat.None, catalog.RegisteredFaces[0].Outlines);
         Assert.Null(catalog.FindFallbackFace('A', new FontRequest("x"), ["Bitmap"]));
         Assert.NotNull(catalog.FindFace(new FontRequest("Bitmap")));
+    }
+
+    [Fact]
+    public void ChoosesAFaceItCanEmbedOverACloserOneOfTheSameFamilyItCannot()
+    {
+        // A variable font installed both as TrueType and as CFF2 lists one family twice, and only one can be embedded.
+        FontCatalog catalog = FontCatalog.WithoutSystemFonts();
+        catalog.Register(SyntheticFont.Named("Mixed").Without("glyf").Without("loca").Build());
+        catalog.Register(SyntheticFont.Named("Mixed", weight: 700).Build());
+
+        Assert.Equal(OutlineFormat.TrueType, catalog.FindFace(new FontRequest("Mixed"))!.Outlines);
     }
 
     [Fact]

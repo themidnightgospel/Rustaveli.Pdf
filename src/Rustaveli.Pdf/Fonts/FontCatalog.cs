@@ -90,7 +90,8 @@ internal sealed class FontCatalog
 
     /// <summary>
     /// The face best matching the request: from the registered fonts when any carry the family, else from the
-    /// installed ones. Null when no font has the family.
+    /// installed ones. A face that can be embedded is preferred to a closer one that cannot. Null when no font has the
+    /// family.
     /// </summary>
     public FontFaceInfo? FindFace(FontRequest request)
     {
@@ -111,7 +112,10 @@ internal sealed class FontCatalog
             if (candidates.Count == 0)
                 candidates = System.Families.Find(key.Family);
 
-            return FontMatcher.Select(candidates, key.Style);
+            // A variable font installed as both TrueType and CFF2 lists one family twice, and a CFF2 face can never set
+            // text, so choosing it would pass over the family's other build for a substitute.
+            return FontMatcher.Select(candidates.Where(face => face.IsEmbeddable), key.Style)
+                ?? FontMatcher.Select(candidates, key.Style);
         });
     }
 
