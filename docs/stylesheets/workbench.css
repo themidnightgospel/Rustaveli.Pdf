@@ -571,3 +571,99 @@
     font-size: 2rem;
   }
 }
+
+/* The inspector: the frames of the invoice's page on the left, the page on the right with the chosen one outlined. */
+.md-typeset .rp-inspector {
+  display: grid;
+  grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 32rem);
+  margin: 1.2rem 0 2rem;
+  overflow: hidden;
+  border: 1px solid var(--rp-line);
+  border-radius: 12px;
+}
+
+.md-typeset .rp-inspector__tree {
+  padding: 0.6rem 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--rp-line);
+  background-color: var(--md-code-bg-color);
+}
+
+.md-typeset .rp-inspector__row {
+  display: block;
+  width: 100%;
+  padding: 0.15rem 0.8rem 0.15rem calc(0.8rem + var(--depth, 0) * 0.8rem);
+  border: 0;
+  background: none;
+  color: var(--md-default-fg-color--light);
+  font-family: var(--md-code-font-family);
+  font-size: 0.65rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.md-typeset .rp-inspector__row[aria-pressed="true"] {
+  background-color: var(--md-code-hl-color);
+  color: var(--md-default-fg-color);
+  box-shadow: inset 2px 0 var(--md-accent-fg-color);
+}
+
+.md-typeset .rp-inspector__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 1.6rem;
+  background-color: var(--rp-canvas);
+}
+
+.md-typeset .rp-inspector__page {
+  position: relative;
+  max-width: 100%;
+  line-height: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.md-typeset .rp-inspector__page img {
+  max-width: 100%;
+  max-height: 26rem;
+  height: auto;
+}
+
+.md-typeset .rp-inspector__outline {
+  position: absolute;
+  outline: 2px solid var(--rp-gold);
+  background-color: rgba(230, 179, 74, 0.14);
+  pointer-events: none;
+  transition: left 0.12s, top 0.12s, width 0.12s, height 0.12s;
+}
+
+.md-typeset .rp-inspector__label {
+  color: var(--md-default-fg-color--lighter);
+  font-family: var(--md-code-font-family);
+  font-size: 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .rp-inspector__outline {
+    transition: none;
+  }
+}
+
+@media screen and (max-width: 45em) {
+  .md-typeset .rp-inspector {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .md-typeset .rp-inspector__tree {
+    max-height: 12rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--rp-line);
+  }
+}

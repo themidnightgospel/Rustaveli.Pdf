@@ -88,7 +88,7 @@ hide:
     invoice.ExportPdf("invoice.pdf");
     ```
 
-    ![The page Invoice.cs sets: an invoice with a blue title, a table of three lines and the total due](images/invoice.png){ .rp-page }<span class="rp-caption">invoice.pdf · A5 · 1 page</span>
+    ![The page Invoice.cs sets: an invoice with a blue title, a table of three lines and the total due](images/guide/invoice.png){ .rp-page }<span class="rp-caption">invoice.pdf · A5 · 1 page</span>
 
 === "Report.cs"
 
@@ -135,6 +135,20 @@ qpdf on every change.</div>
 <div markdown>**A live preview**<br>`dotnet watch` redraws the page in your browser as you save, with an inspector that
 opens the code behind any frame.</div>
 
+</div>
+
+## Find the frame you are after
+
+The preview's inspector lists every frame on a page, each inside the frame that drew it. Point at one to outline it on
+the page; in the preview, clicking it opens the line of code that made it. These are the invoice's own frames, as the
+inspector records them.
+
+<div class="rp-inspector" data-frames="images/guide/invoice-frames.json" data-page-width="419.53" data-page-height="595.28">
+<div class="rp-inspector__tree" aria-label="The frames on the invoice's page"></div>
+<figure class="rp-inspector__stage">
+<div class="rp-inspector__page"><img src="images/guide/invoice.png" alt="The invoice's page, with the chosen frame outlined"><div class="rp-inspector__outline" hidden></div></div>
+<figcaption class="rp-inspector__label">Point at a frame</figcaption>
+</figure>
 </div>
 
 ## Packages
