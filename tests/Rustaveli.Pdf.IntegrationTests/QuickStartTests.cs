@@ -14,11 +14,11 @@ public class QuickStartTests
     {
         using TemporaryWorkingDirectory directory = new TemporaryWorkingDirectory();
 
-        (string Item, string Quantity, string Amount)[] lines =
+        (string Item, string Amount)[] lines =
         [
-            ("Design review", "4", "1,600.00"),
-            ("Implementation", "12", "7,200.00"),
-            ("Support, one month", "1", "450.00"),
+            ("Design review", "1,600.00"),
+            ("Implementation", "7,200.00"),
+            ("Support, one month", "450.00"),
         ];
 
         Ink blue = Ink.Hex("#1565C0");
@@ -35,7 +35,11 @@ public class QuickStartTests
 
                 stack.Add().Text(text =>
                 {
-                    text.Line("Invoice INV-0042").PointSize(22).Bold().Ink(blue);
+                    text.Line("Invoice INV-0042")
+                        .PointSize(22)
+                        .Bold()
+                        .Ink(blue);
+
                     text.Line("Issued 29 September 2026, due in 30 days");
                 });
 
@@ -44,26 +48,55 @@ public class QuickStartTests
                     table.Columns(columns =>
                     {
                         columns.Share();
-                        columns.Fixed(40);
                         columns.Fixed(70);
                     });
 
                     table.HeaderRows(header =>
                     {
-                        header.Cell().Fill(blue).Inset(6).Text(text => text.Run("Item").Bold().Ink(Ink.White));
-                        header.Cell().Fill(blue).Inset(6).FlushRight().Text(text => text.Run("Qty").Bold().Ink(Ink.White));
-                        header.Cell().Fill(blue).Inset(6).FlushRight().Text(text => text.Run("Amount").Bold().Ink(Ink.White));
+                        header
+                            .Cell()
+                            .Fill(blue)
+                            .Inset(6)
+                            .Text(text => text
+                                .Run("Item")
+                                .Bold()
+                                .Ink(Ink.White));
+
+                        header
+                            .Cell()
+                            .Fill(blue)
+                            .Inset(6)
+                            .FlushRight()
+                            .Text(text => text
+                                .Run("Amount")
+                                .Bold()
+                                .Ink(Ink.White));
                     });
 
-                    foreach ((string item, string quantity, string amount) in lines)
+                    foreach ((string item, string amount) in lines)
                     {
-                        table.Cell().StrokeBottom(0.5f).Inset(6).Text(item);
-                        table.Cell().StrokeBottom(0.5f).Inset(6).FlushRight().Text(quantity);
-                        table.Cell().StrokeBottom(0.5f).Inset(6).FlushRight().Text(amount);
+                        table
+                            .Cell()
+                            .StrokeBottom(0.5f)
+                            .Inset(6)
+                            .Text(item);
+
+                        table
+                            .Cell()
+                            .StrokeBottom(0.5f)
+                            .Inset(6)
+                            .FlushRight()
+                            .Text(amount);
                     }
                 });
 
-                stack.Add().FlushRight().Text(text => text.Run("Total due 9,250.00").PointSize(14).Bold());
+                stack
+                    .Add()
+                    .FlushRight()
+                    .Text(text => text
+                        .Run("Total due 9,250.00")
+                        .PointSize(14)
+                        .Bold());
             });
         }));
 
