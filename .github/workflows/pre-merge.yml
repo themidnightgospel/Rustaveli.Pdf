@@ -77,6 +77,17 @@ jobs:
           results artifacts/benchmarks/results artifacts/benchmarks/sizes.json
           artifacts/benchmarks/results/numbers.json artifacts/benchmarks/results/questpdf.json
 
+      # On main, the comparison with QuestPDF the README links to, which the publish job keeps beside the history.
+      - name: The comparison kept
+        if: github.event_name == 'push'
+        env:
+          BENCHMARK_SOURCE: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}
+          BENCHMARK_COMMIT: ${{ github.sha }}
+        run: >
+          dotnet run eng/benchmarks.cs --
+          questpdf artifacts/benchmarks/results/numbers.json artifacts/benchmarks/results/questpdf.json
+          artifacts/benchmarks/results/latest.md
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -186,6 +197,25 @@ jobs:
           benchmark-data-dir-path: benchmarks
           github-token: ${{ github.token }}
           auto-push: true
+
+      # The comparison with QuestPDF from the same run, which the README's Benchmarks link opens, replaced by every
+      # merge's: a file, committed beside the history.
+      - name: Keep the latest comparison
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          LATEST: ${{ runner.temp }}/results/latest.md
+          SHA: ${{ github.sha }}
+        run: |
+          git fetch --depth 1 origin benchmark-data
+          git switch --force -C benchmark-data FETCH_HEAD
+          cp "$LATEST" benchmarks/latest.md
+          git add benchmarks/latest.md
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -q -m "Latest benchmarks against QuestPDF, for $SHA"
+            git push -q "https://x-access-token:$GH_TOKEN@github.com/$REPOSITORY.git" HEAD:benchmark-data
+          fi
 
   macos:
     name: macos · build, test
