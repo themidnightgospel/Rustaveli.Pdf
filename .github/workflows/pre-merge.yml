@@ -77,7 +77,8 @@ jobs:
           results artifacts/benchmarks/results artifacts/benchmarks/sizes.json
           artifacts/benchmarks/results/numbers.json artifacts/benchmarks/results/questpdf.json
 
-      # On main, the comparison with QuestPDF the README links to, which the publish job keeps beside the history.
+      # On main, the comparison with QuestPDF the README shows, as a picture for GitHub's light theme and one for its
+      # dark, and links to as text, which the publish job keeps beside the history.
       - name: The comparison kept
         if: github.event_name == 'push'
         env:
@@ -87,6 +88,7 @@ jobs:
           dotnet run eng/benchmarks.cs --
           questpdf artifacts/benchmarks/results/numbers.json artifacts/benchmarks/results/questpdf.json
           artifacts/benchmarks/results/latest.md
+          artifacts/benchmarks/results/latest-light.svg artifacts/benchmarks/results/latest-dark.svg
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -198,19 +200,19 @@ jobs:
           github-token: ${{ github.token }}
           auto-push: true
 
-      # The comparison with QuestPDF from the same run, which the README's Benchmarks link opens, replaced by every
-      # merge's: a file, committed beside the history.
+      # The comparison with QuestPDF from the same run, which the README shows and its Benchmarks link opens, replaced
+      # by every merge's: files, committed beside the history, which the documentation site serves with it.
       - name: Keep the latest comparison
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          LATEST: ${{ runner.temp }}/results/latest.md
+          RESULTS: ${{ runner.temp }}/results
           SHA: ${{ github.sha }}
         run: |
           git fetch --depth 1 origin benchmark-data
           git switch --force -C benchmark-data FETCH_HEAD
-          cp "$LATEST" benchmarks/latest.md
-          git add benchmarks/latest.md
+          cp "$RESULTS/latest.md" "$RESULTS/latest-light.svg" "$RESULTS/latest-dark.svg" benchmarks/
+          git add benchmarks/latest.md benchmarks/latest-light.svg benchmarks/latest-dark.svg
           if ! git diff --cached --quiet; then
             git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
               commit -q -m "Latest benchmarks against QuestPDF, for $SHA"
