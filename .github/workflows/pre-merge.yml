@@ -4,8 +4,8 @@
 #
 # The benchmarks run on main too, after every merge, and github-action-benchmark keeps each run's numbers on the
 # benchmark-data branch, from which the documentation site draws their history. A pull request's numbers are
-# compared with main's last and posted on it; an allocation or a file size more than 10% larger fails it
-# (docs/adr/0009-performance-targets.md).
+# posted on it in two comments: against main's last, where an allocation or a file size more than 10% larger fails
+# it (docs/adr/0009-performance-targets.md), and against QuestPDF's from the same run.
 #
 # Mutation testing is not among them: it takes hours, so it runs only at night, on main (nightly-mutation.yml).
 
@@ -74,7 +74,8 @@ jobs:
       - name: The numbers kept
         run: >
           dotnet run eng/benchmarks.cs --
-          results artifacts/benchmarks/results artifacts/benchmarks/sizes.json artifacts/benchmarks/results/numbers.json
+          results artifacts/benchmarks/results artifacts/benchmarks/sizes.json
+          artifacts/benchmarks/results/numbers.json artifacts/benchmarks/results/questpdf.json
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -124,11 +125,13 @@ jobs:
           BENCHMARK_SOURCE: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}
         run: |
           status=0
-          dotnet run eng/benchmarks.cs -- compare results/numbers.json main.js comment.md || status=$?
-          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+          dotnet run eng/benchmarks.cs -- compare results/numbers.json results/questpdf.json main.js \
+            against-main.md against-questpdf.md || status=$?
+          cat against-main.md against-questpdf.md >> "$GITHUB_STEP_SUMMARY"
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
-      # A pull request from a fork has a token that cannot comment; its comparison is in the summary above.
+      # Two comments, against main and against QuestPDF, each found by the marker it starts with and updated on every
+      # push. A pull request from a fork has a token that cannot comment; its comparisons are in the summary above.
       - name: Post on the pull request
         if: github.event.pull_request.head.repo.full_name == github.repository
         env:
@@ -136,13 +139,16 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          existing=$(gh api "repos/$REPOSITORY/issues/$NUMBER/comments" --paginate \
-            --jq '[.[] | select(.body | startswith("<!-- benchmarks -->"))][0].id // empty')
-          if [ -n "$existing" ]; then
-            gh api --method PATCH "repos/$REPOSITORY/issues/comments/$existing" -F body=@comment.md > /dev/null
-          else
-            gh api --method POST "repos/$REPOSITORY/issues/$NUMBER/comments" -F body=@comment.md > /dev/null
-          fi
+          for comment in against-main.md against-questpdf.md; do
+            marker=$(head -n 1 "$comment")
+            existing=$(gh api "repos/$REPOSITORY/issues/$NUMBER/comments" --paginate \
+              --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+            if [ -n "$existing" ]; then
+              gh api --method PATCH "repos/$REPOSITORY/issues/comments/$existing" -F body=@"$comment" > /dev/null
+            else
+              gh api --method POST "repos/$REPOSITORY/issues/$NUMBER/comments" -F body=@"$comment" > /dev/null
+            fi
+          done
 
       - name: Hold to the limit
         if: steps.compare.outputs.status != '0'
