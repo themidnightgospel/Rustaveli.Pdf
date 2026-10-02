@@ -2,6 +2,11 @@
 # after that): the benchmarks, and the build and tests on macOS. A pull request merges only when both
 # these and ci.yml are green. They can also be run by hand, on any branch.
 #
+# The benchmarks run on main too, after every merge, and github-action-benchmark keeps each run's numbers on the
+# benchmark-data branch, from which the documentation site draws their history. A pull request's numbers are
+# compared with main's last and posted on it; an allocation or a file size more than 10% larger fails it
+# (docs/adr/0009-performance-targets.md).
+#
 # Mutation testing is not among them: it takes hours, so it runs only at night, on main (nightly-mutation.yml).
 
 name: Pre-merge checks
@@ -9,11 +14,14 @@ name: Pre-merge checks
 on:
   pull_request:
     types: [labeled, synchronize, reopened]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
   group: pre-merge-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # A pull request's run gives way to the next push; every merge to main keeps its numbers.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -26,7 +34,7 @@ env:
 jobs:
   benchmarks:
     name: benchmarks
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -44,12 +52,12 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'dotnet-tools.json') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # Reported, not yet gated: regression gating against the main baseline starts with the managed writer
-      # (docs/adr/0009-performance-targets.md).
       - name: File sizes
         run: |
+          mkdir -p artifacts/benchmarks/results
           echo "## File size" >> "$GITHUB_STEP_SUMMARY"
-          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release -- --sizes | tee -a "$GITHUB_STEP_SUMMARY"
+          dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -c Release -- --sizes artifacts/benchmarks/sizes.json \
+            | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Throughput and allocations
         run: >
@@ -63,12 +71,110 @@ jobs:
             [ -f "$report" ] && cat "$report" >> "$GITHUB_STEP_SUMMARY"
           done
 
+      - name: The numbers kept
+        run: >
+          dotnet run eng/benchmarks.cs --
+          results artifacts/benchmarks/results artifacts/benchmarks/sizes.json artifacts/benchmarks/results/numbers.json
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: benchmark-results
           path: artifacts/benchmarks/results
           retention-days: 30
+
+  # Main's last numbers, read from the benchmark-data branch, against the pull request's: posted on it, and failing
+  # it when an allocation or a file size has grown by more than 10%.
+  compare:
+    name: benchmarks against main
+    if: github.event_name == 'pull_request'
+    needs: benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # The comparison is posted on the pull request, and updated on every push.
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: benchmark-results
+          path: results
+
+      - name: Main's last numbers
+        run: |
+          if git fetch --depth 1 origin benchmark-data; then
+            git show FETCH_HEAD:benchmarks/data.js > main.js || true
+          fi
+
+      - name: Compare
+        id: compare
+        run: |
+          status=0
+          dotnet run eng/benchmarks.cs -- compare results/numbers.json main.js comment.md || status=$?
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      # A pull request from a fork has a token that cannot comment; its comparison is in the summary above.
+      - name: Post on the pull request
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          existing=$(gh api "repos/$REPOSITORY/issues/$NUMBER/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- benchmarks -->"))][0].id // empty')
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$REPOSITORY/issues/comments/$existing" -F body=@comment.md > /dev/null
+          else
+            gh api --method POST "repos/$REPOSITORY/issues/$NUMBER/comments" -F body=@comment.md > /dev/null
+          fi
+
+      - name: Hold to the limit
+        if: steps.compare.outputs.status != '0'
+        run: |
+          echo "::error::An allocation or a file size is more than 10% larger than main's."
+          exit 1
+
+  # Each merge's numbers are added to the history on the benchmark-data branch. This job runs no code of the
+  # repository's: it only hands the numbers the benchmarks job measured to github-action-benchmark.
+  publish:
+    name: keep main's benchmarks
+    if: github.event_name == 'push'
+    needs: benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # The history is a commit on the benchmark-data branch.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: benchmark-results
+          path: ${{ runner.temp }}/results
+
+      - uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
+        with:
+          name: Rustaveli.Pdf
+          tool: customSmallerIsBetter
+          output-file-path: ${{ runner.temp }}/results/numbers.json
+          gh-pages-branch: benchmark-data
+          benchmark-data-dir-path: benchmarks
+          github-token: ${{ github.token }}
+          auto-push: true
 
   macos:
     name: macos · build, test

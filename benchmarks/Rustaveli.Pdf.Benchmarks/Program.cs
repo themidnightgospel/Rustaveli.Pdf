@@ -3,13 +3,16 @@
 //     dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -- --filter *            every benchmark
 //     dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -- --filter *Generation*  one class
 //     dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -- --sizes               file sizes only
+//     dotnet run --project benchmarks/Rustaveli.Pdf.Benchmarks -- --sizes sizes.json    and written as JSON
 
 using BenchmarkDotNet.Running;
 using Rustaveli.Pdf.Benchmarks;
 
-if (args.Contains("--sizes"))
+int sizes = Array.IndexOf(args, "--sizes");
+
+if (sizes >= 0)
 {
-    SizeReport.Print();
+    SizeReport.Print(sizes + 1 < args.Length ? args[sizes + 1] : null);
     return;
 }
 
