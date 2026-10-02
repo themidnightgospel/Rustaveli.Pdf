@@ -1,14 +1,18 @@
-// Turns a benchmark run into numbers main's history keeps, and compares a pull request's with main's last.
+// Turns a benchmark run into numbers main's history keeps, and compares a pull request's with main's last and with
+// QuestPDF's.
 //
-//     dotnet run eng/benchmarks.cs -- results <results folder> <sizes.json> <out.json>
-//     dotnet run eng/benchmarks.cs -- compare <out.json> <main's data.js> <comment.md>
+//     dotnet run eng/benchmarks.cs -- results <results folder> <sizes.json> <numbers.json> <questpdf.json>
+//     dotnet run eng/benchmarks.cs -- compare <numbers.json> <questpdf.json> <main's data.js> <main.md> <questpdf.md>
 //
-// results reads BenchmarkDotNet's JSON reports and the sizes the benchmark project writes with --sizes, and writes
-// each of this library's numbers — per document, its time, what it allocates and its file size, and the parallel
-// time — in the form github-action-benchmark keeps (customSmallerIsBetter), each with the reference library's beside
-// it. compare reads the last numbers from main the action kept and writes a table for the pull request; it fails when
-// an allocation or a file size is more than 10% larger than main's (docs/adr/0009-performance-targets.md). Times
-// are shown but not held to it: hosted runners differ by 10–20% from one run to the next.
+// results reads BenchmarkDotNet's JSON reports and the sizes the benchmark project writes with --sizes. It writes this
+// library's numbers — per document, its time, what it allocates and its file size, and the parallel time — in the form
+// github-action-benchmark keeps (customSmallerIsBetter), with QuestPDF's beside each for the charts' details, and
+// QuestPDF's numbers under the same names on their own.
+//
+// compare writes two comments for the pull request. The first sets its numbers against the last that main kept, and
+// the command fails when an allocation or a file size is more than 10% larger than main's
+// (docs/adr/0009-performance-targets.md); times are shown but not held to it, since hosted runners differ by 10–20%
+// from one run to the next. The second sets them against QuestPDF's from the same run, a table for each document.
 
 using System.Globalization;
 using System.Text;
@@ -18,22 +22,22 @@ using System.Text.Json.Nodes;
 using Measured = (double Time, double Deviation, double Allocated);
 
 const double Limit = 0.10;
-const string Marker = "<!-- benchmarks -->";
+const string Parallel = "Eight documents in parallel";
 
-return args.Length == 4 && args[0] == "results" ? Results(args[1], args[2], args[3])
-    : args.Length == 4 && args[0] == "compare" ? Compare(args[1], args[2], args[3])
+return args.Length == 5 && args[0] == "results" ? Results(args[1], args[2], args[3], args[4])
+    : args.Length == 6 && args[0] == "compare" ? Compare(args[1], args[2], args[3], args[4], args[5])
     : Usage();
 
 static int Usage()
 {
-    Console.Error.WriteLine("usage: results <results folder> <sizes.json> <out.json> | compare <out.json> <data.js> <comment.md>");
+    Console.Error.WriteLine("usage: results <results folder> <sizes.json> <numbers.json> <questpdf.json>");
+    Console.Error.WriteLine("       compare <numbers.json> <questpdf.json> <data.js> <main.md> <questpdf.md>");
     return 2;
 }
 
-static int Results(string folder, string sizesFile, string output)
+static int Results(string folder, string sizesFile, string output, string questOutput)
 {
-    Dictionary<string, Measured> measured =
-        new Dictionary<string, Measured>(StringComparer.Ordinal);
+    Dictionary<string, Measured> measured = new Dictionary<string, Measured>(StringComparer.Ordinal);
 
     foreach (string report in Directory.EnumerateFiles(folder, "*-report-full-compressed.json"))
     {
@@ -53,58 +57,82 @@ static int Results(string folder, string sizesFile, string output)
     }
 
     JsonObject sizes = JsonNode.Parse(File.ReadAllText(sizesFile))!.AsObject();
-    JsonArray entries = [];
+    JsonArray ours = [];
+    JsonArray theirs = [];
+
+    void Both(string name, string unit, double mine, double quest, double? deviation)
+    {
+        string? range = deviation is double spread ? $"± {Number(spread)}" : null;
+        string against = $"QuestPDF {Number(quest)} {unit}, {Percent(mine, quest)}";
+        ours.Add((JsonNode)Entry(name, unit, mine, range, against));
+        theirs.Add((JsonNode)Entry(name, unit, quest, null, null));
+    }
 
     foreach ((string document, JsonNode? size) in sizes)
     {
-        if (measured.TryGetValue($"Rustaveli Kind={document}", out Measured ours)
-            && measured.TryGetValue($"QuestPdf Kind={document}", out Measured theirs))
+        if (measured.TryGetValue($"Rustaveli Kind={document}", out Measured mine)
+            && measured.TryGetValue($"QuestPdf Kind={document}", out Measured quest))
         {
-            Add(entries, $"{document} · time", "ms", ours.Time, $"± {Number(ours.Deviation)}", Against(ours.Time, theirs.Time, "ms"));
-            Add(entries, $"{document} · allocated", "KB", ours.Allocated, null, Against(ours.Allocated, theirs.Allocated, "KB"));
+            Both($"{document} · time", "ms", mine.Time, quest.Time, mine.Deviation);
+            Both($"{document} · allocated", "KB", mine.Allocated, quest.Allocated, null);
         }
 
-        double mine = (int)size!["Rustaveli"]! / 1024.0;
-        double reference = (int)size["Reference"]! / 1024.0;
-        Add(entries, $"{document} · file size", "KB", mine, null, Against(mine, reference, "KB"));
+        Both($"{document} · file size", "KB", (int)size!["Rustaveli"]! / 1024.0, (int)size["Reference"]! / 1024.0, null);
     }
 
     if (measured.TryGetValue("RustaveliParallel", out Measured parallel)
-        && measured.TryGetValue("QuestPdfParallel", out Measured theirParallel))
+        && measured.TryGetValue("QuestPdfParallel", out Measured questParallel))
     {
-        Add(entries, "Eight documents in parallel · time", "ms", parallel.Time, $"± {Number(parallel.Deviation)}", Against(parallel.Time, theirParallel.Time, "ms"));
+        Both($"{Parallel} · time", "ms", parallel.Time, questParallel.Time, parallel.Deviation);
     }
 
-    File.WriteAllText(output, entries.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
-    Console.WriteLine($"{entries.Count} numbers written to {output}");
+    JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    File.WriteAllText(output, ours.ToJsonString(options));
+    File.WriteAllText(questOutput, theirs.ToJsonString(options));
+    Console.WriteLine($"{ours.Count} numbers written to {output}, and QuestPDF's to {questOutput}");
     return 0;
 }
 
-static void Add(JsonArray entries, string name, string unit, double value, string? range, string extra)
+static JsonObject Entry(string name, string unit, double value, string? range, string? extra)
 {
     JsonObject entry = new JsonObject
     {
         ["name"] = name,
         ["unit"] = unit,
         ["value"] = Math.Round(value, 3),
-        ["extra"] = extra,
     };
+
+    if (extra is not null)
+        entry["extra"] = extra;
 
     if (range is not null)
         entry["range"] = range;
 
-    entries.Add((JsonNode)entry);
+    return entry;
 }
 
-static int Compare(string currentFile, string baselineFile, string output)
+static int Compare(string numbersFile, string questFile, string baselineFile, string mainOutput, string questOutput)
 {
-    JsonArray current = JsonNode.Parse(File.ReadAllText(currentFile))!.AsArray();
+    List<(string Name, string Unit, double Value)> ours = Read(numbersFile);
+    Dictionary<string, double> quest = ours.Count == 0 ? [] : Read(questFile).ToDictionary(entry => entry.Name, entry => entry.Value);
     (Dictionary<string, double> main, string? commit) = Baseline(baselineFile);
+
+    // Where the measured source can be read, as of the pull request's commit, so its lines stay where they point.
+    string? source = Environment.GetEnvironmentVariable("BENCHMARK_SOURCE");
+
+    int status = AgainstMain(ours, main, commit, source, mainOutput);
+    AgainstQuest(ours, quest, source, questOutput);
+    return status;
+}
+
+static int AgainstMain(
+    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> main, string? commit, string? source, string output)
+{
     StringBuilder comment = new StringBuilder();
     List<string> over = [];
 
-    comment.AppendLine(Marker);
-    comment.AppendLine("### Benchmarks");
+    comment.AppendLine("<!-- benchmarks -->");
+    comment.AppendLine("### Benchmarks against main");
     comment.AppendLine();
 
     comment.AppendLine(commit is null
@@ -114,35 +142,13 @@ static int Compare(string currentFile, string baselineFile, string output)
           + "from one run to the next.");
 
     comment.AppendLine();
-    comment.AppendLine("| | main | this pull request | change | against the reference |");
-    comment.AppendLine("|---|---:|---:|---:|---|");
+    comment.AppendLine("| | main | this pull request | change |");
+    comment.AppendLine("|---|---:|---:|---:|");
 
-    // Where the measured source can be read, as of the pull request's commit, so its lines stay where they point.
-    string? source = Environment.GetEnvironmentVariable("BENCHMARK_SOURCE");
-
-    foreach (JsonNode? entry in current)
+    foreach ((string name, string unit, double value) in ours)
     {
-        string name = (string)entry!["name"]!;
-        string unit = (string)entry["unit"]!;
-        double value = (double)entry["value"]!;
-        string reference = (string?)entry["extra"] ?? string.Empty;
         string before = "—";
         string change = "—";
-        string label = name;
-
-        // The document, or the parallel benchmark, links to the code that makes it, and the reference to its own.
-        int split = name.IndexOf(" · ", StringComparison.Ordinal);
-
-        if (source is not null && split > 0)
-        {
-            (string? ours, string? theirs) = Sources(source, name[..split]);
-
-            if (ours is not null)
-                label = $"[{name[..split]}]({ours}){name[split..]}";
-
-            if (theirs is not null && reference.StartsWith("reference ", StringComparison.Ordinal))
-                reference = $"[reference]({theirs}){reference["reference".Length..]}";
-        }
 
         if (main.TryGetValue(name, out double previous) && previous > 0)
         {
@@ -160,7 +166,12 @@ static int Compare(string currentFile, string baselineFile, string output)
             }
         }
 
-        comment.AppendLine($"| {label} | {before} | {Number(value)} {unit} | {change} | {reference} |");
+        // The document, or the parallel benchmark, links to the code that makes it.
+        (string document, string metric) = Split(name);
+        string? code = source is null ? null : Sources(source, document).Ours;
+        string label = code is null ? name : $"[{document}]({code}){metric}";
+
+        comment.AppendLine($"| {label} | {before} | {Number(value)} {unit} | {change} |");
     }
 
     if (over.Count > 0)
@@ -174,13 +185,68 @@ static int Compare(string currentFile, string baselineFile, string output)
     return over.Count == 0 ? 0 : 1;
 }
 
-// The code that makes a document, in this library and in the reference: its case in each library's documents, or,
-// for the parallel benchmark, each library's benchmark method.
+static void AgainstQuest(
+    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string? source, string output)
+{
+    StringBuilder comment = new StringBuilder();
+
+    comment.AppendLine("<!-- benchmarks-questpdf -->");
+    comment.AppendLine("### Benchmarks against QuestPDF");
+    comment.AppendLine();
+    comment.AppendLine("Both libraries make the same documents in the same run. For each figure smaller is better; the "
+        + "difference is how much smaller (−) or larger (+) Rustaveli.Pdf's figure is than QuestPDF's.");
+
+    // A table for each document, in the order it was measured, with a column for each of its figures.
+    foreach (IGrouping<string, (string Name, string Unit, double Value)> document in ours.GroupBy(entry => Split(entry.Name).Document))
+    {
+        (string? mine, string? theirs) = source is null ? (null, null) : Sources(source, document.Key);
+        List<(string Name, string Unit, double Value)> figures = [.. document];
+
+        comment.AppendLine();
+        comment.AppendLine($"#### {document.Key}");
+        comment.AppendLine();
+        comment.AppendLine($"| | {string.Join(" | ", figures.Select(figure => Capitalised(Split(figure.Name).Metric[3..])))} |");
+        comment.AppendLine($"|---|{string.Concat(figures.Select(_ => "---:|"))}");
+        comment.AppendLine($"| {Linked("Rustaveli.Pdf", mine)} | {string.Join(" | ", figures.Select(figure => $"{Number(figure.Value)} {figure.Unit}"))} |");
+        comment.AppendLine($"| {Linked("QuestPDF", theirs)} | {string.Join(" | ", figures.Select(figure => Theirs(figure, quest)))} |");
+        comment.AppendLine($"| Difference | {string.Join(" | ", figures.Select(figure => Difference(figure, quest)))} |");
+    }
+
+    File.WriteAllText(output, comment.ToString());
+    Console.WriteLine(comment.ToString());
+}
+
+static string Theirs((string Name, string Unit, double Value) figure, Dictionary<string, double> quest) =>
+    quest.TryGetValue(figure.Name, out double value) ? $"{Number(value)} {figure.Unit}" : "—";
+
+static string Difference((string Name, string Unit, double Value) figure, Dictionary<string, double> quest) =>
+    quest.TryGetValue(figure.Name, out double value) && value > 0 ? Percent(figure.Value, value) : "—";
+
+static string Linked(string text, string? address) => address is null ? text : $"[{text}]({address})";
+
+static string Capitalised(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
+
+// "Invoice · time" as its document, "Invoice", and its figure, " · time".
+static (string Document, string Metric) Split(string name)
+{
+    int split = name.IndexOf(" · ", StringComparison.Ordinal);
+    return split < 0 ? (name, string.Empty) : (name[..split], name[split..]);
+}
+
+static List<(string Name, string Unit, double Value)> Read(string file) =>
+    File.Exists(file)
+        ? JsonNode.Parse(File.ReadAllText(file))!.AsArray()
+            .Select(entry => ((string)entry!["name"]!, (string)entry["unit"]!, (double)entry["value"]!))
+            .ToList()
+        : [];
+
+// The code that makes a document, in this library and in QuestPDF: its case in each library's documents, or, for the
+// parallel benchmark, each library's benchmark method.
 static (string? Ours, string? Theirs) Sources(string source, string document)
 {
     const string Folder = "benchmarks/Rustaveli.Pdf.Benchmarks/";
 
-    return document == "Eight documents in parallel"
+    return document == Parallel
         ? (Link(source, Folder + "ParallelBenchmarks.cs", "public int RustaveliParallel("),
            Link(source, Folder + "ParallelBenchmarks.cs", "public int QuestPdfParallel("))
         : (Link(source, Folder + "RustaveliDocuments.cs", $"case DocumentKind.{document}:"),
@@ -234,8 +300,9 @@ static (Dictionary<string, double> Values, string? Commit) Baseline(string file)
     return (values, (string?)last["commit"]?["id"]);
 }
 
-static string Against(double ours, double theirs, string unit) =>
-    $"reference {Number(theirs)} {unit}, {(ours / theirs).ToString("0.00", CultureInfo.InvariantCulture)}×";
+// How much smaller (−) or larger (+) ours is than theirs, to the whole percent.
+static string Percent(double ours, double theirs) =>
+    ((ours - theirs) / theirs).ToString("+0%;−0%;0%", CultureInfo.InvariantCulture);
 
 static string Number(double value) =>
     value.ToString(value >= 100 ? "#,0" : value >= 10 ? "#,0.0" : "#,0.00", CultureInfo.InvariantCulture);
