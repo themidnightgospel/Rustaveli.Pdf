@@ -111,8 +111,9 @@ jobs:
 
       - name: Main's last numbers
         run: |
-          if git fetch --depth 1 origin benchmark-data; then
-            git show FETCH_HEAD:benchmarks/data.js > main.js || true
+          # Until main's first numbers are kept, there are none to read.
+          if git fetch --depth 1 origin benchmark-data && git cat-file -e FETCH_HEAD:benchmarks/data.js 2>/dev/null; then
+            git show FETCH_HEAD:benchmarks/data.js > main.js
           fi
 
       - name: Compare

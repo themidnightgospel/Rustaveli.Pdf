@@ -165,7 +165,12 @@ static (Dictionary<string, double> Values, string? Commit) Baseline(string file)
         return (values, null);
 
     string text = File.ReadAllText(file);
-    JsonNode data = JsonNode.Parse(text[text.IndexOf('{', StringComparison.Ordinal)..])!;
+    int start = text.IndexOf('{', StringComparison.Ordinal);
+
+    if (start < 0)
+        return (values, null);
+
+    JsonNode data = JsonNode.Parse(text[start..])!;
     JsonArray? runs = data["entries"]?["Rustaveli.Pdf"]?.AsArray();
 
     if (runs is null || runs.Count == 0)
