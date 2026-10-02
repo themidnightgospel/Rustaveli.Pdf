@@ -18,10 +18,16 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
     private readonly HashSet<int> _missing = [];
 
     /// <summary>
-    /// The width of each piece of text measured, in each style. Layout measures a document word by word, and most words
-    /// recur; a width depends on nothing but the text, the style and this measurer's faces, so each is shaped once.
+    /// The width of each piece of text measured, by style and then by text. Layout measures a document word by word,
+    /// and most words recur; a width depends on nothing but the text, the style and this measurer's faces, so each is
+    /// shaped once. Styles are compared by identity: they are made once and shared by every run set in them, and
+    /// comparing two by their values on every word measured would cost what the width saves.
     /// </summary>
-    private readonly Dictionary<(string Text, TypeStyle Style), float> _widths = new Dictionary<(string Text, TypeStyle Style), float>(new ByTextAndStyle());
+    private readonly Dictionary<TypeStyle, Dictionary<string, float>> _widths =
+        new Dictionary<TypeStyle, Dictionary<string, float>>(new ByIdentity());
+
+    /// <summary>The style measured last and its widths: words come a line at a time, most of them in one style.</summary>
+    private (TypeStyle? Style, Dictionary<string, float>? Widths) _last;
 
     /// <summary>
     /// The characters measured that no face has, which are set as missing-glyph boxes. Layout measures every word it
@@ -53,7 +59,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
             Math.Max(0f, strikeWeight));
     }
 
-    public TypeMetrics GetMetrics(string text, TypeStyle style)
+    public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style)
     {
         TypeMetrics metrics = GetMetrics(style);
         OpenTypeFont primary = shaper.Resolve(style);
@@ -64,7 +70,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 
         float size = style.EffectivePointSize;
 
-        foreach (ShapedGlyph glyph in shaper.Measure(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in shaper.Measure(text, style))
         {
             if (ReferenceEquals(glyph.Face, primary))
                 continue;
@@ -83,11 +89,11 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
     }
 
     /// <summary>Whether <paramref name="primary"/> lacks a character of <paramref name="text"/> that is drawn.</summary>
-    private static bool FallsBack(OpenTypeFont primary, string text)
+    private static bool FallsBack(OpenTypeFont primary, ReadOnlySpan<char> text)
     {
         for (int index = 0; index < text.Length;)
         {
-            int codepoint = GraphemeBoundaries.CodepointAt(text.AsSpan(), index, out int length);
+            int codepoint = GraphemeBoundaries.CodepointAt(text, index, out int length);
 
             if (!primary.HasGlyph(codepoint) && !InvisibleCharacters.Contains(codepoint))
                 return true;
@@ -98,17 +104,29 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         return false;
     }
 
-    public float MeasureWidth(string text, TypeStyle style)
+    public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style)
     {
-        if (string.IsNullOrEmpty(text))
+        if (text.IsEmpty)
             return 0f;
 
-        if (_widths.TryGetValue((text, style), out float known))
-            return known;
+        Dictionary<string, float> widths = WidthsIn(style);
 
-        float width = 0f;
+#if NET
+        // Looked up by the characters themselves, so a word measured before costs no string.
+        Dictionary<string, float>.AlternateLookup<ReadOnlySpan<char>> known = widths.GetAlternateLookup<ReadOnlySpan<char>>();
 
-        foreach (ShapedGlyph glyph in shaper.Measure(text.AsSpan(), style))
+        if (known.TryGetValue(text, out float width))
+            return width;
+#else
+        string key = text.ToString();
+
+        if (widths.TryGetValue(key, out float width))
+            return width;
+#endif
+
+        width = 0f;
+
+        foreach (ShapedGlyph glyph in shaper.Measure(text, style))
         {
             width += Step(glyph);
 
@@ -117,21 +135,34 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         }
 
         width = Math.Max(0f, width);
-        _widths[(text, style)] = width;
+
+#if NET
+        known[text] = width;
+#else
+        widths[key] = width;
+#endif
+
         return width;
     }
 
-    /// <summary>
-    /// Text compared by its characters, a style by identity: styles are made once and shared by every run set in them,
-    /// and comparing two by their values on every word measured would cost what the width saves.
-    /// </summary>
-    private sealed class ByTextAndStyle : IEqualityComparer<(string Text, TypeStyle Style)>
+    private Dictionary<string, float> WidthsIn(TypeStyle style)
     {
-        public bool Equals((string Text, TypeStyle Style) x, (string Text, TypeStyle Style) y) =>
-            ReferenceEquals(x.Style, y.Style) && string.Equals(x.Text, y.Text, StringComparison.Ordinal);
+        if (ReferenceEquals(_last.Style, style))
+            return _last.Widths!;
 
-        public int GetHashCode((string Text, TypeStyle Style) key) =>
-            (StringComparer.Ordinal.GetHashCode(key.Text) * 31) + RuntimeHelpers.GetHashCode(key.Style);
+        if (!_widths.TryGetValue(style, out Dictionary<string, float>? widths))
+            _widths[style] = widths = new Dictionary<string, float>(StringComparer.Ordinal);
+
+        _last = (style, widths);
+        return widths;
+    }
+
+    /// <summary>A style compared by identity.</summary>
+    private sealed class ByIdentity : IEqualityComparer<TypeStyle>
+    {
+        public bool Equals(TypeStyle? x, TypeStyle? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(TypeStyle style) => RuntimeHelpers.GetHashCode(style);
     }
 
     /// <summary>Whether a character is drawn at all, so that a face without it shows a missing-glyph box.</summary>
@@ -141,9 +172,9 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
             UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.LineSeparator
             or UnicodeCategory.ParagraphSeparator or UnicodeCategory.Surrogate);
 
-    public int MeasureCharactersFitting(string text, TypeStyle style, float maxWidth)
+    public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth)
     {
-        if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+        if (text.IsEmpty || maxWidth <= 0)
             return 0;
 
         // The same sum MeasureWidth makes, stopped early, so a prefix this accepts measures within the width. It ends
@@ -152,9 +183,9 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         int cluster = 0;
         GraphemeBoundaries boundaries = default;
 
-        foreach (ShapedGlyph glyph in shaper.Measure(text.AsSpan(), style))
+        foreach (ShapedGlyph glyph in shaper.Measure(text, style))
         {
-            if (glyph.Length > 0 && boundaries.Begins(text.AsSpan(), glyph.Start, glyph.Length))
+            if (glyph.Length > 0 && boundaries.Begins(text, glyph.Start, glyph.Length))
                 cluster = glyph.Start;
 
             width += Step(glyph);
