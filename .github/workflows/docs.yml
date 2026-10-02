@@ -9,6 +9,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Built again once a merge's benchmarks have been added to their history, which the site serves.
+  workflow_run:
+    workflows: [Pre-merge checks]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -46,6 +51,14 @@ jobs:
       # Strict, as mkdocs.yml says: a broken link or a page left out of the navigation fails the build.
       - name: Build the pages
         run: mkdocs build --site-dir _site
+
+      # The history github-action-benchmark keeps on the benchmark-data branch: its charts and their numbers.
+      - name: Add the benchmark history
+        run: |
+          # Until main's first numbers are kept, the branch holds no history to serve.
+          if git fetch --depth 1 origin benchmark-data && git cat-file -e FETCH_HEAD:benchmarks 2>/dev/null; then
+            git archive FETCH_HEAD benchmarks | tar -x -C _site
+          fi
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
