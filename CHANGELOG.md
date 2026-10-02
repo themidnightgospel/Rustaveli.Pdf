@@ -38,8 +38,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 
 - Each word is shaped once per export when text is measured, however often it recurs and however many times layout
   measures it: an 85-page report is laid out in about half the time.
-- Lines of text are built and drawn with fewer allocations: each line starts with room for as many words as the line
-  before it, and a line drawn as one piece holds no room for a piece per word.
+- Paragraphs no longer allocate an object and a string for every word and every space. A paragraph's lines are
+  built in pieces lent from one paragraph to the next, and each line keeps only the pieces it is drawn in; words are
+  measured where they lie in their text. The 85-page report allocates a quarter of what it did, and every document's
+  PDF is unchanged, byte for byte.
 
 **Tests**
 

@@ -31,6 +31,7 @@ internal sealed class TextBlock : Block
     // Not reset between passes: the lines of the same text at the same width do not change.
     private BuiltLines? _built;
 
+
     public List<Text.TextRun> Runs { get; } = [];
 
     /// <summary>
@@ -132,7 +133,7 @@ internal sealed class TextBlock : Block
             // Content that expands to fill whatever it is offered claims the paragraph's entire height, and the
             // line's own descender then pushes it past the page. Blaming the text height sends the reader looking
             // at point sizes, so name the real cause.
-            return Fit.Defer(lines[_completedLines].Runs.Any(run => run.Inline is not null)
+            return Fit.Defer(lines[_completedLines].HoldsInline
                 ? "A line holding an inline frame is taller than the space available. Content that expands to "
                   + "fill the space offered to it, such as Expand, claims the whole page "
                   + "when set inline — give it an explicit Height instead."
@@ -217,19 +218,18 @@ internal sealed class TextBlock : Block
     /// is not a paragraph worth spacing.
     /// </summary>
     private float SpacingBefore(TextLine line, int index) =>
-        line.StartsParagraph && line.Runs.Count > 0 && index > _completedLines ? SpaceBetweenParagraphs : 0f;
+        line.StartsParagraph && line.Count > 0 && index > _completedLines ? SpaceBetweenParagraphs : 0f;
 
     private void DrawLine(TextLine line, float availableWidth, float top, bool endsParagraph, RenderContext context)
     {
         // A pass that only counts pages draws nothing, so a line of text alone has nothing to do in it; a line
         // holding an inline frame is set as usual, for the frame may record where it lands.
-        if (context.Surface is CountingPageSink && !line.Runs.Exists(run => run.Inline is not null))
+        if (context.Surface is CountingPageSink && !line.HoldsInline)
             return;
 
-        ISurface surface = context.Surface;
         float baseline = top + line.Ascent;
         float indent = line.StartsParagraph ? EffectiveIndent(context.Planning) : 0f;
-        (int firstWord, int lastWord, int spaces) = line.WordGaps();
+        (int firstWord, int lastWord, int spaces) = Alignment == LineAlignment.Justified ? line.WordGaps() : (-1, -1, 0);
         bool stretched = Alignment == LineAlignment.Justified && !endsParagraph && spaces > 0;
 
         // A justified line fills the width from the start edge, the indent taking its place there, by sharing the
@@ -247,33 +247,51 @@ internal sealed class TextBlock : Block
 
         float x = Math.Max(0, offset);
 
-        // The line's own runs, unless the gaps between its words stretch: the line is built once and drawn on every
-        // page it may land on, so it is never changed.
-        List<TextRun> runs = line.Runs;
-
-        if (stretch > 0)
+        // A line joined when it was sealed is drawn as it is.
+        if (line.IsJoined)
         {
-            runs = new List<TextRun>(line.Runs.Count);
-
-            for (int index = 0; index < line.Runs.Count; index++)
-            {
-                // Whitespace before the first word or after the last is kept as typed; only the gaps between stretch.
-                TextRun run = line.Runs[index];
-
-                if (index > firstWord && index < lastWord && IsWordGap(run))
-                    run = run with { Width = run.Width + (stretch * run.Text.Length) };
-
-                runs.Add(run);
-            }
+            DrawPieces(line.Pieces, line, x, baseline, context);
+            return;
         }
 
-        if (line.Bidi is not null)
-            runs = InDisplayOrder(runs, line.Bidi, context.Measurer);
+        // Otherwise its pieces are gathered apart from it, since it is built once and drawn on every page it may land
+        // on, and never changed: the gaps between its words widened when it is stretched, and put in display order.
+        Piece[] borrowed = ArrayPool<Piece>.Shared.Rent(Math.Max(1, line.Count));
 
-        if (stretch <= 0)
-            runs = Coalesced(runs);
+        try
+        {
+            for (int index = 0; index < line.Count; index++)
+            {
+                // Whitespace before the first word or after the last is kept as typed; only the gaps between stretch.
+                Piece run = line[index];
 
-        foreach (TextRun run in runs)
+                if (stretch > 0 && index > firstWord && index < lastWord && IsWordGap(run))
+                    run = run with { Width = run.Width + (stretch * run.Length) };
+
+                borrowed[index] = run;
+            }
+
+            Piece[] runs = line.Bidi is null ? borrowed : InDisplayOrder(borrowed, line.Count, line.Bidi, context.Measurer);
+            int count = line.Bidi is null ? line.Count : runs.Length;
+
+            if (stretch <= 0)
+                count = Coalesce(runs, 0, count, 0);
+
+            DrawPieces(new ReadOnlySpan<Piece>(runs, 0, count), line, x, baseline, context);
+        }
+        finally
+        {
+            // Pieces hold their text and type, which a pooled array would otherwise keep alive.
+            ArrayPool<Piece>.Shared.Return(borrowed, clearArray: true);
+        }
+    }
+
+    /// <summary>Draws a line's pieces from left to right, the first at <paramref name="x"/>.</summary>
+    private void DrawPieces(ReadOnlySpan<Piece> runs, TextLine line, float x, float baseline, RenderContext context)
+    {
+        ISurface surface = context.Surface;
+
+        foreach (Piece run in runs)
         {
             // Linked words are a link in the structure, which the link itself belongs to: one for the whole span, however
             // many pieces it is drawn in — a word at a time when justified, and over several lines.
@@ -309,14 +327,14 @@ internal sealed class TextBlock : Block
                 surface.FillRectangle(new Offset(x, runTop), runSize, style.Highlight);
 
             ReadingDirection direction = run.RightToLeft ? ReadingDirection.RightToLeft : ReadingDirection.LeftToRight;
-            surface.ShowText(run.Text, new Offset(x, baseline + style.BaselineOffset), style, direction);
+            surface.ShowText(run.ToText(), new Offset(x, baseline + style.BaselineOffset), style, direction);
 
             if (style.HasUnderline || style.HasStrikeThrough || style.HasOverline)
                 DrawStrokes(surface, style, metrics, x, run.Width, baseline + style.BaselineOffset);
 
             // The spaces between linked words are no place to click, and would each be an annotation of their own; a link
             // on nothing but a space keeps its annotation, which is all there is of it.
-            bool clickable = !string.IsNullOrWhiteSpace(run.Text) || string.IsNullOrWhiteSpace(run.Source?.Text);
+            bool clickable = !IsBlank(run.Characters) || string.IsNullOrWhiteSpace(run.Source?.Text);
 
             if (run.Url is not null && clickable)
                 surface.LinkToUrl(run.Url, new Offset(x, runTop), runSize);
@@ -345,14 +363,16 @@ internal sealed class TextBlock : Block
     /// mirrored brackets. Text from outside the paragraph — an ellipsis — ends the line, which is its left end when
     /// the paragraph reads right to left.
     /// </summary>
-    private static List<TextRun> InDisplayOrder(List<TextRun> runs, BidiParagraph bidi, ITypeMeasurer measurer)
+    private static Piece[] InDisplayOrder(Piece[] runs, int count, BidiParagraph bidi, ITypeMeasurer measurer)
     {
         int start = int.MaxValue;
         int end = 0;
-        List<TextRun> outside = [];
+        List<Piece> outside = [];
 
-        foreach (TextRun run in runs)
+        for (int index = 0; index < count; index++)
         {
+            Piece run = runs[index];
+
             if (run.Offset < 0)
             {
                 outside.Add(run);
@@ -363,7 +383,7 @@ internal sealed class TextBlock : Block
             end = Math.Max(end, run.Offset + LogicalLength(run));
         }
 
-        List<TextRun> ordered = new List<TextRun>(runs.Count + 2);
+        List<Piece> ordered = new List<Piece>(count + 2);
 
         if (start < end)
         {
@@ -374,13 +394,14 @@ internal sealed class TextBlock : Block
             {
                 int first = ordered.Count;
 
-                foreach (TextRun run in runs)
+                for (int index = 0; index < count; index++)
                 {
+                    Piece run = runs[index];
                     int from = Math.Max(run.Offset, level.Start);
                     int to = Math.Min(run.Offset + LogicalLength(run), level.Start + level.Length);
 
                     if (run.Offset >= 0 && from < to)
-                        ordered.Add(Piece(run, from - run.Offset, to - from, level.IsRightToLeft, measurer));
+                        ordered.Add(Cut(run, from - run.Offset, to - from, level.IsRightToLeft, measurer));
                 }
 
                 if (level.IsRightToLeft)
@@ -393,61 +414,75 @@ internal sealed class TextBlock : Block
         else
             ordered.AddRange(outside);
 
-        return ordered;
+        return ordered.ToArray();
     }
 
     /// <summary>
-    /// Joins neighbouring runs set in the same type, carrying the same link, into one, so a line of words is drawn as
-    /// one piece of text rather than a word and a space at a time.
+    /// Joins neighbouring pieces set in the same type, carrying the same link, into one, so a line of words is drawn
+    /// as one piece of text rather than a word and a space at a time.
     /// </summary>
     /// <remarks>
     /// Drawing walks the joined text glyph by glyph exactly as measuring walked each piece, so the words land where
     /// the line was measured — with two exceptions, which are kept apart: tracking, which measuring each piece on its
     /// own leaves out between pieces, and a stretched space, whose width is more than its glyph's.
     /// </remarks>
-    private static List<TextRun> Coalesced(List<TextRun> runs)
+    /// <returns>
+    /// How many pieces the <paramref name="count"/> from <paramref name="from"/> join into, which are written from
+    /// <paramref name="to"/>, at or before where they were read.
+    /// </returns>
+    private static int Coalesce(Piece[] runs, int from, int count, int to)
     {
-        // Most lines join into a piece or two, so the pieces are counted first, to hold no room for a run each.
-        int pieces = runs.Count == 0 ? 0 : 1;
+        int written = to;
+        int start = from;
+        int stop = from + count;
 
-        for (int index = 1; index < runs.Count; index++)
-        {
-            if (!Joins(runs[index - 1], runs[index]))
-                pieces++;
-        }
-
-        if (pieces == runs.Count)
-            return runs;
-
-        List<TextRun> joined = new List<TextRun>(pieces);
-        int start = 0;
-
-        while (start < runs.Count)
+        while (start < stop)
         {
             int end = start + 1;
-            int length = runs[start].Text.Length;
+            int length = runs[start].Length;
             float width = runs[start].Width;
 
-            while (end < runs.Count && Joins(runs[start], runs[end]))
+            while (end < stop && Joins(runs[start], runs[end]))
             {
-                length += runs[end].Text.Length;
+                length += runs[end].Length;
                 width += runs[end].Width;
                 end++;
             }
 
-            // One allocation per piece drawn, however many words it joins.
-            joined.Add(end == start + 1 ? runs[start] : runs[start] with { Text = Concatenate(runs, start, end, length), Width = width });
+            // Only what this has read is written over: the pieces before start.
+            runs[written++] = end == start + 1 ? runs[start] : Joined(runs, start, end, length, width);
             start = end;
         }
 
-        return joined;
+        return written - to;
     }
 
     /// <summary>
-    /// The joined text, in logical order: pieces of right-to-left text arrive in display order, last read first, so
-    /// they are joined from the end.
+    /// The pieces from <paramref name="start"/> to <paramref name="end"/> as one: still a stretch of the text they
+    /// were cut from when they lie side by side in it, else the text joined. Pieces of right-to-left text arrive in
+    /// display order, last read first, so they are joined from the end, in the order they are read.
     /// </summary>
-    private static string Concatenate(List<TextRun> runs, int start, int end, int length)
+    private static Piece Joined(Piece[] runs, int start, int end, int length, float width)
+    {
+        Piece first = runs[start];
+        bool backwards = first.RightToLeft;
+        Piece reading = runs[backwards ? end - 1 : start];
+        bool adjacent = true;
+
+        for (int step = 1; step < end - start && adjacent; step++)
+        {
+            Piece previous = runs[backwards ? end - step : start + step - 1];
+            Piece next = runs[backwards ? end - 1 - step : start + step];
+            adjacent = ReferenceEquals(next.Text, reading.Text) && next.Start == previous.Start + previous.Length;
+        }
+
+        return adjacent
+            ? first with { Text = reading.Text, Start = reading.Start, Length = length, Width = width }
+            : first with { Text = Concatenate(runs, start, end, length), Start = 0, Length = length, Width = width };
+    }
+
+    /// <summary>The joined text of pieces that do not lie side by side, in the order they are read.</summary>
+    private static string Concatenate(Piece[] runs, int start, int end, int length)
     {
 #if NET
         // Written straight into the string, with no buffer to copy it from.
@@ -459,20 +494,20 @@ internal sealed class TextBlock : Block
 #endif
     }
 
-    private static void Join(Span<char> characters, List<TextRun> runs, int start, int end)
+    private static void Join(Span<char> characters, Piece[] runs, int start, int end)
     {
         int at = 0;
         bool backwards = runs[start].RightToLeft;
 
         for (int step = 0; step < end - start; step++)
         {
-            string text = runs[backwards ? end - 1 - step : start + step].Text;
-            text.AsSpan().CopyTo(characters.Slice(at));
+            ReadOnlySpan<char> text = runs[backwards ? end - 1 - step : start + step].Characters;
+            text.CopyTo(characters.Slice(at));
             at += text.Length;
         }
     }
 
-    private static bool Joins(TextRun previous, TextRun next) =>
+    private static bool Joins(Piece previous, Piece next) =>
         previous.Inline is null
         && next.Inline is null
         && previous.Style.Tracking == 0
@@ -481,27 +516,26 @@ internal sealed class TextBlock : Block
         && previous.Destination == next.Destination
         && previous.RightToLeft == next.RightToLeft;
 
-    /// <summary>How many code units a run takes in its paragraph's text: an inline frame stands in for one.</summary>
-    private static int LogicalLength(TextRun run) => run.Inline is null ? run.Text.Length : 1;
+    /// <summary>How many code units a piece takes in its paragraph's text: an inline frame stands in for one.</summary>
+    private static int LogicalLength(Piece run) => run.Inline is null ? run.Length : 1;
 
     /// <summary>
-    /// The part of a run from <paramref name="start"/> for <paramref name="length"/> code units, measured afresh unless
-    /// it is the whole run, and set right to left when <paramref name="rightToLeft"/>.
+    /// The part of a piece from <paramref name="start"/> for <paramref name="length"/> code units, measured afresh
+    /// unless it is the whole piece, and set right to left when <paramref name="rightToLeft"/>.
     /// </summary>
-    private static TextRun Piece(TextRun run, int start, int length, bool rightToLeft, ITypeMeasurer measurer)
+    private static Piece Cut(Piece run, int start, int length, bool rightToLeft, ITypeMeasurer measurer)
     {
         if (run.Inline is not null)
             return run;
 
-        bool whole = start == 0 && length == run.Text.Length;
-        string text = whole ? run.Text : run.Text.Substring(start, length);
+        bool whole = start == 0 && length == run.Length;
 
         // Spaces share a stretched width evenly; anything else is measured on its own.
         float width = whole
             ? run.Width
-            : IsWordGap(run) ? run.Width * length / run.Text.Length : measurer.MeasureWidth(text, run.Style);
+            : IsWordGap(run) ? run.Width * length / run.Length : measurer.MeasureWidth(run.Characters.Slice(start, length), run.Style);
 
-        return run with { Text = text, Width = width, RightToLeft = rightToLeft };
+        return run with { Start = run.Start + start, Length = length, Width = width, RightToLeft = rightToLeft };
     }
 
     /// <summary>
@@ -582,12 +616,67 @@ internal sealed class TextBlock : Block
         return lines;
     }
 
+    /// <summary>
+    /// Builds the lines word by word, at the end of pieces borrowed for the purpose, then seals them: each line's
+    /// pieces joined where drawing would join them, and all kept in one array, as long as they are and no longer.
+    /// </summary>
     private List<TextLine> BuildLinesAfresh(
         float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker)
     {
+        PieceList pieces = PieceList.Borrow();
+
+        try
+        {
+            List<TextLine> lines = WrapLines(pieces, maxWidth, maxHeight, blockStyle, context, out blocker);
+            Seal(lines, pieces);
+            return lines;
+        }
+        finally
+        {
+            PieceList.GiveBack(pieces);
+        }
+    }
+
+    /// <summary>
+    /// Gives the lines their pieces for good. A line is joined as drawing would join it, unless it is drawn word by
+    /// word — justified, to stretch the gaps between its words, or holding right-to-left text, to be cut where the
+    /// direction changes — and every line's pieces go into one array.
+    /// </summary>
+    private void Seal(List<TextLine> lines, PieceList pieces)
+    {
+        bool joins = Alignment != LineAlignment.Justified;
+        Piece[] items = pieces.Items;
+        int written = 0;
+
+        // Each line's pieces are moved down to follow the line before's, and never past where they were.
+        foreach (TextLine line in lines)
+        {
+            bool joined = joins && line.Bidi is null;
+            int count = joined ? Coalesce(items, line.First, line.Count, written) : Move(items, line.First, line.Count, written);
+            line.Place(written, count, joined);
+            written += count;
+        }
+
+        Piece[] kept = written == 0 ? [] : new Piece[written];
+        Array.Copy(items, kept, written);
+
+        foreach (TextLine line in lines)
+            line.Seal(kept);
+    }
+
+    /// <summary>Moves <paramref name="count"/> pieces from <paramref name="from"/> down to <paramref name="to"/>.</summary>
+    private static int Move(Piece[] pieces, int from, int count, int to)
+    {
+        Array.Copy(pieces, from, pieces, to, count);
+        return count;
+    }
+
+    private List<TextLine> WrapLines(
+        PieceList pieces, float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker)
+    {
         blocker = null;
         List<TextLine> lines = new List<TextLine>();
-        TextLine current = new TextLine();
+        TextLine current = new TextLine(pieces);
         float indent = EffectiveIndent(context);
 
         // Only reached before anything is drawn: from then on the pinned wrapping above is returned whole, which
@@ -600,15 +689,12 @@ internal sealed class TextBlock : Block
 
         void FlushLine(bool force)
         {
-            if (current.Runs.Count == 0 && !force)
+            if (current.Count == 0 && !force)
                 return;
 
             current.Finalise(context.Measurer, blockStyle);
             lines.Add(current);
-
-            // Lines of a paragraph hold about as many pieces as each other, so the next starts with room for as many
-            // as this one, rather than growing to it a piece at a time.
-            current = new TextLine(current.Runs.Count) { StartsParagraph = force };
+            current = new TextLine(pieces) { StartsParagraph = force };
         }
 
         // Each paragraph's text is gathered as its lines are built, every run recording where it falls in it, so the
@@ -642,7 +728,7 @@ internal sealed class TextBlock : Block
         // two costs no more than those lines, and an inline frame beyond them is never asked to plan. The limit is
         // passed once its last line is complete and something follows it.
         int limit = MaxLines ?? int.MaxValue;
-        bool PastLimit() => lines.Count > limit || (lines.Count == limit && current.Runs.Count > 0);
+        bool PastLimit() => lines.Count > limit || (lines.Count == limit && current.Count > 0);
 
         foreach (Text.TextRun span in Runs)
         {
@@ -674,14 +760,16 @@ internal sealed class TextBlock : Block
                     return lines;
                 }
 
-                if (current.Runs.Count > 0 && current.Width + inlinePlan.Size.Width > lineBudget + Extent.Epsilon)
+                if (current.Count > 0 && current.Width + inlinePlan.Size.Width > lineBudget + Extent.Epsilon)
                     FlushLine(force: false);
 
                 // The frame stands in the paragraph's text as an object replacement character: a neutral, so it takes
                 // the direction of the text around it.
                 paragraph.Append(ObjectReplacement);
-                current.Add(new TextRun(
+                current.Add(new Piece(
                     string.Empty,
+                    0,
+                    0,
                     span.ResolveStyle(blockStyle),
                     inlinePlan.Size.Width,
                     span,
@@ -710,12 +798,12 @@ internal sealed class TextBlock : Block
             if (isolate is char opening)
                 paragraph.Append(opening);
 
-            foreach (string segment in Tokenise(text))
+            foreach (Token token in Tokenise(text))
             {
                 if (PastLimit())
                     break;
 
-                if (segment == "\n")
+                if (token.EndsLine)
                 {
                     FlushLine(force: true);
                     CloseParagraph();
@@ -728,6 +816,7 @@ internal sealed class TextBlock : Block
                 }
 
                 int offset = paragraph.Length;
+                ReadOnlySpan<char> segment = text.AsSpan(token.Start, token.Length);
                 paragraph.Append(segment);
 
                 bool isWhitespace = IsBreakableWhitespace(segment[0]);
@@ -736,10 +825,11 @@ internal sealed class TextBlock : Block
 
                 // A soft hyphen ending the piece is shown if the line breaks at it, so the line keeps room for it.
                 float hyphen = EndsWithSoftHyphen(segment) ? context.Measurer.MeasureWidth(ShownHyphen, style) : 0f;
+                Piece piece = new Piece(text, token.Start, token.Length, style, segmentWidth, span, Offset: offset);
 
                 if (current.Width + segmentWidth + hyphen <= lineWidth + Extent.Epsilon)
                 {
-                    current.Add(new TextRun(segment, style, segmentWidth, span, Offset: offset));
+                    current.Add(piece);
                     continue;
                 }
 
@@ -753,11 +843,11 @@ internal sealed class TextBlock : Block
                 // Type that may break anywhere fills the line it is on before going on to the next.
                 if (style.BreaksAnywhere)
                 {
-                    BreakWord(segment, span, style, width, indent, context, offset, current, lines);
+                    BreakWord(piece, width, indent, context, current, lines);
                     continue;
                 }
 
-                if (current.Runs.Count > 0)
+                if (current.Count > 0)
                 {
                     ShowSoftHyphen(current, context.Measurer);
                     FlushLine(force: false);
@@ -769,11 +859,11 @@ internal sealed class TextBlock : Block
 
                 if (segmentWidth <= lineWidth + Extent.Epsilon)
                 {
-                    current.Add(new TextRun(segment, style, segmentWidth, span, Offset: offset));
+                    current.Add(piece);
                     continue;
                 }
 
-                BreakWord(segment, span, style, width, indent, context, offset, current, lines);
+                BreakWord(piece, width, indent, context, current, lines);
             }
 
             if (isolate is not null)
@@ -796,6 +886,9 @@ internal sealed class TextBlock : Block
         {
             lines.RemoveRange(limit, lines.Count - limit);
             TextLine last = lines[^1];
+
+            // The last line shown ends the pieces, so it can be cut back and the ellipsis set after it.
+            pieces.RemoveFrom(last.First + last.Count);
             EndWithEllipsis(last, last.StartsParagraph ? Math.Max(0, width - indent) : width, blockStyle, context);
             last.Finalise(context.Measurer, blockStyle);
         }
@@ -819,9 +912,9 @@ internal sealed class TextBlock : Block
         float ellipsisWidth = context.Measurer.MeasureWidth(Ellipsis, style);
         float room = budget - ellipsisWidth;
 
-        while (line.Runs.Count > 0)
+        while (line.Count > 0)
         {
-            TextRun last = line.Runs[^1];
+            Piece last = line.Last;
 
             if (!IsWordGap(last) && line.Width <= room + Extent.Epsilon)
                 break;
@@ -831,18 +924,18 @@ internal sealed class TextBlock : Block
             if (IsWordGap(last) || last.Inline is not null)
                 continue;
 
-            int fitting = context.Measurer.MeasureCharactersFitting(last.Text, last.Style, room - line.Width);
+            int fitting = context.Measurer.MeasureCharactersFitting(last.Characters, last.Style, room - line.Width);
 
             if (fitting > 0)
             {
-                string kept = last.Text[..fitting];
-                line.Add(last with { Text = kept, Width = context.Measurer.MeasureWidth(kept, last.Style) });
+                float kept = context.Measurer.MeasureWidth(last.Characters.Slice(0, fitting), last.Style);
+                line.Add(last with { Length = fitting, Width = kept });
                 break;
             }
         }
 
         if (Ellipsis.Length > 0)
-            line.Add(new TextRun(Ellipsis, style, ellipsisWidth, null));
+            line.Add(new Piece(Ellipsis, 0, Ellipsis.Length, style, ellipsisWidth, null));
     }
 
     /// <summary>
@@ -851,52 +944,48 @@ internal sealed class TextBlock : Block
     /// any line, and for every word in type that may break anywhere.
     /// </summary>
     private static void BreakWord(
-        string word,
-        Text.TextRun span,
-        TypeStyle style,
+        Piece word,
         float width,
         float indent,
         PlanContext context,
-        int offset,
         TextLine current,
         List<TextLine> lines)
     {
-        string remaining = word;
+        TypeStyle style = word.Style;
+        int taken = 0;
 
-        while (remaining.Length > 0)
+        while (taken < word.Length)
         {
             // Recomputed per chunk: the first may continue an indented paragraph opening, every one after it is a
             // fresh continuation entitled to the full width.
             float room = (current.StartsParagraph ? Math.Max(0, width - indent) : width) - current.Width;
+            ReadOnlySpan<char> remaining = word.Characters.Slice(taken);
 
             int fitting = context.Measurer.MeasureCharactersFitting(remaining, style, room);
 
             // Not a character fits beside what the line already holds, so the word goes on to the next.
-            if (fitting == 0 && current.Runs.Count > 0)
+            if (fitting == 0 && current.Count > 0)
             {
                 current.Finalise(context.Measurer, style);
-                lines.Add(new TextLine(current));
-                current.Clear();
+                lines.Add(current.Close());
                 continue;
             }
 
             // Always consume at least one character, otherwise an impossibly narrow box would loop forever — and a whole
             // one, as a reader sees it, so a surrogate pair or a letter and its accent are never split across lines.
             if (fitting == 0)
-                fitting = GraphemeBoundaries.FirstLength(remaining.AsSpan());
+                fitting = GraphemeBoundaries.FirstLength(remaining);
 
-            string chunk = remaining[..fitting];
-            float chunkWidth = context.Measurer.MeasureWidth(chunk, style);
+            float chunkWidth = context.Measurer.MeasureWidth(remaining.Slice(0, fitting), style);
 
-            current.Add(new TextRun(chunk, style, chunkWidth, span, Offset: offset + word.Length - remaining.Length));
-            remaining = remaining[fitting..];
+            current.Add(word with { Start = word.Start + taken, Length = fitting, Width = chunkWidth, Offset = word.Offset + taken });
+            taken += fitting;
 
-            if (remaining.Length == 0)
+            if (taken == word.Length)
                 break;
 
             current.Finalise(context.Measurer, style);
-            lines.Add(new TextLine(current));
-            current.Clear();
+            lines.Add(current.Close());
         }
     }
 
@@ -906,18 +995,18 @@ internal sealed class TextBlock : Block
     /// </summary>
     private static void ShowSoftHyphen(TextLine line, ITypeMeasurer measurer)
     {
-        TextRun last = line.Runs[^1];
+        Piece last = line.Last;
 
-        if (!EndsWithSoftHyphen(last.Text))
+        if (!EndsWithSoftHyphen(last.Characters))
             return;
 
-        // Replaced one for one, so the run still covers the same characters of its paragraph's text.
-        string shown = last.Text.Substring(0, last.Text.Length - 1) + ShownHyphen;
+        // Replaced one for one, so the piece still covers the same characters of its paragraph's text.
+        string shown = last.Characters.Slice(0, last.Length - 1).ToString() + ShownHyphen;
         line.RemoveLast();
-        line.Add(last with { Text = shown, Width = measurer.MeasureWidth(shown, last.Style) });
+        line.Add(last with { Text = shown, Start = 0, Length = shown.Length, Width = measurer.MeasureWidth(shown, last.Style) });
     }
 
-    private static bool EndsWithSoftHyphen(string text) =>
+    private static bool EndsWithSoftHyphen(ReadOnlySpan<char> text) =>
         text.Length > 0 && text[text.Length - 1] == InvisibleCharacters.SoftHyphen;
 
     /// <summary>What a soft hyphen at the end of a line is shown as: the hyphen every face has.</summary>
@@ -931,15 +1020,27 @@ internal sealed class TextBlock : Block
         char.IsWhiteSpace(character) && character is not ('\u00A0' or '\u202F' or '\u2007');
 
     /// <summary>A run of breakable whitespace between words, as the tokeniser splits it out.</summary>
-    private static bool IsWordGap(TextRun run) =>
-        run.Inline is null && run.Text.Length > 0 && IsAllBreakableWhitespace(run.Text);
+    private static bool IsWordGap(Piece run) =>
+        run.Inline is null && run.Length > 0 && IsAllBreakableWhitespace(run.Characters);
 
-    // A loop rather than LINQ: every run of every line passes through here, and an enumerator each would add up.
-    private static bool IsAllBreakableWhitespace(string text)
+    // A loop rather than LINQ: every piece of every line passes through here, and an enumerator each would add up.
+    private static bool IsAllBreakableWhitespace(ReadOnlySpan<char> text)
     {
         foreach (char character in text)
         {
             if (!IsBreakableWhitespace(character))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>Whether text is empty or nothing but whitespace, breakable or not.</summary>
+    private static bool IsBlank(ReadOnlySpan<char> text)
+    {
+        foreach (char character in text)
+        {
+            if (!char.IsWhiteSpace(character))
                 return false;
         }
 
@@ -953,6 +1054,12 @@ internal sealed class TextBlock : Block
     /// whitespace stays separate from the words for trimming and justification to find.
     /// </summary>
     private static Tokens Tokenise(string text) => new Tokens(text);
+
+    /// <summary>A stretch of a run's text, or a line ending, as <see cref="Tokenise"/> splits it.</summary>
+    /// <param name="Start">Where it starts in the text.</param>
+    /// <param name="Length">How many code units it takes.</param>
+    /// <param name="EndsLine">Whether it is the line ending, which takes no characters of its own.</param>
+    private readonly record struct Token(int Start, int Length, bool EndsLine);
 
     /// <summary>
     /// The pieces <see cref="Tokenise"/> splits text into, handed out one at a time as the line breaking rules find
@@ -979,10 +1086,9 @@ internal sealed class TextBlock : Block
         {
             _text = text;
             _breaks = LineBreaker.Enumerate(text.AsSpan());
-            Current = string.Empty;
         }
 
-        public string Current { get; private set; }
+        public Token Current { get; private set; }
 
         public readonly Tokens GetEnumerator() => this;
 
@@ -1005,7 +1111,7 @@ internal sealed class TextBlock : Block
 
                         if (_word > _start)
                         {
-                            Current = _text[_start.._word];
+                            Current = new Token(_start, _word - _start, EndsLine: false);
                             return true;
                         }
 
@@ -1016,8 +1122,7 @@ internal sealed class TextBlock : Block
 
                         if (_content > _word)
                         {
-                            // Most gaps between words are one space, which needs no string of its own each time.
-                            Current = _content - _word == 1 && _text[_word] == ' ' ? " " : _text[_word.._content];
+                            Current = new Token(_word, _content - _word, EndsLine: false);
                             return true;
                         }
 
@@ -1025,13 +1130,15 @@ internal sealed class TextBlock : Block
 
                     default:
                         _next = 0;
-                        _start = _end;
 
                         if (_endsLine)
                         {
-                            Current = "\n";
+                            Current = new Token(_content, _end - _content, EndsLine: true);
+                            _start = _end;
                             return true;
                         }
+
+                        _start = _end;
 
                         break;
                 }
@@ -1097,10 +1204,10 @@ internal sealed class TextBlock : Block
             _buffer![Length++] = character;
         }
 
-        public void Append(string text)
+        public void Append(ReadOnlySpan<char> text)
         {
             Reserve(text.Length);
-            text.AsSpan().CopyTo(_buffer.AsSpan(Length));
+            text.CopyTo(_buffer.AsSpan(Length));
             Length += text.Length;
         }
 
@@ -1137,21 +1244,27 @@ internal sealed class TextBlock : Block
         float Width, TypeStyle Style, ReadingDirection Direction, ITypeMeasurer Measurer, List<TextLine> Lines);
 
     /// <summary>
-    /// One piece of a line: either a stretch of text, or a frame sitting inline among the words.
+    /// One piece of a line: a stretch of text — a word, the space after it, part of a word broken across lines, an
+    /// ellipsis — or a frame sitting inline among the words.
     /// </summary>
     /// <remarks>
-    /// What the piece links to, and the inline frame and how it sits, are the run's it was cut from: it points there
-    /// rather than carrying copies, since a line holds a piece for every word and every space.
+    /// A paragraph holds a piece for every word and every space, so a piece is a value, kept with the rest of its
+    /// paragraph's, and it names the text it is cut from rather than holding a copy. What it links to, and the inline
+    /// frame and how it sits, are the run's it was cut from.
     /// </remarks>
-    /// <param name="Text">The text; empty for an inline frame.</param>
+    /// <param name="Text">The text it is cut from: its run's, or one of its own; empty for an inline frame.</param>
+    /// <param name="Start">Where it starts in <paramref name="Text"/>.</param>
+    /// <param name="Length">How many code units of <paramref name="Text"/> it takes.</param>
     /// <param name="Style">The type it is set in.</param>
     /// <param name="Width">Its width, stretched if the line is justified.</param>
     /// <param name="Source">The run it was cut from; none for an ellipsis, which comes from no run.</param>
     /// <param name="Height">An inline frame's height.</param>
     /// <param name="Offset">Where it falls in its paragraph's text; -1 for an ellipsis, from outside it.</param>
     /// <param name="RightToLeft">Whether it is set right to left.</param>
-    private sealed record TextRun(
+    private readonly record struct Piece(
         string Text,
+        int Start,
+        int Length,
         TypeStyle Style,
         float Width,
         Text.TextRun? Source,
@@ -1159,6 +1272,9 @@ internal sealed class TextBlock : Block
         int Offset = -1,
         bool RightToLeft = false)
     {
+        /// <summary>Its characters, where they lie in the text it is cut from.</summary>
+        public ReadOnlySpan<char> Characters => Text.AsSpan(Start, Length);
+
         public string? Url => Source?.Url;
 
         public string? Destination => Source?.Anchor;
@@ -1166,27 +1282,97 @@ internal sealed class TextBlock : Block
         public Block? Inline => Source?.Inline;
 
         public InlinePosition Position => Source?.InlinePosition ?? InlinePosition.OnBaseline;
+
+        /// <summary>Its characters as a string of their own, which the whole text it is cut from already is.</summary>
+        public string ToText() => Start == 0 && Length == Text.Length ? Text : Text.Substring(Start, Length);
     }
 
-    private sealed class TextLine
+    /// <summary>
+    /// A paragraph's pieces while its lines are built, a piece for every word and every space. One is kept for each
+    /// thread and lent to one paragraph at a time, so building lines costs no more than the lines it ends with; a
+    /// paragraph built while another is — one set in a frame inline in it — has one of its own.
+    /// </summary>
+    private sealed class PieceList
     {
-        public TextLine()
-            : this(0)
+        [ThreadStatic]
+        private static PieceList? _spare;
+
+        public Piece[] Items { get; private set; } = new Piece[256];
+
+        public int Count { get; private set; }
+
+        public static PieceList Borrow()
         {
+            PieceList pieces = _spare ?? new PieceList();
+            _spare = null;
+            return pieces;
         }
 
-        /// <summary>An empty line with room for as many pieces as it is expected to hold.</summary>
-        /// <param name="capacity">The pieces it is expected to hold.</param>
-        public TextLine(int capacity)
+        public static void GiveBack(PieceList pieces)
         {
-            Runs = new List<TextRun>(capacity);
+            // Pieces hold their text and type, which are not to be kept alive once the lines built from them are gone.
+            Array.Clear(pieces.Items, 0, pieces.Count);
+            pieces.Count = 0;
+
+            // A paragraph far longer than most would otherwise keep a buffer its size for as long as the thread lives.
+            if (pieces.Items.Length <= MostKept)
+                _spare = pieces;
+        }
+
+        public void Add(Piece piece)
+        {
+            if (Count == Items.Length)
+            {
+                Piece[] larger = new Piece[Items.Length * 2];
+                Array.Copy(Items, larger, Count);
+                Items = larger;
+            }
+
+            Items[Count++] = piece;
+        }
+
+        public void RemoveLast() => Items[--Count] = default;
+
+        /// <summary>Drops every piece from <paramref name="index"/> on.</summary>
+        public void RemoveFrom(int index)
+        {
+            Array.Clear(Items, index, Count - index);
+            Count = index;
+        }
+
+        private const int MostKept = 16384;
+    }
+
+    /// <summary>
+    /// A line: a stretch of its paragraph's pieces, which every line of the paragraph shares, and how the line
+    /// measures.
+    /// </summary>
+    /// <remarks>
+    /// A line is built at the end of the pieces — added to, its trailing spaces dropped, its last piece changed — and
+    /// the next starts where it ends, so only the last line built ever changes, and it changes at the end of them.
+    /// Once every line is built, each is sealed onto the paragraph's pieces for good, and never changes again.
+    /// </remarks>
+    private sealed class TextLine
+    {
+        /// <summary>The pieces the line is being built at the end of; none once it is sealed.</summary>
+        private PieceList? _building;
+
+        private Piece[] _pieces = [];
+
+        /// <summary>A line starting after every piece there is so far.</summary>
+        /// <param name="pieces">The pieces of the paragraph the line is part of.</param>
+        public TextLine(PieceList pieces)
+        {
+            _building = pieces;
+            First = pieces.Count;
         }
 
         /// <summary>Copies an in-progress line, used when a mid-word break commits the current content.</summary>
-        public TextLine(TextLine source)
-            : this(source.Runs.Count)
+        private TextLine(TextLine source)
         {
-            Runs.AddRange(source.Runs);
+            _building = source._building;
+            First = source.First;
+            Count = source.Count;
             StartsParagraph = source.StartsParagraph;
             Width = source.Width;
             Ascent = source.Ascent;
@@ -1196,7 +1382,36 @@ internal sealed class TextBlock : Block
             TypeDescent = source.TypeDescent;
         }
 
-        public List<TextRun> Runs { get; }
+        /// <summary>Where the line's pieces start among its paragraph's.</summary>
+        public int First { get; private set; }
+
+        /// <summary>How many pieces the line holds.</summary>
+        public int Count { get; private set; }
+
+        public Piece this[int index] => (_building?.Items ?? _pieces)[First + index];
+
+        public Piece Last => this[Count - 1];
+
+        /// <summary>The line's pieces, once it is sealed.</summary>
+        public ReadOnlySpan<Piece> Pieces => new ReadOnlySpan<Piece>(_pieces, First, Count);
+
+        /// <summary>Whether the line's pieces were joined when it was sealed, as drawing would join them.</summary>
+        public bool IsJoined { get; private set; }
+
+        /// <summary>Whether a frame sits inline on the line.</summary>
+        public bool HoldsInline
+        {
+            get
+            {
+                for (int index = 0; index < Count; index++)
+                {
+                    if (this[index].Inline is not null)
+                        return true;
+                }
+
+                return false;
+            }
+        }
 
         /// <summary>True when this line opens a paragraph, and so takes the first-line indent and spacing.</summary>
         public bool StartsParagraph { get; set; }
@@ -1225,49 +1440,87 @@ internal sealed class TextBlock : Block
         /// </summary>
         public BidiParagraph? Bidi { get; set; }
 
-        public void Add(TextRun run)
+        public void Add(Piece run)
         {
-            Runs.Add(run);
+            _building!.Add(run);
+            Count++;
             Width += run.Width;
         }
 
         public void RemoveLast()
         {
-            Width -= Runs[^1].Width;
-            Runs.RemoveAt(Runs.Count - 1);
+            Width -= Last.Width;
+            _building!.RemoveLast();
+            Count--;
+        }
+
+        /// <summary>Where the line's pieces are to be, once its paragraph's pieces have been moved together.</summary>
+        public void Place(int first, int count, bool joined)
+        {
+            First = first;
+            Count = count;
+            IsJoined = joined;
+        }
+
+        /// <summary>Gives the line the pieces it is placed among, for good.</summary>
+        public void Seal(Piece[] pieces)
+        {
+            _pieces = pieces;
+            _building = null;
         }
 
         /// <summary>
-        /// Whether a trailing run may be dropped: breakable whitespace only, and carrying no annotation.
+        /// The line so far, finished, as a line of its own: this one goes on after it, with none of its pieces, as a
+        /// continuation of the paragraph.
         /// </summary>
-        private static bool IsTrimmable(TextRun run) =>
+        public TextLine Close()
+        {
+            TextLine closed = new TextLine(this);
+            First += Count;
+            Count = 0;
+            Clear();
+            return closed;
+        }
+
+        /// <summary>
+        /// Whether a trailing piece may be dropped: breakable whitespace only, and carrying no annotation.
+        /// </summary>
+        private static bool IsTrimmable(Piece run) =>
             run.Url is null
             && run.Destination is null
             && IsWordGap(run);
 
         /// <summary>
-        /// Where the line's words begin and end, as run indexes, and how many spaces lie between them: the spaces
+        /// Where the line's words begin and end, as piece indexes, and how many spaces lie between them: the spaces
         /// justification widens. With no word on the line both indexes are -1.
         /// </summary>
         public (int First, int Last, int Spaces) WordGaps()
         {
-            int first = Runs.FindIndex(run => !IsWordGap(run));
-            int last = Runs.FindLastIndex(run => !IsWordGap(run));
+            int first = -1;
+            int last = -1;
+
+            for (int index = 0; index < Count; index++)
+            {
+                if (!IsWordGap(this[index]))
+                {
+                    first = first < 0 ? index : first;
+                    last = index;
+                }
+            }
+
             int spaces = 0;
 
             for (int index = first + 1; index < last; index++)
             {
-                if (IsWordGap(Runs[index]))
-                    spaces += Runs[index].Text.Length;
+                if (IsWordGap(this[index]))
+                    spaces += this[index].Length;
             }
 
             return (first, last, spaces);
         }
 
-        public void Clear()
+        private void Clear()
         {
-            Runs.Clear();
-
             // Anything left after a mid-word break continues the paragraph rather than opening one.
             StartsParagraph = false;
             Width = 0;
@@ -1291,7 +1544,7 @@ internal sealed class TextBlock : Block
             // The predicate has to agree with the tokeniser: a non-breaking space is deliberately treated as
             // ink, so trimming it would delete the very content it exists to hold together. A run carrying a
             // link is never trimmed either, since dropping it would silently remove the annotation with it.
-            while (Runs.Count > 0 && IsTrimmable(Runs[^1]))
+            while (Count > 0 && IsTrimmable(Last))
                 RemoveLast();
 
             Width = Math.Max(0, Width);
@@ -1301,7 +1554,7 @@ internal sealed class TextBlock : Block
             Descent = 0;
             Height = 0;
 
-            if (Runs.Count == 0)
+            if (Count == 0)
             {
                 TypeMetrics fallback = measurer.GetMetrics(fallbackStyle);
                 Ascent = TypeAscent = fallback.Ascent;
@@ -1310,14 +1563,16 @@ internal sealed class TextBlock : Block
                 return;
             }
 
-            foreach (TextRun run in Runs)
+            for (int index = 0; index < Count; index++)
             {
+                Piece run = this[index];
+
                 if (run.Inline is not null)
                     continue;
 
-                // As tall as the faces the run is set in, fallbacks included, so that a script the style's face lacks,
-                // drawn from a face that reaches further, does not overlap the lines around it.
-                TypeMetrics metrics = measurer.GetMetrics(run.Text, run.Style);
+                // As tall as the faces the piece is set in, fallbacks included, so that a script the style's face
+                // lacks, drawn from a face that reaches further, does not overlap the lines around it.
+                TypeMetrics metrics = measurer.GetMetrics(run.Characters, run.Style);
                 float offset = run.Style.BaselineOffset;
 
                 // A superscript has a negative offset and so extends the line upwards; a subscript downwards.
@@ -1330,8 +1585,10 @@ internal sealed class TextBlock : Block
             TypeDescent = Descent;
 
             // Frames go in once the type is known, since all but those on the baseline are placed against it.
-            foreach (TextRun run in Runs)
+            for (int index = 0; index < Count; index++)
             {
+                Piece run = this[index];
+
                 if (run.Inline is null)
                     continue;
 
@@ -1345,7 +1602,7 @@ internal sealed class TextBlock : Block
         }
 
         /// <summary>Where an inline frame's top sits, relative to the baseline; negative is above it.</summary>
-        public float InlineTop(TextRun run) => run.Position switch
+        public float InlineTop(Piece run) => run.Position switch
         {
             InlinePosition.BelowBaseline => 0f,
             InlinePosition.TextTop => -TypeAscent,
@@ -1355,7 +1612,7 @@ internal sealed class TextBlock : Block
         };
 
         /// <summary>How far an inline frame reaches above the baseline and below it; either may be negative.</summary>
-        private (float Above, float Below) Reach(TextRun run)
+        private (float Above, float Below) Reach(Piece run)
         {
             float top = InlineTop(run);
             return (-top, top + run.Height);
