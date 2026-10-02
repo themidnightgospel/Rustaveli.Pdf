@@ -64,7 +64,8 @@ RUSTAVELI_GUIDE_IMAGES=1 dotnet test tests/Rustaveli.Pdf.ConformanceTests --filt
 
 Every push to a pull request runs the build and the tests on Linux (with the coverage gate) and on Windows (on
 .NET 10 and .NET Framework 4.8). Once a pull request is ready, the `ready-to-merge` label runs the costlier checks
-too: macOS, and the benchmarks. A pull request merges when all of them are green. Mutation testing
+too: macOS, and the benchmarks, which post how the pull request's numbers compare with main's and fail it when an
+allocation or a file size grows by more than 10%. A pull request merges when all of them are green. Mutation testing
 is not run on pull requests; it runs over `main` every night, and a shard below its floor opens an issue. A pull
 request that touches the library is also fuzzed for a few minutes; [`fuzz/README.md`](fuzz/README.md) says how to
 replay an input it fails on.
