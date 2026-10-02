@@ -29,6 +29,22 @@ public class ParagraphFormattingTests
     }
 
     [Fact]
+    public void AParagraphOfFarMoreWordsThanMostIsSetWholeAndTheNextAfterIt()
+    {
+        // Lines are built in pieces lent from one thread to paragraph after paragraph; pieces grown for a paragraph
+        // this long are not lent again, and the paragraph after it is built in pieces of its own.
+        string words = string.Join(" ", Enumerable.Repeat("word", 9000));
+        TextBlock longest = Text(text => text.Run(words));
+        TextBlock next = Text(text => text.Run("after it"));
+
+        string set = string.Concat(LayoutHarness.Render(longest, new Extent(500, 10_000)).Texts.Select(text => text.Text));
+        string after = string.Concat(LayoutHarness.Render(next, new Extent(500, 100)).Texts.Select(text => text.Text));
+
+        Assert.Equal(words.Replace(" ", string.Empty), set.Replace(" ", string.Empty));
+        Assert.Equal("after it", after);
+    }
+
+    [Fact]
     public void DoesNotIndentWrappedContinuationLines()
     {
         // Only the opening line of a paragraph is indented; lines produced by wrapping are not.

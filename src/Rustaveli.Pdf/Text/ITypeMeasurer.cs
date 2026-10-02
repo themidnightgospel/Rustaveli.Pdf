@@ -16,14 +16,17 @@ internal interface ITypeMeasurer
     /// and below the baseline as any face the text falls back to for characters the style's face lacks, so a line
     /// holding such text is tall enough for it.
     /// </summary>
-    TypeMetrics GetMetrics(string text, TypeStyle style);
+    TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style);
 
-    /// <summary>Width of <paramref name="text" /> laid out on a single line, ignoring wrapping.</summary>
-    float MeasureWidth(string text, TypeStyle style);
+    /// <summary>
+    /// Width of <paramref name="text" /> laid out on a single line, ignoring wrapping. Text is taken as characters,
+    /// so a word is measured where it lies in its paragraph, without a string of its own.
+    /// </summary>
+    float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style);
 
     /// <summary>
     /// The number of characters from the start of <paramref name="text" /> that fit within
     /// <paramref name="maxWidth" />. Returns 0 when not even the first character fits.
     /// </summary>
-    int MeasureCharactersFitting(string text, TypeStyle style, float maxWidth);
+    int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth);
 }

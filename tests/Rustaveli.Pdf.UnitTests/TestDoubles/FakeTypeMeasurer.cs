@@ -38,14 +38,13 @@ internal sealed class FakeTypeMeasurer(bool placesStrokes = false) : ITypeMeasur
             : metrics;
     }
 
-    public TypeMetrics GetMetrics(string text, TypeStyle style) => GetMetrics(style);
+    public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => GetMetrics(style);
 
-    public float MeasureWidth(string text, TypeStyle style) =>
-        string.IsNullOrEmpty(text) ? 0f : text.Length * CharacterWidth(style);
+    public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) => text.Length * CharacterWidth(style);
 
-    public int MeasureCharactersFitting(string text, TypeStyle style, float maxWidth)
+    public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth)
     {
-        if (string.IsNullOrEmpty(text) || maxWidth <= 0)
+        if (text.IsEmpty || maxWidth <= 0)
             return 0;
 
         int fitting = (int)Math.Floor(maxWidth / CharacterWidth(style));
