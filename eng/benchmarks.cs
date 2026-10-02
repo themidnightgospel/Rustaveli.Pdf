@@ -3,6 +3,7 @@
 //
 //     dotnet run eng/benchmarks.cs -- results <results folder> <sizes.json> <numbers.json> <questpdf.json>
 //     dotnet run eng/benchmarks.cs -- compare <numbers.json> <questpdf.json> <main's data.js> <main.md> <questpdf.md>
+//     dotnet run eng/benchmarks.cs -- questpdf <numbers.json> <questpdf.json> <latest.md>
 //
 // results reads BenchmarkDotNet's JSON reports and the sizes the benchmark project writes with --sizes. It writes this
 // library's numbers — per document, its time, what it allocates and its file size, and the parallel time — in the form
@@ -13,6 +14,9 @@
 // the command fails when an allocation or a file size is more than 10% larger than main's
 // (docs/adr/0009-performance-targets.md); times are shown but not held to it, since hosted runners differ by 10–20%
 // from one run to the next. The second sets them against QuestPDF's from the same run, a table for each document.
+//
+// questpdf writes that second comparison alone, for main: the page the README's Benchmarks link opens, which each
+// merge's run replaces on the benchmark-data branch.
 
 using System.Globalization;
 using System.Text;
@@ -26,12 +30,14 @@ const string Parallel = "Eight documents in parallel";
 
 return args.Length == 5 && args[0] == "results" ? Results(args[1], args[2], args[3], args[4])
     : args.Length == 6 && args[0] == "compare" ? Compare(args[1], args[2], args[3], args[4], args[5])
+    : args.Length == 4 && args[0] == "questpdf" ? Latest(args[1], args[2], args[3])
     : Usage();
 
 static int Usage()
 {
     Console.Error.WriteLine("usage: results <results folder> <sizes.json> <numbers.json> <questpdf.json>");
     Console.Error.WriteLine("       compare <numbers.json> <questpdf.json> <data.js> <main.md> <questpdf.md>");
+    Console.Error.WriteLine("       questpdf <numbers.json> <questpdf.json> <latest.md>");
     return 2;
 }
 
@@ -121,7 +127,7 @@ static int Compare(string numbersFile, string questFile, string baselineFile, st
     string? source = Environment.GetEnvironmentVariable("BENCHMARK_SOURCE");
 
     int status = AgainstMain(ours, main, commit, source, mainOutput);
-    AgainstQuest(ours, quest, source, questOutput);
+    AgainstQuest(ours, quest, source, null, questOutput);
     return status;
 }
 
@@ -185,14 +191,40 @@ static int AgainstMain(
     return over.Count == 0 ? 0 : 1;
 }
 
+// The comparison with QuestPDF for main as of its latest merge, which source's commit is.
+static int Latest(string numbersFile, string questFile, string output)
+{
+    List<(string Name, string Unit, double Value)> ours = Read(numbersFile);
+    Dictionary<string, double> quest = Read(questFile).ToDictionary(entry => entry.Name, entry => entry.Value);
+    string? source = Environment.GetEnvironmentVariable("BENCHMARK_SOURCE");
+    string? commit = Environment.GetEnvironmentVariable("BENCHMARK_COMMIT");
+    string date = DateTime.UtcNow.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
+
+    string measured = source is null || commit is null
+        ? $"Measured on main on {date}."
+        : $"Measured on main as of its latest merge, [{commit[..Math.Min(7, commit.Length)]}]({source.Replace("/blob/", "/commit/", StringComparison.Ordinal)}), "
+          + $"on {date}, on a GitHub-hosted runner. Every merge's numbers are charted in the "
+          + "[benchmark history](https://themidnightgospel.github.io/Rustaveli.Pdf/benchmarks/).";
+
+    AgainstQuest(ours, quest, source, measured, output);
+    return 0;
+}
+
 static void AgainstQuest(
-    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string? source, string output)
+    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string? source, string? measured, string output)
 {
     StringBuilder comment = new StringBuilder();
 
     comment.AppendLine("<!-- benchmarks-questpdf -->");
     comment.AppendLine("### Benchmarks against QuestPDF");
     comment.AppendLine();
+
+    if (measured is not null)
+    {
+        comment.AppendLine(measured);
+        comment.AppendLine();
+    }
+
     comment.AppendLine("Both libraries make the same documents in the same run. For each figure smaller is better; the "
         + "difference is how much smaller (−) or larger (+) Rustaveli.Pdf's figure is than QuestPDF's.");
 
