@@ -96,8 +96,10 @@ jobs:
       # The comparison is posted on the pull request, and updated on every push.
       pull-requests: write
     steps:
+      # The pull request's own commit, which its table links into: the code each document is made by, line by line.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -118,6 +120,8 @@ jobs:
 
       - name: Compare
         id: compare
+        env:
+          BENCHMARK_SOURCE: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.event.pull_request.head.sha }}
         run: |
           status=0
           dotnet run eng/benchmarks.cs -- compare results/numbers.json main.js comment.md || status=$?
