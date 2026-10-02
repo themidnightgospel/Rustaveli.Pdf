@@ -25,6 +25,8 @@
   &nbsp;&nbsp;•&nbsp;&nbsp;
   <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/features/">Features</a>
   &nbsp;&nbsp;•&nbsp;&nbsp;
+  <a href="https://github.com/themidnightgospel/Rustaveli.Pdf/blob/benchmark-data/benchmarks/latest.md">Benchmarks</a>
+  &nbsp;&nbsp;•&nbsp;&nbsp;
   <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/api/">API reference</a>
   &nbsp;&nbsp;•&nbsp;&nbsp;
   <a href="https://github.com/themidnightgospel/Rustaveli.Pdf/blob/main/CHANGELOG.md">Changelog</a>
