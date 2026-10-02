@@ -55,7 +55,8 @@ jobs:
       # The history github-action-benchmark keeps on the benchmark-data branch: its charts and their numbers.
       - name: Add the benchmark history
         run: |
-          if git fetch --depth 1 origin benchmark-data; then
+          # Until main's first numbers are kept, the branch holds no history to serve.
+          if git fetch --depth 1 origin benchmark-data && git cat-file -e FETCH_HEAD:benchmarks 2>/dev/null; then
             git archive FETCH_HEAD benchmarks | tar -x -C _site
           fi
 
