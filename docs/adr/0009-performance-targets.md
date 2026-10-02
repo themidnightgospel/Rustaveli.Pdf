@@ -18,11 +18,15 @@ table, text-heavy and image-heavy documents — through both libraries. Targets,
 | File size | ≤ 1.1× |
 | Time to first page | ≤ 1.0× |
 
-A pull request that regresses any metric by more than 10% against the baseline recorded on main fails. The targets
-apply from the phase that lands the managed writer; before then the Skia backend's global lock makes the parallel
-target unreachable by construction.
+A pull request whose allocations or file sizes grow by more than 10% against the baseline recorded on main fails.
+Times are compared with main's too, and shown, but not held to it: hosted runners differ by 10–20% from one run to
+the next, so a time measured on one is no baseline for a time measured on another. The targets apply from the phase
+that lands the managed writer; before then the Skia backend's global lock makes the parallel target unreachable by
+construction.
 
 ## Consequences
 - Performance becomes a tested property, not a claim.
-- Benchmarks run only in the pre-merge checks, once a pull request is ready to merge, where their noise and cost
-  are acceptable.
+- Benchmarks run in the pre-merge checks, once a pull request is ready to merge, where their noise and cost are
+  acceptable, and on main after every merge, which records the baseline. github-action-benchmark keeps main's
+  numbers on the `benchmark-data` branch, and the documentation site charts their history; each pull request is
+  told how its numbers compare with main's last.
