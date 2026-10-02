@@ -117,6 +117,9 @@ static int Compare(string currentFile, string baselineFile, string output)
     comment.AppendLine("| | main | this pull request | change | against the reference |");
     comment.AppendLine("|---|---:|---:|---:|---|");
 
+    // Where the measured source can be read, as of the pull request's commit, so its lines stay where they point.
+    string? source = Environment.GetEnvironmentVariable("BENCHMARK_SOURCE");
+
     foreach (JsonNode? entry in current)
     {
         string name = (string)entry!["name"]!;
@@ -125,6 +128,21 @@ static int Compare(string currentFile, string baselineFile, string output)
         string reference = (string?)entry["extra"] ?? string.Empty;
         string before = "—";
         string change = "—";
+        string label = name;
+
+        // The document, or the parallel benchmark, links to the code that makes it, and the reference to its own.
+        int split = name.IndexOf(" · ", StringComparison.Ordinal);
+
+        if (source is not null && split > 0)
+        {
+            (string? ours, string? theirs) = Sources(source, name[..split]);
+
+            if (ours is not null)
+                label = $"[{name[..split]}]({ours}){name[split..]}";
+
+            if (theirs is not null && reference.StartsWith("reference ", StringComparison.Ordinal))
+                reference = $"[reference]({theirs}){reference["reference".Length..]}";
+        }
 
         if (main.TryGetValue(name, out double previous) && previous > 0)
         {
@@ -142,7 +160,7 @@ static int Compare(string currentFile, string baselineFile, string output)
             }
         }
 
-        comment.AppendLine($"| {name} | {before} | {Number(value)} {unit} | {change} | {reference} |");
+        comment.AppendLine($"| {label} | {before} | {Number(value)} {unit} | {change} | {reference} |");
     }
 
     if (over.Count > 0)
@@ -154,6 +172,38 @@ static int Compare(string currentFile, string baselineFile, string output)
     File.WriteAllText(output, comment.ToString());
     Console.WriteLine(comment.ToString());
     return over.Count == 0 ? 0 : 1;
+}
+
+// The code that makes a document, in this library and in the reference: its case in each library's documents, or,
+// for the parallel benchmark, each library's benchmark method.
+static (string? Ours, string? Theirs) Sources(string source, string document)
+{
+    const string Folder = "benchmarks/Rustaveli.Pdf.Benchmarks/";
+
+    return document == "Eight documents in parallel"
+        ? (Link(source, Folder + "ParallelBenchmarks.cs", "public int RustaveliParallel("),
+           Link(source, Folder + "ParallelBenchmarks.cs", "public int QuestPdfParallel("))
+        : (Link(source, Folder + "RustaveliDocuments.cs", $"case DocumentKind.{document}:"),
+           Link(source, Folder + "QuestDocuments.cs", $"case DocumentKind.{document}:"));
+}
+
+// The address of the line holding the marker; for a case, of every line to the break that ends it.
+static string? Link(string source, string path, string marker)
+{
+    if (!File.Exists(path))
+        return null;
+
+    string[] lines = File.ReadAllLines(path);
+    int start = Array.FindIndex(lines, line => line.Contains(marker, StringComparison.Ordinal));
+
+    if (start < 0)
+        return null;
+
+    int end = marker.StartsWith("case ", StringComparison.Ordinal)
+        ? Array.FindIndex(lines, start, line => line.Trim() == "break;")
+        : start;
+
+    return end > start ? $"{source}/{path}#L{start + 1}-L{end + 1}" : $"{source}/{path}#L{start + 1}";
 }
 
 // The last numbers github-action-benchmark kept, from its data.js: `window.BENCHMARK_DATA = { ... }`.
