@@ -3,7 +3,7 @@
 //
 //     dotnet run eng/benchmarks.cs -- results <results folder> <sizes.json> <numbers.json> <questpdf.json>
 //     dotnet run eng/benchmarks.cs -- compare <numbers.json> <questpdf.json> <main's data.js> <main.md> <questpdf.md>
-//     dotnet run eng/benchmarks.cs -- questpdf <numbers.json> <questpdf.json> <latest.md>
+//     dotnet run eng/benchmarks.cs -- questpdf <numbers.json> <questpdf.json> <latest.md> <light.svg> <dark.svg>
 //
 // results reads BenchmarkDotNet's JSON reports and the sizes the benchmark project writes with --sizes. It writes this
 // library's numbers — per document, its time, what it allocates and its file size, and the parallel time — in the form
@@ -24,20 +24,21 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Measured = (double Time, double Deviation, double Allocated);
+using Palette = (string Background, string Border, string Text, string Muted, string Accent, string Better, string Worse);
 
 const double Limit = 0.10;
 const string Parallel = "Eight documents in parallel";
 
 return args.Length == 5 && args[0] == "results" ? Results(args[1], args[2], args[3], args[4])
     : args.Length == 6 && args[0] == "compare" ? Compare(args[1], args[2], args[3], args[4], args[5])
-    : args.Length == 4 && args[0] == "questpdf" ? Latest(args[1], args[2], args[3])
+    : args.Length == 6 && args[0] == "questpdf" ? Latest(args[1], args[2], args[3], args[4], args[5])
     : Usage();
 
 static int Usage()
 {
     Console.Error.WriteLine("usage: results <results folder> <sizes.json> <numbers.json> <questpdf.json>");
     Console.Error.WriteLine("       compare <numbers.json> <questpdf.json> <data.js> <main.md> <questpdf.md>");
-    Console.Error.WriteLine("       questpdf <numbers.json> <questpdf.json> <latest.md>");
+    Console.Error.WriteLine("       questpdf <numbers.json> <questpdf.json> <latest.md> <light.svg> <dark.svg>");
     return 2;
 }
 
@@ -192,7 +193,7 @@ static int AgainstMain(
 }
 
 // The comparison with QuestPDF for main as of its latest merge, which source's commit is.
-static int Latest(string numbersFile, string questFile, string output)
+static int Latest(string numbersFile, string questFile, string output, string light, string dark)
 {
     List<(string Name, string Unit, double Value)> ours = Read(numbersFile);
     Dictionary<string, double> quest = Read(questFile).ToDictionary(entry => entry.Name, entry => entry.Value);
@@ -207,8 +208,101 @@ static int Latest(string numbersFile, string questFile, string output)
           + "[benchmark history](https://themidnightgospel.github.io/Rustaveli.Pdf/benchmarks/).";
 
     AgainstQuest(ours, quest, source, measured, output);
+
+    // The same comparison as a picture, which the README shows: GitHub can show another file's picture, not its text.
+    string at = commit is null ? "main" : $"main at {commit[..Math.Min(7, commit.Length)]}";
+    File.WriteAllText(light, Picture(ours, quest, $"Measured on {at}, {date}", Light()));
+    File.WriteAllText(dark, Picture(ours, quest, $"Measured on {at}, {date}", Dark()));
     return 0;
 }
+
+// A table drawn for each document: Rustaveli.Pdf's figures, QuestPDF's and the difference, in the colours of GitHub's
+// light or dark theme, in the system's own sans-serif, which is all a picture shown on GitHub can use.
+static string Picture(
+    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string measured, Palette colours)
+{
+    const int Width = 880;
+    const int Row = 26;
+    const int Gap = 10;
+    const int Top = 104;
+    string[] figures = ["time", "allocated", "file size"];
+    int[] columns = [520, 690, 856];
+
+    List<IGrouping<string, (string Name, string Unit, double Value)>> documents = [.. ours.GroupBy(entry => Split(entry.Name).Document)];
+    int height = Top + (documents.Count * 3 * Row) + ((documents.Count - 1) * Gap) + 46;
+    StringBuilder svg = new StringBuilder();
+
+    void Text(double x, double y, string text, string fill, string extra = "") =>
+        svg.AppendLine(CultureInfo.InvariantCulture, $"""  <text x="{x}" y="{y}" fill="{fill}"{extra}>{Escape(text)}</text>""");
+
+    svg.AppendLine(CultureInfo.InvariantCulture, $"""<svg xmlns="http://www.w3.org/2000/svg" width="{Width}" height="{height}" viewBox="0 0 {Width} {height}" role="img" aria-label="Rustaveli.Pdf against QuestPDF">""");
+    svg.AppendLine("""  <style>text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }</style>""");
+    svg.AppendLine(CultureInfo.InvariantCulture, $"""  <rect x="0.5" y="0.5" width="{Width - 1}" height="{height - 1}" rx="6" fill="{colours.Background}" stroke="{colours.Border}"/>""");
+    Text(24, 34, "Rustaveli.Pdf against QuestPDF", colours.Text, """ font-size="17" font-weight="600" """.TrimEnd());
+    Text(24, 56, $"{measured} · the same documents, made by both libraries in the same run", colours.Muted);
+
+    Text(24, 88, "Document", colours.Muted, """ font-weight="600" """.TrimEnd());
+
+    for (int column = 0; column < figures.Length; column++)
+        Text(columns[column], 88, Capitalised(figures[column]), colours.Muted, """ text-anchor="end" font-weight="600" """.TrimEnd());
+
+    svg.AppendLine(CultureInfo.InvariantCulture, $"""  <line x1="24" y1="96" x2="{Width - 24}" y2="96" stroke="{colours.Border}"/>""");
+
+    double y = Top + 18;
+
+    foreach (IGrouping<string, (string Name, string Unit, double Value)> document in documents)
+    {
+        Dictionary<string, (string Name, string Unit, double Value)> byFigure =
+            document.ToDictionary(entry => Split(entry.Name).Metric[3..], entry => entry);
+
+        // A name too long for its column goes on over the next row.
+        int wrap = document.Key.Length > 16 ? document.Key.LastIndexOf(' ', 16) : -1;
+
+        if (wrap > 0)
+        {
+            Text(24, y, document.Key[..wrap], colours.Text, """ font-weight="600" """.TrimEnd());
+            Text(24, y + Row, document.Key[(wrap + 1)..], colours.Text, """ font-weight="600" """.TrimEnd());
+        }
+        else
+        {
+            Text(24, y, document.Key, colours.Text, """ font-weight="600" """.TrimEnd());
+        }
+        Text(170, y, "Rustaveli.Pdf", colours.Accent, """ font-weight="600" """.TrimEnd());
+        Text(170, y + Row, "QuestPDF", colours.Text);
+        Text(170, y + (2 * Row), "Difference", colours.Muted);
+
+        for (int column = 0; column < figures.Length; column++)
+        {
+            if (!byFigure.TryGetValue(figures[column], out (string Name, string Unit, double Value) figure))
+            {
+                for (int line = 0; line < 3; line++)
+                    Text(columns[column], y + (line * Row), "—", colours.Muted, """ text-anchor="end" """.TrimEnd());
+
+                continue;
+            }
+
+            Text(columns[column], y, $"{Number(figure.Value)} {figure.Unit}", colours.Accent, """ text-anchor="end" font-weight="600" """.TrimEnd());
+
+            if (quest.TryGetValue(figure.Name, out double theirs) && theirs > 0)
+            {
+                string fill = figure.Value <= theirs ? colours.Better : colours.Worse;
+                Text(columns[column], y + Row, $"{Number(theirs)} {figure.Unit}", colours.Text, """ text-anchor="end" """.TrimEnd());
+                Text(columns[column], y + (2 * Row), Percent(figure.Value, theirs), fill, """ text-anchor="end" font-weight="600" """.TrimEnd());
+            }
+        }
+
+        y += (3 * Row) + Gap;
+
+        if (document != documents[^1])
+            svg.AppendLine(CultureInfo.InvariantCulture, $"""  <line x1="24" y1="{y - Row + 4 - (Gap / 2)}" x2="{Width - 24}" y2="{y - Row + 4 - (Gap / 2)}" stroke="{colours.Border}" stroke-dasharray="2 3"/>""");
+    }
+
+    Text(24, height - 18, "Smaller is better. Times come from a GitHub-hosted runner and vary by 10–20% between runs; allocations and file sizes do not.", colours.Muted, """ font-size="12" """.TrimEnd());
+    svg.AppendLine("</svg>");
+    return svg.ToString();
+}
+
+static string Escape(string text) => text.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
 
 static void AgainstQuest(
     List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string? source, string? measured, string output)
@@ -338,3 +432,9 @@ static string Percent(double ours, double theirs) =>
 
 static string Number(double value) =>
     value.ToString(value >= 100 ? "#,0" : value >= 10 ? "#,0.0" : "#,0.00", CultureInfo.InvariantCulture);
+
+// GitHub's light theme, the figures in the blue of the README's invoice.
+static Palette Light() => ("#ffffff", "#d1d9e0", "#1f2328", "#59636e", "#1565c0", "#1a7f37", "#cf222e");
+
+// GitHub's dark theme, the figures in the documentation site's gold.
+static Palette Dark() => ("#0d1117", "#3d444d", "#f0f6fc", "#9198a1", "#e6b34a", "#3fb950", "#f85149");

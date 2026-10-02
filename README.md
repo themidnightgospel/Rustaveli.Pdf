@@ -25,7 +25,7 @@
   &nbsp;&nbsp;•&nbsp;&nbsp;
   <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/features/">Features</a>
   &nbsp;&nbsp;•&nbsp;&nbsp;
-  <a href="https://github.com/themidnightgospel/Rustaveli.Pdf/blob/benchmark-data/benchmarks/latest.md">Benchmarks</a>
+  <a href="#benchmarks">Benchmarks</a>
   &nbsp;&nbsp;•&nbsp;&nbsp;
   <a href="https://themidnightgospel.github.io/Rustaveli.Pdf/api/">API reference</a>
   &nbsp;&nbsp;•&nbsp;&nbsp;
@@ -139,6 +139,20 @@ invoice.ExportPdf("invoice.pdf");
   code behind any frame.
 - **Small files** — fonts subset to the glyphs used and images embedded as encoded: an 85-page report in 171 KB
   ([performance](https://themidnightgospel.github.io/Rustaveli.Pdf/performance/)).
+
+<!-- github-only -->
+## Benchmarks
+
+Measured again on every merge to main ([as text](https://github.com/themidnightgospel/Rustaveli.Pdf/blob/benchmark-data/benchmarks/latest.md),
+[history](https://themidnightgospel.github.io/Rustaveli.Pdf/benchmarks/)):
+
+<a href="https://github.com/themidnightgospel/Rustaveli.Pdf/blob/benchmark-data/benchmarks/latest.md">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://themidnightgospel.github.io/Rustaveli.Pdf/benchmarks/latest-dark.svg">
+    <img src="https://themidnightgospel.github.io/Rustaveli.Pdf/benchmarks/latest-light.svg" alt="The latest benchmarks: time, allocations and file size for each document, made by both libraries">
+  </picture>
+</a>
+<!-- /github-only -->
 
 ## Documentation
 
