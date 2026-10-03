@@ -23,11 +23,16 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Xml.Linq;
 using Measured = (double Time, double Deviation, double Allocated);
 using Palette = (string Background, string Border, string Text, string Muted, string Accent, string Better, string Worse);
 
 const double Limit = 0.10;
 const string Parallel = "Eight documents in parallel";
+
+// Why the benchmarks measure that release and no later one: from 2026.6.0 on, QuestPDF's licence forbids using it to
+// develop or market a competing PDF library (docs/questpdf.md), so the pin in Directory.Packages.props never moves.
+const string ReferenceNote = "the last MIT-licensed release";
 
 return args.Length == 5 && args[0] == "results" ? Results(args[1], args[2], args[3], args[4])
     : args.Length == 6 && args[0] == "compare" ? Compare(args[1], args[2], args[3], args[4], args[5])
@@ -66,11 +71,12 @@ static int Results(string folder, string sizesFile, string output, string questO
     JsonObject sizes = JsonNode.Parse(File.ReadAllText(sizesFile))!.AsObject();
     JsonArray ours = [];
     JsonArray theirs = [];
+    string reference = Reference();
 
     void Both(string name, string unit, double mine, double quest, double? deviation)
     {
         string? range = deviation is double spread ? $"± {Number(spread)}" : null;
-        string against = $"QuestPDF {Number(quest)} {unit}, {Percent(mine, quest)}";
+        string against = $"{reference}: {Number(quest)} {unit}, {Percent(mine, quest)}";
         ours.Add((JsonNode)Entry(name, unit, mine, range, against));
         theirs.Add((JsonNode)Entry(name, unit, quest, null, null));
     }
@@ -231,14 +237,16 @@ static string Picture(
     List<IGrouping<string, (string Name, string Unit, double Value)>> documents = [.. ours.GroupBy(entry => Split(entry.Name).Document)];
     int height = Top + (documents.Count * 3 * Row) + ((documents.Count - 1) * Gap) + 46;
     StringBuilder svg = new StringBuilder();
+    string reference = Reference();
+    string title = $"Rustaveli.Pdf against {reference} ({ReferenceNote})";
 
     void Text(double x, double y, string text, string fill, string extra = "") =>
         svg.AppendLine(CultureInfo.InvariantCulture, $"""  <text x="{x}" y="{y}" fill="{fill}"{extra}>{Escape(text)}</text>""");
 
-    svg.AppendLine(CultureInfo.InvariantCulture, $"""<svg xmlns="http://www.w3.org/2000/svg" width="{Width}" height="{height}" viewBox="0 0 {Width} {height}" role="img" aria-label="Rustaveli.Pdf against QuestPDF">""");
+    svg.AppendLine(CultureInfo.InvariantCulture, $"""<svg xmlns="http://www.w3.org/2000/svg" width="{Width}" height="{height}" viewBox="0 0 {Width} {height}" role="img" aria-label="{Escape(title)}">""");
     svg.AppendLine("""  <style>text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }</style>""");
     svg.AppendLine(CultureInfo.InvariantCulture, $"""  <rect x="0.5" y="0.5" width="{Width - 1}" height="{height - 1}" rx="6" fill="{colours.Background}" stroke="{colours.Border}"/>""");
-    Text(24, 34, "Rustaveli.Pdf against QuestPDF", colours.Text, """ font-size="17" font-weight="600" """.TrimEnd());
+    Text(24, 34, title, colours.Text, """ font-size="17" font-weight="600" """.TrimEnd());
     Text(24, 56, $"{measured} · the same documents, made by both libraries in the same run", colours.Muted);
 
     Text(24, 88, "Document", colours.Muted, """ font-weight="600" """.TrimEnd());
@@ -268,7 +276,7 @@ static string Picture(
             Text(24, y, document.Key, colours.Text, """ font-weight="600" """.TrimEnd());
         }
         Text(170, y, "Rustaveli.Pdf", colours.Accent, """ font-weight="600" """.TrimEnd());
-        Text(170, y + Row, "QuestPDF", colours.Text);
+        Text(170, y + Row, reference, colours.Text);
         Text(170, y + (2 * Row), "Difference", colours.Muted);
 
         for (int column = 0; column < figures.Length; column++)
@@ -308,9 +316,10 @@ static void AgainstQuest(
     List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string? source, string? measured, string output)
 {
     StringBuilder comment = new StringBuilder();
+    string reference = Reference();
 
     comment.AppendLine("<!-- benchmarks-questpdf -->");
-    comment.AppendLine("### Benchmarks against QuestPDF");
+    comment.AppendLine($"### Benchmarks against {reference} ({ReferenceNote})");
     comment.AppendLine();
 
     if (measured is not null)
@@ -334,7 +343,7 @@ static void AgainstQuest(
         comment.AppendLine($"| | {string.Join(" | ", figures.Select(figure => Capitalised(Split(figure.Name).Metric[3..])))} |");
         comment.AppendLine($"|---|{string.Concat(figures.Select(_ => "---:|"))}");
         comment.AppendLine($"| {Linked("Rustaveli.Pdf", mine)} | {string.Join(" | ", figures.Select(figure => $"{Number(figure.Value)} {figure.Unit}"))} |");
-        comment.AppendLine($"| {Linked("QuestPDF", theirs)} | {string.Join(" | ", figures.Select(figure => Theirs(figure, quest)))} |");
+        comment.AppendLine($"| {Linked(reference, theirs)} | {string.Join(" | ", figures.Select(figure => Theirs(figure, quest)))} |");
         comment.AppendLine($"| Difference | {string.Join(" | ", figures.Select(figure => Difference(figure, quest)))} |");
     }
 
@@ -432,6 +441,28 @@ static string Percent(double ours, double theirs) =>
 
 static string Number(double value) =>
     value.ToString(value >= 100 ? "#,0" : value >= 10 ? "#,0.0" : "#,0.00", CultureInfo.InvariantCulture);
+
+// The release the benchmarks measure, "QuestPDF 2026.5.0", read from its pin, so a comparison always names the
+// release it was measured against.
+static string Reference()
+{
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    {
+        string packages = Path.Combine(directory.FullName, "Directory.Packages.props");
+
+        if (!File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")) || !File.Exists(packages))
+            continue;
+
+        string? version = XDocument.Load(packages).Descendants("PackageVersion")
+            .FirstOrDefault(package => (string?)package.Attribute("Include") == "QuestPDF")?.Attribute("Version")?.Value;
+
+        return version is null
+            ? throw new InvalidOperationException("Directory.Packages.props pins no version of QuestPDF.")
+            : $"QuestPDF {version}";
+    }
+
+    throw new InvalidOperationException("Run this from inside the Rustaveli.Pdf repository.");
+}
 
 // GitHub's light theme, the figures in the blue of the README's invoice.
 static Palette Light() => ("#ffffff", "#d1d9e0", "#1f2328", "#59636e", "#1565c0", "#1a7f37", "#cf222e");
