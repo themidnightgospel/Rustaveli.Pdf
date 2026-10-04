@@ -2,7 +2,7 @@
   <style>text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }</style>
   <rect x="0.5" y="0.5" width="879" height="579" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
   <text x="24" y="34" fill="#1f2328" font-size="17" font-weight="600">Rustaveli.Pdf against QuestPDF 2026.5.0 (the last MIT-licensed release)</text>
-  <text x="24" y="56" fill="#59636e">Measured on main at b05d1ff, 4 October 2026 · the same documents, made by both libraries in the same run</text>
+  <text x="24" y="56" fill="#59636e">Measured on main at c2a7790, 4 October 2026 · the same documents, made by both libraries in the same run</text>
   <text x="24" y="88" fill="#59636e" font-weight="600">Document</text>
   <text x="520" y="88" fill="#59636e" text-anchor="end" font-weight="600">Time</text>
   <text x="690" y="88" fill="#59636e" text-anchor="end" font-weight="600">Allocated</text>
@@ -12,9 +12,9 @@
   <text x="170" y="122" fill="#1565c0" font-weight="600">Rustaveli.Pdf</text>
   <text x="170" y="148" fill="#1f2328">QuestPDF 2026.5.0</text>
   <text x="170" y="174" fill="#59636e">Difference</text>
-  <text x="520" y="122" fill="#1565c0" text-anchor="end" font-weight="600">1.36 ms</text>
-  <text x="520" y="148" fill="#1f2328" text-anchor="end">3.74 ms</text>
-  <text x="520" y="174" fill="#1a7f37" text-anchor="end" font-weight="600">−64%</text>
+  <text x="520" y="122" fill="#1565c0" text-anchor="end" font-weight="600">1.39 ms</text>
+  <text x="520" y="148" fill="#1f2328" text-anchor="end">3.67 ms</text>
+  <text x="520" y="174" fill="#1a7f37" text-anchor="end" font-weight="600">−62%</text>
   <text x="690" y="122" fill="#1565c0" text-anchor="end" font-weight="600">160 KB</text>
   <text x="690" y="148" fill="#1f2328" text-anchor="end">359 KB</text>
   <text x="690" y="174" fill="#1a7f37" text-anchor="end" font-weight="600">−56%</text>
@@ -26,9 +26,9 @@
   <text x="170" y="210" fill="#1565c0" font-weight="600">Rustaveli.Pdf</text>
   <text x="170" y="236" fill="#1f2328">QuestPDF 2026.5.0</text>
   <text x="170" y="262" fill="#59636e">Difference</text>
-  <text x="520" y="210" fill="#1565c0" text-anchor="end" font-weight="600">206 ms</text>
-  <text x="520" y="236" fill="#1f2328" text-anchor="end">307 ms</text>
-  <text x="520" y="262" fill="#1a7f37" text-anchor="end" font-weight="600">−33%</text>
+  <text x="520" y="210" fill="#1565c0" text-anchor="end" font-weight="600">210 ms</text>
+  <text x="520" y="236" fill="#1f2328" text-anchor="end">296 ms</text>
+  <text x="520" y="262" fill="#1a7f37" text-anchor="end" font-weight="600">−29%</text>
   <text x="690" y="210" fill="#1565c0" text-anchor="end" font-weight="600">2,638 KB</text>
   <text x="690" y="236" fill="#1f2328" text-anchor="end">8,187 KB</text>
   <text x="690" y="262" fill="#1a7f37" text-anchor="end" font-weight="600">−68%</text>
@@ -40,11 +40,11 @@
   <text x="170" y="298" fill="#1565c0" font-weight="600">Rustaveli.Pdf</text>
   <text x="170" y="324" fill="#1f2328">QuestPDF 2026.5.0</text>
   <text x="170" y="350" fill="#59636e">Difference</text>
-  <text x="520" y="298" fill="#1565c0" text-anchor="end" font-weight="600">393 ms</text>
-  <text x="520" y="324" fill="#1f2328" text-anchor="end">1,062 ms</text>
-  <text x="520" y="350" fill="#1a7f37" text-anchor="end" font-weight="600">−63%</text>
+  <text x="520" y="298" fill="#1565c0" text-anchor="end" font-weight="600">394 ms</text>
+  <text x="520" y="324" fill="#1f2328" text-anchor="end">1,095 ms</text>
+  <text x="520" y="350" fill="#1a7f37" text-anchor="end" font-weight="600">−64%</text>
   <text x="690" y="298" fill="#1565c0" text-anchor="end" font-weight="600">27,135 KB</text>
-  <text x="690" y="324" fill="#1f2328" text-anchor="end">121,395 KB</text>
+  <text x="690" y="324" fill="#1f2328" text-anchor="end">121,368 KB</text>
   <text x="690" y="350" fill="#1a7f37" text-anchor="end" font-weight="600">−78%</text>
   <text x="856" y="298" fill="#1565c0" text-anchor="end" font-weight="600">568 KB</text>
   <text x="856" y="324" fill="#1f2328" text-anchor="end">1,042 KB</text>
@@ -54,8 +54,8 @@
   <text x="170" y="386" fill="#1565c0" font-weight="600">Rustaveli.Pdf</text>
   <text x="170" y="412" fill="#1f2328">QuestPDF 2026.5.0</text>
   <text x="170" y="438" fill="#59636e">Difference</text>
-  <text x="520" y="386" fill="#1565c0" text-anchor="end" font-weight="600">83.1 ms</text>
-  <text x="520" y="412" fill="#1f2328" text-anchor="end">1,643 ms</text>
+  <text x="520" y="386" fill="#1565c0" text-anchor="end" font-weight="600">80.1 ms</text>
+  <text x="520" y="412" fill="#1f2328" text-anchor="end">1,721 ms</text>
   <text x="520" y="438" fill="#1a7f37" text-anchor="end" font-weight="600">−95%</text>
   <text x="690" y="386" fill="#1565c0" text-anchor="end" font-weight="600">2,500 KB</text>
   <text x="690" y="412" fill="#1f2328" text-anchor="end">17,171 KB</text>
@@ -69,9 +69,9 @@
   <text x="170" y="474" fill="#1565c0" font-weight="600">Rustaveli.Pdf</text>
   <text x="170" y="500" fill="#1f2328">QuestPDF 2026.5.0</text>
   <text x="170" y="526" fill="#59636e">Difference</text>
-  <text x="520" y="474" fill="#1565c0" text-anchor="end" font-weight="600">4.78 ms</text>
-  <text x="520" y="500" fill="#1f2328" text-anchor="end">33.8 ms</text>
-  <text x="520" y="526" fill="#1a7f37" text-anchor="end" font-weight="600">−86%</text>
+  <text x="520" y="474" fill="#1565c0" text-anchor="end" font-weight="600">5.34 ms</text>
+  <text x="520" y="500" fill="#1f2328" text-anchor="end">29.7 ms</text>
+  <text x="520" y="526" fill="#1a7f37" text-anchor="end" font-weight="600">−82%</text>
   <text x="690" y="474" fill="#59636e" text-anchor="end">—</text>
   <text x="690" y="500" fill="#59636e" text-anchor="end">—</text>
   <text x="690" y="526" fill="#59636e" text-anchor="end">—</text>
