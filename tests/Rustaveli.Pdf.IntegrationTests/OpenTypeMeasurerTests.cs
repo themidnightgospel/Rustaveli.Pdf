@@ -148,6 +148,34 @@ public class OpenTypeMeasurerTests
     }
 
     [Fact]
+    public void ManyWordsMeasuredAgainInAnyOrderKeepTheirWidths()
+    {
+        // Enough words to grow the cache many times over.
+        string[] words = [.. Enumerable.Range(0, 3_000).Select(index => $"word{index * 7919 % 10_007}")];
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
+        float[] first = [.. words.Select(word => measurer.MeasureWidth(word, Style))];
+
+        float[] again = [.. words.Reverse().Select(word => measurer.MeasureWidth(word, Style))];
+        Array.Reverse(again);
+
+        OpenTypeMeasurer fresh = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
+        float[] measuredOnce = [.. words.Select(word => fresh.MeasureWidth(word, Style))];
+
+        Assert.Equal(first, again);
+        Assert.Equal(first, measuredOnce);
+    }
+
+    [Fact]
+    public void WordsThatShareTheirCharactersAreToldApart()
+    {
+        string[] words = ["type", "types", "typeset", "Type", "type ", " type", "typ", "epyt"];
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
+
+        foreach (string word in words.Concat(words))
+            Assert.Equal(new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper).MeasureWidth(word, Style), measurer.MeasureWidth(word, Style));
+    }
+
+    [Fact]
     public void WiderGlyphsAndHeavierWeightsMeasureWider()
     {
         Assert.True(Measurer.MeasureWidth("WWWW", Style) > Measurer.MeasureWidth("iiii", Style));
