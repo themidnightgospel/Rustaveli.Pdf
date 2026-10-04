@@ -733,11 +733,13 @@ internal sealed class TextBlock : Block
 
         void CloseParagraph()
         {
-            if (lines.Count > paragraphStart && paragraph.Length > 0)
+            // Text that is left to right throughout is drawn as it is stored, and needs nothing more. Most text is known
+            // to be so by its characters alone, without resolving anything.
+            if (lines.Count > paragraphStart && paragraph.Length > 0
+                && !BidiParagraph.ResolvesLeftToRight(paragraph.Text, direction))
             {
                 BidiParagraph bidi = new BidiParagraph(paragraph.Text, direction);
 
-                // Text that is left to right throughout is drawn as it is stored, and needs nothing more.
                 if (!bidi.IsLeftToRightOnly)
                 {
                     for (int index = paragraphStart; index < lines.Count; index++)
