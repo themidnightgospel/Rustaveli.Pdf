@@ -1,6 +1,11 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Rustaveli.Pdf.Fonts;
+#if NET
+using WidthTable = System.Collections.Generic.Dictionary<string, float>;
+#else
+using WidthTable = System.Collections.Generic.Dictionary<Rustaveli.Pdf.Text.WidthKey, float>;
+#endif
 
 namespace Rustaveli.Pdf.Text;
 
@@ -23,11 +28,15 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
     /// shaped once. Styles are compared by identity: they are made once and shared by every run set in them, and
     /// comparing two by their values on every word measured would cost what the width saves.
     /// </summary>
-    private readonly Dictionary<TypeStyle, Dictionary<string, float>> _widths =
-        new Dictionary<TypeStyle, Dictionary<string, float>>(new ByIdentity());
+    private readonly Dictionary<TypeStyle, WidthTable> _widths = new Dictionary<TypeStyle, WidthTable>(new ByIdentity());
 
     /// <summary>The style measured last and its widths: words come a line at a time, most of them in one style.</summary>
-    private (TypeStyle? Style, Dictionary<string, float>? Widths) _last;
+    private (TypeStyle? Style, WidthTable? Widths) _last;
+
+#if !NET
+    /// <summary>The characters of the text being looked up, so that a word measured before costs no string.</summary>
+    private char[] _probe = new char[32];
+#endif
 
     /// <summary>
     /// The characters measured that no face has, which are set as missing-glyph boxes. Layout measures every word it
@@ -109,18 +118,21 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         if (text.IsEmpty)
             return 0f;
 
-        Dictionary<string, float> widths = WidthsIn(style);
+        WidthTable widths = WidthsIn(style);
 
-#if NET
         // Looked up by the characters themselves, so a word measured before costs no string.
+#if NET
         Dictionary<string, float>.AlternateLookup<ReadOnlySpan<char>> known = widths.GetAlternateLookup<ReadOnlySpan<char>>();
 
         if (known.TryGetValue(text, out float width))
             return width;
 #else
-        string key = text.ToString();
+        if (_probe.Length < text.Length)
+            _probe = new char[Math.Max(text.Length, _probe.Length * 2)];
 
-        if (widths.TryGetValue(key, out float width))
+        text.CopyTo(_probe);
+
+        if (widths.TryGetValue(new WidthKey(_probe, text.Length), out float width))
             return width;
 #endif
 
@@ -139,19 +151,24 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 #if NET
         known[text] = width;
 #else
-        widths[key] = width;
+        widths[new WidthKey(text.ToString())] = width;
 #endif
 
         return width;
     }
 
-    private Dictionary<string, float> WidthsIn(TypeStyle style)
+    private WidthTable WidthsIn(TypeStyle style)
     {
         if (ReferenceEquals(_last.Style, style))
             return _last.Widths!;
 
-        if (!_widths.TryGetValue(style, out Dictionary<string, float>? widths))
-            _widths[style] = widths = new Dictionary<string, float>(StringComparer.Ordinal);
+#if NET
+        if (!_widths.TryGetValue(style, out WidthTable? widths))
+            _widths[style] = widths = new WidthTable(StringComparer.Ordinal);
+#else
+        if (!_widths.TryGetValue(style, out WidthTable? widths))
+            _widths[style] = widths = new WidthTable(WidthKey.Comparer);
+#endif
 
         _last = (style, widths);
         return widths;
