@@ -51,6 +51,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - `Text("…")` sets its paragraph directly instead of composing it through a handler, so a plain paragraph or table
   cell no longer allocates a delegate and two composers, and keeps room for exactly its one run. The 10,000-row table
   allocates 9% less, the invoice 5% and the report 3% less; every PDF is unchanged.
+- Building a paragraph's lines no longer starts a new line after the last one, only to leave it unused. The 10,000-row
+  table allocates 7% less, the report and the invoice 4% less; every PDF is unchanged.
 
 **Tests**
 
