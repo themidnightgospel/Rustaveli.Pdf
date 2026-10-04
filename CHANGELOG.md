@@ -44,6 +44,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   PDF is unchanged, byte for byte.
 - A paragraph without inline frames no longer allocates a list of its children every time layout starts a pass. The
   10,000-row table allocates 9% less, the report and the invoice about 6% less; every PDF is unchanged.
+- A paragraph keeps the lines of the last two widths it was set at, not one. Text set in a box of its own natural
+  width, such as flush-right text in a table cell, is planned at one width and drawn at another on every pass, and
+  built its lines afresh each time. The 10,000-row table allocates a quarter less and lays out about 15% faster, the
+  invoice allocates 13% less; every PDF is unchanged.
 
 **Tests**
 
