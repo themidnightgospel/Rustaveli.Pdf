@@ -29,7 +29,9 @@ internal sealed class FlowBlock : Block
     /// <summary>Where items shorter than their line sit within it.</summary>
     public VerticalPlacement LineAlignment { get; set; } = VerticalPlacement.Top;
 
-    public override IEnumerable<Block?> GetChildren() => Items;
+    internal override int ChildCount => Items.Count;
+
+    internal override Block? ChildAt(int index) => Items[index];
 
     protected override void ResetOwnState() => _placed = 0;
 

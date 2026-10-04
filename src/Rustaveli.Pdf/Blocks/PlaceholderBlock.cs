@@ -29,10 +29,9 @@ internal sealed class PlaceholderBlock : Block
     /// <summary>The words shown in the middle of the box, saying what will go there, if any.</summary>
     public string? Label => _label?.Runs[0].Text;
 
-    public override IEnumerable<Block?> GetChildren()
-    {
-        yield return _label;
-    }
+    internal override int ChildCount => 1;
+
+    internal override Block? ChildAt(int index) => index == 0 ? _label : throw new ArgumentOutOfRangeException(nameof(index));
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(availableSpace);

@@ -90,8 +90,11 @@ internal static class Typesetter
             int part = document.PartOf(index);
 
             // A section starts afresh: one merged in twice is set twice, the second time from its beginning.
-            foreach (Block? slot in section.Slots())
-                slot.ResetState();
+            section.RunningHeadSlot.ResetState();
+            section.BodySlot.ResetState();
+            section.RunningFootSlot.ResetState();
+            section.UnderlaySlot.ResetState();
+            section.OverlaySlot.ResetState();
 
             // Content composed as its pages are set names styles from the document it came from.
             using StyleSheet.Scope styles = document.StylesOf(part).Use();

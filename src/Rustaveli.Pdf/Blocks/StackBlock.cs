@@ -20,7 +20,9 @@ internal sealed class StackBlock : Block
     /// <summary>The room left between two items that both take some height.</summary>
     public float SpaceBetween { get; set; }
 
-    public override IEnumerable<Block?> GetChildren() => Items;
+    internal override int ChildCount => Items.Count;
+
+    internal override Block? ChildAt(int index) => Items[index];
 
     protected override void ResetOwnState() => _finished = 0;
 

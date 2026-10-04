@@ -58,21 +58,24 @@ internal sealed class TextBlock : Block
     /// <summary>What ends the last line when <see cref="MaxLines"/> cuts text short.</summary>
     public string Ellipsis { get; set; } = "…";
 
-    // Inline frames are children of this paragraph, so the engine can reset their state between passes. The engine
-    // asks on every pass and most paragraphs hold none, so those answer without allocating. Runs can change after
-    // composition, so the paragraph looks each time rather than remembering.
-    public override IEnumerable<Block?> GetChildren()
+    // Inline frames are children of this paragraph, so the engine can reset their state between passes. A paragraph
+    // holding one lists a child for every run, null for the runs of text; one holding none, as most hold, lists
+    // nothing. Runs can change after composition, so this looks each time rather than remembering.
+    internal override int ChildCount
     {
-        for (int index = 0; index < Runs.Count; index++)
+        get
         {
-            if (Runs[index].Inline != null)
+            for (int index = 0; index < Runs.Count; index++)
             {
-                return Runs.Select(span => span.Inline);
+                if (Runs[index].Inline != null)
+                    return Runs.Count;
             }
-        }
 
-        return Array.Empty<Block?>();
+            return 0;
+        }
     }
+
+    internal override Block? ChildAt(int index) => Runs[index].Inline;
 
     /// <summary>
     /// The edge a line that is not stretched sits against, resolving start and end by the reading direction. A

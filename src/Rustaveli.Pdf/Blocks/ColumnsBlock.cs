@@ -47,7 +47,9 @@ internal sealed class ColumnsBlock : Block
 
     private bool OnGrid => GridColumns > 0;
 
-    public override IEnumerable<Block?> GetChildren() => Items;
+    internal override int ChildCount => Items.Count;
+
+    internal override Block? ChildAt(int index) => Items[index];
 
     protected override void ResetOwnState()
     {

@@ -28,11 +28,14 @@ internal sealed class FrameEdgesBlock : EnclosingBlock
 
     public string? Label => _label?.Runs[0].Text;
 
-    public override IEnumerable<Block?> GetChildren()
+    internal override int ChildCount => 2;
+
+    internal override Block? ChildAt(int index) => index switch
     {
-        yield return Child;
-        yield return _label;
-    }
+        0 => Child,
+        1 => _label,
+        _ => throw new ArgumentOutOfRangeException(nameof(index)),
+    };
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
