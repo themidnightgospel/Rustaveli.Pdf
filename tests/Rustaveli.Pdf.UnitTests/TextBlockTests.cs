@@ -971,6 +971,26 @@ public class TextBlockTests
         Assert.True(LayoutHarness.Plan(block, new Extent(500, 500)).IsNothing);
     }
 
+#if NET
+    [Fact]
+    public void BuildingAParagraphsLinesAllocatesWithinItsBudget()
+    {
+        // Allocation budget: planning a fresh three-line paragraph, with everything already warm. Lines are built for
+        // every paragraph on every pass, so a wasted object here is paid tens of thousands of times by a long table.
+        // When a change moves this on purpose, set the new figure and say why in the commit.
+        const long Budget = 592;
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
+        LayoutHarness.Plan(Text(text => text.Run("Warm up the shared buffers and every path the paragraph takes")), new Extent(90, 500), context);
+        TextBlock block = Text(text => text.Run("Words that wrap onto three lines"));
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        LayoutHarness.Plan(block, new Extent(90, 500), context);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Planning the paragraph allocated {allocated} bytes; its budget is {Budget}.");
+    }
+#endif
+
     [Fact]
     public void AParagraphWithoutInlineFramesHasNoChildren()
     {

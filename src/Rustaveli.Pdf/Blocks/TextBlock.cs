@@ -895,10 +895,9 @@ internal sealed class TextBlock : Block
                 paragraph.Append(PopDirectionalIsolate);
         }
 
-        FlushLine(force: false);
-
-        // A paragraph consisting solely of blank spans still occupies one line.
-        if (lines.Count == 0 && Runs.Count > 0)
+        // The last line is closed without starting another after it, as FlushLine would, since nothing follows. A
+        // paragraph consisting solely of blank spans still occupies one line.
+        if (current.Count > 0 || (lines.Count == 0 && Runs.Count > 0))
         {
             current.Finalise(context.Measurer, blockStyle);
             lines.Add(current);
