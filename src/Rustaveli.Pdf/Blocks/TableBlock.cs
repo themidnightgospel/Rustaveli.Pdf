@@ -78,19 +78,27 @@ internal sealed class TableBlock : Block
     /// <summary>
     /// The cells of one band found by the row they start in, so that drawing a page looks only at the rows on it.
     /// </summary>
-    private sealed class BandCells
+    internal sealed class BandCells
     {
         private readonly List<CellBlock> _cells;
 
-        /// <summary>For each row, the places in the band's list of the cells starting in it, in list order.</summary>
-        private readonly List<int>[] _rows;
+        /// <summary>
+        /// For a band listed out of row order, the places in its list of the cells starting in each row, in list order.
+        /// Null for a band in row order, as a body almost always is: the cells starting in any rows are then one run of
+        /// its list, found without an index.
+        /// </summary>
+        private readonly List<int>[]? _rows;
 
         private bool[]? _lastInColumns;
 
         public BandCells(List<CellBlock> cells)
         {
             _cells = cells;
-            _rows = new List<int>[cells.Count == 0 ? 0 : cells.Max(cell => cell.Row)];
+
+            if (InRowOrder(cells))
+                return;
+
+            _rows = new List<int>[cells.Max(cell => cell.Row)];
 
             for (int row = 0; row < _rows.Length; row++)
                 _rows[row] = [];
@@ -103,15 +111,51 @@ internal sealed class TableBlock : Block
         /// The places in the band's list of the cells starting in rows <paramref name="firstRow"/> to
         /// <paramref name="lastRow"/>, in list order, as a walk of the whole list would find them.
         /// </summary>
-        public List<int> Starting(int firstRow, int lastRow)
+        public BandPlaces Starting(int firstRow, int lastRow)
         {
+            if (_rows is null)
+            {
+                int start = FirstStartingAfter(firstRow - 1);
+                return new BandPlaces(null, start, Math.Max(0, FirstStartingAfter(lastRow) - start));
+            }
+
             List<int> places = [];
 
             for (int row = firstRow; row <= Math.Min(lastRow, _rows.Length); row++)
                 places.AddRange(_rows[row - 1]);
 
             places.Sort();
-            return places;
+            return new BandPlaces(places, 0, places.Count);
+        }
+
+        private static bool InRowOrder(List<CellBlock> cells)
+        {
+            for (int place = 1; place < cells.Count; place++)
+            {
+                if (cells[place].Row < cells[place - 1].Row)
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>In a band in row order, the place of the first cell starting below <paramref name="row"/>.</summary>
+        private int FirstStartingAfter(int row)
+        {
+            int low = 0;
+            int high = _cells.Count;
+
+            while (low < high)
+            {
+                int middle = low + ((high - low) / 2);
+
+                if (_cells[middle].Row <= row)
+                    low = middle + 1;
+                else
+                    high = middle;
+            }
+
+            return low;
         }
 
         public CellBlock this[int place] => _cells[place];
@@ -149,6 +193,27 @@ internal sealed class TableBlock : Block
             }
 
             return last;
+        }
+    }
+
+    /// <summary>
+    /// Places in a band's list, in order: a run of it for a band in row order, which takes nothing to hold, or a list
+    /// gathered from the rows' index for one that is not.
+    /// </summary>
+    internal readonly struct BandPlaces(List<int>? places, int start, int count)
+    {
+        public int Count => count;
+
+        public int this[int index] => places is null ? start + index : places[index];
+
+        public int[] ToArray()
+        {
+            int[] array = new int[count];
+
+            for (int index = 0; index < count; index++)
+                array[index] = this[index];
+
+            return array;
         }
     }
 
@@ -366,13 +431,14 @@ internal sealed class TableBlock : Block
         bool heads,
         bool extendLastCells = false)
     {
-        List<int> places = cells.Starting(firstRow, lastRow);
+        BandPlaces places = cells.Starting(firstRow, lastRow);
 
         if (group is not null)
-            TagCells(places.Select(place => cells[place]), group, heads, context.Tags);
+            TagCells(CellsAt(cells, places), group, heads, context.Tags);
 
-        foreach (int place in places)
+        for (int index = 0; index < places.Count; index++)
         {
+            int place = places[index];
             CellBlock cell = cells[place];
             StructureElement? element = null;
             _cellTags?.TryGetValue(cell, out element);
@@ -400,6 +466,12 @@ internal sealed class TableBlock : Block
             context.RenderAllotted(cell, cellSpace, Extent.Max.Height);
             context.Surface.MoveOrigin(offset.Reverse());
         }
+    }
+
+    private static IEnumerable<CellBlock> CellsAt(BandCells cells, BandPlaces places)
+    {
+        for (int index = 0; index < places.Count; index++)
+            yield return cells[places[index]];
     }
 
     /// <summary>

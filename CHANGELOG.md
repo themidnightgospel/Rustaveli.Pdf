@@ -66,6 +66,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   an iterator for every container: each lists its children by index. The 10,000-row table allocates 14% less, the
   invoice 7% and the report 6% less, and a reset of the report's tree takes less than half the time; every PDF is
   unchanged.
+- A table whose cells are listed in row order, as a body almost always is, finds each page's cells as one run of its
+  list instead of indexing every row and sorting what it gathers. The 10,000-row table allocates 10% less, and a
+  document kept after export holds 0.8 MB less of it; every PDF is unchanged.
 
 **Tests**
 
