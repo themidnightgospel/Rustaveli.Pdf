@@ -59,6 +59,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   10,000-row table takes about a fifth less processor time; every PDF is unchanged.
 - A paragraph whose characters are all left to right no longer resolves its directions to find that out: the
   10,000-row table allocates 5% less, the report and the invoice 2% less; every PDF is unchanged.
+- Placing a table's cells no longer records where each single-row cell went, which nothing looks up again: the
+  10,000-row table allocates 3.5% less, placing its 30,000 cells takes about 40% less time, and the record no longer
+  grows on the large object heap; every PDF is unchanged.
 
 **Tests**
 

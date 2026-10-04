@@ -67,7 +67,11 @@ internal static class CellPlacement
 
             cell.Row = row;
             cell.Column = column;
-            Occupy(occupied, cell);
+
+            // The cursor never returns to a slot it has passed, so only a cell reaching into rows below, where it has
+            // not been yet, needs recording; one that takes a single row would only grow the record.
+            if (cell.RowSpan > 1)
+                Occupy(occupied, cell);
 
             column += span;
 

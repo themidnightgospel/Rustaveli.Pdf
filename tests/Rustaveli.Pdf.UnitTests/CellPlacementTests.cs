@@ -276,4 +276,24 @@ public class CellPlacementTests
         Assert.Equal(new[] { (1, 1), (1, 2), (2, 1) }, Slots(table.Cells));
         Assert.Equal(new[] { (1, 1), (1, 2) }, Slots(table.FooterCells));
     }
+
+#if NET
+    [Fact]
+    public void PlacingCellsThatEachTakeOneRowKeepsNoRecordOfWhereTheyWent()
+    {
+        // Allocation budget: automatic cells are placed in order and the cursor never returns to a slot it has
+        // passed, so one that takes a single row needs no record. A table of 10,000 rows recorded all 30,000 of its
+        // slots, the record's arrays on the large object heap.
+        const long Budget = 1_024;
+        List<CellBlock> cells = [.. Enumerable.Range(0, 3_000).Select(_ => new CellBlock())];
+        CellPlacement.Apply(cells, columnCount: 3, band: "body");
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        CellPlacement.Apply(cells, columnCount: 3, band: "body");
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal((1_000, 3), (cells[^1].Row, cells[^1].Column));
+        Assert.True(allocated <= Budget, $"Placing 3,000 cells allocated {allocated:N0} bytes; its budget is {Budget:N0}.");
+    }
+#endif
 }
