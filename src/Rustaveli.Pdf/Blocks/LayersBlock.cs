@@ -11,7 +11,9 @@ internal sealed class LayersBlock : Block
     /// <summary>The layers, bottom first.</summary>
     public List<Layer> Layers { get; } = [];
 
-    public override IEnumerable<Block?> GetChildren() => Layers;
+    internal override int ChildCount => Layers.Count;
+
+    internal override Block? ChildAt(int index) => Layers[index];
 
     /// <summary>The base layer's plan; without one, the layers take no room.</summary>
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>

@@ -62,6 +62,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Placing a table's cells no longer records where each single-row cell went, which nothing looks up again: the
   10,000-row table allocates 3.5% less, placing its 30,000 cells takes about 40% less time, and the record no longer
   grows on the large object heap; every PDF is unchanged.
+- Resetting the tree of blocks before each layout pass, and the repeating bands on every page, no longer allocates
+  an iterator for every container: each lists its children by index. The 10,000-row table allocates 14% less, the
+  invoice 7% and the report 6% less, and a reset of the report's tree takes less than half the time; every PDF is
+  unchanged.
 
 **Tests**
 

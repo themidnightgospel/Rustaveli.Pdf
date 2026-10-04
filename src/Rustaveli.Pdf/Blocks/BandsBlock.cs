@@ -17,12 +17,15 @@ internal sealed class BandsBlock : Block
     /// <summary>The band drawn below the body on every page.</summary>
     public Frame Foot { get; } = new Frame();
 
-    public override IEnumerable<Block?> GetChildren()
+    internal override int ChildCount => 3;
+
+    internal override Block? ChildAt(int index) => index switch
     {
-        yield return Head;
-        yield return Body;
-        yield return Foot;
-    }
+        0 => Head,
+        1 => Body,
+        2 => Foot,
+        _ => throw new ArgumentOutOfRangeException(nameof(index)),
+    };
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Arrange(availableSpace, context).Outcome;

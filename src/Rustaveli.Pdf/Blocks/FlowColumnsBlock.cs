@@ -29,11 +29,14 @@ internal sealed class FlowColumnsBlock : Block
     /// <summary>Drawn in each gutter between columns in use, as tall as the columns: a rule, say.</summary>
     public Block? Between { get; set; }
 
-    public override IEnumerable<Block?> GetChildren()
+    internal override int ChildCount => 2;
+
+    internal override Block? ChildAt(int index) => index switch
     {
-        yield return Story;
-        yield return Between;
-    }
+        0 => Story,
+        1 => Between,
+        _ => throw new ArgumentOutOfRangeException(nameof(index)),
+    };
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
