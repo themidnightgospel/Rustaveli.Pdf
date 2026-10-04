@@ -1,5 +1,6 @@
 using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Layout;
+using Rustaveli.Pdf.Text;
 
 namespace Rustaveli.Pdf;
 
@@ -25,7 +26,14 @@ public static class FrameContent
     /// Adds a paragraph of plain text, styled only by the style it inherits from around it: the same as a paragraph of
     /// one run of <paramref name="text"/> with nothing set on it.
     /// </summary>
-    public static void Text(this IFrame parent, string text) => parent.Text(paragraph => paragraph.Run(text));
+    public static void Text(this IFrame parent, string text)
+    {
+        // Set directly rather than composed: thousands of table cells are plain text, and composing each would
+        // allocate a handler, a composer and a run builder only to add one run, and a list with room for four.
+        TextBlock block = FrameAttachment.Attach(parent, new TextBlock());
+        block.Runs.Capacity = 1;
+        block.Runs.Add(new TextRun { Text = text });
+    }
 
     /// <summary>Adds an image scaled according to <paramref name="fit" />.</summary>
     public static void Image(this IFrame parent, IImage image, ImageFitting fit = ImageFitting.FitWidth)
