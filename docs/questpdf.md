@@ -22,7 +22,8 @@ code, its names and its documentation — is. Rustaveli.Pdf's expression is its 
   coined by QuestPDF appears in this library; only plain words such as `Table` or `Width` may be shared.
 - **Its own architecture.** A managed PDF writer with no native dependencies, fonts subset and text shaped in managed
   code, layout drawn through a single surface, options given per export rather than set globally.
-- **Its own implementation**, written independently — see [the clean-room rewrite](#the-clean-room-rewrite) below.
+- **Its own implementation**, checked line by line against QuestPDF's source — see
+  [the clean-room rewrite](#the-clean-room-rewrite) below.
 
 ## What QuestPDF is used for here
 
@@ -72,17 +73,24 @@ interface blocks draw through, and some of the composers and their documentation
 writer, fonts, text shaping, images, SVG, colour, encryption, tagging, existing-file operations, the preview and the
 raster output — was found to be independent.
 
-Everything the audit found was rewritten under a clean-room process:
+This library is built with an AI coding agent, so the rewrite was run with AI sessions in the two roles of a clean
+room. Everything the audit found was rewritten in four steps:
 
-1. **Audit.** Reviewers who read QuestPDF's source listed each part of this library that followed it, and wrote a
+1. **Audit.** Sessions that read QuestPDF's source listed each part of this library that followed it, and wrote a
    specification of what that part must do — its behaviour, in prose, with no code and no structure taken from
    either library.
-2. **Rewrite.** Developers who did not see QuestPDF's source, or the code being replaced, wrote each part anew from
-   those specifications and the project's own tests. The code being replaced was removed before they began.
+2. **Rewrite.** Separate sessions, given neither QuestPDF's source nor the code being replaced, wrote each part anew
+   from those specifications and the project's own tests. The code being replaced was removed before they began.
 3. **Verification.** A second audit compared every rewritten part with all three QuestPDF releases: 45 parts, every
    one an independent expression, none still following QuestPDF's.
 4. **Vocabulary.** Comments, names and tests across the rest of the codebase were brought into the library's own
    vocabulary.
+
+One difference from a clean room run by people matters. The model behind those sessions may have seen QuestPDF's
+public source during its training. The rewriting sessions were not given that source, but they cannot be shown never
+to have seen it, as a person in a clean room can. So the rewrite rests on the verification audit, which compared the
+result with QuestPDF's source, and the code before it on the MIT terms of the QuestPDF releases involved
+([below](#licensing-of-the-earlier-code)).
 
 The rewrite landed in [#55](https://github.com/themidnightgospel/Rustaveli.Pdf/pull/55) and
 [#56](https://github.com/themidnightgospel/Rustaveli.Pdf/pull/56). Every test that held the library's behaviour before
