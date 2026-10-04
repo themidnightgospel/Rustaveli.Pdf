@@ -1023,4 +1023,51 @@ public class TextBlockTests
         {
         }
     }
+
+    [Fact]
+    public void LinesBuiltAtTheTwoLastWidthsAreReusedAndTheOlderOneIsBuiltAgain()
+    {
+        CountingMeasurer measurer = new CountingMeasurer();
+        PlanContext context = new PlanContext(measurer, new Pagination());
+        TextBlock block = Text(text => text.Run("Words that wrap differently at each of the widths they are set at"));
+        Fit wide = LayoutHarness.Plan(block, new Extent(200, 500), context);
+        Fit narrow = LayoutHarness.Plan(block, new Extent(90, 500), context);
+        int built = measurer.Measures;
+
+        // Planned at the room it is offered and drawn at its natural width, as flush-right text in a cell is: both
+        // widths come back without measuring a word again.
+        Approximately.Equal(wide.Size, LayoutHarness.Plan(block, new Extent(200, 500), context).Size);
+        Approximately.Equal(narrow.Size, LayoutHarness.Plan(block, new Extent(90, 500), context).Size);
+        Assert.Equal(built, measurer.Measures);
+
+        // A third width replaces the one used longer ago, so the 200-point lines are built again and the 90-point
+        // lines are not.
+        LayoutHarness.Plan(block, new Extent(60, 500), context);
+        int afterThird = measurer.Measures;
+        LayoutHarness.Plan(block, new Extent(90, 500), context);
+        Assert.Equal(afterThird, measurer.Measures);
+        Approximately.Equal(wide.Size, LayoutHarness.Plan(block, new Extent(200, 500), context).Size);
+        Assert.True(measurer.Measures > afterThird);
+    }
+
+    /// <summary>The fake measurer, counting the words it is asked to measure.</summary>
+    private sealed class CountingMeasurer : ITypeMeasurer
+    {
+        private readonly FakeTypeMeasurer _inner = new FakeTypeMeasurer();
+
+        public int Measures { get; private set; }
+
+        public TypeMetrics GetMetrics(TypeStyle style) => _inner.GetMetrics(style);
+
+        public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => _inner.GetMetrics(text, style);
+
+        public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style)
+        {
+            Measures++;
+            return _inner.MeasureWidth(text, style);
+        }
+
+        public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
+            _inner.MeasureCharactersFitting(text, style, maxWidth);
+    }
 }
