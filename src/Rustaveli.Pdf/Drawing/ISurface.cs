@@ -90,9 +90,11 @@ internal interface ISurface
     /// <remarks>
     /// The text is given in logical order. A right-to-left run is shaped in that order and then set with its first
     /// character at the right, brackets and other mirrorable characters drawn mirrored. Empty text, a transparent
-    /// ink or a size of nothing draws nothing, and no text is drawn while a gradient is set.
+    /// ink or a size of nothing draws nothing, and no text is drawn while a gradient is set. The text is a slice of a
+    /// string, so a paragraph draws each piece without copying it; a surface that keeps it may, since strings never
+    /// change.
     /// </remarks>
-    void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction);
+    void ShowText(ReadOnlyMemory<char> text, Offset baseline, TypeStyle style, ReadingDirection direction);
 
     /// <summary>
     /// Paints <paramref name="image"/> to fill a box of <paramref name="size"/> whose top left is the current origin. A

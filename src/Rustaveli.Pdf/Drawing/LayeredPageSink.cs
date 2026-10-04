@@ -136,7 +136,7 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
     public void DrawShadow(Offset position, Extent size, Corners corners, Shadow shadow) =>
         Hold(surface => surface.DrawShadow(position, size, corners, shadow));
 
-    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction) =>
+    public void ShowText(ReadOnlyMemory<char> text, Offset baseline, TypeStyle style, ReadingDirection direction) =>
         Hold(surface => surface.ShowText(text, baseline, style, direction));
 
     public void PaintImage(IImage image, Extent size) => Hold(surface => surface.PaintImage(image, size));

@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Output;
 using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
