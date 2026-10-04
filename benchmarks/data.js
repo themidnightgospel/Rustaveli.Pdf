@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791135275056,
+  "lastUpdate": 1791137879600,
   "repoUrl": "https://github.com/themidnightgospel/Rustaveli.Pdf",
   "entries": {
     "Rustaveli.Pdf": [
@@ -1070,6 +1070,113 @@ window.BENCHMARK_DATA = {
             "range": "± 0.06",
             "unit": "ms",
             "extra": "QuestPDF 2026.5.0: 33.7 ms, −86%"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bubachelidze1@gmail.com",
+            "name": "Bitchiko Tchelidze",
+            "username": "themidnightgospel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "47d7ab2b9682801dd12e0a892b0e861384a08dfc",
+          "message": "Merge pull request #96 from themidnightgospel/perf/wraplines-last-line\n\nClose a paragraph's last line without starting another after it\n\nAssisted-by: AI agent",
+          "timestamp": "2026-10-04T22:14:13+04:00",
+          "tree_id": "694c3b55021fa3a8293d016907bbddba1adee270",
+          "url": "https://github.com/themidnightgospel/Rustaveli.Pdf/commit/47d7ab2b9682801dd12e0a892b0e861384a08dfc"
+        },
+        "date": 1791137878924,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Invoice · time",
+            "value": 1.393,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 3.50 ms, −60%"
+          },
+          {
+            "name": "Invoice · allocated",
+            "value": 207.51,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 359 KB, −42%"
+          },
+          {
+            "name": "Invoice · file size",
+            "value": 6.642,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 14.7 KB, −55%"
+          },
+          {
+            "name": "Report · time",
+            "value": 214.099,
+            "range": "± 0.59",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 300 ms, −29%"
+          },
+          {
+            "name": "Report · allocated",
+            "value": 3333.75,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 8,187 KB, −59%"
+          },
+          {
+            "name": "Report · file size",
+            "value": 171.695,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 950 KB, −82%"
+          },
+          {
+            "name": "LargeTable · time",
+            "value": 442.461,
+            "range": "± 1.2",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 954 ms, −54%"
+          },
+          {
+            "name": "LargeTable · allocated",
+            "value": 41105.008,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 121,372 KB, −66%"
+          },
+          {
+            "name": "LargeTable · file size",
+            "value": 568.252,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 1,042 KB, −45%"
+          },
+          {
+            "name": "Images · time",
+            "value": 83.406,
+            "range": "± 0.15",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1,679 ms, −95%"
+          },
+          {
+            "name": "Images · allocated",
+            "value": 3021.722,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 17,171 KB, −82%"
+          },
+          {
+            "name": "Images · file size",
+            "value": 138.802,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 3,498 KB, −96%"
+          },
+          {
+            "name": "Eight documents in parallel · time",
+            "value": 8.078,
+            "range": "± 0.08",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 26.1 ms, −69%"
           }
         ]
       }
