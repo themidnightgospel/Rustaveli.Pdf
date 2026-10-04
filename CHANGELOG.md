@@ -53,6 +53,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   allocates 9% less, the invoice 5% and the report 3% less; every PDF is unchanged.
 - Building a paragraph's lines no longer starts a new line after the last one, only to leave it unused. The 10,000-row
   table allocates 7% less, the report and the invoice 4% less; every PDF is unchanged.
+- `ExportPdf()` writes the file into pooled 64 KB chunks and copies it out once, instead of growing a buffer by
+  doubling it and copying the result: returning a file costs one copy of it, not about three, and no longer grows
+  arrays on the large object heap. The image page allocates 15% less, the report 13% and the invoice 9% less, and the
+  10,000-row table takes about a fifth less processor time; every PDF is unchanged.
 
 **Tests**
 
