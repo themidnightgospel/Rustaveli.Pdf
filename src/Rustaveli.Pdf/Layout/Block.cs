@@ -85,11 +85,26 @@ internal abstract class Block
     /// </summary>
     internal string? Source { get; } = SourceCapture.Current();
 
-    /// <summary>Direct children, used for tree traversal. Null entries are skipped by callers.</summary>
-    public virtual IEnumerable<Block?> GetChildren()
+    /// <summary>
+    /// Direct children, used for tree traversal, as <see cref="ChildCount"/> and <see cref="ChildAt"/> give them. Null
+    /// entries are empty slots, which callers skip.
+    /// </summary>
+    public IEnumerable<Block?> GetChildren()
     {
-        return Array.Empty<Block>();
+        int count = ChildCount;
+
+        for (int index = 0; index < count; index++)
+            yield return ChildAt(index);
     }
+
+    /// <summary>
+    /// How many direct children <see cref="ChildAt"/> answers for, empty slots included. A container answers through
+    /// these two rather than an iterator, so the engine walks the tree without allocating.
+    /// </summary>
+    internal virtual int ChildCount => 0;
+
+    /// <summary>The direct child at <paramref name="index"/>, from 0 to <see cref="ChildCount"/>; null for an empty slot.</summary>
+    internal virtual Block? ChildAt(int index) => throw new ArgumentOutOfRangeException(nameof(index));
 
     /// <summary>
     /// Clears state accumulated while drawing so the tree can be rendered again from the beginning.
@@ -148,9 +163,14 @@ internal abstract class Block
         {
             ResetOwnState();
         }
-        foreach (Block? child in GetChildren())
+
+        // Walked by index, which allocates nothing: the whole tree is reset before every pass, and the repeating bands
+        // on every page. The children are counted after the block's own reset, which can change them.
+        int count = ChildCount;
+
+        for (int index = 0; index < count; index++)
         {
-            child?.ResetState(includeDocumentProgress);
+            ChildAt(index)?.ResetState(includeDocumentProgress);
         }
     }
 

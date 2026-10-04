@@ -178,9 +178,17 @@ internal sealed class TableBlock : Block
     /// <summary>Rows repeated at the bottom of every page the table spans.</summary>
     public List<CellBlock> FooterCells { get; } = new List<CellBlock>();
 
-    public override IEnumerable<Block?> GetChildren()
+    internal override int ChildCount => Cells.Count + HeaderCells.Count + FooterCells.Count;
+
+    // Body cells, then header cells, then footer cells, as GetChildren lists them.
+    internal override Block? ChildAt(int index)
     {
-        return Cells.Concat(HeaderCells).Concat(FooterCells);
+        if (index < Cells.Count)
+            return Cells[index];
+
+        index -= Cells.Count;
+
+        return index < HeaderCells.Count ? HeaderCells[index] : FooterCells[index - HeaderCells.Count];
     }
 
     protected override void ResetOwnState()
