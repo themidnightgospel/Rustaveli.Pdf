@@ -19,10 +19,9 @@ internal sealed class LaterBlock : Block
     /// </summary>
     public bool Keep { get; init; }
 
-    public override IEnumerable<Block?> GetChildren()
-    {
-        yield return _content;
-    }
+    internal override int ChildCount => 1;
+
+    internal override Block? ChildAt(int index) => index == 0 ? _content : throw new ArgumentOutOfRangeException(nameof(index));
 
     /// <remarks>
     /// A new pass starts from the beginning. Content not kept is let go here too, so that each pass composes its own;

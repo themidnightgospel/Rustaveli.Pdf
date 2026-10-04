@@ -121,15 +121,6 @@ public sealed class Section
     /// <summary>The frame drawn above everything else on every page, across the whole sheet.</summary>
     public IFrame Overlay() => OverlaySlot;
 
-    internal IEnumerable<Block> Slots()
-    {
-        yield return RunningHeadSlot;
-        yield return BodySlot;
-        yield return RunningFootSlot;
-        yield return UnderlaySlot;
-        yield return OverlaySlot;
-    }
-
     /// <summary>
     /// <paramref name="size"/>, checked where it is set rather than when the pages are laid out: finite, at most the
     /// 14,400 points a PDF page may be each way, and greater than nothing unless <paramref name="allowNothing"/>.

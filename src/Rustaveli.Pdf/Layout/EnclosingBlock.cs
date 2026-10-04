@@ -18,10 +18,9 @@ internal abstract class EnclosingBlock : Block, IFrameSlot
     /// </summary>
     internal override bool Repeats => Child?.Repeats ?? false;
 
-    public override IEnumerable<Block?> GetChildren()
-    {
-        yield return Child;
-    }
+    internal override int ChildCount => 1;
+
+    internal override Block? ChildAt(int index) => index == 0 ? Child : throw new ArgumentOutOfRangeException(nameof(index));
 
     /// <summary>
     /// The child's plan for the same room. With no child the block is Complete and takes no room: an absent child is
