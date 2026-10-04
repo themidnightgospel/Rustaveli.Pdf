@@ -31,7 +31,7 @@
 
 | Free, for everyone | Fully featured | Plain .NET |
 |---|---|---|
-| MIT-licensed, for commercial and closed-source software. No revenue limits, keys or tiers. | Tables across pages, both text directions, complex scripts, PDF/A, PDF/UA, encryption and merging. | Managed code, no native dependencies. .NET 10 and .NET Standard 2.0 (.NET Framework 4.7.2 and later). |
+| MIT-licensed, for commercial and closed-source software, and it stays MIT. No revenue limits, keys or tiers. | Tables across pages, both text directions, complex scripts, PDF/A, PDF/UA, encryption and merging. | Managed code, no native dependencies. .NET 10 and .NET Standard 2.0 (.NET Framework 4.7.2 and later). |
 
 ## Quick start
 
@@ -181,6 +181,18 @@ Measured again on every merge to main ([as text](https://github.com/themidnightg
 - **Standards**: PDF/A-2 and A-3, tagged PDF and PDF/UA, AES-256, each checked by veraPDF and qpdf.
 - **Existing files**: merge, stamp, attach electronic invoices, protect and linearise.
 - **Live preview**: redraws as you edit, with an inspector that opens the code behind any frame.
+
+## About this project
+
+Rustaveli.Pdf sets out to give C# and .NET a complete PDF generation toolkit that is free for everyone, for good. It is
+MIT-licensed, and every future release will be too.
+
+It is built with an AI coding agent. A change is merged only after more than 10,000 tests pass, including veraPDF
+validation of PDF/A and PDF/UA output. The parsers are fuzzed every night, and every merge is benchmarked.
+
+QuestPDF's MIT-licensed releases are its reference: they inspired its design, and its tests and benchmarks compare
+against their output. [Rustaveli.Pdf and QuestPDF](https://themidnightgospel.github.io/Rustaveli.Pdf/questpdf/) tells
+the whole story, including the early code that followed QuestPDF too closely and was rewritten.
 
 ## Packages
 
