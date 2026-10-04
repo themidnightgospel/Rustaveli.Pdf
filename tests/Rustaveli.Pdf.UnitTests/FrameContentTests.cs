@@ -160,4 +160,53 @@ public class FrameContentTests
 
         Assert.Equal("parent", exception.ParamName);
     }
+
+    [Theory]
+    [InlineData("Plain words")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void PlainTextIsTheParagraphOfOneUnstyledRun(string? text)
+    {
+        Frame plain = new Frame();
+        Frame composed = new Frame();
+
+        plain.Text(text!);
+        composed.Text(paragraph => paragraph.Run(text!));
+
+        TextBlock block = Assert.IsType<TextBlock>(plain.Slot().Child);
+        TextBlock expected = Assert.IsType<TextBlock>(composed.Slot().Child);
+
+        // Every property of the paragraph and of its one run is as composing it by hand would leave it.
+        foreach (System.Reflection.PropertyInfo property in typeof(TextBlock).GetProperties().Where(p => p.Name != nameof(TextBlock.Runs) && p.GetIndexParameters().Length == 0))
+            Assert.Equal(property.GetValue(expected), property.GetValue(block));
+
+        TextRun run = Assert.Single(block.Runs);
+        TextRun expectedRun = Assert.Single(expected.Runs);
+
+        foreach (System.Reflection.PropertyInfo property in typeof(TextRun).GetProperties())
+            Assert.Equal(property.GetValue(expectedRun), property.GetValue(run));
+    }
+
+    [Fact]
+    public void PlainTextHoldsItsOneRunWithoutSpareRoom()
+    {
+        Frame frame = new Frame();
+
+        frame.Text("Plain words");
+
+        // A table of 10,000 rows sets 30,000 plain cells: each keeps room for exactly the one run it has.
+        Assert.Equal(1, Assert.IsType<TextBlock>(frame.Slot().Child).Runs.Capacity);
+    }
+
+    [Fact]
+    public void PlainTextRefusesAMissingOrFilledFrameAsComposedTextDoes()
+    {
+        Frame filled = new Frame();
+        filled.Text("already here");
+
+        Assert.Equal("parent", Assert.Throws<ArgumentNullException>(() => FrameContent.Text(null!, "words")).ParamName);
+        Assert.Equal(
+            Assert.Throws<CompositionException>(() => filled.Text(paragraph => paragraph.Run("words"))).Message,
+            Assert.Throws<CompositionException>(() => filled.Text("words")).Message);
+    }
 }
