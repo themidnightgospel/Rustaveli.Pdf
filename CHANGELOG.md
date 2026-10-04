@@ -42,6 +42,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   built in pieces lent from one paragraph to the next, and each line keeps only the pieces it is drawn in; words are
   measured where they lie in their text. The 85-page report allocates a quarter of what it did, and every document's
   PDF is unchanged, byte for byte.
+- A paragraph without inline frames no longer allocates a list of its children every time layout starts a pass. The
+  10,000-row table allocates 9% less, the report and the invoice about 6% less; every PDF is unchanged.
 
 **Tests**
 
