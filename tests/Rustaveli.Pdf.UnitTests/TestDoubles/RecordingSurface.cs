@@ -136,9 +136,9 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new ShadowOperation(Resolve(position), size, corners, shadow, ResolveBounds(position, size)));
     }
 
-    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
+    public void ShowText(ReadOnlyMemory<char> text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
-        Current.Operations.Add(new TextOperation(Resolve(baseline), text, style, direction == ReadingDirection.RightToLeft));
+        Current.Operations.Add(new TextOperation(Resolve(baseline), text.ToString(), style, direction == ReadingDirection.RightToLeft));
     }
 
     public void PaintImage(IImage image, Extent size)

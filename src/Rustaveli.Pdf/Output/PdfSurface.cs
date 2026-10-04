@@ -530,10 +530,10 @@ internal sealed class PdfSurface : IPageSink
         content.Stroke();
     }
 
-    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
+    public void ShowText(ReadOnlyMemory<char> text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
         float size = style.EffectivePointSize;
-        if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
+        if (text.IsEmpty || style.Ink.IsTransparent || size <= 0)
             return;
 
         Mark(text: true);
@@ -553,7 +553,7 @@ internal sealed class PdfSurface : IPageSink
         bool first = true;
         bool placed = false;
 
-        foreach (ShapedGlyph glyph in _shaper.Walk(text.AsSpan(), style, direction == ReadingDirection.RightToLeft))
+        foreach (ShapedGlyph glyph in _shaper.Walk(text.Span, style, direction == ReadingDirection.RightToLeft))
         {
             // Beyond the widths and character spacing a reader applies itself: kerning, word spacing after a space,
             // and any difference between the advance the glyph was set with and the width the font declares for it.

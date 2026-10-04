@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Images;
 using Rustaveli.Pdf.Raster;
