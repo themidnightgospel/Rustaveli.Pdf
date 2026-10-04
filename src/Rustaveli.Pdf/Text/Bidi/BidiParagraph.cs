@@ -37,7 +37,7 @@ internal sealed class BidiParagraph
     {
         Length = text.Length;
 
-        if (direction != BidiDirection.RightToLeft && StaysLeftToRight(text))
+        if (ResolvesLeftToRight(text, direction))
         {
             IsLeftToRightOnly = true;
             return;
@@ -179,6 +179,14 @@ internal sealed class BidiParagraph
         if ((uint)length > (uint)(Length - start))
             throw new ArgumentOutOfRangeException(nameof(length), length, "The line ends outside the paragraph.");
     }
+
+    /// <summary>
+    /// Whether <paramref name="text"/> is left to right throughout by its characters alone: the first question a
+    /// paragraph asks, which a caller can ask without making one. False does not mean it is not left to right; a
+    /// paragraph made from the text may still find it so.
+    /// </summary>
+    internal static bool ResolvesLeftToRight(ReadOnlySpan<char> text, BidiDirection direction) =>
+        direction != BidiDirection.RightToLeft && StaysLeftToRight(text);
 
     private static bool StaysLeftToRight(ReadOnlySpan<char> text)
     {
