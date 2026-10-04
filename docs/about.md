@@ -4,7 +4,8 @@
 
 Rustaveli.Pdf exists to give .NET a PDF tool that is:
 
-- **Free** — MIT-licensed, for any project, with no revenue limits, keys or paid tiers.
+- **Free** — MIT-licensed, for any project, with no revenue limits, keys or paid tiers, and every future release
+  will be MIT-licensed too.
 - **Open** — every line of source public, to read, change and ship.
 - **Complete** — from a one-page invoice to a PDF/A archive or an accessible, tagged document, so you never need a
   second library.
@@ -19,6 +20,14 @@ It is a design of its own:
 - **Layout kept apart from output.** The layout engine draws through a single surface, so producing a PDF, a page
   image or anything else is a decision at the edge rather than one built into the core
   ([how layout works](how-it-works/layout.md)).
+
+
+## How it is built
+
+Rustaveli.Pdf is built with an AI coding agent. A change is merged only after more than 10,000 tests pass: unit,
+property-based, integration and conformance tests, the last including veraPDF validation of PDF/A and PDF/UA output
+([how it's tested](testing.md)). The parsers are fuzzed every night, and every merge is benchmarked
+([performance](performance.md)).
 
 
 ## History
@@ -43,6 +52,7 @@ The first release was built in ten phases, each merged only once it met every qu
 
 ## Inspiration
 
-The idea of describing a document as a fluent tree of content that breaks into pages by itself comes from QuestPDF.
+The idea of describing a document as a fluent tree of content that breaks into pages by itself comes from QuestPDF,
+and its MIT-licensed releases are this library's reference: the tests and benchmarks compare against their output.
 How the two libraries relate — that inspiration, and what QuestPDF is used for in this repository — is set out in
 [Rustaveli.Pdf and QuestPDF](questpdf.md).

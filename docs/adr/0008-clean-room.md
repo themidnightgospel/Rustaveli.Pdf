@@ -15,9 +15,12 @@ Another library is used only for its behaviour:
 - its documentation, to understand what a feature does;
 - its output, as the oracle in equivalence tests and the baseline in benchmarks.
 
-Nobody writing this library's code reads the other library's source, and nothing is ported from it. When its source
-must be compared with ours — to audit this library — the work is split as in a clean room: reviewers who read it
-write specifications of behaviour in prose, and developers who have not read it write the code.
+Nobody writing this library's code is given the other library's source, and nothing is ported from it. The library
+is built with an AI coding agent. When the other library's source must be compared with ours — to audit this
+library — the work is split as in a clean room: sessions that read it write specifications of behaviour in prose, and
+separate sessions that are not given it write the code. The model behind them may have seen the other library's
+public source in training, so an audit comparing the result with that source is what confirms the code is
+independent.
 
 A reference is pinned to a release whose licence permits this use, and is not upgraded past it.
 
