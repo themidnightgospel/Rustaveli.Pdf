@@ -970,4 +970,57 @@ public class TextBlockTests
         // Empty spans are a blank line someone wrote; no spans at all are no text, and leave no gap behind.
         Assert.True(LayoutHarness.Plan(block, new Extent(500, 500)).IsNothing);
     }
+
+    [Fact]
+    public void AParagraphWithoutInlineFramesHasNoChildren()
+    {
+        TextBlock block = Text(text =>
+        {
+            text.Run("Plain ");
+            text.Run("words").Bold();
+        });
+
+        Assert.Empty(block.GetChildren());
+    }
+
+    [Fact]
+    public void AParagraphsChildrenAreItsInlineFramesInOrder()
+    {
+        ResetCounted first = new ResetCounted();
+        ResetCounted second = new ResetCounted();
+        TextBlock block = Text(text => text.Run("Before "));
+        block.Runs.Add(new Text.TextRun { Inline = first });
+        block.Runs.Add(new Text.TextRun { Text = " between " });
+        block.Runs.Add(new Text.TextRun { Inline = second });
+
+        Assert.Equal([first, second], block.GetChildren().OfType<Block>());
+    }
+
+    [Fact]
+    public void AnInlineFrameAddedAfterCompositionIsStillReset()
+    {
+        TextBlock block = Text(text => text.Run("Plain words"));
+        block.ResetState();
+        ResetCounted frame = new ResetCounted();
+
+        block.Runs.Add(new Text.TextRun { Inline = frame });
+        block.ResetState();
+
+        // The paragraph looks for inline frames each time it is asked, so one added later is reset like the rest.
+        Assert.Equal(1, frame.Resets);
+    }
+
+    /// <summary>Fixed content that counts how often it is reset.</summary>
+    private sealed class ResetCounted : Block
+    {
+        public int Resets { get; private set; }
+
+        protected override void ResetOwnState() => Resets++;
+
+        protected override Fit PlanCore(Extent availableSpace, PlanContext context) => Fit.Complete(10f, 10f);
+
+        protected override void RenderCore(Extent availableSpace, RenderContext context)
+        {
+        }
+    }
 }
