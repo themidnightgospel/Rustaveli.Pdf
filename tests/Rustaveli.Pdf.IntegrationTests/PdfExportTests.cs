@@ -114,6 +114,41 @@ public class PdfExportTests
         Assert.Equal("Generated", parsed.GetPage(1).Text);
     }
 
+#if NET
+    [Fact]
+    public void ReturningTheFileAsAnArrayCostsOneCopyOfIt()
+    {
+        // Allocation budget: what the array overload allocates beyond exporting the same document into a stream is the
+        // array it returns, plus a little bookkeeping. A buffer grown by doubling and then copied cost about three
+        // times the file, its larger steps on the large object heap.
+        const long Bookkeeping = 1024;
+        Document document = Document.Compose(frame => frame.Section(page =>
+        {
+            page.Trim = new Extent(300, 300);
+            page.Margins = Sides.All(10);
+            page.Body().Stack(stack =>
+            {
+                for (int paragraph = 0; paragraph < 200; paragraph++)
+                    stack.Add().Text($"Paragraph {paragraph}: the words of a document long enough to span several pages.");
+            });
+        }));
+        document.ExportPdf(Stream.Null);
+        document.ExportPdf();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        document.ExportPdf(Stream.Null);
+        long streamed = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        before = GC.GetAllocatedBytesForCurrentThread();
+        byte[] file = document.ExportPdf();
+        long returned = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(
+            returned - streamed <= file.Length + Bookkeeping,
+            $"Returning the {file.Length:N0}-byte file allocated {returned - streamed:N0} bytes more than streaming it.");
+    }
+#endif
+
     [Fact]
     public void GeneratingToAStreamAppendsAtItsCurrentPosition()
     {

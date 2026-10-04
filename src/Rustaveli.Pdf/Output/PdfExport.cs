@@ -32,7 +32,8 @@ public static class PdfExport
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        using MemoryStream stream = new MemoryStream();
+        // Written into pooled chunks and copied out once, rather than into a buffer grown by doubling and then copied.
+        using ChunkedOutputStream stream = new ChunkedOutputStream();
         Export(document, stream, options);
         return stream.ToArray();
     }
