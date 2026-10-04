@@ -57,6 +57,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   doubling it and copying the result: returning a file costs one copy of it, not about three, and no longer grows
   arrays on the large object heap. The image page allocates 15% less, the report 13% and the invoice 9% less, and the
   10,000-row table takes about a fifth less processor time; every PDF is unchanged.
+- A paragraph whose characters are all left to right no longer resolves its directions to find that out: the
+  10,000-row table allocates 5% less, the report and the invoice 2% less; every PDF is unchanged.
 
 **Tests**
 
