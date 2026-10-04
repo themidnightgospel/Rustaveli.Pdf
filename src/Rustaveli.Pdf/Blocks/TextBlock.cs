@@ -28,8 +28,11 @@ internal sealed class TextBlock : Block
     /// <summary>The link each linked span is, in a tagged document, whichever page and line its pieces fall on.</summary>
     private Dictionary<Text.TextRun, StructureElement?>? _links;
 
-    // Not reset between passes: the lines of the same text at the same width do not change.
+    // Not reset between passes: the lines of the same text at the same width do not change. Two are kept, the last
+    // used first, because a paragraph set in a box of its own natural width (flush right in a table cell, for one) is
+    // planned at the room it is offered and drawn at its natural width, on every pass.
     private BuiltLines? _built;
+    private BuiltLines? _builtBefore;
 
 
     public List<Text.TextRun> Runs { get; } = [];
@@ -613,10 +616,19 @@ internal sealed class TextBlock : Block
         // both passes, builds them once.
         bool reusable = Runs.TrueForAll(run => run.Inline is null && run.DynamicText is null);
 
-        if (reusable && _built is { } built && built.Width == maxWidth && ReferenceEquals(built.Measurer, context.Measurer)
-            && built.Direction == context.ReadingDirection && built.Style.Equals(blockStyle))
+        // Each is read once into a local: one document exported on several threads at once shares its blocks, and
+        // another export may replace them meanwhile. Each entry is immutable, so a race costs a rebuild, never wrong
+        // lines.
+        BuiltLines? last = _built;
+        BuiltLines? before = _builtBefore;
+
+        if (reusable && last is not null && last.IsFor(maxWidth, blockStyle, context))
+            return last.Lines;
+
+        if (reusable && before is not null && before.IsFor(maxWidth, blockStyle, context))
         {
-            return built.Lines;
+            (_built, _builtBefore) = (before, last);
+            return before.Lines;
         }
 
         List<TextLine> lines = BuildLinesAfresh(maxWidth, maxHeight, blockStyle, context, out blocker);
@@ -624,7 +636,7 @@ internal sealed class TextBlock : Block
         // Only an inline frame can block the lines, and a paragraph holding one is never reused, so what is reusable
         // was built whole.
         if (reusable)
-            _built = new BuiltLines(maxWidth, blockStyle, context.ReadingDirection, context.Measurer, lines);
+            (_built, _builtBefore) = (new BuiltLines(maxWidth, blockStyle, context.ReadingDirection, context.Measurer, lines), last);
 
         return lines;
     }
@@ -1252,9 +1264,15 @@ internal sealed class TextBlock : Block
         }
     }
 
-    /// <summary>The lines last built, and what they were built for.</summary>
+    /// <summary>Lines once built, and what they were built for.</summary>
     private sealed record BuiltLines(
-        float Width, TypeStyle Style, ReadingDirection Direction, ITypeMeasurer Measurer, List<TextLine> Lines);
+        float Width, TypeStyle Style, ReadingDirection Direction, ITypeMeasurer Measurer, List<TextLine> Lines)
+    {
+        /// <summary>Whether these are the lines for exactly this width, type, direction and measurer.</summary>
+        public bool IsFor(float width, TypeStyle style, PlanContext context) =>
+            Width == width && ReferenceEquals(Measurer, context.Measurer) && Direction == context.ReadingDirection
+            && Style.Equals(style);
+    }
 
     /// <summary>
     /// One piece of a line: a stretch of text — a word, the space after it, part of a word broken across lines, an
