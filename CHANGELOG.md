@@ -69,6 +69,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - A table whose cells are listed in row order, as a body almost always is, finds each page's cells as one run of its
   list instead of indexing every row and sorting what it gathers. The 10,000-row table allocates 10% less, and a
   document kept after export holds 0.8 MB less of it; every PDF is unchanged.
+- On .NET Framework, .NET 8 and .NET 9, which use the library's .NET Standard 2.0 build, a word measured before is
+  looked up by its characters instead of a string made of them each time, as on .NET 10: the 85-page report
+  allocates 55% less there, the 10,000-row table 6% less; every PDF is unchanged.
 
 **Tests**
 
