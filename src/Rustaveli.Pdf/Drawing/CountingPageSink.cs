@@ -93,7 +93,7 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
-    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
+    public void ShowText(ReadOnlyMemory<char> text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
     }
 

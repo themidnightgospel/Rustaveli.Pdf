@@ -973,6 +973,31 @@ public class TextBlockTests
 
 #if NET
     [Fact]
+    public void DrawingAParagraphAllocatesNothingForItsText()
+    {
+        // Allocation budget: drawing a planned paragraph hands the surface each piece of text as a slice of the run it
+        // is cut from. A substring for every piece drawn was a fifth of what a long report allocated.
+        const long Budget = 0;
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
+        RenderContext drawing = new RenderContext(new NullSurface(), context);
+        Extent room = new Extent(90, 500);
+        TextBlock warm = Text(text => text.Run("Warm up every path the paragraph takes when it is drawn"));
+        warm.Plan(room, context);
+        warm.Render(room, drawing);
+        TextBlock block = Text(text => text.Run("Words that wrap onto three lines"));
+        block.Plan(room, context);
+        block.Plan(room, context);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        block.Render(room, drawing);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Drawing the paragraph allocated {allocated} bytes; its budget is {Budget}.");
+    }
+#endif
+
+#if NET
+    [Fact]
     public void BuildingAParagraphsLinesAllocatesWithinItsBudget()
     {
         // Allocation budget: planning a fresh three-line paragraph, with everything already warm. Lines are built for

@@ -297,10 +297,10 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
             Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
     }
 
-    public void ShowText(string text, Offset baseline, TypeStyle style, ReadingDirection direction)
+    public void ShowText(ReadOnlyMemory<char> text, Offset baseline, TypeStyle style, ReadingDirection direction)
     {
         float size = style.EffectivePointSize;
-        if (string.IsNullOrEmpty(text) || style.Ink.IsTransparent || size <= 0)
+        if (text.IsEmpty || style.Ink.IsTransparent || size <= 0)
             return;
 
         using SKTextBlobBuilder builder = new SKTextBlobBuilder();
@@ -312,7 +312,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         float previousStep = 0f;
         bool first = true;
 
-        foreach (ShapedGlyph glyph in shaper.Walk(text.AsSpan(), style, direction == ReadingDirection.RightToLeft))
+        foreach (ShapedGlyph glyph in shaper.Walk(text.Span, style, direction == ReadingDirection.RightToLeft))
         {
             // The glyph before moved the pen by its advance and any word spacing it carries; tracking, where the glyph
             // takes it, and kerning fall between the two.

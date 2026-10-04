@@ -346,7 +346,7 @@ internal sealed class TextBlock : Block
                 surface.FillRectangle(new Offset(x, runTop), runSize, style.Highlight);
 
             ReadingDirection direction = run.RightToLeft ? ReadingDirection.RightToLeft : ReadingDirection.LeftToRight;
-            surface.ShowText(run.ToText(), new Offset(x, baseline + style.BaselineOffset), style, direction);
+            surface.ShowText(run.Slice, new Offset(x, baseline + style.BaselineOffset), style, direction);
 
             if (style.HasUnderline || style.HasStrikeThrough || style.HasOverline)
                 DrawStrokes(surface, style, metrics, x, run.Width, baseline + style.BaselineOffset);
@@ -1318,8 +1318,8 @@ internal sealed class TextBlock : Block
 
         public InlinePosition Position => Source?.InlinePosition ?? InlinePosition.OnBaseline;
 
-        /// <summary>Its characters as a string of their own, which the whole text it is cut from already is.</summary>
-        public string ToText() => Start == 0 && Length == Text.Length ? Text : Text.Substring(Start, Length);
+        /// <summary>Its characters as a slice of the text it is cut from, which a surface may keep: texts never change.</summary>
+        public ReadOnlyMemory<char> Slice => Text.AsMemory(Start, Length);
     }
 
     /// <summary>
