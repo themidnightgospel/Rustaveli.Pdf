@@ -72,6 +72,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - On .NET Framework, .NET 8 and .NET 9, which use the library's .NET Standard 2.0 build, a word measured before is
   looked up by its characters instead of a string made of them each time, as on .NET 10: the 85-page report
   allocates 55% less there, the 10,000-row table 6% less; every PDF is unchanged.
+- Drawing a paragraph hands each piece of text to the page as a slice of the run it is cut from, rather than a string
+  of its own: the 85-page report allocates 32% less; every PDF is unchanged.
 
 **Tests**
 
