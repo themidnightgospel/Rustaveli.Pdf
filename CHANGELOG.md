@@ -48,6 +48,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   width, such as flush-right text in a table cell, is planned at one width and drawn at another on every pass, and
   built its lines afresh each time. The 10,000-row table allocates a quarter less and lays out about 15% faster, the
   invoice allocates 13% less; every PDF is unchanged.
+- `Text("…")` sets its paragraph directly instead of composing it through a handler, so a plain paragraph or table
+  cell no longer allocates a delegate and two composers, and keeps room for exactly its one run. The 10,000-row table
+  allocates 9% less, the invoice 5% and the report 3% less; every PDF is unchanged.
 
 **Tests**
 
