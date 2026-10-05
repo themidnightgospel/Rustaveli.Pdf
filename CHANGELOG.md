@@ -74,6 +74,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   allocates 55% less there, the 10,000-row table 6% less; every PDF is unchanged.
 - Drawing a paragraph hands each piece of text to the page as a slice of the run it is cut from, rather than a string
   of its own: the 85-page report allocates 32% less; every PDF is unchanged.
+- A paragraph reuses its lines at any width that breaks them the same, not only at the widths it built them at: every
+  fit test the building took is kept by what decides it, and another width that answers them all alike gets the very
+  lines a fresh build would. The 10,000-row table allocates 11% less and takes about 7% less time, and a document kept
+  after export holds 3 MB less of it; the invoice allocates 4% less; every PDF is unchanged.
 
 **Tests**
 
