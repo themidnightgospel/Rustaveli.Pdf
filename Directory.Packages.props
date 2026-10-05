@@ -15,11 +15,11 @@
       Debian 10 (mono/SkiaSharp#3201), and 3.119.0/3.119.1 dropped libfontconfig from the linux-arm64 binary
       (#3369). The 4.x line is clear of both. The two packages must move together.
     -->
-    <PackageVersion Include="SkiaSharp" Version="4.153.0" />
-    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.153.0" />
+    <PackageVersion Include="SkiaSharp" Version="4.153.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.153.1" />
     <!-- The HarfBuzz release SkiaSharp 4.153 pairs with, so the two native libraries come from one build. -->
-    <PackageVersion Include="HarfBuzzSharp" Version="14.2.1.300" />
-    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.300" />
+    <PackageVersion Include="HarfBuzzSharp" Version="14.2.1.301" />
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.301" />
   </ItemGroup>
 
   <!--
