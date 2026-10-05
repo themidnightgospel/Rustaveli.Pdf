@@ -21,7 +21,7 @@ internal sealed class TextBlock : Block
 {
     private int _completedLines;
     private float _pinnedWidth = float.NaN;
-    private List<TextLine>? _pinnedWrapping;
+    private TextLine[]? _pinnedWrapping;
 
     /// <summary>The paragraph the text is, in a tagged document, where nothing else tags it.</summary>
     private StructureElement? _paragraph;
@@ -143,7 +143,7 @@ internal sealed class TextBlock : Block
     protected override object? SaveOwnProgress() => (_completedLines, _pinnedWidth, _pinnedWrapping);
 
     protected override void RestoreOwnProgress(object progress) =>
-        (_completedLines, _pinnedWidth, _pinnedWrapping) = ((int, float, List<TextLine>?))progress;
+        (_completedLines, _pinnedWidth, _pinnedWrapping) = ((int, float, TextLine[]?))progress;
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
@@ -156,12 +156,12 @@ internal sealed class TextBlock : Block
             return Fit.Defer("There is no width available for text once the first-line indent is applied.");
         }
 
-        List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context, out string? blocker);
+        TextLine[] lines = BuildLines(availableSpace.Width, availableSpace.Height, context, out string? blocker);
 
         if (blocker is not null)
             return Fit.Defer(blocker);
 
-        if (_completedLines >= lines.Count)
+        if (_completedLines >= lines.Length)
             return Fit.Nothing();
 
         (float height, float width, int count) = MeasureLines(lines, availableSpace.Height, EffectiveIndent(context));
@@ -180,7 +180,7 @@ internal sealed class TextBlock : Block
 
         Extent size = new Extent(width, height);
 
-        return _completedLines + count >= lines.Count
+        return _completedLines + count >= lines.Length
             ? Fit.Complete(size)
             : Fit.Partial(size);
     }
@@ -188,9 +188,9 @@ internal sealed class TextBlock : Block
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // A blocker means planning deferred, so this paragraph should not have been asked to draw here.
-        List<TextLine> lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);
+        TextLine[] lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);
 
-        if (blocker is not null || _completedLines >= lines.Count)
+        if (blocker is not null || _completedLines >= lines.Length)
             return;
 
         float indent = EffectiveIndent(context.Planning);
@@ -212,7 +212,7 @@ internal sealed class TextBlock : Block
         {
             top += SpacingBefore(lines[index], index);
 
-            bool endsParagraph = index == lines.Count - 1 || lines[index + 1].StartsParagraph;
+            bool endsParagraph = index == lines.Length - 1 || lines[index + 1].StartsParagraph;
             DrawLine(lines[index], availableSpace.Width, top, endsParagraph, context);
             top += lines[index].Height;
         }
@@ -228,13 +228,13 @@ internal sealed class TextBlock : Block
     }
 
     /// <summary>Accumulates whole lines until the next one would overflow.</summary>
-    private (float Height, float Width, int Count) MeasureLines(List<TextLine> lines, float availableHeight, float indent)
+    private (float Height, float Width, int Count) MeasureLines(TextLine[] lines, float availableHeight, float indent)
     {
         float height = 0f;
         float width = 0f;
         int count = 0;
 
-        for (int index = _completedLines; index < lines.Count; index++)
+        for (int index = _completedLines; index < lines.Length; index++)
         {
             float spacing = SpacingBefore(lines[index], index);
 
@@ -620,7 +620,7 @@ internal sealed class TextBlock : Block
     /// Breaks the spans into lines that fit <paramref name="maxWidth"/>, splitting on whitespace and falling
     /// back to mid-word breaks for words too long to fit on a line of their own.
     /// </summary>
-    private List<TextLine> BuildLines(float maxWidth, float maxHeight, PlanContext context, out string? blocker)
+    private TextLine[] BuildLines(float maxWidth, float maxHeight, PlanContext context, out string? blocker)
     {
         blocker = null;
 
@@ -645,12 +645,12 @@ internal sealed class TextBlock : Block
         BuiltLines? before = _builtBefore;
 
         if (reusable && last is not null && last.IsFor(maxWidth, blockStyle, context))
-            return last;
+            return last.Lines;
 
         if (reusable && before is not null && before.IsFor(maxWidth, blockStyle, context))
         {
             (_built, _builtBefore) = (before, last);
-            return before;
+            return before.Lines;
         }
 
         // A width the lines were not built at, but at which every fit test their building took answers the same: a
@@ -661,41 +661,37 @@ internal sealed class TextBlock : Block
             float indent = EffectiveIndent(context);
 
             if (last is not null && last.Cover(maxWidth, blockStyle, indent, context))
-                return Verified(last, maxWidth, maxHeight, blockStyle, context);
+                return Verified(last.Lines, maxWidth, maxHeight, blockStyle, context);
 
             if (before is not null && before.Cover(maxWidth, blockStyle, indent, context))
             {
                 (_built, _builtBefore) = (before, last);
-                return Verified(before, maxWidth, maxHeight, blockStyle, context);
+                return Verified(before.Lines, maxWidth, maxHeight, blockStyle, context);
             }
         }
 
-        if (!reusable)
-            return BuildLinesAfresh(new List<TextLine>(), maxWidth, maxHeight, blockStyle, context, out blocker, out _);
+        TextLine[] lines = BuildLinesAfresh(maxWidth, maxHeight, blockStyle, context, out blocker, out LineFits fits);
 
         // Only an inline frame can block the lines, and a paragraph holding one is never reused, so what is reusable
         // is built whole.
-        BuiltLines built = new BuiltLines();
-        BuildLinesAfresh(built, maxWidth, maxHeight, blockStyle, context, out blocker, out LineFits fits);
-        built.Keep(maxWidth, blockStyle, context, fits);
-        (_built, _builtBefore) = (built, last);
+        if (reusable)
+            (_built, _builtBefore) = (new BuiltLines(lines, maxWidth, blockStyle, context, fits), last);
 
-        return built;
+        return lines;
     }
 
     /// <summary>
     /// Lines reused at a width they were not built at; while <see cref="VerifiesReuse"/> is on, built afresh there as
     /// well and compared bit for bit, any difference thrown.
     /// </summary>
-    private List<TextLine> Verified(
-        List<TextLine> reused, float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context)
+    private TextLine[] Verified(TextLine[] reused, float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context)
     {
         ReusedAcrossWidths++;
 
         if (!VerifiesReuse)
             return reused;
 
-        List<TextLine> fresh = BuildLinesAfresh(new List<TextLine>(), maxWidth, maxHeight, blockStyle, context, out _, out _);
+        TextLine[] fresh = BuildLinesAfresh(maxWidth, maxHeight, blockStyle, context, out _, out _);
 
         if (!SameLines(reused, fresh))
         {
@@ -706,12 +702,12 @@ internal sealed class TextBlock : Block
         return reused;
     }
 
-    private static bool SameLines(List<TextLine> one, List<TextLine> other)
+    private static bool SameLines(TextLine[] one, TextLine[] other)
     {
-        if (one.Count != other.Count)
+        if (one.Length != other.Length)
             return false;
 
-        for (int index = 0; index < one.Count; index++)
+        for (int index = 0; index < one.Length; index++)
         {
             TextLine a = one[index];
             TextLine b = other[index];
@@ -746,25 +742,21 @@ internal sealed class TextBlock : Block
 #endif
 
     /// <summary>
-    /// Builds the lines word by word, at the end of pieces borrowed for the purpose, then seals them: each line's
-    /// pieces joined where drawing would join them, and all kept in one array, as long as they are and no longer.
+    /// Builds the lines word by word, in a list and at the end of pieces borrowed for the purpose, then seals them:
+    /// each line's pieces joined where drawing would join them, and the lines and their pieces each kept in one array,
+    /// as long as they are and no longer.
     /// </summary>
-    private List<TextLine> BuildLinesAfresh(
-        List<TextLine> lines,
-        float maxWidth,
-        float maxHeight,
-        TypeStyle blockStyle,
-        PlanContext context,
-        out string? blocker,
-        out LineFits fits)
+    private TextLine[] BuildLinesAfresh(
+        float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker, out LineFits fits)
     {
         PieceList pieces = PieceList.Borrow();
 
         try
         {
+            List<TextLine> lines = pieces.Lines;
             WrapLines(lines, pieces, maxWidth, maxHeight, blockStyle, context, out blocker, out fits);
             Seal(lines, pieces);
-            return lines;
+            return lines.ToArray();
         }
         finally
         {
@@ -1399,27 +1391,16 @@ internal sealed class TextBlock : Block
         }
     }
 
-    /// <summary>
-    /// Lines once built, kept with what they were built for and the fit tests their building took: one object, where
-    /// the lines and a record of them beside it would be two.
-    /// </summary>
-    private sealed class BuiltLines : List<TextLine>
+    /// <summary>Lines once built, kept with what they were built for and the fit tests their building took.</summary>
+    private sealed class BuiltLines(TextLine[] lines, float width, TypeStyle style, PlanContext context, LineFits fits)
     {
-        private float _width;
-        private TypeStyle? _style;
-        private ReadingDirection _direction;
-        private ITypeMeasurer? _measurer;
-        private LineFits _fits;
+        private readonly float _width = width;
+        private readonly TypeStyle _style = style;
+        private readonly ReadingDirection _direction = context.ReadingDirection;
+        private readonly ITypeMeasurer _measurer = context.Measurer;
+        private readonly LineFits _fits = fits;
 
-        /// <summary>Records what the lines were built for, once they are built and before they are shared.</summary>
-        public void Keep(float width, TypeStyle style, PlanContext context, LineFits fits)
-        {
-            _width = width;
-            _style = style;
-            _direction = context.ReadingDirection;
-            _measurer = context.Measurer;
-            _fits = fits;
-        }
+        public TextLine[] Lines { get; } = lines;
 
         /// <summary>Whether these are the lines for exactly this width, type, direction and measurer.</summary>
         public bool IsFor(float width, TypeStyle style, PlanContext context) =>
@@ -1564,9 +1545,9 @@ internal sealed class TextBlock : Block
     }
 
     /// <summary>
-    /// A paragraph's pieces while its lines are built, a piece for every word and every space. One is kept for each
-    /// thread and lent to one paragraph at a time, so building lines costs no more than the lines it ends with; a
-    /// paragraph built while another is — one set in a frame inline in it — has one of its own.
+    /// A paragraph's pieces while its lines are built, a piece for every word and every space, and the lines being
+    /// built. One is kept for each thread and lent to one paragraph at a time, so building lines costs no more than the
+    /// lines it ends with; a paragraph built while another is — one set in a frame inline in it — has one of its own.
     /// </summary>
     private sealed class PieceList
     {
@@ -1576,6 +1557,9 @@ internal sealed class TextBlock : Block
         public Piece[] Items { get; private set; } = new Piece[256];
 
         public int Count { get; private set; }
+
+        /// <summary>The lines being built; they are copied out, as many as there are, once built.</summary>
+        public List<TextLine> Lines { get; } = new List<TextLine>(16);
 
         public static PieceList Borrow()
         {
@@ -1589,9 +1573,10 @@ internal sealed class TextBlock : Block
             // Pieces hold their text and type, which are not to be kept alive once the lines built from them are gone.
             Array.Clear(pieces.Items, 0, pieces.Count);
             pieces.Count = 0;
+            pieces.Lines.Clear();
 
             // A paragraph far longer than most would otherwise keep a buffer its size for as long as the thread lives.
-            if (pieces.Items.Length <= MostKept)
+            if (pieces.Items.Length <= MostKept && pieces.Lines.Capacity <= MostKept)
                 _spare = pieces;
         }
 

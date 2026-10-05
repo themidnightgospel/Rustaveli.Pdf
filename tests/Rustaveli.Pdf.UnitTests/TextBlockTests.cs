@@ -996,6 +996,36 @@ public class TextBlockTests
     }
 #endif
 
+    [Fact]
+    public void AParagraphBuiltAfterOneThatFailedHasOnlyItsOwnLines()
+    {
+        // Lines are built in a list lent from one paragraph to the next. One whose building throws, with lines
+        // already in that list, must not leave them there for the next.
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
+        Extent expected = Text(text => text.Run("One line")).Plan(new Extent(500, 500), context).Size;
+        PlanContext failing = new PlanContext(new FailingMeasurer("Explode"), new Pagination());
+
+        Assert.ThrowsAny<Exception>(() => Text(text => text.Run("Lines\nbuilt\nbefore Explode")).Plan(new Extent(90, 500), failing));
+
+        Assert.Equal(expected, Text(text => text.Run("One line")).Plan(new Extent(500, 500), context).Size);
+    }
+
+    /// <summary>The fake measurer, failing when asked to measure one word.</summary>
+    private sealed class FailingMeasurer(string word) : ITypeMeasurer
+    {
+        private readonly FakeTypeMeasurer _inner = new FakeTypeMeasurer();
+
+        public TypeMetrics GetMetrics(TypeStyle style) => _inner.GetMetrics(style);
+
+        public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => _inner.GetMetrics(text, style);
+
+        public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) =>
+            text.SequenceEqual(word.AsSpan()) ? throw new InvalidOperationException("Measuring failed.") : _inner.MeasureWidth(text, style);
+
+        public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
+            _inner.MeasureCharactersFitting(text, style, maxWidth);
+    }
+
 #if NET
     [Fact]
     public void BuildingAParagraphsLinesAllocatesWithinItsBudget()
@@ -1003,10 +1033,27 @@ public class TextBlockTests
         // Allocation budget: planning a fresh three-line paragraph, with everything already warm. Lines are built for
         // every paragraph on every pass, so a wasted object here is paid tens of thousands of times by a long table.
         // When a change moves this on purpose, set the new figure and say why in the commit.
-        const long Budget = 536;
+        const long Budget = 520;
         PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
         LayoutHarness.Plan(Text(text => text.Run("Warm up the shared buffers and every path the paragraph takes")), new Extent(90, 500), context);
         TextBlock block = Text(text => text.Run("Words that wrap onto three lines"));
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        LayoutHarness.Plan(block, new Extent(90, 500), context);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Planning the paragraph allocated {allocated} bytes; its budget is {Budget}.");
+    }
+
+    [Fact]
+    public void BuildingAOneLineParagraphsLinesAllocatesWithinItsBudget()
+    {
+        // Allocation budget: planning a fresh paragraph of one line, as most table cells are, with everything warm.
+        // A 10,000-row table builds one for each of its 30,000 cells, and keeps them.
+        const long Budget = 248;
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
+        LayoutHarness.Plan(Text(text => text.Run("Warm up the shared buffers and every path the paragraph takes")), new Extent(90, 500), context);
+        TextBlock block = Text(text => text.Run("Invoice 42"));
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         LayoutHarness.Plan(block, new Extent(90, 500), context);
