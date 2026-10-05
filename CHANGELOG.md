@@ -78,6 +78,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   fit test the building took is kept by what decides it, and another width that answers them all alike gets the very
   lines a fresh build would. The 10,000-row table allocates 11% less and takes about 7% less time, and a document kept
   after export holds 3 MB less of it; the invoice allocates 4% less; every PDF is unchanged.
+- A paragraph's lines are built in a list lent from one paragraph to the next and kept in an array exactly as long as
+  they are, not in a list of their own with room to grow. The report allocates 5% less and the 10,000-row table 4%
+  less, and a document kept after export holds 0.9 MB less of the table; every PDF is unchanged.
 
 **Tests**
 
