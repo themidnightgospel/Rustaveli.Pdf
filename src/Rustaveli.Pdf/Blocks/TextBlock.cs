@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using Rustaveli.Pdf.Drawing;
 using Rustaveli.Pdf.Layout;
 using Rustaveli.Pdf.Tagging;
@@ -34,6 +35,24 @@ internal sealed class TextBlock : Block
     private BuiltLines? _built;
     private BuiltLines? _builtBefore;
 
+    /// <summary>
+    /// Whether lines built at one width are reused at another where every fit test their building took answers the
+    /// same, which gives exactly the lines a fresh build would. Off on 32-bit .NET Framework, whose JIT computes
+    /// floating point in wider registers: a fit test's operand recorded apart could then differ from the one compared.
+    /// </summary>
+    internal static bool ReusesAcrossWidths { get; set; } =
+#if NET
+        true;
+#else
+        Environment.Is64BitProcess;
+#endif
+
+    /// <summary>For tests: rebuild on every reuse across widths, and fail if the lines differ from those in any bit.</summary>
+    internal static bool VerifiesReuse { get; set; }
+
+    /// <summary>For tests: how many times lines have been reused across widths on this thread.</summary>
+    [ThreadStatic]
+    internal static int ReusedAcrossWidths;
 
     public List<Text.TextRun> Runs { get; } = [];
 
@@ -620,42 +639,130 @@ internal sealed class TextBlock : Block
         bool reusable = Runs.TrueForAll(run => run.Inline is null && run.DynamicText is null);
 
         // Each is read once into a local: one document exported on several threads at once shares its blocks, and
-        // another export may replace them meanwhile. Each entry is immutable, so a race costs a rebuild, never wrong
+        // another export may replace them meanwhile. No entry changes once kept, so a race costs a rebuild, never wrong
         // lines.
         BuiltLines? last = _built;
         BuiltLines? before = _builtBefore;
 
         if (reusable && last is not null && last.IsFor(maxWidth, blockStyle, context))
-            return last.Lines;
+            return last;
 
         if (reusable && before is not null && before.IsFor(maxWidth, blockStyle, context))
         {
             (_built, _builtBefore) = (before, last);
-            return before.Lines;
+            return before;
         }
 
-        List<TextLine> lines = BuildLinesAfresh(maxWidth, maxHeight, blockStyle, context, out blocker);
+        // A width the lines were not built at, but at which every fit test their building took answers the same: a
+        // fresh build would take the same path to the same lines. A paragraph measured at its widest and then placed
+        // at the width that gives it, or one set again a hair narrower, builds its lines once.
+        if (reusable && ReusesAcrossWidths && (last is not null || before is not null))
+        {
+            float indent = EffectiveIndent(context);
+
+            if (last is not null && last.Cover(maxWidth, blockStyle, indent, context))
+                return Verified(last, maxWidth, maxHeight, blockStyle, context);
+
+            if (before is not null && before.Cover(maxWidth, blockStyle, indent, context))
+            {
+                (_built, _builtBefore) = (before, last);
+                return Verified(before, maxWidth, maxHeight, blockStyle, context);
+            }
+        }
+
+        if (!reusable)
+            return BuildLinesAfresh(new List<TextLine>(), maxWidth, maxHeight, blockStyle, context, out blocker, out _);
 
         // Only an inline frame can block the lines, and a paragraph holding one is never reused, so what is reusable
-        // was built whole.
-        if (reusable)
-            (_built, _builtBefore) = (new BuiltLines(maxWidth, blockStyle, context.ReadingDirection, context.Measurer, lines), last);
+        // is built whole.
+        BuiltLines built = new BuiltLines();
+        BuildLinesAfresh(built, maxWidth, maxHeight, blockStyle, context, out blocker, out LineFits fits);
+        built.Keep(maxWidth, blockStyle, context, fits);
+        (_built, _builtBefore) = (built, last);
 
-        return lines;
+        return built;
     }
+
+    /// <summary>
+    /// Lines reused at a width they were not built at; while <see cref="VerifiesReuse"/> is on, built afresh there as
+    /// well and compared bit for bit, any difference thrown.
+    /// </summary>
+    private List<TextLine> Verified(
+        List<TextLine> reused, float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context)
+    {
+        ReusedAcrossWidths++;
+
+        if (!VerifiesReuse)
+            return reused;
+
+        List<TextLine> fresh = BuildLinesAfresh(new List<TextLine>(), maxWidth, maxHeight, blockStyle, context, out _, out _);
+
+        if (!SameLines(reused, fresh))
+        {
+            throw new InvalidOperationException(
+                $"Lines reused at a width of {maxWidth} differ from the lines built there afresh.");
+        }
+
+        return reused;
+    }
+
+    private static bool SameLines(List<TextLine> one, List<TextLine> other)
+    {
+        if (one.Count != other.Count)
+            return false;
+
+        for (int index = 0; index < one.Count; index++)
+        {
+            TextLine a = one[index];
+            TextLine b = other[index];
+
+            if (a.First != b.First || a.Count != b.Count || a.IsJoined != b.IsJoined
+                || a.StartsParagraph != b.StartsParagraph || (a.Bidi is null) != (b.Bidi is null)
+                || !SameBits(a.Width, b.Width) || !SameBits(a.Ascent, b.Ascent) || !SameBits(a.Descent, b.Descent)
+                || !SameBits(a.Height, b.Height) || !SameBits(a.TypeAscent, b.TypeAscent)
+                || !SameBits(a.TypeDescent, b.TypeDescent))
+            {
+                return false;
+            }
+
+            for (int piece = 0; piece < a.Count; piece++)
+            {
+                Piece p = a.Pieces[piece];
+                Piece q = b.Pieces[piece];
+
+                if (!p.Equals(q) || !SameBits(p.Width, q.Width) || !SameBits(p.Height, q.Height))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool SameBits(float one, float other) =>
+#if NET
+        BitConverter.SingleToInt32Bits(one) == BitConverter.SingleToInt32Bits(other);
+#else
+        BitConverter.ToInt32(BitConverter.GetBytes(one), 0) == BitConverter.ToInt32(BitConverter.GetBytes(other), 0);
+#endif
 
     /// <summary>
     /// Builds the lines word by word, at the end of pieces borrowed for the purpose, then seals them: each line's
     /// pieces joined where drawing would join them, and all kept in one array, as long as they are and no longer.
     /// </summary>
     private List<TextLine> BuildLinesAfresh(
-        float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker)
+        List<TextLine> lines,
+        float maxWidth,
+        float maxHeight,
+        TypeStyle blockStyle,
+        PlanContext context,
+        out string? blocker,
+        out LineFits fits)
     {
         PieceList pieces = PieceList.Borrow();
 
         try
         {
-            List<TextLine> lines = WrapLines(pieces, maxWidth, maxHeight, blockStyle, context, out blocker);
+            WrapLines(lines, pieces, maxWidth, maxHeight, blockStyle, context, out blocker, out fits);
             Seal(lines, pieces);
             return lines;
         }
@@ -699,13 +806,27 @@ internal sealed class TextBlock : Block
         return count;
     }
 
-    private List<TextLine> WrapLines(
-        PieceList pieces, float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker)
+    /// <summary>Wraps the runs into <paramref name="lines"/>, which starts empty.</summary>
+    private void WrapLines(
+        List<TextLine> lines,
+        PieceList pieces,
+        float maxWidth,
+        float maxHeight,
+        TypeStyle blockStyle,
+        PlanContext context,
+        out string? blocker,
+        out LineFits fits)
     {
         blocker = null;
-        List<TextLine> lines = new List<TextLine>();
         TextLine current = new TextLine(pieces);
         float indent = EffectiveIndent(context);
+
+        // Every fit test is recorded beside it, its comparison left as it was, so the lines can be reused at any width
+        // that answers them all the same.
+        LineFits taken = LineFits.None;
+
+        if (MaxLines is not null || !IsFinite(maxWidth))
+            taken.Tie();
 
         // Only reached before anything is drawn: from then on the pinned wrapping above is returned whole, which
         // also fixes the width it was built at.
@@ -772,6 +893,7 @@ internal sealed class TextBlock : Block
                 // against the height the paragraph really has. Offering an unbounded height instead makes any
                 // frame that fills what it is given — Middle, Expand — claim the full 14,400 points and defer
                 // the whole paragraph to a page it can never fit.
+                taken.Tie();
                 float lineBudget = current.StartsParagraph ? Math.Max(0, width - indent) : width;
                 Fit inlinePlan = span.Inline.Plan(new Extent(lineBudget, maxHeight), context);
 
@@ -787,7 +909,8 @@ internal sealed class TextBlock : Block
                         + "Inline frames cannot be split across lines, so it has to fit on one.";
 
                     paragraph.Release();
-                    return lines;
+                    fits = taken;
+                    return;
                 }
 
                 if (current.Count > 0 && current.Width + inlinePlan.Size.Width > lineBudget + Extent.Epsilon)
@@ -857,7 +980,10 @@ internal sealed class TextBlock : Block
                 float hyphen = EndsWithSoftHyphen(segment) ? context.Measurer.MeasureWidth(ShownHyphen, style) : 0f;
                 Piece piece = new Piece(text, token.Start, token.Length, style, segmentWidth, span, Offset: offset);
 
-                if (current.Width + segmentWidth + hyphen <= lineWidth + Extent.Epsilon)
+                bool fitsLine = current.Width + segmentWidth + hyphen <= lineWidth + Extent.Epsilon;
+                taken.Record(current.StartsParagraph, current.Width + segmentWidth + hyphen, fitsLine);
+
+                if (fitsLine)
                 {
                     current.Add(piece);
                     continue;
@@ -873,6 +999,7 @@ internal sealed class TextBlock : Block
                 // Type that may break anywhere fills the line it is on before going on to the next.
                 if (style.BreaksAnywhere)
                 {
+                    taken.Tie();
                     BreakWord(piece, width, indent, context, current, lines);
                     continue;
                 }
@@ -887,12 +1014,16 @@ internal sealed class TextBlock : Block
                 // recomputed. Reusing the opening line's narrower budget would shatter words that do fit.
                 lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
-                if (segmentWidth <= lineWidth + Extent.Epsilon)
+                bool fitsAlone = segmentWidth <= lineWidth + Extent.Epsilon;
+                taken.Record(current.StartsParagraph, segmentWidth, fitsAlone);
+
+                if (fitsAlone)
                 {
                     current.Add(piece);
                     continue;
                 }
 
+                taken.Tie();
                 BreakWord(piece, width, indent, context, current, lines);
             }
 
@@ -922,7 +1053,7 @@ internal sealed class TextBlock : Block
             last.Finalise(context.Measurer, blockStyle);
         }
 
-        return lines;
+        fits = taken;
     }
 
     /// <summary>
@@ -1268,15 +1399,125 @@ internal sealed class TextBlock : Block
         }
     }
 
-    /// <summary>Lines once built, and what they were built for.</summary>
-    private sealed record BuiltLines(
-        float Width, TypeStyle Style, ReadingDirection Direction, ITypeMeasurer Measurer, List<TextLine> Lines)
+    /// <summary>
+    /// Lines once built, kept with what they were built for and the fit tests their building took: one object, where
+    /// the lines and a record of them beside it would be two.
+    /// </summary>
+    private sealed class BuiltLines : List<TextLine>
     {
+        private float _width;
+        private TypeStyle? _style;
+        private ReadingDirection _direction;
+        private ITypeMeasurer? _measurer;
+        private LineFits _fits;
+
+        /// <summary>Records what the lines were built for, once they are built and before they are shared.</summary>
+        public void Keep(float width, TypeStyle style, PlanContext context, LineFits fits)
+        {
+            _width = width;
+            _style = style;
+            _direction = context.ReadingDirection;
+            _measurer = context.Measurer;
+            _fits = fits;
+        }
+
         /// <summary>Whether these are the lines for exactly this width, type, direction and measurer.</summary>
         public bool IsFor(float width, TypeStyle style, PlanContext context) =>
-            Width == width && ReferenceEquals(Measurer, context.Measurer) && Direction == context.ReadingDirection
-            && Style.Equals(style);
+            _width == width && ReferenceEquals(_measurer, context.Measurer) && _direction == context.ReadingDirection
+            && style.Equals(_style);
+
+        /// <summary>
+        /// Whether these lines are also the lines for <paramref name="width"/>: for the same type, direction and
+        /// measurer, every fit test their building took answers the same there, so a fresh build would take the same
+        /// path to the same lines. The indent enters only the opening line's budget, reckoned afresh here.
+        /// </summary>
+        public bool Cover(float width, TypeStyle style, float indent, PlanContext context) =>
+            IsFinite(width) && ReferenceEquals(_measurer, context.Measurer) && _direction == context.ReadingDirection
+            && style.Equals(_style) && _fits.HoldAt(width, indent);
     }
+
+    /// <summary>
+    /// The fit tests a build of lines took, kept as what decides them: for the opening line of a paragraph and for the
+    /// lines continuing it, the widest left side that fitted and the narrowest that did not.
+    /// </summary>
+    private struct LineFits
+    {
+        private FitBounds _opening;
+        private FitBounds _continuing;
+
+        /// <summary>No test taken yet.</summary>
+        public static LineFits None => new LineFits { _opening = FitBounds.None, _continuing = FitBounds.None };
+
+        /// <summary>
+        /// Marks the lines as depending on their exact width otherwise — a word broken to fit, a line limit's
+        /// ellipsis, a width that is not finite — so that they hold at no other.
+        /// </summary>
+        public void Tie() => _opening = FitBounds.Never;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Record(bool opening, float left, bool fits)
+        {
+            if (opening)
+                _opening.Record(left, fits);
+            else
+                _continuing.Record(left, fits);
+        }
+
+        /// <summary>
+        /// Whether every test answers the same at <paramref name="width"/>, the budgets reckoned by WrapLines' own
+        /// expressions: the opening line's room net of the indent, a continuing line's the whole width.
+        /// </summary>
+        public readonly bool HoldAt(float width, float indent)
+        {
+            float room = Math.Max(0, width);
+
+            return _opening.HoldAt(Math.Max(0, room - indent) + Extent.Epsilon) && _continuing.HoldAt(room + Extent.Epsilon);
+        }
+    }
+
+    /// <summary>One line class's fit tests: a test fits while its left side is at most the budget plus the tolerance.</summary>
+    private struct FitBounds
+    {
+        // With nothing recorded, the widest fit is below every limit and the narrowest failure above it.
+        private float _widestFit;
+        private float _narrowestFailure;
+
+        public static FitBounds None => new FitBounds
+        {
+            _widestFit = float.NegativeInfinity,
+            _narrowestFailure = float.PositiveInfinity,
+        };
+
+        /// <summary>Bounds that hold against no finite limit.</summary>
+        public static FitBounds Never => new FitBounds
+        {
+            _widestFit = float.PositiveInfinity,
+            _narrowestFailure = float.NegativeInfinity,
+        };
+
+        /// <summary>
+        /// Records a test. One whose left side is not a number, or is infinite, answers alike against every finite
+        /// limit, and so leaves the bounds as they are: no comparison with it is true.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Record(float left, bool fits)
+        {
+            if (fits)
+            {
+                if (left > _widestFit)
+                    _widestFit = left;
+            }
+            else if (left < _narrowestFailure)
+            {
+                _narrowestFailure = left;
+            }
+        }
+
+        /// <summary>Whether, against <paramref name="limit"/> (a budget plus the tolerance), what fitted fits and what failed fails.</summary>
+        public readonly bool HoldAt(float limit) => _widestFit <= limit && !(_narrowestFailure <= limit);
+    }
+
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
     /// <summary>
     /// One piece of a line: a stretch of text — a word, the space after it, part of a word broken across lines, an
