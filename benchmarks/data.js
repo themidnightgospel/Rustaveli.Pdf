@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791281575341,
+  "lastUpdate": 1791304752461,
   "repoUrl": "https://github.com/themidnightgospel/Rustaveli.Pdf",
   "entries": {
     "Rustaveli.Pdf": [
@@ -2568,6 +2568,113 @@ window.BENCHMARK_DATA = {
             "range": "± 0.81",
             "unit": "ms",
             "extra": "QuestPDF 2026.5.0: 12.0 ms, −71%"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bubachelidze1@gmail.com",
+            "name": "Bitchiko Tchelidze",
+            "username": "themidnightgospel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e69b034630a0475e8da4582d2a370c7842555955",
+          "message": "Merge pull request #121 from themidnightgospel/perf/integral-reals\n\nWrite a whole number into a PDF as the integer it is\n\nAssisted-by: AI agent",
+          "timestamp": "2026-10-06T18:34:57+02:00",
+          "tree_id": "cc776b43896d37e383e76d42e97919c82e837f4c",
+          "url": "https://github.com/themidnightgospel/Rustaveli.Pdf/commit/e69b034630a0475e8da4582d2a370c7842555955"
+        },
+        "date": 1791304751787,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Invoice · time",
+            "value": 1.327,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 3.74 ms, −65%"
+          },
+          {
+            "name": "Invoice · allocated",
+            "value": 150.077,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 359 KB, −58%"
+          },
+          {
+            "name": "Invoice · file size",
+            "value": 6.642,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 14.7 KB, −55%"
+          },
+          {
+            "name": "Report · time",
+            "value": 205.743,
+            "range": "± 0.08",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 312 ms, −34%"
+          },
+          {
+            "name": "Report · allocated",
+            "value": 1713.984,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 8,188 KB, −79%"
+          },
+          {
+            "name": "Report · file size",
+            "value": 171.695,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 950 KB, −82%"
+          },
+          {
+            "name": "LargeTable · time",
+            "value": 381.074,
+            "range": "± 1.43",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1,052 ms, −64%"
+          },
+          {
+            "name": "LargeTable · allocated",
+            "value": 23055.383,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 121,369 KB, −81%"
+          },
+          {
+            "name": "LargeTable · file size",
+            "value": 568.252,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 1,042 KB, −45%"
+          },
+          {
+            "name": "Images · time",
+            "value": 81.551,
+            "range": "± 0.39",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1,648 ms, −95%"
+          },
+          {
+            "name": "Images · allocated",
+            "value": 2478.612,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 17,171 KB, −86%"
+          },
+          {
+            "name": "Images · file size",
+            "value": 138.802,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 3,498 KB, −96%"
+          },
+          {
+            "name": "Eight documents in parallel · time",
+            "value": 4.662,
+            "range": "± 0.07",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 34.3 ms, −86%"
           }
         ]
       }
