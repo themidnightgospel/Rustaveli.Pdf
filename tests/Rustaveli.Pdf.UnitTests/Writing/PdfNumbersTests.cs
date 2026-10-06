@@ -84,6 +84,25 @@ public class PdfNumbersTests
         Assert.Equal(expected, Real(value));
     }
 
+    [Fact]
+    public void WritesWholeRealsExactlyAsIntegers()
+    {
+        // Most of a page's operands are whole: sizes, many positions, the matrices of text and images. Each must come
+        // out as the integer it is, at every magnitude and sign, however it is reached.
+        List<long> wholes = [0, 1, -1, 9, 10, 99, 100, -100, 999, 1_000, 99_999, 100_000, 999_999, 1_000_000, -1_000_000];
+        wholes.AddRange([123_456_789, -123_456_789, 999_999_999_999_999, -999_999_999_999_999]);
+        Random random = new Random(20261006);
+
+        for (int index = 0; index < 10_000; index++)
+        {
+            long magnitude = (long)Math.Pow(10, random.Next(0, 15));
+            wholes.Add((long)(random.NextDouble() * magnitude) * (random.Next(2) == 0 ? 1 : -1));
+        }
+
+        foreach (long whole in wholes)
+            Assert.Equal(Integer(whole), Real(whole));
+    }
+
     [Theory]
     [InlineData(99.999994, "99.99999")]
     [InlineData(99.999996, "100")]

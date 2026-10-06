@@ -59,6 +59,11 @@ internal static class PdfNumbers
                 nameof(value), value, "PDF output is limited to reals below 10^15 in magnitude.");
         }
 
+        // Most of a page's operands are whole, and a whole value comes out of the rounding below as the integer it is;
+        // -0 too, as "0". Below 10^15 it fits a long exactly.
+        if (Math.Truncate(value) == value)
+            return WriteInteger((long)value, destination);
+
         int decimals = DecimalsFor(magnitude);
         long scaled = (long)Math.Round(magnitude * PowersOfTen[decimals], MidpointRounding.AwayFromZero);
         if (scaled == 0)
@@ -77,15 +82,16 @@ internal static class PdfNumbers
         if (value < 0)
             destination[length++] = (byte)'-';
 
-        long divisor = PowersOfTen[decimals];
-        _ = Utf8Formatter.TryFormat(scaled / divisor, destination.Slice(length), out int written);
+        // One division gives both parts: the divisor is not a constant, so each would cost a division of its own.
+        long integral = Math.DivRem(scaled, PowersOfTen[decimals], out long fraction);
+        _ = Utf8Formatter.TryFormat(integral, destination.Slice(length), out int written);
         length += written;
 
         if (decimals > 0)
         {
             destination[length++] = (byte)'.';
             StandardFormat padded = new StandardFormat('D', (byte)decimals);
-            _ = Utf8Formatter.TryFormat(scaled % divisor, destination.Slice(length), out written, padded);
+            _ = Utf8Formatter.TryFormat(fraction, destination.Slice(length), out written, padded);
             length += written;
         }
 

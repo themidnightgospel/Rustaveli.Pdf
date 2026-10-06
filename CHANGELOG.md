@@ -83,6 +83,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   less, and a document kept after export holds 0.9 MB less of the table; every PDF is unchanged.
 - Drawing text looks a glyph's embedded font up only when the face changes, not for every glyph: drawing text into a
   PDF takes about 2–5% less time per glyph; every PDF is unchanged.
+- A whole number is written into a page as the integer it is, without the decimal rounding a fraction needs, and a
+  fraction's two parts come from one division. Whole numbers, 84–96% of those in the benchmark pages, are written
+  in about a third less time; every PDF is unchanged.
 
 **Tests**
 
