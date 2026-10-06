@@ -115,6 +115,25 @@ public class PdfSurfaceTests
     // ---- Pages -------------------------------------------------------------------------------------------------
 
     [Fact]
+    public void TextSetInOneFaceLooksItsFontUpOnce()
+    {
+        // Every glyph names its face, and consecutive glyphs almost always share one, so the embedding is looked up
+        // only when the face changes, not for each glyph: a long table draws hundreds of thousands of them.
+        int lookups = 0;
+
+        RenderDocument(surface =>
+        {
+            surface.BeginPage(new Extent(300, 150));
+            surface.ShowText("Words set in one face", new Offset(10, 50), Style, ReadingDirection.LeftToRight);
+            surface.ShowText("and more of them", new Offset(10, 80), Style, ReadingDirection.LeftToRight);
+            surface.EndPage();
+            lookups = surface.FontLookups;
+        });
+
+        Assert.Equal(1, lookups);
+    }
+
+    [Fact]
     public void EachPageTakesTheSizeItWasBegunWith()
     {
         byte[] pdf = RenderDocument(surface =>

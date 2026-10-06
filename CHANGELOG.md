@@ -81,6 +81,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - A paragraph's lines are built in a list lent from one paragraph to the next and kept in an array exactly as long as
   they are, not in a list of their own with room to grow. The report allocates 5% less and the 10,000-row table 4%
   less, and a document kept after export holds 0.9 MB less of the table; every PDF is unchanged.
+- Drawing text looks a glyph's embedded font up only when the face changes, not for every glyph: drawing text into a
+  PDF takes about 2–5% less time per glyph; every PDF is unchanged.
 
 **Tests**
 

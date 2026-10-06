@@ -1,4 +1,5 @@
 using Rustaveli.Pdf.Drawing;
+using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Images;
 using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
@@ -48,6 +49,11 @@ internal sealed class PdfSurface : IPageSink
     private readonly FontEmbedder _fonts;
     private readonly ImageEmbedder _images;
     private readonly ImageAdjuster _adjuster;
+
+    // The face last drawn and its embedding: consecutive glyphs almost always share a face, and a face's embedding never
+    // changes once begun, so it is looked up again only when the face does.
+    private OpenTypeFont? _lastFace;
+    private EmbeddedFont? _lastFont;
 
     /// <summary>
     /// Whether the file is PDF/A: every ink is written as RGB, as its sRGB output intent needs, and nothing asks a viewer
@@ -143,6 +149,9 @@ internal sealed class PdfSurface : IPageSink
         _page = null;
         _gradient = null;
     }
+
+    /// <summary>For tests: how many times a face's embedding has been looked up.</summary>
+    internal int FontLookups => _fonts.Lookups;
 
     /// <summary>Writes the fonts and the structure, now that every page has been drawn, and completes the file.</summary>
     public void Finish()
@@ -564,7 +573,13 @@ internal sealed class PdfSurface : IPageSink
             if (!first)
                 pen += previousAdvance + glyph.Tracking + glyph.Kerning + previousExtra;
 
-            EmbeddedFont font = _fonts.For(glyph.Face);
+            if (!ReferenceEquals(glyph.Face, _lastFace))
+            {
+                _lastFont = _fonts.For(glyph.Face);
+                _lastFace = glyph.Face;
+            }
+
+            EmbeddedFont font = _lastFont!;
             bool displaced = glyph.XOffset != 0 || glyph.YOffset != 0;
 
             // A face change, and a glyph set off its pen position — a mark placed on its letter — or the glyph after
