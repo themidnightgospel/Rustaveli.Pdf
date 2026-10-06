@@ -12,9 +12,14 @@ internal sealed class FontEmbedder(PdfFileWriter file, bool keepHinting = false)
 {
     private readonly Dictionary<OpenTypeFont, EmbeddedFont> _fonts = [];
 
+    /// <summary>For tests: how many times an embedding has been looked up.</summary>
+    internal int Lookups { get; private set; }
+
     /// <summary>The embedding of <paramref name="face"/>, begun on its first use.</summary>
     public EmbeddedFont For(OpenTypeFont face)
     {
+        Lookups++;
+
         if (!_fonts.TryGetValue(face, out EmbeddedFont? font))
         {
             font = new EmbeddedFont(face, file.Reserve(), keepHinting);
