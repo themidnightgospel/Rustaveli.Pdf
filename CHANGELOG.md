@@ -86,6 +86,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - A whole number is written into a page as the integer it is, without the decimal rounding a fraction needs, and a
   fraction's two parts come from one division. Whole numbers, 84–96% of those in the benchmark pages, are written
   in about a third less time; every PDF is unchanged.
+- A stack drawn on a page records where its items went in a list lent from one stack to the next, not a new one each
+  time: the 85-page report allocates 8% less; every PDF is unchanged.
 
 **Tests**
 

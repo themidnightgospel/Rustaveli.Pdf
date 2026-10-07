@@ -9,6 +9,45 @@ public class StackTests
         return column;
     }
 
+#if NET
+    [Fact]
+    public void DrawingAStackAllocatesNothingForTheItemsItPlaces()
+    {
+        // Allocation budget: a stack records where each item it draws went. Every list, page and cell holds one, and
+        // a long report draws thousands; the record is lent from one stack to the next, and once it has grown to the
+        // largest stack drawn, drawing allocates nothing for it.
+        const long Budget = 0;
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
+        RenderContext drawing = new RenderContext(new NullSurface(), context);
+        Extent room = new Extent(200, 500);
+        StackBlock warm = Column(4, Enumerable.Range(0, 8).Select(_ => (Block)new FixedBlock(10, 10)).ToArray());
+        warm.Plan(room, context);
+        warm.Render(room, drawing);
+        StackBlock column = Column(4, Enumerable.Range(0, 6).Select(_ => (Block)new FixedBlock(50, 20)).ToArray());
+        column.Plan(room, context);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        column.Render(room, drawing);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Drawing the stack allocated {allocated} bytes; its budget is {Budget}.");
+    }
+#endif
+
+    [Fact]
+    public void AStackDrawnAfterOneThatFailedDrawsOnlyItsOwnItems()
+    {
+        // The record of placed items is lent from one stack to the next. One whose drawing throws, with items already
+        // in it, must not leave them there for the next.
+        StackBlock failing = Column(0, new FixedBlock(10, 10), new FixedBlock(10, 10), new ThrowingBlock(new InvalidOperationException("Drawing failed.")));
+        Assert.Throws<InvalidOperationException>(() => LayoutHarness.Render(failing, new Extent(200, 200)));
+
+        RecordedPage page = LayoutHarness.Render(Column(0, new FixedBlock(30, 15)), new Extent(200, 200));
+
+        RectangleOperation drawn = Assert.Single(page.Operations.OfType<RectangleOperation>());
+        Approximately.Equal(0f, drawn.Position.Y);
+    }
+
     [Fact]
     public void SumsItemHeightsAndTakesTheWidestItem()
     {

@@ -11,6 +11,11 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class StackBlock : Block
 {
+    private const int MostKept = 1024;
+
+    [ThreadStatic]
+    private static List<Placed>? _spare;
+
     /// <summary>How many items, from the top, have been drawn in full on earlier pages.</summary>
     private int _finished;
 
@@ -35,21 +40,36 @@ internal sealed class StackBlock : Block
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        List<Placed> placed = [];
-        Page page = Walk(availableSpace, context.Planning, placed);
+        // The record of placed items is lent from one stack to the next on the thread; a stack drawn within this one,
+        // while it holds the record, finds none to borrow and makes its own.
+        List<Placed> placed = _spare ?? [];
+        _spare = null;
 
-        if (placed.Count == 0)
-            return;
-
-        foreach (Placed item in placed)
+        try
         {
-            Offset top = new Offset(0, item.Top);
-            context.Surface.MoveOrigin(top);
-            context.RenderAllotted(Items[item.Index], new Extent(availableSpace.Width, item.Height), item.Offered);
-            context.Surface.MoveOrigin(top.Reverse());
-        }
+            Page page = Walk(availableSpace, context.Planning, placed);
 
-        _finished = page.Resume;
+            if (placed.Count == 0)
+                return;
+
+            foreach (Placed item in placed)
+            {
+                Offset top = new Offset(0, item.Top);
+                context.Surface.MoveOrigin(top);
+                context.RenderAllotted(Items[item.Index], new Extent(availableSpace.Width, item.Height), item.Offered);
+                context.Surface.MoveOrigin(top.Reverse());
+            }
+
+            _finished = page.Resume;
+        }
+        finally
+        {
+            placed.Clear();
+
+            // A stack of far more items than most would otherwise keep a record its size for as long as the thread lives.
+            if (placed.Capacity <= MostKept)
+                _spare = placed;
+        }
     }
 
     /// <summary>
