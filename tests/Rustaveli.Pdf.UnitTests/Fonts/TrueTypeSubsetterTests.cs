@@ -9,6 +9,8 @@ namespace Rustaveli.Pdf.UnitTests.Fonts;
 /// </summary>
 public class TrueTypeSubsetterTests
 {
+    private const ushort NotInTheFont = 60_000;
+
     private static readonly string[] PdfTables =
         ["cmap", "cvt ", "fpgm", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "post", "prep"];
 
@@ -303,6 +305,8 @@ public class TrueTypeSubsetterTests
         // Å's components come after the glyphs listed, in the order Å references them.
         Assert.Equal(new ushort[] { 0, 135, 57, 36, 335 }, subset.OriginalGlyphIds);
         Assert.Equal(new ushort[] { 3, 4 }, Components(Reparse(subset), 1));
+        Assert.Equal(
+            new Dictionary<ushort, ushort> { [0] = 0, [135] = 1, [57] = 2, [36] = 3, [335] = 4 }, subset.GlyphIdMap);
     }
 
     [Fact]
@@ -312,6 +316,55 @@ public class TrueTypeSubsetterTests
         Assert.Throws<ArgumentException>(() => TrueTypeSubsetter.SubsetInOrder(TestFonts.Regular, []));
         Assert.Throws<ArgumentException>(() => TrueTypeSubsetter.SubsetInOrder(TestFonts.Regular, [0, 36, 36]));
     }
+
+    [Fact]
+    public void ReportsARepeatedGlyphBeforeAnyProblemWithTheFont()
+    {
+        // A repeat is reported though a glyph listed before it is not in the font, and though the font's outlines
+        // cannot be subset at all.
+        ArgumentException outside = Assert.Throws<ArgumentException>(
+            () => TrueTypeSubsetter.SubsetInOrder(TestFonts.Regular, [0, NotInTheFont, 36, 36]));
+        Assert.Equal("numbering", outside.ParamName);
+        Assert.Throws<ArgumentException>(() => TrueTypeSubsetter.SubsetInOrder(TestFonts.Cff, [0, 34, 34]));
+    }
+
+    [Fact]
+    public void ReportsOutlinesItCannotSubsetBeforeAGlyphOutsideTheFont()
+    {
+        Assert.Throws<NotSupportedException>(() => TrueTypeSubsetter.Subset(TestFonts.Cff, [NotInTheFont]));
+        Assert.Throws<NotSupportedException>(() => TrueTypeSubsetter.SubsetInOrder(TestFonts.Cff, [0, NotInTheFont]));
+    }
+
+    [Fact]
+    public void ReportsTheFirstGlyphListedOutsideTheFont()
+    {
+        ArgumentOutOfRangeException first = Assert.Throws<ArgumentOutOfRangeException>(
+            () => TrueTypeSubsetter.Subset(TestFonts.Regular, [36, NotInTheFont + 1, 36, NotInTheFont]));
+        Assert.Equal((ushort)(NotInTheFont + 1), first.ActualValue);
+    }
+
+#if NET
+    [Fact]
+    public void SubsettingForADocumentNumbersItsGlyphsInOneMap()
+    {
+        // Allocation budget: every export subsets each face it embeds, from the numbering its pages were written
+        // with. One map numbers the glyphs, finds a glyph listed twice and is the subset's own. A set to find repeats,
+        // a flag for every glyph in the font and a second copy of the map cost this subset 5 KB more. What is left
+        // is the subset font and the tables it is built from. When a change moves this on purpose, set the new
+        // figure and say why in the commit.
+        const long Budget = 18_360;
+        OpenTypeFont font = TestFonts.Regular;
+        ushort[] numbering =
+            [0, .. GlyphsOf(font, "Invoice 2026, Total due: 1,250.00 EUR").Distinct().Where(glyph => glyph != 0)];
+        TrueTypeSubsetter.SubsetInOrder(font, numbering);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        TrueTypeSubsetter.SubsetInOrder(font, numbering);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Subsetting allocated {allocated} bytes; its budget is {Budget}.");
+    }
+#endif
 
     [Fact]
     public void RejectsGlyphsOutsideTheFont()
@@ -485,7 +538,7 @@ public class TrueTypeSubsetterTests
         glyphs.Add(36);
 
         Assert.False(glyphs.TryGetText(1, out _));
-        Assert.Throws<ArgumentOutOfRangeException>(() => glyphs.Add(60000));
+        Assert.Throws<ArgumentOutOfRangeException>(() => glyphs.Add(NotInTheFont));
     }
 
     [Fact]

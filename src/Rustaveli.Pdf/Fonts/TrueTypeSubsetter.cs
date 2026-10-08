@@ -41,10 +41,21 @@ internal static class TrueTypeSubsetter
         ArgumentNullException.ThrowIfNull(font);
         ArgumentNullException.ThrowIfNull(glyphs);
 
-        List<ushort> order = WithComponents(font, [0, .. glyphs]);
+        List<ushort> order = [];
+        Dictionary<ushort, ushort> numbers = new Dictionary<ushort, ushort>();
+        Number(order, numbers, 0);
+
+        foreach (ushort glyph in glyphs)
+            Number(order, numbers, glyph);
+
+        AddComponents(font, order, numbers);
         order.Sort();
 
-        return Build(font, order, keepHinting);
+        // Numbered again in their original order, now that they are sorted into it.
+        for (int index = 0; index < order.Count; index++)
+            numbers[order[index]] = (ushort)index;
+
+        return Build(font, order, numbers, keepHinting);
     }
 
     /// <summary>
@@ -62,69 +73,76 @@ internal static class TrueTypeSubsetter
         if (numbering.Count == 0 || numbering[0] != 0)
             throw new ArgumentException("A subset numbers .notdef as glyph 0.", nameof(numbering));
 
-        if (numbering.Distinct().Count() != numbering.Count)
-            throw new ArgumentException("A glyph can have only one number in a subset.", nameof(numbering));
+        // The whole numbering is checked before any of its glyphs is looked up in the font.
+        List<ushort> order = new List<ushort>(numbering.Count);
+        Dictionary<ushort, ushort> numbers = new Dictionary<ushort, ushort>(numbering.Count);
 
-        return Build(font, WithComponents(font, numbering), keepHinting);
+        for (int index = 0; index < numbering.Count; index++)
+        {
+            if (!Number(order, numbers, numbering[index]))
+                throw new ArgumentException("A glyph can have only one number in a subset.", nameof(numbering));
+        }
+
+        AddComponents(font, order, numbers);
+        return Build(font, order, numbers, keepHinting);
     }
 
     /// <summary>
-    /// The glyphs listed, in order and each once, followed by the components they reference that are not listed.
+    /// Checks that every glyph listed is in the font, then appends the components they reference, transitively, each
+    /// once and numbered by its place.
     /// </summary>
-    private static List<ushort> WithComponents(OpenTypeFont font, IReadOnlyList<ushort> glyphs)
+    private static void AddComponents(OpenTypeFont font, List<ushort> glyphs, Dictionary<ushort, ushort> numbers)
     {
         GlyphTable table = RequireTrueType(font);
-        bool[] included = new bool[font.GlyphCount];
-        List<ushort> order = new List<ushort>(glyphs.Count);
         List<GlyphComponent> components = new List<GlyphComponent>();
 
         foreach (ushort glyph in glyphs)
         {
             if (glyph >= font.GlyphCount)
                 throw new ArgumentOutOfRangeException(nameof(glyphs), glyph, $"The font has {font.GlyphCount} glyphs.");
-
-            if (!included[glyph])
-            {
-                included[glyph] = true;
-                order.Add(glyph);
-            }
         }
 
-        // Breadth-first over the growing list; the flags make each glyph enter it once, which also ends a cycle of
+        // Breadth-first over the growing list; the numbers make each glyph enter it once, which also ends a cycle of
         // composites that reference one another.
-        for (int index = 0; index < order.Count; index++)
+        for (int index = 0; index < glyphs.Count; index++)
         {
             components.Clear();
-            table.AddComponents(order[index], components);
+            table.AddComponents(glyphs[index], components);
 
             foreach (GlyphComponent component in components)
             {
                 if (component.GlyphId >= font.GlyphCount)
                 {
                     throw new FontFormatException(
-                        $"Glyph {order[index]} uses glyph {component.GlyphId}, which does not exist.");
+                        $"Glyph {glyphs[index]} uses glyph {component.GlyphId}, which does not exist.");
                 }
 
-                if (!included[component.GlyphId])
-                {
-                    included[component.GlyphId] = true;
-                    order.Add(component.GlyphId);
-                }
+                Number(glyphs, numbers, component.GlyphId);
             }
         }
-
-        return order;
     }
 
-    private static TrueTypeSubset Build(OpenTypeFont font, List<ushort> order, bool keepHinting)
+    /// <summary>
+    /// Numbers a glyph next, by its place in <paramref name="order"/>; false if it has a number already.
+    /// </summary>
+    private static bool Number(List<ushort> order, Dictionary<ushort, ushort> numbers, ushort glyph)
+    {
+        if (!numbers.TryAdd(glyph, (ushort)order.Count))
+            return false;
+
+        order.Add(glyph);
+        return true;
+    }
+
+    /// <summary>
+    /// The subset of the glyphs in <paramref name="order"/>, each numbered in <paramref name="numbers"/> by its place
+    /// there.
+    /// </summary>
+    private static TrueTypeSubset Build(
+        OpenTypeFont font, List<ushort> order, Dictionary<ushort, ushort> numbers, bool keepHinting)
     {
         GlyphTable glyphs = RequireTrueType(font);
-        Dictionary<ushort, ushort> numbers = new Dictionary<ushort, ushort>(order.Count);
         bool hinted = keepHinting || GlyphHinting.IsNeededBy(font.Names);
-
-        for (int index = 0; index < order.Count; index++)
-            numbers.Add(order[index], (ushort)index);
-
         OutlineData outlines = WriteOutlines(font, glyphs, order, numbers, hinted);
         bool longLoca = outlines.Glyf.Length > ShortLocaLimit;
 
@@ -149,7 +167,7 @@ internal static class TrueTypeSubsetter
         byte[] file = SfntWriter.Write(TableDirectory.TrueTypeVersion, tables);
         ushort[] originals = order.ToArray();
 
-        return new TrueTypeSubset(file, originals, SubsetTag(font.Names.PostScriptName, originals));
+        return new TrueTypeSubset(file, originals, numbers, SubsetTag(font.Names.PostScriptName, originals));
     }
 
     private static GlyphTable RequireTrueType(OpenTypeFont font) =>
