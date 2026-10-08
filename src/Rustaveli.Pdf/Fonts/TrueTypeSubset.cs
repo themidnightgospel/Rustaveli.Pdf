@@ -13,15 +13,15 @@ internal sealed class TrueTypeSubset
     private readonly ushort[] _originalGlyphIds;
     private readonly Dictionary<ushort, ushort> _subsetGlyphIds;
 
-    internal TrueTypeSubset(byte[] fontData, ushort[] originalGlyphIds, string tag)
+    // The map is kept as given, not copied: it is the numbering the outlines were written with, and nothing may
+    // change it afterwards.
+    internal TrueTypeSubset(
+        byte[] fontData, ushort[] originalGlyphIds, Dictionary<ushort, ushort> subsetGlyphIds, string tag)
     {
         FontData = fontData;
         _originalGlyphIds = originalGlyphIds;
+        _subsetGlyphIds = subsetGlyphIds;
         Tag = tag;
-        _subsetGlyphIds = new Dictionary<ushort, ushort>(originalGlyphIds.Length);
-
-        for (int index = 0; index < originalGlyphIds.Length; index++)
-            _subsetGlyphIds.Add(originalGlyphIds[index], (ushort)index);
     }
 
     /// <summary>The subset font file, for a FontFile2 stream.</summary>
