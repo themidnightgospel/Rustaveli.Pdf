@@ -30,21 +30,28 @@ internal static class GlyphHinting
         AssembledByInstructions.Any(part =>
             names.Family.Contains(part, StringComparison.Ordinal) || names.PreferredFamily.Contains(part, StringComparison.Ordinal));
 
-    /// <summary><paramref name="glyph"/> without its instructions, outline unchanged.</summary>
+    /// <summary>
+    /// Appends <paramref name="glyph"/> to <paramref name="output"/> without its instructions, outline unchanged; a
+    /// glyph cut short is refused before anything is written.
+    /// </summary>
     /// <param name="glyph">A glyph's data as the <c>glyf</c> table holds it, header included; not empty.</param>
-    public static byte[] Strip(ReadOnlySpan<byte> glyph)
+    /// <param name="output">The table being written.</param>
+    public static void StripInto(ReadOnlySpan<byte> glyph, FontDataWriter output)
     {
         if (glyph.Length < CompositeGlyph.HeaderSize)
             throw FontFormatException.Truncated();
 
-        return BigEndian.Int16(glyph, 0) < 0 ? StripComposite(glyph) : StripSimple(glyph);
+        if (BigEndian.Int16(glyph, 0) < 0)
+            StripComposite(glyph, output);
+        else
+            StripSimple(glyph, output);
     }
 
     /// <summary>
     /// A simple glyph holds its instructions between its contours' end points and its points' flags, their length
     /// first: the length becomes 0 and the instructions go.
     /// </summary>
-    private static byte[] StripSimple(ReadOnlySpan<byte> glyph)
+    private static void StripSimple(ReadOnlySpan<byte> glyph, FontDataWriter output)
     {
         int contours = BigEndian.Int16(glyph, 0);
         int lengthAt = CompositeGlyph.HeaderSize + (2 * contours);
@@ -52,7 +59,10 @@ internal static class GlyphHinting
         // A glyph of no contours may end at its header, as FreeType and fontTools accept: it has no points for
         // instructions to move, and no instructions to take out.
         if (contours == 0 && lengthAt + 2 > glyph.Length)
-            return glyph.ToArray();
+        {
+            output.Bytes(glyph);
+            return;
+        }
 
         if (lengthAt + 2 > glyph.Length)
             throw FontFormatException.Truncated();
@@ -63,23 +73,22 @@ internal static class GlyphHinting
         if (pointsAt > glyph.Length)
             throw FontFormatException.Truncated();
 
-        byte[] stripped = new byte[glyph.Length - instructions];
-        glyph.Slice(0, lengthAt).CopyTo(stripped);
-        BigEndian.WriteUInt16(stripped, lengthAt, 0);
-        glyph.Slice(pointsAt).CopyTo(stripped.AsSpan(lengthAt + 2));
-        return stripped;
+        output.Bytes(glyph.Slice(0, lengthAt));
+        output.UInt16(0);
+        output.Bytes(glyph.Slice(pointsAt));
     }
 
     /// <summary>
     /// A composite glyph's instructions follow its last component record, which says so in its flags: the records
     /// are kept, with that flag cleared.
     /// </summary>
-    private static byte[] StripComposite(ReadOnlySpan<byte> glyph)
+    private static void StripComposite(ReadOnlySpan<byte> glyph, FontDataWriter output)
     {
         int end = CompositeGlyph.RecordsEnd(glyph, out int lastFlagsAt);
-        byte[] stripped = glyph.Slice(0, end).ToArray();
-        ushort flags = BigEndian.UInt16(stripped, lastFlagsAt);
-        BigEndian.WriteUInt16(stripped, lastFlagsAt, (ushort)(flags & ~CompositeGlyph.HasInstructions));
-        return stripped;
+        ushort flags = BigEndian.UInt16(glyph, lastFlagsAt);
+        int start = output.Length;
+
+        output.Bytes(glyph.Slice(0, end));
+        output.PatchUInt16(start + lastFlagsAt, flags & ~CompositeGlyph.HasInstructions);
     }
 }

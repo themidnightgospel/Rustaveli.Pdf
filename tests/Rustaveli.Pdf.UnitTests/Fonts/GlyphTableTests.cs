@@ -12,6 +12,19 @@ public class GlyphTableTests
         return new GlyphTable(glyf, loca, glyphs.Length, longOffsets ? (short)1 : (short)0);
     }
 
+    /// <summary>
+    /// A <c>glyf</c> table of <paramref name="length"/> bytes, its glyphs where long offsets put them.
+    /// </summary>
+    private static GlyphTable Located(int length, params uint[] offsets)
+    {
+        FontBytes loca = new FontBytes();
+
+        foreach (uint offset in offsets)
+            loca.U32(offset);
+
+        return new GlyphTable(new byte[length], loca.ToArray(), offsets.Length - 1, 1);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -139,6 +152,33 @@ public class GlyphTableTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => table.GetGlyphData(1));
         Assert.Throws<ArgumentOutOfRangeException>(() => SyntheticFont.Minimal().Load().TryGetGlyphBounds(9, out _));
+    }
+
+    [Fact]
+    public void MeasuresEachGlyphPaddedToTheAlignmentGiven()
+    {
+        GlyphTable table = Located(32, 0, 13, 32);
+
+        Assert.Equal(16 + 20, table.MeasurePadded([0, 1], 4));
+        Assert.Equal(14 + 20, table.MeasurePadded([0, 1], 2));
+    }
+
+    [Fact]
+    public void MeasuresLocationsItCannotReadAsEmptyRatherThanThrowing()
+    {
+        // Glyph 1 ends before it starts, glyph 2 runs past the table and glyph 3 starts past it; glyph 9 is not in
+        // the font.
+        GlyphTable table = Located(48, 0, 16, 8, 100, 120);
+
+        Assert.Equal(16 + 40, table.MeasurePadded([0, 1, 2, 3, 9], 4));
+    }
+
+    [Fact]
+    public void MeasuresNoMoreThanTheTableAndItsPaddingHoweverTheLocationsOverlap()
+    {
+        GlyphTable table = Located(48, 0, 48, 0, 48);
+
+        Assert.Equal(48 + (3 * 3), table.MeasurePadded([0, 1, 2], 4));
     }
 
     [Fact]
