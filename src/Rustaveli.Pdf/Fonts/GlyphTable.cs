@@ -36,20 +36,40 @@ internal sealed class GlyphTable
         if (glyph >= GlyphCount)
             throw new ArgumentOutOfRangeException(nameof(glyph), glyph, $"The font has {GlyphCount} glyphs.");
 
-        long start = Offset(glyph);
-        long end = Offset(glyph + 1);
+        (long start, long end) = Locate(glyph);
 
-        if (end < start || start > _glyf.Length)
+        if (end < start)
             throw new FontFormatException($"The location of glyph {glyph} is out of order or out of range.");
-
-        // Some fonts record an end a few bytes past the table for their last glyph, a padding slip that loses
-        // nothing; the glyph ends where the table does.
-        end = Math.Min(end, _glyf.Length);
 
         if (end > start && end - start < CompositeGlyph.HeaderSize)
             throw new FontFormatException($"Glyph {glyph} is shorter than a glyph header.");
 
         return _glyf.Slice((int)start, (int)(end - start));
+    }
+
+    /// <summary>
+    /// The room the data of <paramref name="glyphs"/> takes, each padded to <paramref name="alignment"/> bytes, to size
+    /// a buffer by. Unlike <see cref="GetGlyphData"/> it checks nothing and never throws: a location out of order or
+    /// out of range counts as empty, and however the locations overlap, the total is never more than the table and its
+    /// padding.
+    /// </summary>
+    public int MeasurePadded(List<ushort> glyphs, int alignment)
+    {
+        long total = 0;
+
+        foreach (ushort glyph in glyphs)
+        {
+            if (glyph >= GlyphCount)
+                continue;
+
+            (long start, long end) = Locate(glyph);
+
+            if (end > start)
+                total += (end - start + alignment - 1) / alignment * alignment;
+        }
+
+        long limit = _glyf.Length + ((alignment - 1L) * glyphs.Count);
+        return (int)Math.Min(total, Math.Min(limit, int.MaxValue));
     }
 
     /// <summary>The glyph's bounding box, or false for a glyph with no outline.</summary>
@@ -79,6 +99,14 @@ internal sealed class GlyphTable
 
         if (IsComposite(data))
             CompositeGlyph.ReadComponents(data, components);
+    }
+
+    /// <summary>Where a glyph's data starts and ends in the table.</summary>
+    private (long Start, long End) Locate(int glyph)
+    {
+        // Some fonts record an end a few bytes past the table for their last glyph, a padding slip that loses
+        // nothing; the glyph ends where the table does.
+        return (Offset(glyph), Math.Min(Offset(glyph + 1), _glyf.Length));
     }
 
     private long Offset(int index) => _longOffsets

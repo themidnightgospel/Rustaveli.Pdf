@@ -20,10 +20,26 @@ public class GlyphHintingTests
         0x01, 0x01, 0x01, 0x01, 5, 5, 5, 5,
     ];
 
+    /// <summary>
+    /// A composite glyph of two records: the first with byte arguments and more to come, the last with word
+    /// arguments and instructions, which follow it — two bytes of them.
+    /// </summary>
+    private static readonly byte[] Composite =
+    [
+        0xFF, 0xFF, 0, 0, 0, 0, 0, 10, 0, 10,
+        0x00, 0x20, 0, 7, 1, 2,
+        0x01, 0x01, 0, 8, 0, 3, 0, 4,
+        0, 2, 0xB0, 0x01,
+    ];
+
+    /// <summary><see cref="Composite"/> without its instructions or the flag that announces them.</summary>
+    private static readonly byte[] StrippedComposite =
+        [0xFF, 0xFF, 0, 0, 0, 0, 0, 10, 0, 10, 0x00, 0x20, 0, 7, 1, 2, 0x00, 0x01, 0, 8, 0, 3, 0, 4];
+
     [Fact]
     public void ASimpleGlyphLosesItsInstructionsAndKeepsEverythingElse()
     {
-        byte[] stripped = GlyphHinting.Strip(SimpleGlyph);
+        byte[] stripped = Strip(SimpleGlyph);
 
         Assert.Equal(
             [0, 1, 0, 0, 0, 0, 0, 10, 0, 10, 0, 3, 0, 0, 0x01, 0x01, 0x01, 0x01, 5, 5, 5, 5],
@@ -35,7 +51,7 @@ public class GlyphHintingTests
     {
         byte[] plain = [0, 1, 0, 0, 0, 0, 0, 10, 0, 10, 0, 3, 0, 0, 0x01, 5];
 
-        Assert.Equal(plain, GlyphHinting.Strip(plain));
+        Assert.Equal(plain, Strip(plain));
     }
 
     [Fact]
@@ -46,28 +62,23 @@ public class GlyphHintingTests
         byte[] empty = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         byte[] withInstructions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0xB0, 0x01];
 
-        Assert.Equal(empty, GlyphHinting.Strip(empty));
-        Assert.Equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], GlyphHinting.Strip(withInstructions));
+        Assert.Equal(empty, Strip(empty));
+        Assert.Equal([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], Strip(withInstructions));
     }
 
     [Fact]
-    public void ACompositeGlyphLosesTheInstructionsAfterItsLastRecordAndTheFlagThatAnnouncesThem()
+    public void ACompositeGlyphLosesTheInstructionsAfterItsLastRecordAndTheFlagThatAnnouncesThem() =>
+        Assert.Equal(StrippedComposite, Strip(Composite));
+
+    [Fact]
+    public void AGlyphIsStrippedOntoTheEndOfTheTable()
     {
-        // Two records: the first with byte arguments and more to come, the last with word arguments and
-        // instructions, which follow it — two bytes of them.
-        byte[] composite =
-        [
-            0xFF, 0xFF, 0, 0, 0, 0, 0, 10, 0, 10,
-            0x00, 0x20, 0, 7, 1, 2,
-            0x01, 0x01, 0, 8, 0, 3, 0, 4,
-            0, 2, 0xB0, 0x01,
-        ];
+        FontDataWriter table = new FontDataWriter();
+        table.Bytes([1, 2, 3]);
 
-        byte[] stripped = GlyphHinting.Strip(composite);
+        GlyphHinting.StripInto(Composite, table);
 
-        Assert.Equal(
-            [0xFF, 0xFF, 0, 0, 0, 0, 0, 10, 0, 10, 0x00, 0x20, 0, 7, 1, 2, 0x00, 0x01, 0, 8, 0, 3, 0, 4],
-            stripped);
+        Assert.Equal([1, 2, 3, .. StrippedComposite], table.ToArray());
     }
 
     [Fact]
@@ -75,15 +86,21 @@ public class GlyphHintingTests
     {
         byte[] composite = [0xFF, 0xFF, 0, 0, 0, 0, 0, 10, 0, 10, 0x00, 0x00, 0, 7, 1, 2];
 
-        Assert.Equal(composite, GlyphHinting.Strip(composite));
+        Assert.Equal(composite, Strip(composite));
     }
 
     [Theory]
     [InlineData(new byte[] { 0, 1, 0, 0, 0, 0, 0, 10, 0 })]
     [InlineData(new byte[] { 0, 1, 0, 0, 0, 0, 0, 10, 0, 10, 0, 3, 0 })]
     [InlineData(new byte[] { 0, 1, 0, 0, 0, 0, 0, 10, 0, 10, 0, 3, 0, 9, 1 })]
-    public void AGlyphCutShortIsRefused(byte[] glyph) =>
-        Assert.Throws<FontFormatException>(() => GlyphHinting.Strip(glyph));
+    [InlineData(new byte[] { 0xFF, 0xFF, 0, 0, 0, 0, 0, 10, 0, 10, 0x00, 0x20, 0, 7, 1, 2, 0x01, 0x01, 0, 8 })]
+    public void AGlyphCutShortIsRefusedBeforeAnythingIsWritten(byte[] glyph)
+    {
+        FontDataWriter table = new FontDataWriter();
+
+        Assert.Throws<FontFormatException>(() => GlyphHinting.StripInto(glyph, table));
+        Assert.Equal(0, table.Length);
+    }
 
     [Fact]
     public void ByDefaultASubsetCarriesNoHintingAndTheSameOutlines()
@@ -150,6 +167,13 @@ public class GlyphHintingTests
 
         Assert.Contains("MingLiU", renamed.Names.Family, StringComparison.Ordinal);
         Assert.True(OpenTypeFont.Load(subset.FontData).TryGetTable(TableTag.Fpgm, out _));
+    }
+
+    private static byte[] Strip(byte[] glyph)
+    {
+        FontDataWriter table = new FontDataWriter();
+        GlyphHinting.StripInto(glyph, table);
+        return table.ToArray();
     }
 
     private static void Replace(byte[] data, byte[] find, byte[] replacement)

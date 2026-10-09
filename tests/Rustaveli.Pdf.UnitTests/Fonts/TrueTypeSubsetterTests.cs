@@ -345,14 +345,15 @@ public class TrueTypeSubsetterTests
 
 #if NET
     [Fact]
-    public void SubsettingForADocumentNumbersItsGlyphsInOneMap()
+    public void SubsettingForADocumentAllocatesOnlyTheSubsetAndItsTables()
     {
         // Allocation budget: every export subsets each face it embeds, from the numbering its pages were written
-        // with. One map numbers the glyphs, finds a glyph listed twice and is the subset's own. A set to find repeats,
-        // a flag for every glyph in the font and a second copy of the map cost this subset 5 KB more. What is left
-        // is the subset font and the tables it is built from. When a change moves this on purpose, set the new
-        // figure and say why in the commit.
-        const long Budget = 18_360;
+        // with. One map numbers the glyphs, finds a glyph listed twice and is the subset's own, and the outlines go
+        // without their hinting straight into a glyf table sized for them up front. A set to find repeats, a flag for
+        // every glyph in the font and a second copy of the map cost this subset 5 KB more; a copy of each glyph
+        // without its hinting and a table grown by doubling, 3 KB more. What is left is the subset font and the
+        // tables it is built from. When a change moves this on purpose, set the new figure and say why in the commit.
+        const long Budget = 15_152;
         OpenTypeFont font = TestFonts.Regular;
         ushort[] numbering =
             [0, .. GlyphsOf(font, "Invoice 2026, Total due: 1,250.00 EUR").Distinct().Where(glyph => glyph != 0)];

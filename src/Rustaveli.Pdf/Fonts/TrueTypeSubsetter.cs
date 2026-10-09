@@ -31,6 +31,8 @@ internal static class TrueTypeSubsetter
     /// </summary>
     private const int ShortLocaLimit = 0xFFFF * 2;
 
+    private const int GlyphAlignment = 4;
+
     private static readonly uint[] HintingTables = [TableTag.Cvt, TableTag.Fpgm, TableTag.Prep];
 
     /// <summary>
@@ -177,7 +179,7 @@ internal static class TrueTypeSubsetter
     private static OutlineData WriteOutlines(
         OpenTypeFont font, GlyphTable glyphs, List<ushort> order, Dictionary<ushort, ushort> numbers, bool hinted)
     {
-        FontDataWriter glyf = new FontDataWriter();
+        FontDataWriter glyf = new FontDataWriter(glyphs.MeasurePadded(order, GlyphAlignment));
         OutlineData result = new OutlineData(order.Count);
         List<GlyphComponent> components = new List<GlyphComponent>();
 
@@ -192,12 +194,14 @@ internal static class TrueTypeSubsetter
             if (data.IsEmpty)
                 continue;
 
-            if (!hinted)
-                data = GlyphHinting.Strip(data);
-
             int start = glyf.Length;
-            glyf.Bytes(data);
 
+            if (hinted)
+                glyf.Bytes(data);
+            else
+                GlyphHinting.StripInto(data, glyf);
+
+            // Stripping keeps a composite glyph's records where they were, so the original says where each is.
             if (GlyphTable.IsComposite(data))
             {
                 components.Clear();
@@ -208,7 +212,7 @@ internal static class TrueTypeSubsetter
             }
 
             // Four-byte alignment keeps every offset even, as a short loca requires, and aligned for readers.
-            glyf.Align(4);
+            glyf.Align(GlyphAlignment);
             glyphs.TryGetBounds(original, out GlyphBounds bounds);
             result.Include(index, bounds);
         }
