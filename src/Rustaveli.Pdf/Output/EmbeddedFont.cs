@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Globalization;
 using System.Text;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Text;
@@ -121,16 +120,18 @@ internal sealed class EmbeddedFont
         foreach (ushort original in font.OriginalGlyphIds)
             widths.Add(Width(original));
 
-        List<(ushort Code, string Text)> characters = [];
+        // Codes a glyph was given for other text than its first: each is mapped to its glyph, is as wide, and reads
+        // back as what it showed. Without them codes are glyph ids, and the mapping stays the identity.
+        IReadOnlyList<(ushort Glyph, string Text)> shared = subset.SharedCodes;
+        List<(ushort Code, string Text)> characters =
+            new List<(ushort Code, string Text)>(font.GlyphCount + shared.Count);
+
         for (int code = 0; code < font.GlyphCount; code++)
         {
             if (subset.TryGetText((ushort)code, out string text))
                 characters.Add(((ushort)code, text));
         }
 
-        // Codes a glyph was given for other text than its first: each is mapped to its glyph, is as wide, and reads
-        // back as what it showed. Without them codes are glyph ids, and the mapping stays the identity.
-        IReadOnlyList<(ushort Glyph, string Text)> shared = subset.SharedCodes;
         PdfArray widthRanges = new PdfArray(4) { 0, widths };
 
         if (shared.Count > 0)
@@ -214,7 +215,10 @@ internal sealed class EmbeddedFont
         };
 
         if (characters.Count > 0)
-            type0[ToUnicode] = file.WriteStream(new PdfDictionary(), ToUnicodeMap(characters));
+        {
+            using PdfByteWriter map = ToUnicodeMap(characters);
+            type0[ToUnicode] = file.WriteStream(new PdfDictionary(), map.WrittenSpan);
+        }
 
         file.Write(Reference, type0);
     }
@@ -299,42 +303,60 @@ internal sealed class EmbeddedFont
 
     /// <summary>A CMap from each two-byte code to the UTF-16 of the character it shows.</summary>
     /// <remarks>A value that is no Unicode scalar value maps to the replacement character, U+FFFD.</remarks>
-    internal static byte[] ToUnicodeMap(IReadOnlyList<(ushort Code, int Codepoint)> characters) =>
+    internal static PdfByteWriter ToUnicodeMap(IReadOnlyList<(ushort Code, int Codepoint)> characters) =>
         ToUnicodeMap(characters.Select(character => (character.Code, GlyphSubset.TextOf(character.Codepoint))).ToList());
 
     /// <summary>
-    /// A CMap from each two-byte code to the UTF-16 of the text it shows: one character, or all of a ligature's.
+    /// A CMap from each two-byte code to the UTF-16 of the text it shows: one character, or all of a ligature's. The
+    /// caller disposes it once the bytes are written, which returns its buffer to the pool.
     /// </summary>
-    internal static byte[] ToUnicodeMap(IReadOnlyList<(ushort Code, string Text)> characters)
+    internal static PdfByteWriter ToUnicodeMap(IReadOnlyList<(ushort Code, string Text)> characters)
     {
-        StringBuilder map = new StringBuilder(256 + (characters.Count * 16));
-        map.Append("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n");
-        map.Append("/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n");
-        map.Append("/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n");
-        map.Append("1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n");
+        PdfByteWriter map = new PdfByteWriter(256 + (characters.Count * 16));
+        map.Write("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n"u8);
+        map.Write("/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"u8);
+        map.Write("/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n"u8);
+        map.Write("1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n"u8);
 
         // A bfchar block may hold at most a hundred mappings.
         for (int start = 0; start < characters.Count; start += 100)
         {
             int count = Math.Min(100, characters.Count - start);
-            map.Append(count.ToString(CultureInfo.InvariantCulture)).Append(" beginbfchar\n");
+            map.WriteInteger(count);
+            map.Write(" beginbfchar\n"u8);
 
             for (int index = start; index < start + count; index++)
-            {
-                (ushort code, string text) = characters[index];
-                map.Append('<').Append(code.ToString("X4", CultureInfo.InvariantCulture)).Append("> <");
+                WriteMapping(map, characters[index].Code, characters[index].Text);
 
-                foreach (char unit in text)
-                    map.Append(((int)unit).ToString("X4", CultureInfo.InvariantCulture));
-
-                map.Append(">\n");
-            }
-
-            map.Append("endbfchar\n");
+            map.Write("endbfchar\n"u8);
         }
 
-        map.Append("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
-        return System.Text.Encoding.ASCII.GetBytes(map.ToString());
+        map.Write("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n"u8);
+        return map;
+    }
+
+    /// <summary>One line of a bfchar block: the code, then the UTF-16 units of its text.</summary>
+    private static void WriteMapping(PdfByteWriter map, ushort code, string text)
+    {
+        map.WriteByte((byte)'<');
+        WriteHexDigits(map, code);
+        map.Write("> <"u8);
+
+        foreach (char unit in text)
+            WriteHexDigits(map, unit);
+
+        map.Write(">\n"u8);
+    }
+
+    /// <summary>Writes a code or a UTF-16 unit as a CMap holds it: four uppercase hexadecimal digits.</summary>
+    private static void WriteHexDigits(PdfByteWriter map, int value)
+    {
+        Span<byte> digits = map.GetSpan(4);
+        digits[0] = PdfCharacters.HexDigit(value >> 12);
+        digits[1] = PdfCharacters.HexDigit(value >> 8);
+        digits[2] = PdfCharacters.HexDigit(value >> 4);
+        digits[3] = PdfCharacters.HexDigit(value);
+        map.Advance(4);
     }
 
 }
