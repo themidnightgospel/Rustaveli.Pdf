@@ -6,6 +6,9 @@ namespace Rustaveli.Pdf.UnitTests.Writing;
 
 public class PdfResourcesTests(ITestOutputHelper output)
 {
+    private static string Written(PdfResources resources) =>
+        Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary()));
+
     [Fact]
     public void NamingManyDistinctResourcesTakesTimeInProportionToHowMany()
     {
@@ -33,7 +36,7 @@ public class PdfResourcesTests(ITestOutputHelper output)
         PdfResources resources = new PdfResources();
 
         Assert.True(resources.IsEmpty);
-        Assert.Equal("<<>>", Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary())));
+        Assert.Equal("<<>>", Written(resources));
     }
 
     [Fact]
@@ -73,9 +76,7 @@ public class PdfResourcesTests(ITestOutputHelper output)
         resources.GetFontName(new PdfReference(12));
 
         Assert.False(resources.IsEmpty);
-        Assert.Equal(
-            "<</Font<</F1 12 0 R/F2 13 0 R>>/ExtGState<</GS1 9 0 R>>>>",
-            Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary())));
+        Assert.Equal("<</Font<</F1 12 0 R/F2 13 0 R>>/ExtGState<</GS1 9 0 R>>>>", Written(resources));
     }
 
     [Fact]
@@ -91,7 +92,7 @@ public class PdfResourcesTests(ITestOutputHelper output)
         Assert.Equal(
             "<</Font<</F1 1 0 R>>/XObject<</X1 2 0 R>>/ExtGState<</GS1 3 0 R>>/ColorSpace<</CS1 4 0 R>>"
             + "/Pattern<</P1 5 0 R>>>>",
-            Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary())));
+            Written(resources));
     }
 
     [Theory]
@@ -126,5 +127,6 @@ public class PdfResourcesTests(ITestOutputHelper output)
         Assert.Equal("reference", exception.ParamName);
         Assert.StartsWith("The reference was never assigned an object number.", exception.Message, StringComparison.Ordinal);
         Assert.True(resources.IsEmpty);
+        Assert.Equal("<<>>", Written(resources));
     }
 }
