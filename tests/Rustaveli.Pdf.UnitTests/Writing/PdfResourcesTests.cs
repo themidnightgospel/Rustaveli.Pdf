@@ -6,6 +6,9 @@ namespace Rustaveli.Pdf.UnitTests.Writing;
 
 public class PdfResourcesTests(ITestOutputHelper output)
 {
+    private static string Written(PdfResources resources) =>
+        Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary()));
+
     [Fact]
     public void NamingManyDistinctResourcesTakesTimeInProportionToHowMany()
     {
@@ -33,7 +36,7 @@ public class PdfResourcesTests(ITestOutputHelper output)
         PdfResources resources = new PdfResources();
 
         Assert.True(resources.IsEmpty);
-        Assert.Equal("<<>>", Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary())));
+        Assert.Equal("<<>>", Written(resources));
     }
 
     [Fact]
@@ -73,23 +76,23 @@ public class PdfResourcesTests(ITestOutputHelper output)
         resources.GetFontName(new PdfReference(12));
 
         Assert.False(resources.IsEmpty);
-        Assert.Equal(
-            "<</Font<</F1 12 0 R/F2 13 0 R>>/ExtGState<</GS1 9 0 R>>>>",
-            Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary())));
+        Assert.Equal("<</Font<</F1 12 0 R/F2 13 0 R>>/ExtGState<</GS1 9 0 R>>>>", Written(resources));
     }
 
     [Fact]
     public void WritesEveryCategory()
     {
         PdfResources resources = new PdfResources();
+        resources.GetPatternName(new PdfReference(5));
         resources.GetColorSpaceName(new PdfReference(4));
         resources.GetExtGStateName(new PdfReference(3));
         resources.GetXObjectName(new PdfReference(2));
         resources.GetFontName(new PdfReference(1));
 
         Assert.Equal(
-            "<</Font<</F1 1 0 R>>/XObject<</X1 2 0 R>>/ExtGState<</GS1 3 0 R>>/ColorSpace<</CS1 4 0 R>>>>",
-            Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary())));
+            "<</Font<</F1 1 0 R>>/XObject<</X1 2 0 R>>/ExtGState<</GS1 3 0 R>>/ColorSpace<</CS1 4 0 R>>"
+            + "/Pattern<</P1 5 0 R>>>>",
+            Written(resources));
     }
 
     [Theory]
@@ -97,6 +100,7 @@ public class PdfResourcesTests(ITestOutputHelper output)
     [InlineData("XObject")]
     [InlineData("ExtGState")]
     [InlineData("ColorSpace")]
+    [InlineData("Pattern")]
     public void IsNotEmptyOnceAnyCategoryIsUsed(string category)
     {
         PdfResources resources = new PdfResources();
@@ -106,7 +110,8 @@ public class PdfResourcesTests(ITestOutputHelper output)
             "Font" => resources.GetFontName(new PdfReference(1)),
             "XObject" => resources.GetXObjectName(new PdfReference(1)),
             "ExtGState" => resources.GetExtGStateName(new PdfReference(1)),
-            _ => resources.GetColorSpaceName(new PdfReference(1)),
+            "ColorSpace" => resources.GetColorSpaceName(new PdfReference(1)),
+            _ => resources.GetPatternName(new PdfReference(1)),
         };
 
         Assert.False(resources.IsEmpty);
@@ -122,5 +127,6 @@ public class PdfResourcesTests(ITestOutputHelper output)
         Assert.Equal("reference", exception.ParamName);
         Assert.StartsWith("The reference was never assigned an object number.", exception.Message, StringComparison.Ordinal);
         Assert.True(resources.IsEmpty);
+        Assert.Equal("<<>>", Written(resources));
     }
 }

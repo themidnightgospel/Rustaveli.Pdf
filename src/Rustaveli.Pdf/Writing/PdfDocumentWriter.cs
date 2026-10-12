@@ -19,11 +19,22 @@ namespace Rustaveli.Pdf.Writing;
 /// </remarks>
 internal sealed class PdfDocumentWriter : IDisposable
 {
-    private readonly PdfPageTree _pages;
-    private readonly HashSet<PdfPage> _openPages = new HashSet<PdfPage>();
     private static readonly PdfName Outlines = new PdfName("Outlines");
     private static readonly PdfName PageMode = new PdfName("PageMode");
     private static readonly PdfName UseOutlines = new PdfName("UseOutlines");
+
+    /// <summary>The page entries the writer sets itself, which a page's own entries may not repeat.</summary>
+    private static readonly PdfName[] PageKeys =
+        [PdfNames.Type, PdfNames.Parent, PdfNames.MediaBox, PdfNames.Resources, PdfNames.Contents, PdfNames.Annots];
+
+    /// <summary>The catalog entries the writer sets itself.</summary>
+    private static readonly PdfName[] CatalogKeys = [PdfNames.Type, PdfNames.Pages];
+
+    private readonly PdfPageTree _pages;
+    private readonly HashSet<PdfPage> _openPages = new HashSet<PdfPage>();
+
+    // Every page's content stream is written with this one dictionary: WriteStream only reads it, so it stays empty.
+    private readonly PdfDictionary _contentDictionary = new PdfDictionary();
 
     private readonly List<(string Title, int Level, PdfArray Destination)> _outline = [];
     private readonly Dictionary<string, PdfArray> _destinations =
@@ -31,6 +42,10 @@ internal sealed class PdfDocumentWriter : IDisposable
 
     private readonly Dictionary<(long Fill, long Stroke), PdfReference> _opacityStates =
         new Dictionary<(long, long), PdfReference>();
+
+    // The box of the page written last, and the /MediaBox array written for it.
+    private PdfRectangle _mediaBox;
+    private PdfArray? _mediaBoxArray;
 
     private bool _finished;
 
@@ -77,27 +92,19 @@ internal sealed class PdfDocumentWriter : IDisposable
             throw new InvalidOperationException("The page is not open in this document.");
 
         page.Content.EnsureComplete();
-        CheckNotOwned(
-            page.Entries,
-            "page",
-            PdfNames.Type,
-            PdfNames.Parent,
-            PdfNames.MediaBox,
-            PdfNames.Resources,
-            PdfNames.Contents,
-            PdfNames.Annots);
+        CheckNotOwned(page.Entries, "page", PageKeys);
 
         PdfDictionary dictionary = new PdfDictionary(6 + page.Entries.Count)
         {
             [PdfNames.Type] = PdfNames.Page,
             [PdfNames.Parent] = page.Parent,
-            [PdfNames.MediaBox] = page.MediaBox.ToArray(),
+            [PdfNames.MediaBox] = MediaBoxOf(page.MediaBox),
             [PdfNames.Resources] = page.Resources.ToDictionary(),
         };
 
         // A page with nothing drawn needs no content stream at all; an absent /Contents is a blank page.
         if (page.Content.Length > 0)
-            dictionary[PdfNames.Contents] = File.WriteStream(new PdfDictionary(), page.Content.Content);
+            dictionary[PdfNames.Contents] = File.WriteStream(_contentDictionary, page.Content.Content);
 
         if (page.Annotations.Count > 0)
         {
@@ -114,6 +121,18 @@ internal sealed class PdfDocumentWriter : IDisposable
         File.Write(page.Reference, dictionary);
         _openPages.Remove(page);
         page.Content.Dispose();
+    }
+
+    /// <summary>The page's <c>/MediaBox</c>, shared with the page before when the box is the same to the bit.</summary>
+    private PdfArray MediaBoxOf(PdfRectangle box)
+    {
+        if (_mediaBoxArray is null || !box.IsIdenticalTo(_mediaBox))
+        {
+            _mediaBox = box;
+            _mediaBoxArray = box.ToArray();
+        }
+
+        return _mediaBoxArray;
     }
 
     /// <summary>
@@ -198,7 +217,7 @@ internal sealed class PdfDocumentWriter : IDisposable
         if (_openPages.Count > 0)
             throw new InvalidOperationException($"{_openPages.Count} page(s) were begun but never ended.");
 
-        CheckNotOwned(Catalog, "catalog", PdfNames.Type, PdfNames.Pages);
+        CheckNotOwned(Catalog, "catalog", CatalogKeys);
 
         PdfDictionary catalog = new PdfDictionary(3 + Catalog.Count)
         {
@@ -268,7 +287,7 @@ internal sealed class PdfDocumentWriter : IDisposable
     private static long Quantize(double alpha) =>
         (long)Math.Round(alpha * 100_000, MidpointRounding.AwayFromZero);
 
-    private static void CheckNotOwned(PdfDictionary entries, string owner, params PdfName[] owned)
+    private static void CheckNotOwned(PdfDictionary entries, string owner, PdfName[] owned)
     {
         foreach (PdfName key in owned)
         {
