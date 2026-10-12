@@ -14,41 +14,53 @@ namespace Rustaveli.Pdf.Writing;
 /// </remarks>
 internal sealed class PdfResources
 {
-    private readonly Category _fonts = new Category(PdfNames.Font, "F");
-    private readonly Category _xObjects = new Category(PdfNames.XObject, "X");
-    private readonly Category _graphicsStates = new Category(PdfNames.ExtGState, "GS");
-    private readonly Category _colorSpaces = new Category(PdfNames.ColorSpace, "CS");
-    private readonly Category _patterns = new Category(PdfNames.Pattern, "P");
+    // Each category is made when it is first asked for, so a page pays only for the ones it uses.
+    private Category? _fonts;
+    private Category? _xObjects;
+    private Category? _graphicsStates;
+    private Category? _colorSpaces;
+    private Category? _patterns;
 
-    public bool IsEmpty => _fonts.IsEmpty && _xObjects.IsEmpty && _graphicsStates.IsEmpty && _colorSpaces.IsEmpty && _patterns.IsEmpty;
+    public bool IsEmpty =>
+        IsUnused(_fonts)
+        && IsUnused(_xObjects)
+        && IsUnused(_graphicsStates)
+        && IsUnused(_colorSpaces)
+        && IsUnused(_patterns);
 
-    public PdfName GetFontName(PdfReference font) => _fonts.NameFor(font);
+    public PdfName GetFontName(PdfReference font) => (_fonts ??= new Category(PdfNames.Font, "F")).NameFor(font);
 
     /// <summary>The name for an image or form XObject.</summary>
-    public PdfName GetXObjectName(PdfReference xObject) => _xObjects.NameFor(xObject);
+    public PdfName GetXObjectName(PdfReference xObject) =>
+        (_xObjects ??= new Category(PdfNames.XObject, "X")).NameFor(xObject);
 
     /// <summary>The name for an extended graphics state, such as the document's shared opacity states.</summary>
-    public PdfName GetExtGStateName(PdfReference graphicsState) => _graphicsStates.NameFor(graphicsState);
+    public PdfName GetExtGStateName(PdfReference graphicsState) =>
+        (_graphicsStates ??= new Category(PdfNames.ExtGState, "GS")).NameFor(graphicsState);
 
     /// <summary>
     /// The name for a colour space written as its own object — a separation for a spot colour, say.
     /// </summary>
-    public PdfName GetColorSpaceName(PdfReference colorSpace) => _colorSpaces.NameFor(colorSpace);
+    public PdfName GetColorSpaceName(PdfReference colorSpace) =>
+        (_colorSpaces ??= new Category(PdfNames.ColorSpace, "CS")).NameFor(colorSpace);
 
     /// <summary>The name for a pattern, such as the shading a gradient is painted with.</summary>
-    public PdfName GetPatternName(PdfReference pattern) => _patterns.NameFor(pattern);
+    public PdfName GetPatternName(PdfReference pattern) =>
+        (_patterns ??= new Category(PdfNames.Pattern, "P")).NameFor(pattern);
 
     /// <summary>The <c>/Resources</c> dictionary, with a sub-dictionary for each category in use.</summary>
     public PdfDictionary ToDictionary()
     {
         PdfDictionary resources = new PdfDictionary(5);
-        _fonts.AddTo(resources);
-        _xObjects.AddTo(resources);
-        _graphicsStates.AddTo(resources);
-        _colorSpaces.AddTo(resources);
-        _patterns.AddTo(resources);
+        _fonts?.AddTo(resources);
+        _xObjects?.AddTo(resources);
+        _graphicsStates?.AddTo(resources);
+        _colorSpaces?.AddTo(resources);
+        _patterns?.AddTo(resources);
         return resources;
     }
+
+    private static bool IsUnused(Category? category) => category is null || category.IsEmpty;
 
     private sealed class Category(PdfName key, string prefix)
     {

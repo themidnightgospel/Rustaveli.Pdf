@@ -4,10 +4,10 @@ namespace Rustaveli.Pdf.UnitTests.Writing;
 
 public class PdfDocumentWriterTests
 {
-    private static PdfFileReader Write(Action<PdfDocumentWriter> build)
+    private static PdfFileReader Write(Action<PdfDocumentWriter> build, PdfWriterOptions? options = null)
     {
         using MemoryStream output = new MemoryStream();
-        using (PdfDocumentWriter document = new PdfDocumentWriter(output))
+        using (PdfDocumentWriter document = new PdfDocumentWriter(output, options))
         {
             build(document);
             document.Finish();
@@ -16,8 +16,22 @@ public class PdfDocumentWriterTests
         return new PdfFileReader(output.ToArray());
     }
 
-    private static Dictionary<string, object?> OnlyPage(PdfFileReader reader) =>
-        reader.Dictionary(new ParsedReference(Assert.Single(reader.Pages()).Number, 0));
+    private static PdfWriterOptions WriterOptions(PdfCrossReferenceFormat format, EncryptionLevel? level) =>
+        new PdfWriterOptions
+        {
+            CrossReferenceFormat = format,
+            Encryption = level is { } encryption
+                ? Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { Encryption = encryption })
+                : null,
+        };
+
+    private static List<Dictionary<string, object?>> Pages(PdfFileReader reader) =>
+        reader.Pages().Select(it => reader.Dictionary(new ParsedReference(it.Number, 0))).ToList();
+
+    private static Dictionary<string, object?> OnlyPage(PdfFileReader reader) => Assert.Single(Pages(reader));
+
+    private static List<List<object?>> MediaBoxes(PdfFileReader reader) =>
+        Pages(reader).Select(it => (List<object?>)it["MediaBox"]!).ToList();
 
     private static List<Dictionary<string, object?>> Annotations(PdfFileReader reader) =>
         ((List<object?>)OnlyPage(reader)["Annots"]!).Select(reader.Dictionary).ToList();
@@ -61,6 +75,98 @@ public class PdfDocumentWriterTests
         Assert.Equal(new[] { "ExtGState" }, resources.Keys);
         Assert.Equal(0.5, reader.Dictionary(((Dictionary<string, object?>)resources["ExtGState"]!)["GS1"])["ca"]);
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(EncryptionLevel.AesWith256Bits)]
+    [InlineData(EncryptionLevel.Rc4With128Bits)]
+    public void DescribesEachContentStreamByItsOwnLengthAndFilter(EncryptionLevel? level)
+    {
+        // Long content is deflated and short content is not, so an entry one stream left behind would show on the next.
+        int[] rectanglesPerPage = [20, 1, 20];
+
+        PdfFileReader reader = Write(
+            document =>
+            {
+                foreach (int count in rectanglesPerPage)
+                {
+                    PdfPage page = document.BeginPage(100, 100);
+                    for (int index = 0; index < count; index++)
+                        page.Content.Rectangle(index, index, 10, 10);
+
+                    page.Content.Fill();
+                    document.EndPage(page);
+                }
+            },
+            WriterOptions(PdfCrossReferenceFormat.Table, level));
+
+        ParsedStream[] contents = Pages(reader).Select(it => (ParsedStream)reader.Resolve(it["Contents"])!).ToArray();
+
+        Assert.Equal(
+            [["Filter", "Length"], ["Length"], ["Filter", "Length"]],
+            contents.Select(it => it.Dictionary.Keys.ToArray()));
+        Assert.All(contents, it => Assert.Equal((long)it.Data.Length, it.Dictionary["Length"]));
+    }
+
+    [Fact]
+    public void WritesEachPagesOwnBoxWhetherOrNotItMatchesThePageBefore()
+    {
+        PdfRectangle[] boxes =
+        [
+            new PdfRectangle(0, 0, 100, 50),
+            new PdfRectangle(0, 0, 100, 50),
+            new PdfRectangle(0, 0, 50, 100),
+            new PdfRectangle(-0.0, 0, 50, 100),
+            new PdfRectangle(0, 0, 100, 50),
+        ];
+
+        PdfFileReader reader = Write(document =>
+        {
+            foreach (PdfRectangle box in boxes)
+                document.EndPage(document.BeginPage(box));
+        });
+
+        Assert.Equal(
+            [[0L, 0L, 100L, 50L], [0L, 0L, 100L, 50L], [0L, 0L, 50L, 100L], [0L, 0L, 50L, 100L], [0L, 0L, 100L, 50L]],
+            MediaBoxes(reader));
+    }
+
+#if NET
+    [Fact]
+    public void WritingAPageAllocatesOnlyWhatItUses()
+    {
+        // Allocation budget: every page of every export is written here. A resource category is made when the page
+        // first names something in it, the entries the writer owns are listed once for all pages, content streams
+        // share one empty dictionary, and a page the size of the one before shares its /MediaBox. Making all five
+        // categories up front, and the rest anew for each page, cost this page 856 bytes more. What is left is the
+        // page, its content stream, the two categories it uses and the dictionaries that describe it. When a change
+        // moves this on purpose, set the new figure and say why in the commit.
+        const long Budget = 2_384;
+        using PdfDocumentWriter document = new PdfDocumentWriter(Stream.Null);
+        PdfReference font = document.File.Write(new PdfDictionary());
+        PdfReference state = document.GetOpacityState(0.5, 0.5);
+        WriteTextPage(document, font, state);
+        WriteTextPage(document, font, state);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        WriteTextPage(document, font, state);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Writing a page allocated {allocated} bytes; its budget is {Budget}.");
+    }
+
+    /// <summary>A page of one line of text, in <paramref name="font"/> through <paramref name="state"/>.</summary>
+    private static void WriteTextPage(PdfDocumentWriter document, PdfReference font, PdfReference state)
+    {
+        PdfPage page = document.BeginPage(595.28, 841.89);
+        page.Content.SetGraphicsState(page.Resources.GetExtGStateName(state));
+        page.Content.BeginText();
+        page.Content.SetFont(page.Resources.GetFontName(font), 12);
+        page.Content.ShowText("Hello"u8);
+        page.Content.EndText();
+        document.EndPage(page);
+    }
+#endif
 
     [Fact]
     public void AddsTheCallersPageEntries()
@@ -157,11 +263,7 @@ public class PdfDocumentWriterTests
             document.EndPage(document.BeginPage(30, 30));
         });
 
-        List<object?> widths = reader.Pages()
-            .Select(page => ((List<object?>)reader.Dictionary(new ParsedReference(page.Number, 0))["MediaBox"]!)[2])
-            .ToList();
-
-        Assert.Equal([10L, 20L, 30L], widths);
+        Assert.Equal([10L, 20L, 30L], MediaBoxes(reader).Select(it => it[2]));
     }
 
     [Fact]
@@ -193,9 +295,7 @@ public class PdfDocumentWriterTests
             document.EndPage(first);
         });
 
-        List<(int Number, int Depth)> pages = reader.Pages();
-        Assert.Equal(new List<object?> { 0L, 0L, 100L, 100L }, reader.Dictionary(new ParsedReference(pages[0].Number, 0))["MediaBox"]);
-        Assert.Equal(new List<object?> { 0L, 0L, 200L, 200L }, reader.Dictionary(new ParsedReference(pages[1].Number, 0))["MediaBox"]);
+        Assert.Equal([[0L, 0L, 100L, 100L], [0L, 0L, 200L, 200L]], MediaBoxes(reader));
     }
 
     [Fact]
@@ -441,29 +541,27 @@ public class PdfDocumentWriterTests
     [InlineData(EncryptionLevel.AesWith256Bits, true, 3L)]
     public void Aes256IsDeclaredAsAdobesExtensionLevel8UnlessTheCatalogDeclaresItsOwn(EncryptionLevel level, bool declared, long? expected)
     {
-        using MemoryStream output = new MemoryStream();
         // Outside an object stream the catalog is read as it is: only strings and streams are encrypted.
-        PdfWriterOptions options = new PdfWriterOptions
-        {
-            CrossReferenceFormat = PdfCrossReferenceFormat.Table,
-            Encryption = Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { Encryption = level }),
-        };
-
-        using (PdfDocumentWriter document = new PdfDocumentWriter(output, options))
-        {
-            if (declared)
+        PdfFileReader reader = Write(
+            document =>
             {
-                document.Catalog[new PdfName("Extensions")] = new PdfDictionary
+                if (declared)
                 {
-                    [new PdfName("ADBE")] = new PdfDictionary { [new PdfName("BaseVersion")] = new PdfName("1.7"), [new PdfName("ExtensionLevel")] = 3 },
-                };
-            }
+                    document.Catalog[new PdfName("Extensions")] = new PdfDictionary
+                    {
+                        [new PdfName("ADBE")] = new PdfDictionary
+                        {
+                            [new PdfName("BaseVersion")] = new PdfName("1.7"),
+                            [new PdfName("ExtensionLevel")] = 3,
+                        },
+                    };
+                }
 
-            document.EndPage(document.BeginPage(10, 10));
-            document.Finish();
-        }
+                document.EndPage(document.BeginPage(10, 10));
+            },
+            WriterOptions(PdfCrossReferenceFormat.Table, level));
 
-        Dictionary<string, object?> catalog = new PdfFileReader(output.ToArray()).Catalog();
+        Dictionary<string, object?> catalog = reader.Catalog();
 
         if (expected is null)
         {
@@ -484,20 +582,9 @@ public class PdfDocumentWriterTests
     {
         // Readers look up the catalog while reading the trailer, before decryption is set up — PdfPig among them — so
         // a catalog inside an encrypted object stream leaves them a file they cannot read.
-        using MemoryStream output = new MemoryStream();
-        PdfWriterOptions options = new PdfWriterOptions
-        {
-            CrossReferenceFormat = PdfCrossReferenceFormat.Stream,
-            Encryption = Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { Encryption = level }),
-        };
-
-        using (PdfDocumentWriter document = new PdfDocumentWriter(output, options))
-        {
-            document.EndPage(document.BeginPage(10, 10));
-            document.Finish();
-        }
-
-        PdfFileReader reader = new PdfFileReader(output.ToArray());
+        PdfFileReader reader = Write(
+            document => document.EndPage(document.BeginPage(10, 10)),
+            WriterOptions(PdfCrossReferenceFormat.Stream, level));
         ParsedReference root = (ParsedReference)reader.Trailer["Root"]!;
 
         Assert.True(reader.HasCrossReferenceStream);

@@ -88,6 +88,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   in about a third less time; every PDF is unchanged.
 - A stack drawn on a page records where its items went in a list lent from one stack to the next, not a new one each
   time: the 85-page report allocates 8% less; every PDF is unchanged.
+- Writing a page makes only the resource categories the page uses, and no longer makes anew for each page the list
+  of entries the writer sets itself, an empty dictionary for its content stream, or the `/MediaBox` of a page the
+  size of the one before: the 85-page report allocates 5% less; every PDF is unchanged.
 
 **Tests**
 
