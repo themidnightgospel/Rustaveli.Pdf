@@ -16,11 +16,20 @@ public class GlossaryTests
     public static TheoryData<string> PublicTypes()
     {
         TheoryData<string> types = new TheoryData<string>();
-        foreach (Type type in Packages.SelectMany(assembly => assembly.GetExportedTypes()))
+        IEnumerable<Type> exported = Packages.SelectMany(assembly => assembly.GetExportedTypes());
+
+        foreach (Type type in exported.Where(type => !IsMutationTestingHelper(type)))
             types.Add(type.FullName!);
 
         return types;
     }
+
+    /// <summary>
+    /// Whether <paramref name="type"/> is one Stryker adds to each assembly it mutates. It is no part of the API, and
+    /// its namespace is named afresh on every run, so the test cases found before a run do not match the run's own.
+    /// </summary>
+    private static bool IsMutationTestingHelper(Type type) =>
+        type.Namespace?.StartsWith("Stryker", StringComparison.Ordinal) == true;
 
     [Theory]
     [MemberData(nameof(PublicTypes))]
