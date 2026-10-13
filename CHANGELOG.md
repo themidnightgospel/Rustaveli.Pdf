@@ -33,6 +33,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   Color Emoji. The face is now given to Skia as a font of its own, on every platform.
 - `Artwork.FromSvg(Stream)` on .NET refused a document declaring a code page such as Windows-1251 or Shift JIS, as
   XML that was not well-formed; it is read in the encoding it declares, as on .NET Framework.
+- Text made only of characters drawn as nothing, such as a DEL or a lone soft hyphen, failed a PDF export with an
+  `InvalidOperationException`. This happened in a paragraph, on a line left holding only such a character, and in SVG
+  text ending in one. Such text is now drawn as nothing.
 
 **Performance**
 
