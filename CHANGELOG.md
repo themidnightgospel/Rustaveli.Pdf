@@ -91,6 +91,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Writing a page makes only the resource categories the page uses, and no longer makes anew for each page the list
   of entries the writer sets itself, an empty dictionary for its content stream, or the `/MediaBox` of a page the
   size of the one before: the 85-page report allocates 5% less; every PDF is unchanged.
+- Subsetting a font writes its `loca`, `hmtx` and `cmap` tables into buffers of their exact size, which become the
+  tables, instead of copying each out of a larger one: the invoice allocates 1.2% less; every PDF is unchanged.
+  Writing a monospace font's metrics no longer takes time that grows with the square of its glyph count.
 
 **Tests**
 

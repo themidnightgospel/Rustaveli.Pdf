@@ -224,7 +224,7 @@ internal static class TrueTypeSubsetter
 
     private static byte[] WriteLoca(int[] offsets, bool longFormat)
     {
-        FontDataWriter loca = new FontDataWriter(offsets.Length * 4);
+        FontDataWriter loca = new FontDataWriter(offsets.Length * (longFormat ? 4 : 2));
 
         foreach (int offset in offsets)
         {
@@ -234,7 +234,7 @@ internal static class TrueTypeSubsetter
                 loca.UInt16(offset / 2);
         }
 
-        return loca.ToArray();
+        return loca.DetachArray();
     }
 
     private static byte[] WriteHead(OpenTypeFont font, OutlineData outlines, bool longLoca)
@@ -290,17 +290,18 @@ internal static class TrueTypeSubsetter
     private static byte[] WriteHorizontalMetrics(OutlineData outlines)
     {
         int count = outlines.Advances.Length;
-        FontDataWriter hmtx = new FontDataWriter((count * 4) + 4);
+        int metricCount = outlines.MetricCount;
+        FontDataWriter hmtx = new FontDataWriter((metricCount * 2) + (count * 2));
 
         for (int index = 0; index < count; index++)
         {
-            if (index < outlines.MetricCount)
+            if (index < metricCount)
                 hmtx.UInt16(outlines.Advances[index]);
 
             hmtx.Int16(outlines.Bearings[index]);
         }
 
-        return hmtx.ToArray();
+        return hmtx.DetachArray();
     }
 
     private static byte[] WriteMaximumProfile(OpenTypeFont font, int glyphCount)

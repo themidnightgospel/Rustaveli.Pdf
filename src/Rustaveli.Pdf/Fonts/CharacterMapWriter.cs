@@ -12,8 +12,12 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal static class CharacterMapWriter
 {
+    private const int HeaderSize = 4;
+    private const int EncodingRecordSize = 8;
     private const int Format4HeaderSize = 16;
     private const int Format4SegmentSize = 8;
+    private const int Format12HeaderSize = 16;
+    private const int Format12GroupSize = 12;
 
     /// <summary>A <c>cmap</c> table for a subset, mapping each character code to its glyph.</summary>
     /// <param name="mappings">Character codes and the subset glyphs they map to.</param>
@@ -37,23 +41,7 @@ internal static class CharacterMapWriter
         if (needsFull)
             subtables.Add((3, 10, Format12(sorted)));
 
-        FontDataWriter table = new FontDataWriter();
-        table.UInt16(0);
-        table.UInt16(subtables.Count);
-        int offset = 4 + (subtables.Count * 8);
-
-        foreach ((ushort platform, ushort encoding, byte[] subtable) in subtables)
-        {
-            table.UInt16(platform);
-            table.UInt16(encoding);
-            table.UInt32((uint)offset);
-            offset += subtable.Length;
-        }
-
-        foreach ((_, _, byte[] subtable) in subtables)
-            table.Bytes(subtable);
-
-        return table.ToArray();
+        return Assemble(subtables);
     }
 
     /// <summary>
@@ -114,7 +102,7 @@ internal static class CharacterMapWriter
         for (int segment = 0; segment < count; segment++)
             subtable.UInt16(0);
 
-        return subtable.ToArray();
+        return subtable.DetachArray();
     }
 
     /// <summary>A format 12 subtable: one group per run of consecutive codes mapping to consecutive glyphs.</summary>
@@ -137,10 +125,11 @@ internal static class CharacterMapWriter
             }
         }
 
-        FontDataWriter subtable = new FontDataWriter(16 + (groups.Count * 12));
+        int length = Format12HeaderSize + (groups.Count * Format12GroupSize);
+        FontDataWriter subtable = new FontDataWriter(length);
         subtable.UInt16(12);
         subtable.UInt16(0);
-        subtable.UInt32((uint)(16 + (groups.Count * 12)));
+        subtable.UInt32((uint)length);
         subtable.UInt32(0);
         subtable.UInt32((uint)groups.Count);
 
@@ -151,6 +140,33 @@ internal static class CharacterMapWriter
             subtable.UInt32((uint)glyph);
         }
 
-        return subtable.ToArray();
+        return subtable.DetachArray();
+    }
+
+    /// <summary>The table header and its encoding records, followed by the subtables they point to.</summary>
+    private static byte[] Assemble(List<(ushort Platform, ushort Encoding, byte[] Subtable)> subtables)
+    {
+        int offset = HeaderSize + (subtables.Count * EncodingRecordSize);
+        int length = offset;
+
+        foreach ((_, _, byte[] subtable) in subtables)
+            length += subtable.Length;
+
+        FontDataWriter table = new FontDataWriter(length);
+        table.UInt16(0);
+        table.UInt16(subtables.Count);
+
+        foreach ((ushort platform, ushort encoding, byte[] subtable) in subtables)
+        {
+            table.UInt16(platform);
+            table.UInt16(encoding);
+            table.UInt32((uint)offset);
+            offset += subtable.Length;
+        }
+
+        foreach ((_, _, byte[] subtable) in subtables)
+            table.Bytes(subtable);
+
+        return table.DetachArray();
     }
 }

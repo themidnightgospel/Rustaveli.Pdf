@@ -61,6 +61,18 @@ internal sealed class FontDataWriter
 
     public byte[] ToArray() => _buffer.AsSpan(0, Length).ToArray();
 
+    /// <summary>
+    /// The bytes written, handed over in the writer's own buffer when they fill it exactly and copied otherwise; the
+    /// writer starts empty again, so nothing written later reaches the bytes handed over.
+    /// </summary>
+    public byte[] DetachArray()
+    {
+        byte[] written = Length == _buffer.Length ? _buffer : ToArray();
+        _buffer = [];
+        Length = 0;
+        return written;
+    }
+
     private void Reserve(int count)
     {
         if (Length + count <= _buffer.Length)
