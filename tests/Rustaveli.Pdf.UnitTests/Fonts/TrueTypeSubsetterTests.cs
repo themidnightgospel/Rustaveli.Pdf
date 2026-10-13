@@ -193,6 +193,22 @@ public class TrueTypeSubsetterTests
     }
 
     [Fact]
+    public void StoresAMonospaceFontsAdvanceOnceThenOnlyBearings()
+    {
+        byte[] monospaceMetrics = SyntheticTables.Hmtx([(500, 50)], [0, 60]);
+        OpenTypeFont font = SyntheticFont.Minimal()
+            .With("hhea", SyntheticTables.Hhea(numberOfHMetrics: 1))
+            .With("hmtx", monospaceMetrics)
+            .Load();
+
+        OpenTypeFont result = Reparse(TrueTypeSubsetter.Subset(font, [1, 2]));
+
+        Assert.Equal(1, result.HorizontalHeader.NumberOfHMetrics);
+        Assert.True(result.TryGetTable(TableTag.Hmtx, out ReadOnlyMemory<byte> hmtx));
+        Assert.Equal(monospaceMetrics, hmtx.ToArray());
+    }
+
+    [Fact]
     public void RecomputesTheFontWideExtremesOverTheGlyphsKept()
     {
         OpenTypeFont font = TestFonts.Regular;
@@ -349,11 +365,13 @@ public class TrueTypeSubsetterTests
     {
         // Allocation budget: every export subsets each face it embeds, from the numbering its pages were written
         // with. One map numbers the glyphs, finds a glyph listed twice and is the subset's own, and the outlines go
-        // without their hinting straight into a glyf table sized for them up front. A set to find repeats, a flag for
+        // without their hinting straight into a glyf table sized for them up front. The loca, hmtx and cmap tables
+        // are written into buffers of their exact size, which become the tables. A set to find repeats, a flag for
         // every glyph in the font and a second copy of the map cost this subset 5 KB more; a copy of each glyph
-        // without its hinting and a table grown by doubling, 3 KB more. What is left is the subset font and the
-        // tables it is built from. When a change moves this on purpose, set the new figure and say why in the commit.
-        const long Budget = 15_152;
+        // without its hinting and a table grown by doubling, 3 KB more; oversized buffers copied out to those three
+        // tables, 800 bytes more. What is left is the subset font and the tables it is built from. When a change
+        // moves this on purpose, set the new figure and say why in the commit.
+        const long Budget = 14_312;
         OpenTypeFont font = TestFonts.Regular;
         ushort[] numbering =
             [0, .. GlyphsOf(font, "Invoice 2026, Total due: 1,250.00 EUR").Distinct().Where(glyph => glyph != 0)];
