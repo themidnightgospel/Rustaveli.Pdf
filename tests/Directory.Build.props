@@ -31,4 +31,14 @@
           CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
 
+  <!--
+    The nightly mutation run caps the heap of each test process through MutationTestHeapLimit, in bytes. A mutant that
+    removes a size guard then fails its tests with an OutOfMemoryException rather than running the machine out of
+    memory. The cap goes in the test projects' runtime configuration, not in DOTNET_GCHeapHardLimit, so that Stryker's
+    own process, which holds every mutant's result and writes the reports, is not held to it.
+  -->
+  <ItemGroup Condition="'$(MutationTestHeapLimit)' != ''">
+    <RuntimeHostConfigurationOption Include="System.GC.HeapHardLimit" Value="$(MutationTestHeapLimit)" />
+  </ItemGroup>
+
 </Project>
