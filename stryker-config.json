@@ -6,7 +6,7 @@
     "mutation-level": "Standard",
     "coverage-analysis": "perTest",
     "ignore-methods": [ "*Exception.ctor" ],
-    "reporters": [ "html", "json", "markdown", "progress" ],
+    "reporters": [ "json", "markdown", "progress" ],
     "thresholds": {
       "high": 90,
       "low": 80,
