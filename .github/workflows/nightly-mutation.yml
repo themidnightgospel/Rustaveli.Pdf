@@ -22,12 +22,14 @@ env:
 
 jobs:
   # Sharded by source file: one job over the whole engine needs many hours on a four-core hosted runner, where the
-  # first test run alone takes some twenty minutes and a shard of more than about 300 mutants outruns the timeout.
-  # Each shard must clear the 80% floor on its own, which is stricter than a single overall score. Rebalance a shard
-  # by file name once its area grows past that size, and split a file too large alone by character span —
-  # "File.cs{0..23000}" — a span counting characters, not lines. At most twelve shards run at once, the rest queueing
-  # behind them: the account runs twenty jobs at a time, and GitHub can start a scheduled run hours late, into the
-  # working day, where taking every runner would hold pull requests' checks until the shards finish.
+  # first test run alone takes some twenty minutes. A shard's time depends as much on how many of its mutants time out
+  # as on how many there are: 444 mutants have taken 268 minutes, and 985 have taken 223. The same shard can run a
+  # third longer one night than another, so split a shard once any night takes it past about four hours. Each shard
+  # must clear the 80% floor on its own, which is stricter than a single overall score. Split a shard by file name, and
+  # a file too large alone by character span — "File.cs{0..23000}" — a span counting characters, not lines.
+  # At most twelve shards run at once, the rest queueing behind them: the account runs twenty jobs at a time, and
+  # GitHub can start a scheduled run hours late, into the working day, where taking every runner would hold pull
+  # requests' checks until the shards finish.
   mutation:
     name: mutation testing (Stryker, break < 80%) · ${{ matrix.shard.name }}
     runs-on: ${{ matrix.shard.os || 'ubuntu-latest' }}
@@ -43,18 +45,30 @@ jobs:
           - name: text-block-a
             mutate: --mutate "**/Blocks/TextBlock.cs{0..23000}"
           - name: text-block-b
-            mutate: --mutate "**/Blocks/TextBlock.cs{23000..200000}"
+            mutate: --mutate "**/Blocks/TextBlock.cs{23000..42000}"
+          - name: text-block-c
+            mutate: --mutate "**/Blocks/TextBlock.cs{42000..61000}"
+          - name: text-block-d
+            mutate: --mutate "**/Blocks/TextBlock.cs{61000..200000}"
           - name: table-block
             mutate: --mutate "**/Blocks/TableBlock.cs"
-          - name: blocks-a-l
-            mutate: --mutate "**/Blocks/[A-L]*.cs"
-          - name: blocks-m-z
+          - name: blocks-a-c
+            mutate: --mutate "**/Blocks/[A-C]*.cs"
+          - name: blocks-d-f
+            mutate: --mutate "**/Blocks/[D-F]*.cs"
+          - name: blocks-g-l
+            mutate: --mutate "**/Blocks/[G-L]*.cs"
+          - name: blocks-m-r
+            mutate: --mutate "**/Blocks/[M-R]*.cs"
+          - name: blocks-s-z
             mutate: >-
-              --mutate "**/Blocks/[M-Z]*.cs" --mutate "!**/Blocks/TextBlock.cs" --mutate "!**/Blocks/TableBlock.cs"
-          - name: layout-text
+              --mutate "**/Blocks/[S-Z]*.cs" --mutate "!**/Blocks/TextBlock.cs" --mutate "!**/Blocks/TableBlock.cs"
+          - name: layout-a-l-text
             mutate: >-
-              --mutate "**/Layout/**/*.cs" --mutate "**/Text/*.cs" --mutate "!**/Text/TypeShaper.cs"
+              --mutate "**/Layout/[A-L]*.cs" --mutate "**/Text/*.cs" --mutate "!**/Text/TypeShaper.cs"
               --mutate "!**/Text/GlyphWalk.cs" --mutate "!**/Text/OpenTypeMeasurer.cs"
+          - name: layout-m-z
+            mutate: --mutate "**/Layout/[M-Z]*.cs"
           # The generated character tables are data, not logic: Stryker skips files marked auto-generated.
           - name: line-breaking-a
             mutate: --mutate "**/Text/LineBreaking/LineBreakEnumerator.cs{0..11000}"
@@ -70,19 +84,33 @@ jobs:
             mutate: >-
               --mutate "**/Text/Bidi/ExplicitLevels.cs" --mutate "**/Text/Bidi/IsolatingRunSequence.cs"
               --mutate "**/Text/Bidi/BracketPairs.cs"
-          - name: primitives
-            mutate: --mutate "**/Primitives/**/*.cs"
-          - name: composition-drawing
-            mutate: >-
-              --mutate "**/Composition/**/*.cs" --mutate "**/Drawing/**/*.cs" --mutate "**/Exceptions/**/*.cs"
+          - name: primitives-a-n
+            mutate: --mutate "**/Primitives/[A-N]*.cs"
+          - name: primitives-o-t
+            mutate: --mutate "**/Primitives/[O-T]*.cs"
+          - name: primitives-u-z
+            mutate: --mutate "**/Primitives/[U-Z]*.cs"
+          - name: composition-a-e
+            mutate: --mutate "**/Composition/[A-E]*.cs"
+          - name: composition-f
+            mutate: --mutate "**/Composition/F*.cs"
+          - name: composition-g-r-exceptions
+            mutate: --mutate "**/Composition/[G-R]*.cs" --mutate "**/Exceptions/**/*.cs"
+          - name: composition-s-z
+            mutate: --mutate "**/Composition/[S-Z]*.cs"
+          - name: drawing
+            mutate: --mutate "**/Drawing/**/*.cs"
           - name: writing-values
             mutate: >-
               --mutate "**/Writing/[A-O]*.cs" --mutate "**/Writing/[X-Z]*.cs" --mutate "**/Writing/Pdf[A-C]*.cs"
           - name: security
             mutate: --mutate "**/Security/**/*.cs"
-          - name: operations-reading
+          - name: operations-reading-source
             project: --project Rustaveli.Pdf.Operations.csproj
-            mutate: --mutate "**/Reading/**/*.cs"
+            mutate: --mutate "**/Reading/PdfSource.cs" --mutate "**/Reading/Source*.cs"
+          - name: operations-reading-parser
+            project: --project Rustaveli.Pdf.Operations.csproj
+            mutate: --mutate "**/Reading/PdfParser.cs" --mutate "**/Reading/StreamDecoder.cs"
           - name: operations-assembly
             project: --project Rustaveli.Pdf.Operations.csproj
             fonts: true
@@ -95,19 +123,32 @@ jobs:
             fonts: true
             tests: --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
             mutate: --mutate "**/*.cs"
-          - name: operations-linearization
+          - name: operations-linearization-a
             project: --project Rustaveli.Pdf.Operations.csproj
             fonts: true
             tests: >-
               --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
               --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
-            mutate: --mutate "**/Linearization/**/*.cs"
+            mutate: --mutate "**/Linearization/BitWriter.cs" --mutate "**/Linearization/Linearizer.cs{0..12000}"
+          - name: operations-linearization-b
+            project: --project Rustaveli.Pdf.Operations.csproj
+            fonts: true
+            tests: >-
+              --test-project tests/Rustaveli.Pdf.UnitTests/Rustaveli.Pdf.UnitTests.csproj
+              --test-project tests/Rustaveli.Pdf.IntegrationTests/Rustaveli.Pdf.IntegrationTests.csproj
+            mutate: --mutate "**/Linearization/Linearizer.cs{12000..200000}"
           - name: writing-files
             mutate: --mutate "**/Writing/Pdf[D-F]*.cs"
           - name: writing-objects
             mutate: --mutate "**/Writing/Pdf[G-Z]*.cs"
-          - name: fonts-a-c
-            mutate: --mutate "**/Fonts/[A-C]*.cs"
+          - name: fonts-b-cff
+            mutate: --mutate "**/Fonts/B*.cs" --mutate "**/Fonts/Cff*.cs" --mutate "!**/Fonts/CffSubsetter.cs"
+          - name: fonts-cff-subsetter
+            mutate: --mutate "**/Fonts/CffSubsetter.cs"
+          - name: fonts-ch
+            mutate: --mutate "**/Fonts/Ch*.cs"
+          - name: fonts-cl-co
+            mutate: --mutate "**/Fonts/C[l-o]*.cs"
           - name: fonts-d-f
             mutate: --mutate "**/Fonts/[D-F]*.cs"
           - name: fonts-g
@@ -133,14 +174,23 @@ jobs:
           - name: images-jpeg-png-a-h
             runners: 2
             mutate: --mutate "**/Images/[J-O]*.cs" --mutate "**/Images/Png[A-H]*.cs"
-          - name: images-png-i-z
+          - name: images-png-i-p
             runners: 2
-            mutate: --mutate "**/Images/Png[I-Z]*.cs"
+            mutate: --mutate "**/Images/Png[I-P]*.cs"
+          - name: images-png-q-z
+            runners: 2
+            mutate: --mutate "**/Images/Png[Q-Z]*.cs"
           - name: images-r-z
             runners: 2
             mutate: --mutate "**/Images/[Q-Z]*.cs"
-          - name: svg
-            mutate: --mutate "**/Svg/**/*.cs"
+          - name: svg-reader-a
+            mutate: --mutate "**/Svg/SvgReader.cs{0..21000}"
+          - name: svg-reader-b
+            mutate: --mutate "**/Svg/SvgReader.cs{21000..200000}"
+          - name: svg-values-c-n
+            mutate: --mutate "**/Svg/Svg[C-N]*.cs"
+          - name: svg-values-p-t
+            mutate: --mutate "**/Svg/Svg[P-T]*.cs" --mutate "!**/Svg/SvgReader.cs"
           - name: tagging
             mutate: --mutate "**/Tagging/**/*.cs"
           # The PDF surface, shaping and the typeface library are checked by reading real files back, so these
@@ -207,15 +257,18 @@ jobs:
       # Three test runners, two where the integration tests run too or a shard says so: four, one a core, ran the
       # hosted runner out of memory as they started, and it was shut down mid-run. A mutant that removes a size guard
       # can ask for more memory than the machine has, with the same result and every mutant's outcome lost, so each
-      # process's heap is capped: such a mutant meets an OutOfMemoryException its tests fail on, and is killed. The
-      # cap must leave Stryker room to write its reports, which carry every file's source: 4 GB did not, so only the
-      # reports read here are written — the summary, and the HTML report uploaded below.
+      # test process's heap is capped at 6 GB (tests/Directory.Build.props): such a mutant meets an
+      # OutOfMemoryException its tests fail on, and is killed. Stryker's own process is not capped: it holds every
+      # mutant's result, and under the cap it ran out of memory testing, or writing its reports.
+      # The reports are the summary read below and the JSON report uploaded with it, which has every mutant. The
+      # HTML report is not written: it builds the whole report as one string, and ran out of memory after every
+      # mutant had been tested.
       - name: Mutation testing
         env:
-          DOTNET_GCHeapHardLimit: '0x180000000'
+          MutationTestHeapLimit: '6442450944'
         run: >
           dotnet stryker --config-file stryker-config.json
-          --reporter progress --reporter markdown --reporter html
+          --reporter progress --reporter markdown --reporter json
           --concurrency ${{ matrix.shard.runners || (matrix.shard.fonts && 2 || 3) }}
           ${{ matrix.shard.project }} ${{ matrix.shard.tests }} ${{ matrix.shard.mutate }}
 
