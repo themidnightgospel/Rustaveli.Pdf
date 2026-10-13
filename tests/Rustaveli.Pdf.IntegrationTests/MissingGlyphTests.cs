@@ -54,6 +54,14 @@ public class MissingGlyphTests
     }
 
     [Fact]
+    public void ALineOfNothingButACharacterThatIsNeverDrawnExports()
+    {
+        byte[] pdf = Build("a\n\u007F").ExportPdf(new PdfExportOptions { Typefaces = Latin });
+
+        Assert.NotEmpty(pdf);
+    }
+
+    [Fact]
     public void ACharacterIsNamedOnceHoweverOftenItIsUsed()
     {
         MissingGlyphException exception = Assert.Throws<MissingGlyphException>(() =>

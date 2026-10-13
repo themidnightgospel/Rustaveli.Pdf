@@ -587,10 +587,7 @@ internal sealed class PdfSurface : IPageSink
             if (!ReferenceEquals(font, current) || displaced || placed)
             {
                 if (current is not null)
-                {
-                    Flush(content, ref pending);
-                    content.EndTextArray();
-                }
+                    CloseArray(content, ref pending);
 
                 if (!ReferenceEquals(font, current))
                     content.SetFont(Page.Resources.GetFontName(font.Reference), size);
@@ -615,8 +612,10 @@ internal sealed class PdfSurface : IPageSink
             first = false;
         }
 
-        Flush(content, ref pending);
-        content.EndTextArray();
+        // Text whose characters are all set as nothing yields no glyph, and so opens no array.
+        if (current is not null)
+            CloseArray(content, ref pending);
+
         content.EndText();
     }
 
@@ -851,6 +850,13 @@ internal sealed class PdfSurface : IPageSink
         _codes[pending] = (byte)(code >> 8);
         _codes[pending + 1] = (byte)code;
         pending += 2;
+    }
+
+    /// <summary>Shows the codes buffered so far and closes the array they end.</summary>
+    private void CloseArray(ContentStreamBuilder content, ref int pending)
+    {
+        Flush(content, ref pending);
+        content.EndTextArray();
     }
 
     /// <summary>Shows the codes buffered so far. Every caller has buffered at least one glyph since the last flush.</summary>

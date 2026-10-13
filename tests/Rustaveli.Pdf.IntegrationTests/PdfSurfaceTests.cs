@@ -551,6 +551,17 @@ public class PdfSurfaceTests
         Assert.Empty(parsed.GetPage(1).Letters);
     }
 
+    [Theory]
+    [InlineData(0x7F)]
+    [InlineData(0xAD)]
+    public void ShowTextOfACharacterSetAsNothingDrawsNothing(int character)
+    {
+        using PdfDocument parsed = Render(surface =>
+            surface.ShowText(char.ConvertFromUtf32(character), new Offset(40, 120), Style, ReadingDirection.LeftToRight));
+
+        Assert.Empty(parsed.GetPage(1).Letters);
+    }
+
     [Fact]
     public void RunsInFallbackFontsFollowOnWithoutAGap()
     {
