@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1791968362959,
+  "lastUpdate": 1791970106652,
   "repoUrl": "https://github.com/themidnightgospel/Rustaveli.Pdf",
   "entries": {
     "Rustaveli.Pdf": [
@@ -3959,6 +3959,113 @@ window.BENCHMARK_DATA = {
             "range": "± 0.46",
             "unit": "ms",
             "extra": "QuestPDF 2026.5.0: 21.6 ms, −64%"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bubachelidze1@gmail.com",
+            "name": "Bitchiko Tchelidze",
+            "username": "themidnightgospel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "eae3a61ba36368ef4090baeda3aa4ce82c6a8852",
+          "message": "Merge pull request #174 from themidnightgospel/dependabot/dotnet_sdk/dotnet-sdk-10.0.401\n\nBump dotnet-sdk from 10.0.300 to 10.0.401",
+          "timestamp": "2026-10-14T13:24:37+04:00",
+          "tree_id": "6a52c4604b2b3ee8a769913f380122c6cb2f8064",
+          "url": "https://github.com/themidnightgospel/Rustaveli.Pdf/commit/eae3a61ba36368ef4090baeda3aa4ce82c6a8852"
+        },
+        "date": 1791970106032,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Invoice · time",
+            "value": 1.297,
+            "range": "± 0",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 3.76 ms, −66%"
+          },
+          {
+            "name": "Invoice · allocated",
+            "value": 122.224,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 359 KB, −66%"
+          },
+          {
+            "name": "Invoice · file size",
+            "value": 6.642,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 14.7 KB, −55%"
+          },
+          {
+            "name": "Report · time",
+            "value": 208.971,
+            "range": "± 0.31",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 307 ms, −32%"
+          },
+          {
+            "name": "Report · allocated",
+            "value": 1476.211,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 8,188 KB, −82%"
+          },
+          {
+            "name": "Report · file size",
+            "value": 171.695,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 950 KB, −82%"
+          },
+          {
+            "name": "LargeTable · time",
+            "value": 376.089,
+            "range": "± 1.55",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1,047 ms, −64%"
+          },
+          {
+            "name": "LargeTable · allocated",
+            "value": 22371.141,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 121,369 KB, −82%"
+          },
+          {
+            "name": "LargeTable · file size",
+            "value": 568.252,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 1,042 KB, −45%"
+          },
+          {
+            "name": "Images · time",
+            "value": 82.323,
+            "range": "± 1.4",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1,640 ms, −95%"
+          },
+          {
+            "name": "Images · allocated",
+            "value": 2414.722,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 17,171 KB, −86%"
+          },
+          {
+            "name": "Images · file size",
+            "value": 138.802,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 3,498 KB, −96%"
+          },
+          {
+            "name": "Eight documents in parallel · time",
+            "value": 4.567,
+            "range": "± 0.06",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 34.1 ms, −87%"
           }
         ]
       }
