@@ -128,6 +128,37 @@ public class TableTests
     }
 
     [Fact]
+    public void AddsColumnWidthsAsEnumerableSumDoesToTheBit()
+    {
+        // Added in float, 1 + 6e-8 + 6e-8 rounds up twice and ends a unit in the last place above the sum rounded once.
+        // With 2 points to fill, that unit reaches the shared columns' widths and the table's.
+        float[] fixedWidths = [1f, 6e-8f, 6e-8f];
+        float[] weights = [1.1f, 2.9f];
+        const float Available = 2f;
+        TableBlock table = BuildTable(composer =>
+        {
+            composer.Columns(columns =>
+            {
+                foreach (float width in fixedWidths)
+                    columns.Fixed(width);
+
+                foreach (float weight in weights)
+                    columns.Share(weight);
+            });
+
+            for (int index = 0; index < fixedWidths.Length + weights.Length; index++)
+                Fill(composer.Cell(), 0, 10);
+        });
+
+        float leftover = Available - fixedWidths.Sum();
+        float[] widths = [.. fixedWidths, .. weights.Select(weight => leftover * weight / weights.Sum())];
+
+        Fit plan = LayoutHarness.Plan(table, new Extent(Available, 100));
+
+        Assert.Equal(widths.Sum(), plan.Size.Width);
+    }
+
+    [Fact]
     public void FillsCellsLeftToRightThenWraps()
     {
         TableBlock table = BuildTable(composer =>
@@ -667,6 +698,46 @@ public class TableTests
 
         Assert.Contains(page.Operations.OfType<RectangleOperation>(), r => r.Ink == TestInks.Red);
     }
+
+#if NET
+    [Fact]
+    public void PlanningATableForAPassAllocatesOnlyItsLayout()
+    {
+        // Allocation budget: each pass plans a table afresh, then again for every page it reaches, and several times
+        // when it sits in a stack. A plan afresh builds the layout: its columns, its bands' indexes and its rows'
+        // heights. A plan again splits the width into columns once more and measures the header and footer rows.
+        // Iterators over the columns and the cells, an empty list for the cells that could not be measured, and the
+        // row groups of a table that no cell spans cost this pass 1,408 bytes more. When a change moves this on
+        // purpose, set the new figure and say why in the commit.
+        const long Budget = 520;
+        PlanContext context = LayoutHarness.Context();
+        TableBlock table = BuildTable(composer =>
+        {
+            composer.Columns(columns =>
+            {
+                columns.Fixed(40);
+                columns.Share();
+                columns.Share(2);
+            });
+
+            composer.HeaderRows(header => Fill(header.Cell(), 1, 10));
+            composer.FooterRows(footer => Fill(footer.Cell(), 1, 10));
+
+            for (int index = 0; index < 9; index++)
+                Fill(composer.Cell(), 1, 20);
+        });
+        Extent room = new Extent(200, 500);
+        table.Plan(room, context);
+        table.ResetState();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        table.Plan(room, context);
+        table.Plan(room, context);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Planning the table allocated {allocated} bytes; its budget is {Budget}.");
+    }
+#endif
 
     /// <summary>Content of a fixed size that counts how often it is measured.</summary>
     private sealed class CountingBlock : Block

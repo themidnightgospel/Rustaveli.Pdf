@@ -36,7 +36,11 @@ internal sealed class TableBlock : Block
 
         public float[] BodyHeights { get; set; } = Array.Empty<float>();
 
-        public int[] GroupEnd { get; set; } = Array.Empty<int>();
+        /// <summary>
+        /// For each body row, the last row a vertical span binds it to; null when no cell spans rows, so that every row
+        /// closes its own group.
+        /// </summary>
+        public int[]? GroupEnd { get; set; }
 
         /// <summary>Why a body cell cannot be set in the row it is given, or null when every one can.</summary>
         public string? BodyUnset { get; set; }
@@ -53,6 +57,9 @@ internal sealed class TableBlock : Block
 
         /// <summary>Combined height of the bands that repeat on every page.</summary>
         public float BandHeight => HeaderHeight + FooterHeight;
+
+        /// <summary>Whether a page may end after body row <paramref name="row"/>: no span carries on past it.</summary>
+        public bool ClosesGroup(int row) => GroupEnd is null || GroupEnd[row - 1] <= row;
 
         /// <summary>
         /// The left edge of a cell. Right-to-left tables mirror the whole grid, so column one sits against the
@@ -404,7 +411,7 @@ internal sealed class TableBlock : Block
 
             // Only advance the commit point to rows that close their span group; a row in the middle of one
             // has fitted, but taking it would split the group across the page break.
-            if (layout.GroupEnd[row - 1] <= row)
+            if (layout.ClosesGroup(row))
                 lastRow = row;
         }
 
@@ -579,11 +586,14 @@ internal sealed class TableBlock : Block
     }
 
     /// <summary>
-    /// For each row, the last row it is bound to by a vertical span. Rows may only be separated where this
-    /// equals the row itself.
+    /// For each row, the last row it is bound to by a vertical span, or null when no cell spans rows. Rows may only be
+    /// separated where this equals the row itself.
     /// </summary>
-    private static int[] BuildGroupBoundaries(List<CellBlock> cells, int rowCount)
+    private static int[]? BuildGroupBoundaries(List<CellBlock> cells, int rowCount)
     {
+        if (!cells.Exists(static cell => cell.RowSpan > 1))
+            return null;
+
         int[] groupEnd = new int[rowCount];
 
         // A row with no span is its own group, so it may be broken after.
@@ -615,13 +625,15 @@ internal sealed class TableBlock : Block
         if (cells.Count == 0)
             return [];
 
-        int rowCount = cells.Max(cell => cell.LastRow);
-        float[] heights = new float[rowCount];
+        float[] heights = new float[RowCount(cells)];
         List<CellBlock>? unmeasured = null;
 
         // Unspanned cells set the baseline height of the row they sit in.
-        foreach (CellBlock cell in cells.Where(cell => cell.RowSpan <= 1))
+        foreach (CellBlock cell in cells)
         {
+            if (cell.RowSpan > 1)
+                continue;
+
             Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
             if (plan.IsDeferred)
@@ -632,8 +644,11 @@ internal sealed class TableBlock : Block
 
         // A spanned cell only forces growth when the rows it covers cannot already hold it, and the shortfall
         // goes on its *last* row: charging an earlier one would push the rows below it down inside the span.
-        foreach (CellBlock cell in cells.Where(cell => cell.RowSpan > 1))
+        foreach (CellBlock cell in cells)
         {
+            if (cell.RowSpan <= 1)
+                continue;
+
             Fit plan = cell.Plan(new Extent(layout.SpanWidth(cell), Extent.Max.Height), context);
 
             if (plan.IsDeferred)
@@ -648,10 +663,13 @@ internal sealed class TableBlock : Block
                 heights[cell.LastRow - 1] += plan.Size.Height - spannedHeight;
         }
 
+        if (unmeasured is null)
+            return heights;
+
         // A cell that cannot be measured in unlimited height takes no part in sizing its row — content sized by the
         // height it is given, such as an image fitted to it — but it must fit the row the others make, or it would be
         // drawn in a row that cannot hold it and lost without a word.
-        foreach (CellBlock cell in unmeasured ?? [])
+        foreach (CellBlock cell in unmeasured)
         {
             Extent space = new Extent(layout.SpanWidth(cell), SpannedHeight(cell, heights));
             Fit plan = cell.Plan(space, context);
@@ -664,6 +682,17 @@ internal sealed class TableBlock : Block
         }
 
         return heights;
+    }
+
+    /// <summary>The last row any of <paramref name="cells"/> reaches, which is how many rows they make.</summary>
+    private static int RowCount(List<CellBlock> cells)
+    {
+        int rowCount = cells[0].LastRow;
+
+        foreach (CellBlock cell in cells)
+            rowCount = Math.Max(rowCount, cell.LastRow);
+
+        return rowCount;
     }
 
     /// <summary>The combined height of the rows <paramref name="cell"/> covers.</summary>
@@ -686,12 +715,25 @@ internal sealed class TableBlock : Block
         if (Columns.Count == 0)
             return null;
 
-        float constantWidth = Columns.Where(column => !column.TakesShare).Sum(column => Math.Max(0f, column.Value));
+        // Added in double, in column order, and rounded once, as Enumerable.Sum adds floats: in float, the widths could
+        // move by a unit in the last place, and lines with them.
+        double constantSum = 0d;
+        double weightSum = 0d;
+
+        foreach (TableColumnSpec column in Columns)
+        {
+            if (column.TakesShare)
+                weightSum += Math.Max(0f, column.Value);
+            else
+                constantSum += Math.Max(0f, column.Value);
+        }
+
+        float constantWidth = (float)constantSum;
 
         if (constantWidth > availableWidth + Extent.Epsilon)
             return null;
 
-        float totalWeight = Columns.Where(column => column.TakesShare).Sum(column => Math.Max(0f, column.Value));
+        float totalWeight = (float)weightSum;
         float leftover = Math.Max(0f, availableWidth - constantWidth);
         float[] widths = new float[Columns.Count];
 

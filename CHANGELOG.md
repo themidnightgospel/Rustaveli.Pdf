@@ -97,6 +97,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Subsetting a font writes its `loca`, `hmtx` and `cmap` tables into buffers of their exact size, which become the
   tables, instead of copying each out of a larger one: the invoice allocates 1.2% less; every PDF is unchanged.
   Writing a monospace font's metrics no longer takes time that grows with the square of its glyph count.
+- Planning a table no longer allocates iterators over its columns and cells, an empty list when every cell could be
+  measured, or row groups when no cell spans rows: the invoice allocates 3% less, and the 10,000-row table 2% less
+  and holds 40 KB less after export; every PDF is unchanged.
 
 **Tests**
 
