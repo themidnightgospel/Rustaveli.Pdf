@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Rustaveli.Pdf.Layout;
 
 /// <summary>
@@ -10,6 +12,18 @@ namespace Rustaveli.Pdf.Layout;
 /// </remarks>
 internal abstract class Block
 {
+    /// <summary>
+    /// Where each block was made, while a preview records it: kept beside the blocks rather than in them, so that the
+    /// many blocks of an export carry no field for it.
+    /// </summary>
+    private static readonly ConditionalWeakTable<Block, string> Sources = new ConditionalWeakTable<Block, string>();
+
+    protected Block()
+    {
+        if (SourceCapture.Current() is { } source)
+            Sources.Add(this, source);
+    }
+
     /// <summary>
     /// True for blocks whose state describes progress through the document as a whole rather than through a
     /// single page, and so must survive the per-page reset applied to headers and footers.
@@ -83,7 +97,7 @@ internal abstract class Block
     /// Where in the code composing the document this block was made — a file and line — when that was being
     /// recorded, for a preview to lead back to; null otherwise.
     /// </summary>
-    internal string? Source { get; } = SourceCapture.Current();
+    internal string? Source => Sources.TryGetValue(this, out string? source) ? source : null;
 
     /// <summary>
     /// Direct children, used for tree traversal, as <see cref="ChildCount"/> and <see cref="ChildAt"/> give them. Null

@@ -100,6 +100,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Planning a table no longer allocates iterators over its columns and cells, an empty list when every cell could be
   measured, or row groups when no cell spans rows: the invoice allocates 3% less, and the 10,000-row table 2% less
   and holds 40 KB less after export; every PDF is unchanged.
+- A block no longer keeps a field for where in the code it was made, which only a preview records: a preview keeps it
+  beside the block instead. The 10,000-row table allocates 2.4% less, the report and the invoice 1% less; every PDF is
+  unchanged.
 
 **Tests**
 
