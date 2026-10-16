@@ -100,6 +100,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Planning a table no longer allocates iterators over its columns and cells, an empty list when every cell could be
   measured, or row groups when no cell spans rows: the invoice allocates 3% less, and the 10,000-row table 2% less
   and holds 40 KB less after export; every PDF is unchanged.
+- A word that is the whole of its run's text, as a table cell of one word or number is, keeps its measured width by
+  that text rather than a copy of it: the 10,000-row table allocates 3.5% less and holds 0.8 MB less after export, and
+  the invoice allocates 1.5% less; every PDF is unchanged.
 
 **Tests**
 

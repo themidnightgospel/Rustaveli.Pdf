@@ -25,6 +25,13 @@ internal interface ITypeMeasurer
     float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style);
 
     /// <summary>
+    /// Width of the <paramref name="length"/> characters of <paramref name="text"/> from <paramref name="start"/>, as
+    /// the overload taking characters measures them. A measurer that keeps widths may keep <paramref name="text"/>
+    /// itself for them when they are the whole of it.
+    /// </summary>
+    float MeasureWidth(string text, int start, int length, TypeStyle style);
+
+    /// <summary>
     /// The number of characters from the start of <paramref name="text" /> that fit within
     /// <paramref name="maxWidth" />. Returns 0 when not even the first character fits.
     /// </summary>

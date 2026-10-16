@@ -393,5 +393,25 @@ public class ShapingTests
         Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
         Assert.Contains(Shape(Text, Sans), glyph => glyph.ReadsAs == "ffi");
     }
+
+    [Fact]
+    public void AWordThatIsAWholeStringIsKeptByThatString()
+    {
+        // Allocation budget: a word measured for the first time is shaped, and its width is kept by its characters. A
+        // word that is a whole string, as a table cell of one word is, keeps that string rather than a copy of it: a
+        // copy cost this word 40 bytes more. When a change moves this on purpose, set the new figure and say why in the
+        // commit.
+        const long Budget = 352;
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
+        measurer.MeasureWidth("Total", 0, 5, Sans);
+        string word = string.Concat("Sub", "total");
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        measurer.MeasureWidth(word, 0, word.Length, Sans);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Measuring the word allocated {allocated} bytes; its budget is {Budget}.");
+        Assert.Equal(measurer.MeasureWidth(word.AsSpan(), Sans), measurer.MeasureWidth(word, 0, word.Length, Sans));
+    }
 #endif
 }
