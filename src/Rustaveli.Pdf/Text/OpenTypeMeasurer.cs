@@ -113,7 +113,16 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         return false;
     }
 
-    public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style)
+    public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) => MeasureWidth(text, whole: null, style);
+
+    public float MeasureWidth(string text, int start, int length, TypeStyle style) =>
+        MeasureWidth(text.AsSpan(start, length), start == 0 && length == text.Length ? text : null, style);
+
+    /// <summary>
+    /// The width of <paramref name="text"/>; <paramref name="whole"/>, when given, is those characters as a string,
+    /// which then keeps the width rather than a copy of them.
+    /// </summary>
+    private float MeasureWidth(ReadOnlySpan<char> text, string? whole, TypeStyle style)
     {
         if (text.IsEmpty)
             return 0f;
@@ -149,9 +158,12 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         width = Math.Max(0f, width);
 
 #if NET
-        known[text] = width;
+        if (whole is null)
+            known[text] = width;
+        else
+            widths[whole] = width;
 #else
-        widths[new WidthKey(text.ToString())] = width;
+        widths[new WidthKey(whole ?? text.ToString())] = width;
 #endif
 
         return width;
