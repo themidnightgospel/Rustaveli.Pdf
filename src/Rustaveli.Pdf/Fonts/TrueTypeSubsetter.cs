@@ -148,7 +148,7 @@ internal static class TrueTypeSubsetter
         OutlineData outlines = WriteOutlines(font, glyphs, order, numbers, hinted);
         bool longLoca = outlines.Glyf.Length > ShortLocaLimit;
 
-        List<KeyValuePair<uint, byte[]>> tables =
+        List<KeyValuePair<uint, ReadOnlyMemory<byte>>> tables =
         [
             new(TableTag.Glyf, outlines.Glyf),
             new(TableTag.Loca, WriteLoca(outlines.Offsets, longLoca)),
@@ -163,7 +163,7 @@ internal static class TrueTypeSubsetter
         foreach (uint tag in HintingTables)
         {
             if (hinted && font.TryGetTable(tag, out ReadOnlyMemory<byte> data))
-                tables.Add(new(tag, data.ToArray()));
+                tables.Add(new(tag, data));
         }
 
         byte[] file = SfntWriter.Write(TableDirectory.TrueTypeVersion, tables);
@@ -218,7 +218,7 @@ internal static class TrueTypeSubsetter
         }
 
         result.Offsets[order.Count] = glyf.Length;
-        result.Glyf = glyf.ToArray();
+        result.Glyf = glyf.Written;
         return result;
     }
 
@@ -382,7 +382,7 @@ internal static class TrueTypeSubsetter
     {
         private bool _hasBounds;
 
-        public byte[] Glyf { get; set; } = [];
+        public ReadOnlyMemory<byte> Glyf { get; set; }
 
         /// <summary>Each glyph's offset in <see cref="Glyf"/>, plus the end of the last.</summary>
         public int[] Offsets { get; } = new int[glyphCount + 1];
