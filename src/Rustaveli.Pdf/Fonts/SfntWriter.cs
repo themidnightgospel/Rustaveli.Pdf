@@ -12,18 +12,21 @@ internal static class SfntWriter
     /// <summary>What the checksum of a whole font must come to once the adjustment is in place.</summary>
     private const uint ChecksumMagic = 0xB1B0AFBA;
 
-    /// <summary>The font file of <paramref name="tables"/>, which include <c>head</c>, as every font's tables do.</summary>
-    public static byte[] Write(uint sfntVersion, IReadOnlyList<KeyValuePair<uint, byte[]>> tables)
+    /// <summary>
+    /// The font file of <paramref name="tables"/>, which include <c>head</c>, as every font's tables do. The tables are
+    /// only read: they may be another file's own bytes.
+    /// </summary>
+    public static byte[] Write(uint sfntVersion, IReadOnlyList<KeyValuePair<uint, ReadOnlyMemory<byte>>> tables)
     {
         // The whole file's checksum is settled in head; without one there is nowhere to write it.
         if (!tables.Any(static table => table.Key == TableTag.Head))
             throw new ArgumentException("A font file needs a head table.", nameof(tables));
 
-        KeyValuePair<uint, byte[]>[] sorted = tables.OrderBy(static table => table.Key).ToArray();
+        KeyValuePair<uint, ReadOnlyMemory<byte>>[] sorted = tables.OrderBy(static table => table.Key).ToArray();
         int count = sorted.Length;
         int length = HeaderSize + (count * RecordSize);
 
-        foreach (KeyValuePair<uint, byte[]> table in sorted)
+        foreach (KeyValuePair<uint, ReadOnlyMemory<byte>> table in sorted)
             length += Padded(table.Value.Length);
 
         byte[] file = new byte[length];
@@ -45,22 +48,23 @@ internal static class SfntWriter
 
         for (int index = 0; index < count; index++)
         {
-            (uint tag, byte[] data) = (sorted[index].Key, sorted[index].Value);
+            (uint tag, ReadOnlyMemory<byte> data) = (sorted[index].Key, sorted[index].Value);
+            Span<byte> copy = file.AsSpan(offset, data.Length);
+            data.Span.CopyTo(copy);
 
-            // The head checksum is taken with its adjustment field zero, which it is until the end.
+            // The head checksum is taken with its adjustment field zero, which it is in the file until the end.
             if (tag == TableTag.Head)
             {
                 headOffset = offset;
-                BigEndian.WriteUInt32(data, HeadTable.ChecksumAdjustmentOffset, 0);
+                BigEndian.WriteUInt32(file, offset + HeadTable.ChecksumAdjustmentOffset, 0);
             }
 
             int record = HeaderSize + (index * RecordSize);
             BigEndian.WriteUInt32(file, record, tag);
-            BigEndian.WriteUInt32(file, record + 4, Checksum(data));
+            BigEndian.WriteUInt32(file, record + 4, Checksum(copy));
             BigEndian.WriteUInt32(file, record + 8, (uint)offset);
             BigEndian.WriteUInt32(file, record + 12, (uint)data.Length);
 
-            data.CopyTo(file, offset);
             offset += Padded(data.Length);
         }
 

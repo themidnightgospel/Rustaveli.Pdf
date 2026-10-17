@@ -178,12 +178,12 @@ internal sealed class OpenTypeFont
             return _file.ToArray();
 
         const uint DigitalSignature = 0x44534947; // 'DSIG'
-        List<KeyValuePair<uint, byte[]>> tables = [];
+        List<KeyValuePair<uint, ReadOnlyMemory<byte>>> tables = [];
 
         foreach (TableRecord record in Tables.Records)
         {
             if (record.Tag != DigitalSignature)
-                tables.Add(new(record.Tag, _file.Slice(record.Offset, record.Length).ToArray()));
+                tables.Add(new(record.Tag, _file.Slice(record.Offset, record.Length)));
         }
 
         return SfntWriter.Write(Tables.SfntVersion, tables);

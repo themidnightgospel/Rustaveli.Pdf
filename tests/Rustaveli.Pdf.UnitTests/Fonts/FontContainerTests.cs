@@ -59,9 +59,20 @@ public class FontContainerTests
     {
         // head carries the adjustment that settles the whole file's checksum: written without it, the file would
         // take the adjustment in its table directory instead.
-        KeyValuePair<uint, byte[]>[] tables = [new(TableTag.Maxp, new byte[6])];
+        Assert.Throws<ArgumentException>(() => SfntWriter.Write(0x00010000, [new(TableTag.Maxp, new byte[6])]));
+    }
 
-        Assert.Throws<ArgumentException>(() => SfntWriter.Write(0x00010000, tables));
+    [Fact]
+    public void WritingAFontFileLeavesItsTablesAsTheyWere()
+    {
+        // A table may be another file's own bytes, which other exports read at the same time.
+        byte[] head = SyntheticTables.Head();
+        BigEndian.WriteUInt32(head, HeadTable.ChecksumAdjustmentOffset, 0x01020304);
+        byte[] before = (byte[])head.Clone();
+
+        SfntWriter.Write(0x00010000, [new(TableTag.Head, head)]);
+
+        Assert.Equal(before, head);
     }
 
     [Fact]
