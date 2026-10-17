@@ -59,6 +59,9 @@ internal sealed class FontDataWriter
     /// <summary>Overwrites two bytes already written.</summary>
     public void PatchUInt16(int offset, int value) => BigEndian.WriteUInt16(_buffer, offset, (ushort)value);
 
+    /// <summary>The bytes written so far, in the writer's own buffer: theirs only until the next write.</summary>
+    public ReadOnlyMemory<byte> Written => _buffer.AsMemory(0, Length);
+
     public byte[] ToArray() => _buffer.AsSpan(0, Length).ToArray();
 
     /// <summary>

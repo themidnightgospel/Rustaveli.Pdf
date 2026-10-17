@@ -100,6 +100,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Planning a table no longer allocates iterators over its columns and cells, an empty list when every cell could be
   measured, or row groups when no cell spans rows: the invoice allocates 3% less, and the 10,000-row table 2% less
   and holds 40 KB less after export; every PDF is unchanged.
+- Writing a font file only reads the tables it is given, so a subset's glyph outlines go into it straight from where
+  they were built, and kept hinting tables and a collection face's tables straight from the font, without a copy
+  first: the invoice allocates 3% less; every PDF and every font file is unchanged.
 
 **Tests**
 
