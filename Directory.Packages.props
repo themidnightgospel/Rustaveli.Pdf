@@ -33,21 +33,21 @@
 
   <!-- Build-time only: never reach a consumer. -->
   <ItemGroup>
-    <PackageVersion Include="Polyfill" Version="11.4.4" />
+    <PackageVersion Include="Polyfill" Version="11.4.5" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
   </ItemGroup>
 
   <!-- Tests. -->
   <ItemGroup>
     <!-- PDFium, as an independent renderer for visual snapshots: pages are never judged by our own reader. -->
-    <PackageVersion Include="bblanchon.PDFium" Version="157.0.8086" />
+    <PackageVersion Include="bblanchon.PDFium" Version="157.0.8100" />
     <!--
       Coverlet 10 counts each outcome of a condition as taken only when a test takes it; 6 counted some as taken that
       no test reached, so branch coverage measured by 6 read higher than it was.
     -->
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="CsCheck" Version="4.9.1" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="PdfPig" Version="0.1.16" />
 
     <!--
