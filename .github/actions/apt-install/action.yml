@@ -35,10 +35,12 @@ runs:
       run: |
         archives="$HOME/.cache/apt-archives"
         mkdir -p "$archives/partial"
-        apt=(sudo apt-get -o Dir::Cache::Archives="$archives" -o APT::Sandbox::User=root -y --no-install-recommends)
+        sudo chown -R _apt "$archives"
+        apt=(sudo apt-get -o Dir::Cache::Archives="$archives" -y --no-install-recommends)
 
+        # autoclean drops the downloads the index no longer lists: versions since superseded, restored from an older image.
         for attempt in 1 2; do
-          if timeout 3m sudo apt-get update && timeout 3m "${apt[@]}" install --download-only $PACKAGES; then
+          if timeout 3m sudo apt-get update && "${apt[@]}" autoclean && timeout 3m "${apt[@]}" install --download-only $PACKAGES; then
             break
           fi
 
