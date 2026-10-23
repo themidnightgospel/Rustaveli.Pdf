@@ -551,6 +551,22 @@ public class TrueTypeSubsetterTests
         Assert.Equal([0, 1, 0, 2], map.Skip(2 * GlyphSubset.FirstSharedCode));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void TheCodeMapShowsNoGlyphPastTheCodesBeforeTheSharedOnes(int sharedCount)
+    {
+        // A subset can hold more glyphs than there are codes before the shared ones: the components of its composites,
+        // numbered after every glyph shown, and shown by no code.
+        (ushort Glyph, string Text)[] shared = [.. Enumerable.Repeat(((ushort)1, "W"), sharedCount)];
+
+        byte[] map = EmbeddedFont.CidToGidMapOf(GlyphSubset.FirstSharedCode + 2, shared);
+
+        Assert.Equal(2 * (GlyphSubset.FirstSharedCode + sharedCount), map.Length);
+        Assert.Equal([0x7F, 0xFF], map.Skip(2 * (GlyphSubset.FirstSharedCode - 1)).Take(2));
+        Assert.Equal(shared.SelectMany(code => new byte[] { 0, (byte)code.Glyph }), map.Skip(2 * GlyphSubset.FirstSharedCode));
+    }
+
     [Fact]
     public void ReportsNoCodepointForAGlyphAddedWithoutOne()
     {

@@ -36,6 +36,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Text made only of characters drawn as nothing, such as a DEL or a lone soft hyphen, failed a PDF export with an
   `InvalidOperationException`. This happened in a paragraph, on a line left holding only such a character, and in SVG
   text ending in one. Such text is now drawn as nothing.
+- A face whose subset held more glyphs than the 32,768 codes before the shared ones, counting the components its
+  composite glyphs need, failed the export with an `ArgumentOutOfRangeException` when it wrote the code-to-glyph map.
+  The components, which no code shows, are now left out of the map.
 
 **Performance**
 
