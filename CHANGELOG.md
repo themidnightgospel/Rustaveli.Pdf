@@ -39,6 +39,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - A face whose subset held more glyphs than the 32,768 codes before the shared ones, counting the components its
   composite glyphs need, failed the export with an `ArgumentOutOfRangeException` when it wrote the code-to-glyph map.
   The components, which no code shows, are now left out of the map.
+- Text drawn at its own width, as `FlushRight()`, `Centered()` and the other alignments draw it, lost its last line when
+  its widest line ended in a space before a line break: `Line("Total due 9,250.00 ")` then `Run("EUR")` drew no "EUR".
+  That line's space no longer wraps onto a line of its own, so the text breaks into the lines it was measured with.
 
 **Performance**
 

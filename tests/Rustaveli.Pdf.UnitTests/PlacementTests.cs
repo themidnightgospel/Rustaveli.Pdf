@@ -114,4 +114,24 @@ public class PlacementTests
 
         Approximately.Equal(new Offset(150, 40), rectangle.Position);
     }
+
+    [Theory]
+    [InlineData("", "Hello ", "World", "HelloWorld")]
+    [InlineData("", "Total due 9,250.00 ", "EUR", "Total due 9,250.00EUR")]
+    [InlineData("Hello", " ", "World", "HelloWorld")]
+    [InlineData("Hello ", " ", "World", "HelloWorld")]
+    public void TextAtItsOwnWidthKeepsTheLineAfterALineEndingInASpace(string before, string line, string after, string drawn)
+    {
+        // The whitespace a line ends in is not counted in the paragraph's width, so at that width it no longer fits.
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.FlushRight().Text(text =>
+            {
+                text.Run(before);
+                text.Line(line);
+                text.Run(after);
+            }),
+            new Extent(400, 100));
+
+        Assert.Equal(drawn, page.Content);
+    }
 }
