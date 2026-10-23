@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Tokens;
@@ -175,6 +176,60 @@ public class PdfExportTests
             document.ExportPdf(path);
 
             Assert.Equal(document.ExportPdf(), File.ReadAllBytes(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task AFileHeldOpenForAMomentIsStillReplaced()
+    {
+        // As a virus scanner holds a file it has just seen written. On Windows a file held open cannot be replaced.
+        Document document = TextDocument();
+        string path = TempPath();
+
+        // Exported once first, so the export to the file is over well within the moment the file is held.
+        byte[] expected = document.ExportPdf();
+
+        try
+        {
+            File.WriteAllText(path, "previous contents");
+            FileStream held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+            Task release = Task.Delay(100).ContinueWith(_ => held.Dispose(), TaskScheduler.Default);
+
+            document.ExportPdf(path);
+            await release;
+
+            Assert.Equal(expected, File.ReadAllBytes(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AFileHeldOpenThroughoutFailsTheExportAndKeepsItsContents()
+    {
+        string path = TempPath();
+
+        try
+        {
+            File.WriteAllText(path, "previous contents");
+
+            using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                // Elsewhere a file held open is replaced all the same.
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    Assert.Throws<IOException>(() => TextDocument().ExportPdf(path));
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                Assert.Equal("previous contents", File.ReadAllText(path));
+
+            Assert.Equal([path], Directory.GetFiles(Path.GetDirectoryName(path)!, Path.GetFileName(path) + "*"));
         }
         finally
         {
