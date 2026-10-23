@@ -21,6 +21,8 @@ namespace Rustaveli.Pdf;
 /// </remarks>
 public sealed class PreviewSession : IDisposable
 {
+    internal const int PortAttempts = 10;
+
     private static readonly List<WeakReference<PreviewSession>> Sessions = [];
 
     private readonly Func<Document> _compose;
@@ -35,16 +37,15 @@ public sealed class PreviewSession : IDisposable
     private bool _disposed;
 
     internal PreviewSession(Func<Document> compose, PreviewOptions options)
+        : this(compose, options, FreePort)
+    {
+    }
+
+    internal PreviewSession(Func<Document> compose, PreviewOptions options, Func<int> freePort)
     {
         _compose = compose;
         _options = options;
-
-        int port = options.Port > 0 ? options.Port : FreePort();
-        Url = new Uri($"http://localhost:{port.ToString(CultureInfo.InvariantCulture)}/");
-
-        _listener = new HttpListener();
-        _listener.Prefixes.Add(Url.ToString());
-        _listener.Start();
+        (_listener, Url) = Listen(options.Port, freePort);
 
         lock (Sessions)
             Sessions.Add(new WeakReference<PreviewSession>(this));
@@ -168,7 +169,35 @@ public sealed class PreviewSession : IDisposable
         }
     }
 
-    private static int FreePort()
+    /// <summary>
+    /// A listener started on <paramref name="port"/>, or on a free one when it is 0. A port found free can go to another
+    /// listener, another preview's among them, before this one registers it, so a free port is looked for again when
+    /// that happens, up to <see cref="PortAttempts"/> times. A port the caller chose is tried once.
+    /// </summary>
+    private static (HttpListener Listener, Uri Url) Listen(int port, Func<int> freePort)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            Uri url = new Uri($"http://localhost:{(port > 0 ? port : freePort()).ToString(CultureInfo.InvariantCulture)}/");
+            HttpListener listener = new HttpListener();
+            listener.Prefixes.Add(url.ToString());
+
+            try
+            {
+                listener.Start();
+                return (listener, url);
+            }
+            catch (HttpListenerException)
+            {
+                listener.Close();
+
+                if (port > 0 || attempt == PortAttempts)
+                    throw;
+            }
+        }
+    }
+
+    internal static int FreePort()
     {
         TcpListener probe = new TcpListener(IPAddress.Loopback, 0);
         probe.Start();

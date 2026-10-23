@@ -47,6 +47,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   virus scanner, held the file open for a moment as it was put in place. Putting it in place is now tried again for
   up to a second while the file is held. A locked file, or any other failure, still fails at once. Where Windows
   removes the old file but cannot put the new one in its place, the new one is kept and the error names it.
+- `StartPreview` without a port could fail with an `HttpListenerException` when another listener, such as a preview
+  started at the same moment, took the free port it had found before it could register it. A free port is now looked
+  for again, up to ten times. A port given in `PreviewOptions.Port` is still tried only once.
 
 **Performance**
 
