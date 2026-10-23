@@ -114,4 +114,66 @@ public class PlacementTests
 
         Approximately.Equal(new Offset(150, 40), rectangle.Position);
     }
+
+    [Theory]
+    [InlineData("", "Hello ", "World", "HelloWorld")]
+    [InlineData("", "Total due 9,250.00 ", "EUR", "Total due 9,250.00EUR")]
+    [InlineData("Hello", " ", "World", "HelloWorld")]
+    [InlineData("Hello ", " ", "World", "HelloWorld")]
+    public void TextAtItsOwnWidthKeepsTheLineAfterALineEndingInASpace(string before, string line, string after, string drawn)
+    {
+        // The whitespace a line ends in is not counted in the paragraph's width, so at that width it no longer fits.
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.FlushRight().Text(text =>
+            {
+                text.Run(before);
+                text.Line(line);
+                text.Run(after);
+            }),
+            new Extent(400, 100));
+
+        Assert.Equal(drawn, page.Content);
+    }
+
+    [Fact]
+    public void ASpaceThatOverflowsItsBoxBeforeALineBreakAddsNoEmptyLine()
+    {
+        float width = LayoutHarness.Measurer.MeasureWidth("Hello", TypeStyle.Default);
+
+        float Drop(float boxWidth)
+        {
+            RecordedPage page = LayoutHarness.Render(
+                frame => frame.Width(boxWidth).Text(text =>
+                {
+                    text.Line("Hello ");
+                    text.Run("World");
+                }),
+                new Extent(400, 100));
+
+            return page.Texts.Single(text => text.Text == "World").Position.Y - page.Texts.Single(text => text.Text == "Hello").Position.Y;
+        }
+
+        Approximately.Equal(Drop(400), Drop(width));
+    }
+
+    [Fact]
+    public void ALinkedSpaceAfterOneThatDidNotFitKeepsItsLink()
+    {
+        // The plain space overflows a box just wide enough for the word; the linked one then fits the next line, and a
+        // space that carries a link is never dropped as trailing whitespace.
+        float width = LayoutHarness.Measurer.MeasureWidth("Hello", TypeStyle.Default);
+
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Width(width).Text(text =>
+            {
+                text.Run("Hello ");
+                text.Link(" ", "https://example.com");
+                text.Line(string.Empty);
+                text.Run("World");
+            }),
+            new Extent(400, 100));
+
+        Assert.Equal("https://example.com", Assert.Single(page.Operations.OfType<ExternalLinkOperation>()).Url);
+        Assert.Equal("Hello World", page.Content);
+    }
 }

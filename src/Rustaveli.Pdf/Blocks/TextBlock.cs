@@ -838,6 +838,11 @@ internal sealed class TextBlock : Block
             current = new TextLine(pieces) { StartsParagraph = force };
         }
 
+        // Set when a line was broken at whitespace that did not fit, and only whitespace has come since. A line ending
+        // that follows then ends no empty line of its own. A paragraph drawn at its own width, which leaves trailing
+        // whitespace out, meets exactly this, and an extra line would push its last line out of the planned height.
+        bool brokeAtWhitespace = false;
+
         // Each paragraph's text is gathered as its lines are built, every run recording where it falls in it, so the
         // bidirectional algorithm can resolve the paragraph whole — a character's direction can depend on text
         // lines away — and each line can then be put in display order.
@@ -886,6 +891,7 @@ internal sealed class TextBlock : Block
                 // frame that fills what it is given — Middle, Expand — claim the full 14,400 points and defer
                 // the whole paragraph to a page it can never fit.
                 taken.Tie();
+                brokeAtWhitespace = false;
                 float lineBudget = current.StartsParagraph ? Math.Max(0, width - indent) : width;
                 Fit inlinePlan = span.Inline.Plan(new Extent(lineBudget, maxHeight), context);
 
@@ -950,7 +956,18 @@ internal sealed class TextBlock : Block
 
                 if (token.EndsLine)
                 {
-                    FlushLine(force: true);
+                    if (brokeAtWhitespace && current.HoldsOnlyTrimmable)
+                    {
+                        pieces.RemoveFrom(current.First);
+                        current = new TextLine(pieces) { StartsParagraph = true };
+                    }
+                    else
+                    {
+                        FlushLine(force: true);
+                    }
+
+                    brokeAtWhitespace = false;
+
                     CloseParagraph();
 
                     // The run goes on into the next paragraph, isolated there too.
@@ -965,6 +982,7 @@ internal sealed class TextBlock : Block
                 paragraph.Append(segment);
 
                 bool isWhitespace = IsBreakableWhitespace(segment[0]);
+                brokeAtWhitespace &= isWhitespace;
                 float segmentWidth = context.Measurer.MeasureWidth(text, token.Start, token.Length, style);
                 float lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
@@ -984,6 +1002,7 @@ internal sealed class TextBlock : Block
                 // Trailing whitespace never justifies a new line — drop it and break here instead.
                 if (isWhitespace)
                 {
+                    brokeAtWhitespace |= current.Count > 0;
                     FlushLine(force: false);
                     continue;
                 }
@@ -1671,6 +1690,21 @@ internal sealed class TextBlock : Block
                 }
 
                 return false;
+            }
+        }
+
+        /// <summary>Whether every piece on the line could be dropped as trailing whitespace.</summary>
+        public bool HoldsOnlyTrimmable
+        {
+            get
+            {
+                for (int index = 0; index < Count; index++)
+                {
+                    if (!IsTrimmable(this[index]))
+                        return false;
+                }
+
+                return true;
             }
         }
 

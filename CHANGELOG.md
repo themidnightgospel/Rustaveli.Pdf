@@ -39,6 +39,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - A face whose subset held more glyphs than the 32,768 codes before the shared ones, counting the components its
   composite glyphs need, failed the export with an `ArgumentOutOfRangeException` when it wrote the code-to-glyph map.
   The components, which no code shows, are now left out of the map.
+- A space that did not fit its line, just before a line break, added an empty line, in a box of any width. Text drawn
+  at its own width, as `FlushRight()`, `Centered()` and the other alignments draw it, met this whenever its widest
+  line ended in a space before a break, and lost its last line: `Line("Total due 9,250.00 ")` then `Run("EUR")` drew
+  no "EUR". Such a space now ends its line as any trailing space does. A space carrying a link is still kept.
 
 **Performance**
 
