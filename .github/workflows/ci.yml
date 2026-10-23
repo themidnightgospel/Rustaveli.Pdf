@@ -49,7 +49,9 @@ jobs:
       # qpdf validates generated files. The font-fallback tests check that characters the test font lacks are found
       # among the platform's fonts: Windows and macOS ship CJK and Georgian faces, the Ubuntu image does not.
       - name: Install validators and fallback fonts
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qpdf fonts-noto-core fonts-noto-cjk
+        uses: ./.github/actions/apt-install
+        with:
+          packages: qpdf fonts-noto-core fonts-noto-cjk
 
       # veraPDF validates PDF/A and PDF/UA output; it runs on Java.
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
