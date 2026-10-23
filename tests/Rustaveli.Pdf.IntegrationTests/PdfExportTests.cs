@@ -184,7 +184,7 @@ public class PdfExportTests
     }
 
     [Fact]
-    public async Task AFileHeldOpenForAMomentIsStillReplaced()
+    public void AFileHeldOpenForAMomentIsStillReplaced()
     {
         // As a virus scanner holds a file it has just seen written. On Windows a file held open cannot be replaced.
         Document document = TextDocument();
@@ -196,11 +196,9 @@ public class PdfExportTests
         try
         {
             File.WriteAllText(path, "previous contents");
-            FileStream held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
-            Task release = Task.Delay(100).ContinueWith(_ => held.Dispose(), TaskScheduler.Default);
 
-            document.ExportPdf(path);
-            await release;
+            using (new HeldFile(path))
+                document.ExportPdf(path);
 
             Assert.Equal(expected, File.ReadAllBytes(path));
         }
