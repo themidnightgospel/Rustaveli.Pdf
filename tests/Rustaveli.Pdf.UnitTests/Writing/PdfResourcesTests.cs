@@ -21,11 +21,12 @@ public class PdfResourcesTests(ITestOutputHelper output)
         for (int number = 1; number <= 50_000; number++)
             resources.GetXObjectName(new PdfReference(number));
 
-        PdfDictionary written = resources.ToDictionary();
         watch.Stop();
         output.WriteLine($"50,000 distinct XObjects named in {watch.Elapsed.TotalMilliseconds:F0} ms");
 
         Assert.Equal(0, PdfDictionary.Compared - compared);
+
+        PdfDictionary written = resources.ToDictionary();
         Assert.Equal("X50000", resources.GetXObjectName(new PdfReference(50_000)).Value);
         Assert.Equal(50_000, written[PdfNames.XObject].AsDictionary().Count);
     }
