@@ -45,7 +45,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   no "EUR". Such a space now ends its line as any trailing space does. A space carrying a link is still kept.
 - On Windows, `ExportPdf(path)` and `PdfFile.Save(path)` failed with an `IOException` when another process, such as a
   virus scanner, held the file open for a moment as it was put in place. Putting it in place is now tried again for
-  up to a second while the file is held. A locked file, or any other failure, still fails at once.
+  up to a second while the file is held. A locked file, or any other failure, still fails at once. Where Windows
+  removes the old file but cannot put the new one in its place, the new one is kept and the error names it.
 
 **Performance**
 

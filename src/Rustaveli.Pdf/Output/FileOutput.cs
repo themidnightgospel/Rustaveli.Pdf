@@ -19,23 +19,40 @@ internal static class FileOutput
 
     private const int UnableToMoveReplacement = unchecked((int)0x80070498);
 
+    private const int UnableToMoveReplacement2 = unchecked((int)0x80070499);
+
     private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(50);
 
-    public static void Write(string path, Action<Stream> write)
+    public static void Write(string path, Action<Stream> write) => Write(path, write, MoveIntoPlace);
+
+    /// <summary>Writes a file, moving it into place with <paramref name="moveIntoPlace"/>.</summary>
+    internal static void Write(string path, Action<Stream> write, Action<string, string> moveIntoPlace)
     {
         string target = Path.GetFullPath(path);
         string partial = target + "." + Guid.NewGuid().ToString("N").Substring(0, 8) + ".partial";
+        bool kept = false;
 
         try
         {
             using (FileStream stream = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 write(stream);
 
-            MoveIntoPlace(partial, target);
+            bool replacing = File.Exists(target);
+
+            try
+            {
+                moveIntoPlace(partial, target);
+            }
+            catch (IOException exception) when (replacing && !File.Exists(target))
+            {
+                // Replacing can fail after the file replaced is gone, and then the new file is the only copy left.
+                kept = true;
+                throw new IOException($"{target} was removed but could not be replaced. The new file is {partial}.", exception);
+            }
         }
         finally
         {
-            if (File.Exists(partial))
+            if (!kept && File.Exists(partial))
                 File.Delete(partial);
         }
     }
@@ -62,5 +79,5 @@ internal static class FileOutput
 
     /// <summary>Whether the failure is one another process holding the file open gives.</summary>
     internal static bool IsHeld(IOException exception) =>
-        exception.HResult is SharingViolation or UnableToRemoveReplaced or UnableToMoveReplacement;
+        exception.HResult is SharingViolation or UnableToRemoveReplaced or UnableToMoveReplacement or UnableToMoveReplacement2;
 }
