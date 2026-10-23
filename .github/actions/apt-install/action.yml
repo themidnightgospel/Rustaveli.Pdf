@@ -1,0 +1,54 @@
+# The Azure mirror the Ubuntu runners use can stall on a download for a quarter of an hour while still sending a few
+# bytes, which apt's own timeouts do not catch, and a job's time runs out before its tests start. So the downloads are
+# cached, and most runs fetch nothing; a fetch is cut off after three minutes and tried once more, resuming what it got.
+
+name: apt-install
+description: Installs Ubuntu packages from a cache of their downloads, cutting off a stalled fetch and trying it again.
+
+inputs:
+  packages:
+    description: The packages to install, separated by spaces.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # A new runner image starts from the last one's downloads, which are mostly still current, and saves its own.
+    - id: key
+      shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        packages=$(echo "$PACKAGES" | sha256sum | cut -c1-16)
+        echo "prefix=apt-$ImageOS-$packages-" >> "$GITHUB_OUTPUT"
+        echo "key=apt-$ImageOS-$packages-$ImageVersion" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/apt-archives/*.deb
+        key: ${{ steps.key.outputs.key }}
+        restore-keys: ${{ steps.key.outputs.prefix }}
+
+    - shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        archives="$HOME/.cache/apt-archives"
+        mkdir -p "$archives/partial"
+        sudo chown -R _apt "$archives"
+        apt=(sudo apt-get -o Dir::Cache::Archives="$archives" -y --no-install-recommends)
+
+        # autoclean drops the downloads the index no longer lists: versions since superseded, restored from an older image.
+        for attempt in 1 2; do
+          if timeout 3m sudo apt-get update && "${apt[@]}" autoclean && timeout 3m "${apt[@]}" install --download-only $PACKAGES; then
+            break
+          fi
+
+          if [ "$attempt" = 2 ]; then
+            exit 1
+          fi
+
+          echo "::warning::Fetching $PACKAGES stalled or failed; trying again."
+        done
+
+        "${apt[@]}" install $PACKAGES
