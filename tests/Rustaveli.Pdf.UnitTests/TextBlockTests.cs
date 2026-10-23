@@ -1022,6 +1022,9 @@ public class TextBlockTests
         public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) =>
             text.SequenceEqual(word.AsSpan()) ? throw new InvalidOperationException("Measuring failed.") : _inner.MeasureWidth(text, style);
 
+        public float MeasureWidth(string text, int start, int length, TypeStyle style) =>
+            MeasureWidth(text.AsSpan(start, length), style);
+
         public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
             _inner.MeasureCharactersFitting(text, style, maxWidth);
     }
@@ -1158,6 +1161,9 @@ public class TextBlockTests
             Measures++;
             return _inner.MeasureWidth(text, style);
         }
+
+        public float MeasureWidth(string text, int start, int length, TypeStyle style) =>
+            MeasureWidth(text.AsSpan(start, length), style);
 
         public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
             _inner.MeasureCharactersFitting(text, style, maxWidth);

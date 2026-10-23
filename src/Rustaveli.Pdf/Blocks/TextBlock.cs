@@ -965,7 +965,7 @@ internal sealed class TextBlock : Block
                 paragraph.Append(segment);
 
                 bool isWhitespace = IsBreakableWhitespace(segment[0]);
-                float segmentWidth = context.Measurer.MeasureWidth(segment, style);
+                float segmentWidth = context.Measurer.MeasureWidth(text, token.Start, token.Length, style);
                 float lineWidth = current.StartsParagraph ? Math.Max(0, width - indent) : width;
 
                 // A soft hyphen ending the piece is shown if the line breaks at it, so the line keeps room for it.

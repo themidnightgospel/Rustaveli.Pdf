@@ -42,6 +42,9 @@ internal sealed class FakeTypeMeasurer(bool placesStrokes = false) : ITypeMeasur
 
     public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) => text.Length * CharacterWidth(style);
 
+    public float MeasureWidth(string text, int start, int length, TypeStyle style) =>
+        MeasureWidth(text.AsSpan(start, length), style);
+
     public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth)
     {
         if (text.IsEmpty || maxWidth <= 0)
