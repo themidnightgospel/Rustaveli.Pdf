@@ -10,24 +10,25 @@ public class PdfResourcesTests(ITestOutputHelper output)
         Latin1.Written(writer => writer.WriteDictionary(resources.ToDictionary()));
 
     [Fact]
-    public void NamingManyDistinctResourcesTakesTimeInProportionToHowMany()
+    public void ANewNameIsComparedWithNoNameBeforeIt()
     {
         // A page of twenty thousand QR codes has twenty thousand images. Each new name is unique by construction, so
-        // nothing needs to compare it with the names before it; doing so made the page quadratic in its images. The
-        // limit is loose, as wall-clock limits must be: the quadratic cost is well over it, the linear far under.
+        // nothing needs to compare it with the names before it; doing so made the page quadratic in its images.
         PdfResources resources = new PdfResources();
+        long compared = PdfDictionary.Compared;
         Stopwatch watch = Stopwatch.StartNew();
 
         for (int number = 1; number <= 50_000; number++)
             resources.GetXObjectName(new PdfReference(number));
 
-        PdfDictionary written = resources.ToDictionary();
         watch.Stop();
         output.WriteLine($"50,000 distinct XObjects named in {watch.Elapsed.TotalMilliseconds:F0} ms");
 
+        Assert.Equal(0, PdfDictionary.Compared - compared);
+
+        PdfDictionary written = resources.ToDictionary();
         Assert.Equal("X50000", resources.GetXObjectName(new PdfReference(50_000)).Value);
         Assert.Equal(50_000, written[PdfNames.XObject].AsDictionary().Count);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Naming took {watch.Elapsed}.");
     }
 
     [Fact]

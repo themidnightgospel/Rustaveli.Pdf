@@ -6,9 +6,7 @@ using Xunit.Abstractions;
 namespace Rustaveli.Pdf.IntegrationTests.Writing;
 
 /// <summary>
-/// Timing for the managed writer on a long document. The bound is deliberately loose — shared CI machines are
-/// noisy — and the printed figures are the point: a writer that should take well under a second creeping towards
-/// the limit shows up here long before it would in a benchmark run.
+/// The managed writer on a long document: the work it does held in proportion to its pages, and its timing printed.
 /// </summary>
 public class WriterPerformanceTests(ITestOutputHelper output)
 {
@@ -64,23 +62,30 @@ public class WriterPerformanceTests(ITestOutputHelper output)
     [Theory]
     [InlineData("Stream")]
     [InlineData("Table")]
-    public void WritesTenThousandPagesQuickly(string format)
+    public void WritesTenThousandPagesInWorkInProportionToThem(string format)
     {
         // Warm up first, so the measurement is the writer and not the JIT.
         Write(format, 50);
 
+        long compared = PdfDictionary.Compared;
+        Write(format, PageCount / 10);
+        long comparedForATenth = PdfDictionary.Compared - compared;
+
+        compared = PdfDictionary.Compared;
         Stopwatch stopwatch = Stopwatch.StartNew();
         byte[] pdf = Write(format, PageCount);
         stopwatch.Stop();
+        long comparedForAll = PdfDictionary.Compared - compared;
 
         double pagesPerSecond = PageCount / stopwatch.Elapsed.TotalSeconds;
         output.WriteLine(
             $"{format}: {PageCount} pages in {stopwatch.ElapsedMilliseconds} ms ({pagesPerSecond:F0} pages/s), "
-            + $"{pdf.Length / 1024} KiB, {pdf.Length / PageCount} bytes/page");
+            + $"{pdf.Length / 1024} KiB, {pdf.Length / PageCount} bytes/page, {comparedForAll} entries compared");
 
-        // A guard against a writer gone quadratic, not a benchmark: shared CI runners vary several-fold, and the
-        // benchmarks job measures throughput properly.
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(15), $"Writing {PageCount} pages took {stopwatch.Elapsed}.");
+        // Work is counted rather than timed, as a stalled CI machine can take seconds over what takes a fraction of
+        // one. The time is held only to a bound a hung writer would pass; the benchmarks job measures throughput.
+        Assert.True(comparedForAll < 11 * comparedForATenth, $"{comparedForATenth} entries compared for a tenth of the pages.");
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromMinutes(1), $"Writing {PageCount} pages took {stopwatch.Elapsed}.");
         using PdfDocument document = PdfDocument.Open(pdf);
         Assert.Equal(PageCount, document.NumberOfPages);
     }
