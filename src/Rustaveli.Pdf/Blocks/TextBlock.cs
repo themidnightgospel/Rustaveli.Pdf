@@ -956,16 +956,17 @@ internal sealed class TextBlock : Block
 
                 if (token.EndsLine)
                 {
-                    if (brokeAtWhitespace)
+                    if (brokeAtWhitespace && current.HoldsOnlyTrimmable)
                     {
                         pieces.RemoveFrom(current.First);
                         current = new TextLine(pieces) { StartsParagraph = true };
-                        brokeAtWhitespace = false;
                     }
                     else
                     {
                         FlushLine(force: true);
                     }
+
+                    brokeAtWhitespace = false;
 
                     CloseParagraph();
 
@@ -1689,6 +1690,21 @@ internal sealed class TextBlock : Block
                 }
 
                 return false;
+            }
+        }
+
+        /// <summary>Whether every piece on the line could be dropped as trailing whitespace.</summary>
+        public bool HoldsOnlyTrimmable
+        {
+            get
+            {
+                for (int index = 0; index < Count; index++)
+                {
+                    if (!IsTrimmable(this[index]))
+                        return false;
+                }
+
+                return true;
             }
         }
 

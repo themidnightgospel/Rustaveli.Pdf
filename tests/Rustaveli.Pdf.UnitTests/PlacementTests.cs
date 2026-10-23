@@ -134,4 +134,46 @@ public class PlacementTests
 
         Assert.Equal(drawn, page.Content);
     }
+
+    [Fact]
+    public void ASpaceThatOverflowsItsBoxBeforeALineBreakAddsNoEmptyLine()
+    {
+        float width = LayoutHarness.Measurer.MeasureWidth("Hello", TypeStyle.Default);
+
+        float Drop(float boxWidth)
+        {
+            RecordedPage page = LayoutHarness.Render(
+                frame => frame.Width(boxWidth).Text(text =>
+                {
+                    text.Line("Hello ");
+                    text.Run("World");
+                }),
+                new Extent(400, 100));
+
+            return page.Texts.Single(text => text.Text == "World").Position.Y - page.Texts.Single(text => text.Text == "Hello").Position.Y;
+        }
+
+        Approximately.Equal(Drop(400), Drop(width));
+    }
+
+    [Fact]
+    public void ALinkedSpaceAfterOneThatDidNotFitKeepsItsLink()
+    {
+        // The plain space overflows a box just wide enough for the word; the linked one then fits the next line, and a
+        // space that carries a link is never dropped as trailing whitespace.
+        float width = LayoutHarness.Measurer.MeasureWidth("Hello", TypeStyle.Default);
+
+        RecordedPage page = LayoutHarness.Render(
+            frame => frame.Width(width).Text(text =>
+            {
+                text.Run("Hello ");
+                text.Link(" ", "https://example.com");
+                text.Line(string.Empty);
+                text.Run("World");
+            }),
+            new Extent(400, 100));
+
+        Assert.Equal("https://example.com", Assert.Single(page.Operations.OfType<ExternalLinkOperation>()).Url);
+        Assert.Equal("Hello World", page.Content);
+    }
 }
