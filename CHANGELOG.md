@@ -119,6 +119,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 
 **Tests**
 
+- The tests that naming 50,000 resources and writing 10,000 pages do not go quadratic held them to wall-clock limits,
+  which a stalled CI machine could fail. They now count the entries dictionary lookups compare: none for a new
+  resource name, and in proportion to the pages for the writer.
 - Existing files are now read as other writers lay them out: qpdf rewrites every specimen with object streams on and
   off, streams uncompressed or compressed again, linearised, and encrypted with 40-bit RC4, 128-bit RC4 and AES, and
   256-bit AES. Each is read page by page, saved, joined to a document of ours, and checked by qpdf.

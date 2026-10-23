@@ -24,6 +24,10 @@ internal sealed class PdfDictionary : IReadOnlyCollection<KeyValuePair<PdfName, 
         _entries = new List<KeyValuePair<PdfName, PdfValue>>(capacity);
     }
 
+    /// <summary>For tests: how many entries looking keys up has compared with them on this thread.</summary>
+    [ThreadStatic]
+    internal static long Compared;
+
     public int Count => _entries.Count;
 
     /// <summary>Gets an entry, or sets one — replacing the value in place if the key is already present.</summary>
@@ -83,9 +87,13 @@ internal sealed class PdfDictionary : IReadOnlyCollection<KeyValuePair<PdfName, 
         for (int index = 0; index < _entries.Count; index++)
         {
             if (_entries[index].Key.Equals(key))
+            {
+                Compared += index + 1;
                 return index;
+            }
         }
 
+        Compared += _entries.Count;
         return -1;
     }
 }
