@@ -5,7 +5,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class FileOutputTests
 {
     [Fact]
-    public async Task AFileHeldOpenForAMomentIsStillMovedWhereNothingIsYet()
+    public void AFileHeldOpenForAMomentIsStillMovedWhereNothingIsYet()
     {
         // As a virus scanner holds a file the moment the handle that wrote it closes.
         string partial = Path.Combine(Path.GetTempPath(), "output-" + Guid.NewGuid().ToString("N") + ".partial");
@@ -14,11 +14,9 @@ public class FileOutputTests
         try
         {
             File.WriteAllText(partial, "contents");
-            FileStream held = new FileStream(partial, FileMode.Open, FileAccess.Read, FileShare.None);
-            Task release = Task.Delay(100).ContinueWith(_ => held.Dispose(), TaskScheduler.Default);
 
-            FileOutput.MoveIntoPlace(partial, target);
-            await release;
+            using (new HeldFile(partial))
+                FileOutput.MoveIntoPlace(partial, target);
 
             Assert.Equal("contents", File.ReadAllText(target));
             Assert.False(File.Exists(partial));
