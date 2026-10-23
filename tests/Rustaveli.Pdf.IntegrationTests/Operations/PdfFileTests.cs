@@ -675,6 +675,30 @@ public class PdfFileTests
     }
 
     [Fact]
+    public async Task SavingOverAFileHeldOpenForAMomentStillReplacesIt()
+    {
+        // As a virus scanner holds a file it has just seen written. On Windows a file held open cannot be replaced.
+        string path = Path.Combine(Path.GetTempPath(), "pdffile-" + Guid.NewGuid().ToString("N") + ".pdf");
+
+        try
+        {
+            File.WriteAllBytes(path, Pages("One"));
+            PdfFile file = PdfFile.Open(path).Append(PdfFile.Open(Pages("Two")));
+            FileStream held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
+            Task release = Task.Delay(100).ContinueWith(_ => held.Dispose(), TaskScheduler.Default);
+
+            file.Save(path);
+            await release;
+
+            Assert.Equal(["One", "Two"], Drawn(File.ReadAllBytes(path)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void WhatIsNotAPdfIsRefused() =>
         Assert.Throws<UnreadableFileException>(() => PdfFile.Open("not a pdf"u8.ToArray()));
 

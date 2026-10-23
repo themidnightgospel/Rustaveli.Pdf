@@ -43,6 +43,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   at its own width, as `FlushRight()`, `Centered()` and the other alignments draw it, met this whenever its widest
   line ended in a space before a break, and lost its last line: `Line("Total due 9,250.00 ")` then `Run("EUR")` drew
   no "EUR". Such a space now ends its line as any trailing space does. A space carrying a link is still kept.
+- On Windows, `ExportPdf(path)` and `PdfFile.Save(path)` failed with an `IOException` when another process, such as a
+  virus scanner, held the file open for a moment as it was put in place. Putting it in place is now tried again for
+  up to a second while the file is held. A locked file, or any other failure, still fails at once.
 
 **Performance**
 

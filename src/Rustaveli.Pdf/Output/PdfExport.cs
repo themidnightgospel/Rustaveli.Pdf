@@ -48,24 +48,7 @@ public static class PdfExport
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrEmpty(path);
 
-        string target = Path.GetFullPath(path);
-        string partial = target + "." + Guid.NewGuid().ToString("N").Substring(0, 8) + ".partial";
-
-        try
-        {
-            using (FileStream stream = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                Export(document, stream, options);
-
-            if (File.Exists(target))
-                File.Replace(partial, target, null);
-            else
-                File.Move(partial, target);
-        }
-        finally
-        {
-            if (File.Exists(partial))
-                File.Delete(partial);
-        }
+        FileOutput.Write(path, stream => Export(document, stream, options));
     }
 
     /// <summary>Exports the document as PDF, writing it to <paramref name="stream"/>.</summary>
