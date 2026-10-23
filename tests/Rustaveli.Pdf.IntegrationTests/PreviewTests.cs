@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Rustaveli.Pdf.Blocks;
 using Rustaveli.Pdf.Layout;
@@ -347,10 +346,7 @@ public class PreviewTests
     [Fact]
     public void APreviewThatFailsToStartLetsItsPortGo()
     {
-        TcpListener probe = new TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        int port = ((IPEndPoint)probe.LocalEndpoint).Port;
-        probe.Stop();
+        int port = PreviewSession.FreePort();
         Action<string> open = PdfExport.Open;
         PdfExport.Open = _ => throw new NotSupportedException("Not here.");
 
@@ -365,6 +361,51 @@ public class PreviewTests
 
         using PreviewSession again = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
         Assert.Equal(port, again.Url.Port);
+    }
+
+    [Fact]
+    public async Task APortTakenBeforeThePreviewRegistersItIsLookedForAgain()
+    {
+        // Another preview, in this test host or another, can take a port between its being found free and registered.
+        using PreviewSession taken = Start(() => Pages(1));
+        int found = 0;
+
+        using PreviewSession session = new PreviewSession(
+            () => Pages(2),
+            new PreviewOptions { OpenBrowser = false, Resolution = 72 },
+            () => ++found == 1 ? taken.Url.Port : PreviewSession.FreePort());
+
+        Assert.Equal(2, found);
+        Assert.NotEqual(taken.Url.Port, session.Url.Port);
+        Assert.Contains("\"pages\":[[192,96],[192,96]]", await Get(session, "/state"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void APortThatIsNeverFreeFailsThePreviewAfterSoManyTries()
+    {
+        using PreviewSession taken = Start(() => Pages(1));
+        int found = 0;
+
+        Assert.Throws<HttpListenerException>(() => new PreviewSession(
+            () => Pages(1), new PreviewOptions { OpenBrowser = false }, () =>
+            {
+                found++;
+                return taken.Url.Port;
+            }));
+
+        Assert.Equal(PreviewSession.PortAttempts, found);
+    }
+
+    [Fact]
+    public void AChosenPortThatIsTakenFailsThePreviewAtOnce()
+    {
+        using PreviewSession taken = Start(() => Pages(1));
+        int found = 0;
+
+        Assert.Throws<HttpListenerException>(() => new PreviewSession(
+            () => Pages(1), new PreviewOptions { OpenBrowser = false, Port = taken.Url.Port }, () => ++found));
+
+        Assert.Equal(0, found);
     }
 
     [Fact]
@@ -409,10 +450,7 @@ public class PreviewTests
     {
         // A port the system has just handed out is free, and never one it reserves — as Windows reserves ranges
         // for Hyper-V — where a port picked at random might be.
-        TcpListener probe = new TcpListener(IPAddress.Loopback, 0);
-        probe.Start();
-        int port = ((IPEndPoint)probe.LocalEndpoint).Port;
-        probe.Stop();
+        int port = PreviewSession.FreePort();
 
         using PreviewSession session = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
 
