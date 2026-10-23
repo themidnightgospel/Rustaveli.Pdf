@@ -197,6 +197,27 @@ public class DebuggingTests
         Assert.Null(SourceCapture.Current());
     }
 
+#if NET
+    [Fact]
+    public void AFrameMadeWhileNoSourceIsRecordedHasNoRoomForOne()
+    {
+        // Allocation budget: only a preview records where frames are made, so the many frames of an export keep no
+        // room for it. A field for it in every frame cost this one 8 bytes more. When a change moves this on purpose,
+        // set the new figure and say why in the commit.
+        const long Budget = 64;
+
+        // Kept in an array, so that each frame is made on the heap, as an export's are.
+        Block[] made = new Block[2];
+        made[0] = new FixedBlock(1, 1);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        made[1] = new FixedBlock(1, 1);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= Budget, $"Making a frame allocated {allocated} bytes; its budget is {Budget}.");
+    }
+#endif
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
