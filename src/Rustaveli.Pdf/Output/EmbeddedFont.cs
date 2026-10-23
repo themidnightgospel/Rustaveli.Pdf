@@ -286,13 +286,14 @@ internal sealed class EmbeddedFont
     /// <summary>
     /// The glyph each code shows, two bytes per code from 0: codes below the subset's glyph count are the glyphs
     /// themselves, codes from <see cref="GlyphSubset.FirstSharedCode"/> the glyphs they were given for, and the codes
-    /// between show .notdef. The long run of zeros costs next to nothing once the stream is compressed.
+    /// between show .notdef. The long run of zeros costs next to nothing once the stream is compressed. Glyphs numbered
+    /// from <see cref="GlyphSubset.FirstSharedCode"/> on are components, which no code shows.
     /// </summary>
     internal static byte[] CidToGidMapOf(int glyphCount, IReadOnlyList<(ushort Glyph, string Text)> shared)
     {
         byte[] map = new byte[2 * (GlyphSubset.FirstSharedCode + shared.Count)];
 
-        for (int glyph = 0; glyph < glyphCount; glyph++)
+        for (int glyph = 0; glyph < Math.Min(glyphCount, (int)GlyphSubset.FirstSharedCode); glyph++)
             BinaryPrimitives.WriteUInt16BigEndian(map.AsSpan(2 * glyph), (ushort)glyph);
 
         for (int index = 0; index < shared.Count; index++)
