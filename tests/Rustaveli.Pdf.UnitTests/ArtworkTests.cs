@@ -337,4 +337,47 @@ public class ArtworkTests
             Assert.Throws<ArgumentNullException>(() => art.Text("text", 0, 0, null!));
         });
     }
+
+    [Fact]
+    public void TextIsMeasuredAsTheWholeStringItIs()
+    {
+        // A width measured from a whole string is kept by that string; from characters, by a copy of them.
+        string label = string.Concat("La", "bel");
+        WholeStringMeasurer measurer = new WholeStringMeasurer();
+        Artwork artwork = Artwork.Draw(100, 50, art => art.Text(label, 5, 40, TypeStyle.Default));
+        Artwork runs = Artwork.FromSvg(
+            """<svg width="100" height="50"><text x="5" y="40">One <tspan dx="2">two</tspan></text></svg>""");
+        PlanContext context = new PlanContext(measurer, new Pagination());
+
+        foreach (Artwork drawn in new[] { artwork, runs })
+            LayoutHarness.Render(LayoutHarness.Build(frame => frame.Artwork(drawn)), new Extent(100, 50), context);
+
+        Assert.Same(label, measurer.Measured[0]);
+        Assert.Equal(["Label", "One ", "two"], measurer.Measured);
+    }
+
+    /// <summary>The fake measurer, keeping each whole string it measures; characters measured alone fail.</summary>
+    private sealed class WholeStringMeasurer : ITypeMeasurer
+    {
+        private readonly FakeTypeMeasurer _inner = new FakeTypeMeasurer();
+
+        public List<string> Measured { get; } = [];
+
+        public TypeMetrics GetMetrics(TypeStyle style) => _inner.GetMetrics(style);
+
+        public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => _inner.GetMetrics(text, style);
+
+        public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) =>
+            throw new InvalidOperationException($"\"{text.ToString()}\" was measured as characters, not a string.");
+
+        public float MeasureWidth(string text, int start, int length, TypeStyle style)
+        {
+            Assert.Equal((0, text.Length), (start, length));
+            Measured.Add(text);
+            return _inner.MeasureWidth(text.AsSpan(), style);
+        }
+
+        public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
+            _inner.MeasureCharactersFitting(text, style, maxWidth);
+    }
 }

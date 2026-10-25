@@ -134,7 +134,7 @@ public sealed class ArtworkComposer
         RequireWritable(y, nameof(y));
         _steps.Add((surface, measurer) =>
         {
-            float width = measurer.MeasureWidth(text, style);
+            float width = measurer.MeasureWidth(text, 0, text.Length, style);
             float start = x - (anchor == TextAnchor.Start ? 0 : width * (anchor == TextAnchor.Middle ? 0.5f : 1f));
 
             // Text so large that its glyphs would be placed beyond the numbers a PDF can hold is left out.
@@ -174,7 +174,8 @@ public sealed class ArtworkComposer
                     penY += set[index].Dy;
                     xs[index - start] = penX;
                     ys[index - start] = penY;
-                    widths[index - start] = measurer.MeasureWidth(set[index].Text, set[index].Style);
+                    widths[index - start] =
+                        measurer.MeasureWidth(set[index].Text, 0, set[index].Text.Length, set[index].Style);
                     penX += widths[index - start];
                 }
 
