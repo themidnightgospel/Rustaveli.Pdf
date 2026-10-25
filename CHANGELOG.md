@@ -135,6 +135,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Three tests that hold a file open for a moment, as a virus scanner does, let it go from the thread pool, and failed
   when other tests kept the pool busy past the second the save retries for. They now let it go from a thread of their
   own.
+- A test host that took longer than 90 seconds to start on a slow CI runner aborted the run with no test failing. CI
+  now waits up to five minutes for it.
 - Existing files are now read as other writers lay them out: qpdf rewrites every specimen with object streams on and
   off, streams uncompressed or compressed again, linearised, and encrypted with 40-bit RC4, 128-bit RC4 and AES, and
   256-bit AES. Each is read page by page, saved, joined to a document of ours, and checked by qpdf.

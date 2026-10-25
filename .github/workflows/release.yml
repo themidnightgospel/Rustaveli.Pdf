@@ -26,6 +26,8 @@ env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # Test hosts start one per core, and on a slow runner one can take longer than the 90 seconds vstest waits by default.
+  VSTEST_CONNECTION_TIMEOUT: 300
 
 jobs:
   build:
