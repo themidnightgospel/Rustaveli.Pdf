@@ -7,12 +7,13 @@ namespace Rustaveli.Pdf.UnitTests.TestDoubles;
 /// Layout assertions have to be exact, and real font metrics differ between machines and font versions. Every
 /// character here is half the font size wide and every line exactly the font size tall, which makes expected
 /// values calculable by hand: ten characters at size 10 measure 50 points.
+/// Test doubles that change how widths are measured derive from it.
 /// </remarks>
 /// <param name="placesStrokes">
 /// Whether the font says where its underline and strike-through go and how thick they are, as most real fonts do;
 /// without it they fall back to proportions of the type.
 /// </param>
-internal sealed class FakeTypeMeasurer(bool placesStrokes = false) : ITypeMeasurer
+internal class FakeTypeMeasurer(bool placesStrokes = false) : ITypeMeasurer
 {
     public const float CharacterWidthRatio = 0.5f;
     public const float AscentRatio = 0.8f;
@@ -40,9 +41,9 @@ internal sealed class FakeTypeMeasurer(bool placesStrokes = false) : ITypeMeasur
 
     public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => GetMetrics(style);
 
-    public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) => text.Length * CharacterWidth(style);
+    public virtual float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) => text.Length * CharacterWidth(style);
 
-    public float MeasureWidth(string text, int start, int length, TypeStyle style) =>
+    public virtual float MeasureWidth(string text, int start, int length, TypeStyle style) =>
         MeasureWidth(text.AsSpan(start, length), style);
 
     public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth)

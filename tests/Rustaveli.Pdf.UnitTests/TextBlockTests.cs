@@ -1011,22 +1011,10 @@ public class TextBlockTests
     }
 
     /// <summary>The fake measurer, failing when asked to measure one word.</summary>
-    private sealed class FailingMeasurer(string word) : ITypeMeasurer
+    private sealed class FailingMeasurer(string word) : FakeTypeMeasurer
     {
-        private readonly FakeTypeMeasurer _inner = new FakeTypeMeasurer();
-
-        public TypeMetrics GetMetrics(TypeStyle style) => _inner.GetMetrics(style);
-
-        public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => _inner.GetMetrics(text, style);
-
-        public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) =>
-            text.SequenceEqual(word.AsSpan()) ? throw new InvalidOperationException("Measuring failed.") : _inner.MeasureWidth(text, style);
-
-        public float MeasureWidth(string text, int start, int length, TypeStyle style) =>
-            MeasureWidth(text.AsSpan(start, length), style);
-
-        public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
-            _inner.MeasureCharactersFitting(text, style, maxWidth);
+        public override float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) =>
+            text.SequenceEqual(word.AsSpan()) ? throw new InvalidOperationException("Measuring failed.") : base.MeasureWidth(text, style);
     }
 
 #if NET
@@ -1146,26 +1134,14 @@ public class TextBlockTests
     }
 
     /// <summary>The fake measurer, counting the words it is asked to measure.</summary>
-    private sealed class CountingMeasurer : ITypeMeasurer
+    private sealed class CountingMeasurer : FakeTypeMeasurer
     {
-        private readonly FakeTypeMeasurer _inner = new FakeTypeMeasurer();
-
         public int Measures { get; private set; }
 
-        public TypeMetrics GetMetrics(TypeStyle style) => _inner.GetMetrics(style);
-
-        public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => _inner.GetMetrics(text, style);
-
-        public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style)
+        public override float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style)
         {
             Measures++;
-            return _inner.MeasureWidth(text, style);
+            return base.MeasureWidth(text, style);
         }
-
-        public float MeasureWidth(string text, int start, int length, TypeStyle style) =>
-            MeasureWidth(text.AsSpan(start, length), style);
-
-        public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
-            _inner.MeasureCharactersFitting(text, style, maxWidth);
     }
 }
