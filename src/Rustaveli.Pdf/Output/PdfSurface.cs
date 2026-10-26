@@ -1,5 +1,4 @@
 using Rustaveli.Pdf.Drawing;
-using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Images;
 using Rustaveli.Pdf.Tagging;
 using Rustaveli.Pdf.Text;
@@ -50,9 +49,8 @@ internal sealed class PdfSurface : IPageSink
     private readonly ImageEmbedder _images;
     private readonly ImageAdjuster _adjuster;
 
-    // The face last drawn and its embedding: consecutive glyphs almost always share a face, and a face's embedding never
+    // The embedding of the face last drawn: consecutive glyphs almost always share a face, and a face's embedding never
     // changes once begun, so it is looked up again only when the face does.
-    private OpenTypeFont? _lastFace;
     private EmbeddedFont? _lastFont;
 
     /// <summary>
@@ -573,13 +571,10 @@ internal sealed class PdfSurface : IPageSink
             if (!first)
                 pen += previousAdvance + glyph.Tracking + glyph.Kerning + previousExtra;
 
-            if (!ReferenceEquals(glyph.Face, _lastFace))
-            {
+            if (_lastFont is null || !ReferenceEquals(_lastFont.Face, glyph.Face))
                 _lastFont = _fonts.For(glyph.Face);
-                _lastFace = glyph.Face;
-            }
 
-            EmbeddedFont font = _lastFont!;
+            EmbeddedFont font = _lastFont;
             bool displaced = glyph.XOffset != 0 || glyph.YOffset != 0;
 
             // A face change, and a glyph set off its pen position — a mark placed on its letter — or the glyph after
