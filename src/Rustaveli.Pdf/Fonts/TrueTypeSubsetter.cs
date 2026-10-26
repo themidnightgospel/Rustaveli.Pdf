@@ -50,7 +50,7 @@ internal static class TrueTypeSubsetter
         foreach (ushort glyph in glyphs)
             Number(order, numbers, glyph);
 
-        AddComponents(font, order, numbers);
+        AddComponents(font, order, numbers, nameof(glyphs));
         order.Sort();
 
         // Numbered again in their original order, now that they are sorted into it.
@@ -85,15 +85,16 @@ internal static class TrueTypeSubsetter
                 throw new ArgumentException("A glyph can have only one number in a subset.", nameof(numbering));
         }
 
-        AddComponents(font, order, numbers);
+        AddComponents(font, order, numbers, nameof(numbering));
         return Build(font, order, numbers, keepHinting);
     }
 
     /// <summary>
-    /// Checks that every glyph listed is in the font, then appends the components they reference, transitively, each
-    /// once and numbered by its place.
+    /// Checks that every glyph listed is in the font, naming the caller's <paramref name="paramName"/> for one that is
+    /// not, then appends the components they reference, transitively, each once and numbered by its place.
     /// </summary>
-    private static void AddComponents(OpenTypeFont font, List<ushort> glyphs, Dictionary<ushort, ushort> numbers)
+    private static void AddComponents(
+        OpenTypeFont font, List<ushort> glyphs, Dictionary<ushort, ushort> numbers, string paramName)
     {
         GlyphTable table = RequireTrueType(font);
         List<GlyphComponent> components = new List<GlyphComponent>();
@@ -101,7 +102,7 @@ internal static class TrueTypeSubsetter
         foreach (ushort glyph in glyphs)
         {
             if (glyph >= font.GlyphCount)
-                throw new ArgumentOutOfRangeException(nameof(glyphs), glyph, $"The font has {font.GlyphCount} glyphs.");
+                throw new ArgumentOutOfRangeException(paramName, glyph, $"The font has {font.GlyphCount} glyphs.");
         }
 
         // Breadth-first over the growing list; the numbers make each glyph enter it once, which also ends a cycle of

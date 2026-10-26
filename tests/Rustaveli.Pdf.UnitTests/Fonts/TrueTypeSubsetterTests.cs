@@ -354,9 +354,14 @@ public class TrueTypeSubsetterTests
     [Fact]
     public void ReportsTheFirstGlyphListedOutsideTheFont()
     {
-        ArgumentOutOfRangeException first = Assert.Throws<ArgumentOutOfRangeException>(
-            () => TrueTypeSubsetter.Subset(TestFonts.Regular, [36, NotInTheFont + 1, 36, NotInTheFont]));
-        Assert.Equal((ushort)(NotInTheFont + 1), first.ActualValue);
+        const ushort First = NotInTheFont + 1;
+        ArgumentOutOfRangeException listed = Assert.Throws<ArgumentOutOfRangeException>(
+            () => TrueTypeSubsetter.Subset(TestFonts.Regular, [36, First, 36, NotInTheFont]));
+        ArgumentOutOfRangeException numbered = Assert.Throws<ArgumentOutOfRangeException>(
+            () => TrueTypeSubsetter.SubsetInOrder(TestFonts.Regular, [0, 36, First, NotInTheFont]));
+
+        Assert.Equal(("glyphs", First), (listed.ParamName, (ushort)listed.ActualValue!));
+        Assert.Equal(("numbering", First), (numbered.ParamName, (ushort)numbered.ActualValue!));
     }
 
 #if NET
