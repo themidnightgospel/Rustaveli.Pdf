@@ -357,27 +357,18 @@ public class ArtworkTests
     }
 
     /// <summary>The fake measurer, keeping each whole string it measures; characters measured alone fail.</summary>
-    private sealed class WholeStringMeasurer : ITypeMeasurer
+    private sealed class WholeStringMeasurer : FakeTypeMeasurer
     {
-        private readonly FakeTypeMeasurer _inner = new FakeTypeMeasurer();
-
         public List<string> Measured { get; } = [];
 
-        public TypeMetrics GetMetrics(TypeStyle style) => _inner.GetMetrics(style);
-
-        public TypeMetrics GetMetrics(ReadOnlySpan<char> text, TypeStyle style) => _inner.GetMetrics(text, style);
-
-        public float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) =>
+        public override float MeasureWidth(ReadOnlySpan<char> text, TypeStyle style) =>
             throw new InvalidOperationException($"\"{text.ToString()}\" was measured as characters, not a string.");
 
-        public float MeasureWidth(string text, int start, int length, TypeStyle style)
+        public override float MeasureWidth(string text, int start, int length, TypeStyle style)
         {
             Assert.Equal((0, text.Length), (start, length));
             Measured.Add(text);
-            return _inner.MeasureWidth(text.AsSpan(), style);
+            return base.MeasureWidth(text.AsSpan(), style);
         }
-
-        public int MeasureCharactersFitting(ReadOnlySpan<char> text, TypeStyle style, float maxWidth) =>
-            _inner.MeasureCharactersFitting(text, style, maxWidth);
     }
 }
