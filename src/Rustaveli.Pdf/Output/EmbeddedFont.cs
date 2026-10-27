@@ -313,7 +313,7 @@ internal sealed class EmbeddedFont
     /// </summary>
     internal static PdfByteWriter ToUnicodeMap(IReadOnlyList<(ushort Code, string Text)> characters)
     {
-        PdfByteWriter map = new PdfByteWriter(256 + (characters.Count * 16));
+        PdfByteWriter map = new PdfByteWriter(ToUnicodeMapCapacity(characters.Count));
         map.Write("/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n"u8);
         map.Write("/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"u8);
         map.Write("/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n"u8);
@@ -336,6 +336,12 @@ internal sealed class EmbeddedFont
         return map;
     }
 
+    /// <summary>
+    /// Room for a map of this many entries of one UTF-16 unit or a surrogate pair: 300 bytes of fixed text, up to 26
+    /// for each block's own lines, and 14 bytes an entry, 18 for a pair.
+    /// </summary>
+    internal static int ToUnicodeMapCapacity(int entries) => 330 + (entries * 20);
+
     /// <summary>One line of a bfchar block: the code, then the UTF-16 units of its text.</summary>
     private static void WriteMapping(PdfByteWriter map, ushort code, string text)
     {
@@ -350,7 +356,7 @@ internal sealed class EmbeddedFont
     }
 
     /// <summary>Writes a code or a UTF-16 unit as a CMap holds it: four uppercase hexadecimal digits.</summary>
-    private static void WriteHexDigits(PdfByteWriter map, int value)
+    private static void WriteHexDigits(PdfByteWriter map, ushort value)
     {
         Span<byte> digits = map.GetSpan(4);
         digits[0] = PdfCharacters.HexDigit(value >> 12);
