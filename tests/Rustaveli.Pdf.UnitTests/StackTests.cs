@@ -32,6 +32,32 @@ public class StackTests
 
         Assert.True(allocated <= Budget, $"Drawing the stack allocated {allocated} bytes; its budget is {Budget}.");
     }
+
+    [Fact]
+    public void TheRecordOfPlacedItemsIsLentOnOnlyUpTo1024Items()
+    {
+        // A stack of far more items than most would otherwise keep a record its size for as long as the thread lives.
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
+        RenderContext drawing = new RenderContext(new NullSurface(), context);
+        Extent room = new Extent(200, 500);
+
+        long AllocatedDrawing(int items)
+        {
+            StackBlock column = Column(0, [.. Enumerable.Range(0, items).Select(_ => new FixedBlock(10, 0))]);
+            column.Plan(room, context);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            column.Render(room, drawing);
+            return GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        // Items taking no height all go on the page. 1,000 grow the record to 1,024 slots, and the next stack borrows
+        // it; 1,100 grow it to 2,048, and the next stack makes its own, which it lends on.
+        AllocatedDrawing(1000);
+        Assert.Equal(0, AllocatedDrawing(6));
+        AllocatedDrawing(1100);
+        Assert.NotEqual(0, AllocatedDrawing(6));
+        Assert.Equal(0, AllocatedDrawing(6));
+    }
 #endif
 
     [Fact]

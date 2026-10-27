@@ -1052,6 +1052,40 @@ public class TextBlockTests
 
         Assert.True(allocated <= Budget, $"Planning the paragraph allocated {allocated} bytes; its budget is {Budget}.");
     }
+
+    [Fact]
+    public void PiecesAreLentOnOnlyUpTo16384PiecesAndLines()
+    {
+        // A paragraph far longer than most would otherwise keep a buffer its size for as long as the thread lives.
+        PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
+
+        // Wide enough that a paragraph's words all go on one line, every space between them kept as a piece.
+        long AllocatedPlanning(string text)
+        {
+            TextBlock block = Text(composer => composer.Run(text));
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            LayoutHarness.Plan(block, new Extent(1_000_000, 500), context);
+            return GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        string Words(int count) => string.Join(" ", Enumerable.Repeat("a", count));
+        const string Short = "A short paragraph";
+        AllocatedPlanning(Short);
+        long lent = AllocatedPlanning(Short);
+
+        // 8,000 words and the spaces between them grow the pieces to 16,384 slots, and the next paragraph borrows
+        // them; 8,500 grow them to 32,768, and the next paragraph makes its own, which it lends on. Line breaks grow
+        // the lines in the same way: 10,000 to 16,384, 17,000 to 32,768.
+        AllocatedPlanning(Words(8000));
+        Assert.Equal(lent, AllocatedPlanning(Short));
+        AllocatedPlanning(Words(8500));
+        Assert.NotEqual(lent, AllocatedPlanning(Short));
+        Assert.Equal(lent, AllocatedPlanning(Short));
+        AllocatedPlanning(new string('\n', 10000));
+        Assert.Equal(lent, AllocatedPlanning(Short));
+        AllocatedPlanning(new string('\n', 17000));
+        Assert.NotEqual(lent, AllocatedPlanning(Short));
+    }
 #endif
 
     [Fact]
