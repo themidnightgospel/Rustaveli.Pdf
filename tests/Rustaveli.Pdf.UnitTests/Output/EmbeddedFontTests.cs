@@ -98,16 +98,69 @@ public class EmbeddedFontTests
     }
 
     [Fact]
-    public void TheToUnicodeMapSplitsIntoBlocksOfAHundred()
+    public void TheToUnicodeMapIsAnIdentityUcsCMap()
     {
-        // A CMap's bfchar blocks may hold at most a hundred mappings each.
-        (ushort, int)[] characters = Enumerable.Range(1, 250).Select(code => ((ushort)code, 'a' + (code % 26))).ToArray();
+        (ushort, string)[] characters = [(1, "A"), (2, "\U0001D400"), (3, "ffi")];
 
         string map = TextOf(EmbeddedFont.ToUnicodeMap(characters));
 
-        Assert.Equal(2, map.Split(["100 beginbfchar"], StringSplitOptions.None).Length - 1);
-        Assert.Contains("50 beginbfchar", map);
-        Assert.Equal(3, map.Split(["endbfchar"], StringSplitOptions.None).Length - 1);
+        Assert.Equal(
+            """
+            /CIDInit /ProcSet findresource begin
+            12 dict begin
+            begincmap
+            /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def
+            /CMapName /Adobe-Identity-UCS def
+            /CMapType 2 def
+            1 begincodespacerange
+            <0000> <FFFF>
+            endcodespacerange
+            3 beginbfchar
+            <0001> <0041>
+            <0002> <D835DC00>
+            <0003> <006600660069>
+            endbfchar
+            endcmap
+            CMapName currentdict /CMap defineresource pop
+            end
+            end
+
+            """,
+            map);
+    }
+
+    [Theory]
+    [InlineData(250, new[] { 100, 100, 50 })]
+    [InlineData(200, new[] { 100, 100 })]
+    public void TheToUnicodeMapSplitsIntoBlocksOfAHundred(int entries, int[] blocks)
+    {
+        // A CMap's bfchar blocks may hold at most a hundred mappings each.
+        (ushort, int)[] characters =
+            [.. Enumerable.Range(1, entries).Select(code => ((ushort)code, 'a' + (code % 26)))];
+
+        string[] lines = TextOf(EmbeddedFont.ToUnicodeMap(characters)).Split('\n');
+
+        Assert.Equal(
+            blocks.Select(count => $"{count} beginbfchar"),
+            lines.Where(line => line.EndsWith(" beginbfchar", StringComparison.Ordinal)));
+        Assert.Equal(blocks.Length, lines.Count(line => line == "endbfchar"));
+    }
+
+    [Theory]
+    [InlineData("a")]
+    [InlineData("\U0001D400")]
+    public void TheToUnicodeMapIsWrittenInTheRoomItStartsWith(string text)
+    {
+        // Text of one UTF-16 unit or a surrogate pair, as almost every map holds: running out of room costs a buffer
+        // twice the size and a copy.
+        for (int entries = 0; entries <= 1000; entries++)
+        {
+            using PdfByteWriter map =
+                EmbeddedFont.ToUnicodeMap([.. Enumerable.Range(0, entries).Select(code => ((ushort)code, text))]);
+
+            int room = EmbeddedFont.ToUnicodeMapCapacity(entries);
+            Assert.True(map.Length <= room, $"{entries} entries took {map.Length} bytes; the map starts with {room}.");
+        }
     }
 
 #if NET
