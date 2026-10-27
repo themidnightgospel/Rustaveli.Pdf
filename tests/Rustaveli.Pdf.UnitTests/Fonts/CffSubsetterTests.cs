@@ -32,7 +32,7 @@ public class CffSubsetterTests
         OpenTypeFont font = Subrs;
         List<(ushort Cid, ushort Glyph)> shown = Shown(font, "Hello, Åé");
 
-        byte[] subset = CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm,shown)!;
+        byte[] subset = CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm, shown)!;
         CompactFontTable read = new CompactFontTable(subset);
 
         Assert.True(read.IsCidKeyed);
@@ -49,7 +49,7 @@ public class CffSubsetterTests
         OpenTypeFont font = Cjk;
         List<(ushort Cid, ushort Glyph)> shown = Shown(font, "中国人永鬱龘あアHello");
 
-        byte[] subset = CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm,shown)!;
+        byte[] subset = CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm, shown)!;
         CompactFontTable read = new CompactFontTable(subset);
 
         Assert.True(read.IsCidKeyed);
@@ -66,7 +66,7 @@ public class CffSubsetterTests
         byte[] source = CffOf(Cjk).ToArray();
         Assert.Contains((12 << 8) | 38, FontDictOperators(source));
 
-        byte[] subset = CffSubsetter.TrySubset(CffOf(Cjk), 1000,Shown(Cjk, "中あA"))!;
+        byte[] subset = CffSubsetter.TrySubset(CffOf(Cjk), 1000, Shown(Cjk, "中あA"))!;
 
         Assert.Subset(new HashSet<int> { (12 << 8) | 7, 18 }, FontDictOperators(subset));
         Assert.Contains(18, FontDictOperators(subset));
@@ -75,7 +75,7 @@ public class CffSubsetterTests
     [Fact]
     public void ANameKeyedFontsOneFontDictHoldsOnlyItsPrivateDict()
     {
-        byte[] subset = CffSubsetter.TrySubset(CffOf(Subrs), 1000,Shown(Subrs, "Ab"))!;
+        byte[] subset = CffSubsetter.TrySubset(CffOf(Subrs), 1000, Shown(Subrs, "Ab"))!;
 
         Assert.Equal([18], FontDictOperators(subset));
     }
@@ -145,7 +145,7 @@ public class CffSubsetterTests
         OpenTypeFont font = Subrs;
         ushort a = font.GetGlyphId('A');
 
-        CompactFontTable read = new CompactFontTable(CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm,[(a, a), (a, a), (0, 0)])!);
+        CompactFontTable read = new CompactFontTable(CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm, [(a, a), (a, a), (0, 0)])!);
 
         Assert.Equal(2, read.GlyphCount);
         Assert.Equal([0, a], new[] { read.GetCid(0), read.GetCid(1) });
@@ -162,7 +162,7 @@ public class CffSubsetterTests
         Assert.Null(CffSubsetter.TrySubset(version2, 1000, []));
         Assert.Null(CffSubsetter.TrySubset(cff.AsMemory(0, 3), 1000, []));
         Assert.Null(CffSubsetter.TrySubset(cff.AsMemory(0, 40), 1000, []));
-        Assert.Null(CffSubsetter.TrySubset(CffOf(Subrs), 1000,[(5000, 5000)]));
+        Assert.Null(CffSubsetter.TrySubset(CffOf(Subrs), 1000, [(5000, 5000)]));
     }
 
     private static List<CffDictEntry> TopDict(byte[] cff)
