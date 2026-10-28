@@ -31,29 +31,25 @@ internal static class CharacterMapWriter
             .OrderBy(static mapping => mapping.Key)
             .ToArray();
 
-        byte[]? basic = Format4(sorted.Where(static mapping => mapping.Key < 0xFFFF));
-        bool needsFull = !symbol && (basic is null || sorted.Any(static mapping => mapping.Key > 0xFFFF));
-        List<(ushort Platform, ushort Encoding, byte[] Subtable)> subtables = [];
+        List<(int Start, int End, int Delta)>? segments = Format4Segments(sorted);
+        bool needsFull = !symbol && (segments is null || sorted.Any(static mapping => mapping.Key > 0xFFFF));
 
-        if (basic is not null)
-            subtables.Add((3, symbol ? (ushort)0 : (ushort)1, basic));
-
-        if (needsFull)
-            subtables.Add((3, 10, Format12(sorted)));
-
-        return Assemble(subtables);
+        return Assemble(segments, symbol ? 0 : 1, needsFull ? Format12Groups(sorted) : null);
     }
 
     /// <summary>
-    /// A format 4 subtable of delta segments, one per run of consecutive codes mapping to consecutive glyphs; null
-    /// when that many segments would overflow the format's 16-bit length.
+    /// Format 4's delta segments for the codes below 0xFFFF, one per run of consecutive codes mapping to consecutive
+    /// glyphs, and the final one the format requires; null when that many would overflow the format's 16-bit length.
     /// </summary>
-    private static byte[]? Format4(IEnumerable<KeyValuePair<int, ushort>> mappings)
+    private static List<(int Start, int End, int Delta)>? Format4Segments(KeyValuePair<int, ushort>[] sorted)
     {
         List<(int Start, int End, int Delta)> segments = [];
 
-        foreach (KeyValuePair<int, ushort> mapping in mappings)
+        foreach (KeyValuePair<int, ushort> mapping in sorted)
         {
+            if (mapping.Key >= 0xFFFF)
+                break;
+
             int delta = (mapping.Value - mapping.Key) & 0xFFFF;
             int last = segments.Count - 1;
 
@@ -65,52 +61,15 @@ internal static class CharacterMapWriter
 
         // The format requires a final segment for 0xFFFF, mapping it to .notdef.
         segments.Add((0xFFFF, 0xFFFF, 1));
-
-        int count = segments.Count;
-        int length = Format4HeaderSize + (count * Format4SegmentSize);
-
-        if (length > ushort.MaxValue)
-            return null;
-
-        int entrySelector = 0;
-
-        while ((2 << entrySelector) <= count)
-            entrySelector++;
-
-        int searchRange = 2 << entrySelector;
-        FontDataWriter subtable = new FontDataWriter(length);
-        subtable.UInt16(4);
-        subtable.UInt16(length);
-        subtable.UInt16(0);
-        subtable.UInt16(count * 2);
-        subtable.UInt16(searchRange);
-        subtable.UInt16(entrySelector);
-        subtable.UInt16((count * 2) - searchRange);
-
-        foreach ((_, int end, _) in segments)
-            subtable.UInt16(end);
-
-        subtable.UInt16(0);
-
-        foreach ((int start, _, _) in segments)
-            subtable.UInt16(start);
-
-        foreach ((_, _, int delta) in segments)
-            subtable.UInt16(delta);
-
-        // Every segment maps by delta, so no range offsets into a glyph array.
-        for (int segment = 0; segment < count; segment++)
-            subtable.UInt16(0);
-
-        return subtable.DetachArray();
+        return Format4Length(segments.Count) > ushort.MaxValue ? null : segments;
     }
 
-    /// <summary>A format 12 subtable: one group per run of consecutive codes mapping to consecutive glyphs.</summary>
-    private static byte[] Format12(IReadOnlyList<KeyValuePair<int, ushort>> mappings)
+    /// <summary>Format 12's groups: one per run of consecutive codes mapping to consecutive glyphs.</summary>
+    private static List<(int Start, int End, int Glyph)> Format12Groups(KeyValuePair<int, ushort>[] sorted)
     {
         List<(int Start, int End, int Glyph)> groups = [];
 
-        foreach (KeyValuePair<int, ushort> mapping in mappings)
+        foreach (KeyValuePair<int, ushort> mapping in sorted)
         {
             int last = groups.Count - 1;
 
@@ -125,48 +84,99 @@ internal static class CharacterMapWriter
             }
         }
 
-        int length = Format12HeaderSize + (groups.Count * Format12GroupSize);
-        FontDataWriter subtable = new FontDataWriter(length);
-        subtable.UInt16(12);
-        subtable.UInt16(0);
-        subtable.UInt32((uint)length);
-        subtable.UInt32(0);
-        subtable.UInt32((uint)groups.Count);
+        return groups;
+    }
+
+    /// <summary>
+    /// The table header and its encoding records, followed by the format 4 subtable, under
+    /// <paramref name="basicEncoding"/>, and the format 12 one, each left out when null.
+    /// </summary>
+    private static byte[] Assemble(
+        List<(int Start, int End, int Delta)>? segments,
+        int basicEncoding,
+        List<(int Start, int End, int Glyph)>? groups)
+    {
+        int basicLength = segments is null ? 0 : Format4Length(segments.Count);
+        int fullLength = groups is null ? 0 : Format12Length(groups.Count);
+        int subtableCount = (segments is null ? 0 : 1) + (groups is null ? 0 : 1);
+        int offset = HeaderSize + (subtableCount * EncodingRecordSize);
+        FontDataWriter table = new FontDataWriter(offset + basicLength + fullLength);
+        table.UInt16(0);
+        table.UInt16(subtableCount);
+
+        if (segments is not null)
+            EncodingRecord(table, basicEncoding, offset);
+
+        if (groups is not null)
+            EncodingRecord(table, 10, offset + basicLength);
+
+        if (segments is not null)
+            Format4(table, segments);
+
+        if (groups is not null)
+            Format12(table, groups);
+
+        return table.DetachArray();
+    }
+
+    private static int Format4Length(int segmentCount) => Format4HeaderSize + (segmentCount * Format4SegmentSize);
+
+    private static int Format12Length(int groupCount) => Format12HeaderSize + (groupCount * Format12GroupSize);
+
+    /// <summary>A Windows platform record pointing at a subtable <paramref name="offset"/> bytes into the table.</summary>
+    private static void EncodingRecord(FontDataWriter table, int encoding, int offset)
+    {
+        table.UInt16(3);
+        table.UInt16(encoding);
+        table.UInt32((uint)offset);
+    }
+
+    private static void Format4(FontDataWriter table, List<(int Start, int End, int Delta)> segments)
+    {
+        int count = segments.Count;
+        int entrySelector = 0;
+
+        while ((2 << entrySelector) <= count)
+            entrySelector++;
+
+        int searchRange = 2 << entrySelector;
+        table.UInt16(4);
+        table.UInt16(Format4Length(count));
+        table.UInt16(0);
+        table.UInt16(count * 2);
+        table.UInt16(searchRange);
+        table.UInt16(entrySelector);
+        table.UInt16((count * 2) - searchRange);
+
+        foreach ((_, int end, _) in segments)
+            table.UInt16(end);
+
+        table.UInt16(0);
+
+        foreach ((int start, _, _) in segments)
+            table.UInt16(start);
+
+        foreach ((_, _, int delta) in segments)
+            table.UInt16(delta);
+
+        // Every segment maps by delta, so no range offsets into a glyph array.
+        for (int segment = 0; segment < count; segment++)
+            table.UInt16(0);
+    }
+
+    private static void Format12(FontDataWriter table, List<(int Start, int End, int Glyph)> groups)
+    {
+        table.UInt16(12);
+        table.UInt16(0);
+        table.UInt32((uint)Format12Length(groups.Count));
+        table.UInt32(0);
+        table.UInt32((uint)groups.Count);
 
         foreach ((int start, int end, int glyph) in groups)
         {
-            subtable.UInt32((uint)start);
-            subtable.UInt32((uint)end);
-            subtable.UInt32((uint)glyph);
+            table.UInt32((uint)start);
+            table.UInt32((uint)end);
+            table.UInt32((uint)glyph);
         }
-
-        return subtable.DetachArray();
-    }
-
-    /// <summary>The table header and its encoding records, followed by the subtables they point to.</summary>
-    private static byte[] Assemble(List<(ushort Platform, ushort Encoding, byte[] Subtable)> subtables)
-    {
-        int offset = HeaderSize + (subtables.Count * EncodingRecordSize);
-        int length = offset;
-
-        foreach ((_, _, byte[] subtable) in subtables)
-            length += subtable.Length;
-
-        FontDataWriter table = new FontDataWriter(length);
-        table.UInt16(0);
-        table.UInt16(subtables.Count);
-
-        foreach ((ushort platform, ushort encoding, byte[] subtable) in subtables)
-        {
-            table.UInt16(platform);
-            table.UInt16(encoding);
-            table.UInt32((uint)offset);
-            offset += subtable.Length;
-        }
-
-        foreach ((_, _, byte[] subtable) in subtables)
-            table.Bytes(subtable);
-
-        return table.DetachArray();
     }
 }
