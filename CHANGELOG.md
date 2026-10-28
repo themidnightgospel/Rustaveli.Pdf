@@ -127,6 +127,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Writing a font file only reads the tables it is given, so a subset's glyph outlines go into it straight from where
   they were built, and kept hinting tables and a collection face's tables straight from the font, without a copy
   first: the invoice allocates 3% less; every PDF and every font file is unchanged.
+- A document kept after its export no longer holds what the export's passes left on it, every paragraph's lines
+  among them, which no later export could use. After one export the 85-page report held 650 KB more than composing it
+  took, and the 10,000-row table 8.1 MB more, twice that once exported again; now each holds what composing took.
+  Every PDF is unchanged.
 
 **Tests**
 

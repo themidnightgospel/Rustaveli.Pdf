@@ -31,7 +31,8 @@ internal sealed class TextBlock : Block
 
     // Not reset between passes: the lines of the same text at the same width do not change. Two are kept, the last
     // used first, because a paragraph set in a box of its own natural width (flush right in a table cell, for one) is
-    // planned at the room it is offered and drawn at its natural width, on every pass.
+    // planned at the room it is offered and drawn at its natural width, on every pass. Let go of once the export is
+    // done, since the next export's measurer is another.
     private BuiltLines? _built;
     private BuiltLines? _builtBefore;
 
@@ -144,6 +145,8 @@ internal sealed class TextBlock : Block
 
     protected override void RestoreOwnProgress(object progress) =>
         (_completedLines, _pinnedWidth, _pinnedWrapping) = ((int, float, TextLine[]?))progress;
+
+    protected override void ReleaseOwnCaches() => (_built, _builtBefore) = (null, null);
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {

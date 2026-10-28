@@ -45,33 +45,57 @@ internal static class Typesetter
         Pagination pagination = new Pagination();
         int[] counted = [];
 
-        // Counting is repeated until it settles. Feeding the total back in can change the answer: "of 9" is
-        // narrower than "of 10", so learning the real total can wrap a footer onto a second line, shrink the
-        // content area and produce another page. A single pass would then print a total that is off by one on
-        // every page of the document.
-        for (int attempt = 0; attempt < MaxCountingPasses; attempt++)
+        try
         {
-            using CountingPageSink probe = new CountingPageSink();
+            // Counting is repeated until it settles. Feeding the total back in can change the answer: "of 9" is
+            // narrower than "of 10", so learning the real total can wrap a footer onto a second line, shrink the
+            // content area and produce another page. A single pass would then print a total that is off by one on
+            // every page of the document.
+            for (int attempt = 0; attempt < MaxCountingPasses; attempt++)
+            {
+                using CountingPageSink probe = new CountingPageSink();
 
-            int[] pagesByPart = RunPass(document, probe, measurer, pagination, resolution);
+                int[] pagesByPart = RunPass(document, probe, measurer, pagination, resolution);
 
-            // Settled only when the pass also found anchors and captured positions where the pass before it did: a
-            // cross-reference that moved what it refers to, without changing the count, would otherwise print the
-            // page or place it read rather than the one it is drawn on.
-            bool settled = pagesByPart.SequenceEqual(counted) && pagination.FoundWhatWasKnown();
+                // Settled only when the pass also found anchors and captured positions where the pass before it did:
+                // a cross-reference that moved what it refers to, without changing the count, would otherwise print
+                // the page or place it read rather than the one it is drawn on.
+                bool settled = pagesByPart.SequenceEqual(counted) && pagination.FoundWhatWasKnown();
 
-            counted = pagesByPart;
-            pagination.PageCount = counted.Sum();
-            pagination.PartPageCounts = counted;
-            pagination.IsPageCountKnown = true;
+                counted = pagesByPart;
+                pagination.PageCount = counted.Sum();
+                pagination.PartPageCounts = counted;
+                pagination.IsPageCountKnown = true;
 
-            // Content that read none of the page count, an anchor's page or a captured position drew nothing that
-            // depends on them, so another pass would find exactly what this one did.
-            if (settled || !pagination.ReadsWhatPassesSettle)
-                break;
+                // Content that read none of the page count, an anchor's page or a captured position drew nothing that
+                // depends on them, so another pass would find exactly what this one did.
+                if (settled || !pagination.ReadsWhatPassesSettle)
+                    break;
+            }
+
+            StructureElement? structure = tagged ? new StructureElement("Document", null) : null;
+            RunPass(document, pages, measurer, pagination, resolution, structure, inspection);
         }
+        finally
+        {
+            // A document kept after its export would otherwise hold what the passes left on its tree, the lines they
+            // built among it, twice over once exported again. Released before the lease lets another export at it.
+            Release(document);
+        }
+    }
 
-        RunPass(document, pages, measurer, pagination, resolution, tagged ? new StructureElement("Document", null) : null, inspection);
+    /// <summary>Lets go of what an export left on the document's tree, which no other export can use.</summary>
+    private static void Release(Document document)
+    {
+        for (int index = 0; index < document.Sections.Count; index++)
+        {
+            Section section = document.Sections[index];
+            section.RunningHeadSlot.ReleaseExport();
+            section.BodySlot.ReleaseExport();
+            section.RunningFootSlot.ReleaseExport();
+            section.UnderlaySlot.ReleaseExport();
+            section.OverlaySlot.ReleaseExport();
+        }
     }
 
     /// <summary>Runs the document once through <paramref name="pages"/>; returns how many pages each merged document took.</summary>
