@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Rustaveli.Pdf.UnitTests;
 
 public class TypesetterTests
@@ -37,6 +39,45 @@ public class TypesetterTests
             });
         });
         Assert.Equal(4, LayoutHarness.Render(document).Pages.Count);
+    }
+
+    [Fact]
+    public void LeavesTheContentAsComposedOnceTheDocumentIsSet()
+    {
+        SplittableBlock content = new SplittableBlock(10, 50f);
+        Document document = Build(page =>
+        {
+            page.Trim = new Extent(200f, 200f);
+            page.Body().Compose(frame => frame.Slot().Child = content);
+        });
+
+        LayoutHarness.Render(document);
+
+        // A document kept after it is set would otherwise hold how far each block got on the final pass.
+        Assert.Equal(10, content.Remaining);
+    }
+
+    [Fact]
+    public void LetsGoOfTheLinesItBuiltOnceTheDocumentIsSet()
+    {
+        Document document = Build(page => page.Body().Text("Lines are built with the measurer of their export."));
+
+        WeakReference measurer = SetWithAMeasurerOfItsOwn(document);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        // Each export measures with a measurer of its own, so lines built for one serve no other.
+        Assert.False(measurer.IsAlive, "The document still holds what its export measured with.");
+        GC.KeepAlive(document);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference SetWithAMeasurerOfItsOwn(Document document)
+    {
+        FakeTypeMeasurer measurer = new FakeTypeMeasurer();
+        Typesetter.Render(document, new RecordingSurface(), measurer);
+        return new WeakReference(measurer);
     }
 
     [Fact]
@@ -1116,18 +1157,14 @@ public class TypesetterTests
         Assert.Equal(3, content.Passes);
     }
 
-    /// <summary>Fixed content that counts the passes it is set in.</summary>
+    /// <summary>Fixed content that counts the passes it is set in, drawn once in each.</summary>
     private sealed class PassCounted : Block
     {
         public int Passes { get; private set; }
 
-        protected override void ResetOwnState() => Passes++;
-
         protected override Fit PlanCore(Extent availableSpace, PlanContext context) => Fit.Complete(10f, 10f);
 
-        protected override void RenderCore(Extent availableSpace, RenderContext context)
-        {
-        }
+        protected override void RenderCore(Extent availableSpace, RenderContext context) => Passes++;
     }
 
     /// <summary>Content composed per page that looks up where "here" was drawn.</summary>

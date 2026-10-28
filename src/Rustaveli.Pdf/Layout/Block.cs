@@ -140,6 +140,14 @@ internal abstract class Block
     }
 
     /// <summary>
+    /// Lets go of what this block keeps from one pass of an export for the next, which <see cref="ResetOwnState"/>
+    /// leaves in place. Override in blocks that keep something.
+    /// </summary>
+    protected virtual void ReleaseOwnCaches()
+    {
+    }
+
+    /// <summary>
     /// How far this block and everything beneath it have progressed, so that layout can draw ahead to find where
     /// content would end and then return to where it was.
     /// </summary>
@@ -185,6 +193,23 @@ internal abstract class Block
         for (int index = 0; index < count; index++)
         {
             ChildAt(index)?.ResetState(includeDocumentProgress);
+        }
+    }
+
+    /// <summary>
+    /// Resets this block and everything beneath it once an export is done, and lets go of what they kept for its
+    /// later passes: no other export can use that, since each measures with a measurer of its own.
+    /// </summary>
+    internal void ReleaseExport()
+    {
+        ResetOwnState();
+        ReleaseOwnCaches();
+
+        int count = ChildCount;
+
+        for (int index = 0; index < count; index++)
+        {
+            ChildAt(index)?.ReleaseExport();
         }
     }
 
