@@ -371,13 +371,15 @@ public class TrueTypeSubsetterTests
         // Allocation budget: every export subsets each face it embeds, from the numbering its pages were written
         // with. One map numbers the glyphs, finds a glyph listed twice and is the subset's own, and the outlines go
         // without their hinting straight into a glyf table sized for them up front. The loca, hmtx and cmap tables
-        // are written into buffers of their exact size, which become the tables, and the glyf table goes into the font
-        // file straight from its writer. A set to find repeats, a flag for every glyph in the font and a second copy of
-        // the map cost this subset 5 KB more; a copy of each glyph without its hinting and a table grown by doubling,
-        // 3 KB more; oversized buffers copied out to the loca, hmtx and cmap tables, 800 bytes more; a copy of the
-        // glyf table, 1,656 bytes more. What is left is the subset font and the tables it is built from. When a change
-        // moves this on purpose, set the new figure and say why in the commit.
-        const long Budget = 12_656;
+        // are written into buffers of their exact size, which become the tables, the cmap's subtables straight into
+        // its own, and the glyf table goes into the font file straight from its writer. A set to find repeats, a flag
+        // for every glyph in the font and a second copy of the map cost this subset 5 KB more; a copy of each glyph
+        // without its hinting and a table grown by doubling, 3 KB more; oversized buffers copied out to the loca, hmtx
+        // and cmap tables, 800 bytes more; a copy of the glyf table, 1,656 bytes more; the cmap's format 4 subtable in
+        // an array of its own, copied into the table, 400 bytes more, and the codes filtered again for it, 48 more.
+        // What is left is the subset font and the tables it is built from. When a change moves this on purpose, set
+        // the new figure and say why in the commit.
+        const long Budget = 12_208;
         OpenTypeFont font = TestFonts.Regular;
         ushort[] numbering =
             [0, .. GlyphsOf(font, "Invoice 2026, Total due: 1,250.00 EUR").Distinct().Where(glyph => glyph != 0)];
