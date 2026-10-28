@@ -12,7 +12,8 @@ internal sealed class PdfPage
     private static readonly PdfName Flags = new PdfName("F");
 
     private readonly PdfFileWriter _file;
-    private readonly List<PdfReference> _annotations = new List<PdfReference>();
+    private PdfDictionary? _entries;
+    private List<PdfReference>? _annotations;
 
     internal PdfPage(PdfFileWriter file, PdfReference reference, PdfReference parent, int index, PdfRectangle mediaBox)
     {
@@ -38,13 +39,17 @@ internal sealed class PdfPage
     /// <summary>
     /// Further entries for the page dictionary — <c>/Group</c> for a transparency group, <c>/Rotate</c> — beyond
     /// those the writer supplies itself: <c>/Type</c>, <c>/Parent</c>, <c>/MediaBox</c>, <c>/Resources</c>,
-    /// <c>/Contents</c> and <c>/Annots</c>.
+    /// <c>/Contents</c> and <c>/Annots</c>. Made when first asked for, since most pages have none.
     /// </summary>
-    public PdfDictionary Entries { get; } = new PdfDictionary();
+    public PdfDictionary Entries => _entries ??= new PdfDictionary();
+
+    /// <summary>The further entries, or null when nothing has asked for them; reading this makes nothing.</summary>
+    internal PdfDictionary? EntriesIfAny => _entries;
 
     internal PdfReference Parent { get; }
 
-    internal IReadOnlyList<PdfReference> Annotations => _annotations;
+    internal IReadOnlyList<PdfReference> Annotations =>
+        (IReadOnlyList<PdfReference>?)_annotations ?? Array.Empty<PdfReference>();
 
     /// <summary>
     /// Makes <paramref name="area"/> a link that opens <paramref name="uri"/>. PDF requires URIs in 7-bit ASCII, so
@@ -88,7 +93,7 @@ internal sealed class PdfPage
         if (annotation.ObjectNumber == 0)
             throw new ArgumentException("The reference was never assigned an object number.", nameof(annotation));
 
-        _annotations.Add(annotation);
+        (_annotations ??= []).Add(annotation);
     }
 
     private static byte[] EncodeUri(string uri)
@@ -135,7 +140,7 @@ internal sealed class PdfPage
         }
 
         PdfReference reference = _file.Write(annotation);
-        _annotations.Add(reference);
+        (_annotations ??= []).Add(reference);
         return reference;
     }
 }

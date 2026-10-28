@@ -92,9 +92,12 @@ internal sealed class PdfDocumentWriter : IDisposable
             throw new InvalidOperationException("The page is not open in this document.");
 
         page.Content.EnsureComplete();
-        CheckNotOwned(page.Entries, "page", PageKeys);
+        PdfDictionary? entries = page.EntriesIfAny;
 
-        PdfDictionary dictionary = new PdfDictionary(6 + page.Entries.Count)
+        if (entries is not null)
+            CheckNotOwned(entries, "page", PageKeys);
+
+        PdfDictionary dictionary = new PdfDictionary(6 + (entries?.Count ?? 0))
         {
             [PdfNames.Type] = PdfNames.Page,
             [PdfNames.Parent] = page.Parent,
@@ -115,8 +118,11 @@ internal sealed class PdfDocumentWriter : IDisposable
             dictionary[PdfNames.Annots] = annotations;
         }
 
-        foreach (KeyValuePair<PdfName, PdfValue> entry in page.Entries)
-            dictionary.Add(entry.Key, entry.Value);
+        if (entries is not null)
+        {
+            foreach (KeyValuePair<PdfName, PdfValue> entry in entries)
+                dictionary.Add(entry.Key, entry.Value);
+        }
 
         File.Write(page.Reference, dictionary);
         _openPages.Remove(page);
