@@ -20,9 +20,10 @@ table, text-heavy and image-heavy documents — through both libraries. Targets,
 
 A pull request whose allocations or file sizes grow by more than 10% against the baseline recorded on main fails.
 Times are compared with main's too, and shown, but not held to it: hosted runners differ by 10–20% from one run to
-the next, so a time measured on one is no baseline for a time measured on another. The targets apply from the phase
-that lands the managed writer; before then the Skia backend's global lock makes the parallel target unreachable by
-construction.
+the next, so a time measured on one is no baseline for a time measured on another. The suite runs on .NET 10 alone;
+the .NET Standard build, which .NET Framework and .NET 6 to 9 use, is held instead by a test on .NET Framework to an
+allocation budget for exporting a long report. The targets apply from the phase that lands the managed writer; before
+then the Skia backend's global lock makes the parallel target unreachable by construction.
 
 ## Consequences
 - Performance becomes a tested property, not a claim.

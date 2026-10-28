@@ -3,11 +3,7 @@ using Rustaveli.Pdf.Text;
 
 namespace Rustaveli.Pdf.IntegrationTests.Fonts;
 
-/// <summary>
-/// Measuring on the build of the library that .NET Framework, .NET 8 and .NET 9 use. .NET Framework counts allocations
-/// only for a whole application domain, so the measuring runs in a domain of its own, where no other test's work, or
-/// what it leaves running, is counted with it.
-/// </summary>
+/// <summary>Measuring on the build of the library that .NET Framework, .NET 8 and .NET 9 use.</summary>
 public class NetStandardWidthTests
 {
     [Fact]
@@ -16,21 +12,14 @@ public class NetStandardWidthTests
         // Allocation budget: a word measured before is found by its characters. Making a string of them for every
         // lookup cost a long report about 3.5 MB.
         const long Budget = 64 * 1024;
-        AppDomain.MonitoringIsEnabled = true;
-        AppDomain domain = AppDomain.CreateDomain(nameof(MeasuringAWordAgainMakesNoStringOfIt), null, AppDomain.CurrentDomain.SetupInformation);
 
-        try
-        {
-            domain.DoCallBack(MeasureAWordTenThousandTimes);
+        object[] found = MeasuringDomain.Run(MeasureAWordTenThousandTimes, "differing", "allocated");
 
-            Assert.Equal(0, (int)domain.GetData("differing"));
-            long allocated = (long)domain.GetData("allocated");
-            Assert.True(allocated <= Budget, $"Measuring the word 10,000 times allocated {allocated:N0} bytes; its budget is {Budget:N0}.");
-        }
-        finally
-        {
-            AppDomain.Unload(domain);
-        }
+        Assert.Equal(0, (int)found[0]);
+        long allocated = (long)found[1];
+        Assert.True(
+            allocated <= Budget,
+            $"Measuring the word 10,000 times allocated {allocated:N0} bytes; its budget is {Budget:N0}.");
     }
 
     /// <summary>Runs in the measuring domain, and leaves what it found there.</summary>

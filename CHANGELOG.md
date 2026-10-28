@@ -154,6 +154,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   checked by qpdf and veraPDF.
 - resvg's SVG test suite, 1,693 documents, is read and drawn: each as a page and an image at the size it gives
   itself, with its frame drawn, in a PDF qpdf finds sound.
+- The benchmarks measure only the build for .NET 10. The .NET Standard build, which .NET Framework and .NET 6 to 9
+  use, is now held on .NET Framework to an allocation budget for exporting an 82-page report, about a quarter over what
+  the export allocates.
 
 ## 0.2.0
 
