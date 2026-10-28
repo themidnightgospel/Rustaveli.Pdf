@@ -137,11 +137,12 @@ public class PdfDocumentWriterTests
     {
         // Allocation budget: every page of every export is written here. A resource category is made when the page
         // first names something in it, the entries the writer owns are listed once for all pages, content streams
-        // share one empty dictionary, and a page the size of the one before shares its /MediaBox. Making all five
-        // categories up front, and the rest anew for each page, cost this page 856 bytes more. What is left is the
-        // page, its content stream, the two categories it uses and the dictionaries that describe it. When a change
-        // moves this on purpose, set the new figure and say why in the commit.
-        const long Budget = 2_384;
+        // share one empty dictionary, a page the size of the one before shares its /MediaBox, and the page's own
+        // entries and its annotation list are made when the first is added. Making all five categories up front, and
+        // the rest anew for each page, cost this page 856 bytes more; the entries and the list, 88 bytes more. What
+        // is left is the page, its content stream, the two categories it uses and the dictionaries that describe it.
+        // When a change moves this on purpose, set the new figure and say why in the commit.
+        const long Budget = 2_296;
         using PdfDocumentWriter document = new PdfDocumentWriter(Stream.Null);
         PdfReference font = document.File.Write(new PdfDictionary());
         PdfReference state = document.GetOpacityState(0.5, 0.5);
