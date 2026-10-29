@@ -9,6 +9,23 @@ namespace Rustaveli.Pdf.Fonts;
 /// </summary>
 internal static class CffDict
 {
+    /// <summary>The byte that makes an operator two bytes long, read as <c>(Escape &lt;&lt; 8) | byte</c>.</summary>
+    public const int Escape = 12;
+
+    // The operators the library reads and writes, as Read gives them.
+    public const int FontBBox = 5;
+    public const int Charset = 15;
+    public const int CharStrings = 17;
+    public const int Private = 18;
+    public const int Subrs = 19;
+    public const int CharstringType = (Escape << 8) | 6;
+    public const int FontMatrix = (Escape << 8) | 7;
+    public const int SyntheticBase = (Escape << 8) | 20;
+    public const int RegistryOrderingSupplement = (Escape << 8) | 30;
+    public const int CidCount = (Escape << 8) | 34;
+    public const int FdArray = (Escape << 8) | 36;
+    public const int FdSelect = (Escape << 8) | 37;
+
     /// <summary>The operand stack depth CFF allows in a DICT.</summary>
     private const int MaximumOperands = 48;
 
@@ -26,7 +43,7 @@ internal static class CffDict
 
             if (b0 <= 21)
             {
-                int op = b0 == 12 ? (12 << 8) | BigEndian.UInt8(dict, position++) : b0;
+                int op = b0 == Escape ? (Escape << 8) | BigEndian.UInt8(dict, position++) : b0;
                 entries.Add(new CffDictEntry(op, operands.ToArray(), start, position - start));
                 operands.Clear();
                 start = position;

@@ -50,7 +50,7 @@ internal sealed class CharStringFlattener
     /// How many operands the stack holds, written out or not: those pushed before a call or left by a return are
     /// written out, yet still count toward the stems the next operator declares.
     /// </summary>
-    private int _stack;
+    private int _operandCount;
 
     private int _stems;
 
@@ -115,7 +115,7 @@ internal sealed class CharStringFlattener
                 case EndChar:
                     // Four operands more than a width are an accented glyph composed of two others, which a subset
                     // would have to find by their standard names.
-                    if (_stack >= 4)
+                    if (_operandCount >= 4)
                         throw new NotSupportedException("An accented glyph composed with endchar is not subset.");
 
                     WriteOperator(b0);
@@ -125,14 +125,14 @@ internal sealed class CharStringFlattener
                 case VStem:
                 case HStemHm:
                 case VStemHm:
-                    _stems += _stack / 2;
+                    _stems += _operandCount / 2;
                     WriteOperator(b0);
                     break;
 
                 case HintMask:
                 case CntrMask:
                     // Operands before a hint mask declare vertical stems, as if a vstemhm had come first.
-                    _stems += _stack / 2;
+                    _stems += _operandCount / 2;
                     WriteOperator(b0);
                     int maskLength = (_stems + 7) / 8;
 
@@ -199,7 +199,7 @@ internal sealed class CharStringFlattener
         };
 
         _pending.Add((position, length, value));
-        _stack++;
+        _operandCount++;
         return position + length;
     }
 
@@ -209,7 +209,7 @@ internal sealed class CharStringFlattener
         if (depth == MaximumDepth)
             throw new NotSupportedException("Subroutine calls nest deeper than Type 2 allows.");
 
-        if (_stack == 0)
+        if (_operandCount == 0)
             throw new FontFormatException("A subroutine call finds no number on the stack.");
 
         // A number left on the stack by a subroutine's return has been written out already, and cannot be taken back.
@@ -218,7 +218,7 @@ internal sealed class CharStringFlattener
 
         double number = _pending[^1].Value;
         _pending.RemoveAt(_pending.Count - 1);
-        _stack--;
+        _operandCount--;
 
         if (number != Math.Floor(number))
             throw new NotSupportedException("A subroutine number that is not a whole number is not subset.");
@@ -243,7 +243,7 @@ internal sealed class CharStringFlattener
         if (second >= 0)
             _output.UInt8(second);
 
-        _stack = 0;
+        _operandCount = 0;
     }
 
     /// <summary>Writes out the operands not yet written; they stay on the stack until an operator consumes them.</summary>

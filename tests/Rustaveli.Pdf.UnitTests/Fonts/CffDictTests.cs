@@ -30,7 +30,7 @@ public class CffDictTests
 
         CffDictEntry entry = Assert.Single(CffDict.Read(dict));
 
-        Assert.Equal((12 << 8) | 7, entry.Operator);
+        Assert.Equal(CffDict.FontMatrix, entry.Operator);
         Assert.Equal([-2.25, 0.001, 1500, 0.01], entry.Operands);
         Assert.Equal(dict.Length, entry.Length);
     }
