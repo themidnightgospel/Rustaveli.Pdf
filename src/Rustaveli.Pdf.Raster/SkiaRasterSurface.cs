@@ -380,7 +380,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
     }
 
     /// <summary>A page image has no outline to add to.</summary>
-    public void DrawBookmark(string title, int level)
+    public void AddBookmark(string title, int level)
     {
     }
 

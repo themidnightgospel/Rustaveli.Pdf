@@ -17,8 +17,7 @@ public sealed class DynamicPage
     }
 
     /// <summary>The page's number and, once known, the page count.</summary>
-    public PageFacts Facts =>
-        new PageFacts(_context.Pagination.Folio, _context.Pagination.IsPageCountKnown ? _context.Pagination.PageCount : null);
+    public PageFacts Facts => _context.Pagination.Facts;
 
     /// <summary>The room the content has on this page.</summary>
     public Extent Room { get; }

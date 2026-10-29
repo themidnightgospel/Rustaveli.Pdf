@@ -9,15 +9,14 @@ namespace Rustaveli.Pdf.Drawing;
 internal sealed class TransformTracker
 {
     private readonly Stack<Transform> _saved = new Stack<Transform>();
-
-    public Transform Current { get; private set; } = Transform.Identity;
+    private Transform _current = Transform.Identity;
 
     /// <summary>Where the origin lies on the page, in the engine's own space: from the top left, Y down.</summary>
     public Offset Origin
     {
         get
         {
-            (double x, double y) = Current.Apply(0, 0);
+            (double x, double y) = _current.Apply(0, 0);
             return new Offset((float)x, (float)y);
         }
     }
@@ -25,19 +24,19 @@ internal sealed class TransformTracker
     public void Reset()
     {
         _saved.Clear();
-        Current = Transform.Identity;
+        _current = Transform.Identity;
     }
 
-    public void Save() => _saved.Push(Current);
+    public void Save() => _saved.Push(_current);
 
-    public void Restore() => Current = _saved.Pop();
+    public void Restore() => _current = _saved.Pop();
 
-    public void Translate(Offset offset) => Current = Current.After(Transform.Translation(offset.X, offset.Y));
+    public void Translate(Offset offset) => _current = _current.After(Transform.Translation(offset.X, offset.Y));
 
-    public void Scale(float scaleX, float scaleY) => Current = Current.After(Transform.Scaling(scaleX, scaleY));
+    public void Scale(float scaleX, float scaleY) => _current = _current.After(Transform.Scaling(scaleX, scaleY));
 
-    public void Rotate(float degrees) => Current = Current.After(Transform.Rotation(degrees));
+    public void Rotate(float degrees) => _current = _current.After(Transform.Rotation(degrees));
 
     public void Concatenate(float a, float b, float c, float d, float e, float f) =>
-        Current = Current.After(new Transform(a, b, c, d, e, f));
+        _current = _current.After(new Transform(a, b, c, d, e, f));
 }

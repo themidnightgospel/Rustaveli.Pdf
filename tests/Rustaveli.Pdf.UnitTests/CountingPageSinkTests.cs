@@ -5,29 +5,7 @@ namespace Rustaveli.Pdf.UnitTests;
 public class CountingPageSinkTests
 {
     [Fact]
-    public void StartsWithNoPages()
-    {
-        using CountingPageSink surface = new CountingPageSink();
-
-        Assert.Equal(0, surface.PageCount);
-    }
-
-    [Fact]
-    public void CountsEveryPageBegun()
-    {
-        using CountingPageSink surface = new CountingPageSink();
-
-        for (int page = 0; page < 3; page++)
-        {
-            surface.BeginPage(new Extent(100, 100));
-            surface.EndPage();
-        }
-
-        Assert.Equal(3, surface.PageCount);
-    }
-
-    [Fact]
-    public void AcceptsEveryDrawingOperationWithoutAffectingTheCount()
+    public void AcceptsEveryDrawingOperation()
     {
         // The counting pass runs the real layout against this surface, so every operation a block can issue
         // must be accepted and discarded.
@@ -51,7 +29,5 @@ public class CountingPageSinkTests
         surface.Tag(null);
         surface.Restore();
         surface.EndPage();
-
-        Assert.Equal(1, surface.PageCount);
     }
 }

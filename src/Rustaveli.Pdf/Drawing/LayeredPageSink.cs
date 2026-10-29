@@ -149,7 +149,7 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
 
     public void NameDestination(string name, Offset at) => Hold(surface => surface.NameDestination(name, at));
 
-    public void DrawBookmark(string title, int level) => Hold(surface => surface.DrawBookmark(title, level));
+    public void AddBookmark(string title, int level) => Hold(surface => surface.AddBookmark(title, level));
 
     public void Tag(StructureElement? element)
     {

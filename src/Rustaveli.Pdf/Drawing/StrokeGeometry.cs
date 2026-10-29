@@ -28,13 +28,14 @@ internal static class StrokeGeometry
         float dx = to.X - from.X;
         float dy = to.Y - from.Y;
         float length = (float)Math.Sqrt((dx * dx) + (dy * dy));
-        (float normalX, float normalY) = Normal(from, to);
 
         if (length <= 0)
             return [];
 
         float unitX = dx / length;
         float unitY = dy / length;
+        float normalX = -unitY;
+        float normalY = unitX;
         int arches = Math.Max(1, (int)Math.Round(length / (thickness * 2), MidpointRounding.AwayFromZero));
         float step = length / arches;
         float lift = thickness * ArchControlRatio;
@@ -47,12 +48,16 @@ internal static class StrokeGeometry
             float start = step * index;
 
             segments.Add(new CubicSegment(
-                Along(from, unitX, unitY, start + (step / 3), normalX, normalY, sign * lift),
-                Along(from, unitX, unitY, start + (step * 2 / 3), normalX, normalY, sign * lift),
-                Along(from, unitX, unitY, start + step, normalX, normalY, 0f)));
+                Along(start + (step / 3), sign * lift),
+                Along(start + (step * 2 / 3), sign * lift),
+                Along(start + step, 0f)));
         }
 
         return segments;
+
+        Offset Along(float distance, float offset) => new Offset(
+            from.X + (unitX * distance) + (normalX * offset),
+            from.Y + (unitY * distance) + (normalY * offset));
     }
 
     /// <summary>The unit normal to the line, turned a quarter clockwise; for a zero-length line, straight down.</summary>
@@ -64,7 +69,4 @@ internal static class StrokeGeometry
 
         return length > 0 ? (-dy / length, dx / length) : (0f, 1f);
     }
-
-    private static Offset Along(Offset from, float unitX, float unitY, float distance, float normalX, float normalY, float offset) =>
-        new Offset(from.X + (unitX * distance) + (normalX * offset), from.Y + (unitY * distance) + (normalY * offset));
 }

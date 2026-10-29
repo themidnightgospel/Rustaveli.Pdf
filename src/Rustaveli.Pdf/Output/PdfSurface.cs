@@ -719,7 +719,7 @@ internal sealed class PdfSurface : IPageSink
         _writer.AddNamedDestination(name, Page.Reference, x, y);
     }
 
-    public void DrawBookmark(string title, int level)
+    public void AddBookmark(string title, int level)
     {
         (double x, double y) = _state.Matrix.Apply(0, 0);
         _writer.AddOutlineEntry(title, level, Page.Reference, x, y);

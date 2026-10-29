@@ -3,8 +3,8 @@ using Rustaveli.Pdf.Tagging;
 namespace Rustaveli.Pdf.Drawing;
 
 /// <summary>
-/// A page sink that draws nothing and only counts the pages begun on it: the surface of the passes that work out how
-/// many pages a document takes, and of drawing ahead to measure.
+/// A page sink that draws nothing: the surface of the passes that work out how many pages a document takes, and of
+/// drawing ahead to measure.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -21,16 +21,9 @@ internal sealed class CountingPageSink : IPageSink
 {
     private readonly TransformTracker _transform = new TransformTracker();
 
-    /// <summary>How many pages have been begun.</summary>
-    public int PageCount { get; private set; }
-
     public Offset Origin => _transform.Origin;
 
-    public void BeginPage(Extent size)
-    {
-        PageCount++;
-        _transform.Reset();
-    }
+    public void BeginPage(Extent size) => _transform.Reset();
 
     public void EndPage()
     {
@@ -113,7 +106,7 @@ internal sealed class CountingPageSink : IPageSink
     {
     }
 
-    public void DrawBookmark(string title, int level)
+    public void AddBookmark(string title, int level)
     {
     }
 

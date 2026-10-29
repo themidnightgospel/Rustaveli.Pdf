@@ -25,7 +25,7 @@ internal sealed class BookmarkBlock : EnclosingBlock
     {
         if (!_added && !Plan(availableSpace, context.Planning).IsDeferred)
         {
-            context.Surface.DrawBookmark(Title, Level);
+            context.Surface.AddBookmark(Title, Level);
             _added = true;
         }
 

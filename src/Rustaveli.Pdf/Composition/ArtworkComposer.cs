@@ -135,7 +135,7 @@ public sealed class ArtworkComposer
         _steps.Add((surface, measurer) =>
         {
             float width = measurer.MeasureWidth(text, 0, text.Length, style);
-            float start = x - (anchor == TextAnchor.Start ? 0 : width * (anchor == TextAnchor.Middle ? 0.5f : 1f));
+            float start = x - AnchorShift(anchor, width);
 
             // Text so large that its glyphs would be placed beyond the numbers a PDF can hold is left out.
             if (Writable.Is(start) && Writable.Is(start + width))
@@ -164,43 +164,50 @@ public sealed class ArtworkComposer
                     end++;
 
                 // Each run's place before anchoring, the pen moving on by the width of each.
-                float[] xs = new float[end - start], ys = new float[end - start], widths = new float[end - start];
+                int count = end - start;
+                float[] xs = new float[count], ys = new float[count], widths = new float[count];
                 penX = set[start].X ?? penX;
                 penY = set[start].Y ?? penY;
 
-                for (int index = start; index < end; index++)
+                for (int offset = 0; offset < count; offset++)
                 {
-                    penX += set[index].Dx;
-                    penY += set[index].Dy;
-                    xs[index - start] = penX;
-                    ys[index - start] = penY;
-                    widths[index - start] =
-                        measurer.MeasureWidth(set[index].Text, 0, set[index].Text.Length, set[index].Style);
-                    penX += widths[index - start];
+                    Span run = set[start + offset];
+                    penX += run.Dx;
+                    penY += run.Dy;
+                    xs[offset] = penX;
+                    ys[offset] = penY;
+                    widths[offset] = measurer.MeasureWidth(run.Text, 0, run.Text.Length, run.Style);
+                    penX += widths[offset];
                 }
 
-                float extent = penX - xs[0];
-                float shift = set[start].Anchor switch
-                {
-                    TextAnchor.Middle => extent / 2,
-                    TextAnchor.End => extent,
-                    _ => 0,
-                };
+                float shift = AnchorShift(set[start].Anchor, penX - xs[0]);
 
-                for (int index = start; index < end; index++)
+                for (int offset = 0; offset < count; offset++)
                 {
-                    float x = xs[index - start] - shift;
+                    Span run = set[start + offset];
+                    float x = xs[offset] - shift;
 
                     // Text so large, or so far off, that its glyphs would be placed beyond the numbers a PDF can hold
                     // is left out; a run of spaces is only room.
-                    if (set[index].Visible && set[index].Text.Trim().Length > 0 && Writable.Is(x) && Writable.Is(x + widths[index - start]) && Writable.Is(ys[index - start]))
-                        surface.ShowText(set[index].Text, new Offset(x, ys[index - start]), set[index].Style, ReadingDirection.LeftToRight);
+                    if (run.Visible && run.Text.Trim().Length > 0
+                        && Writable.Is(x) && Writable.Is(x + widths[offset]) && Writable.Is(ys[offset]))
+                    {
+                        surface.ShowText(run.Text, new Offset(x, ys[offset]), run.Style, ReadingDirection.LeftToRight);
+                    }
                 }
 
                 start = end;
             }
         });
     }
+
+    /// <summary>How far text <paramref name="extent"/> long moves back from its point to be anchored there.</summary>
+    private static float AnchorShift(TextAnchor anchor, float extent) => anchor switch
+    {
+        TextAnchor.Middle => extent / 2,
+        TextAnchor.End => extent,
+        _ => 0,
+    };
 
     /// <summary>Places <paramref name="image"/> in the box at (<paramref name="x"/>, <paramref name="y"/>), stretched to fill it.</summary>
     public void Image(IImage image, float x, float y, float width, float height)
