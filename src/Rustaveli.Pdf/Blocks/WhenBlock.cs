@@ -32,11 +32,6 @@ internal sealed class WhenBlock : EnclosingBlock
         if (!Condition)
             return false;
 
-        if (OnPage is null)
-            return true;
-
-        // The page count is asked for only once it is settled, since asking marks the pass as depending on it.
-        int? pageCount = pagination.IsPageCountKnown ? pagination.PageCount : null;
-        return OnPage(new PageFacts(pagination.Folio, pageCount));
+        return OnPage is null || OnPage(pagination.Facts);
     }
 }

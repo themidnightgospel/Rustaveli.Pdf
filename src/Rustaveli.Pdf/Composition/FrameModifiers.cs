@@ -76,9 +76,7 @@ public static class FrameModifiers
     /// </summary>
     public static IFrame StrokeInk(this IFrame parent, Ink ink)
     {
-        if (parent is not StrokeBlock stroke)
-            throw new CompositionException("StrokeInk must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
-
+        StrokeBlock stroke = FollowedStroke(parent, nameof(StrokeInk));
         stroke.Ink = ink;
         return stroke;
     }
@@ -93,9 +91,7 @@ public static class FrameModifiers
     {
         ArgumentNullException.ThrowIfNull(gradient);
 
-        if (parent is not StrokeBlock stroke)
-            throw new CompositionException("StrokeInk must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
-
+        StrokeBlock stroke = FollowedStroke(parent, nameof(StrokeInk));
         stroke.Gradient = gradient;
         return stroke;
     }
@@ -127,8 +123,8 @@ public static class FrameModifiers
     public static IFrame RoundCorners(this IFrame parent, float radius) => parent.RoundCorners(Corners.All(radius));
 
     /// <summary>
-    /// Rounds each corner of the fill or stroke this directly follows to its own radius, clockwise from the top left;
-    /// zero leaves a corner square.
+    /// Rounds each corner of the fill, stroke or shadow this directly follows to its own radius, clockwise from the
+    /// top left; zero leaves a corner square.
     /// </summary>
     public static IFrame RoundCorners(this IFrame parent, float topLeft, float topRight, float bottomRight, float bottomLeft) =>
         parent.RoundCorners(new Corners(topLeft, topRight, bottomRight, bottomLeft));
@@ -148,12 +144,15 @@ public static class FrameModifiers
     /// </summary>
     public static IFrame AlignStroke(this IFrame parent, StrokeAlignment alignment)
     {
-        if (parent is not StrokeBlock stroke)
-            throw new CompositionException("AlignStroke must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
-
+        StrokeBlock stroke = FollowedStroke(parent, nameof(AlignStroke));
         stroke.Alignment = alignment;
         return stroke;
     }
+
+    /// <summary>The stroke <paramref name="modifier"/> was called on, which it must directly follow.</summary>
+    private static StrokeBlock FollowedStroke(IFrame parent, string modifier) =>
+        parent as StrokeBlock ?? throw new CompositionException(
+            $"{modifier} must directly follow Stroke, StrokeLeft, StrokeTop, StrokeRight or StrokeBottom.");
 
     private static IFrame Assign(FillBlock fill, Corners corners)
     {
@@ -502,13 +501,13 @@ public static class FrameModifiers
 
     /// <summary>Fills the available space with a block standing in for unwritten content.</summary>
     public static void Placeholder(this IFrame parent, Ink? ink = null) =>
-        Attach(parent, new PlaceholderBlock { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+        Attach(parent, new PlaceholderBlock { Ink = ink ?? PlaceholderBlock.DefaultInk });
 
     /// <summary>Fills the available space with a block standing in for unwritten content, saying what will go there.</summary>
     public static void Placeholder(this IFrame parent, string label, Ink? ink = null)
     {
         ArgumentNullException.ThrowIfNull(label);
-        Attach(parent, new PlaceholderBlock(label) { Ink = ink ?? Ink.Rgb(0xEE, 0xEE, 0xEE) });
+        Attach(parent, new PlaceholderBlock(label) { Ink = ink ?? PlaceholderBlock.DefaultInk });
     }
 
     // ---- Links ---------------------------------------------------------------------------------------------

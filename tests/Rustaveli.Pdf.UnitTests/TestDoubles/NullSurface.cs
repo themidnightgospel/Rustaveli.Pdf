@@ -97,7 +97,7 @@ internal sealed class NullSurface : ISurface
     {
     }
 
-    public void DrawBookmark(string title, int level)
+    public void AddBookmark(string title, int level)
     {
     }
 

@@ -161,7 +161,7 @@ internal sealed class RecordingSurface : IPageSink, ISurface, IDisposable
         Current.Operations.Add(new DestinationOperation(Resolve(at), name));
     }
 
-    public void DrawBookmark(string title, int level)
+    public void AddBookmark(string title, int level)
     {
         Current.Operations.Add(new BookmarkOperation(Resolve(Offset.Zero), title, level));
     }

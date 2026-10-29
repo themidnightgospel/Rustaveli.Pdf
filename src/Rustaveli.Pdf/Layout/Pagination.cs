@@ -54,6 +54,12 @@ internal sealed class Pagination
     internal bool CountKnown { get; private set; }
 
     /// <summary>
+    /// The page's number and, once known, the page count, as content reads them: through the getters that mark the
+    /// pass as depending on them.
+    /// </summary>
+    internal PageFacts Facts => new PageFacts(Folio, IsPageCountKnown ? PageCount : null);
+
+    /// <summary>
     /// Whether content has read, in this pass, what only another pass can settle: the page count, the page of an
     /// anchor, where content was captured. Content that read none of them is drawn the same by every pass.
     /// </summary>

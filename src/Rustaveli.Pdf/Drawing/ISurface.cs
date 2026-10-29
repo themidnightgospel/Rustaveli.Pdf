@@ -126,7 +126,7 @@ internal interface ISurface
     void NameDestination(string name, Offset at);
 
     /// <summary>Adds an entry to the document's outline, at <paramref name="level"/>, leading to the current origin.</summary>
-    void DrawBookmark(string title, int level);
+    void AddBookmark(string title, int level);
 
     /// <summary>
     /// Marks what is drawn from here on as content of <paramref name="element"/> in the document's structure, or as

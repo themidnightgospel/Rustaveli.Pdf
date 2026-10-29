@@ -8,6 +8,9 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal sealed class PlaceholderBlock : Block
 {
+    /// <summary>The light grey a placeholder is filled with when it is given no ink.</summary>
+    internal static readonly Ink DefaultInk = Ink.Rgb(0xEE, 0xEE, 0xEE);
+
     private readonly TextBlock? _label;
 
     public PlaceholderBlock(string? label = null)
@@ -24,7 +27,7 @@ internal sealed class PlaceholderBlock : Block
         _label.Runs.Add(new TextRun { Text = label });
     }
 
-    public Ink Ink { get; set; } = Ink.Rgb(0xEE, 0xEE, 0xEE);
+    public Ink Ink { get; set; } = DefaultInk;
 
     /// <summary>The words shown in the middle of the box, saying what will go there, if any.</summary>
     public string? Label => _label?.Runs[0].Text;
