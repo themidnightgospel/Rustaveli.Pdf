@@ -143,17 +143,21 @@ public class PdfDocumentWriterTests
         // is left is the page, its content stream, the two categories it uses and the dictionaries that describe it.
         // When a change moves this on purpose, set the new figure and say why in the commit.
         const long Budget = 2_296;
+        long allocated = Allocations.Fewest(AllocatedWritingAThirdPage);
+
+        Assert.True(allocated <= Budget, $"Writing a page allocated {allocated} bytes; its budget is {Budget}.");
+    }
+
+    /// <summary>What writing a document's third page allocates, once two have warmed up what pages share.</summary>
+    private static long AllocatedWritingAThirdPage()
+    {
         using PdfDocumentWriter document = new PdfDocumentWriter(Stream.Null);
         PdfReference font = document.File.Write(new PdfDictionary());
         PdfReference state = document.GetOpacityState(0.5, 0.5);
         WriteTextPage(document, font, state);
         WriteTextPage(document, font, state);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        WriteTextPage(document, font, state);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-
-        Assert.True(allocated <= Budget, $"Writing a page allocated {allocated} bytes; its budget is {Budget}.");
+        return Allocations.Of(() => WriteTextPage(document, font, state));
     }
 
     /// <summary>A page of one line of text, in <paramref name="font"/> through <paramref name="state"/>.</summary>

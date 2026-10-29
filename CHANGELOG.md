@@ -145,6 +145,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   own.
 - A test host that took longer than 90 seconds to start on a slow CI runner aborted the run with no test failing. CI
   now waits up to five minutes for it.
+- The allocation budget for writing a page failed once in a full run. Those for planning a paragraph that borrows its
+  pieces and for returning a file as an array fail when the shared array pool drops an array they rent, as it does
+  under high memory load. Each now holds the fewest bytes of three measurements to its budget: a dropped array is made
+  anew once, while a change that allocates more does so every time.
 - Existing files are now read as other writers lay them out: qpdf rewrites every specimen with object streams on and
   off, streams uncompressed or compressed again, linearised, and encrypted with 40-bit RC4, 128-bit RC4 and AES, and
   256-bit AES. Each is read page by page, saved, joined to a document of ours, and checked by qpdf.

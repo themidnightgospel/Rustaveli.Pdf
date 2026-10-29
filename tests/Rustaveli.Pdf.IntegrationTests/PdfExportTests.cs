@@ -134,15 +134,10 @@ public class PdfExportTests
             });
         }));
         document.ExportPdf(Stream.Null);
-        document.ExportPdf();
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        document.ExportPdf(Stream.Null);
-        long streamed = GC.GetAllocatedBytesForCurrentThread() - before;
-
-        before = GC.GetAllocatedBytesForCurrentThread();
         byte[] file = document.ExportPdf();
-        long returned = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        long streamed = Allocations.Fewest(() => Allocations.Of(() => document.ExportPdf(Stream.Null)));
+        long returned = Allocations.Fewest(() => Allocations.Of(() => document.ExportPdf()));
 
         Assert.True(
             returned - streamed <= file.Length + Bookkeeping,
