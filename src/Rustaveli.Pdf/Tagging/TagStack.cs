@@ -45,7 +45,7 @@ internal sealed class TagStack
     /// </summary>
     public StructureElement? Create(string role)
     {
-        if (!Enabled || _untagged > 0)
+        if (!Enabled || IsUntagged)
             return null;
 
         StructureElement element = new StructureElement(role, Current);
@@ -80,7 +80,7 @@ internal sealed class TagStack
         if (element is null || !Enabled)
             return default;
 
-        Scope scope = new Scope(this, Current, _untagged, _language);
+        Scope scope = new Scope(this);
         Current = element;
         _surface.Tag(Mark);
         return scope;
@@ -92,7 +92,7 @@ internal sealed class TagStack
         if (!Enabled)
             return default;
 
-        Scope scope = new Scope(this, Current, _untagged, _language);
+        Scope scope = new Scope(this);
         _untagged++;
         _surface.Tag(null);
         return scope;
@@ -104,12 +104,12 @@ internal sealed class TagStack
         if (!Enabled)
             return default;
 
-        Scope scope = new Scope(this, Current, _untagged, _language);
+        Scope scope = new Scope(this);
         _language = language;
         return scope;
     }
 
-    private StructureElement? Mark => _untagged > 0 ? null : Current;
+    private StructureElement? Mark => IsUntagged ? null : Current;
 
     private void Restore(StructureElement current, int untagged, string? language)
     {
@@ -127,12 +127,13 @@ internal sealed class TagStack
         private readonly int _untagged;
         private readonly string? _language;
 
-        public Scope(TagStack stack, StructureElement current, int untagged, string? language)
+        /// <summary>A scope that returns <paramref name="stack"/> to where it stands now.</summary>
+        public Scope(TagStack stack)
         {
             _stack = stack;
-            _current = current;
-            _untagged = untagged;
-            _language = language;
+            _current = stack.Current;
+            _untagged = stack._untagged;
+            _language = stack._language;
         }
 
         public void Dispose() => _stack?.Restore(_current!, _untagged, _language);
