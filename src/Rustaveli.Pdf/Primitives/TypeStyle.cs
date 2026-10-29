@@ -134,95 +134,32 @@ public sealed record TypeStyle
     public TypeStyle WithTypeface(string fontFamily, params string[] fallbacks)
     {
         TypefaceNames(fontFamily, fallbacks);
-
-        return this with
-        {
-            Typeface = fontFamily,
-            FallbackTypefaces = TypefaceFallbacks.Of(fallbacks)
-        };
+        return this with { Typeface = fontFamily, FallbackTypefaces = TypefaceFallbacks.Of(fallbacks) };
     }
 
     public TypeStyle WithPointSize(float size)
     {
         Size(size, nameof(size));
-
-        return this with
-        {
-            PointSize = size
-        };
+        return this with { PointSize = size };
     }
 
-    public TypeStyle WithWeight(TypeWeight weight)
-    {
-        return this with
-        {
-            Weight = weight
-        };
-    }
+    public TypeStyle WithWeight(TypeWeight weight) => this with { Weight = weight };
 
-    public TypeStyle Bold()
-    {
-        return this with
-        {
-            Weight = TypeWeight.Bold
-        };
-    }
+    public TypeStyle Bold() => this with { Weight = TypeWeight.Bold };
 
-    public TypeStyle Italic(bool value = true)
-    {
-        return this with
-        {
-            IsItalic = value
-        };
-    }
+    public TypeStyle Italic(bool value = true) => this with { IsItalic = value };
 
-    public TypeStyle WithInk(Ink ink)
-    {
-        return this with
-        {
-            Ink = ink
-        };
-    }
+    public TypeStyle WithInk(Ink ink) => this with { Ink = ink };
 
-    public TypeStyle WithHighlight(Ink ink)
-    {
-        return this with
-        {
-            Highlight = ink
-        };
-    }
+    public TypeStyle WithHighlight(Ink ink) => this with { Highlight = ink };
 
-    public TypeStyle Underline(bool value = true)
-    {
-        return this with
-        {
-            HasUnderline = value
-        };
-    }
+    public TypeStyle Underline(bool value = true) => this with { HasUnderline = value };
 
-    public TypeStyle StrikeThrough(bool value = true)
-    {
-        return this with
-        {
-            HasStrikeThrough = value
-        };
-    }
+    public TypeStyle StrikeThrough(bool value = true) => this with { HasStrikeThrough = value };
 
-    public TypeStyle Overline(bool value = true)
-    {
-        return this with
-        {
-            HasOverline = value
-        };
-    }
+    public TypeStyle Overline(bool value = true) => this with { HasOverline = value };
 
-    public TypeStyle BreakAnywhere(bool value = true)
-    {
-        return this with
-        {
-            BreaksAnywhere = value
-        };
-    }
+    public TypeStyle BreakAnywhere(bool value = true) => this with { BreaksAnywhere = value };
 
     /// <summary>
     /// A copy with the OpenType feature <paramref name="tag"/> — <c>"smcp"</c>, <c>"onum"</c>, <c>"ss01"</c> — set to
@@ -237,106 +174,60 @@ public sealed record TypeStyle
     public TypeStyle WithFeature(string tag, int value = 1)
     {
         Feature(tag, value);
-
-        return this with
-        {
-            Features = Features.With(FeatureTag.Parse(tag), value)
-        };
+        return this with { Features = Features.With(FeatureTag.Parse(tag), value) };
     }
 
     /// <summary>A copy with ligatures such as "fi" and "ffl" set, or not: the standard and contextual ones.</summary>
     public TypeStyle Ligatures(bool value = true) =>
-        WithFeature("liga", value ? 1 : 0).WithFeature("clig", value ? 1 : 0);
+        WithFeature(FeatureTag.StandardLigatures, value).WithFeature(FeatureTag.ContextualLigatures, value);
 
     /// <summary>A copy with lowercase letters set as small capitals, where the face has them.</summary>
-    public TypeStyle SmallCapitals(bool value = true) => WithFeature("smcp", value ? 1 : 0);
+    public TypeStyle SmallCapitals(bool value = true) => WithFeature(FeatureTag.SmallCapitals, value);
 
     /// <summary>A copy with old-style figures, which rise and descend like lowercase letters, where the face has them.</summary>
-    public TypeStyle OldstyleFigures(bool value = true) => WithFeature("onum", value ? 1 : 0);
+    public TypeStyle OldstyleFigures(bool value = true) => WithFeature(FeatureTag.OldstyleFigures, value);
 
     /// <summary>A copy with figures all one width, so columns of numbers align, where the face has them.</summary>
-    public TypeStyle TabularFigures(bool value = true) => WithFeature("tnum", value ? 1 : 0);
+    public TypeStyle TabularFigures(bool value = true) => WithFeature(FeatureTag.TabularFigures, value);
 
     /// <summary>A copy that reads in <paramref name="direction"/>, set apart from the text around it; null to follow it.</summary>
-    public TypeStyle WithDirection(ReadingDirection? direction)
-    {
-        return this with
-        {
-            Direction = direction
-        };
-    }
+    public TypeStyle WithDirection(ReadingDirection? direction) => this with { Direction = direction };
 
-    public TypeStyle WithStrokeStyle(StrokeStyle style)
-    {
-        return this with
-        {
-            StrokeStyle = style
-        };
-    }
+    public TypeStyle WithStrokeStyle(StrokeStyle style) => this with { StrokeStyle = style };
 
-    public TypeStyle WithStrokeInk(Ink ink)
-    {
-        return this with
-        {
-            StrokeInk = ink
-        };
-    }
+    public TypeStyle WithStrokeInk(Ink ink) => this with { StrokeInk = ink };
 
     public TypeStyle WithStrokeWeight(float weight)
     {
         Size(weight, nameof(weight));
-
-        return this with
-        {
-            StrokeWeight = weight
-        };
+        return this with { StrokeWeight = weight };
     }
 
     public TypeStyle WithLeading(float multiplier)
     {
         Size(multiplier, nameof(multiplier));
-
-        return this with
-        {
-            Leading = multiplier
-        };
+        return this with { Leading = multiplier };
     }
 
     public TypeStyle WithTracking(float spacing)
     {
         Spacing(spacing, nameof(spacing));
-
-        return this with
-        {
-            Tracking = spacing
-        };
+        return this with { Tracking = spacing };
     }
 
     public TypeStyle WithWordSpacing(float spacing)
     {
         Spacing(spacing, nameof(spacing));
-
-        return this with
-        {
-            WordSpacing = spacing
-        };
+        return this with { WordSpacing = spacing };
     }
 
-    public TypeStyle Subscript()
-    {
-        return this with
-        {
-            Script = ScriptPosition.Subscript
-        };
-    }
+    public TypeStyle Subscript() => this with { Script = ScriptPosition.Subscript };
 
-    public TypeStyle Superscript()
-    {
-        return this with
-        {
-            Script = ScriptPosition.Superscript
-        };
-    }
+    public TypeStyle Superscript() => this with { Script = ScriptPosition.Superscript };
+
+    /// <summary>A copy with a feature the library names turned on or off, without parsing its tag again.</summary>
+    private TypeStyle WithFeature(FeatureTag tag, bool value) =>
+        this with { Features = Features.With(tag, value ? 1 : 0) };
 
     /// <summary><paramref name="value"/>, a size or a multiplier: zero or more, and a number a PDF can write.</summary>
     /// <exception cref="ArgumentOutOfRangeException">It is negative, NaN, or 10^15 or more.</exception>

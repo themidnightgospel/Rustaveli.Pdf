@@ -39,5 +39,16 @@ public readonly record struct Corners(float TopLeft, float TopRight, float Botto
             : new Corners(corners.TopLeft * scale, corners.TopRight * scale, corners.BottomRight * scale, corners.BottomLeft * scale);
     }
 
+    /// <summary>
+    /// The rounded corners moved out by <paramref name="distance"/>, or in by a negative one, then fitted to
+    /// <paramref name="size"/>; a square corner stays square.
+    /// </summary>
+    internal Corners Shifted(float distance, Extent size)
+    {
+        return new Corners(Shift(TopLeft), Shift(TopRight), Shift(BottomRight), Shift(BottomLeft)).FittedTo(size);
+
+        float Shift(float radius) => radius > 0 ? Math.Max(0, radius + distance) : 0f;
+    }
+
     private static float Room(float side, float radii) => radii > side ? Math.Max(0, side) / radii : 1f;
 }

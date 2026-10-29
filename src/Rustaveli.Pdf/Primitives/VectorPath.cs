@@ -315,9 +315,6 @@ public sealed class VectorPath
     }
 
     /// <summary>The signed angle from one vector to another, in radians.</summary>
-    private static double Angle(double ux, double uy, double vx, double vy)
-    {
-        double angle = Math.Atan2((ux * vy) - (uy * vx), (ux * vx) + (uy * vy));
-        return angle;
-    }
+    private static double Angle(double ux, double uy, double vx, double vy) =>
+        Math.Atan2((ux * vy) - (uy * vx), (ux * vx) + (uy * vy));
 }

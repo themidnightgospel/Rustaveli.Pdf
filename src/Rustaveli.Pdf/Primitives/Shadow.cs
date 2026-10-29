@@ -20,11 +20,7 @@ public readonly record struct Shadow(Ink Ink, float Blur, Offset Offset = defaul
         Extent grown = new Extent(size.Width + (2 * spread), size.Height + (2 * spread));
 
         // As in CSS, a rounded corner grows with the shadow and a square one stays square.
-        Corners radii = new Corners(Grown(corners.TopLeft), Grown(corners.TopRight), Grown(corners.BottomRight), Grown(corners.BottomLeft));
-
-        return (position + Offset + new Offset(-spread, -spread), grown, radii.FittedTo(grown));
-
-        float Grown(float radius) => radius > 0 ? Math.Max(0, radius + spread) : 0f;
+        return (position + Offset + new Offset(-spread, -spread), grown, corners.Shifted(spread, grown));
     }
 
     /// <summary>The deviation of the Gaussian that blurs the shadow, in points.</summary>

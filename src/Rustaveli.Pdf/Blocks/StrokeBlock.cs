@@ -125,13 +125,7 @@ internal sealed class StrokeBlock : EnclosingBlock
         if (outline.Width <= 0 || outline.Height <= 0)
             return;
 
-        Corners corners = Corners;
-        Corners radii = new Corners(Moved(corners.TopLeft), Moved(corners.TopRight), Moved(corners.BottomRight), Moved(corners.BottomLeft))
-            .FittedTo(outline);
-
-        surface.DrawRoundedRectangle(new Offset(inset, inset), outline, radii, ink, weight);
-
         // A square corner stays square wherever the stroke lies.
-        float Moved(float radius) => radius > 0 ? Math.Max(0, radius - inset) : 0f;
+        surface.DrawRoundedRectangle(new Offset(inset, inset), outline, Corners.Shifted(-inset, outline), ink, weight);
     }
 }
