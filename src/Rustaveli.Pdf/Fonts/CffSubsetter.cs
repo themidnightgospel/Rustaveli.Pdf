@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using static Rustaveli.Pdf.Fonts.CffDict;
 
 namespace Rustaveli.Pdf.Fonts;
 
@@ -26,21 +27,14 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal static class CffSubsetter
 {
-    private const int FontBBox = 5;
-    private const int Charset = 15;
-    private const int CharStrings = 17;
-    private const int Private = 18;
-    private const int Subrs = 19;
-    private const int CharstringType = (12 << 8) | 6;
-    private const int FontMatrix = (12 << 8) | 7;
-    private const int SyntheticBase = (12 << 8) | 20;
-    private const int RegistryOrderingSupplement = (12 << 8) | 30;
-    private const int CidCount = (12 << 8) | 34;
-    private const int FdArray = (12 << 8) | 36;
-    private const int FdSelect = (12 << 8) | 37;
-
     /// <summary>The first string ID a font's own strings take; below it are CFF's standard strings.</summary>
     private const int FirstCustomString = 391;
+
+    /// <summary>
+    /// The bytes of the entry each font dict of the subset ends with: its private dict's size and offset, five bytes
+    /// each, then the operator.
+    /// </summary>
+    private const int PrivateEntrySize = 11;
 
     private static readonly byte[][] Strings = [Encoding.ASCII.GetBytes("Adobe"), Encoding.ASCII.GetBytes("Identity")];
 
@@ -73,7 +67,8 @@ internal static class CffSubsetter
 
         CffIndex names = CffIndex.Read(cff, cff[2]);
         CffIndex topDicts = CffIndex.Read(cff, names.End);
-        CffIndex globalSubrs = CffIndex.Read(cff, CffIndex.Read(cff, topDicts.End).End);
+        CffIndex strings = CffIndex.Read(cff, topDicts.End);
+        CffIndex globalSubrs = CffIndex.Read(cff, strings.End);
 
         if (names.Count != 1 || topDicts.Count != 1)
             throw new NotSupportedException("Only a CFF table holding one font is subset.");
@@ -249,14 +244,19 @@ internal static class CffSubsetter
         byte[][] names = [name];
 
         int topSize = Top(0, 0, 0, 0).Length;
-        int charsetAt = 4 + IndexSize(names) + IndexSize([new byte[topSize]]) + IndexSize(Strings) + IndexSize([]);
+        int charsetAt = 4 + IndexSize(names) + IndexSize(1, topSize) + IndexSize(Strings) + IndexSize(0, 0);
         int fdSelectAt = charsetAt + charset.Length;
         int charStringsAt = fdSelectAt + fdSelect.Length;
         int fdArrayAt = charStringsAt + IndexSize(outlines);
 
         // Each font dict ends with its private dict's size and offset, the private dicts following the FDArray.
         byte[][] fontDicts = new byte[fonts.Count][];
-        int privateAt = fdArrayAt + IndexSize(fonts.Select(font => new byte[font.Dict.Length + 11]).ToList());
+        int fontDictsSize = 0;
+
+        foreach (FontDict font in fonts)
+            fontDictsSize += font.Dict.Length + PrivateEntrySize;
+
+        int privateAt = fdArrayAt + IndexSize(fonts.Count, fontDictsSize);
 
         for (int index = 0; index < fonts.Count; index++)
         {
@@ -407,19 +407,19 @@ internal static class CffSubsetter
     private static void Operator(FontDataWriter dict, int op)
     {
         if (op > 0xFF)
-            dict.UInt8(op >> 8);
+            dict.UInt8(Escape);
 
         dict.UInt8(op & 0xFF);
     }
 
-    private static int IndexSize(IReadOnlyList<byte[]> items)
-    {
-        if (items.Count == 0)
-            return 2;
+    private static int IndexSize(IReadOnlyList<byte[]> items) => IndexSize(items.Count, DataSize(items));
 
-        int data = items.Sum(item => item.Length);
-        return 3 + ((items.Count + 1) * OffsetSize(data + 1)) + data;
-    }
+    /// <summary>
+    /// The bytes an INDEX of <paramref name="count"/> items takes, <paramref name="dataSize"/> of them the items'.
+    /// </summary>
+    internal static int IndexSize(int count, int dataSize) =>
+        // Offsets count from one, so the last is one past the data's size.
+        count == 0 ? 2 : 3 + ((count + 1) * OffsetSize(dataSize + 1)) + dataSize;
 
     private static void WriteIndex(FontDataWriter file, IReadOnlyList<byte[]> items)
     {
@@ -428,7 +428,7 @@ internal static class CffSubsetter
         if (items.Count == 0)
             return;
 
-        int size = OffsetSize(items.Sum(item => item.Length) + 1);
+        int size = OffsetSize(DataSize(items) + 1);
         file.UInt8(size);
         uint offset = 1;
         file.UIntOfSize(offset, size);
@@ -441,6 +441,17 @@ internal static class CffSubsetter
 
         foreach (byte[] item in items)
             file.Bytes(item);
+    }
+
+    /// <summary>How many bytes <paramref name="items"/> hold together.</summary>
+    private static int DataSize(IReadOnlyList<byte[]> items)
+    {
+        int size = 0;
+
+        for (int index = 0; index < items.Count; index++)
+            size += items[index].Length;
+
+        return size;
     }
 
     private static int OffsetSize(int largest) => largest <= 0xFF ? 1 : largest <= 0xFFFF ? 2 : largest <= 0xFFFFFF ? 3 : 4;

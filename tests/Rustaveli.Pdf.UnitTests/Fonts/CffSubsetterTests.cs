@@ -8,7 +8,8 @@ namespace Rustaveli.Pdf.UnitTests.Fonts;
 /// </summary>
 public class CffSubsetterTests
 {
-    private const int FontMatrix = (12 << 8) | 7;
+    /// <summary>The font name a CID-keyed font's font dicts carry, which the subset leaves out.</summary>
+    private const int FontName = (CffDict.Escape << 8) | 38;
 
     private static OpenTypeFont Subrs => TestFonts.Load("SpecimenSubrs-Regular.otf");
 
@@ -64,12 +65,12 @@ public class CffSubsetterTests
     {
         // The source's font dicts name themselves, by strings the subset does not carry.
         byte[] source = CffOf(Cjk).ToArray();
-        Assert.Contains((12 << 8) | 38, FontDictOperators(source));
+        Assert.Contains(FontName, FontDictOperators(source));
 
         byte[] subset = CffSubsetter.TrySubset(CffOf(Cjk), 1000, Shown(Cjk, "中あA"))!;
 
-        Assert.Subset(new HashSet<int> { (12 << 8) | 7, 18 }, FontDictOperators(subset));
-        Assert.Contains(18, FontDictOperators(subset));
+        Assert.Subset(new HashSet<int> { CffDict.FontMatrix, CffDict.Private }, FontDictOperators(subset));
+        Assert.Contains(CffDict.Private, FontDictOperators(subset));
     }
 
     [Fact]
@@ -93,7 +94,8 @@ public class CffSubsetterTests
         byte[] subset = CffSubsetter.TrySubset(CffOf(Subrs), unitsPerEm, Shown(Subrs, "Ab"))!;
 
         double scale = 1d / unitsPerEm;
-        Assert.Equal([scale, 0, 0, scale, 0, 0], TopDict(subset).Single(entry => entry.Operator == FontMatrix).Operands);
+        Assert.Equal(
+            [scale, 0, 0, scale, 0, 0], TopDict(subset).Single(entry => entry.Operator == CffDict.FontMatrix).Operands);
         AssertNoSubroutines(subset);
     }
 
@@ -101,14 +103,14 @@ public class CffSubsetterTests
     public void AFontScaledByAThousandOrByItsOwnMatrixIsGivenNoOther()
     {
         byte[] thousand = CffSubsetter.TrySubset(CffOf(Subrs), 1000, Shown(Subrs, "Ab"))!;
-        Assert.DoesNotContain(TopDict(thousand), entry => entry.Operator == FontMatrix);
+        Assert.DoesNotContain(TopDict(thousand), entry => entry.Operator == CffDict.FontMatrix);
 
         // A subset scaled by 2048 has a matrix of its own, which a subset of it keeps as it is.
         byte[] scaled = CffSubsetter.TrySubset(CffOf(Subrs), 2048, Shown(Subrs, "Ab"))!;
         CompactFontTable read = new CompactFontTable(scaled);
         byte[] again = CffSubsetter.TrySubset(scaled, 2048, [(read.GetCid(1), 1)])!;
 
-        CffDictEntry matrix = Assert.Single(TopDict(again), entry => entry.Operator == FontMatrix);
+        CffDictEntry matrix = Assert.Single(TopDict(again), entry => entry.Operator == CffDict.FontMatrix);
         Assert.Equal(1d / 2048, matrix.Operands[0]);
     }
 
@@ -123,10 +125,11 @@ public class CffSubsetterTests
 
         byte[] subset = CffSubsetter.TrySubset(source, 2048, [(1, 1), (2, 2)])!;
 
-        Assert.DoesNotContain(TopDict(subset), entry => entry.Operator == FontMatrix);
+        Assert.DoesNotContain(TopDict(subset), entry => entry.Operator == CffDict.FontMatrix);
         Assert.All(
             FontDicts(subset),
-            dict => Assert.Equal([scale, 0, 0, scale, 0, 0], dict.Single(entry => entry.Operator == FontMatrix).Operands));
+            dict => Assert.Equal(
+                [scale, 0, 0, scale, 0, 0], dict.Single(entry => entry.Operator == CffDict.FontMatrix).Operands));
     }
 
     [Fact]
@@ -135,8 +138,9 @@ public class CffSubsetterTests
         byte[] subset = CffSubsetter.TrySubset(CffOf(Cjk), 2048, Shown(Cjk, "中あA"))!;
 
         double scale = 1d / 2048;
-        Assert.Equal([scale, 0, 0, scale, 0, 0], TopDict(subset).Single(entry => entry.Operator == FontMatrix).Operands);
-        Assert.DoesNotContain(FontDictOperators(subset), op => op == FontMatrix);
+        Assert.Equal(
+            [scale, 0, 0, scale, 0, 0], TopDict(subset).Single(entry => entry.Operator == CffDict.FontMatrix).Operands);
+        Assert.DoesNotContain(FontDictOperators(subset), op => op == CffDict.FontMatrix);
     }
 
     [Fact]
@@ -163,6 +167,18 @@ public class CffSubsetterTests
         Assert.Null(CffSubsetter.TrySubset(cff.AsMemory(0, 3), 1000, []));
         Assert.Null(CffSubsetter.TrySubset(cff.AsMemory(0, 40), 1000, []));
         Assert.Null(CffSubsetter.TrySubset(CffOf(Subrs), 1000, [(5000, 5000)]));
+    }
+
+    [Theory]
+    [InlineData(0xFE, 1)]
+    [InlineData(0xFF, 2)]
+    [InlineData(0xFFFE, 2)]
+    [InlineData(0xFFFF, 3)]
+    public void AnIndexIsSizedWithOffsetsThatHoldTheOnePastItsData(int dataSize, int offsetSize)
+    {
+        // An INDEX of one item: its count, its offset size, two offsets, then the data. Offsets count from one, so the
+        // last is one past the data's size, and needs a byte more once that passes 0xFF or 0xFFFF.
+        Assert.Equal(2 + 1 + (2 * offsetSize) + dataSize, CffSubsetter.IndexSize(1, dataSize));
     }
 
     private static List<CffDictEntry> TopDict(byte[] cff)
@@ -261,7 +277,8 @@ public class CffSubsetterTests
     /// <summary>The entries of each of the font dicts of <paramref name="cff"/>.</summary>
     private static List<List<CffDictEntry>> FontDicts(byte[] cff)
     {
-        CffIndex fdArray = CffIndex.Read(cff, TopDict(cff).Single(entry => entry.Operator == ((12 << 8) | 36)).Integer());
+        CffIndex fdArray =
+            CffIndex.Read(cff, TopDict(cff).Single(entry => entry.Operator == CffDict.FdArray).Integer());
         List<List<CffDictEntry>> dicts = [];
 
         for (int index = 0; index < fdArray.Count; index++)
@@ -278,7 +295,8 @@ public class CffSubsetterTests
         CffIndex names = CffIndex.Read(cff, cff[2]);
         CffIndex tops = CffIndex.Read(cff, names.End);
         (int start, int length) = tops.GetItem(cff, 0);
-        CffDictEntry fdArray = CffDict.Read(cff.AsSpan(start, length)).Single(entry => entry.Operator == ((12 << 8) | 36));
+        CffDictEntry fdArray =
+            CffDict.Read(cff.AsSpan(start, length)).Single(entry => entry.Operator == CffDict.FdArray);
         return CffIndex.Read(cff, fdArray.Integer()).Count;
     }
 
@@ -288,7 +306,8 @@ public class CffSubsetterTests
         CffIndex names = CffIndex.Read(cff, cff[2]);
         CffIndex tops = CffIndex.Read(cff, names.End);
         (int start, int length) = tops.GetItem(cff, 0);
-        CffIndex fdArray = CffIndex.Read(cff, CffDict.Read(cff.AsSpan(start, length)).Single(entry => entry.Operator == ((12 << 8) | 36)).Integer());
+        CffIndex fdArray = CffIndex.Read(
+            cff, CffDict.Read(cff.AsSpan(start, length)).Single(entry => entry.Operator == CffDict.FdArray).Integer());
         HashSet<int> operators = [];
 
         for (int index = 0; index < fdArray.Count; index++)
@@ -310,17 +329,20 @@ public class CffSubsetterTests
 
         (int start, int length) = tops.GetItem(cff, 0);
         List<CffDictEntry> top = CffDict.Read(cff.AsSpan(start, length));
-        CffIndex fdArray = CffIndex.Read(cff, top.Single(entry => entry.Operator == ((12 << 8) | 36)).Integer());
+        CffIndex fdArray = CffIndex.Read(cff, top.Single(entry => entry.Operator == CffDict.FdArray).Integer());
 
         for (int index = 0; index < fdArray.Count; index++)
         {
             (int fdStart, int fdLength) = fdArray.GetItem(cff, index);
-            CffDictEntry privateEntry = CffDict.Read(cff.AsSpan(fdStart, fdLength)).Single(entry => entry.Operator == 18);
-            Assert.DoesNotContain(CffDict.Read(cff.AsSpan(privateEntry.Integer(1), privateEntry.Integer(0))), entry => entry.Operator == 19);
+            CffDictEntry privateEntry =
+                CffDict.Read(cff.AsSpan(fdStart, fdLength)).Single(entry => entry.Operator == CffDict.Private);
+            Assert.DoesNotContain(
+                CffDict.Read(cff.AsSpan(privateEntry.Integer(1), privateEntry.Integer(0))),
+                entry => entry.Operator == CffDict.Subrs);
         }
 
         // Flattening again changes nothing: there is nothing left to write out.
-        CffIndex charStrings = CffIndex.Read(cff, top.Single(entry => entry.Operator == 17).Integer());
+        CffIndex charStrings = CffIndex.Read(cff, top.Single(entry => entry.Operator == CffDict.CharStrings).Integer());
 
         for (int glyph = 0; glyph < charStrings.Count; glyph++)
         {

@@ -17,10 +17,6 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal sealed class CompactFontTable
 {
-    private const int CharsetOperator = 15;
-    private const int CharStringsOperator = 17;
-    private const int RegistryOrderingSupplementOperator = (12 << 8) | 30;
-
     private readonly ReadOnlyMemory<byte> _data;
     private readonly int _charset;
     private ushort[]? _cids;
@@ -52,13 +48,13 @@ internal sealed class CompactFontTable
         {
             switch (entry.Operator)
             {
-                case CharStringsOperator:
+                case CffDict.CharStrings:
                     charStrings = entry.Integer();
                     break;
-                case CharsetOperator:
+                case CffDict.Charset:
                     _charset = entry.Integer();
                     break;
-                case RegistryOrderingSupplementOperator:
+                case CffDict.RegistryOrderingSupplement:
                     IsCidKeyed = true;
                     break;
             }
