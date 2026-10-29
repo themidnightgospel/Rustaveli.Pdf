@@ -1063,26 +1063,29 @@ public class TextBlockTests
         long AllocatedPlanning(string text)
         {
             TextBlock block = Text(composer => composer.Run(text));
-            long before = GC.GetAllocatedBytesForCurrentThread();
-            LayoutHarness.Plan(block, new Extent(1_000_000, 500), context);
-            return GC.GetAllocatedBytesForCurrentThread() - before;
+            return Allocations.Of(() => LayoutHarness.Plan(block, new Extent(1_000_000, 500), context));
         }
 
         string Words(int count) => string.Join(" ", Enumerable.Repeat("a", count));
         const string Short = "A short paragraph";
+
+        // A paragraph that borrows the pieces plans alike every time, so it is held to the fewest of three plans; one
+        // that makes its own lends them on to the next, so it is planned once.
+        long Borrowing() => Allocations.Fewest(() => AllocatedPlanning(Short));
+
         AllocatedPlanning(Short);
-        long lent = AllocatedPlanning(Short);
+        long lent = Borrowing();
 
         // 8,000 words and the spaces between them grow the pieces to 16,384 slots, and the next paragraph borrows
         // them; 8,500 grow them to 32,768, and the next paragraph makes its own, which it lends on. Line breaks grow
         // the lines in the same way: 10,000 to 16,384, 17,000 to 32,768.
         AllocatedPlanning(Words(8000));
-        Assert.Equal(lent, AllocatedPlanning(Short));
+        Assert.Equal(lent, Borrowing());
         AllocatedPlanning(Words(8500));
         Assert.NotEqual(lent, AllocatedPlanning(Short));
-        Assert.Equal(lent, AllocatedPlanning(Short));
+        Assert.Equal(lent, Borrowing());
         AllocatedPlanning(new string('\n', 10000));
-        Assert.Equal(lent, AllocatedPlanning(Short));
+        Assert.Equal(lent, Borrowing());
         AllocatedPlanning(new string('\n', 17000));
         Assert.NotEqual(lent, AllocatedPlanning(Short));
     }
