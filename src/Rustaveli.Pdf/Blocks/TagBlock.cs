@@ -24,7 +24,7 @@ internal sealed class TagBlock : EnclosingBlock
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (context.Tags.Enabled && _element is null && Plan(availableSpace, context.Planning) is { IsDeferred: false, IsNothing: false })
+        if (context.Tags.Enabled && _element is null && Plan(availableSpace, context.Planning).PlacesContent)
             _element = context.Tags.Create(Tag);
 
         using TagStack.Scope scope = context.Tags.Enter(_element);

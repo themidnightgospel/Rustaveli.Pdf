@@ -25,21 +25,6 @@ public class ReadingDirectionTests
     }
 
     [Fact]
-    public void AnExplicitRowDirectionOverridesTheContext()
-    {
-        ColumnsBlock row = TwoColumnRow();
-        row.ReadingDirection = ReadingDirection.LeftToRight;
-
-        PlanContext context = LayoutHarness.Context();
-        context.ReadingDirection = ReadingDirection.RightToLeft;
-
-        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100), context);
-        RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
-
-        Approximately.Equal(0f, first.Position.X);
-    }
-
-    [Fact]
     public void TextAlignsToTheTrailingEdgeWhenRightToLeft()
     {
         TextBlock block = new TextBlock();
@@ -131,9 +116,10 @@ public class ReadingDirectionTests
         composer.Cell().Compose(frame => frame.Slot().Child = new FixedBlock(1, 10, TestInks.Blue));
         composer.PlaceAutomaticCells();
 
-        block.ReadingDirection = ReadingDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Render(block, new Extent(120, 100));
+        RecordedPage page = LayoutHarness.Render(block, new Extent(120, 100), context);
         RectangleOperation first = page.Operations.OfType<RectangleOperation>().Single(r => r.Ink == TestInks.Red);
 
         Approximately.Equal(60f, first.Position.X);

@@ -21,7 +21,7 @@ internal sealed class MirrorBlock : EnclosingBlock
 
         Fit plan = Child.Plan(availableSpace, context.Planning);
 
-        if (plan.IsDeferred || plan.IsNothing)
+        if (!plan.PlacesContent)
             return;
 
         float scaleX = Horizontally ? -1f : 1f;

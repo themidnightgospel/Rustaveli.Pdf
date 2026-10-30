@@ -14,7 +14,7 @@ internal sealed class CaptureBlock : EnclosingBlock
     {
         Fit plan = Plan(availableSpace, context.Planning);
 
-        if (plan.IsDeferred || plan.IsNothing)
+        if (!plan.PlacesContent)
             return;
 
         if (!context.DrawsAhead)

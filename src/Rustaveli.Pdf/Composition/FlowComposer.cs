@@ -35,13 +35,13 @@ public sealed class FlowComposer
     public void SpacedAround() => _block.Placement = FlowPlacement.SpaceAround;
 
     /// <summary>Sets items shorter than their line against its top, the default.</summary>
-    public void FlushTop() => _block.LineAlignment = VerticalPlacement.Top;
+    public void FlushTop() => _block.ItemPlacement = VerticalPlacement.Top;
 
     /// <summary>Centres items shorter than their line within it.</summary>
-    public void Middle() => _block.LineAlignment = VerticalPlacement.Middle;
+    public void Middle() => _block.ItemPlacement = VerticalPlacement.Middle;
 
     /// <summary>Sets items shorter than their line against its bottom.</summary>
-    public void FlushBottom() => _block.LineAlignment = VerticalPlacement.Bottom;
+    public void FlushBottom() => _block.ItemPlacement = VerticalPlacement.Bottom;
 
     /// <summary>Adds an item at the end of the flow and returns its frame.</summary>
     public IFrame Add()

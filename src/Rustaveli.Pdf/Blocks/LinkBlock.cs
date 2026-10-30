@@ -1,27 +1,17 @@
-using Rustaveli.Pdf.Layout;
-using Rustaveli.Pdf.Tagging;
+using Rustaveli.Pdf.Drawing;
 
 namespace Rustaveli.Pdf.Blocks;
 
 /// <summary>
 /// Makes the area occupied by its child clickable, opening an external URL.
 /// </summary>
-internal sealed class LinkBlock : EnclosingBlock
+internal sealed class LinkBlock : LinkingBlock
 {
     public string Url { get; set; } = string.Empty;
 
-    protected override void RenderCore(Extent availableSpace, RenderContext context)
+    protected override void AddLink(ISurface surface, Extent area)
     {
-        Fit plan = Plan(availableSpace, context.Planning);
-
-        if (plan.IsDeferred || plan.IsNothing)
-            return;
-
-        // The content is a link in the structure, which the link itself belongs to.
-        using TagStack.Scope scope = context.Tags.Enter(context.Tags.Create("Link"));
-        base.RenderCore(availableSpace, context);
-
         if (!string.IsNullOrEmpty(Url))
-            context.Surface.LinkToUrl(Url, Offset.Zero, availableSpace);
+            surface.LinkToUrl(Url, Offset.Zero, area);
     }
 }

@@ -42,9 +42,6 @@ internal sealed class ColumnsBlock : Block
     /// </summary>
     public float LeadingGridColumns { get; set; }
 
-    /// <summary>Which way the row reads, when it reads other than the content around it.</summary>
-    public ReadingDirection? ReadingDirection { get; set; }
-
     private bool OnGrid => GridColumns > 0;
 
     internal override int ChildCount => Items.Count;
@@ -127,7 +124,7 @@ internal sealed class ColumnsBlock : Block
 
         float[] widths = Widths(availableSpace.Width, context.Planning);
         bool[] finished = Finished();
-        bool rightToLeft = (ReadingDirection ?? context.Planning.ReadingDirection) == Pdf.ReadingDirection.RightToLeft;
+        bool rightToLeft = context.Planning.ReadingDirection == ReadingDirection.RightToLeft;
         float along = OnGrid ? LeadingGridColumns * (GridColumn(availableSpace.Width) + Gutter) : 0f;
 
         for (int index = 0; index < Items.Count; index++)

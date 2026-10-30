@@ -86,9 +86,10 @@ public class ColumnsTests
         ColumnsBlock row = Row(0,
             Item(ColumnSizing.Fixed, 50, new FixedBlock(1, 10)),
             Item(ColumnSizing.Fixed, 50, new FixedBlock(1, 10)));
-        row.ReadingDirection = ReadingDirection.RightToLeft;
+        PlanContext context = LayoutHarness.Context();
+        context.ReadingDirection = ReadingDirection.RightToLeft;
 
-        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100));
+        RecordedPage page = LayoutHarness.Render(row, new Extent(200, 100), context);
         List<RectangleOperation> rectangles = page.Operations.OfType<RectangleOperation>().ToList();
 
         // The first declared item sits at the right edge.

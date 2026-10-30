@@ -79,7 +79,7 @@ internal sealed class FlowColumnsBlock : Block
         ISurface surface = context.Surface;
         bool rightToLeft = context.Planning.ReadingDirection == ReadingDirection.RightToLeft;
 
-        Pour drawn = Flow(width, forecast.ColumnHeight, context.Planning, context, column =>
+        Pour drawn = Flow(new Extent(width, forecast.ColumnHeight), context, column =>
         {
             float x = column * (width + Gutter);
             return new Offset(rightToLeft ? availableSpace.Width - x - width : x, 0);
@@ -149,7 +149,7 @@ internal sealed class FlowColumnsBlock : Block
         {
             try
             {
-                return Flow(width, columnHeight, context, ahead, static _ => Offset.Zero);
+                return Flow(new Extent(width, columnHeight), ahead, static _ => Offset.Zero);
             }
             finally
             {
@@ -159,23 +159,22 @@ internal sealed class FlowColumnsBlock : Block
     }
 
     /// <summary>
-    /// Draws the story into columns <paramref name="width"/> wide and <paramref name="height"/> tall, each placed at
-    /// the offset <paramref name="place"/> gives, until it ends or the columns are full.
+    /// Draws the story into columns of size <paramref name="column"/>, each placed at the offset
+    /// <paramref name="place"/> gives, until it ends or the columns are full.
     /// </summary>
-    private Pour Flow(float width, float height, PlanContext planning, RenderContext render, Func<int, Offset> place)
+    private Pour Flow(Extent column, RenderContext render, Func<int, Offset> place)
     {
-        Extent column = new Extent(width, height);
         float tallest = 0f;
 
         for (int index = 0; index < Count; index++)
         {
-            Fit plan = Story!.Plan(column, planning);
+            Fit plan = Story!.Plan(column, render.Planning);
 
             if (plan.IsNothing)
-                return new Pour(index, tallest, height, Done: true);
+                return new Pour(index, tallest, column.Height, Done: true);
 
             if (plan.IsDeferred)
-                return new Pour(index, tallest, height, Done: false);
+                return new Pour(index, tallest, column.Height, Done: false);
 
             tallest = Math.Max(tallest, plan.Size.Height);
 
@@ -185,10 +184,10 @@ internal sealed class FlowColumnsBlock : Block
             render.Surface.MoveOrigin(at.Reverse());
 
             if (plan.IsComplete)
-                return new Pour(index + 1, tallest, height, Done: true);
+                return new Pour(index + 1, tallest, column.Height, Done: true);
         }
 
-        return new Pour(Count, tallest, height, Done: false);
+        return new Pour(Count, tallest, column.Height, Done: false);
     }
 
     /// <summary>How many columns the story took, the tallest of them, the height each was given, and whether it ended.</summary>

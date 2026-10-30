@@ -7,15 +7,12 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal sealed class ImageBlock : Block
 {
-    public IImage? Image { get; set; }
+    public required IImage Image { get; init; }
 
     public ImageFitting Fit { get; set; } = ImageFitting.FitWidth;
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context)
     {
-        if (Image is null)
-            return Layout.Fit.Complete(Extent.Zero);
-
         Extent size = ResolveSize(availableSpace);
 
         if (!size.FitsIn(availableSpace))
@@ -26,9 +23,6 @@ internal sealed class ImageBlock : Block
 
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
-        if (Image is null)
-            return;
-
         Extent size = ResolveSize(availableSpace);
 
         if (!size.FitsIn(availableSpace))
@@ -40,7 +34,7 @@ internal sealed class ImageBlock : Block
     /// <summary>The box the image is drawn in; an image with no height in pixels is taken to be square.</summary>
     private Extent ResolveSize(Extent availableSpace)
     {
-        float aspect = Image!.PixelHeight == 0 ? 1f : (float)Image.PixelWidth / Image.PixelHeight;
+        float aspect = Image.PixelHeight == 0 ? 1f : (float)Image.PixelWidth / Image.PixelHeight;
         return PictureBox.Of(Fit, aspect, availableSpace);
     }
 }

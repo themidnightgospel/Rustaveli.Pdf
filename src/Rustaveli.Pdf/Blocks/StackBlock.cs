@@ -49,9 +49,6 @@ internal sealed class StackBlock : Block
         {
             Page page = Walk(availableSpace, context.Planning, placed);
 
-            if (placed.Count == 0)
-                return;
-
             foreach (Placed item in placed)
             {
                 Offset top = new Offset(0, item.Top);
@@ -115,7 +112,7 @@ internal sealed class StackBlock : Block
             if (plan.IsDeferred || (!gapFits && tall))
             {
                 if (!anyPlaced && plan.IsDeferred)
-                    return new Page(Fit.Defer(plan.DeferReason ?? "An item did not fit in the available space."), _finished);
+                    return new Page(plan, _finished);
 
                 stoppedAt = index;
                 break;

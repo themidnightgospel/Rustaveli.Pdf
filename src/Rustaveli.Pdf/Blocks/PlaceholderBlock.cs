@@ -49,7 +49,7 @@ internal sealed class PlaceholderBlock : Block
         // The label is centred as far as it fits; a box too small for a line of it shows the box alone.
         Fit fit = _label.Plan(availableSpace, context.Planning);
 
-        if (fit.IsDeferred || fit.IsNothing)
+        if (!fit.PlacesContent)
             return;
 
         Offset offset = new Offset(0, (availableSpace.Height - fit.Size.Height) / 2);

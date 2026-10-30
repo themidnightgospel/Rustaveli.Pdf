@@ -70,16 +70,4 @@ public class ImageTests
 
         Approximately.Equal(new Extent(100, 100), plan.Size);
     }
-
-    [Fact]
-    public void WithoutAnImageOccupiesNothing()
-    {
-        ImageBlock block = new ImageBlock();
-
-        Fit plan = LayoutHarness.Plan(block, new Extent(100, 300));
-
-        Assert.True(plan.IsComplete);
-        Approximately.Equal(Extent.Zero, plan.Size);
-        Assert.Empty(LayoutHarness.Render(block, new Extent(100, 300)).Operations);
-    }
 }

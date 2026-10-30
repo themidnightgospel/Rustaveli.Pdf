@@ -27,7 +27,7 @@ internal sealed class FlowBlock : Block
     public FlowPlacement Placement { get; set; }
 
     /// <summary>Where items shorter than their line sit within it.</summary>
-    public VerticalPlacement LineAlignment { get; set; } = VerticalPlacement.Top;
+    public VerticalPlacement ItemPlacement { get; set; } = VerticalPlacement.Top;
 
     internal override int ChildCount => Items.Count;
 
@@ -75,7 +75,7 @@ internal sealed class FlowBlock : Block
 
             foreach ((int index, Extent size, bool takesPlace) in line.Items)
             {
-                float y = line.Top + LineAlignment switch
+                float y = line.Top + ItemPlacement switch
                 {
                     VerticalPlacement.Middle => (line.Height - size.Height) / 2,
                     VerticalPlacement.Bottom => line.Height - size.Height,

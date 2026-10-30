@@ -16,7 +16,7 @@ internal sealed class ShadowBlock : EnclosingBlock
     {
         Fit plan = Plan(availableSpace, context.Planning);
 
-        if (plan.IsDeferred || plan.IsNothing)
+        if (!plan.PlacesContent)
             return;
 
         // Cast from the whole box this block occupies (ADR 0012), as a fill behind it would cover it.
