@@ -14,6 +14,8 @@ internal static class Adler32
     // is taken once per block rather than once per byte (the same bound zlib uses).
     private const int BlockSize = 5552;
 
+    public static uint Compute(ReadOnlySpan<byte> data) => Append(Initial, data);
+
     public static uint Append(uint adler, ReadOnlySpan<byte> data)
     {
         uint low = adler & 0xFFFF;

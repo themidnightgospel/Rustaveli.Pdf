@@ -1,4 +1,4 @@
-using System.IO.Compression;
+using System.Buffers.Binary;
 
 namespace Rustaveli.Pdf.Images;
 
@@ -8,74 +8,56 @@ namespace Rustaveli.Pdf.Images;
 /// </summary>
 internal static class PngWriter
 {
-    private static readonly byte[] Signature = [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A];
-
     /// <summary>A PNG of <paramref name="width"/> by <paramref name="height"/> pixels, three bytes each, a row at a time.</summary>
     public static byte[] Rgb(int width, int height, byte[] pixels)
     {
-        if (pixels.Length != width * height * 3)
-            throw new ArgumentException($"{width} by {height} pixels take {width * height * 3} bytes, not {pixels.Length}.", nameof(pixels));
+        int rowBytes = width * 3;
+        int expected = rowBytes * height;
+
+        if (pixels.Length != expected)
+        {
+            throw new ArgumentException(
+                $"{width} by {height} pixels take {expected} bytes, not {pixels.Length}.", nameof(pixels));
+        }
 
         using MemoryStream png = new MemoryStream();
-        png.Write(Signature, 0, Signature.Length);
+        png.Write(ImageFormatDetector.PngSignature);
 
         byte[] header = new byte[13];
-        BigEndian(header, 0, (uint)width);
-        BigEndian(header, 4, (uint)height);
+        BinaryPrimitives.WriteUInt32BigEndian(header, (uint)width);
+        BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(4), (uint)height);
         header[8] = 8;
         header[9] = 2;
-        Chunk(png, "IHDR", header);
+        Chunk(png, "IHDR"u8, header);
 
         // Each row starts with its filter, none, before its pixels.
-        byte[] rows = new byte[height * ((width * 3) + 1)];
+        byte[] rows = new byte[height * (rowBytes + 1)];
         for (int row = 0; row < height; row++)
-            Buffer.BlockCopy(pixels, row * width * 3, rows, (row * ((width * 3) + 1)) + 1, width * 3);
+            Buffer.BlockCopy(pixels, row * rowBytes, rows, (row * (rowBytes + 1)) + 1, rowBytes);
 
-        Chunk(png, "IDAT", Zlib(rows));
-        Chunk(png, "IEND", []);
+        Chunk(png, "IDAT"u8, Zlib(rows));
+        Chunk(png, "IEND"u8, []);
 
         return png.ToArray();
     }
 
     private static byte[] Zlib(byte[] data)
     {
-        using MemoryStream framed = new MemoryStream();
-        framed.WriteByte(0x78);
-        framed.WriteByte(0x9C);
-
-        using (DeflateStream deflate = new DeflateStream(framed, CompressionLevel.Optimal, leaveOpen: true))
-            deflate.Write(data, 0, data.Length);
-
-        byte[] checksum = new byte[4];
-        BigEndian(checksum, 0, Adler32.Append(Adler32.Initial, data));
-        framed.Write(checksum, 0, checksum.Length);
-
-        return framed.ToArray();
+        using ZlibWriter zlib = new ZlibWriter();
+        zlib.Write(data, 0, data.Length);
+        return zlib.Finish();
     }
 
-    private static void Chunk(Stream png, string type, byte[] data)
+    private static void Chunk(Stream png, ReadOnlySpan<byte> type, ReadOnlySpan<byte> data)
     {
-        byte[] length = new byte[4];
-        BigEndian(length, 0, (uint)data.Length);
-        png.Write(length, 0, length.Length);
+        Span<byte> field = stackalloc byte[4];
 
-        byte[] typed = new byte[4 + data.Length];
-        for (int index = 0; index < 4; index++)
-            typed[index] = (byte)type[index];
+        BinaryPrimitives.WriteUInt32BigEndian(field, (uint)data.Length);
+        png.Write(field);
+        png.Write(type);
+        png.Write(data);
 
-        Buffer.BlockCopy(data, 0, typed, 4, data.Length);
-        png.Write(typed, 0, typed.Length);
-
-        byte[] crc = new byte[4];
-        BigEndian(crc, 0, Crc32.Compute(typed));
-        png.Write(crc, 0, crc.Length);
-    }
-
-    private static void BigEndian(byte[] buffer, int offset, uint value)
-    {
-        buffer[offset] = (byte)(value >> 24);
-        buffer[offset + 1] = (byte)(value >> 16);
-        buffer[offset + 2] = (byte)(value >> 8);
-        buffer[offset + 3] = (byte)value;
+        BinaryPrimitives.WriteUInt32BigEndian(field, Crc32.Append(Crc32.Compute(type), data));
+        png.Write(field);
     }
 }

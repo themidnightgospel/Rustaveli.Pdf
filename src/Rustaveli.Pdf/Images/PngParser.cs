@@ -43,7 +43,7 @@ internal static class PngParser
 
             uint length = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(position, 4));
             ReadOnlySpan<byte> type = data.Slice(position + 4, 4);
-            if (length > int.MaxValue || length > (uint)(data.Length - position - 12))
+            if (length > (uint)(data.Length - position - 12))
                 throw new ImageFormatException($"The PNG chunk at offset {position} runs past the end of the file.");
 
             if (!IsChunkType(type))
