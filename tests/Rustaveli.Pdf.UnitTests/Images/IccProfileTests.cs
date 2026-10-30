@@ -32,6 +32,17 @@ public class IccProfileTests
         Assert.Null(IccProfile.TryCreate(TestJpeg.Profile(colorSpace), components));
     }
 
+    [Theory]
+    [InlineData("Lab ")]
+    [InlineData("XYZ ")]
+    [InlineData("HSV ")]
+    public void RejectsAProfileNoDeviceSpaceCanStandInFor(string colorSpace)
+    {
+        // A profile's /Alternate is gray, RGB or CMYK, so the profile must describe one of them, whatever the image.
+        for (int components = 0; components <= 16; components++)
+            Assert.Null(IccProfile.TryCreate(TestJpeg.Profile(colorSpace), components));
+    }
+
     [Fact]
     public void TrimsTrailingBytesBeyondTheDeclaredSize()
     {

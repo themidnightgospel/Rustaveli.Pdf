@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using Rustaveli.Pdf.Images;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Operations.Reading;
@@ -172,7 +173,7 @@ internal static class StreamDecoder
                     1 => left,
                     2 => up,
                     3 => (left + up) / 2,
-                    4 => Paeth(left, up, upLeft),
+                    4 => PngFilters.Predict((byte)left, (byte)up, (byte)upLeft),
                     _ => 0,
                 });
             }
@@ -181,16 +182,6 @@ internal static class StreamDecoder
         }
 
         return output;
-    }
-
-    private static int Paeth(int left, int up, int upLeft)
-    {
-        int estimate = left + up - upLeft;
-        int toLeft = Math.Abs(estimate - left);
-        int toUp = Math.Abs(estimate - up);
-        int toUpLeft = Math.Abs(estimate - upLeft);
-
-        return toLeft <= toUp && toLeft <= toUpLeft ? left : toUp <= toUpLeft ? up : upLeft;
     }
 
     /// <summary>TIFF predictor 2, for 8-bit components: each byte is its difference from the one a pixel before.</summary>

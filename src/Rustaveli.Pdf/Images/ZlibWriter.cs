@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
+using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Images;
 
@@ -15,10 +16,8 @@ internal sealed class ZlibWriter : IDisposable
 
     public ZlibWriter()
     {
-        // Deflate with a 32 KiB window, and the check bits that make the header a multiple of 31. The level bits
-        // are informational only; 0x9C is the conventional "default compression" header.
-        _output.WriteByte(0x78);
-        _output.WriteByte(0x9C);
+        _output.WriteByte(ZlibEncoder.Method);
+        _output.WriteByte(ZlibEncoder.DefaultFlags);
         _deflater = new DeflateStream(_output, CompressionLevel.Optimal, leaveOpen: true);
     }
 

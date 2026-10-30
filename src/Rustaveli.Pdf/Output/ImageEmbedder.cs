@@ -106,10 +106,10 @@ internal sealed class ImageEmbedder(PdfFileWriter file)
             space.HighValue,
             new PdfString(space.Palette.Span, PdfStringForm.Hex),
         },
-        _ => new PdfArray(2) { IccBased, Profile(space.Profile!) },
+        _ => new PdfArray(2) { IccBased, Profile(space.Profile!, space.Alternate!) },
     };
 
-    private PdfReference Profile(IccProfile profile)
+    private PdfReference Profile(IccProfile profile, ImageColorSpace alternate)
     {
         if (!_profiles.TryGetValue(profile.Hash, out List<(IccProfile Profile, PdfReference Reference)>? written))
         {
@@ -127,7 +127,7 @@ internal sealed class ImageEmbedder(PdfFileWriter file)
             new PdfDictionary
             {
                 [PdfNames.N] = profile.ComponentCount,
-                [Alternate] = profile.ComponentCount switch { 1 => DeviceGray, 4 => DeviceCmyk, _ => DeviceRgb },
+                [Alternate] = ColorSpace(alternate),
             },
             profile.Data.Span);
 

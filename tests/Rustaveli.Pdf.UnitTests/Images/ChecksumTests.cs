@@ -1,5 +1,6 @@
 using System.Text;
 using Rustaveli.Pdf.Images;
+using Reference = Rustaveli.Pdf.UnitTests.Writing.ZlibReader;
 
 namespace Rustaveli.Pdf.UnitTests.Images;
 
@@ -78,6 +79,20 @@ public class ChecksumTests
 
         foreach (int split in new[] { 0, 1, 5551, 5552, 5553, 11104, 12000 })
             Assert.Equal(whole, Adler32.Append(Adler32.Append(Adler32.Initial, data.AsSpan(0, split)), data.AsSpan(split)));
+    }
+
+    [Fact]
+    public void Adler32ReducesBeforeTheSumsCanOverflow()
+    {
+        // Worst case for the deferred reduction: the low sum ends a block one short of the modulus, then every
+        // byte is 0xFF. With reduction deferred even one byte longer than the block length allows, the high sum
+        // passes 2^32 and the checksum comes out wrong.
+        byte[] data = new byte[3 * 5553];
+        data.AsSpan(0, 256).Fill(0xFF);
+        data[256] = 0xEF;
+        data.AsSpan(5553).Fill(0xFF);
+
+        Assert.Equal(Reference.ReferenceAdler32(data), Adler32.Compute(data));
     }
 
     [Theory]

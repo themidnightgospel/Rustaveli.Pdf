@@ -51,19 +51,27 @@ internal static class PngImageEncoder
         FlateDecodeParameters parameters =
             new FlateDecodeParameters(header.ColorChannels, header.BitDepth, header.Width);
 
-        if (!header.Interlaced && !header.HasAlphaChannel && !paletteMask)
-        {
-            return new EncodedImage(
-                header.Width,
-                header.Height,
-                colorSpace,
-                header.BitDepth,
-                ImageFilter.Flate,
-                png.ConcatenateImageData(),
-                parameters,
-                colorKeyMask: colorKey);
-        }
+        (ReadOnlyMemory<byte> data, EncodedImage? softMask) =
+            !header.Interlaced && !header.HasAlphaChannel && !paletteMask
+                ? (png.ConcatenateImageData(), null)
+                : Reencode(png, paletteMask);
 
+        return new EncodedImage(
+            header.Width,
+            header.Height,
+            colorSpace,
+            header.BitDepth,
+            ImageFilter.Flate,
+            data,
+            parameters,
+            colorKeyMask: colorKey,
+            softMask: softMask);
+    }
+
+    /// <summary>The image's colour, compressed again, and its opacity as a soft mask if it has any.</summary>
+    private static (ReadOnlyMemory<byte> Color, EncodedImage? SoftMask) Reencode(PngFile png, bool paletteMask)
+    {
+        PngHeader header = png.Header;
         using PngReencoder reencoder = new PngReencoder(header, png.PaletteAlpha.Span, paletteMask);
         PngScanlineDecoder.Decode(png, reencoder);
 
@@ -80,16 +88,7 @@ internal static class PngImageEncoder
                 alpha,
                 new FlateDecodeParameters(1, reencoder.AlphaBitDepth, header.Width));
 
-        return new EncodedImage(
-            header.Width,
-            header.Height,
-            colorSpace,
-            header.BitDepth,
-            ImageFilter.Flate,
-            color,
-            parameters,
-            colorKeyMask: colorKey,
-            softMask: softMask);
+        return (color, softMask);
     }
 
     private static ImageColorSpace ColorSpaceOf(PngFile png)

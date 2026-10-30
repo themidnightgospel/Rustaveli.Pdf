@@ -14,7 +14,7 @@ internal static class ImageFormatDetector
 {
     private const int MaxBrandBytes = 256;
 
-    private static ReadOnlySpan<byte> PngSignature => [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    internal static ReadOnlySpan<byte> PngSignature => [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     public static ImageFormat Detect(ReadOnlySpan<byte> data)
     {

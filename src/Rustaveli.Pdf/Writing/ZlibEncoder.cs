@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
+using Rustaveli.Pdf.Images;
 
 namespace Rustaveli.Pdf.Writing;
 
@@ -17,11 +18,11 @@ internal static class ZlibEncoder
     /// Deflate with a 32 KiB window. Every valid header is a multiple of 31 when read as a big-endian 16-bit number,
     /// which fixes the second byte for each compression-level hint.
     /// </summary>
-    private const byte Method = 0x78;
+    internal const byte Method = 0x78;
 
     private const byte FastestFlags = 0x01;
 
-    private const byte DefaultFlags = 0x9C;
+    internal const byte DefaultFlags = 0x9C;
 
     /// <summary>Appends the zlib encoding of <paramref name="data"/> to <paramref name="destination"/>.</summary>
     public static void Compress(ReadOnlySpan<byte> data, CompressionLevel level, PdfByteWriter destination)

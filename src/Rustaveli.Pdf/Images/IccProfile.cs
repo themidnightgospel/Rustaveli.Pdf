@@ -50,8 +50,9 @@ internal sealed class IccProfile
         if (!span.Slice(36, 4).SequenceEqual("acsp"u8))
             return null;
 
+        // Only gray, RGB and CMYK profiles, which a device space can stand in for.
         int components = ComponentsOf(span.Slice(16, 4));
-        if (components != expectedComponents)
+        if (components == 0 || components != expectedComponents)
             return null;
 
         return new IccProfile(data.Slice(0, (int)declaredSize), components);
