@@ -33,9 +33,9 @@ internal ref struct LineBreakEnumerator
     /// space itself, so it has a row for each class that can precede it, and each of those twice: LB15a treats a run
     /// after an initial quotation mark differently depending on what came before the mark.
     /// </summary>
-    private const int SpaceRows = ClassCount;
+    private const int FirstSpaceRow = ClassCount;
 
-    private const int RowCount = SpaceRows + (2 * ClassCount);
+    private const int RowCount = FirstSpaceRow + (2 * ClassCount);
 
     /// <summary>
     /// The decision for each item class or space run before a position and class after it, or
@@ -57,7 +57,7 @@ internal ref struct LineBreakEnumerator
     private int _twoBeforeCodepoint;
 
     /// <summary>Where the decisions for the item before the position start in <see cref="Decisions"/>.</summary>
-    private int _row;
+    private int _rowStart;
 
     // LB8a looks at the previous character itself, which may be a joiner that LB9 has attached to its base.
     private bool _afterJoiner;
@@ -115,7 +115,7 @@ internal ref struct LineBreakEnumerator
             _next += length;
 
             // The table was worked out with no joiner before the position, so it can answer only when there is none.
-            Decision decision = _afterJoiner ? Decision.Contextual : Decisions[_row + (int)properties.Class];
+            Decision decision = _afterJoiner ? Decision.Contextual : Decisions[_rowStart + (int)properties.Class];
 
             if (decision == Decision.Contextual)
                 decision = Decide(properties, codepoint);
@@ -375,11 +375,11 @@ internal ref struct LineBreakEnumerator
                 _spacesFollowOpeningQuote = _before.Class == QUPi && OpensQuotation(_twoBefore.Class);
             }
 
-            _row = SpaceRow(_beforeSpaces, _spacesFollowOpeningQuote) * ClassCount;
+            _rowStart = SpaceRow(_beforeSpaces, _spacesFollowOpeningQuote) * ClassCount;
         }
         else
         {
-            _row = (int)kind * ClassCount;
+            _rowStart = (int)kind * ClassCount;
         }
 
         _afterNumberAndClose = kind is CL or CP && _inNumber;
@@ -451,7 +451,7 @@ internal ref struct LineBreakEnumerator
     }
 
     private static int SpaceRow(LineBreakClass beforeSpaces, bool followOpeningQuote) =>
-        SpaceRows + (2 * (int)beforeSpaces) + (followOpeningQuote ? 1 : 0);
+        FirstSpaceRow + (2 * (int)beforeSpaces) + (followOpeningQuote ? 1 : 0);
 
     /// <summary>
     /// LB25's (PO | PR) × OP IS? NU, looking ahead from the opening punctuation that follows the position.

@@ -55,7 +55,7 @@ internal static class BidiText
                 char character = written[run.IsRightToLeft ? run.Start + run.Length - 1 - step : run.Start + step];
                 BidiClass type = BidiCharacter.ClassOf(character);
 
-                if (BidiParagraph.IsRemovedByX9(type) || type is BidiClass.LRI or BidiClass.RLI or BidiClass.FSI or BidiClass.PDI)
+                if (BidiParagraph.IsRemovedByX9(type) || BidiParagraph.IsIsolateControl(type))
                     continue;
 
                 display.Append(run.IsRightToLeft ? (char)BidiCharacter.Mirror(character) : character);

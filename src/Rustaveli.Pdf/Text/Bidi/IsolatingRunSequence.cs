@@ -19,7 +19,7 @@ internal static class IsolatingRunSequence
         for (int position = 0; position < types.Length; position++)
         {
             if (types[position] == BidiClass.NSM)
-                types[position] = IsIsolateControl(previous) ? BidiClass.ON : previous;
+                types[position] = BidiParagraph.IsIsolateControl(previous) ? BidiClass.ON : previous;
 
             previous = types[position];
         }
@@ -225,8 +225,5 @@ internal static class IsolatingRunSequence
     };
 
     private static bool IsNeutralOrIsolate(BidiClass type) =>
-        type is BidiClass.B or BidiClass.S or BidiClass.WS or BidiClass.ON || IsIsolateControl(type);
-
-    private static bool IsIsolateControl(BidiClass type) =>
-        type is BidiClass.LRI or BidiClass.RLI or BidiClass.FSI or BidiClass.PDI;
+        type is BidiClass.B or BidiClass.S or BidiClass.WS or BidiClass.ON || BidiParagraph.IsIsolateControl(type);
 }
