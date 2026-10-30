@@ -12,14 +12,14 @@ internal static class CellPlacement
         HashSet<(int Row, int Column)> occupied = new HashSet<(int Row, int Column)>();
 
         // Fully pinned cells claim their slots first, so everything placed afterwards can avoid them.
-        foreach (CellBlock? cell in cells.Where(cell => cell is { HasExplicitRow: true, HasExplicitColumn: true }))
+        foreach (CellBlock cell in cells.Where(cell => cell is { HasExplicitRow: true, HasExplicitColumn: true }))
             Occupy(occupied, cell);
 
         // A cell that pins only one axis still needs the other resolved. Treating it as fully placed would
         // leave the unpinned axis at its default of 1, silently stacking such cells on top of one another.
-        foreach (CellBlock? cell in cells.Where(cell => cell.HasExplicitRow && !cell.HasExplicitColumn))
+        foreach (CellBlock cell in cells.Where(cell => cell.HasExplicitRow && !cell.HasExplicitColumn))
         {
-            int span = Math.Min(Math.Max(1, cell.ColumnSpan), columnCount);
+            int span = Math.Min(cell.ColumnSpan, columnCount);
             int candidate = 1;
 
             while (candidate + span - 1 <= columnCount && !IsFree(occupied, cell.Row, candidate, span, cell.RowSpan))
@@ -36,11 +36,11 @@ internal static class CellPlacement
             Occupy(occupied, cell);
         }
 
-        foreach (CellBlock? cell in cells.Where(cell => cell.HasExplicitColumn && !cell.HasExplicitRow))
+        foreach (CellBlock cell in cells.Where(cell => cell.HasExplicitColumn && !cell.HasExplicitRow))
         {
             int candidate = 1;
 
-            while (!IsFree(occupied, candidate, cell.Column, Math.Max(1, cell.ColumnSpan), cell.RowSpan))
+            while (!IsFree(occupied, candidate, cell.Column, cell.ColumnSpan, cell.RowSpan))
                 candidate++;
 
             cell.Row = candidate;
@@ -50,9 +50,9 @@ internal static class CellPlacement
         int row = 1;
         int column = 1;
 
-        foreach (CellBlock? cell in cells.Where(cell => !cell.HasExplicitRow && !cell.HasExplicitColumn))
+        foreach (CellBlock cell in cells.Where(cell => !cell.HasExplicitRow && !cell.HasExplicitColumn))
         {
-            int span = Math.Min(Math.Max(1, cell.ColumnSpan), columnCount);
+            int span = Math.Min(cell.ColumnSpan, columnCount);
 
             while (!IsFree(occupied, row, column, span, cell.RowSpan) || column + span - 1 > columnCount)
             {
@@ -83,9 +83,10 @@ internal static class CellPlacement
         }
     }
 
-    private static bool IsFree(HashSet<(int, int)> occupied, int row, int column, int columnSpan, int rowSpan)
+    private static bool IsFree(
+        HashSet<(int Row, int Column)> occupied, int row, int column, int columnSpan, int rowSpan)
     {
-        for (int r = row; r < row + Math.Max(1, rowSpan); r++)
+        for (int r = row; r < row + rowSpan; r++)
         {
             for (int c = column; c < column + columnSpan; c++)
             {

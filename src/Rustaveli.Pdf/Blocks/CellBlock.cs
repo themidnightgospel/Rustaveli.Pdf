@@ -20,13 +20,13 @@ internal sealed class CellBlock : EnclosingBlock
     /// <summary>Whether the cell heads its row, in a tagged table.</summary>
     public bool HeadsRow { get; set; }
 
-    /// <summary>Set when the caller pinned the row, which excludes this cell from automatic placement.</summary>
+    /// <summary>Set when the caller pinned the row; placement keeps it and chooses only an unpinned column.</summary>
     internal bool HasExplicitRow { get; set; }
 
-    /// <summary>Set when the caller pinned the column, which excludes this cell from automatic placement.</summary>
+    /// <summary>Set when the caller pinned the column; placement keeps it and chooses only an unpinned row.</summary>
     internal bool HasExplicitColumn { get; set; }
 
-    internal int LastRow => Row + Math.Max(1, RowSpan) - 1;
+    internal int LastRow => Row + RowSpan - 1;
 
-    internal int LastColumn => Column + Math.Max(1, ColumnSpan) - 1;
+    internal int LastColumn => Column + ColumnSpan - 1;
 }
