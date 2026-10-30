@@ -228,8 +228,14 @@ internal sealed class TableBlock : Block
 
     private TableLayout? _cachedLayout;
 
-    /// <summary>The table's head, body and foot in a tagged document, once it has begun drawing.</summary>
-    private StructureElement?[]? _groups;
+    /// <summary>The table's head in a tagged document, once it has begun drawing, if it has header cells.</summary>
+    private StructureElement? _head;
+
+    /// <summary>The table's body in a tagged document, once it has begun drawing.</summary>
+    private StructureElement? _body;
+
+    /// <summary>The table's foot in a tagged document, once it has begun drawing, if it has footer cells.</summary>
+    private StructureElement? _foot;
 
     /// <summary>The element of each cell drawn tagged.</summary>
     private Dictionary<CellBlock, StructureElement>? _cellTags;
@@ -267,7 +273,9 @@ internal sealed class TableBlock : Block
     {
         _completedRows = 0;
         _cachedLayout = null;
-        _groups = null;
+        _head = null;
+        _body = null;
+        _foot = null;
         _cellTags = null;
     }
 
@@ -329,19 +337,17 @@ internal sealed class TableBlock : Block
         bool tagging = tags.Enabled && !tags.IsUntagged && tags.Current.Role == "Table";
         bool repeat = _completedRows > 0;
 
-        if (tagging && _groups is null)
+        // Created in the order the structure tree lists them.
+        if (tagging && _body is null)
         {
-            _groups =
-            [
-                HeaderCells.Count > 0 ? tags.Create("THead") : null,
-                tags.Create("TBody"),
-                FooterCells.Count > 0 ? tags.Create("TFoot") : null,
-            ];
+            _head = HeaderCells.Count > 0 ? tags.Create("THead") : null;
+            _body = tags.Create("TBody");
+            _foot = FooterCells.Count > 0 ? tags.Create("TFoot") : null;
         }
 
-        StructureElement? head = tagging && !repeat ? _groups![0] : null;
-        StructureElement? body = tagging ? _groups![1] : null;
-        StructureElement? foot = tagging && !repeat ? _groups![2] : null;
+        StructureElement? head = tagging && !repeat ? _head : null;
+        StructureElement? body = tagging ? _body : null;
+        StructureElement? foot = tagging && !repeat ? _foot : null;
 
         if (layout.HeaderHeights.Length != 0)
         {
@@ -398,6 +404,7 @@ internal sealed class TableBlock : Block
     {
         float bodySpace = availableHeight - layout.BandHeight;
         float accumulated = 0f;
+        float height = 0f;
         int lastRow = _completedRows;
 
         for (int row = _completedRows + 1; row <= layout.BodyHeights.Length; row++)
@@ -412,16 +419,8 @@ internal sealed class TableBlock : Block
             // Only advance the commit point to rows that close their span group; a row in the middle of one
             // has fitted, but taking it would split the group across the page break.
             if (layout.ClosesGroup(row))
-                lastRow = row;
+                (lastRow, height) = (row, candidate);
         }
-
-        if (lastRow == _completedRows)
-            return (Height: 0f, LastRow: _completedRows);
-
-        float height = 0f;
-
-        for (int row = _completedRows + 1; row <= lastRow; row++)
-            height += layout.BodyHeights[row - 1];
 
         return (Height: height, LastRow: lastRow);
     }
@@ -503,8 +502,8 @@ internal sealed class TableBlock : Block
             {
                 StructureElement element = tags.Create(heads || cell.HeadsRow ? "TH" : "TD")!;
                 element.Scope = heads ? TableScope.Column : cell.HeadsRow ? TableScope.Row : null;
-                element.RowSpan = Math.Max(1, cell.RowSpan);
-                element.ColumnSpan = Math.Max(1, cell.ColumnSpan);
+                element.RowSpan = cell.RowSpan;
+                element.ColumnSpan = cell.ColumnSpan;
                 _cellTags[cell] = element;
             }
         }

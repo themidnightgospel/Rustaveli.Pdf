@@ -445,6 +445,31 @@ public class TableTests
     }
 
     [Fact]
+    public void APageHoldsOnlyTheRowsBeforeASpanThatDoesNotFit()
+    {
+        TableBlock table = BuildTable(composer =>
+        {
+            composer.Columns(columns =>
+            {
+                columns.Share();
+                columns.Share();
+            });
+
+            Fill(composer.Cell().AtRow(1).AtColumn(1), 1, 10);
+            Fill(composer.Cell().AtRow(1).AtColumn(2), 1, 10);
+            Fill(composer.Cell().AtRow(2).AtColumn(1).SpanRows(2), 1, 20);
+            Fill(composer.Cell().AtRow(2).AtColumn(2), 1, 10);
+            Fill(composer.Cell().AtRow(3).AtColumn(2), 1, 10);
+        });
+
+        // The second row fits too, but it goes to the next page with the third, which its spanning cell reaches.
+        Fit plan = LayoutHarness.Plan(table, new Extent(200, 25));
+
+        Assert.True(plan.IsPartial);
+        Approximately.Equal(10f, plan.Size.Height);
+    }
+
+    [Fact]
     public void DefersWhenFixedColumnsExceedTheAvailableWidth()
     {
         TableBlock table = BuildTable(composer =>
