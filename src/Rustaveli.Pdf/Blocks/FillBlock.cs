@@ -21,7 +21,7 @@ internal sealed class FillBlock : EnclosingBlock
         // A parent only draws what it measured as drawable; this guards callers that draw without asking.
         Fit plan = Plan(availableSpace, context.Planning);
 
-        if (plan.IsDeferred || plan.IsNothing)
+        if (!plan.PlacesContent)
             return;
 
         // The size given is the size this box occupies (ADR 0012), so the background fills all of it — a table

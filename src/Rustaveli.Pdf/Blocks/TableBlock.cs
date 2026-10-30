@@ -66,7 +66,7 @@ internal sealed class TableBlock : Block
         /// right edge and a spanning cell is offset by its combined width rather than its first column's.
         /// </summary>
         public float ColumnLeft(CellBlock cell, float spanWidth) =>
-            Direction == Pdf.ReadingDirection.LeftToRight
+            Direction == ReadingDirection.LeftToRight
                 ? ColumnOffsets[cell.Column - 1]
                 : TotalWidth - ColumnOffsets[cell.Column - 1] - spanWidth;
 
@@ -239,9 +239,6 @@ internal sealed class TableBlock : Block
 
     /// <summary>The element of each cell drawn tagged.</summary>
     private Dictionary<CellBlock, StructureElement>? _cellTags;
-
-    /// <summary>Overrides the inherited flow direction, reversing column order. Null follows the context.</summary>
-    public ReadingDirection? ReadingDirection { get; set; }
 
     public List<TableColumnSpec> Columns { get; } = [];
 
@@ -524,7 +521,7 @@ internal sealed class TableBlock : Block
     /// </remarks>
     private TableLayout? BuildLayout(Extent availableSpace, PlanContext context)
     {
-        ReadingDirection direction = ReadingDirection ?? context.ReadingDirection;
+        ReadingDirection direction = context.ReadingDirection;
         float[]? columnWidths = ResolveColumnWidths(availableSpace.Width);
 
         if (columnWidths is null)

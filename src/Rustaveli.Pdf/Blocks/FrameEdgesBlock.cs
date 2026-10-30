@@ -9,7 +9,12 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal sealed class FrameEdgesBlock : EnclosingBlock
 {
+    private const float OutlineWeight = 0.5f;
+
     private static readonly float[] Dashes = [3, 2];
+
+    /// <summary>How far the label sits in from the edges of its tab, across and down.</summary>
+    private static readonly Offset LabelMargin = new Offset(2, 1);
 
     private readonly TextBlock? _label;
 
@@ -45,10 +50,10 @@ internal sealed class FrameEdgesBlock : EnclosingBlock
         Offset bottomLeft = new Offset(0, availableSpace.Height);
         Offset bottomRight = new Offset(availableSpace.Width, availableSpace.Height);
 
-        context.Surface.DrawDashedLine(Offset.Zero, topRight, 0.5f, Ink, Dashes);
-        context.Surface.DrawDashedLine(topRight, bottomRight, 0.5f, Ink, Dashes);
-        context.Surface.DrawDashedLine(bottomRight, bottomLeft, 0.5f, Ink, Dashes);
-        context.Surface.DrawDashedLine(bottomLeft, Offset.Zero, 0.5f, Ink, Dashes);
+        context.Surface.DrawDashedLine(Offset.Zero, topRight, OutlineWeight, Ink, Dashes);
+        context.Surface.DrawDashedLine(topRight, bottomRight, OutlineWeight, Ink, Dashes);
+        context.Surface.DrawDashedLine(bottomRight, bottomLeft, OutlineWeight, Ink, Dashes);
+        context.Surface.DrawDashedLine(bottomLeft, Offset.Zero, OutlineWeight, Ink, Dashes);
 
         if (_label is null)
             return;
@@ -56,14 +61,14 @@ internal sealed class FrameEdgesBlock : EnclosingBlock
         // The label sits on a tab of the outline's ink in the top corner, as small as its words.
         Fit fit = _label.Plan(Extent.Max, context.Planning);
 
-        if (fit.IsDeferred || fit.IsNothing)
+        if (!fit.PlacesContent)
             return;
 
-        Extent tab = new Extent(fit.Size.Width + 4, fit.Size.Height + 2);
+        Extent tab = new Extent(fit.Size.Width + (2 * LabelMargin.X), fit.Size.Height + (2 * LabelMargin.Y));
         context.Surface.FillRectangle(Offset.Zero, tab, Ink);
-        context.Surface.MoveOrigin(new Offset(2, 1));
+        context.Surface.MoveOrigin(LabelMargin);
         _label.Render(fit.Size, context);
-        context.Surface.MoveOrigin(new Offset(-2, -1));
+        context.Surface.MoveOrigin(LabelMargin.Reverse());
         _label.ResetState();
     }
 }

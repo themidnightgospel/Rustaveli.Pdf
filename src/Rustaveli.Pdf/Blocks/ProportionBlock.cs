@@ -36,18 +36,16 @@ internal sealed class ProportionBlock : EnclosingBlock
         Child.Render(Box(availableSpace), context);
     }
 
+    // The box a picture of the same proportion would be drawn in; for the area, the largest that fits.
     private Extent Box(Extent room)
     {
-        Extent acrossTheWidth = new Extent(room.Width, room.Width / Ratio);
-        Extent downTheHeight = new Extent(room.Height * Ratio, room.Height);
-
-        return Fit switch
+        ImageFitting fitting = Fit switch
         {
-            ProportionFit.Height => downTheHeight,
-
-            // The larger box that fits: the full width, unless that runs past the bottom of the room.
-            ProportionFit.Area => acrossTheWidth.Height <= room.Height + Extent.Epsilon ? acrossTheWidth : downTheHeight,
-            _ => acrossTheWidth,
+            ProportionFit.Height => ImageFitting.FitHeight,
+            ProportionFit.Area => ImageFitting.Proportionally,
+            _ => ImageFitting.FitWidth,
         };
+
+        return PictureBox.Of(fitting, Ratio, room);
     }
 }

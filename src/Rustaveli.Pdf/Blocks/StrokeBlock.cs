@@ -29,7 +29,9 @@ internal sealed class StrokeBlock : EnclosingBlock
     /// <summary>Where the stroke lies against the edge.</summary>
     public StrokeAlignment Alignment { get; set; }
 
-    /// <summary>True when all four sides share a width, which is what makes a corner radius meaningful.</summary>
+    /// <summary>
+    /// True when all four sides share a width greater than zero, which is what makes a corner radius meaningful.
+    /// </summary>
     internal bool HasUniformWeight => Weight.Left > 0 && IsUniform;
 
     private bool IsUniform =>
@@ -49,7 +51,7 @@ internal sealed class StrokeBlock : EnclosingBlock
     {
         Fit plan = Plan(availableSpace, context.Planning);
 
-        if (plan.IsDeferred || plan.IsNothing)
+        if (!plan.PlacesContent)
             return;
 
         Child?.Render(availableSpace, context);

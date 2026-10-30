@@ -25,7 +25,8 @@ internal sealed class LanguageBlock : EnclosingBlock
     {
         TagStack tags = context.Tags;
 
-        if (tags.Enabled && _span is null && !tags.Current.IsGrouping && Plan(availableSpace, context.Planning) is { IsDeferred: false, IsNothing: false })
+        if (tags.Enabled && _span is null && !tags.Current.IsGrouping &&
+            Plan(availableSpace, context.Planning).PlacesContent)
         {
             _span = tags.Create("Span");
             _span?.Language = Language;

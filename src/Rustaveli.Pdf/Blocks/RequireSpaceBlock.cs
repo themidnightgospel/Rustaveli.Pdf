@@ -44,7 +44,7 @@ internal sealed class RequireSpaceBlock : EnclosingBlock
         // legitimately draw with less height than it offered — a header band shrinks to the height it settled
         // on, a row draws its items at the row height. Re-deriving the decision from that smaller box would
         // refuse content the parent had already committed to, and drop it with no diagnostic.
-        Fit plan = Child?.Plan(availableSpace, context.Planning) ?? Fit.Complete(Extent.Zero);
+        Fit plan = base.PlanCore(availableSpace, context.Planning);
 
         base.RenderCore(availableSpace, context);
 

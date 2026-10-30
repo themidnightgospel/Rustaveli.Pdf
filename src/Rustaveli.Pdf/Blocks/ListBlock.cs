@@ -17,9 +17,9 @@ internal sealed class ListBlock : Block
 
     private readonly TagBlock _list;
 
-    public ListBlock() => _list = new TagBlock { Tag = ContentTag.List, Child = _layout };
-
     private int _builtItemCount = -1;
+
+    public ListBlock() => _list = new TagBlock { Tag = ContentTag.List, Child = _layout };
 
     public List<ListEntry> Items { get; } = new List<ListEntry>();
 
@@ -39,8 +39,8 @@ internal sealed class ListBlock : Block
     internal override Block? ChildAt(int index) => index == 0 ? _list : throw new ArgumentOutOfRangeException(nameof(index));
 
     /// <summary>
-    /// Assembles the marker-and-content rows. Called once composition is complete, because an item's number
-    /// depends on how many items ended up in the list.
+    /// Assembles the marker-and-content rows. Called once composition is complete, because the numbering, the
+    /// indent, the marker style and the spacing may be set after the items.
     /// </summary>
     internal void Build()
     {
@@ -48,8 +48,7 @@ internal sealed class ListBlock : Block
         _layout.SpaceBetween = SpaceBetween;
         for (int i = 0; i < Items.Count; i++)
         {
-            ListEntry listItem = Items[i];
-            listItem.Marker = ListMarkers.Format(Numbering, i + 1);
+            ListEntry entry = Items[i];
             ColumnsBlock row = new ColumnsBlock();
             TextBlock label = new TextBlock
             {
@@ -57,24 +56,22 @@ internal sealed class ListBlock : Block
             };
             label.Runs.Add(new TextRun
             {
-                Text = listItem.Marker
+                Text = ListMarkers.Format(Numbering, i + 1)
             });
 
             // A list is a list whoever reads it, so it is tagged as one without asking: each item its label and body.
-            ColumnSlot rowItem = new ColumnSlot
+            ColumnSlot markerSlot = new ColumnSlot
             {
                 Sizing = ColumnSizing.Fixed,
                 Value = MarkerIndent,
                 Child = new TagBlock { Tag = ContentTag.ListLabel, Child = label }
             };
-            ColumnSlot item = new ColumnSlot
+            ColumnSlot bodySlot = new ColumnSlot
             {
-                Sizing = ColumnSizing.Share,
-                Value = 1f,
-                Child = new TagBlock { Tag = ContentTag.ListBody, Child = listItem }
+                Child = new TagBlock { Tag = ContentTag.ListBody, Child = entry }
             };
-            row.Items.Add(rowItem);
-            row.Items.Add(item);
+            row.Items.Add(markerSlot);
+            row.Items.Add(bodySlot);
             _layout.Items.Add(new TagBlock { Tag = ContentTag.ListItem, Child = row });
         }
         _builtItemCount = Items.Count;
