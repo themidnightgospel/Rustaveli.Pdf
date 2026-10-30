@@ -32,7 +32,7 @@ internal static class LineReordering
                 levels[index] = (byte)paragraphLevel;
                 trailing = true;
             }
-            else if (type is BidiClass.WS or BidiClass.LRI or BidiClass.RLI or BidiClass.FSI or BidiClass.PDI)
+            else if (type == BidiClass.WS || BidiParagraph.IsIsolateControl(type))
             {
                 if (trailing)
                     levels[index] = (byte)paragraphLevel;

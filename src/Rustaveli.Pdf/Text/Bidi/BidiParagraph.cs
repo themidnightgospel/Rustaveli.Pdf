@@ -160,8 +160,7 @@ internal sealed class BidiParagraph
             return;
         }
 
-        byte[]? buffer = length > StackLineLength ? new byte[length] : null;
-        Span<byte> levels = buffer ?? stackalloc byte[StackLineLength];
+        Span<byte> levels = length <= StackLineLength ? stackalloc byte[StackLineLength] : new byte[length];
 
         GetLineLevels(start, length, levels);
         LineReordering.Reorder(levels.Slice(0, length), start, runs);
@@ -170,6 +169,12 @@ internal sealed class BidiParagraph
     /// <summary>Whether rule X9 removes characters of this class from the rest of the algorithm.</summary>
     internal static bool IsRemovedByX9(BidiClass type) =>
         type is BidiClass.BN or BidiClass.LRE or BidiClass.RLE or BidiClass.LRO or BidiClass.RLO or BidiClass.PDF;
+
+    internal static bool IsIsolateInitiator(BidiClass type) =>
+        type is BidiClass.LRI or BidiClass.RLI or BidiClass.FSI;
+
+    /// <summary>Whether the class starts or ends an isolate.</summary>
+    internal static bool IsIsolateControl(BidiClass type) => IsIsolateInitiator(type) || type == BidiClass.PDI;
 
     private void CheckLine(int start, int length)
     {
@@ -245,10 +250,11 @@ internal sealed class BidiParagraph
         ExplicitLevels.Resolve(classes, isolates, types, explicitLevels, paragraphLevel);
 
         byte[] levels = new byte[length];
-        int[] order = new int[length];
-        BidiClass[] sequenceTypes = new BidiClass[length];
-        int[] closings = new int[length];
-        int used = 0;
+
+        // A sequence is resolved before the next is collected, so each takes these buffers from their start.
+        int[] indexBuffer = new int[length];
+        BidiClass[] typeBuffer = new BidiClass[length];
+        int[] pairBuffer = new int[length];
 
         // X10: each level run that does not continue an isolating run sequence starts one.
         int previous = -1;
@@ -263,11 +269,10 @@ internal sealed class BidiParagraph
             if (!startsRun || ContinuesSequence(classes, types, explicitLevels, isolates, index))
                 continue;
 
-            int count = CollectSequence(classes, types, explicitLevels, isolates, index, order.AsSpan(used));
-            Span<int> indices = order.AsSpan(used, count);
-            Span<BidiClass> sequence = sequenceTypes.AsSpan(used, count);
-            Span<int> pairs = closings.AsSpan(used, count);
-            used += count;
+            int count = CollectSequence(classes, types, explicitLevels, isolates, index, indexBuffer);
+            Span<int> indices = indexBuffer.AsSpan(0, count);
+            Span<BidiClass> sequence = typeBuffer.AsSpan(0, count);
+            Span<int> pairs = pairBuffer.AsSpan(0, count);
 
             int level = explicitLevels[index];
             BidiClass embedding = (level & 1) == 0 ? BidiClass.L : BidiClass.R;
@@ -311,7 +316,7 @@ internal sealed class BidiParagraph
         for (int index = 0; index < classes.Length; index++)
         {
             BidiClass type = classes[index];
-            if (!IsIsolateInitiator(type) && type != BidiClass.PDI)
+            if (!IsIsolateControl(type))
                 continue;
 
             if (matches is null)
@@ -415,7 +420,4 @@ internal sealed class BidiParagraph
 
         return null;
     }
-
-    private static bool IsIsolateInitiator(BidiClass type) =>
-        type is BidiClass.LRI or BidiClass.RLI or BidiClass.FSI;
 }
