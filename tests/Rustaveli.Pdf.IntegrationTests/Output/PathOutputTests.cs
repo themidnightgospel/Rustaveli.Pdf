@@ -172,6 +172,17 @@ public class PathOutputTests
     }
 
     [Fact]
+    public void ADashLengthBelowZeroIsDrawnAsNone()
+    {
+        using SKBitmap page = Image(Artwork.Draw(100, 100, art => art.Stroke(
+            new VectorPath().MoveTo(0, 50).LineTo(100, 50), Red, new LineStyle(6, Dashes: [10, -5, 10, 10]))));
+
+        Assert.True(IsRed(page.GetPixel(15, 50)));
+        Assert.False(IsRed(page.GetPixel(25, 50)));
+        Assert.True(IsRed(page.GetPixel(35, 50)));
+    }
+
+    [Fact]
     public void NothingIsDrawnOnAPageImageThatCouldNotBeSeen()
     {
         using SKBitmap page = Image(Artwork.Draw(100, 100, art =>

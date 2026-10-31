@@ -28,10 +28,9 @@ public sealed class SkiaImageProcessor : IImageProcessor
             new SKImageInfo(request.PixelWidth, request.PixelHeight, upright.ColorType, upright.AlphaType, upright.ColorSpace),
             new SKSamplingOptions(SKCubicResampler.Mitchell)) ?? throw new InvalidOperationException("The image could not be scaled.");
 
-        bool lossless = request.Quality is null || HasTransparency(scaled);
-        using SKData encoded = lossless
-            ? scaled.Encode(SKEncodedImageFormat.Png, 100)
-            : scaled.Encode(SKEncodedImageFormat.Jpeg, request.Quality!.Value);
+        using SKData encoded = request.Quality is int quality && !HasTransparency(scaled)
+            ? scaled.Encode(SKEncodedImageFormat.Jpeg, quality)
+            : scaled.Encode(SKEncodedImageFormat.Png, 100);
 
         return encoded.ToArray();
     }

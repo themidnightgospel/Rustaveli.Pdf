@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
@@ -165,7 +166,10 @@ public sealed class PreviewSession : IDisposable
 
             string parameters = string.Join(", ", method.GetParameters().Select(parameter => parameter.ParameterType.Name));
             // Nested types, a lambda's among them, are named with dots, as .NET's own stack traces name them.
-            yield return FormattableString.Invariant($"   at {type.ToString().Replace('+', '.')}.{method.Name}({parameters}) in {file}:line {frame.GetFileLineNumber()}");
+            string typeName = type.ToString().Replace('+', '.');
+            int line = frame.GetFileLineNumber();
+            yield return FormattableString.Invariant(
+                $"   at {typeName}.{method.Name}({parameters}) in {file}:line {line}");
         }
     }
 
@@ -360,8 +364,15 @@ public sealed class PreviewSession : IDisposable
     }
 
     /// <summary>A PNG's size in pixels, from its header.</summary>
-    internal static (int Width, int Height) PngSize(byte[] png) =>
-        png.Length < 24 ? (0, 0) : ((png[16] << 24) | (png[17] << 16) | (png[18] << 8) | png[19], (png[20] << 24) | (png[21] << 16) | (png[22] << 8) | png[23]);
+    internal static (int Width, int Height) PngSize(byte[] png)
+    {
+        if (png.Length < 24)
+            return (0, 0);
+
+        int width = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16));
+        int height = BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20));
+        return (width, height);
+    }
 
     internal static string Quote(string text)
     {

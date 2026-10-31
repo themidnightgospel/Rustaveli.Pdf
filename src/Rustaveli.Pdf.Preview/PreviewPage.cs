@@ -73,7 +73,9 @@ internal static class PreviewPage
           }
 
           function framesOf(number) {
-            frames[number] ??= fetch('/frames/' + number + '?v=' + shown, { cache: 'no-store' }).then(answer => answer.ok ? answer.json() : []);
+            frames[number] ??= fetch('/frames/' + number + '?v=' + shown, { cache: 'no-store' })
+              .then(answer => answer.ok ? answer.json() : [])
+              .then(nodes => lineage(nodes, null));
             return frames[number];
           }
 
@@ -94,10 +96,11 @@ internal static class PreviewPage
             return null;
           }
 
+          function scaleOf(page) { return page.querySelector('img').clientWidth / Number(page.dataset.width); }
+
           function outline(box, node) {
             if (!node) { box.style.display = 'none'; return; }
-            const page = box.parentElement;
-            const scale = page.querySelector('img').clientWidth / Number(page.dataset.width);
+            const scale = scaleOf(box.parentElement);
             Object.assign(box.style, {
               display: 'block', left: node.x * scale + 'px', top: node.y * scale + 'px',
               width: Math.max(node.width * scale, 1) + 'px', height: Math.max(node.height * scale, 1) + 'px'
@@ -151,7 +154,7 @@ internal static class PreviewPage
               inspected = { number, ready: (async () => {
                 chosen = null;
                 element('chosen').replaceChildren();
-                const nodes = lineage(await framesOf(number), null);
+                const nodes = await framesOf(number);
                 element('heading').textContent = 'Page ' + number;
                 element('tree').replaceChildren(...nodes.map(node => branch(node, number, 0)));
               })() };
@@ -188,19 +191,19 @@ internal static class PreviewPage
             holder.append(image, hover, make('div', 'box chosen'));
 
             const at = async event => {
-              const nodes = lineage(await framesOf(number), null);
-              const scale = image.clientWidth / Number(holder.dataset.width);
+              const nodes = await framesOf(number);
+              const scale = scaleOf(holder);
               const bounds = image.getBoundingClientRect();
-              return { nodes, node: deepest(nodes, (event.clientX - bounds.left) / scale, (event.clientY - bounds.top) / scale) };
+              return deepest(nodes, (event.clientX - bounds.left) / scale, (event.clientY - bounds.top) / scale);
             };
 
             holder.onmousemove = async event => {
-              if (document.body.classList.contains('inspecting')) outline(hover, (await at(event)).node);
+              if (document.body.classList.contains('inspecting')) outline(hover, await at(event));
             };
             holder.onmouseleave = () => outline(hover, null);
             holder.onclick = async event => {
               await inspect(number);
-              const { node } = await at(event);
+              const node = await at(event);
               if (node) choose(number, node, true);
             };
             return holder;

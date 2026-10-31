@@ -116,14 +116,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         paint.StrokeMiter = Math.Max(1, style.MiterLimit);
 
         if (style.Dashes is { Count: > 0 } dashes && dashes.Any(length => length > 0))
-        {
-            // Skia needs an even number of intervals; a pattern of odd length repeats twice over to make one, as PDF's does.
-            float[] intervals = new float[dashes.Count % 2 == 0 ? dashes.Count : dashes.Count * 2];
-            for (int index = 0; index < intervals.Length; index++)
-                intervals[index] = Math.Max(0, dashes[index % dashes.Count]);
-
-            paint.PathEffect = SKPathEffect.CreateDash(intervals, style.DashOffset);
-        }
+            paint.PathEffect = SKPathEffect.CreateDash(DashIntervals(dashes), style.DashOffset);
 
         using SKPath shape = ToSkia(path, FillRule.NonZero);
 
@@ -284,17 +277,28 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         if (color.IsTransparent || thickness <= 0)
             return;
 
-        // Skia needs an even number of intervals; a pattern of odd length repeats twice over to make one, as PDF's does.
-        float[] intervals = new float[pattern.Count % 2 == 0 ? pattern.Count : pattern.Count * 2];
-        for (int index = 0; index < intervals.Length; index++)
-            intervals[index] = pattern[index % pattern.Count];
-
         using SKPaint paint = ShapePaint(color);
         paint.Style = SKPaintStyle.Stroke;
         paint.StrokeWidth = thickness;
 
-        using (paint.PathEffect = SKPathEffect.CreateDash(intervals, 0))
+        using (paint.PathEffect = SKPathEffect.CreateDash(DashIntervals(pattern), 0))
             Canvas.DrawLine(from.X, from.Y, to.X, to.Y, paint);
+    }
+
+    /// <summary>
+    /// The intervals Skia dashes a stroke with for <paramref name="pattern"/>, a length below zero taken as none. A
+    /// pattern with no length above zero dashes nothing, so it is never passed here: a path's stroke is drawn solid
+    /// instead, and a dashed line cannot be given one, since composition refuses it.
+    /// </summary>
+    private static float[] DashIntervals(IReadOnlyList<float> pattern)
+    {
+        // Skia needs an even number of intervals; a pattern of odd length repeats twice over to make one, as
+        // PDF's does.
+        float[] intervals = new float[pattern.Count % 2 == 0 ? pattern.Count : pattern.Count * 2];
+        for (int index = 0; index < intervals.Length; index++)
+            intervals[index] = Math.Max(0, pattern[index % pattern.Count]);
+
+        return intervals;
     }
 
     public void ShowText(ReadOnlyMemory<char> text, Offset baseline, TypeStyle style, ReadingDirection direction)
@@ -424,7 +428,6 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         };
     }
 
-    // To the nearest pixel, as PDF viewers size a page at a resolution: A4 at 96 pixels per inch is 794 wide.
     public void BeginGradient(Gradient gradient, Offset position, Extent size)
     {
         (Offset start, Offset end) = gradient.Axis(position, size);
@@ -432,10 +435,7 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         SKColor[] colors = new SKColor[inks.Count];
 
         for (int index = 0; index < colors.Length; index++)
-        {
-            (float red, float green, float blue) = inks[index].ToRgb();
-            colors[index] = new SKColor(ToByte(red), ToByte(green), ToByte(blue), ToByte(inks[index].Opacity));
-        }
+            colors[index] = SkiaColor(inks[index]);
 
         _gradient?.Dispose();
         _gradient = SKShader.CreateLinearGradient(
@@ -500,17 +500,18 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         return paint;
     }
 
-    private static SKPaint Paint(Ink ink)
+    private static SKPaint Paint(Ink ink) => new SKPaint
+    {
+        Color = SkiaColor(ink),
+        IsAntialias = true,
+        Style = SKPaintStyle.Fill,
+    };
+
+    private static SKColor SkiaColor(Ink ink)
     {
         // Pixels are RGB: process colours convert without a profile, and spot inks show their fallback.
         (float red, float green, float blue) = ink.ToRgb();
-
-        return new SKPaint
-        {
-            Color = new SKColor(ToByte(red), ToByte(green), ToByte(blue), ToByte(ink.Opacity)),
-            IsAntialias = true,
-            Style = SKPaintStyle.Fill,
-        };
+        return new SKColor(ToByte(red), ToByte(green), ToByte(blue), ToByte(ink.Opacity));
     }
 
     private static byte ToByte(float fraction) => (byte)Math.Round(fraction * 255);

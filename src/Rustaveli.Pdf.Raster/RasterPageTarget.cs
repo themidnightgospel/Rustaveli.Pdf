@@ -54,6 +54,7 @@ internal sealed class RasterPageTarget(ImageExportOptions options) : ISkiaPageTa
     /// </summary>
     private static int Pixels(float points, float scale)
     {
+        // To the nearest pixel, as PDF viewers size a page at a resolution: A4 at 96 pixels per inch is 794 wide.
         double pixels = Math.Round((double)points * scale, MidpointRounding.AwayFromZero);
 
         if (pixels > int.MaxValue)
