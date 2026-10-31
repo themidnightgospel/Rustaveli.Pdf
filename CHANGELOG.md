@@ -29,6 +29,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Saving such a file, under 256-bit AES, with its protection: permissions its encryption dictionary kept in an object
   stream were left out of the dictionary written, which must give them (`/P`). They are read once the file is
   decrypted, and written with it.
+- Opening such a file, under 256-bit AES, whose `/EncryptMetadata false` is kept in an object stream: its metadata
+  was taken as encrypted, so its plain XMP stream was decrypted on reading, and saving the file with its protection
+  encrypted that stream while the dictionary written left out `/EncryptMetadata false`. The entry is now read once the
+  file is decrypted, before the metadata is, and written with the dictionary.
 - Saving a PDF: one object too damaged to read failed the whole save with an `UnreadableFileException`, and one kept in
   an object stream whose filter the library does not decode with a `NotSupportedException`. Each is written as null
   now, as an object the file does not hold.

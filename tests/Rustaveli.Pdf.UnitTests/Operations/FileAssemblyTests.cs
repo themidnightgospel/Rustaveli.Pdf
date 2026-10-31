@@ -499,6 +499,21 @@ public class FileAssemblyTests
         Assert.Equal(permissions, given.AsInteger());
     }
 
+    [Fact]
+    public void MetadataLeftReadableByAnEntryInAnObjectStreamIsWrittenReadable()
+    {
+        byte[] file = PdfSourceTests.ReadableMetadataFlaggedInAnObjectStream(EncryptionLevel.AesWith256Bits);
+
+        PdfSource saved = Saved(PdfFile.Open(file));
+        PdfDictionary written = Dictionary(saved, saved.Trailer[Encrypt]);
+        SourceStream metadata = saved.Stream(saved.Catalog[new PdfName("Metadata")])!;
+
+        Assert.True(saved.Encryption!.HasKey);
+        Assert.True(written.TryGetValue(new PdfName("EncryptMetadata"), out PdfValue flag));
+        Assert.False(flag.AsBoolean());
+        Assert.Equal(PdfSourceTests.Xmp, Encoding.ASCII.GetString(saved.Decode(metadata)));
+    }
+
     /// <summary>A value as the writer writes it.</summary>
     private static string Written(PdfValue value)
     {

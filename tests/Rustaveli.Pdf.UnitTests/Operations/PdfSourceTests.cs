@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Rustaveli.Pdf.Operations.Reading;
 using Rustaveli.Pdf.Security;
+using Rustaveli.Pdf.UnitTests.Writing;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.UnitTests.Operations;
@@ -750,31 +751,55 @@ public class PdfSourceTests
     internal static (byte[] File, long Permissions) PermissionsInAnObjectStream(
         EncryptionLevel level, string filter = "")
     {
-        PdfEncryption encryption = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = level });
+        Protection protection = new Protection { OwnerPassword = "owner", Encryption = level };
+        (byte[] file, PdfValue permissions) = EntryInAnObjectStream(protection, new PdfName("P"), filter);
+        return (file, permissions.AsInteger());
+    }
+
+    /// <summary>
+    /// Metadata whose length is a whole number of AES blocks: read as encrypted, it is decrypted into something else,
+    /// where data of another length is left as it is.
+    /// </summary>
+    internal const string Xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><!-- written --></x:xmpmeta>";
+
+    /// <summary>
+    /// A file encrypted as <paramref name="protection"/> asks, under an empty user password, listed by a
+    /// cross-reference stream, whose encryption dictionary (object 4) gives its entry <paramref name="key"/> as
+    /// object 5, kept in the encrypted object stream 6 that <paramref name="filter"/> adds to; and that entry. Its
+    /// metadata, object 7, holds <see cref="Xmp"/>, written as the encryption writes metadata.
+    /// </summary>
+    private static (byte[] File, PdfValue Entry) EntryInAnObjectStream(
+        Protection protection, PdfName key, string filter = "")
+    {
+        PdfEncryption encryption = PdfEncryption.Create(protection);
         PdfDictionary dictionary = new PdfDictionary(encryption.Dictionary.Count);
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in encryption.Dictionary)
             dictionary[entry.Key] = entry.Value;
 
-        long permissions = encryption.Dictionary[new PdfName("P")].AsInteger();
-        dictionary[new PdfName("P")] = new PdfReference(5);
-        string packed = $"5 0 {permissions}";
+        PdfValue moved = encryption.Dictionary[key];
+        dictionary[key] = new PdfReference(5);
         string id = Hex(encryption.DocumentId);
 
-        using PdfByteWriter written = new PdfByteWriter();
-        written.WriteValue(dictionary);
-
+        string packed = "5 0 " + Latin1.Written(writer => writer.WriteValue(moved));
         byte[] stream = encryption.EncryptStream(6, new PdfDictionary(), Encoding.ASCII.GetBytes(packed));
+        PdfDictionary metadata = new PdfDictionary { [PdfNames.Type] = new PdfName("Metadata") };
+        byte[] xmp = encryption.EncryptStream(7, metadata, Encoding.ASCII.GetBytes(Xmp));
 
-        HandmadePdf pdf = HandmadePdf.OnePage()
-            .Object(4, Encoding.Latin1.GetString(written.WrittenSpan))
-            .Stream(6, $"<</Type/ObjStm/N 1/First 4{filter}>>", Encoding.Latin1.GetString(stream));
+        HandmadePdf pdf = new HandmadePdf()
+            .Object(1, "<</Type/Catalog/Pages 2 0 R/Metadata 7 0 R>>")
+            .Object(2, "<</Type/Pages/Kids[3 0 R]/Count 1>>")
+            .Object(3, "<</Type/Page/Parent 2 0 R>>")
+            .Object(4, Latin1.Written(writer => writer.WriteValue(dictionary)))
+            .Stream(6, $"<</Type/ObjStm/N 1/First 4{filter}>>", Encoding.Latin1.GetString(stream))
+            .Stream(7, "<</Type/Metadata/Subtype/XML>>", Encoding.Latin1.GetString(xmp));
         pdf.StreamSection(
-            7,
-            $"/Size 7/Root 1 0 R/Encrypt 4 0 R/ID[<{id}><{id}>]",
+            8,
+            $"/Size 8/Root 1 0 R/Encrypt 4 0 R/ID[<{id}><{id}>]",
             [1, 4, 2],
-            [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), InUse(pdf, 4), [2, 6, 0], InUse(pdf, 6));
-        return (pdf.ToArray(), permissions);
+            [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), InUse(pdf, 4), [2, 6, 0], InUse(pdf, 6),
+            InUse(pdf, 7));
+        return (pdf.ToArray(), moved);
     }
 
     [Fact]
@@ -809,6 +834,37 @@ public class PdfSourceTests
         Assert.True(source.Encryption!.HasKey);
         Assert.False(source.Encryption.Dictionary.ContainsKey(new PdfName("P")));
     }
+
+    /// <summary>
+    /// A file encrypted at <paramref name="level"/> that leaves its metadata readable, its
+    /// <c>/EncryptMetadata false</c> kept in an object stream.
+    /// </summary>
+    internal static byte[] ReadableMetadataFlaggedInAnObjectStream(EncryptionLevel level)
+    {
+        Protection protection = new Protection { OwnerPassword = "owner", Encryption = level, EncryptMetadata = false };
+        return EntryInAnObjectStream(protection, new PdfName("EncryptMetadata")).File;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MetadataLeftReadableByAnEntryInAnObjectStreamIsReadAsWritten(bool repaired)
+    {
+        // Read as absent while the file was opened, the entry is read once its object stream can be decrypted. A file
+        // repaired has every object read once it is decrypted, the metadata among them, to find its object streams.
+        byte[] file = ReadableMetadataFlaggedInAnObjectStream(EncryptionLevel.AesWith256Bits);
+        PdfSource source = PdfSource.Open(repaired ? [.. file, .. "startxref\n1\n%%EOF\n"u8] : file);
+        SourceStream metadata = source.Stream(source.Catalog[new PdfName("Metadata")])!;
+
+        Assert.Equal(repaired, source.WasRepaired);
+        Assert.True(source.Encryption!.HasKey);
+        Assert.Equal(Xmp, Encoding.ASCII.GetString(source.Decode(metadata)));
+    }
+
+    [Fact]
+    public void MetadataLeftReadableByAnEntryInAnObjectStreamLeavesNoPasswordThatOpensAFileKeyedWithIt() =>
+        Assert.Throws<IncorrectPasswordException>(
+            () => PdfSource.Open(ReadableMetadataFlaggedInAnObjectStream(EncryptionLevel.AesWith128Bits)));
 
     [Fact]
     public void ObjectStreamsOfARebuiltFileAreFoundAgainOnceItIsDecrypted()
