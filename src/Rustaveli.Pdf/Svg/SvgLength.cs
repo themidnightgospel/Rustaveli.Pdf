@@ -11,6 +11,15 @@ internal static class SvgLength
     /// <summary>Points in a CSS pixel.</summary>
     public const float PointsPerPixel = 0.75f;
 
+    /// <summary>CSS pixels in an inch.</summary>
+    public const float PixelsPerInch = 96;
+
+    /// <summary>
+    /// The font size, in pixels, of text that sets none. Ems, exes and a percentage font size are taken of it, whatever
+    /// size is in force.
+    /// </summary>
+    public const float DefaultFontSize = 16;
+
     /// <summary>
     /// The length <paramref name="text"/> in user units, a percentage taken of <paramref name="reference"/>, or
     /// <paramref name="fallback"/> when there is no length to read or it is in a unit SVG does not know.
@@ -40,11 +49,11 @@ internal static class SvgLength
             "" or "px" => number,
             "pt" => number / PointsPerPixel,
             "pc" => number * 16,
-            "mm" => number * 96 / 25.4f,
-            "cm" => number * 96 / 2.54f,
-            "in" => number * 96,
-            "em" => number * 16,
-            "ex" => number * 8,
+            "mm" => number * PixelsPerInch / 25.4f,
+            "cm" => number * PixelsPerInch / 2.54f,
+            "in" => number * PixelsPerInch,
+            "em" => number * DefaultFontSize,
+            "ex" => number * (DefaultFontSize / 2),
             "%" => number / 100 * reference,
 
             // A unit SVG does not know, or a number written with a decimal comma, makes the length invalid, which SVG
