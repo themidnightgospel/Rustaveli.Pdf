@@ -119,11 +119,17 @@ public class FontFallbackTests
     [Fact]
     public void PurelyLatinTextIsUnaffected()
     {
-        OpenTypeMeasurer measurer = Measurer(TypefaceLibrary.Shared);
         OpenTypeFont primary = TypefaceLibrary.Shared.Shaper.Resolve(Sans);
+        int glyphs = 0;
 
-        // Latin the test family covers is set in it alone, and measures as the font itself measures it.
-        Assert.Equal(primary.MeasureWidth(Latin.AsSpan(), Sans.PointSize), measurer.MeasureWidth(Latin, Sans), 0.001f);
+        // Latin the test family covers is set in it alone.
+        foreach (ShapedGlyph glyph in TypefaceLibrary.Shared.Shaper.Walk(Latin.AsSpan(), Sans))
+        {
+            Assert.Same(primary, glyph.Face);
+            glyphs++;
+        }
+
+        Assert.Equal(Latin.Length, glyphs);
     }
 
     [Fact]

@@ -155,8 +155,6 @@ public class FontFuzzTests
             map.GetGlyph(codepoint);
 
         _ = map.EnumerateMappings().Count();
-        _ = font.MeasureWidth(Text, 12f, 0.5f);
-        _ = font.CountFitting(Text, 12f, 60f, 0.25f);
 
         int sample = Math.Min(font.GlyphCount, 64);
 
@@ -202,7 +200,10 @@ public class FontFuzzTests
         TrueTypeSubset subset = glyphs.Build();
         OpenTypeFont reread = OpenTypeFont.Load(subset.FontData);
         Assert.Equal(subset.GlyphCount, reread.GlyphCount);
-        _ = reread.MeasureWidth(Text, 12f);
+
+        foreach (char character in Text)
+            _ = reread.GetAdvance(reread.GetGlyphId(character));
+
         _ = reread.Glyphs!.GetGlyphData((ushort)(reread.GlyphCount - 1));
     }
 

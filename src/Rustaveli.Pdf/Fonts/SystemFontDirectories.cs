@@ -48,7 +48,8 @@ internal static class SystemFontDirectories
         switch (platform)
         {
             case FontPlatform.Windows:
-                AddIfSet(directories, windowsFonts);
+                if (!string.IsNullOrEmpty(windowsFonts))
+                    directories.Add(windowsFonts!);
 
                 if (!string.IsNullOrEmpty(localApplicationData))
                     directories.Add(Path.Combine(localApplicationData!, "Microsoft", "Windows", "Fonts"));
@@ -78,11 +79,5 @@ internal static class SystemFontDirectories
         }
 
         return directories;
-    }
-
-    private static void AddIfSet(List<string> directories, string? directory)
-    {
-        if (!string.IsNullOrEmpty(directory))
-            directories.Add(directory!);
     }
 }

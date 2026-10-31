@@ -41,7 +41,10 @@ internal static class FontTarget
             if (subsets.trueType is { } trueType)
             {
                 OpenTypeFont reread = OpenTypeFont.Load(trueType);
-                _ = reread.MeasureWidth(Text, 12f);
+
+                foreach (char character in Text)
+                    _ = reread.GetAdvance(reread.GetGlyphId(character));
+
                 _ = reread.Glyphs?.GetGlyphData((ushort)(reread.GlyphCount - 1));
             }
 
@@ -69,9 +72,6 @@ internal static class FontTarget
 
         foreach (char character in Text)
             map.GetGlyph(character);
-
-        _ = face.MeasureWidth(Text, 12f, 0.5f);
-        _ = face.CountFitting(Text, 12f, 60f, 0.25f);
 
         int sample = Math.Min(face.GlyphCount, 64);
 

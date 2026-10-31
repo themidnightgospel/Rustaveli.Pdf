@@ -27,14 +27,14 @@ internal static class FontFileScanner
             HeadTable head = new HeadTable(ReadTable(stream, directory, TableTag.Head)
                 ?? throw new FontFormatException("The font has no 'head' table."));
             byte[]? name = ReadTable(stream, directory, TableTag.Name);
-            byte[]? os2 = ReadTable(stream, directory, TableTag.Os2);
-            Os2Table? style = os2 is null ? null : new Os2Table(os2);
+            byte[]? os2Data = ReadTable(stream, directory, TableTag.Os2);
+            Os2Table? os2 = os2Data is null ? null : new Os2Table(os2Data);
 
             faces.Add(new FontFaceInfo(
                 source,
                 index,
                 name is null ? FontNames.None : NameTable.Read(name),
-                FaceStyle.From(style, head),
+                FaceStyle.From(os2, head),
                 directory.Outlines,
                 registered: false));
         }

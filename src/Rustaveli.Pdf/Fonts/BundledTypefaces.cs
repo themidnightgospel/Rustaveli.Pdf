@@ -16,23 +16,21 @@ internal static class BundledTypefaces
 {
     private static readonly string[] Files = ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf", "NotoSans-BoldItalic.ttf"];
 
-    private static readonly Lazy<FontFaceInfo[]> Loaded = new Lazy<FontFaceInfo[]>(Load, LazyThreadSafetyMode.ExecutionAndPublication);
-
-    public static IReadOnlyList<FontFaceInfo> Faces => Loaded.Value;
+    private static readonly Lazy<FontFaceInfo[]> Faces = new Lazy<FontFaceInfo[]>(Load, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>The bundled face nearest <paramref name="style"/>.</summary>
-    public static OpenTypeFont Match(FaceStyle style) => FontMatcher.Select(Loaded.Value, style)!.Load();
+    public static OpenTypeFont Match(FaceStyle style) => FontMatcher.Select(Faces.Value, style)!.Load();
 
     /// <summary>
     /// The bundled face nearest <paramref name="style"/> when <paramref name="family"/> names the bundled typeface;
     /// null for any other name.
     /// </summary>
     public static OpenTypeFont? Named(string family, FaceStyle style) =>
-        FontMatcher.Select(Loaded.Value.Where(face => string.Equals(face.Names.PreferredFamily, family.Trim(), StringComparison.OrdinalIgnoreCase)), style)?.Load();
+        FontMatcher.Select(Faces.Value.Where(face => string.Equals(face.Names.PreferredFamily, family.Trim(), StringComparison.OrdinalIgnoreCase)), style)?.Load();
 
     /// <summary>A bundled face that has <paramref name="codepoint"/>, nearest <paramref name="style"/>; null when none has it.</summary>
     public static OpenTypeFont? Covering(int codepoint, FaceStyle style) =>
-        FontMatcher.Select(Loaded.Value.Where(face => face.Covers(codepoint)), style)?.Load();
+        FontMatcher.Select(Faces.Value.Where(face => face.Covers(codepoint)), style)?.Load();
 
     private static FontFaceInfo[] Load()
     {
@@ -41,10 +39,8 @@ internal static class BundledTypefaces
         return Files.Select(file =>
         {
             using Stream stream = assembly.GetManifestResourceStream("Rustaveli.Pdf.Fonts.Bundled." + file)!;
-            using MemoryStream copy = new MemoryStream();
-            stream.CopyTo(copy);
+            byte[] data = StreamBytes.ReadAll(stream);
 
-            byte[] data = copy.ToArray();
             return FontFaceInfo.FromFont(new FontFileSource(data), OpenTypeFont.Load(data), registered: false);
         }).ToArray();
     }

@@ -3,8 +3,9 @@ using System.Collections.Concurrent;
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
-/// Finds fonts for documents: fonts the user registered, then fonts installed on the machine, matched by family and
-/// style, with a fallback search for characters the chosen font lacks.
+/// Finds fonts for documents: fonts the user registered, then fonts in the folders added with
+/// <see cref="AddFolder"/>, then fonts installed on the machine, matched by family and style, with a fallback search
+/// for characters the chosen font lacks.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -40,9 +41,6 @@ internal sealed class FontCatalog
 
     public IReadOnlyList<FontFaceInfo> RegisteredFaces => Volatile.Read(ref _state).Registered.Faces;
 
-    /// <summary>The folders searched for fonts besides the installed ones, in the order they were added.</summary>
-    public IReadOnlyList<SystemFontIndex> Folders => Volatile.Read(ref _state).Folders;
-
     /// <summary>A catalog of registered fonts only, whose output cannot depend on the machine.</summary>
     public static FontCatalog WithoutSystemFonts() => new FontCatalog(SystemFontIndex.Empty);
 
@@ -57,9 +55,7 @@ internal sealed class FontCatalog
     {
         ArgumentNullException.ThrowIfNull(stream);
 
-        using MemoryStream copy = new MemoryStream();
-        stream.CopyTo(copy);
-        return Register(copy.ToArray(), alias);
+        return Register(StreamBytes.ReadAll(stream), alias);
     }
 
     /// <summary>Registers every face of a font file.</summary>
@@ -68,9 +64,7 @@ internal sealed class FontCatalog
     {
         ArgumentNullException.ThrowIfNull(path);
 
-        FontFileSource source = new FontFileSource(path);
-        _ = source.Data;
-        return Register(source, alias);
+        return Register(new FontFileSource(path), alias);
     }
 
     /// <summary>
@@ -89,9 +83,9 @@ internal sealed class FontCatalog
     }
 
     /// <summary>
-    /// The face best matching the request: from the registered fonts when any carry the family, else from the
-    /// installed ones. A face that can be embedded is preferred to a closer one that cannot. Null when no font has the
-    /// family.
+    /// The face best matching the request: from the registered fonts when any carry the family, else from the first
+    /// added folder whose fonts do, else from the installed ones. A face that can be embedded is preferred to a closer
+    /// one that cannot. Null when no font has the family.
     /// </summary>
     public FontFaceInfo? FindFace(FontRequest request)
     {
@@ -124,8 +118,9 @@ internal sealed class FontCatalog
 
     /// <summary>
     /// A face that has a glyph for <paramref name="codepoint"/> and can be embedded, for text the requested font
-    /// cannot show: the first of <paramref name="fallbackFamilies"/> that covers it, then the registered face and
-    /// then the installed face closest to the requested style. Null when no font covers the character.
+    /// cannot show: the first of <paramref name="fallbackFamilies"/> that covers it, then the registered face, then
+    /// the face from the added folders and then the installed face closest to the requested style. Null when no font
+    /// covers the character.
     /// </summary>
     /// <param name="codepoint">The character to find a glyph for.</param>
     /// <param name="request">The style to stay close to; its family is not consulted.</param>

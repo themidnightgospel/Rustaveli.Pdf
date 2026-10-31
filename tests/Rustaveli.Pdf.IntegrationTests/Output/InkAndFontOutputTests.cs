@@ -87,7 +87,7 @@ public class InkAndFontOutputTests
     public void ACffFaceIsEmbeddedAsASubsetAndReadsBack()
     {
         string path = FontPath("SpecimenCff-Regular.otf");
-        OpenTypeFont face = OpenTypeFont.LoadFile(path);
+        OpenTypeFont face = OpenTypeFont.Load(File.ReadAllBytes(path));
         TypefaceLibrary library = new TypefaceLibrary(includeInstalled: false);
         library.RegisterFile(path);
 

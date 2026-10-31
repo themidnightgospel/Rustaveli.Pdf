@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Rustaveli.Pdf.Fonts;
 
 namespace Rustaveli.Pdf.UnitTests.Fonts;
@@ -145,6 +146,42 @@ public class FontCatalogTests
         Assert.Empty(catalog.System.Faces);
         Assert.Equal("SpecimenSans-SemiBold", PostScriptName(catalog, new FontRequest("Specimen Sans", 600)));
     }
+
+    [Fact]
+    public void RegistersFromAStreamThatCannotSeekHoldingOnlyItsBytes()
+    {
+        byte[] file = TestFonts.Bytes(TestFonts.GeorgianFile);
+        using NonSeekableStream stream = new NonSeekableStream(file);
+
+        OpenTypeFont font = FontCatalog.WithoutSystemFonts().Register(stream).Single().Load();
+
+        // A registered font keeps its data for the catalog's lifetime, so nothing larger than the file is held.
+        Assert.True(MemoryMarshal.TryGetArray(font.FileData, out ArraySegment<byte> held));
+        Assert.Equal(file.Length, held.Array!.Length);
+        Assert.Equal(225, font.GlyphCount);
+    }
+
+#if NET
+    [Fact]
+    public void RegisteringFromAStreamCopiesItsBytesOnce()
+    {
+        // A stream that can seek says how long it is, so its bytes are read straight into an array of that size, which
+        // the catalog keeps. Copying them into a growing buffer and out of it again cost this 607 KB font 607 KB more.
+        byte[] file = TestFonts.Bytes(TestFonts.RegularFile);
+
+        long Registering()
+        {
+            FontCatalog catalog = FontCatalog.WithoutSystemFonts();
+            using MemoryStream stream = new MemoryStream(file);
+            return Allocations.Of(() => catalog.Register(stream));
+        }
+
+        long allocated = Allocations.Fewest(Registering);
+
+        Assert.True(
+            allocated < file.Length * 5 / 4, $"Registering a {file.Length}-byte font allocated {allocated} bytes.");
+    }
+#endif
 
     [Fact]
     public void RegistersAFontFile()

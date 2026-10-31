@@ -129,7 +129,7 @@ public sealed class RasterImage : IImage
     public static RasterImage FromBytes(byte[] data)
     {
         ArgumentNullException.ThrowIfNull(data);
-        return Loading(() => Load((byte[])data.Clone()), nameof(data));
+        return LoadOrReject(() => Load((byte[])data.Clone()), nameof(data));
     }
 
     /// <summary>
@@ -140,7 +140,7 @@ public sealed class RasterImage : IImage
     public static RasterImage FromStream(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        return Loading(() => Load(ImageSourceReader.ReadAll(stream)), nameof(stream));
+        return LoadOrReject(() => Load(ImageSourceReader.ReadAll(stream)), nameof(stream));
     }
 
     /// <summary>Loads an image from the file at <paramref name="path"/>.</summary>
@@ -149,10 +149,10 @@ public sealed class RasterImage : IImage
     {
         ArgumentNullException.ThrowIfNull(path);
         using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Loading(() => Load(ImageSourceReader.ReadAll(file)), nameof(path));
+        return LoadOrReject(() => Load(ImageSourceReader.ReadAll(file)), nameof(path));
     }
 
-    private static RasterImage Loading(Func<RasterImage> load, string parameter)
+    private static RasterImage LoadOrReject(Func<RasterImage> load, string parameter)
     {
         try
         {

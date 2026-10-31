@@ -5,7 +5,8 @@ using Rustaveli.Pdf.Text;
 namespace Rustaveli.Pdf;
 
 /// <summary>
-/// The typefaces documents are set in: those registered here, then those installed on the machine.
+/// The typefaces documents are set in: those registered here, then those in the folders it searches, then those
+/// installed on the machine.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -15,8 +16,8 @@ namespace Rustaveli.Pdf;
 /// </para>
 /// <para>
 /// Text is set in the face nearest its style's weight and slant. A character that face lacks is set in the first
-/// of the <see cref="Fallbacks"/> that has it, then any registered face, then any installed one. Only the glyphs a
-/// document uses are embedded.
+/// of the <see cref="Fallbacks"/> that has it, then any registered face, then any in a searched folder, then any
+/// installed one. Only the glyphs a document uses are embedded.
 /// </para>
 /// <para>Safe for concurrent use. A document already exporting keeps the typefaces it started with.</para>
 /// </remarks>
@@ -50,8 +51,8 @@ public sealed class TypefaceLibrary
     public static TypefaceLibrary Shared { get; } = new TypefaceLibrary();
 
     /// <summary>
-    /// Typefaces tried in order for a character a run's own typeface lacks, before the registered and installed
-    /// ones. Naming them makes the choice the same on every machine.
+    /// Typefaces tried in order for a character a run's own typeface lacks, before the registered ones, those in the
+    /// searched folders and the installed ones. Naming them makes the choice the same on every machine.
     /// </summary>
     public IReadOnlyList<string> Fallbacks
     {
@@ -64,7 +65,7 @@ public sealed class TypefaceLibrary
             lock (_lock)
             {
                 _fallbacks = value.ToArray();
-                Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
+                RebuildShaper();
             }
         }
     }
@@ -83,7 +84,7 @@ public sealed class TypefaceLibrary
             lock (_lock)
             {
                 _complex = value;
-                Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
+                RebuildShaper();
             }
         }
     }
@@ -98,7 +99,7 @@ public sealed class TypefaceLibrary
     public void Register(byte[] data, string? typeface = null)
     {
         ArgumentNullException.ThrowIfNull(data);
-        Registering(() => _catalog.Register(data.ToArray(), typeface), nameof(data));
+        RegisterUnderLock(() => _catalog.Register(data.ToArray(), typeface), nameof(data));
     }
 
     /// <summary>Registers every face in a font read from <paramref name="stream"/>, which is read to its end.</summary>
@@ -108,7 +109,7 @@ public sealed class TypefaceLibrary
     public void Register(Stream stream, string? typeface = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        Registering(() => _catalog.Register(stream, typeface), nameof(stream));
+        RegisterUnderLock(() => _catalog.Register(stream, typeface), nameof(stream));
     }
 
     /// <summary>Registers every face in the font file at <paramref name="path"/>.</summary>
@@ -118,7 +119,7 @@ public sealed class TypefaceLibrary
     public void RegisterFile(string path, string? typeface = null)
     {
         ArgumentNullException.ThrowIfNull(path);
-        Registering(() => _catalog.RegisterFile(path, typeface), nameof(path));
+        RegisterUnderLock(() => _catalog.RegisterFile(path, typeface), nameof(path));
     }
 
     /// <summary>Registers every face in a font embedded in <paramref name="assembly"/> as a manifest resource.</summary>
@@ -136,7 +137,7 @@ public sealed class TypefaceLibrary
                 $"{assembly.GetName().Name} embeds no resource named \"{resource}\"; it embeds: {string.Join(", ", assembly.GetManifestResourceNames())}.",
                 nameof(resource));
 
-        Registering(() => _catalog.Register(stream, typeface), nameof(resource));
+        RegisterUnderLock(() => _catalog.Register(stream, typeface), nameof(resource));
     }
 
     /// <summary>
@@ -153,11 +154,11 @@ public sealed class TypefaceLibrary
             _catalog.AddFolder(path);
 
             // Faces resolved before now may be shadowed by what the folder holds.
-            Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
+            RebuildShaper();
         }
     }
 
-    private void Registering(Func<IReadOnlyList<FontFaceInfo>> register, string parameter)
+    private void RegisterUnderLock(Action register, string parameter)
     {
         lock (_lock)
         {
@@ -171,7 +172,9 @@ public sealed class TypefaceLibrary
             }
 
             // Faces resolved before now may be shadowed by what was just registered.
-            Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
+            RebuildShaper();
         }
     }
+
+    private void RebuildShaper() => Volatile.Write(ref _shaper, new TypeShaper(_catalog, _fallbacks, _complex));
 }

@@ -289,7 +289,7 @@ document uses, and images are embedded as they were encoded wherever PDF can car
 
 | Name | Kind | Meaning | Source |
 |---|---|---|---|
-| `TypefaceLibrary` | class | The typefaces documents are set in: those registered with it, then those installed. `Shared` serves any export given no library of its own. | print ("type library") |
+| `TypefaceLibrary` | class | The typefaces documents are set in: those registered with it, then those in the folders it searches, then those installed. `Shared` serves any export given no library of its own. | print ("type library") |
 | `TypefaceLibrary.Register(...)` / `RegisterFile(...)` / `RegisterResource(...)` | method | Adds every face in a font file, stream or embedded resource, under its own names and optionally a typeface name given. A registered typeface shadows an installed one of the same name. | plain |
 | `TypefaceLibrary.Fallbacks` | property | Typefaces tried in order for a character a run's own typeface lacks. | plain |
 | `TypefaceLibrary.SearchFolder(string)` | method | Adds a folder searched for typefaces as installed ones are, after the registered ones. | plain |

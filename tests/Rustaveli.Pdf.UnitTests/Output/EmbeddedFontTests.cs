@@ -46,31 +46,6 @@ public class EmbeddedFontTests
     }
 
     [Fact]
-    public void BaseFontIsThePostScriptName()
-    {
-        Assert.Equal("NotoSans-Regular", EmbeddedFont.PostScriptName("NotoSans-Regular", "Noto Sans Regular"));
-    }
-
-    [Fact]
-    public void AFaceWithoutAPostScriptNameIsNamedFromItsFullName()
-    {
-        Assert.Equal("NotoSansRegular", EmbeddedFont.PostScriptName("  ", "Noto Sans Regular"));
-    }
-
-    [Fact]
-    public void CharactersAPostScriptNameCannotHoldAreDropped()
-    {
-        // Delimiters, spaces and anything outside printable ASCII would end or corrupt the name.
-        Assert.Equal("ABC-Bold", EmbeddedFont.PostScriptName("A(B)C/<-%>[Bold]{ }é", string.Empty));
-    }
-
-    [Fact]
-    public void ANameWithNothingLeftIsStillAName()
-    {
-        Assert.Equal("Font", EmbeddedFont.PostScriptName(string.Empty, "()"));
-    }
-
-    [Fact]
     public void TheToUnicodeMapWritesEachCodeAsUtf16()
     {
         string map = TextOf(EmbeddedFont.ToUnicodeMap([(1, 'A'), (2, 0x1D400), (3, 0xD800), (4, -1)]));

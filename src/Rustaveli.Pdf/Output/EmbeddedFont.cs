@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Text;
 using Rustaveli.Pdf.Fonts;
 using Rustaveli.Pdf.Text;
 using Rustaveli.Pdf.Writing;
@@ -112,7 +111,7 @@ internal sealed class EmbeddedFont
     private void WriteTrueType(PdfFileWriter file, GlyphSubset subset)
     {
         TrueTypeSubset font = subset.Build(_keepHinting);
-        string name = font.Tag + "+" + PostScriptName(Face);
+        string name = font.Tag + "+" + Face.Names.PostScriptName;
 
         PdfReference program = file.WriteStream(new PdfDictionary { [Length1] = font.FontData.Length }, font.FontData);
 
@@ -164,7 +163,7 @@ internal sealed class EmbeddedFont
 
     private void WriteCompactFont(PdfFileWriter file, SortedDictionary<ushort, (ushort Glyph, string? Text)> shown)
     {
-        string name = PostScriptName(Face);
+        string name = Face.Names.PostScriptName;
         PdfReference program;
 
         // Cut down to the glyphs shown when the font allows it, by the codes they are shown with; embedded whole when
@@ -261,27 +260,6 @@ internal sealed class EmbeddedFont
         [Ordering] = PdfString.FromText("Identity"),
         [Supplement] = 0,
     };
-
-    /// <summary>
-    /// The face's PostScript name, which is what <c>/BaseFont</c> must carry, reduced to the characters a
-    /// PostScript name may hold. A face without one is named from its full name.
-    /// </summary>
-    internal static string PostScriptName(OpenTypeFont face) => PostScriptName(face.Names.PostScriptName, face.Names.FullName);
-
-    /// <inheritdoc cref="PostScriptName(OpenTypeFont)"/>
-    internal static string PostScriptName(string postScriptName, string fullName)
-    {
-        string source = string.IsNullOrWhiteSpace(postScriptName) ? fullName : postScriptName;
-        StringBuilder name = new StringBuilder(source.Length);
-
-        foreach (char character in source)
-        {
-            if (character > ' ' && character < 127 && "()<>[]{}/%".IndexOf(character) < 0)
-                name.Append(character);
-        }
-
-        return name.Length > 0 ? name.ToString() : "Font";
-    }
 
     /// <summary>
     /// The glyph each code shows, two bytes per code from 0: codes below the subset's glyph count are the glyphs

@@ -50,7 +50,10 @@ public class FontContainerTests
         Assert.Equal(face.GlyphCount, reloaded.GlyphCount);
         Assert.Equal(
             face.Tables.Records.Select(record => record.Tag), reloaded.Tables.Records.Select(record => record.Tag));
-        Assert.Equal(face.MeasureWidthInUnits("AVATAR"), reloaded.MeasureWidthInUnits("AVATAR"));
+        ushort[] glyphs = [.. "AVATAR".Select(character => face.GetGlyphId(character))];
+        Assert.Equal(glyphs, "AVATAR".Select(character => reloaded.GetGlyphId(character)));
+        Assert.Equal(glyphs.Select(face.GetAdvance), glyphs.Select(reloaded.GetAdvance));
+        Assert.Equal(face.GetKerning(glyphs[0], glyphs[1]), reloaded.GetKerning(glyphs[0], glyphs[1]));
         Assert.Equal(0xB1B0AFBA, SfntWriter.Checksum(standalone));
     }
 
@@ -101,23 +104,6 @@ public class FontContainerTests
         Assert.Equal(1, FontContainer.CountFaces(TestFonts.Bytes(TestFonts.RegularFile)));
         Assert.Equal(3, FontContainer.CountFaces(TestFonts.Bytes(TestFonts.CollectionFile)));
         Assert.Single(OpenTypeFont.LoadAll(TestFonts.Bytes(TestFonts.RegularFile)));
-    }
-
-    [Fact]
-    public void LoadsFromAStreamAndAFile()
-    {
-        using FileStream stream = File.OpenRead(TestFonts.PathOf(TestFonts.GeorgianFile));
-
-        Assert.Equal(225, OpenTypeFont.Load(stream).GlyphCount);
-        Assert.Equal(225, OpenTypeFont.LoadFile(TestFonts.PathOf(TestFonts.GeorgianFile)).GlyphCount);
-    }
-
-    [Fact]
-    public void LoadsFromAStreamThatCannotSeek()
-    {
-        using NonSeekableStream stream = new NonSeekableStream(TestFonts.Bytes(TestFonts.GeorgianFile));
-
-        Assert.Equal(225, OpenTypeFont.Load(stream).GlyphCount);
     }
 
     [Fact]

@@ -6,7 +6,7 @@ namespace Rustaveli.Pdf.Fonts;
 /// </summary>
 internal sealed class FontDescriptorInfo
 {
-    private FontDescriptorInfo(OpenTypeFont font)
+    public FontDescriptorInfo(OpenTypeFont font)
     {
         Os2Table? os2 = font.Os2;
         PostTable? post = font.Post;
@@ -82,8 +82,6 @@ internal sealed class FontDescriptorInfo
 
     /// <summary>A font-unit value in PDF glyph space, where the em is 1000 units.</summary>
     public float ToGlyphSpace(int fontUnits) => fontUnits * 1000f / UnitsPerEm;
-
-    internal static FontDescriptorInfo Create(OpenTypeFont font) => new FontDescriptorInfo(font);
 
     private static int? GlyphTop(OpenTypeFont font, char character)
     {

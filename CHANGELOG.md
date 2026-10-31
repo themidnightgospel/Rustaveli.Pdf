@@ -150,6 +150,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   among them, which no later export could use. After one export the 85-page report held 650 KB more than composing it
   took, and the 10,000-row table 8.1 MB more, twice that once exported again; now each holds what composing took.
   Every PDF is unchanged.
+- A typeface registered from a stream that can seek is read straight into an array of its length, which the library
+  keeps, rather than into a growing buffer and out again: registering the 607 KB Noto Sans allocates half what it did.
 
 **Tests**
 
