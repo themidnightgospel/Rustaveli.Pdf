@@ -71,6 +71,16 @@ public class ImageProcessingTests
     }
 
     [Fact]
+    public void AnImageAskedForWithoutAQualityIsWrittenAsAPng()
+    {
+        ImageProcessing request = new ImageProcessing(TestImages.Png(40, 20), 20, 10, Quality: null);
+
+        byte[] processed = SkiaImageProcessor.Instance.Process(request);
+
+        Assert.Equal(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G' }, processed.Take(4));
+    }
+
+    [Fact]
     public void AnImageTurnedByItsOrientationIsProcessedTheRightWayUp()
     {
         RasterImage image = RasterImage.FromFile(ImagePath("jpeg-exif-orientation6.jpg"));

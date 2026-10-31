@@ -144,7 +144,7 @@ internal sealed class HarfBuzzShaper : IComplexShaper
     /// with them and few documents use more than a handful.
     /// </summary>
     private Feature[] FeaturesOf(TypeFeatures features) =>
-        _features.TryGetValue(features, out Feature[]? known)
-            ? known
-            : _features.GetOrAdd(features, static wanted => wanted.Settings.Select(setting => Feature.Parse($"{setting.Tag}={setting.Value}")).ToArray());
+        _features.GetOrAdd(features, static wanted => wanted.Settings
+            .Select(setting => Feature.Parse($"{setting.Tag}={setting.Value}"))
+            .ToArray());
 }

@@ -33,6 +33,5 @@ internal sealed class HarfBuzzFonts
         _make = face => new Lazy<Font>(() => create(face), LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    public Font For(OpenTypeFont face) =>
-        (_fonts.TryGetValue(face, out Lazy<Font>? made) ? made : _fonts.GetValue(face, _make)).Value;
+    public Font For(OpenTypeFont face) => _fonts.GetValue(face, _make).Value;
 }
