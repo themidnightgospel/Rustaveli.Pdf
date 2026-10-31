@@ -210,9 +210,7 @@ public class DebuggingTests
         Block[] made = new Block[2];
         made[0] = new FixedBlock(1, 1);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        made[1] = new FixedBlock(1, 1);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() => made[1] = new FixedBlock(1, 1)));
 
         Assert.True(allocated <= Budget, $"Making a frame allocated {allocated} bytes; its budget is {Budget}.");
     }

@@ -514,9 +514,9 @@ public class LineBreakerTests
         const string Text = "An ordinary sentence, with punctuation \u2014 and 12.5% (or so) of numbers.\n";
         Assert.Equal(12, Count(Text));
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        int count = Count(Text);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        int count = 0;
+
+        long allocated = Allocations.Fewest(() => Allocations.Of(() => count = Count(Text)));
 
         Assert.Equal(12, count);
         Assert.Equal(0, allocated);

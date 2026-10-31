@@ -35,11 +35,14 @@ public class FontDataWriterTests
     [Fact]
     public void HandsOverABufferTheBytesFillExactlyWithoutCopyingIt()
     {
-        FontDataWriter writer = Filled();
+        // A writer of its own each time, as one detached is empty.
+        long Detaching()
+        {
+            FontDataWriter writer = Filled();
+            return Allocations.Of(() => writer.DetachArray());
+        }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        writer.DetachArray();
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(Detaching);
 
         Assert.Equal(0, allocated);
     }

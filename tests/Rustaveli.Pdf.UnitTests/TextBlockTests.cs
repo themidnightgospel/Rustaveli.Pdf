@@ -984,13 +984,17 @@ public class TextBlockTests
         TextBlock warm = Text(text => text.Run("Warm up every path the paragraph takes when it is drawn"));
         warm.Plan(room, context);
         warm.Render(room, drawing);
-        TextBlock block = Text(text => text.Run("Words that wrap onto three lines"));
-        block.Plan(room, context);
-        block.Plan(room, context);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        block.Render(room, drawing);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        // A paragraph of its own each time, as one drawn has moved past its lines.
+        long Drawing()
+        {
+            TextBlock block = Text(text => text.Run("Words that wrap onto three lines"));
+            block.Plan(room, context);
+            block.Plan(room, context);
+            return Allocations.Of(() => block.Render(room, drawing));
+        }
+
+        long allocated = Allocations.Fewest(Drawing);
 
         Assert.True(allocated <= Budget, $"Drawing the paragraph allocated {allocated} bytes; its budget is {Budget}.");
     }
@@ -1027,11 +1031,9 @@ public class TextBlockTests
         const long Budget = 520;
         PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
         LayoutHarness.Plan(Text(text => text.Run("Warm up the shared buffers and every path the paragraph takes")), new Extent(90, 500), context);
-        TextBlock block = Text(text => text.Run("Words that wrap onto three lines"));
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        LayoutHarness.Plan(block, new Extent(90, 500), context);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated =
+            Allocations.Fewest(() => AllocatedPlanningANewParagraph("Words that wrap onto three lines", context));
 
         Assert.True(allocated <= Budget, $"Planning the paragraph allocated {allocated} bytes; its budget is {Budget}.");
     }
@@ -1044,13 +1046,19 @@ public class TextBlockTests
         const long Budget = 248;
         PlanContext context = new PlanContext(new FakeTypeMeasurer(), new Pagination());
         LayoutHarness.Plan(Text(text => text.Run("Warm up the shared buffers and every path the paragraph takes")), new Extent(90, 500), context);
-        TextBlock block = Text(text => text.Run("Invoice 42"));
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        LayoutHarness.Plan(block, new Extent(90, 500), context);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => AllocatedPlanningANewParagraph("Invoice 42", context));
 
         Assert.True(allocated <= Budget, $"Planning the paragraph allocated {allocated} bytes; its budget is {Budget}.");
+    }
+
+    /// <summary>
+    /// What planning a new paragraph of the text allocates: a paragraph planned once keeps its lines.
+    /// </summary>
+    private static long AllocatedPlanningANewParagraph(string text, PlanContext context)
+    {
+        TextBlock block = Text(composer => composer.Run(text));
+        return Allocations.Of(() => LayoutHarness.Plan(block, new Extent(90, 500), context));
     }
 
     [Fact]

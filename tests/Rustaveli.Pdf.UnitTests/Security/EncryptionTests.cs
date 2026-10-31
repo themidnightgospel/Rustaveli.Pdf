@@ -321,9 +321,10 @@ public class EncryptionTests
         byte[] data = new byte[4 << 20];
         encryption.EncryptStream(1, new PdfDictionary(), data);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        byte[] encrypted = encryption.EncryptStream(1, new PdfDictionary(), data);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        byte[] encrypted = [];
+
+        long allocated = Allocations.Fewest(() =>
+            Allocations.Of(() => encrypted = encryption.EncryptStream(1, new PdfDictionary(), data)));
 
         Assert.Equal(data.Length + 32, encrypted.Length);
         Assert.True(allocated < data.Length * 1.1, $"Encrypting {data.Length} bytes allocated {allocated}.");

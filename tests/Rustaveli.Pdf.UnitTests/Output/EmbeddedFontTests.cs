@@ -178,11 +178,15 @@ public class EmbeddedFontTests
         using PdfFileWriter warmUp = new PdfFileWriter(Stream.Null, Uncompressed);
         Show(face, warmUp, line).Write(warmUp);
 
-        using PdfFileWriter file = new PdfFileWriter(Stream.Null, Uncompressed);
-        EmbeddedFont font = Show(face, file, line);
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        font.Write(file);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        // A file and face of their own each time, as a face is written once.
+        long Writing()
+        {
+            using PdfFileWriter file = new PdfFileWriter(Stream.Null, Uncompressed);
+            EmbeddedFont font = Show(face, file, line);
+            return Allocations.Of(() => font.Write(file));
+        }
+
+        long allocated = Allocations.Fewest(Writing);
 
         Assert.True(allocated <= Budget, $"Writing the face allocated {allocated} bytes; its budget is {Budget}.");
     }

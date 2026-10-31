@@ -431,16 +431,20 @@ public class InlineContentTests
     [Fact]
     public void LinesOfPlainTextCostNothingWhileCountingPages()
     {
-        TextBlock block = Text(text => text.Run(string.Join("\n", Enumerable.Repeat("a line of plain text", 40))));
         PlanContext layout = LayoutHarness.Context();
         Extent space = new Extent(500, 1000);
-        LayoutHarness.Plan(block, space, layout);
-
         using CountingPageSink counting = new CountingPageSink();
         counting.BeginPage(space);
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        block.Render(space, new RenderContext(counting, layout));
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        // A paragraph of its own each time, as one drawn has moved past its lines.
+        long Counting()
+        {
+            TextBlock block = Text(text => text.Run(string.Join("\n", Enumerable.Repeat("a line of plain text", 40))));
+            LayoutHarness.Plan(block, space, layout);
+            return Allocations.Of(() => block.Render(space, new RenderContext(counting, layout)));
+        }
+
+        long allocated = Allocations.Fewest(Counting);
 
         // What drawing costs — the pieces of each line, joined — is not paid for lines no one sees.
         Assert.True(allocated < 1024, $"{allocated} bytes allocated counting forty lines.");

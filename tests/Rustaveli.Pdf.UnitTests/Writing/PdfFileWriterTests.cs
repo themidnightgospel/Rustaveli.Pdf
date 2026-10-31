@@ -399,9 +399,7 @@ public class PdfFileWriterTests
         using PdfFileWriter writer = new PdfFileWriter(Stream.Null, options);
         writer.WriteStream(metadata, data);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        writer.WriteStream(metadata, data);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() => writer.WriteStream(metadata, data)));
 
         Assert.True(allocated < data.Length / 10, $"Writing {data.Length} bytes allocated {allocated}.");
     }

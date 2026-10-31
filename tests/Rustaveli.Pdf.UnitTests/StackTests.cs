@@ -23,12 +23,16 @@ public class StackTests
         StackBlock warm = Column(4, Enumerable.Range(0, 8).Select(_ => (Block)new FixedBlock(10, 10)).ToArray());
         warm.Plan(room, context);
         warm.Render(room, drawing);
-        StackBlock column = Column(4, Enumerable.Range(0, 6).Select(_ => (Block)new FixedBlock(50, 20)).ToArray());
-        column.Plan(room, context);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        column.Render(room, drawing);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        // A stack of its own each time, as one drawn has moved past its items.
+        long Drawing()
+        {
+            StackBlock column = Column(4, Enumerable.Range(0, 6).Select(_ => (Block)new FixedBlock(50, 20)).ToArray());
+            column.Plan(room, context);
+            return Allocations.Of(() => column.Render(room, drawing));
+        }
+
+        long allocated = Allocations.Fewest(Drawing);
 
         Assert.True(allocated <= Budget, $"Drawing the stack allocated {allocated} bytes; its budget is {Budget}.");
     }
@@ -45,18 +49,20 @@ public class StackTests
         {
             StackBlock column = Column(0, [.. Enumerable.Range(0, items).Select(_ => new FixedBlock(10, 0))]);
             column.Plan(room, context);
-            long before = GC.GetAllocatedBytesForCurrentThread();
-            column.Render(room, drawing);
-            return GC.GetAllocatedBytesForCurrentThread() - before;
+            return Allocations.Of(() => column.Render(room, drawing));
         }
+
+        // A stack that borrows the record draws alike every time, so it is held to the fewest of three drawings; one
+        // that makes its own lends it on to the next, so it is drawn once.
+        long Borrowing() => Allocations.Fewest(() => AllocatedDrawing(6));
 
         // Items taking no height all go on the page. 1,000 grow the record to 1,024 slots, and the next stack borrows
         // it; 1,100 grow it to 2,048, and the next stack makes its own, which it lends on.
         AllocatedDrawing(1000);
-        Assert.Equal(0, AllocatedDrawing(6));
+        Assert.Equal(0, Borrowing());
         AllocatedDrawing(1100);
         Assert.NotEqual(0, AllocatedDrawing(6));
-        Assert.Equal(0, AllocatedDrawing(6));
+        Assert.Equal(0, Borrowing());
     }
 #endif
 

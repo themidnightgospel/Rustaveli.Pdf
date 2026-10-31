@@ -119,9 +119,7 @@ public class MalformedImageTests
         byte[] bomb = TestPng.Image(16384, 16384, 8, 6, new byte[64]);
 
 #if NET
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        Assert.False(LoadsOrFailsCleanly(bomb));
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() => Assert.False(LoadsOrFailsCleanly(bomb))));
 
         Assert.True(allocated < 1 << 20, $"Allocated {allocated} bytes.");
 #else

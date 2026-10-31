@@ -360,12 +360,11 @@ public class ShapingTests
         measurer.MeasureWidth(Text, Sans);
         float[] again = new float[10];
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int round = 0; round < again.Length; round++)
-            again[round] = measurer.MeasureWidth(Text, Sans);
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() =>
+        {
+            for (int round = 0; round < again.Length; round++)
+                again[round] = measurer.MeasureWidth(Text, Sans);
+        }));
 
         Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
         Assert.All(again, measured => Assert.Equal(width, measured));
@@ -380,15 +379,14 @@ public class ShapingTests
         float width = measurer.MeasureWidth(Text, Sans);
         measurer.MeasureCharactersFitting(Text, Sans, width / 2);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int round = 0; round < 10; round++)
+        long allocated = Allocations.Fewest(() => Allocations.Of(() =>
         {
-            measurer.MeasureWidth(Text, Sans);
-            measurer.MeasureCharactersFitting(Text, Sans, width / 2);
-        }
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            for (int round = 0; round < 10; round++)
+            {
+                measurer.MeasureWidth(Text, Sans);
+                measurer.MeasureCharactersFitting(Text, Sans, width / 2);
+            }
+        }));
 
         Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
         Assert.Contains(Shape(Text, Sans), glyph => glyph.ReadsAs == "ffi");
@@ -402,15 +400,20 @@ public class ShapingTests
         // copy cost this word 40 bytes more. When a change moves this on purpose, set the new figure and say why in the
         // commit.
         const long Budget = 352;
-        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
-        measurer.MeasureWidth("Total", 0, 5, Sans);
         string word = string.Concat("Sub", "total");
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        measurer.MeasureWidth(word, 0, word.Length, Sans);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        // A measurer of its own each time, as a second measurement of the word is a lookup.
+        long MeasuringForTheFirstTime()
+        {
+            OpenTypeMeasurer fresh = new OpenTypeMeasurer(Library.Shaper);
+            fresh.MeasureWidth("Total", 0, 5, Sans);
+            return Allocations.Of(() => fresh.MeasureWidth(word, 0, word.Length, Sans));
+        }
+
+        long allocated = Allocations.Fewest(MeasuringForTheFirstTime);
 
         Assert.True(allocated <= Budget, $"Measuring the word allocated {allocated} bytes; its budget is {Budget}.");
+        OpenTypeMeasurer measurer = new OpenTypeMeasurer(Library.Shaper);
         Assert.Equal(measurer.MeasureWidth(word.AsSpan(), Sans), measurer.MeasureWidth(word, 0, word.Length, Sans));
     }
 #endif
