@@ -165,7 +165,8 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? output = n
         while (_pending.Count > 0)
         {
             (PdfSource source, int number, PdfReference target) = _pending.Dequeue();
-            object read = source.GetObject(number);
+            // An object too damaged to read is written as null, as one the file does not hold.
+            object read = source.Readable(number) ?? PdfValue.Null;
 
             if (read is SourceStream stream)
             {

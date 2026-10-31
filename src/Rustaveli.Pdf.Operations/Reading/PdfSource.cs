@@ -52,6 +52,7 @@ internal sealed class PdfSource
     private readonly HashSet<int> _pageTree = [];
     private IReadOnlyList<SourcePage>? _pages;
     private int _encryptNumber;
+    private bool _unlocking;
     private bool _rebuilt;
 
     private PdfSource(byte[] data)
@@ -123,6 +124,7 @@ internal sealed class PdfSource
             : [];
 
         PdfEncryption? opened;
+        _unlocking = true;
 
         try
         {
@@ -131,6 +133,10 @@ internal sealed class PdfSource
         catch (InvalidDataException exception)
         {
             throw new UnreadableFileException("The file is not a PDF this library can read: " + exception.Message, exception);
+        }
+        finally
+        {
+            _unlocking = false;
         }
 
         Encryption = opened ?? throw new IncorrectPasswordException(
@@ -380,8 +386,10 @@ internal sealed class PdfSource
         if (!_entries.TryGetValue(number, out SourceEntry entry))
             return PdfValue.Null;
 
+        // An object stream cannot be decrypted before the key is known: what the encryption dictionary keeps in one is
+        // taken as absent, rather than as damage that would have the whole file rebuilt.
         if (entry.IsCompressed)
-            return LoadCompressed(number, entry);
+            return _unlocking ? PdfValue.Null : LoadCompressed(number, entry);
 
         object read = ReadAt(entry.Offset, number, out int generation);
 
@@ -415,11 +423,18 @@ internal sealed class PdfSource
         return value;
     }
 
+    /// <summary>A stream's data, from just past its <c>stream</c> keyword.</summary>
+    private byte[] StreamData(int position, PdfDictionary dictionary) =>
+        StreamExtent(position, dictionary, Resolve) is (int start, int length)
+            ? Data.AsSpan(start, length).ToArray()
+            : throw new UnreadableFileException("The file is not a PDF this library can read: a stream has no end.");
+
     /// <summary>
-    /// A stream's data, from just past its <c>stream</c> keyword: as long as its dictionary says, or up to
-    /// <c>endstream</c> where the length is wrong.
+    /// Where a stream's data begins, from just past its <c>stream</c> keyword, and how long it is: as long as its
+    /// dictionary says, or up to <c>endstream</c> where the length is wrong. Null when there is no <c>endstream</c>.
     /// </summary>
-    private byte[] StreamData(int position, PdfDictionary dictionary)
+    private (int Start, int Length)? StreamExtent(
+        int position, PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
     {
         // The keyword is followed by a line feed, or a carriage return and line feed; a lone carriage return is tolerated.
         if (position < Data.Length && Data[position] == '\r')
@@ -429,7 +444,7 @@ internal sealed class PdfSource
             position++;
 
         if (dictionary.TryGetValue(PdfNames.Length, out PdfValue given)
-            && Resolve(given) is { Kind: PdfValueKind.Integer } length
+            && resolve(given) is { Kind: PdfValueKind.Integer } length
             && length.AsInteger() >= 0
             && position + length.AsInteger() <= Data.Length)
         {
@@ -437,13 +452,13 @@ internal sealed class PdfSource
             PdfParser after = new PdfParser(Data, end);
 
             if (after.TryReadKeyword("endstream"u8))
-                return Data.AsSpan(position, end - position).ToArray();
+                return (position, end - position);
         }
 
         int found = Data.AsSpan(position).IndexOf("endstream"u8);
 
         if (found < 0)
-            throw new UnreadableFileException("The file is not a PDF this library can read: a stream has no end.");
+            return null;
 
         int stop = position + found;
 
@@ -453,7 +468,7 @@ internal sealed class PdfSource
         if (stop > position && Data[stop - 1] == '\r')
             stop--;
 
-        return Data.AsSpan(position, stop - position).ToArray();
+        return (position, stop - position);
     }
 
     private object LoadCompressed(int number, SourceEntry entry)
@@ -709,12 +724,15 @@ internal sealed class PdfSource
         _pages = null;
         _rebuilt = true;
 
-        for (int at = Data.AsSpan().IndexOf("obj"u8); at >= 0; at = Next(at + 3))
+        for (int at = Next(0); at >= 0; at = Next(at))
         {
-            if (at + 3 < Data.Length && PdfParser.IsRegular(Data[at + 3]))
+            int keyword = at;
+            at += 3;
+
+            if (at < Data.Length && PdfParser.IsRegular(Data[at]))
                 continue;
 
-            int start = ObjectStart(at);
+            int start = ObjectStart(keyword);
 
             if (start >= 0)
             {
@@ -723,6 +741,9 @@ internal sealed class PdfSource
 
                 if (number is > 0 and <= int.MaxValue)
                     _entries[(int)number] = SourceEntry.At(start);
+
+                // A stream's data can hold what looks like an object header: the search goes on after it.
+                at = Math.Max(at, StreamEnd(at));
             }
         }
 
@@ -730,6 +751,29 @@ internal sealed class PdfSource
         Trailer = RebuiltTrailer();
 
         int Next(int from) => from >= Data.Length ? -1 : Data.AsSpan(from).IndexOf("obj"u8) is int found and >= 0 ? from + found : -1;
+    }
+
+    /// <summary>
+    /// Where the data ends of the stream an object begins, its body read from <paramref name="body"/>; -1 when the
+    /// object is not a stream, or its body cannot be read. Its length is taken only as it is written: while the file is
+    /// rebuilt, a length kept as an object of its own may not have been found yet.
+    /// </summary>
+    private int StreamEnd(int body)
+    {
+        try
+        {
+            PdfParser parser = new PdfParser(Data, body);
+            PdfValue value = parser.ReadValue();
+
+            return value.Kind == PdfValueKind.Dictionary && parser.TryReadKeyword("stream"u8)
+                && StreamExtent(parser.Position, value.AsDictionary(), given => given) is (int start, int length)
+                ? start + length
+                : -1;
+        }
+        catch (UnreadableFileException)
+        {
+            return -1;
+        }
     }
 
     /// <summary>
@@ -763,9 +807,10 @@ internal sealed class PdfSource
 
     /// <summary>
     /// Object <paramref name="number"/>, or null when it is too damaged to read: rebuilding reads every object scanning
-    /// finds, and one that cannot be read must not cost the rest of the file. It stays unreadable when asked for.
+    /// finds, and saving every object reached, and one that cannot be read must not cost the rest of the file. It stays
+    /// unreadable when asked for.
     /// </summary>
-    private object? Readable(int number)
+    public object? Readable(int number)
     {
         try
         {

@@ -17,6 +17,17 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   `InvalidOperationException`; it is damage now, an `UnreadableFileException`.
 - Repairing a PDF: one object too damaged to read made the whole file unreadable. It is left out now, and the rest of
   the file is read; the damaged object is still refused when it is asked for.
+- Repairing a PDF: an object header held in a stream's data, such as the text `1 0 obj` in an uncompressed content
+  stream, was taken for that object, in place of the real one written before the stream. The scan for objects now
+  goes on after each stream's data: where its `/Length` ends, when `endstream` follows there, and otherwise at
+  `endstream`.
+- Opening an encrypted PDF whose encryption dictionary refers to an object kept in an object stream, which cannot be
+  decrypted before the key is known, repaired a sound file by scanning it. Such an entry is now read as absent while
+  the file is opened. Under 256-bit AES the file opens unrepaired; under RC4 and 128-bit AES, whose keys are made with
+  the permissions, an absent `/P` leaves no password that opens it, and the file is refused with an
+  `IncorrectPasswordException`, as it was after the repair.
+- Saving a PDF: one object too damaged to read failed the whole save with an `UnreadableFileException`. It is written
+  as null now, as an object the file does not hold.
 - An encrypted file with a cross-reference stream kept its catalog in an object stream. That is allowed, but readers
   that look the catalog up before setting up decryption, PdfPig among them, could not open the file. The catalog of an
   encrypted file is now written outside the object streams, as qpdf writes it.

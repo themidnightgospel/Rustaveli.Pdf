@@ -337,6 +337,20 @@ public class FileAssemblyTests
         Assert.Equal([0L, 0L, 200L, 200L], box.AsArray().Cast<PdfValue>().Select(corner => corner.AsInteger()));
     }
 
+    [Fact]
+    public void AnObjectTooDamagedToReadIsWrittenAsNullWhenARebuiltFileIsSaved()
+    {
+        byte[] damaged =
+            HandmadePdf.OnePage("/Thumb 5 0 R").Object(5, "}").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n").ToArray();
+
+        PdfSource source = Saved(PdfFile.Open(damaged));
+        PdfValue thumb = source.Pages[0].Dictionary[new PdfName("Thumb")];
+
+        Assert.True(PdfSource.Open(damaged).WasRepaired);
+        Assert.Equal(PdfValueKind.Reference, thumb.Kind);
+        Assert.Equal(PdfValueKind.Null, ((PdfValue)source.GetObject(thumb.AsReference().ObjectNumber)).Kind);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
