@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Rustaveli.Pdf.Operations.Reading;
+using Rustaveli.Pdf.Security;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.UnitTests.Operations;
@@ -16,6 +17,9 @@ public class FileAssemblyTests
     private static readonly PdfName DR = new PdfName("DR");
     private static readonly PdfName T = new PdfName("T");
     private static readonly PdfName Dest = new PdfName("Dest");
+    private static readonly PdfName Encrypt = new PdfName("Encrypt");
+    private static readonly PdfName Permissions = new PdfName("P");
+    private static readonly PdfName CryptFilters = new PdfName("CF");
 
     /// <summary>The file <paramref name="pdf"/> holds, opened once its cross-reference section is written.</summary>
     private static PdfFile Opened(HandmadePdf pdf, string trailer = "/Root 1 0 R")
@@ -397,5 +401,63 @@ public class FileAssemblyTests
         {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void AKeptEncryptionDictionaryIsWrittenWithoutReferences()
+    {
+        // Found by fuzzing: an encryption dictionary was written as it was read, references and all, though the
+        // numbers they gave were by then other objects', one of them in an object stream that cannot be read before
+        // the file is decrypted. Its permissions and crypt filters here are objects of their own, and two entries no
+        // security handler reads, one leading to the catalog, come with it.
+        PdfEncryption encryption = PdfEncryption.Create(
+            new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.AesWith256Bits });
+        PdfDictionary dictionary = new PdfDictionary(encryption.Dictionary.Count + 2);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in encryption.Dictionary)
+            dictionary[entry.Key] = entry.Value;
+
+        dictionary[Permissions] = new PdfReference(5);
+        dictionary[CryptFilters] = new PdfReference(6);
+        dictionary[Encrypt] = new PdfReference(1);
+        dictionary[PdfNames.Type] = PdfNames.XRef;
+        string id = Convert.ToHexString(encryption.DocumentId);
+        HandmadePdf pdf = Catalogued(string.Empty)
+            .Object(4, Written(dictionary))
+            .Object(5, Written(encryption.Dictionary[Permissions]))
+            .Object(6, Written(encryption.Dictionary[CryptFilters]));
+
+        PdfSource saved = Saved(Opened(pdf, $"/Root 1 0 R/Encrypt 4 0 R/ID[<{id}><{id}>]"));
+        int number = saved.Trailer[Encrypt].AsReference().ObjectNumber;
+        PdfDictionary written = ((PdfValue)saved.GetObject(number)).AsDictionary();
+
+        Assert.False(saved.WasRepaired);
+        Assert.Equal(encryption.Dictionary[Permissions].AsInteger(), written[Permissions].AsInteger());
+        Assert.Equal(PdfValueKind.Dictionary, written[CryptFilters].Kind);
+        Assert.False(written.ContainsKey(Encrypt));
+        Assert.False(written.ContainsKey(PdfNames.Type));
+    }
+
+    [Theory]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    [InlineData(EncryptionLevel.AesWith256Bits)]
+    public void AKeptEncryptionDictionaryWithoutReferencesIsWrittenAsItWas(EncryptionLevel level)
+    {
+        PdfEncryption encryption = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = level });
+        string id = Convert.ToHexString(encryption.DocumentId);
+        HandmadePdf pdf = Catalogued(string.Empty).Object(4, Written(encryption.Dictionary));
+
+        PdfSource saved = Saved(Opened(pdf, $"/Root 1 0 R/Encrypt 4 0 R/ID[<{id}><{id}>]"));
+        int number = saved.Trailer[Encrypt].AsReference().ObjectNumber;
+
+        Assert.Equal(Written(encryption.Dictionary), Written((PdfValue)saved.GetObject(number)));
+    }
+
+    /// <summary>A value as the writer writes it.</summary>
+    private static string Written(PdfValue value)
+    {
+        using PdfByteWriter writer = new PdfByteWriter();
+        writer.WriteValue(value);
+        return Encoding.Latin1.GetString(writer.WrittenSpan);
     }
 }

@@ -48,6 +48,15 @@ internal sealed class PdfEncryption
     private static readonly PdfName Crypt = new PdfName("Crypt");
     private static readonly PdfName Name = new PdfName("Name");
 
+    private static readonly PdfName SubFilter = new PdfName("SubFilter");
+
+    /// <summary>The entries of an encryption dictionary of the standard security handler, its crypt filters apart.</summary>
+    private static readonly PdfName[] HandlerEntries =
+        [Filter, SubFilter, V, PdfNames.Length, StmF, StrF, EFF, R, O, U, OE, UE, P, Perms, EncryptMetadata];
+
+    /// <summary>The entries that define a crypt filter of the standard security handler.</summary>
+    private static readonly PdfName[] FilterEntries = [PdfNames.Type, CFM, AuthEvent, PdfNames.Length];
+
     private readonly byte[] _key;
 
     /// <summary>Whether the file must declare Adobe's extension level 8, the one 256-bit AES at revision 6 arrived in.</summary>
@@ -251,7 +260,14 @@ internal sealed class PdfEncryption
 
             return key is null
                 ? AttachmentsOnly(dictionary, id, metadata, resolve)
-                : new PdfEncryption(key, aes, CryptFilter(dictionary, StrF, Cipher.Aes256, resolve), metadata, dictionary, id, EmbeddedFileFilter(dictionary, aes, Cipher.Aes256, resolve));
+                : new PdfEncryption(
+                    key,
+                    aes,
+                    CryptFilter(dictionary, StrF, Cipher.Aes256, resolve),
+                    metadata,
+                    Standalone(dictionary, resolve),
+                    id,
+                    EmbeddedFileFilter(dictionary, aes, Cipher.Aes256, resolve));
         }
 
         int length = revision == 2 ? 5 : Integer(dictionary, PdfNames.Length, 40, resolve) / 8;
@@ -274,8 +290,74 @@ internal sealed class PdfEncryption
         Cipher streams = version == 4 ? CryptFilter(dictionary, StmF, cipher, resolve) : Cipher.Rc4;
         Cipher strings = version == 4 ? CryptFilter(dictionary, StrF, cipher, resolve) : Cipher.Rc4;
         Cipher embedded = version == 4 ? EmbeddedFileFilter(dictionary, streams, cipher, resolve) : Cipher.Rc4;
-        return new PdfEncryption(opened, streams, strings, metadata, dictionary, id, embedded);
+        return new PdfEncryption(opened, streams, strings, metadata, Standalone(dictionary, resolve), id, embedded);
     }
+
+    /// <summary>
+    /// <paramref name="dictionary"/> as it can be written again, outside any object stream and read before anything is
+    /// decrypted: only the entries of the standard security handler, each resolved to its value, and its crypt filters
+    /// with theirs. An entry that leads to another object even then is left out; the numbers of the objects it led to
+    /// are other objects' in the file written.
+    /// </summary>
+    private static PdfDictionary Standalone(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
+    {
+        PdfDictionary standalone = new PdfDictionary(dictionary.Count);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+        {
+            PdfValue value = resolve(entry.Value);
+
+            if (entry.Key.Equals(CF))
+            {
+                if (value.Kind == PdfValueKind.Dictionary)
+                    standalone[CF] = CryptFilters(value.AsDictionary(), resolve);
+            }
+            else if (Keeps(HandlerEntries, entry.Key, value))
+            {
+                standalone[entry.Key] = value;
+            }
+        }
+
+        return standalone;
+    }
+
+    /// <summary>
+    /// The crypt filters of <c>/CF</c>, each with only the entries that define a crypt filter (7.6.6), so that filters
+    /// sharing one object still make a dictionary no larger than the file's own.
+    /// </summary>
+    private static PdfDictionary CryptFilters(PdfDictionary filters, Func<PdfValue, PdfValue> resolve)
+    {
+        PdfDictionary standalone = new PdfDictionary(filters.Count);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in filters)
+        {
+            if (resolve(entry.Value) is { Kind: PdfValueKind.Dictionary } filter)
+                standalone[entry.Key] = Kept(filter.AsDictionary(), FilterEntries, resolve);
+        }
+
+        return standalone;
+    }
+
+    /// <summary>The entries of <paramref name="dictionary"/> named in <paramref name="keys"/> whose values are plain, in order.</summary>
+    private static PdfDictionary Kept(PdfDictionary dictionary, PdfName[] keys, Func<PdfValue, PdfValue> resolve)
+    {
+        PdfDictionary kept = new PdfDictionary(keys.Length);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+        {
+            PdfValue value = resolve(entry.Value);
+
+            if (Keeps(keys, entry.Key, value))
+                kept[entry.Key] = value;
+        }
+
+        return kept;
+    }
+
+    private static bool Keeps(PdfName[] keys, PdfName key, PdfValue value) => Array.IndexOf(keys, key) >= 0 && IsPlain(value);
+
+    private static bool IsPlain(PdfValue value) =>
+        value.Kind is PdfValueKind.Boolean or PdfValueKind.Integer or PdfValueKind.Real or PdfValueKind.Name or PdfValueKind.String;
 
     /// <summary>The cipher of the embedded files' crypt filter, <c>/EFF</c>, or <paramref name="streams"/> when it names none.</summary>
     private static Cipher EmbeddedFileFilter(PdfDictionary dictionary, Cipher streams, Cipher fallback, Func<PdfValue, PdfValue> resolve) =>
@@ -298,7 +380,8 @@ internal sealed class PdfEncryption
 
         // Without the key the attachments cannot be decrypted, but what they are encrypted with is kept: it decides whether
         // they can be carried as they are into the file written.
-        return new PdfEncryption([], Cipher.None, Cipher.None, metadata, dictionary, id, Method(filter, Cipher.Aes128, resolve));
+        return new PdfEncryption(
+            [], Cipher.None, Cipher.None, metadata, Standalone(dictionary, resolve), id, Method(filter, Cipher.Aes128, resolve));
     }
 
     /// <summary>
