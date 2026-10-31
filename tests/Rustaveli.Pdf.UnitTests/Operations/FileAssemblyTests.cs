@@ -485,6 +485,20 @@ public class FileAssemblyTests
         Assert.Equal(Written(encryption.Dictionary), Written((PdfValue)saved.GetObject(number)));
     }
 
+    [Fact]
+    public void PermissionsKeptInAnObjectStreamAreWrittenWithTheEncryptionDictionary()
+    {
+        // Read as absent while the file was opened, they are read once its object streams can be decrypted.
+        (byte[] file, long permissions) = PdfSourceTests.PermissionsInAnObjectStream(EncryptionLevel.AesWith256Bits);
+
+        PdfSource saved = Saved(PdfFile.Open(file));
+        PdfDictionary written = Dictionary(saved, saved.Trailer[Encrypt]);
+
+        Assert.True(saved.Encryption!.HasKey);
+        Assert.True(written.TryGetValue(Permissions, out PdfValue given));
+        Assert.Equal(permissions, given.AsInteger());
+    }
+
     /// <summary>A value as the writer writes it.</summary>
     private static string Written(PdfValue value)
     {

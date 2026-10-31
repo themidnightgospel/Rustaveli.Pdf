@@ -26,6 +26,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   the file is opened. Under 256-bit AES the file opens unrepaired; under RC4 and 128-bit AES, whose keys are made with
   the permissions, an absent `/P` leaves no password that opens it, and the file is refused with an
   `IncorrectPasswordException`, as it was after the repair.
+- Saving such a file, under 256-bit AES, with its protection: permissions its encryption dictionary kept in an object
+  stream were left out of the dictionary written, which must give them (`/P`). They are read once the file is
+  decrypted, and written with it.
 - Saving a PDF: one object too damaged to read failed the whole save with an `UnreadableFileException`, and one kept in
   an object stream whose filter the library does not decode with a `NotSupportedException`. Each is written as null
   now, as an object the file does not hold.
