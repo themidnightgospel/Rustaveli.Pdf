@@ -157,14 +157,16 @@ internal sealed class SvgReader
     private Artwork Draw(XElement root)
     {
         float[]? viewBox = ViewBox(root);
-        float width = SvgLength.Read((string?)root.Attribute("width"), viewBox?[2] ?? 300, viewBox?[2] ?? 300);
-        float height = SvgLength.Read((string?)root.Attribute("height"), viewBox?[3] ?? 150, viewBox?[3] ?? 150);
+
+        // Without a view box, a size left out is the one CSS gives a replaced element.
+        (float Width, float Height) fallback = viewBox is null ? (300, 150) : (viewBox[2], viewBox[3]);
+        float width = SvgLength.Read((string?)root.Attribute("width"), fallback.Width, fallback.Width);
+        float height = SvgLength.Read((string?)root.Attribute("height"), fallback.Height, fallback.Height);
 
         if (!(width > 0) || !(height > 0))
             throw new FormatException("The SVG has no size to draw at.");
 
         Dictionary<string, string> style = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        _viewport = viewBox is null ? (width, height) : (viewBox[2], viewBox[3]);
 
         return Artwork.Draw(width * SvgLength.PointsPerPixel, height * SvgLength.PointsPerPixel, art =>
         {
@@ -172,20 +174,17 @@ internal sealed class SvgReader
             art.Scale(SvgLength.PointsPerPixel, SvgLength.PointsPerPixel);
 
             if (MapViewBox(art, root, viewBox, width, height))
-                Render(root, style, 1, art, 0, children: true);
+                RenderIn(viewBox, width, height, () => Render(root, style, 1, art, 0));
         });
     }
 
-    private void Render(XElement element, Dictionary<string, string> parent, float parentOpacity, ArtworkComposer art, int depth, bool children = false)
+    private void Render(
+        XElement element, Dictionary<string, string> parent, float parentOpacity, ArtworkComposer art, int depth)
     {
         if (depth > DeepestNesting)
             return;
 
         string name = element.Name.LocalName;
-
-        if (!children && NotDrawn.Contains(name))
-            return;
-
         Dictionary<string, string> declared = Declared(element);
 
         if (Value(declared, "display") == "none")
@@ -288,9 +287,9 @@ internal sealed class SvgReader
             float height = Down(element, "height", _viewport.Height);
 
             if (MapViewBox(art, target, viewBox, width, height))
-                RenderIn(viewBox, width, height, () => Render(target, style, opacity, art, depth + 1, children: true));
+                RenderIn(viewBox, width, height, () => Render(target, style, opacity, art, depth + 1));
         }
-        else
+        else if (!NotDrawn.Contains(target.Name.LocalName))
         {
             Render(target, style, opacity, art, depth + 1);
         }
@@ -316,7 +315,10 @@ internal sealed class SvgReader
     private void RenderChildren(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
     {
         foreach (XElement child in element.Elements())
-            Render(child, style, opacity, art, depth + 1);
+        {
+            if (!NotDrawn.Contains(child.Name.LocalName))
+                Render(child, style, opacity, art, depth + 1);
+        }
     }
 
     /// <summary>Draws with <paramref name="draw"/> in a new viewport, whose percentages are of its own size.</summary>
@@ -375,7 +377,7 @@ internal sealed class SvgReader
                 continue;
 
             // A span's position belongs to its first character; a span with none moves nothing.
-            (float? X, float? Y, float? Dx, float? Dy) before = setting.Pending;
+            Placement before = setting.Pending;
             int added = setting.Added;
             Place(span, setting);
             Spans(span, Cascade(style, declared), opacity * Opacity(Value(declared, "opacity")), setting, depth + 1);
@@ -389,7 +391,7 @@ internal sealed class SvgReader
     private void Place(XElement element, TextSetting setting)
     {
         (float? x, float? y, float? dx, float? dy) = setting.Pending;
-        setting.Pending = (
+        setting.Pending = new Placement(
             FirstLength(element, "x", _viewport.Width) ?? x,
             FirstLength(element, "y", _viewport.Height) ?? y,
             FirstLength(element, "dx", _viewport.Width) ?? dx,
@@ -416,7 +418,14 @@ internal sealed class SvgReader
             return;
 
         (TypeStyle type, TextAnchor anchor, bool visible) = TypeOf(style, opacity);
-        (string, float, TypeWeight, bool, Ink, TextAnchor, bool) look = (Value(style, "font-family") ?? string.Empty, type.PointSize, type.Weight, type.IsItalic, type.Ink, anchor, visible);
+        Look look = new Look(
+            Value(style, "font-family") ?? string.Empty,
+            type.PointSize,
+            type.Weight,
+            type.IsItalic,
+            type.Ink,
+            anchor,
+            visible);
         setting.Added++;
 
         if (!setting.Placed && setting.Runs.Count > 0 && look.Equals(setting.LastLook))
@@ -442,10 +451,10 @@ internal sealed class SvgReader
         Ink ink = fill ?? Ink.Black;
 
         // A negative font size is an error SVG ignores, leaving the default.
-        float size = SvgLength.Read(Value(style, "font-size"), 16, 16);
+        float size = SvgLength.Read(Value(style, "font-size"), SvgLength.DefaultFontSize, SvgLength.DefaultFontSize);
 
         if (size < 0)
-            size = 16;
+            size = SvgLength.DefaultFontSize;
 
         string[] families = (Value(style, "font-family") ?? "sans-serif").Split(',').Select(family => family.Trim(' ', '"', '\'')).Where(family => family.Length > 0).ToArray();
         TypeStyle type = TypeStyle.Default
@@ -628,9 +637,7 @@ internal sealed class SvgReader
     /// <summary>A gradient's stops, from itself or the gradient it refers to, in order and at their opacity.</summary>
     private List<GradientStop> Stops(XElement element, float opacity)
     {
-        XElement? current = element;
-
-        for (int step = 0; current is not null && step < DeepestNesting; step++)
+        foreach (XElement current in ReferenceChain(element))
         {
             List<XElement> stops = current.Elements().Where(child => child.Name.LocalName == "stop").ToList();
 
@@ -650,8 +657,6 @@ internal sealed class SvgReader
 
                 return read;
             }
-
-            current = Referenced(current);
         }
 
         return [];
@@ -670,19 +675,24 @@ internal sealed class SvgReader
     }
 
     /// <summary>An attribute of a gradient, or of the gradient it refers to when it has none of its own.</summary>
-    private string? Inherit(XElement element, string name)
+    private string? Inherit(XElement element, string name) =>
+        ReferenceChain(element)
+            .Select(current => (string?)current.Attribute(name))
+            .FirstOrDefault(value => value is not null);
+
+    /// <summary>
+    /// A gradient, then the gradient it refers to, and so on: as many as the nesting allows, ending sooner at one that
+    /// refers to nothing.
+    /// </summary>
+    private IEnumerable<XElement> ReferenceChain(XElement element)
     {
         XElement? current = element;
 
         for (int step = 0; current is not null && step < DeepestNesting; step++)
         {
-            if ((string?)current.Attribute(name) is { } value)
-                return value;
-
+            yield return current;
             current = Referenced(current);
         }
-
-        return null;
     }
 
     private VectorPath? ClipPathOf(string reference, int depth)
@@ -705,30 +715,32 @@ internal sealed class SvgReader
 
     private void AddClipShapes(XElement parent, Matrix matrix, VectorPath into, int depth)
     {
-        if (depth > DeepestNesting)
+        foreach (XElement child in parent.Elements())
+            AddClipShape(child, matrix, into, depth);
+    }
+
+    private void AddClipShape(XElement element, Matrix matrix, VectorPath into, int depth)
+    {
+        if (depth > DeepestNesting || Value(Declared(element), "display") == "none")
             return;
 
-        foreach (XElement child in parent.Elements())
+        Matrix own = SvgTransform.Read((string?)element.Attribute("transform")) ?? SvgTransform.Identity;
+        Matrix inner = SvgTransform.Multiply(matrix, own);
+
+        if (element.Name.LocalName == "use" && Referenced(element) is { } target && _using.Add(target))
         {
-            if (Value(Declared(child), "display") == "none")
-                continue;
-
-            Matrix inner = SvgTransform.Multiply(matrix, SvgTransform.Read((string?)child.Attribute("transform")) ?? SvgTransform.Identity);
-
-            if (child.Name.LocalName == "use" && Referenced(child) is { } target && _using.Add(target))
-            {
-                Matrix moved = SvgTransform.Multiply(inner, (1, 0, 0, 1, Across(child, "x"), Down(child, "y")));
-                AddClipShapes(new XElement("g", target), moved, into, depth + 1);
-                _using.Remove(target);
-            }
-            else if (child.Name.LocalName == "g")
-            {
-                AddClipShapes(child, inner, into, depth + 1);
-            }
-            else if (Shape(child) is { } shape)
-            {
-                into.AddTransformed(shape, inner.A, inner.B, inner.C, inner.D, inner.E, inner.F);
-            }
+            Matrix moved = SvgTransform.Multiply(
+                inner, SvgTransform.Translation(Across(element, "x"), Down(element, "y")));
+            AddClipShape(target, moved, into, depth + 1);
+            _using.Remove(target);
+        }
+        else if (element.Name.LocalName == "g")
+        {
+            AddClipShapes(element, inner, into, depth + 1);
+        }
+        else if (Shape(element) is { } shape)
+        {
+            into.AddTransformed(shape, inner.A, inner.B, inner.C, inner.D, inner.E, inner.F);
         }
     }
 
@@ -966,14 +978,25 @@ internal sealed class SvgReader
         public bool AfterSpace { get; set; } = true;
 
         /// <summary>The position the next character set is given, by the element it starts: none unless one says.</summary>
-        public (float? X, float? Y, float? Dx, float? Dy) Pending { get; set; }
+        public Placement Pending { get; set; }
 
         /// <summary>How the last run looks, which the next characters join when they look the same and are not placed.</summary>
-        public (string, float, TypeWeight, bool, Ink, TextAnchor, bool) LastLook { get; set; }
+        public Look LastLook { get; set; }
 
         /// <summary>How many times characters have been set, so a span that set none can be told apart.</summary>
         public int Added { get; set; }
 
-        public bool Placed => !Pending.Equals(default((float?, float?, float?, float?)));
+        public bool Placed => Pending != default;
     }
+
+    /// <summary>
+    /// Where characters are set: at an x and y, each moved by a dx and dy; none of them unless given.
+    /// </summary>
+    private readonly record struct Placement(float? X, float? Y, float? Dx, float? Dy);
+
+    /// <summary>
+    /// What sets a run's characters apart from the next ones: their typeface, type, anchor and visibility.
+    /// </summary>
+    private readonly record struct Look(
+        string Family, float Size, TypeWeight Weight, bool IsItalic, Ink Ink, TextAnchor Anchor, bool Visible);
 }
