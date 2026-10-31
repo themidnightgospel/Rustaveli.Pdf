@@ -301,10 +301,22 @@ internal sealed class PdfEncryption
     /// </summary>
     private static PdfDictionary Standalone(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
     {
-        PdfDictionary standalone = Kept(dictionary, HandlerEntries, resolve);
+        PdfDictionary standalone = new PdfDictionary(dictionary.Count);
 
-        if (dictionary.TryGetValue(CF, out PdfValue filters) && resolve(filters) is { Kind: PdfValueKind.Dictionary } all)
-            standalone[CF] = CryptFilters(all.AsDictionary(), resolve);
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+        {
+            PdfValue value = resolve(entry.Value);
+
+            if (entry.Key.Equals(CF))
+            {
+                if (value.Kind == PdfValueKind.Dictionary)
+                    standalone[CF] = CryptFilters(value.AsDictionary(), resolve);
+            }
+            else if (Keeps(HandlerEntries, entry.Key, value))
+            {
+                standalone[entry.Key] = value;
+            }
+        }
 
         return standalone;
     }
@@ -333,17 +345,16 @@ internal sealed class PdfEncryption
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
         {
-            if (Array.IndexOf(keys, entry.Key) < 0)
-                continue;
-
             PdfValue value = resolve(entry.Value);
 
-            if (IsPlain(value))
+            if (Keeps(keys, entry.Key, value))
                 kept[entry.Key] = value;
         }
 
         return kept;
     }
+
+    private static bool Keeps(PdfName[] keys, PdfName key, PdfValue value) => Array.IndexOf(keys, key) >= 0 && IsPlain(value);
 
     private static bool IsPlain(PdfValue value) =>
         value.Kind is PdfValueKind.Boolean or PdfValueKind.Integer or PdfValueKind.Real or PdfValueKind.Name or PdfValueKind.String;

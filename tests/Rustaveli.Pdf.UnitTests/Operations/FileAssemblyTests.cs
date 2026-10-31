@@ -438,6 +438,21 @@ public class FileAssemblyTests
         Assert.False(written.ContainsKey(PdfNames.Type));
     }
 
+    [Theory]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    [InlineData(EncryptionLevel.AesWith256Bits)]
+    public void AKeptEncryptionDictionaryWithoutReferencesIsWrittenAsItWas(EncryptionLevel level)
+    {
+        PdfEncryption encryption = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = level });
+        string id = Convert.ToHexString(encryption.DocumentId);
+        HandmadePdf pdf = Catalogued(string.Empty).Object(4, Written(encryption.Dictionary));
+
+        PdfSource saved = Saved(Opened(pdf, $"/Root 1 0 R/Encrypt 4 0 R/ID[<{id}><{id}>]"));
+        int number = saved.Trailer[Encrypt].AsReference().ObjectNumber;
+
+        Assert.Equal(Written(encryption.Dictionary), Written((PdfValue)saved.GetObject(number)));
+    }
+
     /// <summary>A value as the writer writes it.</summary>
     private static string Written(PdfValue value)
     {
