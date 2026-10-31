@@ -239,10 +239,10 @@ public sealed class TextComposer
             : style => refinement(previous(style));
     }
 
-    private RunComposer Add(TextRun span)
+    private RunComposer Add(TextRun run)
     {
-        _block.Runs.Add(span);
-        return new RunComposer(span);
+        _block.Runs.Add(run);
+        return new RunComposer(run);
     }
 
     /// <summary>A number read from where an anchor fell, written by <paramref name="format"/>; "?" until it is known.</summary>
