@@ -408,11 +408,11 @@ public class FileAssemblyTests
     {
         // Found by fuzzing: an encryption dictionary was written as it was read, references and all, though the
         // numbers they gave were by then other objects', one of them in an object stream that cannot be read before
-        // the file is decrypted. Its permissions and crypt filters here are objects of their own, and an entry no
-        // security handler reads leads to the catalog.
+        // the file is decrypted. Its permissions and crypt filters here are objects of their own, and two entries no
+        // security handler reads, one leading to the catalog, come with it.
         PdfEncryption encryption = PdfEncryption.Create(
             new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.AesWith256Bits });
-        PdfDictionary dictionary = new PdfDictionary(encryption.Dictionary.Count + 1);
+        PdfDictionary dictionary = new PdfDictionary(encryption.Dictionary.Count + 2);
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in encryption.Dictionary)
             dictionary[entry.Key] = entry.Value;
@@ -420,6 +420,7 @@ public class FileAssemblyTests
         dictionary[Permissions] = new PdfReference(5);
         dictionary[CryptFilters] = new PdfReference(6);
         dictionary[Encrypt] = new PdfReference(1);
+        dictionary[PdfNames.Type] = PdfNames.XRef;
         string id = Convert.ToHexString(encryption.DocumentId);
         HandmadePdf pdf = Catalogued(string.Empty)
             .Object(4, Written(dictionary))
@@ -434,6 +435,7 @@ public class FileAssemblyTests
         Assert.Equal(encryption.Dictionary[Permissions].AsInteger(), written[Permissions].AsInteger());
         Assert.Equal(PdfValueKind.Dictionary, written[CryptFilters].Kind);
         Assert.False(written.ContainsKey(Encrypt));
+        Assert.False(written.ContainsKey(PdfNames.Type));
     }
 
     /// <summary>A value as the writer writes it.</summary>

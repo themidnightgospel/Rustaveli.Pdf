@@ -48,6 +48,12 @@ internal sealed class PdfEncryption
     private static readonly PdfName Crypt = new PdfName("Crypt");
     private static readonly PdfName Name = new PdfName("Name");
 
+    private static readonly PdfName SubFilter = new PdfName("SubFilter");
+
+    /// <summary>The entries of an encryption dictionary of the standard security handler, its crypt filters apart.</summary>
+    private static readonly PdfName[] HandlerEntries =
+        [Filter, SubFilter, V, PdfNames.Length, StmF, StrF, EFF, R, O, U, OE, UE, P, Perms, EncryptMetadata];
+
     /// <summary>The entries that define a crypt filter of the standard security handler.</summary>
     private static readonly PdfName[] FilterEntries = [PdfNames.Type, CFM, AuthEvent, PdfNames.Length];
 
@@ -289,23 +295,16 @@ internal sealed class PdfEncryption
 
     /// <summary>
     /// <paramref name="dictionary"/> as it can be written again, outside any object stream and read before anything is
-    /// decrypted: with its references resolved, and its crypt filters' with them. An entry that leads to another object
-    /// even then is left out, and a crypt filter keeps only what defines it; the numbers of the objects it led to are
-    /// other objects' in the file written.
+    /// decrypted: only the entries of the standard security handler, each resolved to its value, and its crypt filters
+    /// with theirs. An entry that leads to another object even then is left out; the numbers of the objects it led to
+    /// are other objects' in the file written.
     /// </summary>
     private static PdfDictionary Standalone(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
     {
-        PdfDictionary standalone = new PdfDictionary(dictionary.Count);
+        PdfDictionary standalone = Kept(dictionary, HandlerEntries, resolve);
 
-        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
-        {
-            PdfValue value = resolve(entry.Value);
-
-            if (entry.Key.Equals(CF) && value.Kind == PdfValueKind.Dictionary)
-                standalone[CF] = CryptFilters(value.AsDictionary(), resolve);
-            else if (IsPlain(value))
-                standalone[entry.Key] = value;
-        }
+        if (dictionary.TryGetValue(CF, out PdfValue filters) && resolve(filters) is { Kind: PdfValueKind.Dictionary } all)
+            standalone[CF] = CryptFilters(all.AsDictionary(), resolve);
 
         return standalone;
     }
@@ -320,26 +319,30 @@ internal sealed class PdfEncryption
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in filters)
         {
-            if (resolve(entry.Value) is not { Kind: PdfValueKind.Dictionary } filter)
-                continue;
-
-            PdfDictionary defined = new PdfDictionary(FilterEntries.Length);
-
-            foreach (PdfName key in FilterEntries)
-            {
-                if (!filter.AsDictionary().TryGetValue(key, out PdfValue given))
-                    continue;
-
-                PdfValue value = resolve(given);
-
-                if (IsPlain(value))
-                    defined[key] = value;
-            }
-
-            standalone[entry.Key] = defined;
+            if (resolve(entry.Value) is { Kind: PdfValueKind.Dictionary } filter)
+                standalone[entry.Key] = Kept(filter.AsDictionary(), FilterEntries, resolve);
         }
 
         return standalone;
+    }
+
+    /// <summary>The entries of <paramref name="dictionary"/> named in <paramref name="keys"/> whose values are plain, in order.</summary>
+    private static PdfDictionary Kept(PdfDictionary dictionary, PdfName[] keys, Func<PdfValue, PdfValue> resolve)
+    {
+        PdfDictionary kept = new PdfDictionary(keys.Length);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+        {
+            if (Array.IndexOf(keys, entry.Key) < 0)
+                continue;
+
+            PdfValue value = resolve(entry.Value);
+
+            if (IsPlain(value))
+                kept[entry.Key] = value;
+        }
+
+        return kept;
     }
 
     private static bool IsPlain(PdfValue value) =>
