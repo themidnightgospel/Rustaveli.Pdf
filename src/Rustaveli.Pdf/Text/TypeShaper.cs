@@ -80,21 +80,13 @@ internal sealed class TypeShaper
         OpenTypeFont primary = Resolve(request);
 
         if (!rightToLeft)
-        {
-            return new GlyphWalk(
-                this, primary, request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces,
-                tracking: style.Tracking);
-        }
+            return new GlyphWalk(this, primary, request, text, style);
 
         string mirrored = Mirrored(text);
         List<ShapedGlyph> glyphs = [];
 
-        foreach (ShapedGlyph glyph in new GlyphWalk(
-            this, primary, request, mirrored.AsSpan(), style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces, text,
-            style.Tracking))
-        {
+        foreach (ShapedGlyph glyph in new GlyphWalk(this, primary, request, mirrored.AsSpan(), style, text))
             glyphs.Add(glyph);
-        }
 
         return GlyphWalk.Replaying(InDisplayOrder(glyphs, mirrored));
     }
@@ -107,9 +99,7 @@ internal sealed class TypeShaper
     {
         FontRequest request = RequestFor(style);
 
-        return new GlyphWalk(
-            this, Resolve(request), request, text, style.EffectivePointSize, style.WordSpacing, style.Features, style.FallbackTypefaces,
-            tracking: style.Tracking, keepText: false);
+        return new GlyphWalk(this, Resolve(request), request, text, style, keepText: false);
     }
 
     /// <summary>
@@ -163,10 +153,7 @@ internal sealed class TypeShaper
         for (int index = 0; index < characters.Length; index++)
         {
             // Every mirrored pair lies in the Basic Multilingual Plane, so the mirror image fits a char.
-            int mirror = BidiCharacter.Mirror(characters[index]);
-
-            if (mirror != characters[index])
-                characters[index] = (char)mirror;
+            characters[index] = (char)BidiCharacter.Mirror(characters[index]);
         }
 
         return new string(characters);

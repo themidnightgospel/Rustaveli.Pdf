@@ -36,7 +36,7 @@ internal sealed class TextRun
     /// wraps to the next line as a unit, and contributes its height to the line it lands on. Used for an icon, a
     /// logo or a small chart sitting mid-sentence.
     /// </remarks>
-    public Layout.Block? Inline { get; set; }
+    public Block? Inline { get; set; }
 
     /// <summary>Where <see cref="Inline"/> sits against the line.</summary>
     public InlinePosition InlinePosition { get; set; }

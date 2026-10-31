@@ -55,16 +55,15 @@ internal ref struct GlyphWalk
     /// <param name="primary">The style's own face.</param>
     /// <param name="request">The face asked for, which fallbacks are matched against.</param>
     /// <param name="text">The text to set, with any character that has a mirror image taken as it when it reads right to left.</param>
-    /// <param name="pointSize">The size it is set at.</param>
-    /// <param name="wordSpacing">Space added to each word space.</param>
-    /// <param name="features">The features the style turns on or off.</param>
-    /// <param name="fallbacks">The style's own fallback typefaces.</param>
+    /// <param name="style">
+    /// The type it is set in: its size, the space added to each word space, the features it turns on or off, its own
+    /// fallback typefaces, and its tracking, which each glyph says whether it takes.
+    /// </param>
     /// <param name="typed">
     /// For text that reads right to left, the text as typed, before mirroring: a complex shaper mirrors characters
     /// itself, and mirroring them twice would turn a bracket back to face the wrong way. Empty for text read left to
     /// right.
     /// </param>
-    /// <param name="tracking">The style's tracking, which each glyph says whether it takes.</param>
     /// <param name="keepText">
     /// Whether a glyph standing for several characters carries them as <see cref="ShapedGlyph.Text"/>, as drawing
     /// needs; measuring does not, and is spared the string.
@@ -74,39 +73,22 @@ internal ref struct GlyphWalk
         OpenTypeFont primary,
         FontRequest request,
         ReadOnlySpan<char> text,
-        float pointSize,
-        float wordSpacing = 0f,
-        TypeFeatures? features = null,
-        TypefaceFallbacks? fallbacks = null,
+        TypeStyle style,
         ReadOnlySpan<char> typed = default,
-        float tracking = 0f,
         bool keepText = true)
     {
-        _tracking = tracking;
-        _keepText = keepText;
-        _boundaries = default;
-        _previousJoined = false;
         _shaper = shaper;
         _primary = primary;
         _request = request;
         _text = text;
         _rightToLeft = !typed.IsEmpty;
         _typed = _rightToLeft ? typed : text;
-        _pointSize = pointSize;
-        _wordSpacing = wordSpacing;
-        _features = features ?? TypeFeatures.None;
-        _fallbacks = fallbacks ?? TypefaceFallbacks.None;
-        _next = 0;
-        _plainEnd = 0;
-        _previousFace = null;
-        _previousGlyph = 0;
-        _scratch = null;
-        _buffer = null;
-        _bufferFace = null;
-        _bufferIndex = 0;
-        _runStart = 0;
-        _runLength = 0;
-        Current = default;
+        _pointSize = style.EffectivePointSize;
+        _wordSpacing = style.WordSpacing;
+        _features = style.Features;
+        _fallbacks = style.FallbackTypefaces;
+        _tracking = style.Tracking;
+        _keepText = keepText;
     }
 
     public ShapedGlyph Current { get; private set; }
@@ -265,13 +247,7 @@ internal ref struct GlyphWalk
             buffer.Load(face, run);
         }
 
-        _scratch = scratch;
-        _buffer = buffer;
-        _bufferFace = face;
-        _bufferIndex = 0;
-        _runStart = start;
-        _runLength = run.Length;
-        _next = end;
+        Hold(scratch, face, start, run.Length);
         return true;
     }
 
@@ -294,14 +270,23 @@ internal ref struct GlyphWalk
         foreach (ComplexGlyph placed in placements)
             buffer.Add(placed.Glyph, placed.Cluster);
 
+        Hold(scratch, face, start, run.Length);
+        return true;
+    }
+
+    /// <summary>
+    /// Keeps the run of <paramref name="length"/> characters from <paramref name="start"/>, shaped in
+    /// <paramref name="face"/> into the scratch's buffer, to be handed out glyph by glyph; the walk goes on after it.
+    /// </summary>
+    private void Hold(ShapingScratch scratch, OpenTypeFont face, int start, int length)
+    {
         _scratch = scratch;
-        _buffer = buffer;
+        _buffer = scratch.Buffer;
         _bufferFace = face;
         _bufferIndex = 0;
         _runStart = start;
-        _runLength = run.Length;
-        _next = start + run.Length;
-        return true;
+        _runLength = length;
+        _next = start + length;
     }
 
     /// <summary>
