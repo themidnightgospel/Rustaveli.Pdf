@@ -187,6 +187,9 @@ static void ComposeLists(IFrame frame) =>
 static void ComposeInvoiceTable(IFrame frame) =>
     ComposeFeature(frame, "Tables", body => body.Table(table =>
     {
+        const int Lines = 18;
+        const decimal UnitPrice = 12.5m;
+
         table.Columns(columns =>
         {
             columns.Fixed(70);
@@ -206,14 +209,15 @@ static void ComposeInvoiceTable(IFrame frame) =>
             }
         });
 
-        for (int index = 1; index <= 18; index++)
+        for (int index = 1; index <= Lines; index++)
         {
             Ink shade = index % 2 == 0 ? Ink.White : Palette.GreyLight;
+            IFrame Cell() => table.Cell().Fill(shade).Inset(5);
 
-            table.Cell().Fill(shade).Inset(5).Text($"SKU-{index:D3}");
-            table.Cell().Fill(shade).Inset(5).Text($"Line item number {index}");
-            table.Cell().Fill(shade).Inset(5).FlushRight().Text($"{index}");
-            table.Cell().Fill(shade).Inset(5).FlushRight().Text($"{index * 12.5m:F2}");
+            Cell().Text($"SKU-{index:D3}");
+            Cell().Text($"Line item number {index}");
+            Cell().FlushRight().Text($"{index}");
+            Cell().FlushRight().Text($"{index * UnitPrice:F2}");
         }
 
         // Footer rows, repeated on every page the table spans.
@@ -223,7 +227,7 @@ static void ComposeInvoiceTable(IFrame frame) =>
                 .Text(text => text.Run("Total").Bold());
 
             footer.Cell().Inset(5).FlushRight()
-                .Text(text => text.Run($"{Enumerable.Range(1, 18).Sum(i => i * 12.5m):F2}").Bold());
+                .Text(text => text.Run($"{Enumerable.Range(1, Lines).Sum(i => i * UnitPrice):F2}").Bold());
         });
     }));
 

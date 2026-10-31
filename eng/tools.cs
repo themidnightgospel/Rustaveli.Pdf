@@ -25,16 +25,17 @@ const string VeraPdfSha256 = "6cc6341cb1af644044054b81f00a6590a7918abb18f762243d
 
 string root = RepositoryRoot();
 string tools = Path.Combine(root, "artifacts", "tools");
-bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && RuntimeInformation.OSArchitecture == Architecture.X64;
+bool windowsX64 = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+    && RuntimeInformation.OSArchitecture == Architecture.X64;
 
 using HttpClient http = new HttpClient();
 
-if (windows)
+if (windowsX64)
     await FetchQpdf();
 else
     Console.WriteLine("qpdf: install it with your package manager, apt-get install qpdf or brew install qpdf.");
 
-string java = windows ? await FetchJava() : FindJava();
+string java = windowsX64 ? await FetchJava() : FindJava();
 await FetchVeraPdf(java);
 return 0;
 

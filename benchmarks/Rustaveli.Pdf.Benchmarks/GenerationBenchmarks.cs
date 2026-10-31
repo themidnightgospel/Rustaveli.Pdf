@@ -12,15 +12,6 @@ public class GenerationBenchmarks
     [Params(DocumentKind.Invoice, DocumentKind.Report, DocumentKind.LargeTable, DocumentKind.Images)]
     public DocumentKind Kind { get; set; }
 
-    [GlobalSetup]
-    public void Setup()
-    {
-        // Pay for font registration and first-use initialisation outside the measured region.
-        BenchmarkFonts.EnsureRegistered();
-        _ = QuestDocuments.Generate(DocumentKind.Invoice);
-        _ = RustaveliDocuments.Generate(DocumentKind.Invoice);
-    }
-
     [Benchmark(Baseline = true)]
     public int QuestPdf() => QuestDocuments.Generate(Kind).Length;
 

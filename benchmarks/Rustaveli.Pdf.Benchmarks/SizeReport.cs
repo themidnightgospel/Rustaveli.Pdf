@@ -10,11 +10,15 @@ namespace Rustaveli.Pdf.Benchmarks;
 public static class SizeReport
 {
     /// <summary>Prints the sizes as a table and, given a path, writes them there as JSON too.</summary>
-    /// <param name="json">Where to write the sizes as JSON, by document: the reference's and this library's, in bytes.</param>
-    public static void Print(string? json)
+    /// <param name="jsonPath">
+    /// Where to write the sizes as JSON, by document: the reference's and this library's, in bytes.
+    /// </param>
+    public static void Print(string? jsonPath)
     {
-        Console.WriteLine("| Document | QuestPDF (bytes) | Rustaveli (bytes) | Ratio |");
-        Console.WriteLine("|---|---:|---:|---:|");
+        Console.WriteLine("""
+            | Document | QuestPDF (bytes) | Rustaveli (bytes) | Ratio |
+            |---|---:|---:|---:|
+            """);
 
         Dictionary<string, Sizes> sizes = new Dictionary<string, Sizes>(StringComparer.Ordinal);
 
@@ -27,8 +31,8 @@ public static class SizeReport
             sizes[kind.ToString()] = new Sizes(theirs, ours);
         }
 
-        if (json is not null)
-            File.WriteAllText(json, JsonSerializer.Serialize(sizes));
+        if (jsonPath is not null)
+            File.WriteAllText(jsonPath, JsonSerializer.Serialize(sizes));
     }
 
     /// <summary>A document's size from each library.</summary>
