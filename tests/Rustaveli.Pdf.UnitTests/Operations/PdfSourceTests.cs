@@ -744,10 +744,11 @@ public class PdfSourceTests
 
     /// <summary>
     /// A file encrypted at <paramref name="level"/> under an empty user password, listed by a cross-reference stream,
-    /// whose encryption dictionary (object 4) gives its permissions as object 5, kept in the encrypted object stream 6;
-    /// and those permissions.
+    /// whose encryption dictionary (object 4) gives its permissions as object 5, kept in the encrypted object stream 6
+    /// that <paramref name="filter"/> adds to; and those permissions.
     /// </summary>
-    private static (byte[] File, long Permissions) PermissionsInAnObjectStream(EncryptionLevel level)
+    internal static (byte[] File, long Permissions) PermissionsInAnObjectStream(
+        EncryptionLevel level, string filter = "")
     {
         PdfEncryption encryption = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = level });
         PdfDictionary dictionary = new PdfDictionary(encryption.Dictionary.Count);
@@ -767,7 +768,7 @@ public class PdfSourceTests
 
         HandmadePdf pdf = HandmadePdf.OnePage()
             .Object(4, Encoding.Latin1.GetString(written.WrittenSpan))
-            .Stream(6, "<</Type/ObjStm/N 1/First 4>>", Encoding.Latin1.GetString(stream));
+            .Stream(6, $"<</Type/ObjStm/N 1/First 4{filter}>>", Encoding.Latin1.GetString(stream));
         pdf.StreamSection(
             7,
             $"/Size 7/Root 1 0 R/Encrypt 4 0 R/ID[<{id}><{id}>]",
@@ -797,6 +798,17 @@ public class PdfSourceTests
     [InlineData(EncryptionLevel.AesWith128Bits)]
     public void PermissionsInAnObjectStreamLeaveNoPasswordThatOpensAFileKeyedWithThem(EncryptionLevel level) =>
         Assert.Throws<IncorrectPasswordException>(() => PdfSource.Open(PermissionsInAnObjectStream(level).File));
+
+    [Fact]
+    public void PermissionsInAnObjectStreamNoFilterHereDecodesAreLeftOutOnceTheFileIsUnlocked()
+    {
+        // Read again once the key is known, the object stream still cannot be read: the file opens without them.
+        (byte[] file, _) = PermissionsInAnObjectStream(EncryptionLevel.AesWith256Bits, "/Filter/JBIG2Decode");
+        PdfSource source = PdfSource.Open(file);
+
+        Assert.True(source.Encryption!.HasKey);
+        Assert.False(source.Encryption.Dictionary.ContainsKey(new PdfName("P")));
+    }
 
     [Fact]
     public void ObjectStreamsOfARebuiltFileAreFoundAgainOnceItIsDecrypted()

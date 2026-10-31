@@ -155,6 +155,16 @@ internal sealed class PdfSource
 
             IndexObjectStreams();
         }
+
+        // Permissions the encryption dictionary keeps in an object stream were read as absent; they can be read now.
+        try
+        {
+            Encryption.KeepPermissions(dictionary, Resolve);
+        }
+        catch (Exception exception) when (exception is UnreadableFileException or NotSupportedException)
+        {
+            // An object stream that cannot be read even now leaves them absent, as they were while the file was opened.
+        }
     }
 
     /// <summary>

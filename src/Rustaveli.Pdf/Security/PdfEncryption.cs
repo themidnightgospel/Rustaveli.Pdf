@@ -57,6 +57,9 @@ internal sealed class PdfEncryption
     /// <summary>The entries that define a crypt filter of the standard security handler.</summary>
     private static readonly PdfName[] FilterEntries = [PdfNames.Type, CFM, AuthEvent, PdfNames.Length];
 
+    /// <summary>The permissions, and the copy of them that 256-bit AES keeps encrypted.</summary>
+    private static readonly PdfName[] PermissionEntries = [P, Perms];
+
     private readonly byte[] _key;
 
     /// <summary>Whether the file must declare Adobe's extension level 8, the one 256-bit AES at revision 6 arrived in.</summary>
@@ -319,6 +322,26 @@ internal sealed class PdfEncryption
         }
 
         return standalone;
+    }
+
+    /// <summary>
+    /// Adds to <see cref="Dictionary"/> the permissions that <paramref name="dictionary"/>, the file's, keeps in an
+    /// object stream, read as absent by <see cref="Open"/> since the stream cannot be decrypted before the key is
+    /// known. Only they are read again: the other entries are kept as they were read, when they decided how the file
+    /// is decrypted, and so how it is written.
+    /// </summary>
+    public void KeepPermissions(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
+    {
+        foreach (PdfName key in PermissionEntries)
+        {
+            if (Dictionary.ContainsKey(key) || !dictionary.TryGetValue(key, out PdfValue given))
+                continue;
+
+            PdfValue value = resolve(given);
+
+            if (IsPlain(value))
+                Dictionary[key] = value;
+        }
     }
 
     /// <summary>
