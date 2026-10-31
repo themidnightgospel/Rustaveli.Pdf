@@ -8,11 +8,11 @@
 using BenchmarkDotNet.Running;
 using Rustaveli.Pdf.Benchmarks;
 
-int sizes = Array.IndexOf(args, "--sizes");
+int sizesFlag = Array.IndexOf(args, "--sizes");
 
-if (sizes >= 0)
+if (sizesFlag >= 0)
 {
-    SizeReport.Print(sizes + 1 < args.Length ? args[sizes + 1] : null);
+    SizeReport.Print(sizesFlag + 1 < args.Length ? args[sizesFlag + 1] : null);
     return;
 }
 

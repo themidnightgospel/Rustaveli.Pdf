@@ -149,8 +149,10 @@ AppendArray(source, "Leaves", "The value of each code point, in leaves of 128.",
 source.AppendLine("}");
 
 File.WriteAllText(output, source.ToString().Replace("\r\n", "\n"), new UTF8Encoding(false));
-Console.WriteLine($"wrote {output}");
-Console.WriteLine($"  top {top.Length} B, middle {middle.Count} B, leaves {leaves.Count} B, direct below U+{directLimit:X4}");
+Console.WriteLine($"""
+    wrote {output}
+      top {top.Length} B, middle {middle.Count} B, leaves {leaves.Count} B, direct below U+{directLimit:X4}
+    """);
 return 0;
 
 // Parses a UCD file into one value per code point. Code points the file does not list take its @missing default;
