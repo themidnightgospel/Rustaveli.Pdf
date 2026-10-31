@@ -57,8 +57,11 @@ internal sealed class PdfEncryption
     /// <summary>The entries that define a crypt filter of the standard security handler.</summary>
     private static readonly PdfName[] FilterEntries = [PdfNames.Type, CFM, AuthEvent, PdfNames.Length];
 
-    /// <summary>The permissions, and the copy of them that 256-bit AES keeps encrypted.</summary>
-    private static readonly PdfName[] PermissionEntries = [P, Perms];
+    /// <summary>
+    /// The entries read again once the key is known: the permissions, the copy of them that 256-bit AES keeps
+    /// encrypted, and whether the metadata is encrypted.
+    /// </summary>
+    private static readonly PdfName[] EntriesReadAgain = [P, Perms, EncryptMetadata];
 
     private readonly byte[] _key;
 
@@ -66,14 +69,19 @@ internal sealed class PdfEncryption
     private readonly bool _extended;
 
     private PdfEncryption(
-        byte[] key, Cipher streams, Cipher strings, bool metadata, PdfDictionary dictionary, byte[] documentId, Cipher? embeddedFiles = null, bool extended = false)
+        byte[] key,
+        Cipher streams,
+        Cipher strings,
+        PdfDictionary dictionary,
+        byte[] documentId,
+        Cipher? embeddedFiles = null,
+        bool extended = false)
     {
         _key = key;
         _extended = extended;
         Streams = streams;
         Strings = strings;
         EmbeddedFiles = embeddedFiles ?? streams;
-        EncryptsMetadata = metadata;
         Dictionary = dictionary;
         DocumentId = documentId;
     }
@@ -103,7 +111,8 @@ internal sealed class PdfEncryption
     /// </summary>
     public bool HasKey => _key.Length > 0;
 
-    public bool EncryptsMetadata { get; }
+    /// <summary>Whether the metadata is encrypted: unless <see cref="Dictionary"/> says it is left readable.</summary>
+    public bool EncryptsMetadata => MetadataEncrypted(Dictionary, value => value);
 
     /// <summary>The encryption dictionary, written unencrypted and outside any object stream.</summary>
     public PdfDictionary Dictionary { get; }
@@ -164,7 +173,7 @@ internal sealed class PdfEncryption
                 dictionary[EncryptMetadata] = false;
         }
 
-        return new PdfEncryption(key, cipher, cipher, metadata, dictionary, id);
+        return new PdfEncryption(key, cipher, cipher, dictionary, id);
     }
 
     private static void RequireDocEncoding(string password, string which)
@@ -220,7 +229,7 @@ internal sealed class PdfEncryption
         if (!metadata)
             dictionary[EncryptMetadata] = false;
 
-        return new PdfEncryption(key, Cipher.Aes256, Cipher.Aes256, metadata, dictionary, id, extended: true);
+        return new PdfEncryption(key, Cipher.Aes256, Cipher.Aes256, dictionary, id, extended: true);
     }
 
     /// <summary>
@@ -252,7 +261,7 @@ internal sealed class PdfEncryption
         int version = Integer(dictionary, V, 0, resolve);
         int revision = Integer(dictionary, R, 0, resolve);
         int permissions = Integer(dictionary, P, 0, resolve);
-        bool metadata = !(dictionary.TryGetValue(EncryptMetadata, out PdfValue flag) && resolve(flag) is { Kind: PdfValueKind.Boolean } encrypt && !encrypt.AsBoolean());
+        bool metadata = MetadataEncrypted(dictionary, resolve);
         byte[] owner = Bytes(dictionary, O, resolve);
         byte[] user = Bytes(dictionary, U, resolve);
 
@@ -262,12 +271,11 @@ internal sealed class PdfEncryption
             Cipher aes = CryptFilter(dictionary, StmF, Cipher.Aes256, resolve);
 
             return key is null
-                ? AttachmentsOnly(dictionary, id, metadata, resolve)
+                ? AttachmentsOnly(dictionary, id, resolve)
                 : new PdfEncryption(
                     key,
                     aes,
                     CryptFilter(dictionary, StrF, Cipher.Aes256, resolve),
-                    metadata,
                     Standalone(dictionary, resolve),
                     id,
                     EmbeddedFileFilter(dictionary, aes, Cipher.Aes256, resolve));
@@ -287,14 +295,22 @@ internal sealed class PdfEncryption
             ?? StandardSecurity.AuthenticateUser(StandardSecurity.RecoverUser(password, owner, revision, length), owner, user, permissions, id, revision, length, metadata);
 
         if (opened is null)
-            return version == 4 ? AttachmentsOnly(dictionary, id, metadata, resolve) : null;
+            return version == 4 ? AttachmentsOnly(dictionary, id, resolve) : null;
 
         Cipher cipher = version == 4 ? Cipher.Aes128 : Cipher.Rc4;
         Cipher streams = version == 4 ? CryptFilter(dictionary, StmF, cipher, resolve) : Cipher.Rc4;
         Cipher strings = version == 4 ? CryptFilter(dictionary, StrF, cipher, resolve) : Cipher.Rc4;
         Cipher embedded = version == 4 ? EmbeddedFileFilter(dictionary, streams, cipher, resolve) : Cipher.Rc4;
-        return new PdfEncryption(opened, streams, strings, metadata, Standalone(dictionary, resolve), id, embedded);
+        return new PdfEncryption(opened, streams, strings, Standalone(dictionary, resolve), id, embedded);
     }
+
+    /// <summary>
+    /// Whether an encryption <paramref name="dictionary"/> has the metadata encrypted: unless its
+    /// <c>/EncryptMetadata</c> is false.
+    /// </summary>
+    private static bool MetadataEncrypted(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve) =>
+        !(dictionary.TryGetValue(EncryptMetadata, out PdfValue flag)
+            && resolve(flag) is { Kind: PdfValueKind.Boolean } encrypt && !encrypt.AsBoolean());
 
     /// <summary>
     /// <paramref name="dictionary"/> as it can be written again, outside any object stream and read before anything is
@@ -325,14 +341,19 @@ internal sealed class PdfEncryption
     }
 
     /// <summary>
-    /// Adds to <see cref="Dictionary"/> the permissions that <paramref name="dictionary"/>, the file's, keeps in an
-    /// object stream, read as absent by <see cref="Open"/> since the stream cannot be decrypted before the key is
-    /// known. Only they are read again: the other entries are kept as they were read, when they decided how the file
-    /// is decrypted, and so how it is written.
+    /// Adds to <see cref="Dictionary"/> the permissions, and whether the metadata is encrypted, that
+    /// <paramref name="dictionary"/>, the file's, keeps in an object stream, read as absent by <see cref="Open"/> since
+    /// the stream cannot be decrypted before the key is known. Only they are read again: the other entries are kept as
+    /// they were read, when they decided how the file is decrypted, and so how it is written. Metadata read before then
+    /// must be read again: it is decrypted, and written, as the entry read now says.
     /// </summary>
-    public void KeepPermissions(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
+    /// <remarks>
+    /// Whether the metadata is encrypted enters the key only at revision 4, where an entry read as absent leaves no
+    /// password that opens the file: it is opened without its key, or not at all.
+    /// </remarks>
+    public void KeepEntriesReadAsAbsent(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
     {
-        foreach (PdfName key in PermissionEntries)
+        foreach (PdfName key in EntriesReadAgain)
         {
             if (Dictionary.ContainsKey(key) || !dictionary.TryGetValue(key, out PdfValue given))
                 continue;
@@ -391,7 +412,7 @@ internal sealed class PdfEncryption
     /// crypt filter that asks for the password only when an attachment is opened (<c>/AuthEvent /EFOpen</c>, 7.6.5):
     /// viewers open it, and it is opened, its attachments left as they are. Null for any other file.
     /// </summary>
-    private static PdfEncryption? AttachmentsOnly(PdfDictionary dictionary, byte[] id, bool metadata, Func<PdfValue, PdfValue> resolve)
+    private static PdfEncryption? AttachmentsOnly(PdfDictionary dictionary, byte[] id, Func<PdfValue, PdfValue> resolve)
     {
         if (CryptFilter(dictionary, StmF, Cipher.Aes128, resolve) != Cipher.None || CryptFilter(dictionary, StrF, Cipher.Aes128, resolve) != Cipher.None
             || !dictionary.TryGetValue(EFF, out PdfValue named) || resolve(named) is not { Kind: PdfValueKind.Name } name
@@ -404,7 +425,7 @@ internal sealed class PdfEncryption
         // Without the key the attachments cannot be decrypted, but what they are encrypted with is kept: it decides whether
         // they can be carried as they are into the file written.
         return new PdfEncryption(
-            [], Cipher.None, Cipher.None, metadata, Standalone(dictionary, resolve), id, Method(filter, Cipher.Aes128, resolve));
+            [], Cipher.None, Cipher.None, Standalone(dictionary, resolve), id, Method(filter, Cipher.Aes128, resolve));
     }
 
     /// <summary>

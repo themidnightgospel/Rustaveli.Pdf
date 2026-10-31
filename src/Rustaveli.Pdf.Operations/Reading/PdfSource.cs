@@ -156,15 +156,19 @@ internal sealed class PdfSource
             IndexObjectStreams();
         }
 
-        // Permissions the encryption dictionary keeps in an object stream were read as absent; they can be read now.
+        // Entries the encryption dictionary keeps in an object stream were read as absent; they can be read now.
         try
         {
-            Encryption.KeepPermissions(dictionary, Resolve);
+            Encryption.KeepEntriesReadAsAbsent(dictionary, Resolve);
         }
         catch (Exception exception) when (exception is UnreadableFileException or NotSupportedException)
         {
             // An object stream that cannot be read even now leaves them absent, as they were while the file was opened.
         }
+
+        // What was read since, every object of a rebuilt file among it, was read before those entries said how the
+        // metadata is decrypted. The object streams hold no streams, and stay.
+        _objects.Clear();
     }
 
     /// <summary>
