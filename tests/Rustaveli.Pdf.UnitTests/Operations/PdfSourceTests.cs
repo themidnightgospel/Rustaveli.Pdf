@@ -399,6 +399,29 @@ public class PdfSourceTests
     }
 
     [Theory]
+    [InlineData(null)]
+    [InlineData("999")]
+    [InlineData("5 0 R")]
+    public void ScanningSkipsWhatAStreamHolds(string? length)
+    {
+        // Taken for an object, the header in the stream would replace the real object 1 written before it. A length
+        // that is wrong, or refers to an object scanning has not found yet, is not trusted to say where the stream
+        // ends.
+        const string Data = "1 0 obj\n<</Type/Fake>>\nendobj\n";
+        HandmadePdf pdf = HandmadePdf.OnePage("/Contents 4 0 R")
+            .Stream(4, "<<>>", Data, length)
+            .Object(5, Data.Length.ToString(CultureInfo.InvariantCulture))
+            .Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n");
+
+        PdfSource source = Open(pdf);
+
+        Assert.True(source.WasRepaired);
+        Assert.Equal("Catalog", source.Catalog[PdfNames.Type].AsName().Value);
+        Assert.Equal(Data, Encoding.ASCII.GetString(((SourceStream)source.GetObject(4)).Data));
+        Assert.Equal(Data.Length, Value(source, 5).AsInteger());
+    }
+
+    [Theory]
     [InlineData("99")]
     [InlineData("2")]
     [InlineData("-3")]
@@ -718,6 +741,62 @@ public class PdfSourceTests
         Assert.NotNull(source.Encryption);
         Assert.Equal("secret", Text(source, 4));
     }
+
+    /// <summary>
+    /// A file encrypted at <paramref name="level"/> under an empty user password, listed by a cross-reference stream,
+    /// whose encryption dictionary (object 4) gives its permissions as object 5, kept in the encrypted object stream 6;
+    /// and those permissions.
+    /// </summary>
+    private static (byte[] File, long Permissions) PermissionsInAnObjectStream(EncryptionLevel level)
+    {
+        PdfEncryption encryption = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = level });
+        PdfDictionary dictionary = new PdfDictionary(encryption.Dictionary.Count);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in encryption.Dictionary)
+            dictionary[entry.Key] = entry.Value;
+
+        long permissions = encryption.Dictionary[new PdfName("P")].AsInteger();
+        dictionary[new PdfName("P")] = new PdfReference(5);
+        string packed = $"5 0 {permissions}";
+        string id = Hex(encryption.DocumentId);
+
+        using PdfByteWriter written = new PdfByteWriter();
+        written.WriteValue(dictionary);
+
+        byte[] stream = encryption.EncryptStream(6, new PdfDictionary(), Encoding.ASCII.GetBytes(packed));
+
+        HandmadePdf pdf = HandmadePdf.OnePage()
+            .Object(4, Encoding.Latin1.GetString(written.WrittenSpan))
+            .Stream(6, "<</Type/ObjStm/N 1/First 4>>", Encoding.Latin1.GetString(stream));
+        pdf.StreamSection(
+            7,
+            $"/Size 7/Root 1 0 R/Encrypt 4 0 R/ID[<{id}><{id}>]",
+            [1, 4, 2],
+            [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), InUse(pdf, 4), [2, 6, 0], InUse(pdf, 6));
+        return (pdf.ToArray(), permissions);
+    }
+
+    [Fact]
+    public void PermissionsInAnObjectStreamAreReadAsAbsentWhileTheFileIsUnlocked()
+    {
+        // The object stream cannot be read before the key is known, and the file around it is sound: it is not rebuilt.
+        // Under 256-bit AES the permissions play no part in checking the password, and the file opens.
+        (byte[] file, long permissions) = PermissionsInAnObjectStream(EncryptionLevel.AesWith256Bits);
+        PdfSource source = PdfSource.Open(file);
+
+        Assert.False(source.WasRepaired);
+        Assert.True(source.Encryption!.HasKey);
+        Assert.Single(source.Pages);
+
+        // Once the file is decrypted, the object stream is read.
+        Assert.Equal(permissions, Value(source, 5).AsInteger());
+    }
+
+    [Theory]
+    [InlineData(EncryptionLevel.Rc4With128Bits)]
+    [InlineData(EncryptionLevel.AesWith128Bits)]
+    public void PermissionsInAnObjectStreamLeaveNoPasswordThatOpensAFileKeyedWithThem(EncryptionLevel level) =>
+        Assert.Throws<IncorrectPasswordException>(() => PdfSource.Open(PermissionsInAnObjectStream(level).File));
 
     [Fact]
     public void ObjectStreamsOfARebuiltFileAreFoundAgainOnceItIsDecrypted()
