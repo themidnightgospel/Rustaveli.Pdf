@@ -26,8 +26,9 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   the file is opened. Under 256-bit AES the file opens unrepaired; under RC4 and 128-bit AES, whose keys are made with
   the permissions, an absent `/P` leaves no password that opens it, and the file is refused with an
   `IncorrectPasswordException`, as it was after the repair.
-- Saving a PDF: one object too damaged to read failed the whole save with an `UnreadableFileException`. It is written
-  as null now, as an object the file does not hold.
+- Saving a PDF: one object too damaged to read failed the whole save with an `UnreadableFileException`, and one kept in
+  an object stream whose filter the library does not decode with a `NotSupportedException`. Each is written as null
+  now, as an object the file does not hold.
 - An encrypted file with a cross-reference stream kept its catalog in an object stream. That is allowed, but readers
   that look the catalog up before setting up decryption, PdfPig among them, could not open the file. The catalog of an
   encrypted file is now written outside the object streams, as qpdf writes it.

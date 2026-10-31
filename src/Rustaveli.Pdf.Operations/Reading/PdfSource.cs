@@ -763,6 +763,12 @@ internal sealed class PdfSource
         try
         {
             PdfParser parser = new PdfParser(Data, body);
+            parser.SkipWhitespace();
+
+            // Only a dictionary begins a stream; any other body is parsed once, when the object is read.
+            if (!Data.AsSpan(parser.Position).StartsWith("<<"u8))
+                return -1;
+
             PdfValue value = parser.ReadValue();
 
             return value.Kind == PdfValueKind.Dictionary && parser.TryReadKeyword("stream"u8)
@@ -806,9 +812,9 @@ internal sealed class PdfSource
     }
 
     /// <summary>
-    /// Object <paramref name="number"/>, or null when it is too damaged to read: rebuilding reads every object scanning
-    /// finds, and saving every object reached, and one that cannot be read must not cost the rest of the file. It stays
-    /// unreadable when asked for.
+    /// Object <paramref name="number"/>, or null when it is too damaged to read, or kept in an object stream no filter
+    /// here decodes: rebuilding reads every object scanning finds, and saving every object reached, and one that cannot
+    /// be read must not cost the rest of the file. It stays unreadable when asked for.
     /// </summary>
     public object? Readable(int number)
     {
@@ -816,7 +822,7 @@ internal sealed class PdfSource
         {
             return GetObject(number);
         }
-        catch (UnreadableFileException)
+        catch (Exception exception) when (exception is UnreadableFileException or NotSupportedException)
         {
             return null;
         }
