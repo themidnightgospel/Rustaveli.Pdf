@@ -34,8 +34,14 @@ public class FontCatalogConcurrencyTests
                 failures.Add($"{request} gave {font?.Names.PostScriptName}");
 
             // Measuring from many threads at once shares the lazily parsed tables.
-            if (font is not null && font.MeasureWidthInUnits("AVATAR") <= 0)
-                failures.Add($"{expected} measured nothing");
+            if (font is not null)
+            {
+                ushort a = font.GetGlyphId('A');
+                ushort v = font.GetGlyphId('V');
+
+                if (font.GetAdvance(a) + font.GetKerning(a, v) <= 0)
+                    failures.Add($"{expected} measured nothing");
+            }
 
             OpenTypeFont? fallback = catalog.FindFallback(0x10D0 + (iteration % 40), new FontRequest("Noto Sans"));
 

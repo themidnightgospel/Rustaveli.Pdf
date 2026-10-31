@@ -36,10 +36,11 @@ public class RasterEdgeTests
     [Fact]
     public void AFaceIsLoadedIntoSkiaOnceForEveryExport()
     {
-        OpenTypeFont face = OpenTypeFont.LoadFile(TestFonts.PathOf("NotoSans-Regular.ttf"));
+        string path = TestFonts.PathOf("NotoSans-Regular.ttf");
+        OpenTypeFont face = OpenTypeFont.Load(File.ReadAllBytes(path));
 
         Assert.Same(SkiaRasterSurface.TypefaceFor(face), SkiaRasterSurface.TypefaceFor(face));
-        Assert.NotSame(SkiaRasterSurface.TypefaceFor(face), SkiaRasterSurface.TypefaceFor(OpenTypeFont.LoadFile(TestFonts.PathOf("NotoSans-Regular.ttf"))));
+        Assert.NotSame(SkiaRasterSurface.TypefaceFor(face), SkiaRasterSurface.TypefaceFor(OpenTypeFont.Load(File.ReadAllBytes(path))));
     }
 
     [Fact]

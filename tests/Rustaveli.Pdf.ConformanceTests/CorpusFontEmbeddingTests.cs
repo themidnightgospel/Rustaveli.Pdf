@@ -90,7 +90,7 @@ public class CorpusFontEmbeddingTests
 
         // A face of a collection comes out as a font of its own, and a variable font as its default instance alone.
         OpenTypeFont subset = OpenTypeFont.Load(program);
-        OpenTypeFont source = OpenTypeFont.LoadFile(PathOf(file), bold ? 1 : 0);
+        OpenTypeFont source = OpenTypeFont.Load(File.ReadAllBytes(PathOf(file)), bold ? 1 : 0);
 
         Assert.Equal(TableDirectory.TrueTypeVersion, subset.Tables.SfntVersion);
         Assert.Equal(OutlineFormat.TrueType, subset.Outlines);

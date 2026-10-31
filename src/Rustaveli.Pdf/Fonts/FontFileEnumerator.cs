@@ -23,18 +23,8 @@ internal static class FontFileEnumerator
         return files;
     }
 
-    public static bool IsFontFile(string path)
-    {
-        string extension = Path.GetExtension(path);
-
-        foreach (string candidate in Extensions)
-        {
-            if (string.Equals(extension, candidate, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
-    }
+    public static bool IsFontFile(string path) =>
+        Extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
 
     private static void Visit(string directory, int depth, List<string> files, HashSet<string> seen)
     {

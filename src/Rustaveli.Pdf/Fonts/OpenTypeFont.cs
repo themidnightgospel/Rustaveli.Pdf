@@ -78,7 +78,7 @@ internal sealed class OpenTypeFont
             Mode);
         _style = new Lazy<FaceStyle>(() => FaceStyle.From(Os2, Head), Mode);
         _lineMetrics = new Lazy<LineMetrics>(() => LineMetrics.Choose(HorizontalHeader, Os2), Mode);
-        _descriptor = new Lazy<FontDescriptorInfo>(() => FontDescriptorInfo.Create(this), Mode);
+        _descriptor = new Lazy<FontDescriptorInfo>(() => new FontDescriptorInfo(this), Mode);
     }
 
     /// <summary>The whole file the face was loaded from, which a collection shares between its faces.</summary>
@@ -143,11 +143,6 @@ internal sealed class OpenTypeFont
     /// <summary>Loads face <paramref name="faceIndex"/> of a font file held in memory.</summary>
     /// <remarks>The data is used in place, not copied, and must not change afterwards.</remarks>
     public static OpenTypeFont Load(ReadOnlyMemory<byte> data, int faceIndex = 0) => new OpenTypeFont(data, faceIndex);
-
-    /// <summary>Loads face <paramref name="faceIndex"/> from a stream, which is read to its end.</summary>
-    public static OpenTypeFont Load(Stream stream, int faceIndex = 0) => Load(ReadAll(stream), faceIndex);
-
-    public static OpenTypeFont LoadFile(string path, int faceIndex = 0) => Load(File.ReadAllBytes(path), faceIndex);
 
     /// <summary>Loads every face of a font file: one for a single font, all of them for a collection.</summary>
     public static IReadOnlyList<OpenTypeFont> LoadAll(ReadOnlyMemory<byte> data)
@@ -247,120 +242,6 @@ internal sealed class OpenTypeFont
     /// <summary>A length in font units, in points at <paramref name="pointSize"/>.</summary>
     public float ToPoints(long fontUnits, float pointSize) => fontUnits * pointSize / UnitsPerEm;
 
-    // ---- Text ----------------------------------------------------------------------------------------------------
-
-    /// <summary>
-    /// The advance of the whole text in font units: each character's glyph, plus pair kerning between neighbours
-    /// when <paramref name="kerning"/> is set. A surrogate pair is one character; a lone surrogate measures as a
-    /// missing glyph.
-    /// </summary>
-    public long MeasureWidthInUnits(ReadOnlySpan<char> text, bool kerning = true)
-    {
-        KerningSource? pairs = kerning ? Kerning : null;
-        HorizontalMetricsTable metrics = HorizontalMetrics;
-        long width = 0;
-        ushort previous = 0;
-        int index = 0;
-
-        while (index < text.Length)
-        {
-            bool first = index == 0;
-            ushort glyph = GetGlyphId(ReadCodepoint(text, ref index));
-
-            if (!first && pairs is not null)
-                width += pairs.GetAdjustment(previous, glyph);
-
-            width += metrics.GetAdvance(glyph);
-            previous = glyph;
-        }
-
-        return width;
-    }
-
-    /// <summary>
-    /// The width of the text in points, set on one line at <paramref name="pointSize"/>.
-    /// </summary>
-    /// <param name="text">The text.</param>
-    /// <param name="pointSize">The type size.</param>
-    /// <param name="tracking">
-    /// Extra space between characters, in points. Applied between characters only — N characters have N - 1
-    /// gaps — so centred text stays centred.
-    /// </param>
-    /// <param name="kerning">Whether to apply the font's pair kerning.</param>
-    public float MeasureWidth(ReadOnlySpan<char> text, float pointSize, float tracking = 0f, bool kerning = true)
-    {
-        if (text.IsEmpty)
-            return 0f;
-
-        return ToPoints(MeasureWidthInUnits(text, kerning), pointSize) + (tracking * (CountCharacters(text) - 1));
-    }
-
-    /// <summary>
-    /// How many UTF-16 code units from the start of the text fit within <paramref name="maxWidth"/> points — never
-    /// ending inside a surrogate pair. 0 when not even the first character fits.
-    /// </summary>
-    /// <remarks>
-    /// A prefix fits exactly when <see cref="MeasureWidth"/> of that prefix is at most the width: both use the same
-    /// arithmetic, so a width measured by one is always accepted by the other.
-    /// </remarks>
-    public int CountFitting(
-        ReadOnlySpan<char> text, float pointSize, float maxWidth, float tracking = 0f, bool kerning = true)
-    {
-        if (text.IsEmpty || maxWidth <= 0)
-            return 0;
-
-        KerningSource? pairs = kerning ? Kerning : null;
-        HorizontalMetricsTable metrics = HorizontalMetrics;
-        long units = 0;
-        int gaps = 0;
-        ushort previous = 0;
-        int index = 0;
-
-        while (index < text.Length)
-        {
-            int start = index;
-            ushort glyph = GetGlyphId(ReadCodepoint(text, ref index));
-            long next = units + metrics.GetAdvance(glyph);
-
-            if (start > 0 && pairs is not null)
-                next += pairs.GetAdjustment(previous, glyph);
-
-            if (ToPoints(next, pointSize) + (tracking * gaps) > maxWidth)
-                return start;
-
-            units = next;
-            previous = glyph;
-            gaps++;
-        }
-
-        return text.Length;
-    }
-
-    private static int ReadCodepoint(ReadOnlySpan<char> text, ref int index)
-    {
-        char character = text[index];
-
-        if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
-        {
-            int codepoint = char.ConvertToUtf32(character, text[index + 1]);
-            index += 2;
-            return codepoint;
-        }
-
-        index++;
-        return character;
-    }
-
-    private static int CountCharacters(ReadOnlySpan<char> text)
-    {
-        int count = 0;
-
-        for (int index = 0; index < text.Length; count++)
-            ReadCodepoint(text, ref index);
-
-        return count;
-    }
-
     private void CheckGlyph(ushort glyph)
     {
         if (glyph >= GlyphCount)
@@ -415,17 +296,5 @@ internal sealed class OpenTypeFont
             return legacy;
 
         return null;
-    }
-
-    private static ReadOnlyMemory<byte> ReadAll(Stream stream)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
-
-        // Sized up front when the stream knows its length, so a large font is not copied through doubling buffers.
-        long remaining = stream.CanSeek ? stream.Length - stream.Position : 0;
-        using MemoryStream copy = new MemoryStream(remaining is > 0 and <= int.MaxValue ? (int)remaining : 0);
-        stream.CopyTo(copy);
-
-        return copy.GetBuffer().AsMemory(0, (int)copy.Length);
     }
 }

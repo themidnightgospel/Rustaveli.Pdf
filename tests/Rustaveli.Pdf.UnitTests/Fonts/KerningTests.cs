@@ -333,7 +333,6 @@ public class KerningTests
 
         Assert.Null(font.Kerning);
         Assert.Equal(0, font.GetKerning(1, 2));
-        Assert.Equal(1.3f, font.MeasureWidth("AB", 1f), 3);
     }
 
     [Fact]
@@ -364,7 +363,6 @@ public class KerningTests
 
         Assert.Equal(0, font.GetKerning(1, 2));
         Assert.Equal(12, font.GetKerning(2, 1));
-        Assert.Equal(1.3f, font.MeasureWidth("AB", 1f), 3);
     }
 
     [Fact]

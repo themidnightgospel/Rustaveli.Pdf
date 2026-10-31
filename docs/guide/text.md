@@ -137,9 +137,10 @@ byte[] pdf = document.ExportPdf(new PdfExportOptions { Typefaces = typefaces, Re
 ![What this example sets](../images/guide/typefaces.png){ .rp-output data-caption="page 1" }
 
 A character a run's typeface lacks is looked for in the typefaces named after it in `WithTypeface("Noto Sans",
-"Noto Sans Symbols")`, then in the library's `Fallbacks`, then in any registered typeface, then in any installed
-one, and last in the Noto Sans the package carries. `RequireEveryGlyph` turns a character found nowhere into a
-`MissingGlyphException` naming it, rather than a missing-glyph box in the output.
+"Noto Sans Symbols")`, then in the library's `Fallbacks`, then in any registered typeface, then in any in a folder
+the library searches, then in any installed one, and last in the Noto Sans the package carries. `RequireEveryGlyph`
+turns a character found nowhere into a `MissingGlyphException` naming it, rather than a missing-glyph box in the
+output.
 
 Fonts are embedded subset to the glyphs used, and every run stays searchable and copyable. Typefaces register from
 a file, a stream, bytes or an embedded resource, under their own family names or a name you give; a registered
