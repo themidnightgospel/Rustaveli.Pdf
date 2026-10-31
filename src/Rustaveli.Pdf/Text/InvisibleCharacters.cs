@@ -16,7 +16,7 @@ internal static class InvisibleCharacters
 {
     public const int Tab = '\t';
 
-    public const char SoftHyphen = '­';
+    public const char SoftHyphen = '\u00AD';
 
     /// <summary>Whether <paramref name="codepoint"/> is drawn as nothing when its face has no glyph for it.</summary>
     /// <remarks>
@@ -28,7 +28,7 @@ internal static class InvisibleCharacters
         < 0x20 => codepoint != Tab,
         >= 0x7F and <= 0x9F => true,
         < 0x00AD => false,
-        0x00AD or 0x034F or 0x061C => true,
+        SoftHyphen or 0x034F or 0x061C => true,
         >= 0x17B4 and <= 0x17B5 => true,
         >= 0x180B and <= 0x180F => true,
         >= 0x200B and <= 0x200F => true,
