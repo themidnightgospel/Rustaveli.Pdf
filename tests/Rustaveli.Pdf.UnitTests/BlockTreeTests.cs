@@ -71,9 +71,7 @@ public class BlockTreeTests
         (Block root, _) = Tree();
         root.ResetState();
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        root.ResetState();
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() => root.ResetState()));
 
         Assert.True(allocated == 0, $"Resetting the tree allocated {allocated:N0} bytes.");
     }

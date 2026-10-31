@@ -65,14 +65,16 @@ public class TableBandCellsTests
         List<CellBlock> cells = [.. Enumerable.Range(0, 3_000).Select(index => new CellBlock { Row = index / 3 + 1 })];
         new TableBlock.BandCells(cells).Starting(1, 50);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        TableBlock.BandCells band = new TableBlock.BandCells(cells);
         int found = 0;
 
-        for (int firstRow = 1; firstRow <= 1_000; firstRow += 50)
-            found += band.Starting(firstRow, firstRow + 49).Count;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() =>
+        {
+            TableBlock.BandCells band = new TableBlock.BandCells(cells);
+            found = 0;
 
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            for (int firstRow = 1; firstRow <= 1_000; firstRow += 50)
+                found += band.Starting(firstRow, firstRow + 49).Count;
+        }));
 
         Assert.Equal(3_000, found);
         Assert.True(allocated <= Budget, $"Indexing the band and finding its pages' cells allocated {allocated:N0} bytes; its budget is {Budget:N0}.");

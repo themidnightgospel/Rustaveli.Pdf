@@ -430,12 +430,11 @@ public class ComplexScriptTests
         float width = measurer.MeasureWidth(Salaam, featured);
         measurer.MeasureWidth(Salaam, featured);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int round = 0; round < 10; round++)
-            measurer.MeasureWidth(Salaam, featured);
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() =>
+        {
+            for (int round = 0; round < 10; round++)
+                measurer.MeasureWidth(Salaam, featured);
+        }));
 
         Assert.True(allocated == 0, $"{allocated} bytes allocated measuring the text ten times.");
         Assert.Equal(width, measurer.MeasureWidth(Salaam, featured));

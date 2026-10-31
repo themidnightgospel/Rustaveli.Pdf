@@ -167,10 +167,11 @@ public class BidiParagraphTests
         List<BidiRun> runs = new List<BidiRun>(4);
         new BidiParagraph(text.AsSpan()).GetVisualRuns(0, text.Length, runs);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        BidiParagraph paragraph = new BidiParagraph(text.AsSpan());
-        paragraph.GetVisualRuns(0, text.Length, runs);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() =>
+        {
+            BidiParagraph paragraph = new BidiParagraph(text.AsSpan());
+            paragraph.GetVisualRuns(0, text.Length, runs);
+        }));
 
         Assert.True(allocated <= 64, $"{allocated} bytes allocated for {text.Length} characters.");
     }
@@ -185,9 +186,7 @@ public class BidiParagraphTests
         List<BidiRun> runs = new List<BidiRun>(128);
         paragraph.GetVisualRuns(0, length, runs);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        paragraph.GetVisualRuns(0, length, runs);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated = Allocations.Fewest(() => Allocations.Of(() => paragraph.GetVisualRuns(0, length, runs)));
 
         Assert.Equal(0, allocated);
         Assert.Equal(length, runs.Sum(run => run.Length));

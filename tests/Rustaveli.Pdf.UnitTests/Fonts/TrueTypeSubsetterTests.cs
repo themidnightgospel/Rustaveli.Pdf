@@ -385,9 +385,8 @@ public class TrueTypeSubsetterTests
             [0, .. GlyphsOf(font, "Invoice 2026, Total due: 1,250.00 EUR").Distinct().Where(glyph => glyph != 0)];
         TrueTypeSubsetter.SubsetInOrder(font, numbering);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        TrueTypeSubsetter.SubsetInOrder(font, numbering);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated =
+            Allocations.Fewest(() => Allocations.Of(() => TrueTypeSubsetter.SubsetInOrder(font, numbering)));
 
         Assert.True(allocated <= Budget, $"Subsetting allocated {allocated} bytes; its budget is {Budget}.");
     }

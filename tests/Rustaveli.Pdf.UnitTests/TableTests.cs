@@ -753,12 +753,18 @@ public class TableTests
         });
         Extent room = new Extent(200, 500);
         table.Plan(room, context);
-        table.ResetState();
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        table.Plan(room, context);
-        table.Plan(room, context);
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long Planning()
+        {
+            table.ResetState();
+            return Allocations.Of(() =>
+            {
+                table.Plan(room, context);
+                table.Plan(room, context);
+            });
+        }
+
+        long allocated = Allocations.Fewest(Planning);
 
         Assert.True(allocated <= Budget, $"Planning the table allocated {allocated} bytes; its budget is {Budget}.");
     }

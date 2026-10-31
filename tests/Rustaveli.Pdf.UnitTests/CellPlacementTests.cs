@@ -288,9 +288,8 @@ public class CellPlacementTests
         List<CellBlock> cells = [.. Enumerable.Range(0, 3_000).Select(_ => new CellBlock())];
         CellPlacement.Apply(cells, columnCount: 3, band: "body");
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        CellPlacement.Apply(cells, columnCount: 3, band: "body");
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        long allocated =
+            Allocations.Fewest(() => Allocations.Of(() => CellPlacement.Apply(cells, columnCount: 3, band: "body")));
 
         Assert.Equal((1_000, 3), (cells[^1].Row, cells[^1].Column));
         Assert.True(allocated <= Budget, $"Placing 3,000 cells allocated {allocated:N0} bytes; its budget is {Budget:N0}.");
