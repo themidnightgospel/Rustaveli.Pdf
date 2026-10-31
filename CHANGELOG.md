@@ -50,6 +50,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - `StartPreview` without a port could fail with an `HttpListenerException` when another listener, such as a preview
   started at the same moment, took the free port it had found before it could register it. A free port is now looked
   for again, up to ten times. A port given in `PreviewOptions.Port` is still tried only once.
+- Saving a protected file with the protection it was opened with wrote its encryption dictionary as it was read,
+  references and all, though their numbers were by then other objects'. Such a file could not be opened again
+  without repair, and might not open at all. The dictionary is now written with the standard security handler's
+  entries alone, each as its value.
 
 **Performance**
 
