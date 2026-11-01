@@ -11,27 +11,19 @@ public class ParallelBenchmarks
 {
     private const int Documents = 8;
 
-    [GlobalSetup]
-    public void Setup()
-    {
-        BenchmarkFonts.EnsureRegistered();
-        _ = QuestDocuments.Generate(DocumentKind.Invoice);
-        _ = RustaveliDocuments.Generate(DocumentKind.Invoice);
-    }
-
     [Benchmark(Baseline = true)]
-    public int QuestPdfSequential() => Sequential(QuestDocuments.Generate);
+    public int QuestPdfSequential() => OneAfterAnother(QuestDocuments.Generate);
 
     [Benchmark]
-    public int QuestPdfParallel() => Parallel(QuestDocuments.Generate);
+    public int QuestPdfParallel() => AllAtOnce(QuestDocuments.Generate);
 
     [Benchmark]
-    public int RustaveliSequential() => Sequential(RustaveliDocuments.Generate);
+    public int RustaveliSequential() => OneAfterAnother(RustaveliDocuments.Generate);
 
     [Benchmark]
-    public int RustaveliParallel() => Parallel(RustaveliDocuments.Generate);
+    public int RustaveliParallel() => AllAtOnce(RustaveliDocuments.Generate);
 
-    private static int Sequential(Func<DocumentKind, byte[]> generate)
+    private static int OneAfterAnother(Func<DocumentKind, byte[]> generate)
     {
         int total = 0;
         for (int index = 0; index < Documents; index++)
@@ -39,10 +31,10 @@ public class ParallelBenchmarks
         return total;
     }
 
-    private static int Parallel(Func<DocumentKind, byte[]> generate)
+    private static int AllAtOnce(Func<DocumentKind, byte[]> generate)
     {
         int[] sizes = new int[Documents];
-        System.Threading.Tasks.Parallel.For(0, Documents, index => sizes[index] = generate(DocumentKind.Invoice).Length);
+        Parallel.For(0, Documents, index => sizes[index] = generate(DocumentKind.Invoice).Length);
         return sizes.Sum();
     }
 }

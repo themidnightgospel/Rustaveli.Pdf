@@ -24,6 +24,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
+using Figure = (string Name, string Unit, double Value);
 using Measured = (double Time, double Deviation, double Allocated);
 using Palette = (string Background, string Border, string Text, string Muted, string Accent, string Better, string Worse);
 
@@ -41,9 +42,11 @@ return args.Length == 5 && args[0] == "results" ? Results(args[1], args[2], args
 
 static int Usage()
 {
-    Console.Error.WriteLine("usage: results <results folder> <sizes.json> <numbers.json> <questpdf.json>");
-    Console.Error.WriteLine("       compare <numbers.json> <questpdf.json> <data.js> <main.md> <questpdf.md>");
-    Console.Error.WriteLine("       questpdf <numbers.json> <questpdf.json> <latest.md> <light.svg> <dark.svg>");
+    Console.Error.WriteLine("""
+        usage: results <results folder> <sizes.json> <numbers.json> <questpdf.json>
+               compare <numbers.json> <questpdf.json> <data.js> <main.md> <questpdf.md>
+               questpdf <numbers.json> <questpdf.json> <latest.md> <light.svg> <dark.svg>
+        """);
     return 2;
 }
 
@@ -76,7 +79,7 @@ static int Results(string folder, string sizesFile, string output, string questO
     void Both(string name, string unit, double mine, double quest, double? deviation)
     {
         string? range = deviation is double spread ? $"± {Number(spread)}" : null;
-        string against = $"{reference}: {Number(quest)} {unit}, {Percent(mine, quest)}";
+        string against = $"{reference}: {Amount(quest, unit)}, {Percent(mine, quest)}";
         ours.Add((JsonNode)Entry(name, unit, mine, range, against));
         theirs.Add((JsonNode)Entry(name, unit, quest, null, null));
     }
@@ -126,7 +129,7 @@ static JsonObject Entry(string name, string unit, double value, string? range, s
 
 static int Compare(string numbersFile, string questFile, string baselineFile, string mainOutput, string questOutput)
 {
-    List<(string Name, string Unit, double Value)> ours = Read(numbersFile);
+    List<Figure> ours = Read(numbersFile);
     Dictionary<string, double> quest = ours.Count == 0 ? [] : Read(questFile).ToDictionary(entry => entry.Name, entry => entry.Value);
     (Dictionary<string, double> main, string? commit) = Baseline(baselineFile);
 
@@ -139,10 +142,11 @@ static int Compare(string numbersFile, string questFile, string baselineFile, st
 }
 
 static int AgainstMain(
-    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> main, string? commit, string? source, string output)
+    List<Figure> ours, Dictionary<string, double> main, string? commit, string? source, string output)
 {
     StringBuilder comment = new StringBuilder();
     List<string> over = [];
+    string limit = Limit.ToString("0%", CultureInfo.InvariantCulture);
 
     comment.AppendLine("<!-- benchmarks -->");
     comment.AppendLine("### Benchmarks against main");
@@ -150,7 +154,7 @@ static int AgainstMain(
 
     comment.AppendLine(commit is null
         ? "There are no numbers from main to compare with yet; these are this pull request's."
-        : $"Compared with main at {commit[..Math.Min(7, commit.Length)]}. An allocation or a file size more than 10% larger "
+        : $"Compared with main at {Short(commit)}. An allocation or a file size more than {limit} larger "
           + "than main's fails this check; times are shown but not held to it, since hosted runners differ by 10–20% "
           + "from one run to the next.");
 
@@ -167,7 +171,7 @@ static int AgainstMain(
         {
             double ratio = (value - previous) / previous;
             bool held = !name.EndsWith("· time", StringComparison.Ordinal);
-            before = $"{Number(previous)} {unit}";
+            before = Amount(previous, unit);
             change = ratio.ToString("+0.0%;-0.0%;0.0%", CultureInfo.InvariantCulture);
 
             if (ratio > Limit)
@@ -184,13 +188,13 @@ static int AgainstMain(
         string? code = source is null ? null : Sources(source, document).Ours;
         string label = code is null ? name : $"[{document}]({code}){metric}";
 
-        comment.AppendLine($"| {label} | {before} | {Number(value)} {unit} | {change} |");
+        comment.AppendLine($"| {label} | {before} | {Amount(value, unit)} | {change} |");
     }
 
     if (over.Count > 0)
     {
         comment.AppendLine();
-        comment.AppendLine($"More than 10% larger than main's: {string.Join(", ", over)}.");
+        comment.AppendLine($"More than {limit} larger than main's: {string.Join(", ", over)}.");
     }
 
     File.WriteAllText(output, comment.ToString());
@@ -201,22 +205,23 @@ static int AgainstMain(
 // The comparison with QuestPDF for main as of its latest merge, which source's commit is.
 static int Latest(string numbersFile, string questFile, string output, string light, string dark)
 {
-    List<(string Name, string Unit, double Value)> ours = Read(numbersFile);
+    List<Figure> ours = Read(numbersFile);
     Dictionary<string, double> quest = Read(questFile).ToDictionary(entry => entry.Name, entry => entry.Value);
     string? source = Environment.GetEnvironmentVariable("BENCHMARK_SOURCE");
     string? commit = Environment.GetEnvironmentVariable("BENCHMARK_COMMIT");
     string date = DateTime.UtcNow.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
+    string? commitPage = source?.Replace("/blob/", "/commit/", StringComparison.Ordinal);
 
     string measured = source is null || commit is null
         ? $"Measured on main on {date}."
-        : $"Measured on main as of its latest merge, [{commit[..Math.Min(7, commit.Length)]}]({source.Replace("/blob/", "/commit/", StringComparison.Ordinal)}), "
+        : $"Measured on main as of its latest merge, [{Short(commit)}]({commitPage}), "
           + $"on {date}, on a GitHub-hosted runner. Every merge's numbers are charted in the "
           + "[benchmark history](https://themidnightgospel.github.io/Rustaveli.Pdf/benchmarks/).";
 
     AgainstQuest(ours, quest, source, measured, output);
 
     // The same comparison as a picture, which the README shows: GitHub can show another file's picture, not its text.
-    string at = commit is null ? "main" : $"main at {commit[..Math.Min(7, commit.Length)]}";
+    string at = commit is null ? "main" : $"main at {Short(commit)}";
     File.WriteAllText(light, Picture(ours, quest, $"Measured on {at}, {date}", Light()));
     File.WriteAllText(dark, Picture(ours, quest, $"Measured on {at}, {date}", Dark()));
     return 0;
@@ -225,16 +230,20 @@ static int Latest(string numbersFile, string questFile, string output, string li
 // A table drawn for each document: Rustaveli.Pdf's figures, QuestPDF's and the difference, in the colours of GitHub's
 // light or dark theme, in the system's own sans-serif, which is all a picture shown on GitHub can use.
 static string Picture(
-    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string measured, Palette colours)
+    List<Figure> ours, Dictionary<string, double> quest, string measured, Palette colours)
 {
     const int Width = 880;
     const int Row = 26;
     const int Gap = 10;
     const int Top = 104;
+    const string Bold = " font-weight=\"600\"";
+    const string Right = " text-anchor=\"end\"";
+    const string Footnote = "Smaller is better. Times come from a GitHub-hosted runner and vary by 10–20% between "
+        + "runs; allocations and file sizes do not.";
     string[] figures = ["time", "allocated", "file size"];
     int[] columns = [520, 690, 856];
 
-    List<IGrouping<string, (string Name, string Unit, double Value)>> documents = [.. ours.GroupBy(entry => Split(entry.Name).Document)];
+    List<IGrouping<string, Figure>> documents = [.. ours.GroupBy(entry => Split(entry.Name).Document)];
     int height = Top + (documents.Count * 3 * Row) + ((documents.Count - 1) * Gap) + 46;
     StringBuilder svg = new StringBuilder();
     string reference = Reference();
@@ -246,66 +255,65 @@ static string Picture(
     svg.AppendLine(CultureInfo.InvariantCulture, $"""<svg xmlns="http://www.w3.org/2000/svg" width="{Width}" height="{height}" viewBox="0 0 {Width} {height}" role="img" aria-label="{Escape(title)}">""");
     svg.AppendLine("""  <style>text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }</style>""");
     svg.AppendLine(CultureInfo.InvariantCulture, $"""  <rect x="0.5" y="0.5" width="{Width - 1}" height="{height - 1}" rx="6" fill="{colours.Background}" stroke="{colours.Border}"/>""");
-    Text(24, 34, title, colours.Text, """ font-size="17" font-weight="600" """.TrimEnd());
+    Text(24, 34, title, colours.Text, " font-size=\"17\"" + Bold);
     Text(24, 56, $"{measured} · the same documents, made by both libraries in the same run", colours.Muted);
 
-    Text(24, 88, "Document", colours.Muted, """ font-weight="600" """.TrimEnd());
+    Text(24, 88, "Document", colours.Muted, Bold);
 
     for (int column = 0; column < figures.Length; column++)
-        Text(columns[column], 88, Capitalised(figures[column]), colours.Muted, """ text-anchor="end" font-weight="600" """.TrimEnd());
+        Text(columns[column], 88, Capitalised(figures[column]), colours.Muted, Right + Bold);
 
     svg.AppendLine(CultureInfo.InvariantCulture, $"""  <line x1="24" y1="96" x2="{Width - 24}" y2="96" stroke="{colours.Border}"/>""");
 
     double y = Top + 18;
 
-    foreach (IGrouping<string, (string Name, string Unit, double Value)> document in documents)
+    foreach (IGrouping<string, Figure> document in documents)
     {
-        Dictionary<string, (string Name, string Unit, double Value)> byFigure =
-            document.ToDictionary(entry => Split(entry.Name).Metric[3..], entry => entry);
+        Dictionary<string, Figure> byFigure = document.ToDictionary(entry => FigureOf(entry.Name), entry => entry);
 
         // A name too long for its column goes on over the next row.
         int wrap = document.Key.Length > 16 ? document.Key.LastIndexOf(' ', 16) : -1;
+        Text(24, y, wrap > 0 ? document.Key[..wrap] : document.Key, colours.Text, Bold);
 
         if (wrap > 0)
-        {
-            Text(24, y, document.Key[..wrap], colours.Text, """ font-weight="600" """.TrimEnd());
-            Text(24, y + Row, document.Key[(wrap + 1)..], colours.Text, """ font-weight="600" """.TrimEnd());
-        }
-        else
-        {
-            Text(24, y, document.Key, colours.Text, """ font-weight="600" """.TrimEnd());
-        }
-        Text(170, y, "Rustaveli.Pdf", colours.Accent, """ font-weight="600" """.TrimEnd());
+            Text(24, y + Row, document.Key[(wrap + 1)..], colours.Text, Bold);
+
+        Text(170, y, "Rustaveli.Pdf", colours.Accent, Bold);
         Text(170, y + Row, reference, colours.Text);
         Text(170, y + (2 * Row), "Difference", colours.Muted);
 
         for (int column = 0; column < figures.Length; column++)
         {
-            if (!byFigure.TryGetValue(figures[column], out (string Name, string Unit, double Value) figure))
+            if (!byFigure.TryGetValue(figures[column], out Figure figure))
             {
                 for (int line = 0; line < 3; line++)
-                    Text(columns[column], y + (line * Row), "—", colours.Muted, """ text-anchor="end" """.TrimEnd());
+                    Text(columns[column], y + (line * Row), "—", colours.Muted, Right);
 
                 continue;
             }
 
-            Text(columns[column], y, $"{Number(figure.Value)} {figure.Unit}", colours.Accent, """ text-anchor="end" font-weight="600" """.TrimEnd());
+            Text(columns[column], y, Amount(figure.Value, figure.Unit), colours.Accent, Right + Bold);
 
             if (quest.TryGetValue(figure.Name, out double theirs) && theirs > 0)
             {
                 string fill = figure.Value <= theirs ? colours.Better : colours.Worse;
-                Text(columns[column], y + Row, $"{Number(theirs)} {figure.Unit}", colours.Text, """ text-anchor="end" """.TrimEnd());
-                Text(columns[column], y + (2 * Row), Percent(figure.Value, theirs), fill, """ text-anchor="end" font-weight="600" """.TrimEnd());
+                Text(columns[column], y + Row, Amount(theirs, figure.Unit), colours.Text, Right);
+                Text(columns[column], y + (2 * Row), Percent(figure.Value, theirs), fill, Right + Bold);
             }
         }
 
         y += (3 * Row) + Gap;
 
         if (document != documents[^1])
-            svg.AppendLine(CultureInfo.InvariantCulture, $"""  <line x1="24" y1="{y - Row + 4 - (Gap / 2)}" x2="{Width - 24}" y2="{y - Row + 4 - (Gap / 2)}" stroke="{colours.Border}" stroke-dasharray="2 3"/>""");
+        {
+            double separator = y - Row + 4 - (Gap / 2);
+            svg.AppendLine(
+                CultureInfo.InvariantCulture,
+                $"""  <line x1="24" y1="{separator}" x2="{Width - 24}" y2="{separator}" stroke="{colours.Border}" stroke-dasharray="2 3"/>""");
+        }
     }
 
-    Text(24, height - 18, "Smaller is better. Times come from a GitHub-hosted runner and vary by 10–20% between runs; allocations and file sizes do not.", colours.Muted, """ font-size="12" """.TrimEnd());
+    Text(24, height - 18, Footnote, colours.Muted, " font-size=\"12\"");
     svg.AppendLine("</svg>");
     return svg.ToString();
 }
@@ -313,7 +321,7 @@ static string Picture(
 static string Escape(string text) => text.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
 
 static void AgainstQuest(
-    List<(string Name, string Unit, double Value)> ours, Dictionary<string, double> quest, string? source, string? measured, string output)
+    List<Figure> ours, Dictionary<string, double> quest, string? source, string? measured, string output)
 {
     StringBuilder comment = new StringBuilder();
     string reference = Reference();
@@ -332,17 +340,18 @@ static void AgainstQuest(
         + "difference is how much smaller (−) or larger (+) Rustaveli.Pdf's figure is than QuestPDF's.");
 
     // A table for each document, in the order it was measured, with a column for each of its figures.
-    foreach (IGrouping<string, (string Name, string Unit, double Value)> document in ours.GroupBy(entry => Split(entry.Name).Document))
+    foreach (IGrouping<string, Figure> document in ours.GroupBy(entry => Split(entry.Name).Document))
     {
         (string? mine, string? theirs) = source is null ? (null, null) : Sources(source, document.Key);
-        List<(string Name, string Unit, double Value)> figures = [.. document];
+        List<Figure> figures = [.. document];
+        string amounts = string.Join(" | ", figures.Select(figure => Amount(figure.Value, figure.Unit)));
 
         comment.AppendLine();
         comment.AppendLine($"#### {document.Key}");
         comment.AppendLine();
-        comment.AppendLine($"| | {string.Join(" | ", figures.Select(figure => Capitalised(Split(figure.Name).Metric[3..])))} |");
+        comment.AppendLine($"| | {string.Join(" | ", figures.Select(figure => Capitalised(FigureOf(figure.Name))))} |");
         comment.AppendLine($"|---|{string.Concat(figures.Select(_ => "---:|"))}");
-        comment.AppendLine($"| {Linked("Rustaveli.Pdf", mine)} | {string.Join(" | ", figures.Select(figure => $"{Number(figure.Value)} {figure.Unit}"))} |");
+        comment.AppendLine($"| {Linked("Rustaveli.Pdf", mine)} | {amounts} |");
         comment.AppendLine($"| {Linked(reference, theirs)} | {string.Join(" | ", figures.Select(figure => Theirs(figure, quest)))} |");
         comment.AppendLine($"| Difference | {string.Join(" | ", figures.Select(figure => Difference(figure, quest)))} |");
     }
@@ -351,10 +360,10 @@ static void AgainstQuest(
     Console.WriteLine(comment.ToString());
 }
 
-static string Theirs((string Name, string Unit, double Value) figure, Dictionary<string, double> quest) =>
-    quest.TryGetValue(figure.Name, out double value) ? $"{Number(value)} {figure.Unit}" : "—";
+static string Theirs(Figure figure, Dictionary<string, double> quest) =>
+    quest.TryGetValue(figure.Name, out double value) ? Amount(value, figure.Unit) : "—";
 
-static string Difference((string Name, string Unit, double Value) figure, Dictionary<string, double> quest) =>
+static string Difference(Figure figure, Dictionary<string, double> quest) =>
     quest.TryGetValue(figure.Name, out double value) && value > 0 ? Percent(figure.Value, value) : "—";
 
 static string Linked(string text, string? address) => address is null ? text : $"[{text}]({address})";
@@ -368,7 +377,10 @@ static (string Document, string Metric) Split(string name)
     return split < 0 ? (name, string.Empty) : (name[..split], name[split..]);
 }
 
-static List<(string Name, string Unit, double Value)> Read(string file) =>
+// "Invoice · time" as its figure, "time".
+static string FigureOf(string name) => Split(name).Metric[3..];
+
+static List<Figure> Read(string file) =>
     File.Exists(file)
         ? JsonNode.Parse(File.ReadAllText(file))!.AsArray()
             .Select(entry => ((string)entry!["name"]!, (string)entry["unit"]!, (double)entry["value"]!))
@@ -441,6 +453,12 @@ static string Percent(double ours, double theirs) =>
 
 static string Number(double value) =>
     value.ToString(value >= 100 ? "#,0" : value >= 10 ? "#,0.0" : "#,0.00", CultureInfo.InvariantCulture);
+
+// A figure with its unit, "1,206 KB", as the comments show it and numbers.json's extra text, which the history keeps.
+static string Amount(double value, string unit) => $"{Number(value)} {unit}";
+
+// A commit as GitHub abbreviates it, to its first seven characters.
+static string Short(string commit) => commit[..Math.Min(7, commit.Length)];
 
 // The release the benchmarks measure, "QuestPDF 2026.5.0", read from its pin, so a comparison always names the
 // release it was measured against.

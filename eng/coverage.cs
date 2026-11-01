@@ -40,10 +40,12 @@ using JsonDocument thresholds = JsonDocument.Parse(File.ReadAllText(Path.Combine
 double minLine = thresholds.RootElement.GetProperty("line").GetDouble();
 double minBranch = thresholds.RootElement.GetProperty("branch").GetDouble();
 
-Console.WriteLine();
-Console.WriteLine($"line   coverage {line,6:F1}%   (minimum {minLine}%)");
-Console.WriteLine($"branch coverage {branch,6:F1}%   (minimum {minBranch}%)");
-Console.WriteLine($"report          {Path.Combine(report, "index.html")}");
+Console.WriteLine($"""
+
+    line   coverage {line,6:F1}%   (minimum {minLine}%)
+    branch coverage {branch,6:F1}%   (minimum {minBranch}%)
+    report          {Path.Combine(report, "index.html")}
+    """);
 
 bool passed = line >= minLine && branch >= minBranch;
 Console.WriteLine(passed ? "coverage gate: PASSED" : "coverage gate: FAILED");

@@ -71,13 +71,13 @@ for (int codepoint = 0; codepoint < CodeSpace; codepoint++)
 }
 
 List<(int Codepoint, int Mirror)> mirrors = DataLines("BidiMirroring.txt")
-    .Select(fields => (Hex(fields[0]), Hex(fields[1])))
-    .OrderBy(entry => entry.Item1)
+    .Select(fields => (Codepoint: Hex(fields[0]), Mirror: Hex(fields[1])))
+    .OrderBy(entry => entry.Codepoint)
     .ToList();
 
 List<(int Codepoint, int Pair, int Type)> brackets = DataLines("BidiBrackets.txt")
-    .Select(fields => (Hex(fields[0]), Hex(fields[1]), fields[2].Trim() == "o" ? 1 : 2))
-    .OrderBy(entry => entry.Item1)
+    .Select(fields => (Codepoint: Hex(fields[0]), Pair: Hex(fields[1]), Type: fields[2].Trim() == "o" ? 1 : 2))
+    .OrderBy(entry => entry.Codepoint)
     .ToList();
 
 // Both lists are searched as big-endian 16-bit values; a supplementary entry would need a wider record.
@@ -144,10 +144,12 @@ source.Append("}\n");
 Directory.CreateDirectory(Path.GetDirectoryName(output)!);
 File.WriteAllText(output, source.ToString().Replace("\r\n", "\n"), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-Console.WriteLine($"Unicode {version}: {stage1.Length + stage2.Length + stage3.Length} bytes of classes " +
-                  $"(stages {stage1.Length}, {stage2.Length}, {stage3.Length}), {mirrors.Count} mirrors, " +
-                  $"{brackets.Count} brackets");
-Console.WriteLine($"wrote {output}");
+int total = stage1.Length + stage2.Length + stage3.Length;
+string stages = $"{stage1.Length}, {stage2.Length}, {stage3.Length}";
+Console.WriteLine($"""
+    Unicode {version}: {total} bytes of classes (stages {stages}), {mirrors.Count} mirrors, {brackets.Count} brackets
+    wrote {output}
+    """);
 return 0;
 
 byte ClassValue(string name)
