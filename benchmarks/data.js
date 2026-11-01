@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1793543117427,
+  "lastUpdate": 1793544233602,
   "repoUrl": "https://github.com/themidnightgospel/Rustaveli.Pdf",
   "entries": {
     "Rustaveli.Pdf": [
@@ -9202,6 +9202,113 @@ window.BENCHMARK_DATA = {
             "range": "± 0.1",
             "unit": "ms",
             "extra": "QuestPDF 2026.5.0: 18.0 ms, −77%"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bubachelidze1@gmail.com",
+            "name": "Bitchiko Tchelidze",
+            "username": "themidnightgospel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1cc2cdcbfa96cdf84afba12e6d6fcc039df565c2",
+          "message": "Merge pull request #263 from themidnightgospel/refactor/assembly-linearization-state\n\nKeep a save's state on one assembler, and a linearized layout's on its own fields",
+          "timestamp": "2026-11-01T18:35:34+04:00",
+          "tree_id": "f50164325ecbb50a0f1f1107f747da758f83e504",
+          "url": "https://github.com/themidnightgospel/Rustaveli.Pdf/commit/1cc2cdcbfa96cdf84afba12e6d6fcc039df565c2"
+        },
+        "date": 1793544232420,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Invoice · time",
+            "value": 0.647,
+            "range": "± 0.02",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1.94 ms, −67%"
+          },
+          {
+            "name": "Invoice · allocated",
+            "value": 114.067,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 359 KB, −68%"
+          },
+          {
+            "name": "Invoice · file size",
+            "value": 6.642,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 14.7 KB, −55%"
+          },
+          {
+            "name": "Report · time",
+            "value": 112.497,
+            "range": "± 0.57",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 166 ms, −32%"
+          },
+          {
+            "name": "Report · allocated",
+            "value": 1441.323,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 8,189 KB, −82%"
+          },
+          {
+            "name": "Report · file size",
+            "value": 171.695,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 950 KB, −82%"
+          },
+          {
+            "name": "LargeTable · time",
+            "value": 210.179,
+            "range": "± 3.53",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 504 ms, −58%"
+          },
+          {
+            "name": "LargeTable · allocated",
+            "value": 20784.18,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 121,367 KB, −83%"
+          },
+          {
+            "name": "LargeTable · file size",
+            "value": 568.252,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 1,042 KB, −45%"
+          },
+          {
+            "name": "Images · time",
+            "value": 45.643,
+            "range": "± 0.74",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1,014 ms, −96%"
+          },
+          {
+            "name": "Images · allocated",
+            "value": 2405.921,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 17,170 KB, −86%"
+          },
+          {
+            "name": "Images · file size",
+            "value": 138.802,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 3,498 KB, −96%"
+          },
+          {
+            "name": "Eight documents in parallel · time",
+            "value": 2.493,
+            "range": "± 0.13",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 10.6 ms, −76%"
           }
         ]
       }
