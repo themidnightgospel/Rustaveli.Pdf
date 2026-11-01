@@ -8,11 +8,11 @@ namespace Rustaveli.Pdf.Layout;
 /// Everything a block needs while drawing: the measurement services, the surface to draw onto, and the structure
 /// elements it is drawn inside.
 /// </summary>
-internal sealed class RenderContext(ISurface surface, PlanContext layout, StructureElement? structure = null)
+internal sealed class RenderContext(ISurface surface, PlanContext planning, StructureElement? structure = null)
 {
     public ISurface Surface { get; } = surface;
 
-    public PlanContext Planning { get; } = layout;
+    public PlanContext Planning { get; } = planning;
 
     public Pagination Pagination => Planning.Pagination;
 
@@ -34,18 +34,14 @@ internal sealed class RenderContext(ISurface surface, PlanContext layout, Struct
     /// Draws <paramref name="child"/> in <paramref name="allotted"/> after measuring it in room
     /// <paramref name="measuredHeight"/> tall, keeping the difference in <see cref="PlanContext.RoomBelow"/>.
     /// </summary>
-    public void RenderAllotted(Block child, Extent allotted, float measuredHeight) =>
-        RenderWithRoomBelow(child, allotted, Planning.RoomBelow + Math.Max(0f, measuredHeight - allotted.Height));
-
-    /// <summary>Draws <paramref name="child"/> in <paramref name="space"/> with <paramref name="roomBelow"/> in force.</summary>
-    public void RenderWithRoomBelow(Block child, Extent space, float roomBelow)
+    public void RenderAllotted(Block child, Extent allotted, float measuredHeight)
     {
         float outer = Planning.RoomBelow;
-        Planning.RoomBelow = roomBelow;
+        Planning.RoomBelow = outer + Math.Max(0f, measuredHeight - allotted.Height);
 
         try
         {
-            child.Render(space, this);
+            child.Render(allotted, this);
         }
         finally
         {

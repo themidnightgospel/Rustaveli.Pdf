@@ -111,6 +111,9 @@ public sealed class PdfExportOptions
     /// </summary>
     public Protection? Protection { get; set; }
 
+    /// <summary>Whether the file is PDF/A, of any part and level.</summary>
+    internal bool IsArchival => Conformance != PdfAConformance.None;
+
     /// <summary>Whether the structure is written: asked for, or needed by the standard claimed.</summary>
     internal bool WritesStructure =>
         Tagged || Accessibility != PdfUAConformance.None || Conformance is PdfAConformance.PdfA2A or PdfAConformance.PdfA3A;

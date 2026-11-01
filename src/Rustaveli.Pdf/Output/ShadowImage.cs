@@ -27,7 +27,7 @@ internal static class ShadowImage
     /// Whether the file is PDF/A, which has the ink written in RGB and forbids asking a viewer to smooth the mask; the
     /// mask, sampled finely for its blur, is shown as it is.
     /// </param>
-    public static PdfReference Write(PdfFileWriter file, ShadowMask mask, Ink ink, bool archival = false)
+    public static PdfReference Write(PdfFileWriter file, ShadowMask mask, Ink ink, bool archival)
     {
         PdfReference softMask = file.WriteStream(
             Dictionary(mask.Width, mask.Height, DeviceGray, interpolate: !archival),

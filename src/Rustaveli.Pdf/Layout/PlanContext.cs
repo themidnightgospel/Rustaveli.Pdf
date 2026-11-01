@@ -5,11 +5,11 @@ namespace Rustaveli.Pdf.Layout;
 /// <summary>
 /// Services and state available to a block while it is being planned.
 /// </summary>
-internal sealed class PlanContext(ITypeMeasurer textMeasurer, Pagination page)
+internal sealed class PlanContext(ITypeMeasurer measurer, Pagination pagination)
 {
-    public ITypeMeasurer Measurer { get; } = textMeasurer;
+    public ITypeMeasurer Measurer { get; } = measurer;
 
-    public Pagination Pagination { get; } = page;
+    public Pagination Pagination { get; } = pagination;
 
     /// <summary>The resolution images generated at their final size are generated at, in pixels per inch.</summary>
     public float Resolution { get; internal set; } = 288;
