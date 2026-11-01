@@ -13,21 +13,31 @@ internal static class XmpPacket
     private static readonly PdfName Xml = new PdfName("XML");
 
     /// <summary>
-    /// Writes the packet as the catalog's metadata stream, left uncompressed so tools that scan for it without reading
-    /// the file find it.
+    /// The packet's opening line, with the byte order mark XMP asks for and the identifier every packet has. Packets
+    /// close in different ways: one never to be changed with <c>end="r"</c>, one open to changes with <c>end="w"</c>.
     /// </summary>
-    public static void Write(PdfDocumentWriter writer, (int Part, char Level)? archive, int? accessibility)
+    public const string Begin = "<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n";
+
+    /// <summary>Writes the document's own packet as the catalog's metadata stream.</summary>
+    public static void Write(PdfDocumentWriter writer, (int Part, char Level)? archive, int? accessibility) =>
+        Write(writer, Build(writer.Info, archive, accessibility));
+
+    /// <summary>
+    /// Writes <paramref name="packet"/> as the catalog's metadata stream, left uncompressed so tools that scan for it
+    /// without reading the file find it.
+    /// </summary>
+    public static void Write(PdfDocumentWriter writer, byte[] packet)
     {
         writer.Catalog[Metadata] = writer.File.WriteStream(
             new PdfDictionary { [PdfNames.Type] = Metadata, [PdfNames.Subtype] = Xml },
-            Build(writer.Info, archive, accessibility),
+            packet,
             PdfStreamCompression.None);
     }
 
     public static byte[] Build(PdfDocumentInfo info, (int Part, char Level)? archive, int? accessibility)
     {
         StringBuilder xmp = new StringBuilder();
-        xmp.Append("<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n");
+        xmp.Append(Begin);
         xmp.Append("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n");
         xmp.Append(" <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n");
         xmp.Append("  <rdf:Description rdf:about=\"\"");

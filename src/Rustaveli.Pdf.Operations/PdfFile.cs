@@ -50,6 +50,10 @@ public sealed class PdfFile
         return Open(File.ReadAllBytes(path), password);
     }
 
+    /// <summary>
+    /// Opens the PDF file <paramref name="data"/> holds, with <paramref name="password"/> — the owner's or the user's —
+    /// if it is protected.
+    /// </summary>
     /// <inheritdoc cref="Open(string, string?)"/>
     public static PdfFile Open(byte[] data, string? password = null)
     {
@@ -101,6 +105,11 @@ public sealed class PdfFile
     /// </summary>
     public PdfFile Overlay(string path, string? onto = null, string? from = null) => Overlay(Open(path), onto, from);
 
+    /// <summary>
+    /// Draws pages of <paramref name="layer"/>, as they are now, over these, as a stamp: over the pages
+    /// <paramref name="onto"/> names, or all, the pages <paramref name="from"/> names, or all, one each in turn and
+    /// starting again when they run out — so a one-page stamp goes on every page.
+    /// </summary>
     /// <inheritdoc cref="Overlay(string, string?, string?)"/>
     public PdfFile Overlay(PdfFile layer, string? onto = null, string? from = null) => Lay(layer, onto, from, over: true);
 
@@ -111,6 +120,11 @@ public sealed class PdfFile
     /// </summary>
     public PdfFile Underlay(string path, string? onto = null, string? from = null) => Underlay(Open(path), onto, from);
 
+    /// <summary>
+    /// Draws pages of <paramref name="layer"/>, as they are now, beneath these, as a letterhead: beneath the pages
+    /// <paramref name="onto"/> names, or all, the pages <paramref name="from"/> names, or all, one each in turn and
+    /// starting again when they run out.
+    /// </summary>
     /// <inheritdoc cref="Underlay(string, string?, string?)"/>
     public PdfFile Underlay(PdfFile layer, string? onto = null, string? from = null) => Lay(layer, onto, from, over: false);
 

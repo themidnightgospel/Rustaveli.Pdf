@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Operations.Assembly;
 
@@ -32,7 +33,7 @@ internal static class MetadataExtender
             }
         }
 
-        StringBuilder text = new StringBuilder("<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n");
+        StringBuilder text = new StringBuilder(XmpPacket.Begin);
         text.Append(packet.Root!.ToString(SaveOptions.None));
         text.Append("\n<?xpacket end=\"w\"?>");
         return Encoding.UTF8.GetBytes(text.ToString());
@@ -53,48 +54,18 @@ internal static class MetadataExtender
         {
             if (property.Name == Extension + "schemas" && existing.SelectMany(held => held.Elements(Extension + "schemas")).FirstOrDefault() is { } schemas)
             {
-                XElement bag = schemas.Element(Rdf + "Bag") ?? new XElement(Rdf + "Bag");
-
-                if (bag.Parent is null)
-                    schemas.Add(bag);
-
-                HashSet<string> known = new HashSet<string>(bag.Elements(Rdf + "li").Select(Namespace), StringComparer.Ordinal);
-
-                foreach (XElement schema in property.Elements(Rdf + "Bag").Elements(Rdf + "li").Where(schema => known.Add(Namespace(schema))))
-                    bag.Add(schema);
-
-                // The schemas keep the prefixes they were given, which PDF/A requires of its own.
-                XElement owner = schemas.Parent!;
-
-                foreach (XAttribute declaration in description.Attributes().Where(attribute => attribute.IsNamespaceDeclaration && owner.Attribute(attribute.Name) is null))
-                    owner.Add(new XAttribute(declaration));
-
+                JoinSchemas(schemas, property, description);
                 property.Remove();
                 moved = true;
                 continue;
             }
 
-            foreach (XElement held in existing)
-            {
-                if (held.Elements(property.Name).Any() || held.Attribute(property.Name) is not null)
-                {
-                    held.Elements(property.Name).Remove();
-                    held.Attribute(property.Name)?.Remove();
-                    changed.Add(held);
-                }
-            }
+            RemoveFromExisting(property.Name);
         }
 
         // A property may be given as an attribute of its description, in XMP's shorthand.
         foreach (XAttribute attribute in description.Attributes().Where(IsProperty))
-        {
-            foreach (XElement held in existing.Where(held => held.Elements(attribute.Name).Any() || held.Attribute(attribute.Name) is not null))
-            {
-                held.Elements(attribute.Name).Remove();
-                held.Attribute(attribute.Name)?.Remove();
-                changed.Add(held);
-            }
-        }
+            RemoveFromExisting(attribute.Name);
 
         // A description all of whose properties were replaced says nothing any more.
         foreach (XElement held in changed.Where(held => !held.HasElements && !held.Attributes().Any(IsProperty)))
@@ -104,9 +75,51 @@ internal static class MetadataExtender
         if (!moved || description.HasElements || description.Attributes().Any(IsProperty))
             rdf.Add(description);
 
-        static string Namespace(XElement schema) => schema.Element(Schema + "namespaceURI")?.Value ?? string.Empty;
+        // Takes the property, as an element or an attribute, from every description already there, noting each changed.
+        void RemoveFromExisting(XName name)
+        {
+            foreach (XElement held in existing)
+            {
+                if (held.Elements(name).Any() || held.Attribute(name) is not null)
+                {
+                    held.Elements(name).Remove();
+                    held.Attribute(name)?.Remove();
+                    changed.Add(held);
+                }
+            }
+        }
 
         static bool IsProperty(XAttribute attribute) => !attribute.IsNamespaceDeclaration && attribute.Name.Namespace != Rdf && attribute.Name.Namespace != XNamespace.Xml;
+    }
+
+    /// <summary>
+    /// Adds to <paramref name="schemas"/>, the extension schemas already described, each schema
+    /// <paramref name="property"/> lists that they do not, and the prefixes <paramref name="description"/> declares.
+    /// </summary>
+    private static void JoinSchemas(XElement schemas, XElement property, XElement description)
+    {
+        XElement bag = schemas.Element(Rdf + "Bag") ?? new XElement(Rdf + "Bag");
+
+        if (bag.Parent is null)
+            schemas.Add(bag);
+
+        HashSet<string> known = new HashSet<string>(bag.Elements(Rdf + "li").Select(Namespace), StringComparer.Ordinal);
+
+        IEnumerable<XElement> given = property.Elements(Rdf + "Bag").Elements(Rdf + "li");
+
+        foreach (XElement schema in given.Where(schema => known.Add(Namespace(schema))))
+            bag.Add(schema);
+
+        // The schemas keep the prefixes they were given, which PDF/A requires of its own.
+        XElement owner = schemas.Parent!;
+
+        foreach (XAttribute declaration in description.Attributes()
+            .Where(attribute => attribute.IsNamespaceDeclaration && owner.Attribute(attribute.Name) is null))
+        {
+            owner.Add(new XAttribute(declaration));
+        }
+
+        static string Namespace(XElement schema) => schema.Element(Schema + "namespaceURI")?.Value ?? string.Empty;
     }
 
     private static XDocument Empty() =>

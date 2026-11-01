@@ -12,7 +12,7 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 /// Some objects are not copied but redirected: a page to the page it became, or to nothing when it was left out, so
 /// that copying an annotation does not pull in the page tree it hangs from, and with it every other page.
 /// </remarks>
-internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? output = null)
+internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption)
 {
     private static readonly PdfName Dest = new PdfName("Dest");
     private static readonly PdfName EmbeddedFile = new PdfName("EmbeddedFile");
@@ -103,7 +103,7 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? output = n
         if (catalog.TryGetValue(PdfNames.Names, out PdfValue names) && source.Resolve(names) is { Kind: PdfValueKind.Dictionary } tree
             && tree.AsDictionary().TryGetValue(PdfNames.Dests, out PdfValue root))
         {
-            foreach ((PdfString name, PdfValue value) in EmbeddedFiles.Entries(source, root))
+            foreach ((PdfString name, PdfValue value) in PdfNameTreeReader.Entries(source, root))
                 Add(Key(name)!, value);
         }
 
@@ -152,7 +152,7 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? output = n
 
         bool attachment = dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(EmbeddedFile);
 
-        if (attachment && !(ReferenceEquals(output, locked) && locked.EmbeddedFiles == PdfEncryption.Cipher.Aes256))
+        if (attachment && !(ReferenceEquals(encryption, locked) && locked.EmbeddedFiles == PdfEncryption.Cipher.Aes256))
         {
             throw new InvalidOperationException(
                 "The file's attachments are encrypted, and it was opened without its password, so they cannot be written again: open it with the password.");
