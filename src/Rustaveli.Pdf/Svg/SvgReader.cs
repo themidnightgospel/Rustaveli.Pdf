@@ -430,7 +430,7 @@ internal sealed class SvgReader
 
         if (!setting.Placed && setting.Runs.Count > 0 && look.Equals(setting.LastLook))
         {
-            setting.Runs[setting.Runs.Count - 1].Text += collapsed.ToString();
+            setting.Runs[setting.Runs.Count - 1].Text += collapsed;
             return;
         }
 

@@ -6,6 +6,7 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal static class CellPlacement
 {
+    /// <summary>Gives every cell of <paramref name="band"/> a row and a column, keeping those it was given.</summary>
     /// <exception cref="CompositionException">A cell pinned to a row finds no room left in it.</exception>
     public static void Apply(List<CellBlock> cells, int columnCount, string band)
     {

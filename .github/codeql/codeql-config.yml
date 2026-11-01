@@ -24,3 +24,8 @@ query-filters:
       id: cs/linq/missed-where
   - exclude:
       id: cs/linq/missed-select
+
+  # Every static field an instance writes is [ThreadStatic], a spare or a counter each thread keeps for itself, which
+  # the query does not tell apart from a field all threads share.
+  - exclude:
+      id: cs/static-field-written-by-instance
