@@ -34,6 +34,9 @@ internal static class Linearizer
     /// <summary>The width every offset in the linearization dictionary is written at, so it can be filled in last.</summary>
     private const string Offset = "D10";
 
+    /// <summary>The length of a cross-reference entry: offset, generation, type and end of line (7.5.4).</summary>
+    private const int EntryLength = 20;
+
     public static void Write(byte[] file, PdfEncryption? encryption, Stream output)
     {
         PdfSource source = PdfSource.Open(file);
@@ -190,6 +193,17 @@ internal static class Linearizer
         private readonly List<int> _outline;
         private readonly Dictionary<int, int> _numbers = [];
 
+        // What every pass lays out alike, set once by Write: the objects serialized as numbered, the numbers given
+        // around them, and the trailer up to its /Prev, which holds the file's identifier.
+        private readonly Dictionary<int, byte[]> _serialized = [];
+        private PdfEncryption? _encryption;
+        private int _linearization;
+        private int? _encrypt;
+        private int _hint;
+        private int _size;
+        private int _mainCount;
+        private byte[] _trailer = [];
+
         public Layout(List<int> opening, List<List<int>> reached, List<int> outline, List<List<int>> later, List<int> shared, List<int> rest, Dictionary<int, int> usage)
         {
             _opening = opening;
@@ -205,35 +219,37 @@ internal static class Linearizer
         /// <summary>The objects of the main section, numbered from 1 in the order they are written.</summary>
         private IEnumerable<int> Main => _later.SelectMany(page => page).Concat(_shared).Concat(_rest);
 
-        public void Write(Dictionary<int, object> objects, PdfSource source, int catalog, int? info, PdfEncryption? encryption, Stream output)
+        public void Write(
+            Dictionary<int, object> objects,
+            PdfSource source,
+            int catalog,
+            int? info,
+            PdfEncryption? encryption,
+            Stream output)
         {
+            _encryption = encryption;
             int next = 1;
 
             foreach (int number in Main)
                 _numbers[number] = next++;
 
-            int mainCount = next;
-            int linearization = next++;
+            _mainCount = next;
+            _linearization = next++;
 
             foreach (int number in _opening.Concat(_firstPage).Concat(_outline))
                 _numbers[number] = next++;
 
-            int? encrypt = encryption is null ? null : next++;
-            int hint = next++;
-            int size = next;
-
-            Dictionary<int, byte[]> serialized = [];
+            _encrypt = encryption is null ? null : next++;
+            _hint = next++;
+            _size = next;
 
             foreach (KeyValuePair<int, int> entry in _numbers)
-                serialized[entry.Value] = Serialize(entry.Value, objects[entry.Key], encryption);
+                _serialized[entry.Value] = Serialize(entry.Value, objects[entry.Key], encryption);
 
-            if (encrypt is int encryptNumber)
-                serialized[encryptNumber] = Serialize(encryptNumber, encryption!.Dictionary, encryption: null);
+            if (_encrypt is int encryptNumber)
+                _serialized[encryptNumber] = Serialize(encryptNumber, encryption!.Dictionary, encryption: null);
 
-            byte[] id = encryption?.DocumentId
-                ?? (source.Trailer.TryGetValue(PdfNames.ID, out PdfValue ids) && ids.Kind == PdfValueKind.Array && ids.AsArray().Count > 0
-                    ? ids.AsArray()[0].AsString().Bytes.ToArray()
-                    : StandardSecurity.Random(16));
+            _trailer = Trailer(Identifier(source), catalog, info);
 
             byte[] hintObject = [];
             byte[] bytes = [];
@@ -241,7 +257,7 @@ internal static class Linearizer
             // The hint stream gives offsets of what follows it, so the file is laid out until its length settles.
             for (int pass = 0; pass < 8; pass++)
             {
-                (byte[] laid, byte[] hints) = Lay(serialized, hintObject, linearization, hint, encrypt, size, mainCount, catalog, info, id, encryption);
+                (byte[] laid, byte[] hints) = Lay(hintObject);
                 bytes = laid;
 
                 if (hints.Length == hintObject.Length && hints.AsSpan().SequenceEqual(hintObject))
@@ -254,21 +270,39 @@ internal static class Linearizer
         }
 
         /// <summary>
+        /// The file's identifier: its encryption's, which the keys depend on, or else the first the file gives, or
+        /// else a new one.
+        /// </summary>
+        private byte[] Identifier(PdfSource source)
+        {
+            if (_encryption is not null)
+                return _encryption.DocumentId;
+
+            return source.Trailer.TryGetValue(PdfNames.ID, out PdfValue ids) && ids.Kind == PdfValueKind.Array
+                && ids.AsArray().Count > 0
+                ? ids.AsArray()[0].AsString().Bytes.ToArray()
+                : StandardSecurity.Random(16);
+        }
+
+        /// <summary>The trailer of the first page's cross-reference section, as far as its <c>/Prev</c>.</summary>
+        private byte[] Trailer(byte[] id, int catalog, int? info)
+        {
+            string encrypted = _encrypt is int e ? $"/Encrypt {e} 0 R" : string.Empty;
+            string information = info is int i && _numbers.TryGetValue(i, out int infoNumber)
+                ? $"/Info {infoNumber} 0 R"
+                : string.Empty;
+            string identifier = "<" + BitConverter.ToString(id).Replace("-", string.Empty) + ">";
+
+            return Ascii(
+                "trailer\n<</Size " + _size + "/Root " + _numbers[catalog] + " 0 R" + information
+                + "/ID[" + identifier + identifier + "]" + encrypted + "/Prev ");
+        }
+
+        /// <summary>
         /// Lays the file out with <paramref name="hintObject"/> as its hint stream; returns the file, and the hint
         /// stream its offsets call for.
         /// </summary>
-        private (byte[] File, byte[] Hints) Lay(
-            Dictionary<int, byte[]> serialized,
-            byte[] hintObject,
-            int linearization,
-            int hint,
-            int? encrypt,
-            int size,
-            int mainCount,
-            int catalog,
-            int? info,
-            byte[] id,
-            PdfEncryption? encryption)
+        private (byte[] File, byte[] Hints) Lay(byte[] hintObject)
         {
             using MemoryStream file = new MemoryStream();
             Dictionary<int, long> offsets = [];
@@ -287,61 +321,55 @@ internal static class Linearizer
 
             // The linearization dictionary is written with room for its offsets, filled in once they are known.
             long dictionaryAt = file.Position;
-            byte[] dictionary = LinearizationDictionary(linearization, 0, 0, 0, 0, 0, 0, 0);
-            Place(linearization, dictionary);
+            byte[] dictionary = LinearizationDictionary(_linearization, 0, 0, 0, 0, 0, 0, 0);
+            Place(_linearization, dictionary);
 
             long firstTable = file.Position;
-            int firstCount = size - linearization;
-            Put(Ascii($"xref\n{linearization} {firstCount}\n"));
+            int firstCount = _size - _linearization;
+            Put(Ascii($"xref\n{_linearization} {firstCount}\n"));
             long firstEntries = file.Position;
-            Put(new byte[20 * firstCount]);
+            Put(new byte[EntryLength * firstCount]);
 
-            string encrypted = encrypt is int e ? $"/Encrypt {e} 0 R" : string.Empty;
-            string information = info is int i && _numbers.TryGetValue(i, out int infoNumber) ? $"/Info {infoNumber} 0 R" : string.Empty;
-            string identifier = "<" + BitConverter.ToString(id).Replace("-", string.Empty) + ">";
-            Put(Ascii("trailer\n<</Size " + size + "/Root " + _numbers[catalog] + " 0 R" + information + "/ID[" + identifier + identifier + "]" + encrypted + "/Prev "));
+            Put(_trailer);
             long prevAt = file.Position;
-            Put(Ascii(new string('0', 10) + ">>\nstartxref\n0\n%%EOF\n"));
+            Put(Ascii(Padded(0) + ">>\nstartxref\n0\n%%EOF\n"));
 
             foreach (int number in _opening)
-                Place(_numbers[number], serialized[_numbers[number]]);
+                Place(_numbers[number], _serialized[_numbers[number]]);
 
-            if (encrypt is int encryptNumber)
-                Place(encryptNumber, serialized[encryptNumber]);
+            if (_encrypt is int encryptNumber)
+                Place(encryptNumber, _serialized[encryptNumber]);
 
             long hintAt = file.Position;
-            Place(hint, hintObject);
+            Place(_hint, hintObject);
 
             foreach (int number in _firstPage.Concat(_outline))
-                Place(_numbers[number], serialized[_numbers[number]]);
+                Place(_numbers[number], _serialized[_numbers[number]]);
 
             long firstPageEnd = file.Position;
 
             foreach (int number in Main)
-                Place(_numbers[number], serialized[_numbers[number]]);
+                Place(_numbers[number], _serialized[_numbers[number]]);
 
             long mainTable = file.Position;
-            Put(Ascii($"xref\n0 {mainCount}\n"));
+            Put(Ascii($"xref\n0 {_mainCount}\n"));
             long mainEntries = file.Position;
             Put(Ascii("0000000000 65535 f\r\n"));
 
-            for (int number = 1; number < mainCount; number++)
-                Put(Ascii(offsets[number].ToString(Offset, CultureInfo.InvariantCulture) + " 00000 n\r\n"));
+            for (int number = 1; number < _mainCount; number++)
+                Put(InUse(offsets[number]));
 
-            Put(Ascii($"trailer\n<</Size {mainCount}>>\nstartxref\n{firstTable}\n%%EOF\n"));
+            Put(Ascii($"trailer\n<</Size {_mainCount}>>\nstartxref\n{firstTable}\n%%EOF\n"));
 
             byte[] bytes = file.ToArray();
 
-            for (int number = linearization; number < size; number++)
-            {
-                byte[] entry = Ascii(offsets[number].ToString(Offset, CultureInfo.InvariantCulture) + " 00000 n\r\n");
-                entry.CopyTo(bytes, firstEntries + (20 * (number - linearization)));
-            }
+            for (int number = _linearization; number < _size; number++)
+                InUse(offsets[number]).CopyTo(bytes, firstEntries + (EntryLength * (number - _linearization)));
 
-            Ascii(mainTable.ToString(Offset, CultureInfo.InvariantCulture)).CopyTo(bytes, prevAt);
+            Ascii(Padded(mainTable)).CopyTo(bytes, prevAt);
 
             byte[] filled = LinearizationDictionary(
-                linearization,
+                _linearization,
                 bytes.Length,
                 hintAt,
                 hintObject.Length,
@@ -352,8 +380,8 @@ internal static class Linearizer
 
             filled.CopyTo(bytes, dictionaryAt);
 
-            byte[] hints = Serialize(hint, HintStream(offsets, sizes, hintAt, hintObject.Length, firstPageEnd), encryption);
-            return (bytes, hints);
+            SourceStream hints = HintStream(offsets, sizes, hintAt, hintObject.Length, firstPageEnd);
+            return (bytes, Serialize(_hint, hints, _encryption));
         }
 
         /// <summary>The hint stream: the page offset hint table, then the shared object hint table (F.4).</summary>
@@ -533,10 +561,15 @@ internal static class Linearizer
 
         private static byte[] LinearizationDictionary(int number, long length, long hintAt, long hintLength, int firstPage, long firstPageEnd, int pages, long mainEntries) =>
             Ascii(
-                $"{number} 0 obj\n<</Linearized 1/L {length.ToString(Offset, CultureInfo.InvariantCulture)}"
-                + $"/H[{hintAt.ToString(Offset, CultureInfo.InvariantCulture)} {hintLength.ToString(Offset, CultureInfo.InvariantCulture)}]"
-                + $"/O {firstPage.ToString(Offset, CultureInfo.InvariantCulture)}/E {firstPageEnd.ToString(Offset, CultureInfo.InvariantCulture)}"
-                + $"/N {pages.ToString(Offset, CultureInfo.InvariantCulture)}/T {mainEntries.ToString(Offset, CultureInfo.InvariantCulture)}>>\nendobj\n");
+                $"{number} 0 obj\n<</Linearized 1/L {Padded(length)}/H[{Padded(hintAt)} {Padded(hintLength)}]"
+                + $"/O {Padded(firstPage)}/E {Padded(firstPageEnd)}/N {Padded(pages)}/T {Padded(mainEntries)}"
+                + ">>\nendobj\n");
+
+        /// <summary>The cross-reference entry of an object in use at <paramref name="offset"/>.</summary>
+        private static byte[] InUse(long offset) => Ascii(Padded(offset) + " 00000 n\r\n");
+
+        /// <summary><paramref name="value"/> at the width of an offset, so that it can be filled in last.</summary>
+        private static string Padded(long value) => value.ToString(Offset, CultureInfo.InvariantCulture);
 
         private static byte[] Ascii(string text) => Encoding.ASCII.GetBytes(text);
     }

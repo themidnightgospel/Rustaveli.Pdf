@@ -418,7 +418,7 @@ public class PdfFileTests
         if (destination.Kind == PdfValueKind.String)
         {
             PdfValue tree = source.Resolve(source.Catalog[PdfNames.Names]).AsDictionary()[PdfNames.Dests];
-            destination = source.Resolve(Rustaveli.Pdf.Operations.Assembly.EmbeddedFiles.Entries(source, tree)
+            destination = source.Resolve(PdfNameTreeReader.Entries(source, tree)
                 .Single(entry => entry.Key.Bytes.ToArray().SequenceEqual(destination.AsString().Bytes.ToArray())).Value);
         }
 

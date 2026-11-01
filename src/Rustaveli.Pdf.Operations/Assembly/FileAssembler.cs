@@ -12,7 +12,10 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 /// Writes an assembled file: its pages copied from the files they came from, with their layers, and what the first
 /// file says of the document as a whole.
 /// </summary>
-internal static class FileAssembler
+/// <remarks>
+/// One instance writes one file, so two saves of one <see cref="PdfFile"/> at once share nothing but the files read.
+/// </remarks>
+internal sealed class FileAssembler
 {
     private static readonly PdfName Root = new PdfName("Root");
     private static readonly PdfName Info = PdfNames.Info;
@@ -39,9 +42,18 @@ internal static class FileAssembler
     private static readonly PdfName P = new PdfName("P");
     private static readonly PdfName EmbeddedFiles = new PdfName("EmbeddedFiles");
     private static readonly PdfName Associated = new PdfName("AF");
+
+    /// <summary>
+    /// The catalog entries written anew rather than copied. Declared after the names it holds, since static fields are
+    /// initialized in the order they are written.
+    /// </summary>
+    private static readonly PdfName[] Rebuilt =
+    [
+        PdfNames.Type, PdfNames.Pages, PdfNames.Names, Associated, OCProperties, AcroForm,
+    ];
+
     private static readonly PdfName Perms = new PdfName("Perms");
     private static readonly PdfName Metadata = new PdfName("Metadata");
-    private static readonly PdfName Xml = new PdfName("XML");
 
     /// <summary>What a document says of itself whatever pages it keeps.</summary>
     private static readonly PdfName[] Always =
@@ -49,6 +61,51 @@ internal static class FileAssembler
         new PdfName("Metadata"), new PdfName("Lang"), new PdfName("OutputIntents"), new PdfName("ViewerPreferences"),
         new PdfName("PageLayout"), new PdfName("Version"), new PdfName("Extensions"),
     ];
+
+    private readonly IReadOnlyList<PageEntry> _pages;
+    private readonly PdfSource _first;
+    private readonly SaveSettings _settings;
+    private readonly PdfDocumentWriter _writer;
+    private readonly ObjectCopier _copier;
+
+    /// <summary>
+    /// Every file the pages come from, the first file first whether or not any of its pages are kept.
+    /// </summary>
+    private readonly List<PdfSource> _sources;
+
+    /// <summary>
+    /// Whether the first file's pages are all kept, in their order, at the start: its outline, names and structure
+    /// point at its pages, so they are kept while those pages are.
+    /// </summary>
+    private readonly bool _whole;
+
+    /// <summary>
+    /// Each page laid on others, as the form it was written as: a page laid on many — a letterhead under every page —
+    /// is written as a form once, and drawn wherever it is laid.
+    /// </summary>
+    private readonly Dictionary<(PdfSource, int), PdfReference> _forms = [];
+
+    private FileAssembler(
+        IReadOnlyList<PageEntry> pages,
+        PdfSource first,
+        SaveSettings settings,
+        PdfDocumentWriter writer,
+        PdfEncryption? encryption)
+    {
+        _pages = pages;
+        _first = first;
+        _settings = settings;
+        _writer = writer;
+        _copier = new ObjectCopier(writer.File, encryption);
+
+        IEnumerable<PdfSource> drawn = pages
+            .SelectMany(entry => entry.Over.Concat(entry.Beneath).Append(entry.Page))
+            .Select(page => page.Source);
+        _sources = new[] { first }.Concat(drawn).Distinct().ToList();
+
+        _whole = first.Pages.Count <= pages.Count
+            && first.Pages.Select((page, index) => ReferenceEquals(pages[index].Page, page)).All(same => same);
+    }
 
     public static void Write(IReadOnlyList<PageEntry> pages, PdfSource first, Stream output, SaveSettings settings)
     {
@@ -71,7 +128,12 @@ internal static class FileAssembler
         Linearizer.Write(plain.ToArray(), encryption, output);
     }
 
-    private static void Write(IReadOnlyList<PageEntry> pages, PdfSource first, Stream output, SaveSettings settings, PdfEncryption? encryption)
+    private static void Write(
+        IReadOnlyList<PageEntry> pages,
+        PdfSource first,
+        Stream output,
+        SaveSettings settings,
+        PdfEncryption? encryption)
     {
         using PdfDocumentWriter writer = new PdfDocumentWriter(output, new PdfWriterOptions
         {
@@ -80,92 +142,89 @@ internal static class FileAssembler
             Encryption = encryption,
         });
 
-        ObjectCopier copier = new ObjectCopier(writer.File, encryption);
-        List<(PdfReference Page, PdfReference Parent)> placed = pages.Select(_ => writer.AddPage()).ToList();
+        new FileAssembler(pages, first, settings, writer, encryption).Assemble();
+    }
 
-        // Every file the pages come from, the first file first whether or not any of its pages are kept.
-        List<PdfSource> sources = new[] { first }
-            .Concat(pages.SelectMany(entry => entry.Over.Concat(entry.Beneath).Append(entry.Page)).Select(page => page.Source))
-            .Distinct()
-            .ToList();
+    /// <summary>
+    /// Writes the pages, then what the document says of itself. The steps keep their order, which is the order the
+    /// objects of the file are numbered in.
+    /// </summary>
+    private void Assemble()
+    {
+        List<(PdfReference Page, PdfReference Parent)> placed = _pages.Select(_ => _writer.AddPage()).ToList();
 
         // Every page of every file goes to the first page it became, or nowhere; the rest of their trees go nowhere.
-        foreach (PdfSource source in sources)
+        foreach (PdfSource source in _sources)
         {
             foreach (int node in source.PageTree)
-                copier.Redirect(source, node, null);
+                _copier.Redirect(source, node, null);
 
             if (source.Trailer.TryGetValue(Root, out PdfValue root) && root.Kind == PdfValueKind.Reference)
-                copier.Redirect(source, root.AsReference().ObjectNumber, null);
+                _copier.Redirect(source, root.AsReference().ObjectNumber, null);
         }
 
         // A page kept twice is referred to as the first it became.
         HashSet<(PdfSource, int)> assigned = [];
-        bool[] again = new bool[pages.Count];
+        bool[] again = new bool[_pages.Count];
 
-        for (int index = 0; index < pages.Count; index++)
+        for (int index = 0; index < _pages.Count; index++)
         {
-            SourcePage page = pages[index].Page;
+            SourcePage page = _pages[index].Page;
             again[index] = !assigned.Add((page.Source, page.ObjectNumber));
 
             if (!again[index])
-                copier.Redirect(page.Source, page.ObjectNumber, placed[index].Page);
+                _copier.Redirect(page.Source, page.ObjectNumber, placed[index].Page);
         }
-
-        // The first file's outline, names and structure point at its pages: they are kept while those pages are.
-        bool whole = first.Pages.Count <= pages.Count
-            && first.Pages.Select((page, index) => ReferenceEquals(pages[index].Page, page)).All(same => same);
 
         // Only the first file's named destinations are kept, and only then: every other file's links name destinations
         // of its own, which the names kept would take elsewhere or nowhere, so they are copied as the places they name.
-        foreach (PdfSource source in pages.Select(entry => entry.Page.Source).Distinct())
+        foreach (PdfSource source in _pages.Select(entry => entry.Page.Source).Distinct())
         {
-            if (!whole || !ReferenceEquals(source, first))
-                copier.ResolveNamedDestinations(source);
+            if (!KeptWhole(source))
+                _copier.ResolveNamedDestinations(source);
         }
 
-        // A page laid on many — a letterhead under every page — is written as a form once, and drawn wherever it is laid.
-        Dictionary<(PdfSource, int), PdfReference> forms = [];
+        for (int index = 0; index < _pages.Count; index++)
+            WritePage(_pages[index], placed[index], again[index]);
 
-        for (int index = 0; index < pages.Count; index++)
-            WritePage(writer, copier, pages[index], placed[index], keepStructure: whole && ReferenceEquals(pages[index].Page.Source, first), forms, again[index]);
-
-        CopyDocument(writer, copier, first, whole, settings, sources, pages);
-        copier.Flush();
-        writer.Finish();
+        CopyDocument();
+        _copier.Flush();
+        _writer.Finish();
     }
 
-    private static void WritePage(
-        PdfDocumentWriter writer,
-        ObjectCopier copier,
-        PageEntry entry,
-        (PdfReference Page, PdfReference Parent) placed,
-        bool keepStructure,
-        Dictionary<(PdfSource, int), PdfReference> forms,
-        bool again)
+    /// <summary>
+    /// Whether <paramref name="source"/> is the first file with its pages all kept, in their order, at the start: then
+    /// what points at its pages — its outline, named destinations, structure and form fields — is kept whole.
+    /// </summary>
+    private bool KeptWhole(PdfSource source) => _whole && ReferenceEquals(source, _first);
+
+    private void WritePage(PageEntry entry, (PdfReference Page, PdfReference Parent) placed, bool again)
     {
         SourcePage page = entry.Page;
         PdfSource source = page.Source;
 
         // The structure tree knows a page kept twice only as the first it became, whose place in it the copy must not claim.
-        PdfName[] leaving = keepStructure && !again ? [PdfNames.Parent] : [PdfNames.Parent, StructParents];
-        PdfDictionary copied = copier.CopyDictionary(source, page.Dictionary, leaving);
+        PdfName[] leaving = KeptWhole(source) && !again ? [PdfNames.Parent] : [PdfNames.Parent, StructParents];
+        PdfDictionary copied = _copier.CopyDictionary(source, page.Dictionary, leaving);
         copied[PdfNames.Parent] = placed.Parent;
 
-        if (again && page.Dictionary.TryGetValue(PdfNames.Annots, out PdfValue listed) && source.Resolve(listed) is { Kind: PdfValueKind.Array } annotations)
-            copied[PdfNames.Annots] = CopyAnnotations(writer, copier, source, annotations.AsArray(), placed.Page);
+        if (again && page.Dictionary.TryGetValue(PdfNames.Annots, out PdfValue listed)
+            && source.Resolve(listed) is { Kind: PdfValueKind.Array } annotations)
+        {
+            copied[PdfNames.Annots] = CopyAnnotations(source, annotations.AsArray(), placed.Page);
+        }
 
         if (entry.Beneath.Count > 0 || entry.Over.Count > 0)
-            Layer(writer, copier, entry, copied, forms);
+            Layer(entry, copied);
 
-        writer.File.Write(placed.Page, copied);
+        _writer.File.Write(placed.Page, copied);
     }
 
     /// <summary>
     /// The annotations of a page kept again, each written anew for <paramref name="page"/>: an annotation belongs to
     /// one page, which its <c>/P</c> names, and one place in the structure, which the first copy keeps.
     /// </summary>
-    private static PdfArray CopyAnnotations(PdfDocumentWriter writer, ObjectCopier copier, PdfSource source, PdfArray annotations, PdfReference page)
+    private PdfArray CopyAnnotations(PdfSource source, PdfArray annotations, PdfReference page)
     {
         PdfArray copies = new PdfArray(annotations.Count);
 
@@ -173,13 +232,13 @@ internal static class FileAssembler
         {
             if (source.Resolve(item) is { Kind: PdfValueKind.Dictionary } annotation)
             {
-                PdfDictionary copy = copier.CopyDictionary(source, annotation.AsDictionary(), StructParent, P);
+                PdfDictionary copy = _copier.CopyDictionary(source, annotation.AsDictionary(), StructParent, P);
                 copy[P] = page;
-                copies.Add(writer.File.Write(copy));
+                copies.Add(_writer.File.Write(copy));
             }
             else
             {
-                copies.Add(copier.Copy(source, item));
+                copies.Add(_copier.Copy(source, item));
             }
         }
 
@@ -190,7 +249,7 @@ internal static class FileAssembler
     /// Draws the pages laid beneath and over a page around its own content, each as a form of its own, the page's
     /// content kept in a saved state so it cannot disturb what is drawn over it.
     /// </summary>
-    private static void Layer(PdfDocumentWriter writer, ObjectCopier copier, PageEntry entry, PdfDictionary page, Dictionary<(PdfSource, int), PdfReference> written)
+    private void Layer(PageEntry entry, PdfDictionary copied)
     {
         PdfSource source = entry.Page.Source;
         PdfDictionary own = entry.Page.Dictionary;
@@ -200,9 +259,12 @@ internal static class FileAssembler
             ? found.AsDictionary()
             : null;
 
-        PdfDictionary resources = held is null ? new PdfDictionary() : copier.CopyDictionary(source, held, PdfNames.XObject);
-        PdfDictionary forms = held is not null && held.TryGetValue(PdfNames.XObject, out PdfValue existing) && source.Resolve(existing) is { Kind: PdfValueKind.Dictionary } named
-            ? copier.CopyDictionary(source, named.AsDictionary())
+        PdfDictionary resources = held is null
+            ? new PdfDictionary()
+            : _copier.CopyDictionary(source, held, PdfNames.XObject);
+        PdfDictionary xObjects = held is not null && held.TryGetValue(PdfNames.XObject, out PdfValue existing)
+            && source.Resolve(existing) is { Kind: PdfValueKind.Dictionary } named
+            ? _copier.CopyDictionary(source, named.AsDictionary())
             : new PdfDictionary();
 
         StringBuilder before = new StringBuilder();
@@ -222,15 +284,15 @@ internal static class FileAssembler
                 {
                     name = new PdfName("Layer" + count++);
                 }
-                while (forms.ContainsKey(name));
+                while (xObjects.ContainsKey(name));
 
-                if (!written.TryGetValue((layer.Source, layer.ObjectNumber), out PdfReference form))
+                if (!_forms.TryGetValue((layer.Source, layer.ObjectNumber), out PdfReference form))
                 {
-                    form = FormOf(writer, copier, layer);
-                    written[(layer.Source, layer.ObjectNumber)] = form;
+                    form = FormOf(layer);
+                    _forms[(layer.Source, layer.ObjectNumber)] = form;
                 }
 
-                forms[name] = form;
+                xObjects[name] = form;
                 content.Append(artifact ? "/Artifact BMC\nq\n" : "q\n")
                     .Append(Placement(layer, entry.Page))
                     .Append(Encoding.ASCII.GetString(name.Encoded.ToArray()))
@@ -239,26 +301,30 @@ internal static class FileAssembler
         }
 
         before.Append("q\n");
-        resources[PdfNames.XObject] = forms;
-        page[PdfNames.Resources] = resources;
+        resources[PdfNames.XObject] = xObjects;
+        copied[PdfNames.Resources] = resources;
 
-        PdfArray contents = new PdfArray { writer.File.WriteStream(new PdfDictionary(), Encoding.ASCII.GetBytes(before.ToString())) };
-
-        if (own.TryGetValue(PdfNames.Contents, out PdfValue streams))
+        PdfArray contents = new PdfArray
         {
-            if (source.Resolve(streams) is { Kind: PdfValueKind.Array } array)
-            {
-                foreach (PdfValue stream in array.AsArray())
-                    contents.Add(copier.Copy(source, stream));
-            }
-            else
-            {
-                contents.Add(copier.Copy(source, streams));
-            }
-        }
+            _writer.File.WriteStream(new PdfDictionary(), Encoding.ASCII.GetBytes(before.ToString())),
+        };
 
-        contents.Add(writer.File.WriteStream(new PdfDictionary(), Encoding.ASCII.GetBytes(after.ToString())));
-        page[PdfNames.Contents] = contents;
+        foreach (PdfValue stream in ContentStreams(entry.Page))
+            contents.Add(_copier.Copy(source, stream));
+
+        contents.Add(_writer.File.WriteStream(new PdfDictionary(), Encoding.ASCII.GetBytes(after.ToString())));
+        copied[PdfNames.Contents] = contents;
+    }
+
+    /// <summary>The streams of <paramref name="page"/>'s <c>/Contents</c>: one, many, or none.</summary>
+    private static IEnumerable<PdfValue> ContentStreams(SourcePage page)
+    {
+        if (!page.Dictionary.TryGetValue(PdfNames.Contents, out PdfValue contents))
+            return [];
+
+        return page.Source.Resolve(contents) is { Kind: PdfValueKind.Array } array
+            ? array.AsArray().Cast<PdfValue>()
+            : [contents];
     }
 
     /// <summary>
@@ -307,7 +373,7 @@ internal static class FileAssembler
     /// <summary>A page's visible box — its crop box, or else its media box — or null when it is not four numbers enclosing something.</summary>
     private static (double Left, double Bottom, double Right, double Top, double Width, double Height)? VisibleBox(SourcePage page)
     {
-        PdfValue given = page.Dictionary.TryGetValue(CropBox, out PdfValue crop) ? crop : page.Dictionary[PdfNames.MediaBox];
+        PdfValue given = VisibleBoxEntry(page);
 
         if (page.Source.Resolve(given) is not { Kind: PdfValueKind.Array } array || array.AsArray().Count != 4)
             return null;
@@ -332,6 +398,10 @@ internal static class FileAssembler
         return right - left > 0 && top - bottom > 0 ? (left, bottom, right, top, right - left, top - bottom) : null;
     }
 
+    /// <summary>The entry that gives a page's visible box: its crop box, or else its media box.</summary>
+    private static PdfValue VisibleBoxEntry(SourcePage page) =>
+        page.Dictionary.TryGetValue(CropBox, out PdfValue crop) ? crop : page.Dictionary[PdfNames.MediaBox];
+
     /// <summary>Whether <paramref name="source"/> says it is tagged: its catalog's <c>/MarkInfo</c> has <c>/Marked true</c>.</summary>
     private static bool IsMarked(PdfSource source) =>
         source.Catalog.TryGetValue(MarkInfo, out PdfValue given) && source.Resolve(given) is { Kind: PdfValueKind.Dictionary } info
@@ -344,38 +414,32 @@ internal static class FileAssembler
             : 0;
 
     /// <summary>A page as a form: its content, its resources, and its visible box as the form's bounds.</summary>
-    private static PdfReference FormOf(PdfDocumentWriter writer, ObjectCopier copier, SourcePage page)
+    private PdfReference FormOf(SourcePage page)
     {
         PdfSource source = page.Source;
-        PdfValue box = page.Dictionary.TryGetValue(CropBox, out PdfValue crop) ? crop : page.Dictionary[PdfNames.MediaBox];
         PdfDictionary form = new PdfDictionary
         {
             [PdfNames.Type] = PdfNames.XObject,
             [PdfNames.Subtype] = Form,
-            [BBox] = copier.Copy(source, source.Resolve(box)),
+            [BBox] = _copier.Copy(source, source.Resolve(VisibleBoxEntry(page))),
             [PdfNames.Resources] = page.Dictionary.TryGetValue(PdfNames.Resources, out PdfValue resources)
-                ? copier.Copy(source, resources)
+                ? _copier.Copy(source, resources)
                 : new PdfDictionary(),
         };
 
         using MemoryStream content = new MemoryStream();
 
-        if (page.Dictionary.TryGetValue(PdfNames.Contents, out PdfValue contents))
+        foreach (PdfValue stream in ContentStreams(page))
         {
-            IEnumerable<PdfValue> streams = source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray().Cast<PdfValue>() : [contents];
-
-            foreach (PdfValue stream in streams)
+            if (source.Stream(stream) is { } found)
             {
-                if (source.Stream(stream) is { } found)
-                {
-                    byte[] data = source.Decode(found);
-                    content.Write(data, 0, data.Length);
-                    content.WriteByte((byte)'\n');
-                }
+                byte[] data = source.Decode(found);
+                content.Write(data, 0, data.Length);
+                content.WriteByte((byte)'\n');
             }
         }
 
-        return writer.File.WriteStream(form, content.ToArray());
+        return _writer.File.WriteStream(form, content.ToArray());
     }
 
     /// <summary>
@@ -384,7 +448,7 @@ internal static class FileAssembler
     /// each file's hidden groups hidden, whatever pages are kept, since the properties name groups and not pages;
     /// the first file's default configuration is kept otherwise, each other file's order and radio groups joined to it.
     /// </summary>
-    private static PdfDictionary? OptionalContent(ObjectCopier copier, List<PdfSource> sources)
+    private PdfDictionary? OptionalContent()
     {
         PdfDictionary? merged = null;
         PdfDictionary configuration = new PdfDictionary();
@@ -392,7 +456,7 @@ internal static class FileAssembler
         PdfArray hidden = new PdfArray();
         Dictionary<PdfName, PdfArray> joined = Joined.ToDictionary(key => key, _ => new PdfArray());
 
-        foreach (PdfSource source in sources)
+        foreach (PdfSource source in _sources)
         {
             if (!source.Catalog.TryGetValue(OCProperties, out PdfValue given) || source.Resolve(given) is not { Kind: PdfValueKind.Dictionary } found)
                 continue;
@@ -405,12 +469,12 @@ internal static class FileAssembler
 
             if (merged is null)
             {
-                merged = copier.CopyDictionary(source, properties, OCGs, PdfNames.D);
-                configuration = copier.CopyDictionary(source, shown, [BaseState, On, Off, .. Joined]);
+                merged = _copier.CopyDictionary(source, properties, OCGs, PdfNames.D);
+                configuration = _copier.CopyDictionary(source, shown, [BaseState, On, Off, .. Joined]);
             }
 
             foreach (PdfValue group in listed)
-                groups.Add(copier.Copy(source, group));
+                groups.Add(_copier.Copy(source, group));
 
             // A configuration that starts with every group hidden shows only those it names as on.
             if (source.Resolve(shown.TryGetValue(BaseState, out PdfValue state) ? state : PdfValue.Null) is { Kind: PdfValueKind.Name } name && name.AsName().Equals(Off))
@@ -418,18 +482,18 @@ internal static class FileAssembler
                 HashSet<int> on = [.. Items(source, shown, On).Where(group => group.Kind == PdfValueKind.Reference).Select(group => group.AsReference().ObjectNumber)];
 
                 foreach (PdfValue group in listed.Where(group => group.Kind == PdfValueKind.Reference && !on.Contains(group.AsReference().ObjectNumber)))
-                    hidden.Add(copier.Copy(source, group));
+                    hidden.Add(_copier.Copy(source, group));
             }
             else
             {
                 foreach (PdfValue group in Items(source, shown, Off))
-                    hidden.Add(copier.Copy(source, group));
+                    hidden.Add(_copier.Copy(source, group));
             }
 
             foreach (PdfName key in Joined)
             {
                 foreach (PdfValue item in Items(source, shown, key))
-                    joined[key].Add(copier.Copy(source, item));
+                    joined[key].Add(_copier.Copy(source, item));
             }
         }
 
@@ -458,11 +522,11 @@ internal static class FileAssembler
     /// renamed, as qpdf renames it, with "+1", "+2" and so on; and the resources the fields' appearances are made from
     /// joined, a name already given keeping what it named first. The rest of the form is the first form's.
     /// </summary>
-    private static PdfDictionary? InteractiveForm(ObjectCopier copier, PdfSource first, bool whole, List<PdfSource> sources, IReadOnlyList<PageEntry> pages)
+    private PdfDictionary? InteractiveForm()
     {
         HashSet<(PdfSource, int)> kept = [];
 
-        foreach (SourcePage page in pages.Select(entry => entry.Page))
+        foreach (SourcePage page in _pages.Select(entry => entry.Page))
         {
             foreach (PdfValue annotation in Items(page.Source, page.Dictionary, PdfNames.Annots).Where(annotation => annotation.Kind == PdfValueKind.Reference))
                 kept.Add((page.Source, annotation.AsReference().ObjectNumber));
@@ -473,64 +537,28 @@ internal static class FileAssembler
         PdfDictionary resources = new PdfDictionary();
         HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (PdfSource source in sources)
+        foreach (PdfSource source in _sources)
         {
             if (!source.Catalog.TryGetValue(AcroForm, out PdfValue given) || source.Resolve(given) is not { Kind: PdfValueKind.Dictionary } found)
                 continue;
 
             PdfDictionary acroForm = found.AsDictionary();
-            bool all = whole && ReferenceEquals(source, first);
-            form ??= copier.CopyDictionary(source, acroForm, Fields, DR);
+            form ??= _copier.CopyDictionary(source, acroForm, Fields, DR);
 
             foreach (PdfValue field in Items(source, acroForm, Fields).Where(field => field.Kind == PdfValueKind.Reference))
             {
-                if (!all && !OnPageKept(source, field, []))
+                if (!KeptWhole(source) && !OnPageKept(source, field, []))
                     continue;
 
-                if (source.Resolve(field) is { Kind: PdfValueKind.Dictionary } dictionary && dictionary.AsDictionary().TryGetValue(T, out PdfValue title)
-                    && source.Resolve(title) is { Kind: PdfValueKind.String } text && !names.Add(Convert.ToBase64String(text.AsString().Bytes.ToArray())))
-                {
-                    byte[] name = text.AsString().Bytes.ToArray();
-                    bool wide = name.Length >= 2 && name[0] == 0xFE && name[1] == 0xFF;
-                    byte[] renamed = name;
-
-                    for (int copy = 1; !names.Add(Convert.ToBase64String(renamed)); copy++)
-                    {
-                        string suffix = "+" + copy.ToString(CultureInfo.InvariantCulture);
-                        renamed = [.. name, .. wide ? Encoding.BigEndianUnicode.GetBytes(suffix) : Encoding.ASCII.GetBytes(suffix)];
-                    }
-
-                    copier.Amend(source, field.AsReference().ObjectNumber, T, new PdfString(renamed));
-                }
-
-                fields.Add(copier.Copy(source, field));
+                RenameIfTaken(source, field, names);
+                fields.Add(_copier.Copy(source, field));
             }
 
-            if (acroForm.TryGetValue(DR, out PdfValue held) && source.Resolve(held) is { Kind: PdfValueKind.Dictionary } dr)
-            {
-                foreach (KeyValuePair<PdfName, PdfValue> category in dr.AsDictionary())
-                {
-                    if (source.Resolve(category.Value) is not { Kind: PdfValueKind.Dictionary } named)
-                    {
-                        if (!resources.ContainsKey(category.Key))
-                            resources[category.Key] = copier.Copy(source, category.Value);
-
-                        continue;
-                    }
-
-                    PdfDictionary into = resources.TryGetValue(category.Key, out PdfValue before) && before.Kind == PdfValueKind.Dictionary
-                        ? before.AsDictionary()
-                        : new PdfDictionary();
-                    resources[category.Key] = into;
-
-                    foreach (KeyValuePair<PdfName, PdfValue> entry in named.AsDictionary().Where(entry => !into.ContainsKey(entry.Key)))
-                        into[entry.Key] = copier.Copy(source, entry.Value);
-                }
-            }
+            JoinResources(source, acroForm, resources);
         }
 
         // A form none of whose fields are kept is left out, unless it is the first file's, kept whole as it was.
-        if (form is null || (fields.Count == 0 && !(whole && first.Catalog.ContainsKey(AcroForm))))
+        if (form is null || (fields.Count == 0 && !(_whole && _first.Catalog.ContainsKey(AcroForm))))
             return null;
 
         form[Fields] = fields;
@@ -551,60 +579,138 @@ internal static class FileAssembler
         }
     }
 
-    private static void CopyDocument(
-        PdfDocumentWriter writer,
-        ObjectCopier copier,
-        PdfSource first,
-        bool whole,
-        SaveSettings settings,
-        List<PdfSource> sources,
-        IReadOnlyList<PageEntry> pages)
+    /// <summary>
+    /// Has <paramref name="field"/> copied renamed when <paramref name="names"/> already holds its name, as qpdf
+    /// renames it, with "+1", "+2" and so on; the name it is copied with joins them.
+    /// </summary>
+    private void RenameIfTaken(PdfSource source, PdfValue field, HashSet<string> names)
     {
-        PdfDictionary catalog = first.Catalog;
-
-        foreach (KeyValuePair<PdfName, PdfValue> entry in catalog)
+        if (source.Resolve(field) is { Kind: PdfValueKind.Dictionary } dictionary
+            && dictionary.AsDictionary().TryGetValue(T, out PdfValue title)
+            && source.Resolve(title) is { Kind: PdfValueKind.String } text
+            && !names.Add(Convert.ToBase64String(text.AsString().Bytes.ToArray())))
         {
-            if (entry.Key.Equals(PdfNames.Type) || entry.Key.Equals(PdfNames.Pages) || entry.Key.Equals(PdfNames.Names) || entry.Key.Equals(Associated)
-                || entry.Key.Equals(OCProperties) || entry.Key.Equals(AcroForm) || (settings.LiftRestrictions && entry.Key.Equals(Perms)))
-                continue;
+            byte[] name = text.AsString().Bytes.ToArray();
+            bool wide = name.Length >= 2 && name[0] == 0xFE && name[1] == 0xFF;
+            byte[] renamed = name;
 
-            if (whole || Array.IndexOf(Always, entry.Key) >= 0)
-                writer.Catalog[entry.Key] = copier.Copy(first, entry.Value);
+            for (int copy = 1; !names.Add(Convert.ToBase64String(renamed)); copy++)
+            {
+                string suffix = "+" + copy.ToString(CultureInfo.InvariantCulture);
+                byte[] added = wide ? Encoding.BigEndianUnicode.GetBytes(suffix) : Encoding.ASCII.GetBytes(suffix);
+                renamed = [.. name, .. added];
+            }
+
+            _copier.Amend(source, field.AsReference().ObjectNumber, T, new PdfString(renamed));
+        }
+    }
+
+    /// <summary>
+    /// Joins to <paramref name="resources"/> those <paramref name="acroForm"/> makes its fields' appearances from, a
+    /// name already given keeping what it named first.
+    /// </summary>
+    private void JoinResources(PdfSource source, PdfDictionary acroForm, PdfDictionary resources)
+    {
+        if (!acroForm.TryGetValue(DR, out PdfValue held)
+            || source.Resolve(held) is not { Kind: PdfValueKind.Dictionary } dr)
+        {
+            return;
         }
 
-        if (OptionalContent(copier, sources) is { } optional)
-            writer.Catalog[OCProperties] = optional;
+        foreach (KeyValuePair<PdfName, PdfValue> category in dr.AsDictionary())
+        {
+            if (source.Resolve(category.Value) is not { Kind: PdfValueKind.Dictionary } named)
+            {
+                if (!resources.ContainsKey(category.Key))
+                    resources[category.Key] = _copier.Copy(source, category.Value);
 
-        if (InteractiveForm(copier, first, whole, sources, pages) is { } form)
-            writer.Catalog[AcroForm] = form;
+                continue;
+            }
+
+            PdfDictionary into = resources.TryGetValue(category.Key, out PdfValue before)
+                && before.Kind == PdfValueKind.Dictionary
+                ? before.AsDictionary()
+                : new PdfDictionary();
+            resources[category.Key] = into;
+
+            foreach (KeyValuePair<PdfName, PdfValue> entry in named.AsDictionary())
+            {
+                if (!into.ContainsKey(entry.Key))
+                    into[entry.Key] = _copier.Copy(source, entry.Value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes what the document says of itself: the first file's catalog, the optional content and forms of every file,
+    /// the names and attachments, the metadata and the first file's information.
+    /// </summary>
+    private void CopyDocument()
+    {
+        foreach (KeyValuePair<PdfName, PdfValue> entry in _first.Catalog)
+        {
+            if (Array.IndexOf(Rebuilt, entry.Key) >= 0 || (_settings.LiftRestrictions && entry.Key.Equals(Perms)))
+                continue;
+
+            if (_whole || Array.IndexOf(Always, entry.Key) >= 0)
+                _writer.Catalog[entry.Key] = _copier.Copy(_first, entry.Value);
+        }
+
+        if (OptionalContent() is { } optional)
+            _writer.Catalog[OCProperties] = optional;
+
+        if (InteractiveForm() is { } form)
+            _writer.Catalog[AcroForm] = form;
+
+        CopyNames();
+        ExtendMetadata();
+
+        if (_first.Trailer.TryGetValue(Info, out PdfValue info)
+            && _first.Resolve(info) is { Kind: PdfValueKind.Dictionary } dictionary)
+        {
+            _writer.InfoDictionary = _copier.CopyDictionary(_first, dictionary.AsDictionary());
+        }
+    }
+
+    /// <summary>
+    /// Writes the first file's name trees and associated files, with the attachments added: its attachments listed
+    /// once each by name, and each added one under a name of its own.
+    /// </summary>
+    private void CopyNames()
+    {
+        PdfDictionary catalog = _first.Catalog;
 
         // Attached files belong to no page, so they stay whatever pages are kept; the other name trees point at pages.
-        PdfDictionary? names = catalog.TryGetValue(PdfNames.Names, out PdfValue given) && first.Resolve(given) is { Kind: PdfValueKind.Dictionary } found
+        PdfDictionary? names = catalog.TryGetValue(PdfNames.Names, out PdfValue given)
+            && _first.Resolve(given) is { Kind: PdfValueKind.Dictionary } found
             ? found.AsDictionary()
             : null;
 
-        PdfDictionary written = whole && names is not null ? copier.CopyDictionary(first, names, EmbeddedFiles) : new PdfDictionary();
+        PdfDictionary written = _whole && names is not null
+            ? _copier.CopyDictionary(_first, names, EmbeddedFiles)
+            : new PdfDictionary();
         PdfNameTree files = new PdfNameTree();
         HashSet<string> listed = new HashSet<string>(StringComparer.Ordinal);
 
         if (names is not null && names.TryGetValue(EmbeddedFiles, out PdfValue tree))
         {
-            foreach ((PdfString key, PdfValue value) in Assembly.EmbeddedFiles.Entries(first, tree))
+            foreach ((PdfString key, PdfValue value) in PdfNameTreeReader.Entries(_first, tree))
             {
                 if (listed.Add(Convert.ToBase64String(key.Bytes.ToArray())))
-                    files.Add(key, copier.Copy(first, value));
+                    files.Add(key, _copier.Copy(_first, value));
             }
         }
 
-        PdfArray associated = catalog.TryGetValue(Associated, out PdfValue af) && first.Resolve(af) is { Kind: PdfValueKind.Array } array
-            ? copier.Copy(first, array).AsArray()
+        PdfArray associated = catalog.TryGetValue(Associated, out PdfValue af)
+            && _first.Resolve(af) is { Kind: PdfValueKind.Array } array
+            ? _copier.Copy(_first, array).AsArray()
             : new PdfArray();
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        foreach (FileAttachment attachment in settings.Attachments)
+        foreach (FileAttachment attachment in _settings.Attachments)
         {
-            PdfReference specification = Assembly.EmbeddedFiles.Write(writer.File, attachment, now);
+            PdfReference specification = AttachmentWriter.Write(_writer.File, attachment, now);
             string name = attachment.Name;
 
             // Two attachments of one name are listed apart, as a reader lists them.
@@ -616,25 +722,26 @@ internal static class FileAssembler
         }
 
         if (files.Count > 0)
-            written[EmbeddedFiles] = files.Write(writer.File);
+            written[EmbeddedFiles] = files.Write(_writer.File);
 
         if (written.Count > 0)
-            writer.Catalog[PdfNames.Names] = written;
+            _writer.Catalog[PdfNames.Names] = written;
 
         if (associated.Count > 0)
-            writer.Catalog[Associated] = associated;
+            _writer.Catalog[Associated] = associated;
+    }
 
-        if (settings.Metadata.Count > 0)
-        {
-            byte[]? existing = catalog.TryGetValue(Metadata, out PdfValue metadata) && first.Stream(metadata) is { } stream ? first.Decode(stream) : null;
+    /// <summary>Adds the descriptions given to the first file's XMP metadata, or to a packet made anew.</summary>
+    private void ExtendMetadata()
+    {
+        if (_settings.Metadata.Count == 0)
+            return;
 
-            writer.Catalog[Metadata] = writer.File.WriteStream(
-                new PdfDictionary { [PdfNames.Type] = Metadata, [PdfNames.Subtype] = Xml },
-                MetadataExtender.Extend(existing, settings.Metadata),
-                PdfStreamCompression.None);
-        }
+        byte[]? existing = _first.Catalog.TryGetValue(Metadata, out PdfValue metadata)
+            && _first.Stream(metadata) is { } stream
+            ? _first.Decode(stream)
+            : null;
 
-        if (first.Trailer.TryGetValue(Info, out PdfValue info) && first.Resolve(info) is { Kind: PdfValueKind.Dictionary } dictionary)
-            writer.InfoDictionary = copier.CopyDictionary(first, dictionary.AsDictionary());
+        XmpPacket.Write(_writer, MetadataExtender.Extend(existing, _settings.Metadata));
     }
 }
