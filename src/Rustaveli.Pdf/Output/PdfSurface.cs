@@ -31,10 +31,6 @@ internal sealed class PdfSurface : IPageSink
     private static readonly PdfName Separation = new PdfName("Separation");
     private static readonly PdfName DeviceRgb = new PdfName("DeviceRGB");
     private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
-    private static readonly PdfName FunctionType = new PdfName("FunctionType");
-    private static readonly PdfName Domain = new PdfName("Domain");
-    private static readonly PdfName C0 = new PdfName("C0");
-    private static readonly PdfName C1 = new PdfName("C1");
     private static readonly PdfName Artifact = new PdfName("Artifact");
     private static readonly PdfName StructParents = new PdfName("StructParents");
     private static readonly PdfName StructParent = new PdfName("StructParent");
@@ -103,7 +99,7 @@ internal sealed class PdfSurface : IPageSink
         _fonts = new FontEmbedder(writer.File, options?.KeepFontHinting == true);
         _images = new ImageEmbedder(writer.File);
         _adjuster = new ImageAdjuster(options);
-        _archival = options?.Conformance is { } conformance && conformance != PdfAConformance.None;
+        _archival = options?.IsArchival == true;
         _tagging = options?.WritesStructure == true;
     }
 
@@ -277,7 +273,6 @@ internal sealed class PdfSurface : IPageSink
         return (entries, link);
     }
 
-    // Blocks translate by their offsets whether or not those are zero; writing the identity would only add bytes.
     public Offset Origin
     {
         get
@@ -288,6 +283,7 @@ internal sealed class PdfSurface : IPageSink
         }
     }
 
+    // Blocks translate by their offsets whether or not those are zero; writing the identity would only add bytes.
     public void MoveOrigin(Offset distance)
     {
         if (distance.X != 0 || distance.Y != 0)
@@ -1011,14 +1007,10 @@ internal sealed class PdfSurface : IPageSink
         (float first, float second, float third, float fourth) = ink.Components;
         bool cmyk = ink.FallbackModel == InkModel.Cmyk;
 
-        PdfDictionary tintTransform = new PdfDictionary
-        {
-            [FunctionType] = 2,
-            [Domain] = new PdfArray(2) { 0, 1 },
-            [C0] = cmyk ? new PdfArray(4) { 0, 0, 0, 0 } : new PdfArray(3) { 1, 1, 1 },
-            [C1] = cmyk ? new PdfArray(4) { first, second, third, fourth } : new PdfArray(3) { first, second, third },
-            [PdfNames.N] = 1,
-        };
+        // No tint leaves the paper bare: white in RGB, no ink in CMYK.
+        PdfDictionary tintTransform = InterpolationFunction.Create(
+            cmyk ? new PdfArray(4) { 0, 0, 0, 0 } : new PdfArray(3) { 1, 1, 1 },
+            cmyk ? new PdfArray(4) { first, second, third, fourth } : new PdfArray(3) { first, second, third });
 
         PdfReference reference = _writer.File.Write(new PdfArray(4)
         {

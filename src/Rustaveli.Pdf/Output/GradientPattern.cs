@@ -22,17 +22,13 @@ internal static class GradientPattern
     private static readonly PdfName Functions = new PdfName("Functions");
     private static readonly PdfName Extend = new PdfName("Extend");
     private static readonly PdfName Matrix = new PdfName("Matrix");
-    private static readonly PdfName FunctionType = new PdfName("FunctionType");
-    private static readonly PdfName Domain = new PdfName("Domain");
     private static readonly PdfName Bounds = new PdfName("Bounds");
     private static readonly PdfName Encode = new PdfName("Encode");
-    private static readonly PdfName C0 = new PdfName("C0");
-    private static readonly PdfName C1 = new PdfName("C1");
     private static readonly PdfName DeviceRgb = new PdfName("DeviceRGB");
     private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
 
     /// <summary>The pattern dictionary for <paramref name="gradient"/> between two points of the drawing space.</summary>
-    public static PdfDictionary Create(Gradient gradient, Offset start, Offset end, Transform placement, bool rgbOnly = false)
+    public static PdfDictionary Create(Gradient gradient, Offset start, Offset end, Transform placement, bool rgbOnly)
     {
         IReadOnlyList<Ink> inks = gradient.Inks;
         bool cmyk = !rgbOnly && inks.All(ink => ink.Model == InkModel.Cmyk);
@@ -89,22 +85,16 @@ internal static class GradientPattern
 
         return new PdfDictionary
         {
-            [FunctionType] = 3,
-            [Domain] = new PdfArray(2) { 0, 1 },
+            [PdfNames.FunctionType] = 3,
+            [PdfNames.Domain] = new PdfArray(2) { 0, 1 },
             [Functions] = functions,
             [Bounds] = bounds,
             [Encode] = encode,
         };
     }
 
-    private static PdfDictionary Between(Ink first, Ink second, bool cmyk) => new PdfDictionary
-    {
-        [FunctionType] = 2,
-        [Domain] = new PdfArray(2) { 0, 1 },
-        [C0] = Components(first, cmyk),
-        [C1] = Components(second, cmyk),
-        [PdfNames.N] = 1,
-    };
+    private static PdfDictionary Between(Ink first, Ink second, bool cmyk) =>
+        InterpolationFunction.Create(Components(first, cmyk), Components(second, cmyk));
 
     private static PdfArray Components(Ink ink, bool cmyk)
     {

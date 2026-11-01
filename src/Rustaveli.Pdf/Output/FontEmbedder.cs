@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.Output;
 /// </summary>
 /// <param name="file">The file the fonts are written to.</param>
 /// <param name="keepHinting">Whether TrueType glyphs keep their hinting; see <see cref="PdfExportOptions.KeepFontHinting"/>.</param>
-internal sealed class FontEmbedder(PdfFileWriter file, bool keepHinting = false)
+internal sealed class FontEmbedder(PdfFileWriter file, bool keepHinting)
 {
     private readonly Dictionary<OpenTypeFont, EmbeddedFont> _fonts = [];
 

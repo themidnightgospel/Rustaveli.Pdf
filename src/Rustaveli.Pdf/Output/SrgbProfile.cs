@@ -12,6 +12,9 @@ namespace Rustaveli.Pdf.Output;
 /// </remarks>
 internal static class SrgbProfile
 {
+    /// <summary>The profile's description, by which the PDF/A output intent names it.</summary>
+    public const string Name = "sRGB IEC61966-2.1";
+
     private const int CurvePoints = 1024;
 
     private static readonly Lazy<byte[]> Profile = new Lazy<byte[]>(Make);
@@ -23,7 +26,7 @@ internal static class SrgbProfile
         byte[] curve = Curve();
         List<(string Signature, byte[] Data)> tags =
         [
-            ("desc", Description("sRGB IEC61966-2.1")),
+            ("desc", Description(Name)),
             ("cprt", Text("No copyright, use freely")),
             ("wtpt", Xyz(0.9505, 1.0, 1.089)),
             ("rXYZ", Xyz(0.4360747, 0.2225045, 0.0139322)),

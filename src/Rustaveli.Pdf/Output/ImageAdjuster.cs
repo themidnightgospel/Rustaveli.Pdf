@@ -19,8 +19,7 @@ internal sealed class ImageAdjuster(PdfExportOptions? options)
         float? resolution = image.MaximumResolution ?? options?.MaximumImageResolution;
 
         // PDF/A shows colours through an sRGB output intent, which a CMYK image with no profile of its own cannot be.
-        bool toRgb = options?.Conformance is { } conformance && conformance != PdfAConformance.None
-            && image.Encode().ColorSpace.Kind == ImageColorSpaceKind.DeviceCmyk;
+        bool toRgb = options?.IsArchival == true && image.Encode().ColorSpace.Kind == ImageColorSpaceKind.DeviceCmyk;
 
         if (quality is null && resolution is null && !toRgb)
             return image;

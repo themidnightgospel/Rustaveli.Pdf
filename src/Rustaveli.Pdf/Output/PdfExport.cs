@@ -95,7 +95,7 @@ public static class PdfExport
     private static void Export(Document document, Stream stream, PdfExportOptions? options)
     {
         TypeShaper shaper = (options?.Typefaces ?? TypefaceLibrary.Shared).Shaper;
-        if (options?.Protection is not null && options.Conformance != PdfAConformance.None)
+        if (options?.Protection is not null && options.IsArchival)
             throw new InvalidOperationException("PDF/A forbids encryption: a document cannot be both protected and archival.");
 
         // ISO 14289-1, 7.16: a protected PDF/UA file must still let assistive technology extract its content.
@@ -111,7 +111,7 @@ public static class PdfExport
             Encryption = options?.Protection is { } protection ? PdfEncryption.Create(protection) : null,
         };
 
-        PdfAConformance conformance = options?.Conformance ?? PdfAConformance.None;
+        bool archival = options?.IsArchival == true;
         PdfUAConformance accessibility = options?.Accessibility ?? PdfUAConformance.None;
 
         // A reader announces the document by its title, and reads it in its language; PDF/UA leaves neither to chance.
@@ -128,14 +128,14 @@ public static class PdfExport
         if (!string.IsNullOrWhiteSpace(document.Info.Language))
             writer.Catalog[Lang] = PdfString.FromText(document.Info.Language!.Trim());
 
-        if (conformance != PdfAConformance.None)
+        if (archival)
             PdfAArchive.Declare(writer);
 
-        if (conformance != PdfAConformance.None || accessibility != PdfUAConformance.None)
+        if (archival || accessibility != PdfUAConformance.None)
         {
             XmpPacket.Write(
                 writer,
-                conformance != PdfAConformance.None ? PdfAArchive.Of(conformance) : null,
+                archival ? PdfAArchive.Of(options!.Conformance) : null,
                 accessibility == PdfUAConformance.PdfUA1 ? 1 : null);
         }
 
@@ -148,7 +148,7 @@ public static class PdfExport
 
         // PDF/A and PDF/UA forbid drawing the missing glyph, so every character must be found under them.
         bool everyGlyph = options?.RequireEveryGlyph == true
-            || conformance != PdfAConformance.None
+            || archival
             || accessibility != PdfUAConformance.None;
 
         if (everyGlyph && measurer.MissingCodepoints.Count > 0)

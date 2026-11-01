@@ -46,7 +46,8 @@ internal sealed class PlanTrace
                 continue;
             }
 
-            text.Append('\n').Append(' ', depth++ * 2).Append(Name(node.Block)).Append(", offered ").Append(Format(node.Space)).Append(": ");
+            text.Append('\n').Append(' ', depth++ * 2).Append(LayoutInspection.Name(node.Block));
+            text.Append(", offered ").Append(Format(node.Space)).Append(": ");
 
             // Frames above give up because the one below did; only the last says why.
             text.Append("does not fit");
@@ -59,9 +60,6 @@ internal sealed class PlanTrace
 
         return text.Length == 0 ? string.Empty : "\nWhere it did not fit, from the page down:" + text;
     }
-
-    /// <summary>A frame as the trace names it: by its label, or by what it is.</summary>
-    private static string Name(Block block) => LayoutInspection.Name(block);
 
     private static string Format(Extent size) => Length(size.Width) + " × " + Length(size.Height);
 

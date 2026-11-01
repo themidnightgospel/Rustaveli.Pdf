@@ -39,8 +39,8 @@ internal static class PdfAArchive
             {
                 [PdfNames.Type] = OutputIntent,
                 [S] = PdfA,
-                [OutputConditionIdentifier] = PdfString.FromText("sRGB IEC61966-2.1"),
-                [Info] = PdfString.FromText("sRGB IEC61966-2.1"),
+                [OutputConditionIdentifier] = PdfString.FromText(SrgbProfile.Name),
+                [Info] = PdfString.FromText(SrgbProfile.Name),
                 [DestOutputProfile] = profile,
             },
         };

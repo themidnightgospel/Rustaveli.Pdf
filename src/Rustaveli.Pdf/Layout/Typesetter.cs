@@ -156,7 +156,7 @@ internal static class Typesetter
                 else if (document.NumbersPartsApart && pagination.PartPageCounts is { } counts && part < counts.Length)
                     pagination.PageCount = counts[part];
 
-                bool hasMore = RenderPage(section, sink, context, layout);
+                bool hasMore = RenderPage(section, sink, context);
 
                 if (!hasMore)
                     break;
@@ -167,7 +167,7 @@ internal static class Typesetter
     }
 
     /// <summary>Draws one page and reports whether content remains for a following page.</summary>
-    private static bool RenderPage(Section section, IPageSink pages, RenderContext context, PlanContext layout)
+    private static bool RenderPage(Section section, IPageSink pages, RenderContext context)
     {
         // Headers and footers repeat in full, so clear the pagination state they accumulated on the previous
         // page while leaving document-wide counters such as "show once" intact.
@@ -180,78 +180,26 @@ internal static class Typesetter
         // greater than nothing, as the section checks when it is set.
         Extent smallest = section.SmallestTrim;
         Extent largest = section.LargestTrim;
+        Extent marginBox = MarginBox(smallest, largest, section.Margins);
 
-        if (smallest.Width > largest.Width || smallest.Height > largest.Height)
-            throw new OversetException(
-                $"The smallest trim {smallest} is larger than the largest {largest}.");
-
-        float contentWidth = largest.Width - section.Margins.Horizontal;
-
-        if (contentWidth <= 0)
-            throw new OversetException(
-                FormattableString.Invariant($"The horizontal margins ({section.Margins.Horizontal:F1}) leave no room on a page {largest.Width:F1} points wide."));
-
-        float availableHeight = largest.Height - section.Margins.Vertical;
-
-        if (availableHeight <= 0)
-            throw new OversetException(
-                FormattableString.Invariant($"The vertical margins ({section.Margins.Vertical:F1}) leave no room on a page {largest.Height:F1} points tall."));
-
-        Bands bands;
-        Extent bodySpace;
-        Fit contentPlan;
-
-        try
-        {
-            bands = PlanBands(section, new Extent(contentWidth, availableHeight), layout);
-            float contentHeight = availableHeight - bands.HeadHeight - bands.FootHeight;
-
-            // Tolerate the same sub-epsilon overshoot every block accepts as fitting. A footer that fits by that
-            // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
-            if (contentHeight < -Extent.Epsilon)
-                throw new OversetException(
-                    FormattableString.Invariant($"The running head ({bands.HeadHeight:F1}) and running foot ({bands.FootHeight:F1}) together exceed the {availableHeight:F1} points available for the body."));
-
-            bodySpace = new Extent(contentWidth, contentHeight);
-            layout.PageBody = bodySpace;
-            layout.SplitsWherePossible = false;
-            contentPlan = section.BodySlot.Plan(bodySpace, layout);
-
-            // Content kept together where possible that holds up even an empty page would start the next page just
-            // as it starts this one, so it is split here rather than moved on for ever. The page is set, and drawn,
-            // on that understanding.
-            if (contentPlan.IsDeferred)
-            {
-                layout.SplitsWherePossible = true;
-                contentPlan = section.BodySlot.Plan(bodySpace, layout);
-            }
-        }
-        catch (Exception exception) when (exception is not OversetException and not RenderingException)
-        {
-            // Content that throws as it is measured — a component, content composed per page — is reported with the
-            // page it was being measured for, as it is when it throws while drawn.
-            throw new RenderingException(
-                $"Laying out page {context.Pagination.Folio} failed. See the inner exception for details.",
-                exception);
-        }
+        PlanContext layout = context.Planning;
+        (Bands bands, Extent bodySpace, Fit contentPlan) = PlanBody(section, marginBox, layout);
 
         if (contentPlan.IsDeferred)
             throw new OversetException(
                 "The body cannot be set even on an empty page, so no further page would help. " +
-                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}" + Trace(section.BodySlot, bodySpace, layout));
+                $"Space available: {bodySpace}. Reason: {contentPlan.DeferReason}" +
+                Trace(section.BodySlot, bodySpace, layout));
 
+        float width = section.Margins.Horizontal + Math.Max(contentPlan.Size.Width, bands.Width);
+        float height = section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight;
         Extent pageSize = new Extent(
-            Clamp(section.Margins.Horizontal + Math.Max(contentPlan.Size.Width, bands.Width), smallest.Width, largest.Width),
-            Clamp(section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight, smallest.Height, largest.Height));
-
-        // The body is drawn in what the page leaves it, which is at least the room it measured.
-        Extent contentSpace = new Extent(
-            pageSize.Width - section.Margins.Horizontal,
-            pageSize.Height - section.Margins.Vertical - bands.HeadHeight - bands.FootHeight);
+            Clamp(width, smallest.Width, largest.Width),
+            Clamp(height, smallest.Height, largest.Height));
 
         try
         {
-            DrawPage(section, pages, context, pageSize, contentSpace, bands, availableHeight);
+            DrawPage(section, pages, context, pageSize, bands, marginBox.Height);
         }
         catch (Exception exception) when (exception is not OversetException and not RenderingException)
         {
@@ -265,17 +213,96 @@ internal static class Typesetter
         return contentPlan.IsPartial;
     }
 
+    /// <summary>
+    /// The room inside <paramref name="margins"/> on the largest page, once the trims are checked to be in order and
+    /// the margins to leave some.
+    /// </summary>
+    private static Extent MarginBox(Extent smallest, Extent largest, Sides margins)
+    {
+        if (smallest.Width > largest.Width || smallest.Height > largest.Height)
+            throw new OversetException(
+                $"The smallest trim {smallest} is larger than the largest {largest}.");
+
+        float contentWidth = largest.Width - margins.Horizontal;
+
+        if (contentWidth <= 0)
+            throw new OversetException(
+                FormattableString.Invariant($"The horizontal margins ({margins.Horizontal:F1}) leave no room ") +
+                FormattableString.Invariant($"on a page {largest.Width:F1} points wide."));
+
+        float availableHeight = largest.Height - margins.Vertical;
+
+        if (availableHeight <= 0)
+            throw new OversetException(
+                FormattableString.Invariant($"The vertical margins ({margins.Vertical:F1}) leave no room ") +
+                FormattableString.Invariant($"on a page {largest.Height:F1} points tall."));
+
+        return new Extent(contentWidth, availableHeight);
+    }
+
+    /// <summary>
+    /// Plans the running head and foot in <paramref name="marginBox"/>, then the body in the room they leave between
+    /// them; returns the bands, that room and the body's plan.
+    /// </summary>
+    private static (Bands Bands, Extent BodySpace, Fit ContentPlan) PlanBody(
+        Section section,
+        Extent marginBox,
+        PlanContext layout)
+    {
+        try
+        {
+            Bands bands = PlanBands(section, marginBox, layout);
+            float contentHeight = marginBox.Height - bands.HeadHeight - bands.FootHeight;
+
+            // Tolerate the same sub-epsilon overshoot every block accepts as fitting. A footer that fits by that
+            // tolerance can leave a hair below zero here, and must not be reported as overflowing the page.
+            if (contentHeight < -Extent.Epsilon)
+                throw new OversetException(
+                    FormattableString.Invariant($"The running head ({bands.HeadHeight:F1}) and running foot ") +
+                    FormattableString.Invariant($"({bands.FootHeight:F1}) together exceed the {marginBox.Height:F1} ") +
+                    "points available for the body.");
+
+            Extent bodySpace = new Extent(marginBox.Width, contentHeight);
+            layout.PageBody = bodySpace;
+            layout.SplitsWherePossible = false;
+            Fit contentPlan = section.BodySlot.Plan(bodySpace, layout);
+
+            // Content kept together where possible that holds up even an empty page would start the next page just
+            // as it starts this one, so it is split here rather than moved on for ever. The page is set, and drawn,
+            // on that understanding.
+            if (contentPlan.IsDeferred)
+            {
+                layout.SplitsWherePossible = true;
+                contentPlan = section.BodySlot.Plan(bodySpace, layout);
+            }
+
+            return (bands, bodySpace, contentPlan);
+        }
+        catch (Exception exception) when (exception is not OversetException and not RenderingException)
+        {
+            // Content that throws as it is measured — a component, content composed per page — is reported with the
+            // page it was being measured for, as it is when it throws while drawn.
+            throw new RenderingException(
+                $"Laying out page {layout.Pagination.Folio} failed. See the inner exception for details.",
+                exception);
+        }
+    }
+
     private static void DrawPage(
         Section section,
         IPageSink pages,
         RenderContext context,
         Extent pageSize,
-        Extent contentSpace,
         Bands bands,
         float measuredHeight)
     {
         ISurface surface = context.Surface;
         Sides margin = section.Margins;
+
+        // The body is drawn in what the page leaves it, which is at least the room it measured.
+        Extent contentSpace = new Extent(
+            pageSize.Width - margin.Horizontal,
+            pageSize.Height - margin.Vertical - bands.HeadHeight - bands.FootHeight);
 
         pages.BeginPage(pageSize);
         context.Inspection?.BeginPage();

@@ -5,8 +5,9 @@ namespace Rustaveli.Pdf.Layout;
 /// </summary>
 /// <remarks>
 /// Content such as "Page 3 of 12" cannot be resolved during a single pass, because the total is only known once
-/// pagination has finished. The generator therefore runs the document more than once: counting passes with
-/// <see cref="IsPageCountKnown"/> false, purely to count pages, then a pass that draws for real.
+/// pagination has finished. The generator therefore runs the document more than once: a first counting pass with
+/// <see cref="IsPageCountKnown"/> false, purely to count pages; any further counting passes, each knowing the total
+/// the pass before it counted; then a pass that draws for real, knowing the total the last counting pass found.
 /// Blocks that depend on the total must read it through this type rather than caching it.
 /// </remarks>
 internal sealed class Pagination
@@ -36,7 +37,10 @@ internal sealed class Pagination
         internal set => _pageCount = value;
     }
 
-    /// <summary>False during the counting pass, true while drawing the final output.</summary>
+    /// <summary>
+    /// False during the first counting pass. It is set after each counting pass, so the later counting passes and the
+    /// final pass see the total the pass before them counted.
+    /// </summary>
     public bool IsPageCountKnown
     {
         get

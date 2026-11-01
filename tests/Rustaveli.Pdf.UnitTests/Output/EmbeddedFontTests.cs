@@ -48,7 +48,13 @@ public class EmbeddedFontTests
     [Fact]
     public void TheToUnicodeMapWritesEachCodeAsUtf16()
     {
-        string map = TextOf(EmbeddedFont.ToUnicodeMap([(1, 'A'), (2, 0x1D400), (3, 0xD800), (4, -1)]));
+        string map = TextOf(EmbeddedFont.ToUnicodeMap(
+        [
+            (1, GlyphSubset.TextOf('A')),
+            (2, GlyphSubset.TextOf(0x1D400)),
+            (3, GlyphSubset.TextOf(0xD800)),
+            (4, GlyphSubset.TextOf(-1)),
+        ]));
 
         Assert.Contains("<0001> <0041>", map);
 
@@ -110,8 +116,8 @@ public class EmbeddedFontTests
     public void TheToUnicodeMapSplitsIntoBlocksOfAHundred(int entries, int[] blocks)
     {
         // A CMap's bfchar blocks may hold at most a hundred mappings each.
-        (ushort, int)[] characters =
-            [.. Enumerable.Range(1, entries).Select(code => ((ushort)code, 'a' + (code % 26)))];
+        (ushort, string)[] characters =
+            [.. Enumerable.Range(1, entries).Select(code => ((ushort)code, GlyphSubset.TextOf('a' + (code % 26))))];
 
         string[] lines = TextOf(EmbeddedFont.ToUnicodeMap(characters)).Split('\n');
 

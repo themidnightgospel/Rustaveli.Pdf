@@ -280,11 +280,6 @@ internal sealed class EmbeddedFont
         return map;
     }
 
-    /// <summary>A CMap from each two-byte code to the UTF-16 of the character it shows.</summary>
-    /// <remarks>A value that is no Unicode scalar value maps to the replacement character, U+FFFD.</remarks>
-    internal static PdfByteWriter ToUnicodeMap(IReadOnlyList<(ushort Code, int Codepoint)> characters) =>
-        ToUnicodeMap(characters.Select(character => (character.Code, GlyphSubset.TextOf(character.Codepoint))).ToList());
-
     /// <summary>
     /// A CMap from each two-byte code to the UTF-16 of the text it shows: one character, or all of a ligature's. The
     /// caller disposes it once the bytes are written, which returns its buffer to the pool.

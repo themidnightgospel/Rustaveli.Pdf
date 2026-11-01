@@ -11,6 +11,8 @@ internal static class PdfNames
     public static readonly PdfName Annots = new PdfName("Annots");
     public static readonly PdfName Author = new PdfName("Author");
     public static readonly PdfName Border = new PdfName("Border");
+    public static readonly PdfName C0 = new PdfName("C0");
+    public static readonly PdfName C1 = new PdfName("C1");
     public static readonly PdfName Catalog = new PdfName("Catalog");
     public static readonly PdfName ColorSpace = new PdfName("ColorSpace");
     public static readonly PdfName Columns = new PdfName("Columns");
@@ -21,11 +23,13 @@ internal static class PdfNames
     public static readonly PdfName D = new PdfName("D");
     public static readonly PdfName DecodeParms = new PdfName("DecodeParms");
     public static readonly PdfName Dests = new PdfName("Dests");
+    public static readonly PdfName Domain = new PdfName("Domain");
     public static readonly PdfName ExtGState = new PdfName("ExtGState");
     public static readonly PdfName Filter = new PdfName("Filter");
     public static readonly PdfName First = new PdfName("First");
     public static readonly PdfName FlateDecode = new PdfName("FlateDecode");
     public static readonly PdfName Font = new PdfName("Font");
+    public static readonly PdfName FunctionType = new PdfName("FunctionType");
     public static readonly PdfName GoTo = new PdfName("GoTo");
     public static readonly PdfName ID = new PdfName("ID");
     public static readonly PdfName Info = new PdfName("Info");
