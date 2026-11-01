@@ -5,6 +5,7 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 internal static class PictureBox
 {
+    /// <summary>The size the picture is drawn at, which may overflow <paramref name="room"/> as its fitting allows.</summary>
     /// <param name="fitting">How the picture is fitted; a value this library does not know fits the width.</param>
     /// <param name="aspect">The picture's width divided by its height.</param>
     /// <param name="room">The room the picture is offered.</param>

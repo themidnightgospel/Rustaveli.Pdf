@@ -180,6 +180,7 @@ public sealed class Document : IComposition
         return document;
     }
 
+    /// <inheritdoc/>
     /// <remarks>
     /// The section joins the document only once its handler has returned, so a handler that fails leaves no section
     /// composed halfway behind it.
