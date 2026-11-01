@@ -15,6 +15,9 @@ namespace Rustaveli.Pdf.UnitTests.Operations;
 public class PdfSourceTests
 {
     private static readonly PdfName Marker = new PdfName("Marker");
+    private static readonly PdfName Permissions = new PdfName("P");
+    private static readonly PdfName SealedPermissions = new PdfName("Perms");
+    private static readonly PdfName EncryptMetadata = new PdfName("EncryptMetadata");
 
     private static PdfSource Open(HandmadePdf pdf) => PdfSource.Open(pdf.ToArray());
 
@@ -763,25 +766,31 @@ public class PdfSourceTests
     internal const string Xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><!-- written --></x:xmpmeta>";
 
     /// <summary>
-    /// A file encrypted as <paramref name="protection"/> asks, under an empty user password, listed by a
-    /// cross-reference stream, whose encryption dictionary (object 4) gives its entry <paramref name="key"/> as
-    /// object 5, kept in the encrypted object stream 6 that <paramref name="filter"/> adds to; and that entry. Its
-    /// metadata, object 7, holds <see cref="Xmp"/>, written as the encryption writes metadata.
+    /// A file encrypted as <paramref name="protection"/> asks, laid out as <see cref="EncryptedFile"/> lays it out,
+    /// whose encryption dictionary gives its entry <paramref name="key"/> as object 5, kept in the object stream; and
+    /// that entry.
     /// </summary>
     private static (byte[] File, PdfValue Entry) EntryInAnObjectStream(
         Protection protection, PdfName key, string filter = "")
     {
         PdfEncryption encryption = PdfEncryption.Create(protection);
-        PdfDictionary dictionary = new PdfDictionary(encryption.Dictionary.Count);
-
-        foreach (KeyValuePair<PdfName, PdfValue> entry in encryption.Dictionary)
-            dictionary[entry.Key] = entry.Value;
-
+        PdfDictionary dictionary = Copy(encryption.Dictionary);
         PdfValue moved = encryption.Dictionary[key];
         dictionary[key] = new PdfReference(5);
-        string id = Hex(encryption.DocumentId);
+        return (EncryptedFile(encryption, dictionary, moved, filter), moved);
+    }
 
-        string packed = "5 0 " + Latin1.Written(writer => writer.WriteValue(moved));
+    /// <summary>
+    /// A file encrypted by <paramref name="encryption"/>, under an empty user password, listed by a cross-reference
+    /// stream, whose encryption dictionary (object 4) is <paramref name="dictionary"/> and whose encrypted object
+    /// stream 6, which <paramref name="filter"/> adds to, holds <paramref name="held"/> as object 5. Its metadata,
+    /// object 7, holds <see cref="Xmp"/>, written as the encryption writes metadata.
+    /// </summary>
+    private static byte[] EncryptedFile(
+        PdfEncryption encryption, PdfDictionary dictionary, PdfValue held, string filter = "")
+    {
+        string id = Hex(encryption.DocumentId);
+        string packed = "5 0 " + Latin1.Written(writer => writer.WriteValue(held));
         byte[] stream = encryption.EncryptStream(6, new PdfDictionary(), Encoding.ASCII.GetBytes(packed));
         PdfDictionary metadata = new PdfDictionary { [PdfNames.Type] = new PdfName("Metadata") };
         byte[] xmp = encryption.EncryptStream(7, metadata, Encoding.ASCII.GetBytes(Xmp));
@@ -799,7 +808,17 @@ public class PdfSourceTests
             [1, 4, 2],
             [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), InUse(pdf, 4), [2, 6, 0], InUse(pdf, 6),
             InUse(pdf, 7));
-        return (pdf.ToArray(), moved);
+        return pdf.ToArray();
+    }
+
+    private static PdfDictionary Copy(PdfDictionary dictionary)
+    {
+        PdfDictionary copy = new PdfDictionary(dictionary.Count);
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+            copy[entry.Key] = entry.Value;
+
+        return copy;
     }
 
     [Fact]
@@ -825,14 +844,15 @@ public class PdfSourceTests
         Assert.Throws<IncorrectPasswordException>(() => PdfSource.Open(PermissionsInAnObjectStream(level).File));
 
     [Fact]
-    public void PermissionsInAnObjectStreamNoFilterHereDecodesAreLeftOutOnceTheFileIsUnlocked()
+    public void PermissionsInAnObjectStreamNoFilterHereDecodesAreTakenFromTheSealedCopy()
     {
-        // Read again once the key is known, the object stream still cannot be read: the file opens without them.
-        (byte[] file, _) = PermissionsInAnObjectStream(EncryptionLevel.AesWith256Bits, "/Filter/JBIG2Decode");
+        // Read again once the key is known, the object stream still cannot be read; /Perms still holds them.
+        (byte[] file, long permissions) = PermissionsInAnObjectStream(
+            EncryptionLevel.AesWith256Bits, "/Filter/JBIG2Decode");
         PdfSource source = PdfSource.Open(file);
 
         Assert.True(source.Encryption!.HasKey);
-        Assert.False(source.Encryption.Dictionary.ContainsKey(new PdfName("P")));
+        Assert.Equal(permissions, source.Encryption.Dictionary[Permissions].AsInteger());
     }
 
     /// <summary>
@@ -865,6 +885,144 @@ public class PdfSourceTests
     public void MetadataLeftReadableByAnEntryInAnObjectStreamLeavesNoPasswordThatOpensAFileKeyedWithIt() =>
         Assert.Throws<IncorrectPasswordException>(
             () => PdfSource.Open(ReadableMetadataFlaggedInAnObjectStream(EncryptionLevel.AesWith128Bits)));
+
+    /// <summary>
+    /// Encryption under 256-bit AES that withholds copying, and leaves the metadata readable unless
+    /// <paramref name="encryptMetadata"/>.
+    /// </summary>
+    internal static PdfEncryption CopyingWithheld(bool encryptMetadata = true) =>
+        PdfEncryption.Create(
+            new Protection { OwnerPassword = "owner", AllowCopying = false, EncryptMetadata = encryptMetadata });
+
+    /// <summary>
+    /// A file encrypted by <paramref name="encryption"/>, laid out as <see cref="EncryptedFile"/> lays it out, whose
+    /// encryption dictionary was given <paramref name="edits"/> once it was encrypted, as by someone without the key;
+    /// its <c>/Perms</c>, the copy of the permissions the key seals, kept in the object stream when
+    /// <paramref name="sealedPacked"/>.
+    /// </summary>
+    internal static byte[] Edited(PdfEncryption encryption, PdfDictionary edits, bool sealedPacked = false)
+    {
+        PdfDictionary dictionary = Copy(encryption.Dictionary);
+
+        foreach (KeyValuePair<PdfName, PdfValue> edit in edits)
+            dictionary[edit.Key] = edit.Value;
+
+        if (!sealedPacked)
+            return EncryptedFile(encryption, dictionary, PdfValue.Null);
+
+        PdfValue sealedCopy = dictionary[SealedPermissions];
+        dictionary[SealedPermissions] = new PdfReference(5);
+        return EncryptedFile(encryption, dictionary, sealedCopy);
+    }
+
+    /// <summary>
+    /// <paramref name="block"/> sealed as <c>/Perms</c> with the file key of <paramref name="encryption"/>, unwrapped
+    /// from its <c>/UE</c> with the empty user password (ISO 32000-2, Algorithms 2.A and 10).
+    /// </summary>
+    private static PdfString Sealed(PdfEncryption encryption, byte[] block)
+    {
+        byte[] user = encryption.Dictionary[new PdfName("U")].AsString().Bytes.ToArray();
+        byte[] wrapped = encryption.Dictionary[new PdfName("UE")].AsString().Bytes.ToArray();
+        byte[] unwrapping = StandardSecurity.Hash([], user.AsSpan(40, 8), [], 6);
+        byte[] key = StandardSecurity.Aes(unwrapping, new byte[16], wrapped, false, CipherMode.CBC, PaddingMode.None);
+        byte[] sealedBlock = StandardSecurity.Aes(key, null, block, true, CipherMode.ECB, PaddingMode.None);
+        return new PdfString(sealedBlock, PdfStringForm.Hex);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PermissionsChangedWithoutTheKeyAreReadAsSealed(bool sealedPacked)
+    {
+        // Granting everything in /P takes nothing from /Perms, which the key seals; kept in an object stream, it is
+        // read once the key is known.
+        PdfEncryption encryption = CopyingWithheld();
+        byte[] file = Edited(encryption, new PdfDictionary { [Permissions] = -4 }, sealedPacked);
+
+        PdfSource source = PdfSource.Open(file);
+
+        Assert.True(source.Encryption!.HasKey);
+        Assert.Equal(
+            encryption.Dictionary[Permissions].AsInteger(), source.Encryption.Dictionary[Permissions].AsInteger());
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public void AMetadataFlagChangedWithoutTheKeyIsReadAsSealed(bool encrypted, bool repaired)
+    {
+        // A repaired file has its metadata read before the flag is checked, to find its object streams.
+        byte[] file = Edited(CopyingWithheld(encrypted), new PdfDictionary { [EncryptMetadata] = !encrypted });
+        PdfSource source = PdfSource.Open(repaired ? [.. file, .. "startxref\n1\n%%EOF\n"u8] : file);
+        SourceStream metadata = source.Stream(source.Catalog[new PdfName("Metadata")])!;
+
+        Assert.Equal(repaired, source.WasRepaired);
+        Assert.Equal(encrypted, source.Encryption!.EncryptsMetadata);
+        Assert.Equal(Xmp, Encoding.ASCII.GetString(source.Decode(metadata)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PermissionsGivenSignedOrUnsignedAgreeWithTheSealedCopy(bool unsigned)
+    {
+        // /Perms holds the low 32 bits of /P, which writers give as a signed or an unsigned number.
+        PdfEncryption encryption = CopyingWithheld();
+        int permissions = (int)encryption.Dictionary[Permissions].AsInteger();
+        long given = unsigned ? (uint)permissions : permissions;
+
+        PdfSource source = PdfSource.Open(Edited(encryption, new PdfDictionary { [Permissions] = given }));
+
+        Assert.Equal(given, source.Encryption!.Dictionary[Permissions].AsInteger());
+    }
+
+    [Theory]
+    [InlineData("adb", true)]
+    [InlineData("adc", false)]
+    public void TheSealedCopyIsBelievedOnlyWithItsMarker(string marker, bool believed)
+    {
+        // Without the marker, /Perms was not sealed with this key, or was damaged: the clear entries are read.
+        PdfEncryption encryption = CopyingWithheld();
+        long permissions = encryption.Dictionary[Permissions].AsInteger();
+
+        // Every permission granted, as eight bytes whose upper four are ones; the metadata readable; then the marker.
+        byte[] block = [.. BitConverter.GetBytes(-4L), .. Encoding.ASCII.GetBytes($"F{marker}rand")];
+        byte[] file = Edited(encryption, new PdfDictionary { [SealedPermissions] = Sealed(encryption, block) });
+
+        PdfEncryption opened = PdfSource.Open(file).Encryption!;
+
+        Assert.Equal(believed ? -4 : permissions, opened.Dictionary[Permissions].AsInteger());
+        Assert.Equal(!believed, opened.EncryptsMetadata);
+    }
+
+    [Fact]
+    public void ASealedCopyTooShortToDecryptLeavesTheClearEntries()
+    {
+        PdfEncryption encryption = CopyingWithheld();
+        PdfString cut = new PdfString(new byte[8], PdfStringForm.Hex);
+        byte[] file = Edited(encryption, new PdfDictionary { [SealedPermissions] = cut });
+
+        PdfEncryption opened = PdfSource.Open(file).Encryption!;
+
+        Assert.True(opened.HasKey);
+        Assert.Equal(encryption.Dictionary[Permissions].AsInteger(), opened.Dictionary[Permissions].AsInteger());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AnEncryptionDictionaryTheLibraryWroteIsKeptAsItWas(bool encryptMetadata)
+    {
+        PdfEncryption encryption = CopyingWithheld(encryptMetadata);
+
+        PdfSource source = PdfSource.Open(Edited(encryption, new PdfDictionary()));
+
+        Assert.Equal(
+            Latin1.Written(writer => writer.WriteValue(encryption.Dictionary)),
+            Latin1.Written(writer => writer.WriteValue(source.Encryption!.Dictionary)));
+    }
 
     [Fact]
     public void ObjectStreamsOfARebuiltFileAreFoundAgainOnceItIsDecrypted()

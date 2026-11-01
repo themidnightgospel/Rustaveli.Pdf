@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using Rustaveli.Pdf.Writing;
 
@@ -363,6 +364,49 @@ internal sealed class PdfEncryption
             if (IsPlain(value))
                 Dictionary[key] = value;
         }
+    }
+
+    /// <summary>
+    /// Under 256-bit AES, puts into <see cref="Dictionary"/> the permissions, and whether the metadata is encrypted, as
+    /// the file key seals them in <c>/Perms</c> (ISO 32000-2, Algorithm 13), where <c>/P</c> or
+    /// <c>/EncryptMetadata</c> disagrees or is missing: those can be changed without the key. A <c>/Perms</c> without
+    /// its marker was damaged, or not sealed with this key, and is not believed.
+    /// </summary>
+    public void TakeSealedPermissions()
+    {
+        if (SealedPermissions() is not { } block)
+            return;
+
+        int permissions = BinaryPrimitives.ReadInt32LittleEndian(block);
+
+        // The block holds the low 32 bits of /P, which writers give as a signed or an unsigned number.
+        bool agrees = Dictionary.TryGetValue(P, out PdfValue given) && given.Kind == PdfValueKind.Integer
+            && unchecked((uint)given.AsInteger()) == unchecked((uint)permissions);
+
+        if (!agrees)
+            Dictionary[P] = permissions;
+
+        bool encryptsMetadata = block[8] != (byte)'F';
+
+        if (encryptsMetadata != EncryptsMetadata)
+            Dictionary[EncryptMetadata] = encryptsMetadata;
+    }
+
+    /// <summary>
+    /// <c>/Perms</c> decrypted with the file key, when it holds the marker <c>adb</c>; null when it does not, or when
+    /// the file is not under 256-bit AES or was opened without its key.
+    /// </summary>
+    private byte[]? SealedPermissions()
+    {
+        byte[] encrypted = Bytes(Dictionary, Perms, value => value);
+
+        // Only 256-bit AES has a 32-byte key; a file opened without its key has none.
+        if (_key.Length != 32 || encrypted.Length < 16)
+            return null;
+
+        byte[] block = StandardSecurity.Aes(
+            _key, null, encrypted.AsSpan(0, 16).ToArray(), false, CipherMode.ECB, PaddingMode.None);
+        return block.AsSpan(9, 3).SequenceEqual("adb"u8) ? block : null;
     }
 
     /// <summary>

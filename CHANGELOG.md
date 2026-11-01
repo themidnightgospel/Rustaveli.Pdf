@@ -33,6 +33,11 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   was taken as encrypted, so its plain XMP stream was decrypted on reading, and saving the file with its protection
   encrypted that stream while the dictionary written left out `/EncryptMetadata false`. The entry is now read once the
   file is decrypted, before the metadata is, and written with the dictionary.
+- Opening a PDF under 256-bit AES whose `/P` or `/EncryptMetadata` was changed without the key: they were taken as
+  given, so permissions edited to grant what the owner withheld were read, and saved, as edited, and a flipped flag had
+  the metadata read with the wrong cipher. What the key seals in `/Perms` is now taken in their place, and fills them
+  in when they are missing. A `/Perms` that does not decrypt to its marker is not believed: the file is read as its
+  dictionary gives it.
 - Saving a PDF: one object too damaged to read failed the whole save with an `UnreadableFileException`, and one kept in
   an object stream whose filter the library does not decode with a `NotSupportedException`. Each is written as null
   now, as an object the file does not hold.
