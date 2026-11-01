@@ -404,6 +404,7 @@ internal sealed class PdfEncryption
         if (_key.Length != 32 || encrypted.Length < 16)
             return null;
 
+        // ECB because ISO 32000-2 says so (Algorithm 13): /Perms is one block, sealed in ECB as Create writes it.
         byte[] block = StandardSecurity.Aes(
             _key, null, encrypted.AsSpan(0, 16).ToArray(), false, CipherMode.ECB, PaddingMode.None);
         return block.AsSpan(9, 3).SequenceEqual("adb"u8) ? block : null;
