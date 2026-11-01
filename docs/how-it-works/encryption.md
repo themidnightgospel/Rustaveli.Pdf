@@ -122,6 +122,9 @@ password and tries it both ways: as the user password, and as the owner password
 the file. With no password it tries the empty one, which opens a file whose user password is empty. Anything else
 fails with an
 [`IncorrectPasswordException`](https://themidnightgospel.github.io/Rustaveli.Pdf/api/reference/Rustaveli.Pdf.IncorrectPasswordException.html).
+Under 256-bit AES the key then decrypts `/Perms`: when it holds its marker, the permissions and the metadata flag it
+seals replace a `/P` or `/EncryptMetadata` changed without the key, and the file is read and saved with them. One
+without its marker is not believed.
 A file saved without `Protect` or `Unprotect` keeps the protection it had.
 
 ## What is encrypted

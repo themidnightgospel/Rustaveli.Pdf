@@ -166,6 +166,9 @@ internal sealed class PdfSource
             // An object stream that cannot be read even now leaves them absent, as they were while the file was opened.
         }
 
+        // Read in full, they are checked against /Perms, which can change how the metadata is decrypted.
+        Encryption.TakeSealedPermissions();
+
         // What was read since, every object of a rebuilt file among it, was read before those entries said how the
         // metadata is decrypted. The object streams hold no streams, and stay.
         _objects.Clear();

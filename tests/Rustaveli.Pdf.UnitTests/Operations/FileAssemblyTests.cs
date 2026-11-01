@@ -514,6 +514,19 @@ public class FileAssemblyTests
         Assert.Equal(PdfSourceTests.Xmp, Encoding.ASCII.GetString(saved.Decode(metadata)));
     }
 
+    [Fact]
+    public void PermissionsChangedWithoutTheKeyAreWrittenAsSealed()
+    {
+        PdfEncryption encryption = PdfSourceTests.CopyingWithheld();
+        byte[] file = PdfSourceTests.Edited(encryption, new PdfDictionary { [Permissions] = -4 });
+
+        PdfSource saved = Saved(PdfFile.Open(file));
+        PdfDictionary written = Dictionary(saved, saved.Trailer[Encrypt]);
+
+        Assert.True(saved.Encryption!.HasKey);
+        Assert.Equal(encryption.Dictionary[Permissions].AsInteger(), written[Permissions].AsInteger());
+    }
+
     /// <summary>A value as the writer writes it.</summary>
     private static string Written(PdfValue value)
     {
