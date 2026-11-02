@@ -269,6 +269,22 @@ public class EncryptionTests
     }
 
     [Fact]
+    public void ADictionaryOfVersion5ButRevision4IgnoresItsCryptFiltersAndUsesRc4()
+    {
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "user", Encryption = EncryptionLevel.AesWith128Bits });
+        written.Dictionary[new PdfName("V")] = 5;
+
+        PdfEncryption opened = Reopen(written, "user")!;
+
+        // Below revision 5 only version 4 has crypt filters; this dictionary's, naming AES-128, are not read.
+        Assert.NotNull(opened);
+        Assert.Equal(PdfEncryption.Cipher.Rc4, opened.Streams);
+        Assert.Equal(PdfEncryption.Cipher.Rc4, opened.Strings);
+        Assert.Equal(PdfEncryption.Cipher.Rc4, opened.EmbeddedFiles);
+    }
+
+    [Fact]
     public void EncryptionKeepsTheIdentifierItWasGiven()
     {
         byte[] id = Enumerable.Range(0, 16).Select(value => (byte)value).ToArray();
