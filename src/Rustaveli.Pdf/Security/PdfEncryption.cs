@@ -682,20 +682,34 @@ internal sealed class PdfEncryption
         return fallback;
     }
 
-    /// <summary>The key length, in bytes, a version 4 dictionary's standard crypt filter gives, if it gives one.</summary>
+    /// <summary>
+    /// The key length, in bytes, a version 4 dictionary's crypt filter gives, if it defines one: the filter
+    /// <c>/StmF</c> names, else the one <c>/StrF</c> names, else the one <c>/EFF</c> names for embedded files, else
+    /// <c>/StdCF</c>. The file has one key for all of them.
+    /// </summary>
     private static int? CryptLength(PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
     {
-        if (dictionary.TryGetValue(CF, out PdfValue filters) && resolve(filters) is { Kind: PdfValueKind.Dictionary } all
-            && all.AsDictionary().TryGetValue(StdCF, out PdfValue filter) && resolve(filter) is { Kind: PdfValueKind.Dictionary } found)
-        {
-            int length = Integer(found.AsDictionary(), PdfNames.Length, 16, resolve);
+        PdfDictionary? found = NamedBy(dictionary, StmF, resolve) ?? NamedBy(dictionary, StrF, resolve)
+            ?? NamedBy(dictionary, EFF, resolve) ?? Defined(dictionary, StdCF, resolve);
 
-            // Some writers give the length in bits, as the encryption dictionary does.
-            return length > 16 ? length / 8 : length;
-        }
+        if (found is null)
+            return null;
 
-        return null;
+        // /AESV2 means a 128-bit key (ISO 32000-1, table 25), whatever the filter's /Length says.
+        if (Method(found, Cipher.Rc4, resolve) == Cipher.Aes128)
+            return 16;
+
+        int length = Integer(found, PdfNames.Length, 16, resolve);
+
+        // Some writers give the length in bits, as the encryption dictionary does.
+        return length > 16 ? length / 8 : length;
     }
+
+    /// <summary>The crypt filter the dictionary's <paramref name="which"/> names, if <c>/CF</c> defines it.</summary>
+    private static PdfDictionary? NamedBy(PdfDictionary dictionary, PdfName which, Func<PdfValue, PdfValue> resolve) =>
+        dictionary.TryGetValue(which, out PdfValue named) && resolve(named) is { Kind: PdfValueKind.Name } name
+            ? Defined(dictionary, name.AsName(), resolve)
+            : null;
 
     private static int Integer(PdfDictionary dictionary, PdfName key, int fallback, Func<PdfValue, PdfValue> resolve) =>
         dictionary.TryGetValue(key, out PdfValue value) && resolve(value) is { Kind: PdfValueKind.Integer } integer ? (int)integer.AsInteger() : fallback;

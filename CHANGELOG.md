@@ -38,6 +38,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   the metadata read with the wrong cipher. What the key seals in `/Perms` is now taken in their place, and fills them
   in when they are missing. A `/Perms` that does not decrypt to its marker is not believed: the file is read as its
   dictionary gives it.
+- Opening an encrypted PDF whose crypt filter is named other than `/StdCF`: its key length was taken from the
+  encryption dictionary's `/Length`, 40 bits when that is absent, so under 128-bit AES no password opened it. It is
+  now taken from the filter `/StmF`, `/StrF` or, for a file whose attachments alone are encrypted, `/EFF` names, and
+  an AES filter's key is 128 bits whatever its `/Length` says.
 - Saving a PDF: one object too damaged to read failed the whole save with an `UnreadableFileException`, and one kept in
   an object stream whose filter the library does not decode with a `NotSupportedException`. Each is written as null
   now, as an object the file does not hold.
