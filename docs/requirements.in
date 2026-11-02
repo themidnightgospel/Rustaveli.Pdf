@@ -4,4 +4,4 @@
 #
 # MkDocs 2 drops the plugin and theme system Material is built on, so both stay on their 1.x and 9.x lines.
 mkdocs==1.6.1
-mkdocs-material==9.7.7
+mkdocs-material==9.8.0
