@@ -23,6 +23,27 @@ public class EncryptionTests
     private static PdfEncryption? Reopen(PdfEncryption written, string password) =>
         PdfEncryption.Open(written.Dictionary, written.DocumentId, password, value => value);
 
+    /// <summary>
+    /// A copy of a version 4 <paramref name="dictionary"/> without its <c>/Length</c>, whose one crypt filter is
+    /// <paramref name="filter"/>, named <c>/MyCF</c> by <c>/StmF</c> and <c>/StrF</c>.
+    /// </summary>
+    private static PdfDictionary OnlyFilterMyCF(PdfDictionary dictionary, PdfDictionary filter)
+    {
+        PdfName name = new PdfName("MyCF");
+        PdfDictionary copy = new PdfDictionary();
+
+        foreach (KeyValuePair<PdfName, PdfValue> entry in dictionary)
+        {
+            if (!entry.Key.Equals(PdfNames.Length))
+                copy[entry.Key] = entry.Value;
+        }
+
+        copy[new PdfName("CF")] = new PdfDictionary { [name] = filter };
+        copy[new PdfName("StmF")] = name;
+        copy[new PdfName("StrF")] = name;
+        return copy;
+    }
+
     [Fact]
     public void Rc4MatchesItsPublishedVector()
     {
@@ -209,6 +230,42 @@ public class EncryptionTests
         Assert.NotNull(opened);
         Assert.Equal(Text, opened.DecryptString(7, written.EncryptString(7, Text)));
         Assert.Equal(Text, opened.DecryptStream(12, written.EncryptStream(12, new PdfDictionary(), Text)));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(40)]
+    public void AVersion4AesFileTakesItsKeyLengthFromTheFilterItsStreamsAndStringsName(int? length)
+    {
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "user", Encryption = EncryptionLevel.AesWith128Bits });
+        PdfDictionary filter = new PdfDictionary { [new PdfName("CFM")] = new PdfName("AESV2") };
+
+        // An AES-128 filter's key is 128 bits, whatever its /Length says.
+        if (length is int given)
+            filter[PdfNames.Length] = given;
+
+        PdfDictionary dictionary = OnlyFilterMyCF(written.Dictionary, filter);
+        PdfEncryption opened = PdfEncryption.Open(dictionary, written.DocumentId, "user", value => value)!;
+
+        Assert.NotNull(opened);
+        Assert.Equal(Text, opened.DecryptString(7, written.EncryptString(7, Text)));
+        Assert.Equal(Text, opened.DecryptStream(12, written.EncryptStream(12, new PdfDictionary(), Text)));
+    }
+
+    [Fact]
+    public void AVersion4Rc4FilterMayGiveItsKeyLengthInBits()
+    {
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "user", Encryption = EncryptionLevel.AesWith128Bits });
+        PdfDictionary filter = new PdfDictionary { [new PdfName("CFM")] = new PdfName("V2"), [PdfNames.Length] = 128 };
+        PdfDictionary dictionary = OnlyFilterMyCF(written.Dictionary, filter);
+
+        PdfEncryption opened = PdfEncryption.Open(dictionary, written.DocumentId, "user", value => value)!;
+
+        Assert.NotNull(opened);
+        Assert.Equal(PdfEncryption.Cipher.Rc4, opened.Streams);
+        Assert.Null(PdfEncryption.Open(dictionary, written.DocumentId, "other", value => value));
     }
 
     [Fact]

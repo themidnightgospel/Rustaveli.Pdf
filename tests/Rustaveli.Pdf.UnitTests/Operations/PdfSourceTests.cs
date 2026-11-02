@@ -115,13 +115,18 @@ public class PdfSourceTests
         Assert.Equal("generation one", Encoding.ASCII.GetString(Value(source, 12).AsString().Bytes.ToArray()));
     }
 
+    /// <summary>The crypt filters Acrobat's "encrypt only file attachments" writes.</summary>
+    private const string AttachmentFilters =
+        "/CF<</StdCF<</CFM/AESV2/AuthEvent/EFOpen/Length 16>>>>/StmF/Identity/StrF/Identity/EFF/StdCF";
+
     /// <summary>
     /// A file encrypted as Acrobat's "encrypt only file attachments" encrypts it: strings and streams left plain, the
     /// attached file (object 6) encrypted with AES under a filter opened by the password "att" only when an attachment is,
     /// and two streams that name that filter themselves, one plain beneath it (object 8) and one deflated (object 9).
+    /// The encryption dictionary gives the key's <paramref name="length"/>.
     /// </summary>
     private static HandmadePdf AttachmentsOnly(
-        string filters = "/CF<</StdCF<</CFM/AESV2/AuthEvent/EFOpen/Length 16>>>>/StmF/Identity/StrF/Identity/EFF/StdCF", string attachment = "attached")
+        string filters = AttachmentFilters, string attachment = "attached", string length = "/Length 128")
     {
         byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
         PdfDictionary written = PdfEncryption.Create(new Protection { UserPassword = "att", OwnerPassword = "own", Encryption = EncryptionLevel.AesWith128Bits }, id).Dictionary;
@@ -148,7 +153,7 @@ public class PdfSourceTests
             .Stream(4, "<<>>", "0 0 m 9 9 l S")
             .Object(5, "<</Type/Filespec/F(a.txt)/EF<</F 6 0 R>>>>")
             .Stream(6, "<</Type/EmbeddedFile>>", Stream(6, attachment))
-            .Object(7, $"<</Filter/Standard/V 4/R 4/Length 128{filters}/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>")
+            .Object(7, $"<</Filter/Standard/V 4/R 4{length}{filters}/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>")
             .Stream(8, "<</DecodeParms<</Type/CryptFilterDecodeParms/Name/StdCF>>/Filter/Crypt>>", Stream(8, "own filter"))
             .Stream(9, "<</Filter[/Crypt/FlateDecode]/DecodeParms[<</Name/StdCF>> null]>>", Encoding.Latin1.GetString(Encrypted(fileKey, 9, 0, deflated, aes: true)))
             .Stream(10, "<</Filter/Crypt>>", "identity")
@@ -195,6 +200,16 @@ public class PdfSourceTests
                 + $"/O<{Entry("O")}>/U<{Entry("U")}>/OE<{Entry("OE")}>/UE<{Entry("UE")}>/Perms<{Entry("Perms")}>/P {written[new PdfName("P")].AsInteger()}>>");
         pdf.Section($"/Root 1 0 R/Encrypt 7 0 R/ID[<{Hex(id)}><{Hex(id)}>]");
         return pdf.ToArray();
+    }
+
+    [Fact]
+    public void AnAttachmentsOnlyFileTakesItsKeyLengthFromTheFilterItsAttachmentsName()
+    {
+        HandmadePdf pdf = AttachmentsOnly(
+            "/CF<</MyCF<</CFM/AESV2/AuthEvent/EFOpen>>>>/StmF/Identity/StrF/Identity/EFF/MyCF", length: string.Empty);
+
+        Assert.NotNull(Open(pdf).Encryption);
+        Assert.Equal("attached", Attachment(PdfSource.Open(pdf.ToArray(), "att")));
     }
 
     [Fact]
