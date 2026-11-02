@@ -16,7 +16,7 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
 - Reading a PDF: a `/Crypt` filter naming its crypt filter with something other than a name threw an
   `InvalidOperationException`; it is damage now, an `UnreadableFileException`.
 - Repairing a PDF: one object too damaged to read made the whole file unreadable. It is left out now, and the rest of
-  the file is read; the damaged object is still refused when it is asked for.
+  the file is read; the damaged object reads as null, as an object the file does not hold, and is saved as one.
 - Repairing a PDF: an object header held in a stream's data, such as the text `1 0 obj` in an uncompressed content
   stream, was taken for that object, in place of the real one written before the stream. The scan for objects now
   goes on after each stream's data: where its `/Length` ends, when `endstream` follows there, and otherwise at

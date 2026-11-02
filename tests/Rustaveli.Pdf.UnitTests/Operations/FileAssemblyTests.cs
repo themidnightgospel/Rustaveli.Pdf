@@ -352,6 +352,34 @@ public class FileAssemblyTests
     }
 
     [Fact]
+    public void AnnotationsTooDamagedToReadAreLeftOutWhenARebuiltFileIsSaved()
+    {
+        // A page kept twice has its annotations read, to be written anew for the second copy.
+        byte[] damaged =
+            HandmadePdf.OnePage("/Annots 5 0 R").Object(5, "}").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n").ToArray();
+
+        PdfSource source = Saved(PdfFile.Open(damaged).KeepPages("1, 1"));
+
+        Assert.True(PdfSource.Open(damaged).WasRepaired);
+        Assert.All(source.Pages, page =>
+            Assert.Equal(PdfValueKind.Null, source.Resolve(page.Dictionary[PdfNames.Annots]).Kind));
+    }
+
+    [Fact]
+    public void MetadataTooDamagedToReadIsMadeAnewWhenARebuiltFileIsSaved()
+    {
+        byte[] damaged =
+            Catalogued("/Metadata 4 0 R").Object(4, "}").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n").ToArray();
+
+        PdfSource source = Saved(PdfFile.Open(damaged).AddMetadata("<rdf:Description rdf:about=\"\"/>"));
+        SourceStream written = source.Stream(source.Catalog[new PdfName("Metadata")])!;
+        string metadata = Encoding.UTF8.GetString(source.Decode(written));
+
+        Assert.True(PdfSource.Open(damaged).WasRepaired);
+        Assert.Contains("adobe:ns:meta/", metadata, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AnObjectKeptInAStreamNoFilterHereDecodesIsWrittenAsNull()
     {
         HandmadePdf pdf = HandmadePdf.OnePage("/Thumb 5 0 R")

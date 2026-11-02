@@ -647,7 +647,7 @@ public class PdfSourceTests
 
         Assert.True(source.WasRepaired);
         Assert.Single(source.Pages);
-        Assert.Throws<UnreadableFileException>(() => source.GetObject(4));
+        Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
     }
 
     [Theory]
