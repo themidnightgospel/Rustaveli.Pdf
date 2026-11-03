@@ -15,9 +15,6 @@ internal static class CompositeGlyph
     /// <summary>On the last record: hinting instructions follow the records, their length first.</summary>
     public const ushort HasInstructions = 0x0100;
 
-    /// <summary>The glyph header: contour count and bounding box.</summary>
-    public const int HeaderSize = 10;
-
     /// <summary>
     /// Appends the components of <paramref name="glyph"/> to <paramref name="components"/>.
     /// </summary>
@@ -40,7 +37,7 @@ internal static class CompositeGlyph
 
     private static int Walk(ReadOnlySpan<byte> glyph, List<GlyphComponent>? components, out int lastFlagsAt)
     {
-        int position = HeaderSize;
+        int position = GlyphTable.HeaderSize;
         ushort flags;
 
         do
@@ -48,7 +45,7 @@ internal static class CompositeGlyph
             lastFlagsAt = position;
             flags = BigEndian.UInt16(glyph, position);
             ushort glyphId = BigEndian.UInt16(glyph, position + 2);
-            components?.Add(new GlyphComponent(glyphId, flags, position + 2));
+            components?.Add(new GlyphComponent(glyphId, position + 2));
 
             position += 4 + ((flags & ArgsAreWords) != 0 ? 4 : 2);
 

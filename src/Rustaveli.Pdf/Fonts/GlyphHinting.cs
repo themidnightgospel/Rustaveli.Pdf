@@ -38,10 +38,10 @@ internal static class GlyphHinting
     /// <param name="output">The table being written.</param>
     public static void StripInto(ReadOnlySpan<byte> glyph, FontDataWriter output)
     {
-        if (glyph.Length < CompositeGlyph.HeaderSize)
+        if (glyph.Length < GlyphTable.HeaderSize)
             throw FontFormatException.Truncated();
 
-        if (BigEndian.Int16(glyph, 0) < 0)
+        if (GlyphTable.IsComposite(glyph))
             StripComposite(glyph, output);
         else
             StripSimple(glyph, output);
@@ -54,7 +54,7 @@ internal static class GlyphHinting
     private static void StripSimple(ReadOnlySpan<byte> glyph, FontDataWriter output)
     {
         int contours = BigEndian.Int16(glyph, 0);
-        int lengthAt = CompositeGlyph.HeaderSize + (2 * contours);
+        int lengthAt = GlyphTable.HeaderSize + (2 * contours);
 
         // A glyph of no contours may end at its header, as FreeType and fontTools accept: it has no points for
         // instructions to move, and no instructions to take out.

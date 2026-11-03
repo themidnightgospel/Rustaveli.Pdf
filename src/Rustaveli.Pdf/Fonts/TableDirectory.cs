@@ -14,8 +14,11 @@ internal sealed class TableDirectory
     /// <summary>The sfnt version Apple uses for TrueType outlines, 'true'.</summary>
     public const uint AppleTrueTypeVersion = 0x74727565;
 
-    private const int HeaderSize = 12;
-    private const int RecordSize = 16;
+    /// <summary>The offset table before the records: sfnt version, table count and the binary-search fields.</summary>
+    public const int HeaderSize = 12;
+
+    /// <summary>One table record: tag, checksum, offset and length.</summary>
+    public const int RecordSize = 16;
 
     private readonly TableRecord[] _records;
 
@@ -58,7 +61,7 @@ internal sealed class TableDirectory
 
         // The whole directory is checked before any of it is allocated for, so a count of 65 535 in a 20-byte file
         // fails here instead of reserving a megabyte of records.
-        _ = BigEndian.Slice(file, faceOffset + (long)HeaderSize, (long)count * RecordSize);
+        BigEndian.CheckRange(file.Length, faceOffset + (long)HeaderSize, (long)count * RecordSize);
 
         TableRecord[] records = new TableRecord[count];
 
@@ -66,14 +69,13 @@ internal sealed class TableDirectory
         {
             int position = faceOffset + HeaderSize + (index * RecordSize);
             uint tag = BigEndian.UInt32(file, position);
-            uint checksum = BigEndian.UInt32(file, position + 4);
             uint offset = BigEndian.UInt32(file, position + 8);
             uint length = BigEndian.UInt32(file, position + 12);
 
             if ((long)offset + length > fileLength)
                 throw new FontFormatException($"The '{TableTag.ToString(tag)}' table runs past the end of the file.");
 
-            records[index] = new TableRecord(tag, checksum, (int)offset, (int)length);
+            records[index] = new TableRecord(tag, (int)offset, (int)length);
         }
 
         return new TableDirectory(version, SortWithoutDuplicates(records));

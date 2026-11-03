@@ -76,7 +76,7 @@ internal sealed class GlyphSubstitutionTable
         _lookupList = BigEndian.UInt16(span, 8);
 
         int lookupCount = _lookupList == 0 ? 0 : BigEndian.UInt16(span, _lookupList);
-        _ = BigEndian.Slice(span, _lookupList + 2L, lookupCount * 2L);
+        BigEndian.CheckRange(span.Length, _lookupList + 2L, lookupCount * 2L);
         _lookups = new SubstitutionLookup?[lookupCount];
     }
 
@@ -291,7 +291,7 @@ internal sealed class GlyphSubstitutionTable
             type = BigEndian.UInt16(span, lookup);
             flags = (LookupFlags)BigEndian.UInt16(span, lookup + 2);
             count = BigEndian.UInt16(span, lookup + 4);
-            _ = BigEndian.Slice(span, lookup + 6L, count * 2L);
+            BigEndian.CheckRange(span.Length, lookup + 6L, count * 2L);
 
             markFilteringSet = (flags & LookupFlags.UseMarkFilteringSet) != 0
                 ? _definitions?.GetMarkGlyphSet(BigEndian.UInt16(span, lookup + 6 + (count * 2)))

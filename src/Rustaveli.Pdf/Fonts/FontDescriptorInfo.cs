@@ -87,9 +87,7 @@ internal sealed class FontDescriptorInfo
     {
         ushort glyph = font.GetGlyphId(character);
 
-        return glyph != 0 && font.Glyphs is GlyphTable glyphs && glyphs.TryGetBounds(glyph, out GlyphBounds bounds)
-            ? bounds.YMax
-            : null;
+        return glyph != 0 && font.TryGetGlyphBounds(glyph, out GlyphBounds bounds) ? bounds.YMax : null;
     }
 
     /// <summary>

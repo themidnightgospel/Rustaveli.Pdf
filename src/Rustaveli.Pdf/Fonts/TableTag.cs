@@ -13,6 +13,7 @@ internal static class TableTag
     public const uint Cff2 = 0x43464632; // 'CFF2'
     public const uint Cmap = 0x636D6170; // 'cmap'
     public const uint Cvt = 0x63767420; // 'cvt '
+    public const uint Dsig = 0x44534947; // 'DSIG'
     public const uint Fpgm = 0x6670676D; // 'fpgm'
     public const uint Gdef = 0x47444546; // 'GDEF'
     public const uint Glyf = 0x676C7966; // 'glyf'
@@ -28,9 +29,6 @@ internal static class TableTag
     public const uint Os2 = 0x4F532F32; // 'OS/2'
     public const uint Post = 0x706F7374; // 'post'
     public const uint Prep = 0x70726570; // 'prep'
-
-    /// <summary>The default script in a GPOS script list.</summary>
-    public const uint DefaultScript = 0x44464C54; // 'DFLT'
 
     public static uint FromString(string tag)
     {

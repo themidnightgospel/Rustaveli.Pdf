@@ -16,17 +16,26 @@ internal sealed class ReverseChainingSubstitution : ContextSubstitution
         : base(table, offset)
     {
         ReadOnlySpan<byte> span = table.Span;
-        _coverage = new CoverageTable(table, offset + BigEndian.UInt16(span, offset + 2));
+        _coverage = ReadCoverage();
 
         int backtrackCount = BigEndian.UInt16(span, offset + 4);
         int lookaheadAt = offset + 6 + (backtrackCount * 2);
         int lookaheadCount = BigEndian.UInt16(span, lookaheadAt);
         int substitutesAt = lookaheadAt + 2 + (lookaheadCount * 2);
 
-        _context = new ContextRule(backtrackCount, offset + 6, 1, 0, lookaheadCount, lookaheadAt + 2, 0, 0);
+        // The covered glyph is the whole input, and the substitutes take the place of lookup records.
+        _context = new ContextRule(
+            BacktrackCount: backtrackCount,
+            Backtrack: offset + 6,
+            InputCount: 1,
+            Input: 0,
+            LookaheadCount: lookaheadCount,
+            Lookahead: lookaheadAt + 2,
+            LookupCount: 0,
+            Lookups: 0);
         _substituteCount = BigEndian.UInt16(span, substitutesAt);
         _substitutes = substitutesAt + 2;
-        _ = BigEndian.Slice(span, _substitutes, _substituteCount * 2L);
+        BigEndian.CheckRange(span.Length, _substitutes, _substituteCount * 2L);
     }
 
     public override bool TryApply(SubstitutionSession session, SubstitutionLookup lookup, int position, out int next)

@@ -24,6 +24,9 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal sealed class OpenTypeFont
 {
+    private static readonly uint[] RequiredTables =
+        [TableTag.Head, TableTag.Hhea, TableTag.Maxp, TableTag.Hmtx, TableTag.Cmap];
+
     private readonly ReadOnlyMemory<byte> _file;
     private readonly Lazy<Os2Table?> _os2;
     private readonly Lazy<PostTable?> _post;
@@ -47,10 +50,10 @@ internal sealed class OpenTypeFont
         ReadOnlySpan<byte> span = file.Span;
         Tables = TableDirectory.Read(span, FontContainer.GetFaceOffset(span, faceIndex), span.Length);
 
-        foreach (uint required in new[] { TableTag.Head, TableTag.Hhea, TableTag.Maxp, TableTag.Hmtx, TableTag.Cmap })
+        foreach (uint required in RequiredTables)
         {
             if (!Tables.Contains(required))
-                throw new FontFormatException($"The font has no '{TableTag.ToString(required)}' table.");
+                throw FontFormatException.MissingTable(required);
         }
 
         Head = new HeadTable(Table(TableTag.Head).Span);
@@ -152,7 +155,7 @@ internal sealed class OpenTypeFont
         // A collection lists an offset per face; a count the file has no room for is corrupt, and must not size
         // an array of millions of faces before the first one fails to load.
         if (FontContainer.IsCollection(data.Span))
-            _ = BigEndian.Slice(data.Span, 0, FontContainer.CollectionHeaderSize + (4L * count));
+            BigEndian.CheckRange(data.Length, 0, FontContainer.CollectionOffsetsEnd(count));
 
         OpenTypeFont[] faces = new OpenTypeFont[count];
 
@@ -172,12 +175,11 @@ internal sealed class OpenTypeFont
         if (!FontContainer.IsCollection(_file.Span))
             return _file.ToArray();
 
-        const uint DigitalSignature = 0x44534947; // 'DSIG'
         List<KeyValuePair<uint, ReadOnlyMemory<byte>>> tables = [];
 
         foreach (TableRecord record in Tables.Records)
         {
-            if (record.Tag != DigitalSignature)
+            if (record.Tag != TableTag.Dsig)
                 tables.Add(new(record.Tag, _file.Slice(record.Offset, record.Length)));
         }
 
@@ -242,18 +244,12 @@ internal sealed class OpenTypeFont
     /// <summary>A length in font units, in points at <paramref name="pointSize"/>.</summary>
     public float ToPoints(long fontUnits, float pointSize) => fontUnits * pointSize / UnitsPerEm;
 
-    private void CheckGlyph(ushort glyph)
-    {
-        if (glyph >= GlyphCount)
-            throw new ArgumentOutOfRangeException(nameof(glyph), glyph, $"The font has {GlyphCount} glyphs.");
-    }
+    private void CheckGlyph(ushort glyph) => GlyphRange.Check(glyph, GlyphCount, nameof(glyph));
 
     // ---- Lazily read tables --------------------------------------------------------------------------------------
 
     private ReadOnlyMemory<byte> Table(uint tag) =>
-        TryGetTable(tag, out ReadOnlyMemory<byte> data)
-            ? data
-            : throw new FontFormatException($"The font has no '{TableTag.ToString(tag)}' table.");
+        TryGetTable(tag, out ReadOnlyMemory<byte> data) ? data : throw FontFormatException.MissingTable(tag);
 
     private T? Optional<T>(uint tag, Func<ReadOnlyMemory<byte>, T> read)
         where T : class =>

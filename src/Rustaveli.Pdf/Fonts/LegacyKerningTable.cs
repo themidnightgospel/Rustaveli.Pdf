@@ -13,7 +13,6 @@ namespace Rustaveli.Pdf.Fonts;
 internal sealed class LegacyKerningTable : KerningSource
 {
     private const int PairSize = 6;
-    private const int MaximumSubtables = 4096;
 
     private readonly ReadOnlyMemory<byte> _data;
     private readonly List<(int Pairs, int Count, bool Overrides)> _subtables = [];
@@ -105,7 +104,6 @@ internal sealed class LegacyKerningTable : KerningSource
         if (count <= 0)
             return;
 
-        // Every subtable is searched for every pair measured; see GlyphPositioningKerning.MaximumSubtables.
         if (_subtables.Count == MaximumSubtables)
             throw new FontFormatException("The kern table has more subtables than a font can use.");
 

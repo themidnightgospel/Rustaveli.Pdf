@@ -1,3 +1,5 @@
+using static Rustaveli.Pdf.Fonts.PlatformEncoding;
+
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
@@ -26,7 +28,7 @@ internal static class NameTable
         int count = BigEndian.UInt16(data, 2);
         int storage = BigEndian.UInt16(data, 4);
 
-        _ = BigEndian.Slice(data, 6, (long)count * RecordSize);
+        BigEndian.CheckRange(data.Length, 6, (long)count * RecordSize);
 
         string?[] best = new string?[TypographicSubfamilyId + 1];
         int[] bestRank = new int[TypographicSubfamilyId + 1];
@@ -84,27 +86,24 @@ internal static class NameTable
     /// <summary>How preferable a record is, lower being better; <see cref="Unusable"/> if undecodable.</summary>
     private static int Rank(ushort platform, ushort encoding, ushort language)
     {
-        const ushort UnicodePlatform = 0;
-        const ushort MacintoshPlatform = 1;
-        const ushort WindowsPlatform = 3;
         const ushort EnglishUnitedStates = 0x0409;
 
         switch (platform)
         {
-            // Windows symbol (0), Unicode BMP (1) and full repertoire (10) all store names in UTF-16.
-            case WindowsPlatform when encoding is 0 or 1 or 10:
+            // Windows symbol, Unicode BMP and full repertoire all store names in UTF-16.
+            case WindowsPlatform when encoding is WindowsSymbol or WindowsUnicodeBmp or WindowsUnicodeFull:
                 if (language == EnglishUnitedStates)
                     return 0;
 
                 // Other English locales share the primary language ID in the low ten bits.
                 return (language & 0x3FF) == 0x09 ? 1 : 4;
 
-            // Encoding 5 is for variation sequences, which have no names; the rest are UTF-16.
-            case UnicodePlatform when encoding != 5:
+            // Variation sequences have no names; the other encodings are UTF-16.
+            case UnicodePlatform when encoding != UnicodeVariationSequences:
                 return 2;
 
             // Roman only; the Macintosh CJK encodings would need tables this library does not carry.
-            case MacintoshPlatform when encoding == 0:
+            case MacintoshPlatform when encoding == MacintoshRoman:
                 return language == 0 ? 3 : 5;
 
             default:
@@ -114,7 +113,7 @@ internal static class NameTable
 
     private static string Decode(ushort platform, ReadOnlySpan<byte> bytes)
     {
-        if (platform == 1)
+        if (platform == MacintoshPlatform)
             return MacRoman.Decode(bytes);
 
         // An odd trailing byte is a truncated character; drop it rather than reject the whole name.

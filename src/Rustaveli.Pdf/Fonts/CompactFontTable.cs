@@ -79,8 +79,7 @@ internal sealed class CompactFontTable
     /// </summary>
     public ushort GetCid(ushort glyph)
     {
-        if (glyph >= GlyphCount)
-            throw new ArgumentOutOfRangeException(nameof(glyph), glyph, $"The font has {GlyphCount} glyphs.");
+        GlyphRange.Check(glyph, GlyphCount, nameof(glyph));
 
         if (!IsCidKeyed)
             return glyph;

@@ -6,9 +6,6 @@ namespace Rustaveli.Pdf.Fonts;
 /// </summary>
 internal static class FontFileScanner
 {
-    private const int FaceHeaderSize = 12;
-    private const int TableRecordSize = 16;
-
     /// <summary>Describes every face in the file.</summary>
     /// <exception cref="FontFormatException">The file is not a font this library can read.</exception>
     /// <exception cref="IOException">The file could not be read.</exception>
@@ -24,8 +21,7 @@ internal static class FontFileScanner
         {
             TableDirectory directory = ReadDirectory(stream, FontContainer.GetFaceOffset(header, index));
 
-            HeadTable head = new HeadTable(ReadTable(stream, directory, TableTag.Head)
-                ?? throw new FontFormatException("The font has no 'head' table."));
+            HeadTable head = new HeadTable(RequireTable(stream, directory, TableTag.Head));
             byte[]? name = ReadTable(stream, directory, TableTag.Name);
             byte[]? os2Data = ReadTable(stream, directory, TableTag.Os2);
             Os2Table? os2 = os2Data is null ? null : new Os2Table(os2Data);
@@ -49,10 +45,8 @@ internal static class FontFileScanner
         byte[] header = ReadHeader(stream);
         TableDirectory directory = ReadDirectory(stream, FontContainer.GetFaceOffset(header, faceIndex));
 
-        byte[] maxp = ReadTable(stream, directory, TableTag.Maxp)
-            ?? throw new FontFormatException("The font has no 'maxp' table.");
-        byte[] cmap = ReadTable(stream, directory, TableTag.Cmap)
-            ?? throw new FontFormatException("The font has no 'cmap' table.");
+        byte[] maxp = RequireTable(stream, directory, TableTag.Maxp);
+        byte[] cmap = RequireTable(stream, directory, TableTag.Cmap);
 
         return new CharacterMap(cmap, new MaximumProfileTable(maxp).NumGlyphs);
     }
@@ -68,21 +62,24 @@ internal static class FontFileScanner
         if (!FontContainer.IsCollection(header))
             return header;
 
-        long size = FontContainer.CollectionHeaderSize + (4L * FontContainer.CountFaces(header));
-        return ReadAt(stream, 0, size);
+        return ReadAt(stream, 0, FontContainer.CollectionOffsetsEnd(FontContainer.CountFaces(header)));
     }
 
     private static TableDirectory ReadDirectory(FileStream stream, int faceOffset)
     {
-        byte[] start = ReadAt(stream, faceOffset, FaceHeaderSize);
+        byte[] start = ReadAt(stream, faceOffset, TableDirectory.HeaderSize);
         int count = BigEndian.UInt16(start, 4);
-        byte[] directory = ReadAt(stream, faceOffset, FaceHeaderSize + (count * (long)TableRecordSize));
+        byte[] directory =
+            ReadAt(stream, faceOffset, TableDirectory.HeaderSize + (count * (long)TableDirectory.RecordSize));
 
         return TableDirectory.Read(directory, 0, stream.Length);
     }
 
     private static byte[]? ReadTable(FileStream stream, TableDirectory directory, uint tag) =>
         directory.TryGet(tag, out TableRecord record) ? ReadAt(stream, record.Offset, record.Length) : null;
+
+    private static byte[] RequireTable(FileStream stream, TableDirectory directory, uint tag) =>
+        ReadTable(stream, directory, tag) ?? throw FontFormatException.MissingTable(tag);
 
     /// <summary>Reads exactly <paramref name="count"/> bytes at <paramref name="offset"/>, which must exist.</summary>
     /// <remarks>

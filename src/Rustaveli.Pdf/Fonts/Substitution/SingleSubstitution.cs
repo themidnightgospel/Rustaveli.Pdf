@@ -14,18 +14,16 @@ internal sealed class SingleSubstitution : SubstitutionSubtable
     public SingleSubstitution(ReadOnlyMemory<byte> table, int offset, int format)
         : base(table, offset)
     {
-        ReadOnlySpan<byte> span = table.Span;
-        _coverage = new CoverageTable(table, offset + BigEndian.UInt16(span, offset + 2));
         _format = format;
 
         if (format == 1)
         {
-            _delta = BigEndian.Int16(span, offset + 4);
+            _coverage = ReadCoverage();
+            _delta = BigEndian.Int16(table.Span, offset + 4);
             return;
         }
 
-        _count = BigEndian.UInt16(span, offset + 4);
-        _ = BigEndian.Slice(span, offset + 6L, _count * 2L);
+        (_coverage, _count) = ReadCoveredArray();
     }
 
     public override bool TryApply(SubstitutionSession session, SubstitutionLookup lookup, int position, out int next)
@@ -39,7 +37,7 @@ internal sealed class SingleSubstitution : SubstitutionSubtable
 
         // The specification adds the delta modulo 65 536, so a negative delta wraps rather than going below zero.
         int substitute = _format == 1 ? (ushort)(glyph + _delta)
-            : index < _count ? BigEndian.UInt16(Table.Span, Offset + 6 + (index * 2))
+            : index < _count ? BigEndian.UInt16(Table.Span, Offset + CoveredArrayOffset + (index * 2))
             : -1;
 
         if (!session.TryReplace(position, substitute))

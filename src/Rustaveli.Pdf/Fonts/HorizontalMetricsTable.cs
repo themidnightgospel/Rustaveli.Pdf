@@ -21,7 +21,7 @@ internal sealed class HorizontalMetricsTable
         // More full metrics than glyphs is malformed but readable: the surplus is never asked for.
         _metricCount = Math.Min(numberOfHMetrics, glyphCount);
         _data = data;
-        _ = BigEndian.Slice(data.Span, 0, _metricCount * 4L);
+        BigEndian.CheckRange(data.Length, 0, _metricCount * 4L);
     }
 
     public ushort GetAdvance(ushort glyph)

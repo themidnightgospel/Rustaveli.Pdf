@@ -1,3 +1,5 @@
+using static Rustaveli.Pdf.Fonts.PlatformEncoding;
+
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
@@ -10,7 +12,12 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal sealed class CharacterMap
 {
-    private const int RecordSize = 8;
+    /// <summary>The table header before its encoding records: version and record count.</summary>
+    public const int HeaderSize = 4;
+
+    /// <summary>One encoding record: platform ID, encoding ID and the subtable's offset.</summary>
+    public const int RecordSize = 8;
+
     private const int Unusable = int.MaxValue;
 
     /// <summary>
@@ -29,7 +36,7 @@ internal sealed class CharacterMap
     {
         ReadOnlySpan<byte> span = table.Span;
         int count = BigEndian.UInt16(span, 2);
-        _ = BigEndian.Slice(span, 4, (long)count * RecordSize);
+        BigEndian.CheckRange(span.Length, HeaderSize, (long)count * RecordSize);
         _glyphCount = glyphCount;
 
         int bestRank = Unusable;
@@ -37,7 +44,7 @@ internal sealed class CharacterMap
 
         for (int index = 0; index < count; index++)
         {
-            int record = 4 + (index * RecordSize);
+            int record = HeaderSize + (index * RecordSize);
             ushort platform = BigEndian.UInt16(span, record);
             ushort encoding = BigEndian.UInt16(span, record + 2);
             uint offset = BigEndian.UInt32(span, record + 4);
@@ -150,13 +157,13 @@ internal sealed class CharacterMap
 
     private static int Rank(ushort platform, ushort encoding) => (platform, encoding) switch
     {
-        (3, 10) => 0,
-        (0, 4) or (0, 6) => 1,
-        (3, 1) => 2,
-        (0, 3) => 3,
-        (0, 0) or (0, 1) or (0, 2) => 4,
-        (3, 0) => SymbolRank,
-        (1, 0) => MacRomanRank,
+        (WindowsPlatform, WindowsUnicodeFull) => 0,
+        (UnicodePlatform, UnicodeFull or UnicodeLastResort) => 1,
+        (WindowsPlatform, WindowsUnicodeBmp) => 2,
+        (UnicodePlatform, UnicodeBmp) => 3,
+        (UnicodePlatform, Unicode10 or Unicode11 or Iso10646) => 4,
+        (WindowsPlatform, WindowsSymbol) => SymbolRank,
+        (MacintoshPlatform, MacintoshRoman) => MacRomanRank,
         _ => Unusable
     };
 }
