@@ -41,7 +41,4 @@ internal sealed class TrueTypeSubset
     /// the same tag on every run and every machine.
     /// </summary>
     public string Tag { get; }
-
-    public bool TryGetSubsetGlyphId(ushort originalGlyphId, out ushort subsetGlyphId) =>
-        _subsetGlyphIds.TryGetValue(originalGlyphId, out subsetGlyphId);
 }

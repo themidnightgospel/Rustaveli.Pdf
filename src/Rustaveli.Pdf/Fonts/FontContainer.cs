@@ -18,6 +18,9 @@ internal static class FontContainer
     public static bool IsCollection(ReadOnlySpan<byte> data) =>
         data.Length >= 4 && BigEndian.UInt32(data, 0) == CollectionTag;
 
+    /// <summary>Where a collection's offset array ends: how much of the file locating every face takes.</summary>
+    public static long CollectionOffsetsEnd(int faceCount) => CollectionHeaderSize + (4L * faceCount);
+
     /// <summary>The number of faces in the file: one for a plain font file.</summary>
     /// <param name="data">The file, or at least its first <see cref="CollectionHeaderSize"/> bytes.</param>
     public static int CountFaces(ReadOnlySpan<byte> data)

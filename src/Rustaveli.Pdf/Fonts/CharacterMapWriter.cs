@@ -1,3 +1,5 @@
+using static Rustaveli.Pdf.Fonts.PlatformEncoding;
+
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
@@ -12,8 +14,6 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal static class CharacterMapWriter
 {
-    private const int HeaderSize = 4;
-    private const int EncodingRecordSize = 8;
     private const int Format4HeaderSize = 16;
     private const int Format4SegmentSize = 8;
     private const int Format12HeaderSize = 16;
@@ -33,8 +33,9 @@ internal static class CharacterMapWriter
 
         List<(int Start, int End, int Delta)>? segments = Format4Segments(sorted);
         bool needsFull = !symbol && (segments is null || sorted.Any(static mapping => mapping.Key > 0xFFFF));
+        ushort basicEncoding = symbol ? WindowsSymbol : WindowsUnicodeBmp;
 
-        return Assemble(segments, symbol ? 0 : 1, needsFull ? Format12Groups(sorted) : null);
+        return Assemble(segments, basicEncoding, needsFull ? Format12Groups(sorted) : null);
     }
 
     /// <summary>
@@ -99,7 +100,7 @@ internal static class CharacterMapWriter
         int basicLength = segments is null ? 0 : Format4Length(segments.Count);
         int fullLength = groups is null ? 0 : Format12Length(groups.Count);
         int subtableCount = (segments is null ? 0 : 1) + (groups is null ? 0 : 1);
-        int offset = HeaderSize + (subtableCount * EncodingRecordSize);
+        int offset = CharacterMap.HeaderSize + (subtableCount * CharacterMap.RecordSize);
         FontDataWriter table = new FontDataWriter(offset + basicLength + fullLength);
         table.UInt16(0);
         table.UInt16(subtableCount);
@@ -108,7 +109,7 @@ internal static class CharacterMapWriter
             EncodingRecord(table, basicEncoding, offset);
 
         if (groups is not null)
-            EncodingRecord(table, 10, offset + basicLength);
+            EncodingRecord(table, WindowsUnicodeFull, offset + basicLength);
 
         if (segments is not null)
             Format4(table, segments);
@@ -126,7 +127,7 @@ internal static class CharacterMapWriter
     /// <summary>A Windows platform record pointing at a subtable <paramref name="offset"/> bytes into the table.</summary>
     private static void EncodingRecord(FontDataWriter table, int encoding, int offset)
     {
-        table.UInt16(3);
+        table.UInt16(WindowsPlatform);
         table.UInt16(encoding);
         table.UInt32((uint)offset);
     }
@@ -134,19 +135,14 @@ internal static class CharacterMapWriter
     private static void Format4(FontDataWriter table, List<(int Start, int End, int Delta)> segments)
     {
         int count = segments.Count;
-        int entrySelector = 0;
-
-        while ((2 << entrySelector) <= count)
-            entrySelector++;
-
-        int searchRange = 2 << entrySelector;
+        BinarySearchHeader search = BinarySearchHeader.For(count, 2);
         table.UInt16(4);
         table.UInt16(Format4Length(count));
         table.UInt16(0);
         table.UInt16(count * 2);
-        table.UInt16(searchRange);
-        table.UInt16(entrySelector);
-        table.UInt16((count * 2) - searchRange);
+        table.UInt16(search.SearchRange);
+        table.UInt16(search.EntrySelector);
+        table.UInt16(search.RangeShift);
 
         foreach ((_, int end, _) in segments)
             table.UInt16(end);

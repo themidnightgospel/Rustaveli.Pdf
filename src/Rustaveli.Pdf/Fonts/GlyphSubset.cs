@@ -111,8 +111,7 @@ internal sealed class GlyphSubset
     /// </remarks>
     public ushort Add(ushort glyph, int codepoint, string? text)
     {
-        if (glyph >= Font.GlyphCount)
-            throw new ArgumentOutOfRangeException(nameof(glyph), glyph, $"The font has {Font.GlyphCount} glyphs.");
+        GlyphRange.Check(glyph, Font.GlyphCount, nameof(glyph));
 
         if (glyph == 0)
             return 0;
@@ -148,14 +147,20 @@ internal sealed class GlyphSubset
     /// <summary>What a code reads back as; false for .notdef and codes given no text.</summary>
     public bool TryGetText(ushort code, out string text)
     {
+        string? found;
+
         lock (_sync)
         {
-            text = code >= FirstSharedCode
-                ? (code - FirstSharedCode < _sharedCodes.Count ? _sharedCodes[code - FirstSharedCode].Text : null!)
-                : (code < _glyphs.Count ? _texts[code] : null)!;
+            int shared = code - FirstSharedCode;
 
-            return text is not null;
+            if (shared >= 0)
+                found = shared < _sharedCodes.Count ? _sharedCodes[shared].Text : null;
+            else
+                found = code < _glyphs.Count ? _texts[code] : null;
         }
+
+        text = found!;
+        return found is not null;
     }
 
     /// <summary>

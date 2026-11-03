@@ -10,6 +10,9 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal sealed class GlyphTable
 {
+    /// <summary>The header every glyph with an outline starts with: its contour count and bounding box.</summary>
+    public const int HeaderSize = 10;
+
     private readonly ReadOnlyMemory<byte> _glyf;
     private readonly ReadOnlyMemory<byte> _loca;
     private readonly bool _longOffsets;
@@ -25,7 +28,7 @@ internal sealed class GlyphTable
         GlyphCount = glyphCount;
 
         // One offset per glyph plus one marking the end of the last.
-        _ = BigEndian.Slice(loca.Span, 0, (glyphCount + 1L) * (_longOffsets ? 4 : 2));
+        BigEndian.CheckRange(loca.Length, 0, (glyphCount + 1L) * (_longOffsets ? 4 : 2));
     }
 
     public int GlyphCount { get; }
@@ -33,15 +36,13 @@ internal sealed class GlyphTable
     /// <summary>The raw data of a glyph; empty for a glyph with no outline, such as a space.</summary>
     public ReadOnlyMemory<byte> GetGlyphData(ushort glyph)
     {
-        if (glyph >= GlyphCount)
-            throw new ArgumentOutOfRangeException(nameof(glyph), glyph, $"The font has {GlyphCount} glyphs.");
-
+        GlyphRange.Check(glyph, GlyphCount, nameof(glyph));
         (long start, long end) = Locate(glyph);
 
         if (end < start)
             throw new FontFormatException($"The location of glyph {glyph} is out of order or out of range.");
 
-        if (end > start && end - start < CompositeGlyph.HeaderSize)
+        if (end > start && end - start < HeaderSize)
             throw new FontFormatException($"Glyph {glyph} is shorter than a glyph header.");
 
         return _glyf.Slice((int)start, (int)(end - start));

@@ -19,12 +19,6 @@ namespace Rustaveli.Pdf.Fonts;
 internal sealed class GlyphPositioningKerning : KerningSource
 {
     /// <summary>
-    /// More pair subtables than any real font carries. Measuring consults every one of them for every pair, so an
-    /// adversarial font listing a subtable hundreds of thousands of times would make each measurement crawl.
-    /// </summary>
-    private const int MaximumSubtables = 4096;
-
-    /// <summary>
     /// The most list entries — scripts, features, lookups, subtables — read while finding the kerning lookups. Real
     /// fonts need a few thousand. The lists nest and may share entries, so a small table could otherwise declare
     /// billions of them.

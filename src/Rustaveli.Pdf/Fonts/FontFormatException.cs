@@ -18,4 +18,8 @@ internal sealed class FontFormatException : FormatException
     /// <summary>The data ends before a structure it declares.</summary>
     internal static FontFormatException Truncated() =>
         new FontFormatException("The font data ends before a structure it declares.");
+
+    /// <summary>The font lacks a table it cannot do without.</summary>
+    internal static FontFormatException MissingTable(uint tag) =>
+        new FontFormatException($"The font has no '{TableTag.ToString(tag)}' table.");
 }

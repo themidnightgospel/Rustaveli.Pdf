@@ -38,7 +38,7 @@ internal readonly struct CffIndex
 
         int offsets = position + 3;
         long data = offsets + ((count + 1L) * offsetSize) - 1;
-        _ = BigEndian.Slice(cff, offsets, (count + 1L) * offsetSize);
+        BigEndian.CheckRange(cff.Length, offsets, (count + 1L) * offsetSize);
 
         CffIndex index = new CffIndex(count, offsets, offsetSize, (int)data, 0);
         long end = data + index.OffsetAt(cff, count);

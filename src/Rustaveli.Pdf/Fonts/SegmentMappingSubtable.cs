@@ -28,7 +28,7 @@ internal sealed class SegmentMappingSubtable : CharacterMapSubtable
         _startCodes = EndCodesOffset + (_segments * 2) + 2;
         _deltas = _startCodes + (_segments * 2);
         _rangeOffsets = _deltas + (_segments * 2);
-        _ = BigEndian.Slice(data.Span, 0, _rangeOffsets + (_segments * 2L));
+        BigEndian.CheckRange(data.Length, 0, _rangeOffsets + (_segments * 2L));
     }
 
     public override ushort Lookup(int code)

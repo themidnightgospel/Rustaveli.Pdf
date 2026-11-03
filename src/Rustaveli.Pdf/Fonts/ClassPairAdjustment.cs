@@ -26,7 +26,7 @@ internal sealed class ClassPairAdjustment : PairAdjustment
 
         // The whole class matrix must be present, so no lookup can index past it.
         long matrixSize = (long)_firstClassCount * _secondClassCount * _recordSize;
-        _ = BigEndian.Slice(span, offset + (long)RecordsOffset, matrixSize);
+        BigEndian.CheckRange(span.Length, offset + (long)RecordsOffset, matrixSize);
     }
 
     public override bool TryGetAdjustment(ushort left, ushort right, out int adjustment)

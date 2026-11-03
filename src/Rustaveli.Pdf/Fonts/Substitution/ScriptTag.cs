@@ -8,7 +8,7 @@ namespace Rustaveli.Pdf.Fonts.Substitution;
 internal readonly record struct ScriptTag(uint Value)
 {
     /// <summary><c>DFLT</c>: the features of text in no particular script, and the fallback for any other.</summary>
-    public static readonly ScriptTag Default = new ScriptTag(TableTag.DefaultScript);
+    public static readonly ScriptTag Default = Parse("DFLT");
 
     public static readonly ScriptTag Latin = Parse("latn");
 

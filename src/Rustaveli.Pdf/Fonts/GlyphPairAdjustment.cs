@@ -12,7 +12,7 @@ internal sealed class GlyphPairAdjustment : PairAdjustment
         : base(table, offset)
     {
         _pairSetCount = BigEndian.UInt16(table.Span, offset + 8);
-        _ = BigEndian.Slice(table.Span, offset + 10L, _pairSetCount * 2L);
+        BigEndian.CheckRange(table.Length, offset + 10L, _pairSetCount * 2L);
         _recordSize = 2 + FirstValueSize + SecondValueSize;
     }
 

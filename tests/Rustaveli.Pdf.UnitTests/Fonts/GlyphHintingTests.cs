@@ -133,7 +133,7 @@ public class GlyphHintingTests
             }
 
             // The instructions are gone and every byte of the outline is the original's.
-            int lengthAt = CompositeGlyph.HeaderSize + (2 * BigEndian.Int16(kept, 0));
+            int lengthAt = GlyphTable.HeaderSize + (2 * BigEndian.Int16(kept, 0));
             int instructions = BigEndian.UInt16(original, lengthAt);
             Assert.Equal(0, BigEndian.UInt16(kept, lengthAt));
             Assert.Equal(original.Slice(0, lengthAt).ToArray(), kept.Slice(0, lengthAt).ToArray());

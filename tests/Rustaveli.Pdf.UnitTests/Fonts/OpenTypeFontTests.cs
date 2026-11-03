@@ -219,4 +219,22 @@ public class OpenTypeFontTests
         Assert.False(font.TryGetTable(TableTag.Kern, out _));
         Assert.Equal(font.FileData.Length, TestFonts.Bytes(TestFonts.RegularFile).Length);
     }
+
+#if NET
+    [Fact]
+    public void LoadingAFontAllocatesItsDirectoryAndLittleElse()
+    {
+        // Allocation budget: loading reads the table directory and the head, hhea and maxp tables, and sets up the
+        // rest to be read on first use. An array of the tables every font must have, made afresh on every load, and a
+        // checksum kept for each table that nothing reads, cost this font of 17 tables 312 bytes more. When a change
+        // moves this on purpose, set the new figure and say why in the commit.
+        const long Budget = 2_576;
+        byte[] file = TestFonts.Bytes(TestFonts.RegularFile);
+        OpenTypeFont.Load(file);
+
+        long allocated = Allocations.Fewest(() => Allocations.Of(() => OpenTypeFont.Load(file)));
+
+        Assert.True(allocated <= Budget, $"Loading a font allocated {allocated} bytes; its budget is {Budget}.");
+    }
+#endif
 }

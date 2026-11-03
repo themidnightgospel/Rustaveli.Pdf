@@ -41,7 +41,7 @@ internal sealed class GlyphDefinitionTable
                 throw new FontFormatException($"Mark glyph sets format {format} does not exist.");
 
             MarkGlyphSetCount = BigEndian.UInt16(span, sets + 2);
-            _ = BigEndian.Slice(span, sets + 4L, MarkGlyphSetCount * 4L);
+            BigEndian.CheckRange(span.Length, sets + 4L, MarkGlyphSetCount * 4L);
             _markGlyphSets = sets;
         }
     }

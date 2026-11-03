@@ -9,6 +9,12 @@ internal sealed class HorizontalHeaderTable
 
     public const int AdvanceWidthMaxOffset = 10;
 
+    public const int MinLeftSideBearingOffset = 12;
+
+    public const int MinRightSideBearingOffset = 14;
+
+    public const int XMaxExtentOffset = 16;
+
     public const int NumberOfHMetricsOffset = 34;
 
     public HorizontalHeaderTable(ReadOnlySpan<byte> data)

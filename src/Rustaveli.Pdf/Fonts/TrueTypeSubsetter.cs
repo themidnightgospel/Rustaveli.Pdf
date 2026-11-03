@@ -100,10 +100,7 @@ internal static class TrueTypeSubsetter
         List<GlyphComponent> components = new List<GlyphComponent>();
 
         foreach (ushort glyph in glyphs)
-        {
-            if (glyph >= font.GlyphCount)
-                throw new ArgumentOutOfRangeException(paramName, glyph, $"The font has {font.GlyphCount} glyphs.");
-        }
+            GlyphRange.Check(glyph, font.GlyphCount, paramName);
 
         // Breadth-first over the growing list; the numbers make each glyph enter it once, which also ends a cycle of
         // composites that reference one another.
@@ -280,10 +277,10 @@ internal static class TrueTypeSubsetter
         }
 
         BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.AdvanceWidthMaxOffset, outlines.Advances.Max());
-        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.AdvanceWidthMaxOffset + 2, (ushort)minLeft);
-        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.AdvanceWidthMaxOffset + 4, (ushort)minRight);
-        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.AdvanceWidthMaxOffset + 6, (ushort)maxExtent);
-        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.NumberOfHMetricsOffset, (ushort)outlines.MetricCount);
+        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.MinLeftSideBearingOffset, (ushort)minLeft);
+        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.MinRightSideBearingOffset, (ushort)minRight);
+        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.XMaxExtentOffset, (ushort)maxExtent);
+        BigEndian.WriteUInt16(hhea, HorizontalHeaderTable.NumberOfHMetricsOffset, (ushort)outlines.CountMetrics());
 
         return hhea;
     }
@@ -291,7 +288,7 @@ internal static class TrueTypeSubsetter
     private static byte[] WriteHorizontalMetrics(OutlineData outlines)
     {
         int count = outlines.Advances.Length;
-        int metricCount = outlines.MetricCount;
+        int metricCount = outlines.CountMetrics();
         FontDataWriter hmtx = new FontDataWriter((metricCount * 2) + (count * 2));
 
         for (int index = 0; index < count; index++)
@@ -402,17 +399,14 @@ internal static class TrueTypeSubsetter
         /// How many glyphs need an advance of their own in <c>hmtx</c>: trailing glyphs sharing the last advance
         /// store only a bearing.
         /// </summary>
-        public int MetricCount
+        public int CountMetrics()
         {
-            get
-            {
-                int count = Advances.Length;
+            int count = Advances.Length;
 
-                while (count > 1 && Advances[count - 1] == Advances[count - 2])
-                    count--;
+            while (count > 1 && Advances[count - 1] == Advances[count - 2])
+                count--;
 
-                return count;
-            }
+            return count;
         }
 
         public void Include(int glyph, GlyphBounds bounds)

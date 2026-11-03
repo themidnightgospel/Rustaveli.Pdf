@@ -33,8 +33,16 @@ internal readonly record struct ContextRule(
             int glyphCount = BigEndian.UInt16(span, offset);
             int input = offset + 4;
 
+            // A rule of an unchained subtable has no backtrack or lookahead.
             return new ContextRule(
-                0, 0, glyphCount, input, 0, 0, BigEndian.UInt16(span, offset + 2), input + ((glyphCount - 1) * 2));
+                BacktrackCount: 0,
+                Backtrack: 0,
+                InputCount: glyphCount,
+                Input: input,
+                LookaheadCount: 0,
+                Lookahead: 0,
+                LookupCount: BigEndian.UInt16(span, offset + 2),
+                Lookups: input + ((glyphCount - 1) * 2));
         }
 
         int backtrackCount = BigEndian.UInt16(span, offset);

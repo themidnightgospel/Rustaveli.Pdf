@@ -6,9 +6,6 @@ namespace Rustaveli.Pdf.Fonts;
 /// </summary>
 internal static class SfntWriter
 {
-    private const int HeaderSize = 12;
-    private const int RecordSize = 16;
-
     /// <summary>What the checksum of a whole font must come to once the adjustment is in place.</summary>
     private const uint ChecksumMagic = 0xB1B0AFBA;
 
@@ -24,26 +21,22 @@ internal static class SfntWriter
 
         KeyValuePair<uint, ReadOnlyMemory<byte>>[] sorted = tables.OrderBy(static table => table.Key).ToArray();
         int count = sorted.Length;
-        int length = HeaderSize + (count * RecordSize);
+        int directoryLength = TableDirectory.HeaderSize + (count * TableDirectory.RecordSize);
+        int length = directoryLength;
 
         foreach (KeyValuePair<uint, ReadOnlyMemory<byte>> table in sorted)
             length += Padded(table.Value.Length);
 
         byte[] file = new byte[length];
-        int entrySelector = 0;
-
-        while ((2 << entrySelector) <= count)
-            entrySelector++;
-
-        int searchRange = (1 << entrySelector) * RecordSize;
+        BinarySearchHeader search = BinarySearchHeader.For(count, TableDirectory.RecordSize);
 
         BigEndian.WriteUInt32(file, 0, sfntVersion);
         BigEndian.WriteUInt16(file, 4, (ushort)count);
-        BigEndian.WriteUInt16(file, 6, (ushort)searchRange);
-        BigEndian.WriteUInt16(file, 8, (ushort)entrySelector);
-        BigEndian.WriteUInt16(file, 10, (ushort)((count * RecordSize) - searchRange));
+        BigEndian.WriteUInt16(file, 6, (ushort)search.SearchRange);
+        BigEndian.WriteUInt16(file, 8, (ushort)search.EntrySelector);
+        BigEndian.WriteUInt16(file, 10, (ushort)search.RangeShift);
 
-        int offset = HeaderSize + (count * RecordSize);
+        int offset = directoryLength;
         int headOffset = 0;
 
         for (int index = 0; index < count; index++)
@@ -59,7 +52,7 @@ internal static class SfntWriter
                 BigEndian.WriteUInt32(file, offset + HeadTable.ChecksumAdjustmentOffset, 0);
             }
 
-            int record = HeaderSize + (index * RecordSize);
+            int record = TableDirectory.HeaderSize + (index * TableDirectory.RecordSize);
             BigEndian.WriteUInt32(file, record, tag);
             BigEndian.WriteUInt32(file, record + 4, Checksum(copy));
             BigEndian.WriteUInt32(file, record + 8, (uint)offset);

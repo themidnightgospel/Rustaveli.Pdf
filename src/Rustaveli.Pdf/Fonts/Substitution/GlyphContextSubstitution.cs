@@ -12,10 +12,7 @@ internal sealed class GlyphContextSubstitution : ContextSubstitution
     public GlyphContextSubstitution(ReadOnlyMemory<byte> table, int offset, bool chained)
         : base(table, offset)
     {
-        ReadOnlySpan<byte> span = table.Span;
-        _coverage = new CoverageTable(table, offset + BigEndian.UInt16(span, offset + 2));
-        _ruleSetCount = BigEndian.UInt16(span, offset + 4);
-        _ = BigEndian.Slice(span, offset + 6L, _ruleSetCount * 2L);
+        (_coverage, _ruleSetCount) = ReadCoveredArray();
         _chained = chained;
     }
 
@@ -23,9 +20,10 @@ internal sealed class GlyphContextSubstitution : ContextSubstitution
     {
         next = position;
         int index = _coverage.IndexOf(session.Buffer.Glyphs[position]);
+        int ruleSets = Offset + CoveredArrayOffset;
 
         return index >= 0 &&
-               TryApplyRuleSet(session, lookup, position, Offset + 6, _ruleSetCount, index, _chained, out next);
+               TryApplyRuleSet(session, lookup, position, ruleSets, _ruleSetCount, index, _chained, out next);
     }
 
     protected override bool Matches(ContextPart part, ushort value, ushort glyph) => glyph == value;

@@ -40,7 +40,14 @@ internal sealed class CoverageContextSubstitution : ContextSubstitution
             int glyphCount = BigEndian.UInt16(span, offset + 2);
             input = offset + 6;
             _rule = new ContextRule(
-                0, 0, glyphCount, input + 2, 0, 0, BigEndian.UInt16(span, offset + 4), input + (glyphCount * 2));
+                BacktrackCount: 0,
+                Backtrack: 0,
+                InputCount: glyphCount,
+                Input: input + 2,
+                LookaheadCount: 0,
+                Lookahead: 0,
+                LookupCount: BigEndian.UInt16(span, offset + 4),
+                Lookups: input + (glyphCount * 2));
         }
 
         // A rule without input glyphs is malformed and can match nothing.

@@ -12,6 +12,9 @@ namespace Rustaveli.Pdf.Fonts.Substitution;
 /// </remarks>
 internal abstract class SubstitutionSubtable
 {
+    /// <summary>Where the array that <see cref="ReadCoveredArray"/> counts starts, from the subtable's start.</summary>
+    protected const int CoveredArrayOffset = 6;
+
     protected SubstitutionSubtable(ReadOnlyMemory<byte> table, int offset)
     {
         Table = table;
@@ -53,4 +56,21 @@ internal abstract class SubstitutionSubtable
             _ => throw new FontFormatException($"GSUB lookup type {type} has no subtable format {format}.")
         };
     }
+
+    /// <summary>
+    /// Reads the header that many subtables start with — the format, the coverage, then the count of an array of
+    /// 16-bit entries, one for each glyph covered — and checks that the whole array is there.
+    /// </summary>
+    protected (CoverageTable Coverage, int Count) ReadCoveredArray()
+    {
+        CoverageTable coverage = ReadCoverage();
+        int count = BigEndian.UInt16(Table.Span, Offset + 4);
+        BigEndian.CheckRange(Table.Length, Offset + (long)CoveredArrayOffset, count * 2L);
+
+        return (coverage, count);
+    }
+
+    /// <summary>The coverage table whose offset follows the format, as it does in every format that has one.</summary>
+    protected CoverageTable ReadCoverage() =>
+        new CoverageTable(Table, Offset + BigEndian.UInt16(Table.Span, Offset + 2));
 }

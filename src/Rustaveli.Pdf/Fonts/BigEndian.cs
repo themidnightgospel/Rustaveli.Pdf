@@ -51,23 +51,26 @@ internal static class BigEndian
     public static float Fixed(ReadOnlySpan<byte> data, int offset) => Int32(data, offset) / 65536f;
 
     /// <summary>
-    /// A range of the data, checked to lie wholly inside it. Offsets and lengths are taken as <see cref="long"/> so
-    /// that 32-bit values read from the font cannot wrap around before they are checked.
+    /// Checks that a range lies wholly inside data <paramref name="available"/> bytes long. Offsets and lengths are
+    /// taken as <see cref="long"/> so that 32-bit values read from the font cannot wrap around before they are checked.
     /// </summary>
+    public static void CheckRange(int available, long offset, long length)
+    {
+        if (offset < 0 || length < 0 || offset > available || length > available - offset)
+            throw FontFormatException.Truncated();
+    }
+
+    /// <summary>A range of the data, checked to lie wholly inside it (see <see cref="CheckRange"/>).</summary>
     public static ReadOnlySpan<byte> Slice(ReadOnlySpan<byte> data, long offset, long length)
     {
-        if (offset < 0 || length < 0 || offset > data.Length || length > data.Length - offset)
-            throw FontFormatException.Truncated();
-
+        CheckRange(data.Length, offset, length);
         return data.Slice((int)offset, (int)length);
     }
 
     /// <inheritdoc cref="Slice(ReadOnlySpan{byte}, long, long)"/>
     public static ReadOnlyMemory<byte> Slice(ReadOnlyMemory<byte> data, long offset, long length)
     {
-        if (offset < 0 || length < 0 || offset > data.Length || length > data.Length - offset)
-            throw FontFormatException.Truncated();
-
+        CheckRange(data.Length, offset, length);
         return data.Slice((int)offset, (int)length);
     }
 

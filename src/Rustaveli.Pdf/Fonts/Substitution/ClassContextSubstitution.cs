@@ -22,7 +22,7 @@ internal sealed class ClassContextSubstitution : ContextSubstitution
         : base(table, offset)
     {
         ReadOnlySpan<byte> span = table.Span;
-        _coverage = new CoverageTable(table, offset + BigEndian.UInt16(span, offset + 2));
+        _coverage = ReadCoverage();
         _chained = chained;
 
         if (chained)
@@ -39,7 +39,7 @@ internal sealed class ClassContextSubstitution : ContextSubstitution
         }
 
         _ruleSetCount = BigEndian.UInt16(span, _ruleSets - 2);
-        _ = BigEndian.Slice(span, _ruleSets, _ruleSetCount * 2L);
+        BigEndian.CheckRange(span.Length, _ruleSets, _ruleSetCount * 2L);
     }
 
     public override bool TryApply(SubstitutionSession session, SubstitutionLookup lookup, int position, out int next)

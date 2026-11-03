@@ -444,16 +444,6 @@ public class TrueTypeSubsetterTests
     }
 
     [Fact]
-    public void ReportsWhetherAGlyphIsInTheSubset()
-    {
-        TrueTypeSubset subset = TrueTypeSubsetter.Subset(TestFonts.Regular, [36]);
-
-        Assert.True(subset.TryGetSubsetGlyphId(36, out ushort renumbered));
-        Assert.Equal(1, renumbered);
-        Assert.False(subset.TryGetSubsetGlyphId(57, out _));
-    }
-
-    [Fact]
     public void NumbersGlyphsByFirstUse()
     {
         OpenTypeFont font = TestFonts.Regular;
