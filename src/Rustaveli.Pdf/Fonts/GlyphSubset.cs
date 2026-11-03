@@ -153,6 +153,7 @@ internal sealed class GlyphSubset
         {
             int shared = code - FirstSharedCode;
 
+            // Two lookups, kept apart: as one expression they would be ternaries nested again.
             if (shared >= 0)
                 found = shared < _sharedCodes.Count ? _sharedCodes[shared].Text : null;
             else
