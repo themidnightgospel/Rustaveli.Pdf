@@ -61,8 +61,8 @@ Files are often damaged in small, predictable ways, which the reader repairs as 
 |---|---|
 | The cross-reference section is missing, cannot be parsed, or its trailer names no catalog | Rebuilds the list by scanning the whole file for objects |
 | An object is not at the offset listed for it | Rebuilds by scanning, once; an object still not found reads as null |
-| An object's body cannot be parsed, once the file is rebuilt | Reads as null, as an object the file does not hold |
-| An object being saved cannot be read, or is kept in an object stream whose filter the library does not decode | Saves it as null |
+| An object cannot be parsed at the offset listed for it | Rebuilds by scanning, once; an object still unreadable reads as null |
+| An object being saved is kept in an object stream whose filter the library does not decode | Saves it as null |
 | A stream's `/Length` is wrong | Ends the stream at its `endstream` keyword instead |
 | Flate data is cut short | Keeps what inflated before the damage |
 | The first table subsection is numbered from 1 though it begins with object 0 | Reads it from 0 |
@@ -74,7 +74,7 @@ trailer is put together from every `trailer` in the file, or else the catalog is
 
 Some damage cannot be repaired, and opening fails with
 [`UnreadableFileException`](https://themidnightgospel.github.io/Rustaveli.Pdf/api/reference/Rustaveli.Pdf.UnreadableFileException.html):
-no `%PDF-` header in the first kilobyte, no catalog anywhere, a catalog with no page tree, or a stream with no end.
+no `%PDF-` header in the first kilobyte, no catalog anywhere, or a catalog with no page tree.
 
 ## Protected files
 
