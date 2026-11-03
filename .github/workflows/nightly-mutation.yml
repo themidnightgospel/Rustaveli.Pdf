@@ -288,11 +288,12 @@ jobs:
           retention-days: 14
 
   # A shard below the floor is work for the next pull request, so it is filed as an issue — one, kept open until
-  # fixed, however many nights it fails.
+  # fixed, however many nights it fails. A shard stopped at the time limit can leave the run cancelled rather than
+  # failed, so the report runs whenever the shards did not all pass, and says which it was.
   report:
     name: report a failed night
     needs: mutation
-    if: failure()
+    if: always() && needs.mutation.result != 'success'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -300,14 +301,15 @@ jobs:
       - name: Open an issue unless one is open
         env:
           GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.mutation.result }}
         run: |
           title="Nightly mutation testing failed"
           open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq length)
           run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           if [ "$open" = "0" ]; then
             gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" \
-              --body "A mutation shard fell below the 80% floor, or failed, on main: $run. Its report is attached to the run."
+              --body "A mutation shard fell below the 80% floor, failed, or was stopped at the time limit on main ($RESULT): $run. Its report is attached to the run."
           else
             number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
-            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "Failed again: $run"
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "Failed again ($RESULT): $run"
           fi
