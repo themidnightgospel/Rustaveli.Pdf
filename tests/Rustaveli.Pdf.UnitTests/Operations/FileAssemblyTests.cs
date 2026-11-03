@@ -352,6 +352,18 @@ public class FileAssemblyTests
     }
 
     [Fact]
+    public void AnnotationsTooDamagedToReadAreLeftOutWhenAFileWithSoundCrossReferencesIsSaved()
+    {
+        // Object 5 does not parse where the cross-references put it: reading it for the second copy rebuilds the file.
+        PdfFile damaged = Opened(HandmadePdf.OnePage("/Annots 5 0 R").Object(5, "}"));
+
+        PdfSource source = Saved(damaged.KeepPages("1, 1"));
+
+        Assert.All(source.Pages, page =>
+            Assert.Equal(PdfValueKind.Null, source.Resolve(page.Dictionary[PdfNames.Annots]).Kind));
+    }
+
+    [Fact]
     public void AnnotationsTooDamagedToReadAreLeftOutWhenARebuiltFileIsSaved()
     {
         // A page kept twice has its annotations read, to be written anew for the second copy.

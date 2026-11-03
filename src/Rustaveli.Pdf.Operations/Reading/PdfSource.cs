@@ -255,8 +255,9 @@ internal sealed class PdfSource
 
     /// <summary>
     /// The object numbered <paramref name="number"/>: a <see cref="PdfValue"/>, or a <see cref="SourceStream"/> for a
-    /// stream. An object the file does not hold is null (7.3.10), and so, once the file is rebuilt, is one too damaged
-    /// to read: there is nowhere else to look for it.
+    /// stream. An object the file does not hold is null (7.3.10). One not where the cross-references put it, or too
+    /// damaged to read there, has the file rebuilt, once; and once it is, such an object is null too: there is nowhere
+    /// else to look for it.
     /// </summary>
     public object GetObject(int number)
     {
@@ -278,16 +279,10 @@ internal sealed class PdfSource
 
                 if (ReferenceEquals(loaded, Misplaced))
                 {
-                    if (_rebuilt)
-                    {
-                        loaded = PdfValue.Null;
-                    }
-                    else
-                    {
-                        Rebuild();
-                        _loading.Remove(number);
-                        return GetObject(number);
-                    }
+                    if (!_rebuilt)
+                        return ReadRebuilt(number);
+
+                    loaded = PdfValue.Null;
                 }
 
                 _objects[number] = loaded;
@@ -298,11 +293,25 @@ internal sealed class PdfSource
                 _objects[number] = PdfValue.Null;
                 return PdfValue.Null;
             }
+            catch (UnreadableFileException) when (!_rebuilt)
+            {
+                // No rebuild was set off, so none failed: the body does not parse where the cross-references put it.
+                // They are wrong about it, as about a misplaced object.
+                return ReadRebuilt(number);
+            }
             finally
             {
                 _loading.Remove(number);
             }
         }
+    }
+
+    /// <summary>Object <paramref name="number"/>, read again in the file rebuilt; a failed rebuild throws.</summary>
+    private object ReadRebuilt(int number)
+    {
+        Rebuild();
+        _loading.Remove(number);
+        return GetObject(number);
     }
 
     /// <summary>A value with references followed; a stream gives its dictionary.</summary>
@@ -840,7 +849,7 @@ internal sealed class PdfSource
     /// <summary>
     /// Object <paramref name="number"/>, or null when it is too damaged to read, or kept in an object stream no filter
     /// here decodes: rebuilding reads every object scanning finds, and saving every object reached, and one that cannot
-    /// be read must not cost the rest of the file. In a file not rebuilt, it stays unreadable when asked for.
+    /// be read must not cost the rest of the file. One kept in such an object stream stays unreadable when asked for.
     /// </summary>
     public object? Readable(int number)
     {

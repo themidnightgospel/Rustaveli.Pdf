@@ -465,13 +465,50 @@ public class PdfSourceTests
         Assert.Equal("endstream inside\r\n", Encoding.ASCII.GetString(((SourceStream)Open(pdf).GetObject(4)).Data));
     }
 
-    [Fact]
-    public void AStreamWithNoEndIsUnreadable()
+    [Theory]
+    [InlineData("}")]
+    [InlineData("<</Length 999>>\nstream\nforever")]
+    public void AnObjectWhoseBodyCannotBeParsedHasTheFileRebuiltAndReadsAsNull(string body)
     {
-        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "<</Length 999>>\nstream\nforever");
+        // The second is a stream with no end.
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, body);
         pdf.Section("/Root 1 0 R");
 
-        Assert.Throws<UnreadableFileException>(() => Open(pdf).GetObject(4));
+        PdfSource source = Open(pdf);
+
+        Assert.False(source.WasRepaired);
+        Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
+        Assert.True(source.WasRepaired);
+        Assert.Single(source.Pages);
+    }
+
+    [Fact]
+    public void AnObjectStreamNoFilterHereDecodesIsNoReasonToRebuildTheFile()
+    {
+        PdfSource source = InObjectStream(
+            HandmadePdf.OnePage().Stream(5, "<</Type/ObjStm/N 1/First 4/Filter/JBIG2Decode>>", "4 0 (packed)"), 0);
+
+        Assert.Throws<NotSupportedException>(() => source.GetObject(4));
+        Assert.False(source.WasRepaired);
+    }
+
+    [Fact]
+    public void AFailedRebuildIsNotTakenForDamageToTheObjectThatSetItOff()
+    {
+        // A letter just before the headers of the catalog and of the cross-reference stream hides both from scanning.
+        HandmadePdf pdf = new HandmadePdf()
+            .Raw("x").Object(1, "<</Type/Catalog/Pages 2 0 R>>")
+            .Object(2, "<</Type/Pages/Kids[3 0 R]/Count 1>>")
+            .Object(3, "<</Type/Page/Parent 2 0 R>>")
+            .Object(4, "}")
+            .Raw("x");
+        pdf.StreamSection(
+            5, "/Size 5/Root 1 0 R", [1, 4, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), InUse(pdf, 4));
+        PdfSource source = Open(pdf);
+
+        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(() => source.GetObject(4));
+
+        Assert.Contains("no catalog", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1120,12 +1157,13 @@ public class PdfSourceTests
     [Theory]
     [InlineData("stream")]
     [InlineData("stream\r")]
-    public void AStreamCutOffAfterItsKeywordIsUnreadable(string keyword)
+    public void AStreamCutOffAfterItsKeywordHasTheFileRebuiltAndReadsAsNull(string keyword)
     {
         PdfSource source = PdfSource.Open(EndingWithObjectFour("4 0 obj\n<</Length 0>>\n" + keyword));
 
         Assert.Single(source.Pages);
-        Assert.Throws<UnreadableFileException>(() => source.GetObject(4));
+        Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
+        Assert.True(source.WasRepaired);
     }
 
     [Fact]

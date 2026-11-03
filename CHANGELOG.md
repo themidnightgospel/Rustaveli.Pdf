@@ -17,6 +17,10 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   `InvalidOperationException`; it is damage now, an `UnreadableFileException`.
 - Repairing a PDF: one object too damaged to read made the whole file unreadable. It is left out now, and the rest of
   the file is read; the damaged object reads as null, as an object the file does not hold, and is saved as one.
+- Reading a PDF whose cross-references are sound: an object whose body could not be parsed at the offset they give,
+  such as a stream with no end, was refused with an `UnreadableFileException`, and so was a save that read it, as
+  keeping a page twice reads its annotations. It is damage they do not show now, as an object not where they list it
+  is: the file is repaired by scanning, once, and the object reads as null.
 - Repairing a PDF: an object header held in a stream's data, such as the text `1 0 obj` in an uncompressed content
   stream, was taken for that object, in place of the real one written before the stream. The scan for objects now
   goes on after each stream's data: where its `/Length` ends, when `endstream` follows there, and otherwise at
