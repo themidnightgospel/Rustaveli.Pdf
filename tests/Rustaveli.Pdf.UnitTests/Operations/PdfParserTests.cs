@@ -58,6 +58,23 @@ public class PdfParserTests
     [InlineData("obj")]
     public void RefusesWhatIsNeitherANumberNorAValue(string text) => Assert.Throws<UnreadableFileException>(() => Read(text));
 
+#if NET
+    [Fact]
+    public void ReadingANumberAllocatesNoMoreThanItsText()
+    {
+        // Allocation budget: every number a file holds is parsed from its text, which is all reading it should cost.
+        PdfParser parser = new PdfParser("12345"u8.ToArray());
+        long text = Allocations.Fewest(() => Allocations.Of(() => _ = new string('1', 5)));
+        long read = Allocations.Fewest(() => Allocations.Of(() =>
+        {
+            parser.Position = 0;
+            _ = parser.ReadValue();
+        }));
+
+        Assert.True(read <= text, $"Reading a number allocated {read:N0} bytes; its text is {text:N0}.");
+    }
+#endif
+
     [Theory]
     [InlineData("/Type", "Type", "/Type")]
     [InlineData("/A#20B", "A B", "/A#20B")]

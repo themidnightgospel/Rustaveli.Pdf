@@ -45,7 +45,8 @@ public class FileAssemblyTests
     private static List<string> Contents(PdfSource source, int page)
     {
         PdfValue contents = source.Pages[page].Dictionary[PdfNames.Contents];
-        IEnumerable<PdfValue> streams = source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray().Cast<PdfValue>() : [contents];
+        IEnumerable<PdfValue> streams =
+            source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray() : [contents];
         return streams.Select(stream => Encoding.Latin1.GetString(source.Decode(source.Stream(stream)!))).ToList();
     }
 
@@ -169,7 +170,7 @@ public class FileAssemblyTests
 
     /// <summary>The names of the fields of the form <paramref name="source"/> holds, each as hex.</summary>
     private static List<string> FieldNames(PdfSource source) =>
-        source.Resolve(Dictionary(source, source.Catalog[AcroForm])[Fields]).AsArray().Cast<PdfValue>()
+        source.Resolve(Dictionary(source, source.Catalog[AcroForm])[Fields]).AsArray()
             .Select(field => string.Concat(Dictionary(source, field)[T].AsString().Bytes.ToArray().Select(value => value.ToString("X2", CultureInfo.InvariantCulture))))
             .ToList();
 
@@ -195,7 +196,9 @@ public class FileAssemblyTests
             .Append(Opened(Form(form: $"/DR<</ProcSet[/Text]/Font<</Helv {font}/ZaDb {font}>>>>"))));
         PdfDictionary resources = Dictionary(source, Dictionary(source, source.Catalog[AcroForm])[DR]);
 
-        Assert.Equal(["PDF"], source.Resolve(resources[new PdfName("ProcSet")]).AsArray().Cast<PdfValue>().Select(name => name.AsName().Value));
+        Assert.Equal(
+            ["PDF"],
+            source.Resolve(resources[new PdfName("ProcSet")]).AsArray().Select(name => name.AsName().Value));
         Assert.Equal(["Helv", "ZaDb"], Dictionary(source, resources[PdfNames.Font]).Select(entry => entry.Key.Value));
     }
 
@@ -308,7 +311,7 @@ public class FileAssemblyTests
             .Object(4, "<</Type/Page/Parent 2 0 R>>");
 
         PdfSource source = Saved(Opened(HandmadePdf.OnePage()).Append(Opened(pdf)));
-        List<PdfDictionary> actions = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray().Cast<PdfValue>()
+        List<PdfDictionary> actions = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray()
             .Select(annotation => Dictionary(source, Dictionary(source, annotation)[PdfNames.A]))
             .ToList();
 
@@ -334,7 +337,7 @@ public class FileAssemblyTests
         PdfValue box = (PdfValue)source.GetObject(page[PdfNames.MediaBox].AsReference().ObjectNumber);
 
         Assert.Equal("Helvetica", written.AsDictionary()[new PdfName("BaseFont")].AsName().Value);
-        Assert.Equal([0L, 0L, 200L, 200L], box.AsArray().Cast<PdfValue>().Select(corner => corner.AsInteger()));
+        Assert.Equal([0L, 0L, 200L, 200L], box.AsArray().Select(corner => corner.AsInteger()));
     }
 
     [Fact]

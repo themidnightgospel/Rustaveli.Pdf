@@ -208,11 +208,8 @@ internal sealed class FileAssembler
         PdfDictionary copied = _copier.CopyDictionary(source, page.Dictionary, leaving);
         copied[PdfNames.Parent] = placed.Parent;
 
-        if (again && page.Dictionary.TryGetValue(PdfNames.Annots, out PdfValue listed)
-            && source.Resolve(listed) is { Kind: PdfValueKind.Array } annotations)
-        {
+        if (again && source.Resolve(page.Dictionary, PdfNames.Annots) is { Kind: PdfValueKind.Array } annotations)
             copied[PdfNames.Annots] = CopyAnnotations(source, annotations.AsArray(), placed.Page);
-        }
 
         if (entry.Beneath.Count > 0 || entry.Over.Count > 0)
             Layer(entry, copied);
@@ -255,17 +252,17 @@ internal sealed class FileAssembler
         PdfDictionary own = entry.Page.Dictionary;
 
         // Built from what the file holds, not from the copy: the copy's references number objects of the new file.
-        PdfDictionary? held = own.TryGetValue(PdfNames.Resources, out PdfValue given) && source.Resolve(given) is { Kind: PdfValueKind.Dictionary } found
+        PdfDictionary? held = source.Resolve(own, PdfNames.Resources) is { Kind: PdfValueKind.Dictionary } found
             ? found.AsDictionary()
             : null;
 
         PdfDictionary resources = held is null
             ? new PdfDictionary()
             : _copier.CopyDictionary(source, held, PdfNames.XObject);
-        PdfDictionary xObjects = held is not null && held.TryGetValue(PdfNames.XObject, out PdfValue existing)
-            && source.Resolve(existing) is { Kind: PdfValueKind.Dictionary } named
-            ? _copier.CopyDictionary(source, named.AsDictionary())
-            : new PdfDictionary();
+        PdfDictionary xObjects =
+            held is not null && source.Resolve(held, PdfNames.XObject) is { Kind: PdfValueKind.Dictionary } named
+                ? _copier.CopyDictionary(source, named.AsDictionary())
+                : new PdfDictionary();
 
         StringBuilder before = new StringBuilder();
         StringBuilder after = new StringBuilder("\nQ\n");
@@ -322,9 +319,7 @@ internal sealed class FileAssembler
         if (!page.Dictionary.TryGetValue(PdfNames.Contents, out PdfValue contents))
             return [];
 
-        return page.Source.Resolve(contents) is { Kind: PdfValueKind.Array } array
-            ? array.AsArray().Cast<PdfValue>()
-            : [contents];
+        return page.Source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray() : [contents];
     }
 
     /// <summary>
@@ -404,12 +399,13 @@ internal sealed class FileAssembler
 
     /// <summary>Whether <paramref name="source"/> says it is tagged: its catalog's <c>/MarkInfo</c> has <c>/Marked true</c>.</summary>
     private static bool IsMarked(PdfSource source) =>
-        source.Catalog.TryGetValue(MarkInfo, out PdfValue given) && source.Resolve(given) is { Kind: PdfValueKind.Dictionary } info
-        && info.AsDictionary().TryGetValue(Marked, out PdfValue marked) && source.Resolve(marked) is { Kind: PdfValueKind.Boolean } flag && flag.AsBoolean();
+        source.Resolve(source.Catalog, MarkInfo) is { Kind: PdfValueKind.Dictionary } info
+        && source.Resolve(info.AsDictionary(), Marked) is { Kind: PdfValueKind.Boolean } flag && flag.AsBoolean();
 
     /// <summary>How far a page is turned clockwise as it is shown: a multiple of 90 degrees, or none.</summary>
     private static int Rotation(SourcePage page) =>
-        page.Dictionary.TryGetValue(Rotate, out PdfValue given) && page.Source.Resolve(given) is { Kind: PdfValueKind.Integer } rotate && rotate.AsInteger() % 90 == 0
+        page.Source.Resolve(page.Dictionary, Rotate) is { Kind: PdfValueKind.Integer } rotate
+            && rotate.AsInteger() % 90 == 0
             ? (int)(rotate.AsInteger() % 360)
             : 0;
 
@@ -458,11 +454,11 @@ internal sealed class FileAssembler
 
         foreach (PdfSource source in _sources)
         {
-            if (!source.Catalog.TryGetValue(OCProperties, out PdfValue given) || source.Resolve(given) is not { Kind: PdfValueKind.Dictionary } found)
+            if (source.Resolve(source.Catalog, OCProperties) is not { Kind: PdfValueKind.Dictionary } found)
                 continue;
 
             PdfDictionary properties = found.AsDictionary();
-            PdfDictionary shown = source.Resolve(properties.TryGetValue(PdfNames.D, out PdfValue d) ? d : PdfValue.Null) is { Kind: PdfValueKind.Dictionary } own
+            PdfDictionary shown = source.Resolve(properties, PdfNames.D) is { Kind: PdfValueKind.Dictionary } own
                 ? own.AsDictionary()
                 : new PdfDictionary();
             List<PdfValue> listed = Items(source, properties, OCGs);
@@ -477,7 +473,7 @@ internal sealed class FileAssembler
                 groups.Add(_copier.Copy(source, group));
 
             // A configuration that starts with every group hidden shows only those it names as on.
-            if (source.Resolve(shown.TryGetValue(BaseState, out PdfValue state) ? state : PdfValue.Null) is { Kind: PdfValueKind.Name } name && name.AsName().Equals(Off))
+            if (source.Resolve(shown, BaseState) is { Kind: PdfValueKind.Name } name && name.AsName().Equals(Off))
             {
                 HashSet<int> on = [.. Items(source, shown, On).Where(group => group.Kind == PdfValueKind.Reference).Select(group => group.AsReference().ObjectNumber)];
 
@@ -512,9 +508,7 @@ internal sealed class FileAssembler
 
     /// <summary>The items of the array <paramref name="dictionary"/> holds as <paramref name="key"/>, or none.</summary>
     private static List<PdfValue> Items(PdfSource source, PdfDictionary dictionary, PdfName key) =>
-        dictionary.TryGetValue(key, out PdfValue value) && source.Resolve(value) is { Kind: PdfValueKind.Array } array
-            ? array.AsArray().Cast<PdfValue>().ToList()
-            : [];
+        source.Resolve(dictionary, key) is { Kind: PdfValueKind.Array } array ? array.AsArray().ToList() : [];
 
     /// <summary>
     /// The interactive form of every file the pages come from, merged: the first file's fields all while its pages all
@@ -539,7 +533,7 @@ internal sealed class FileAssembler
 
         foreach (PdfSource source in _sources)
         {
-            if (!source.Catalog.TryGetValue(AcroForm, out PdfValue given) || source.Resolve(given) is not { Kind: PdfValueKind.Dictionary } found)
+            if (source.Resolve(source.Catalog, AcroForm) is not { Kind: PdfValueKind.Dictionary } found)
                 continue;
 
             PdfDictionary acroForm = found.AsDictionary();
@@ -586,8 +580,7 @@ internal sealed class FileAssembler
     private void RenameIfTaken(PdfSource source, PdfValue field, HashSet<string> names)
     {
         if (source.Resolve(field) is { Kind: PdfValueKind.Dictionary } dictionary
-            && dictionary.AsDictionary().TryGetValue(T, out PdfValue title)
-            && source.Resolve(title) is { Kind: PdfValueKind.String } text
+            && source.Resolve(dictionary.AsDictionary(), T) is { Kind: PdfValueKind.String } text
             && !names.Add(Convert.ToBase64String(text.AsString().Bytes.ToArray())))
         {
             byte[] name = text.AsString().Bytes.ToArray();
@@ -611,11 +604,8 @@ internal sealed class FileAssembler
     /// </summary>
     private void JoinResources(PdfSource source, PdfDictionary acroForm, PdfDictionary resources)
     {
-        if (!acroForm.TryGetValue(DR, out PdfValue held)
-            || source.Resolve(held) is not { Kind: PdfValueKind.Dictionary } dr)
-        {
+        if (source.Resolve(acroForm, DR) is not { Kind: PdfValueKind.Dictionary } dr)
             return;
-        }
 
         foreach (KeyValuePair<PdfName, PdfValue> category in dr.AsDictionary())
         {
@@ -665,11 +655,8 @@ internal sealed class FileAssembler
         CopyNames();
         ExtendMetadata();
 
-        if (_first.Trailer.TryGetValue(Info, out PdfValue info)
-            && _first.Resolve(info) is { Kind: PdfValueKind.Dictionary } dictionary)
-        {
+        if (_first.Resolve(_first.Trailer, Info) is { Kind: PdfValueKind.Dictionary } dictionary)
             _writer.InfoDictionary = _copier.CopyDictionary(_first, dictionary.AsDictionary());
-        }
     }
 
     /// <summary>
@@ -681,8 +668,7 @@ internal sealed class FileAssembler
         PdfDictionary catalog = _first.Catalog;
 
         // Attached files belong to no page, so they stay whatever pages are kept; the other name trees point at pages.
-        PdfDictionary? names = catalog.TryGetValue(PdfNames.Names, out PdfValue given)
-            && _first.Resolve(given) is { Kind: PdfValueKind.Dictionary } found
+        PdfDictionary? names = _first.Resolve(catalog, PdfNames.Names) is { Kind: PdfValueKind.Dictionary } found
             ? found.AsDictionary()
             : null;
 
@@ -701,8 +687,7 @@ internal sealed class FileAssembler
             }
         }
 
-        PdfArray associated = catalog.TryGetValue(Associated, out PdfValue af)
-            && _first.Resolve(af) is { Kind: PdfValueKind.Array } array
+        PdfArray associated = _first.Resolve(catalog, Associated) is { Kind: PdfValueKind.Array } array
             ? _copier.Copy(_first, array).AsArray()
             : new PdfArray();
 

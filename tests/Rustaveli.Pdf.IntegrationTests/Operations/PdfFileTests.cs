@@ -292,7 +292,8 @@ public class PdfFileTests
     {
         PdfSource source = PdfSource.Open(pdf);
         PdfValue contents = source.Pages[0].Dictionary[PdfNames.Contents];
-        IEnumerable<PdfValue> streams = source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray().Cast<PdfValue>() : [contents];
+        IEnumerable<PdfValue> streams =
+            source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray() : [contents];
         return string.Join("\n", streams.Select(stream => System.Text.Encoding.Latin1.GetString(source.Decode(source.Stream(stream)!))));
     }
 
@@ -458,7 +459,7 @@ public class PdfFileTests
             + "4 0 obj<</Type/Page/Parent 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
 
         PdfSource source = PdfSource.Open(PdfFile.Open(Pages("One")).Append(PdfFile.Open(System.Text.Encoding.ASCII.GetBytes(pdf))).ToArray());
-        List<PdfValue> destinations = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray().Cast<PdfValue>()
+        List<PdfValue> destinations = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray()
             .Select(annotation => source.Resolve(annotation).AsDictionary())
             .Select(annotation => annotation.TryGetValue(new PdfName("Dest"), out PdfValue dest) ? dest : source.Resolve(annotation[PdfNames.A]).AsDictionary()[PdfNames.D])
             .ToList();
@@ -496,8 +497,10 @@ public class PdfFileTests
 
         string Name(PdfValue group) => System.Text.Encoding.ASCII.GetString(source.Resolve(group).AsDictionary()[new PdfName("Name")].AsString().Bytes.ToArray());
 
-        List<string> groups = source.Resolve(properties[new PdfName("OCGs")]).AsArray().Cast<PdfValue>().Select(Name).ToList();
-        List<string> hidden = configuration.TryGetValue(new PdfName("OFF"), out PdfValue off) ? source.Resolve(off).AsArray().Cast<PdfValue>().Select(Name).ToList() : [];
+        List<string> groups = source.Resolve(properties[new PdfName("OCGs")]).AsArray().Select(Name).ToList();
+        List<string> hidden = configuration.TryGetValue(new PdfName("OFF"), out PdfValue off)
+            ? source.Resolve(off).AsArray().Select(Name).ToList()
+            : [];
         int ordered = configuration.TryGetValue(new PdfName("Order"), out PdfValue order) ? source.Resolve(order).AsArray().Count : 0;
         return (groups, hidden, ordered);
     }
@@ -546,7 +549,7 @@ public class PdfFileTests
 
         string Text(PdfValue value) => System.Text.Encoding.ASCII.GetString(source.Resolve(value).AsString().Bytes.ToArray());
 
-        List<string> fields = source.Resolve(form[new PdfName("Fields")]).AsArray().Cast<PdfValue>()
+        List<string> fields = source.Resolve(form[new PdfName("Fields")]).AsArray()
             .Select(field => source.Resolve(field).AsDictionary())
             .Select(field => Text(field[new PdfName("T")]) + (field.TryGetValue(new PdfName("V"), out PdfValue value) ? "=" + Text(value) : string.Empty))
             .ToList();
