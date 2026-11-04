@@ -20,7 +20,7 @@ public class PdfRectangleTests
     {
         PdfRectangle rectangle = new PdfRectangle(0, -10.5, 595.28, 841.89);
 
-        Assert.Equal("[0 -10.5 595.28 841.89]", Latin1.Written(writer => writer.WriteArray(rectangle.ToArray())));
+        Assert.Equal("[0 -10.5 595.28 841.89]", Latin1.Written(writer => writer.WriteValue(rectangle.ToArray())));
     }
 
     [Theory]

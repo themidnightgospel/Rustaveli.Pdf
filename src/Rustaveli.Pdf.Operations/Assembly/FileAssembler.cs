@@ -17,13 +17,8 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 /// </remarks>
 internal sealed class FileAssembler
 {
-    private static readonly PdfName Root = new PdfName("Root");
-    private static readonly PdfName Info = PdfNames.Info;
     private static readonly PdfName Form = new PdfName("Form");
     private static readonly PdfName BBox = new PdfName("BBox");
-    private static readonly PdfName CropBox = new PdfName("CropBox");
-    private static readonly PdfName Rotate = new PdfName("Rotate");
-    private static readonly PdfName AcroForm = new PdfName("AcroForm");
     private static readonly PdfName Fields = new PdfName("Fields");
     private static readonly PdfName DR = new PdfName("DR");
     private static readonly PdfName T = new PdfName("T");
@@ -35,11 +30,6 @@ internal sealed class FileAssembler
 
     /// <summary>What an optional content configuration lists that every file's configuration adds to.</summary>
     private static readonly PdfName[] Joined = [new PdfName("Order"), new PdfName("RBGroups"), new PdfName("Locked")];
-    private static readonly PdfName MarkInfo = new PdfName("MarkInfo");
-    private static readonly PdfName Marked = new PdfName("Marked");
-    private static readonly PdfName StructParents = new PdfName("StructParents");
-    private static readonly PdfName StructParent = new PdfName("StructParent");
-    private static readonly PdfName P = new PdfName("P");
     private static readonly PdfName EmbeddedFiles = new PdfName("EmbeddedFiles");
     private static readonly PdfName Associated = new PdfName("AF");
 
@@ -49,17 +39,14 @@ internal sealed class FileAssembler
     /// </summary>
     private static readonly PdfName[] Rebuilt =
     [
-        PdfNames.Type, PdfNames.Pages, PdfNames.Names, Associated, OCProperties, AcroForm,
+        PdfNames.Type, PdfNames.Pages, PdfNames.Names, Associated, OCProperties, PdfNames.AcroForm,
     ];
-
-    private static readonly PdfName Perms = new PdfName("Perms");
-    private static readonly PdfName Metadata = new PdfName("Metadata");
 
     /// <summary>What a document says of itself whatever pages it keeps.</summary>
     private static readonly PdfName[] Always =
     [
-        new PdfName("Metadata"), new PdfName("Lang"), new PdfName("OutputIntents"), new PdfName("ViewerPreferences"),
-        new PdfName("PageLayout"), new PdfName("Version"), new PdfName("Extensions"),
+        PdfNames.Metadata, PdfNames.Lang, PdfNames.OutputIntents, PdfNames.ViewerPreferences,
+        new PdfName("PageLayout"), new PdfName("Version"), PdfNames.Extensions,
     ];
 
     private readonly IReadOnlyList<PageEntry> _pages;
@@ -159,7 +146,7 @@ internal sealed class FileAssembler
             foreach (int node in source.PageTree)
                 _copier.Redirect(source, node, null);
 
-            if (source.Trailer.TryGetValue(Root, out PdfValue root) && root.Kind == PdfValueKind.Reference)
+            if (source.Trailer.TryGetValue(PdfNames.Root, out PdfValue root) && root.Kind == PdfValueKind.Reference)
                 _copier.Redirect(source, root.AsReference().ObjectNumber, null);
         }
 
@@ -204,7 +191,8 @@ internal sealed class FileAssembler
         PdfSource source = page.Source;
 
         // The structure tree knows a page kept twice only as the first it became, whose place in it the copy must not claim.
-        PdfName[] leaving = KeptWhole(source) && !again ? [PdfNames.Parent] : [PdfNames.Parent, StructParents];
+        PdfName[] leaving =
+            KeptWhole(source) && !again ? [PdfNames.Parent] : [PdfNames.Parent, PdfNames.StructParents];
         PdfDictionary copied = _copier.CopyDictionary(source, page.Dictionary, leaving);
         copied[PdfNames.Parent] = placed.Parent;
 
@@ -229,8 +217,9 @@ internal sealed class FileAssembler
         {
             if (source.Resolve(item) is { Kind: PdfValueKind.Dictionary } annotation)
             {
-                PdfDictionary copy = _copier.CopyDictionary(source, annotation.AsDictionary(), StructParent, P);
-                copy[P] = page;
+                PdfDictionary copy =
+                    _copier.CopyDictionary(source, annotation.AsDictionary(), PdfNames.StructParent, PdfNames.P);
+                copy[PdfNames.P] = page;
                 copies.Add(_writer.File.Write(copy));
             }
             else
@@ -270,7 +259,7 @@ internal sealed class FileAssembler
 
         // On a tagged page everything drawn is either in the structure or marked as not being content: what is laid
         // on it is neither the page's text nor any part of its structure, so it is an artifact.
-        bool artifact = own.ContainsKey(StructParents) || IsMarked(source);
+        bool artifact = own.ContainsKey(PdfNames.StructParents) || IsMarked(source);
 
         foreach ((List<SourcePage> layers, StringBuilder content) in new[] { (entry.Beneath, before), (entry.Over, after) })
         {
@@ -395,16 +384,17 @@ internal sealed class FileAssembler
 
     /// <summary>The entry that gives a page's visible box: its crop box, or else its media box.</summary>
     private static PdfValue VisibleBoxEntry(SourcePage page) =>
-        page.Dictionary.TryGetValue(CropBox, out PdfValue crop) ? crop : page.Dictionary[PdfNames.MediaBox];
+        page.Dictionary.TryGetValue(PdfNames.CropBox, out PdfValue crop) ? crop : page.Dictionary[PdfNames.MediaBox];
 
     /// <summary>Whether <paramref name="source"/> says it is tagged: its catalog's <c>/MarkInfo</c> has <c>/Marked true</c>.</summary>
     private static bool IsMarked(PdfSource source) =>
-        source.Resolve(source.Catalog, MarkInfo) is { Kind: PdfValueKind.Dictionary } info
-        && source.Resolve(info.AsDictionary(), Marked) is { Kind: PdfValueKind.Boolean } flag && flag.AsBoolean();
+        source.Resolve(source.Catalog, PdfNames.MarkInfo) is { Kind: PdfValueKind.Dictionary } info
+        && source.Resolve(info.AsDictionary(), PdfNames.Marked) is { Kind: PdfValueKind.Boolean } flag
+        && flag.AsBoolean();
 
     /// <summary>How far a page is turned clockwise as it is shown: a multiple of 90 degrees, or none.</summary>
     private static int Rotation(SourcePage page) =>
-        page.Source.Resolve(page.Dictionary, Rotate) is { Kind: PdfValueKind.Integer } rotate
+        page.Source.Resolve(page.Dictionary, PdfNames.Rotate) is { Kind: PdfValueKind.Integer } rotate
             && rotate.AsInteger() % 90 == 0
             ? (int)(rotate.AsInteger() % 360)
             : 0;
@@ -533,7 +523,7 @@ internal sealed class FileAssembler
 
         foreach (PdfSource source in _sources)
         {
-            if (source.Resolve(source.Catalog, AcroForm) is not { Kind: PdfValueKind.Dictionary } found)
+            if (source.Resolve(source.Catalog, PdfNames.AcroForm) is not { Kind: PdfValueKind.Dictionary } found)
                 continue;
 
             PdfDictionary acroForm = found.AsDictionary();
@@ -552,7 +542,7 @@ internal sealed class FileAssembler
         }
 
         // A form none of whose fields are kept is left out, unless it is the first file's, kept whole as it was.
-        if (form is null || (fields.Count == 0 && !(_whole && _first.Catalog.ContainsKey(AcroForm))))
+        if (form is null || (fields.Count == 0 && !(_whole && _first.Catalog.ContainsKey(PdfNames.AcroForm))))
             return null;
 
         form[Fields] = fields;
@@ -639,8 +629,11 @@ internal sealed class FileAssembler
     {
         foreach (KeyValuePair<PdfName, PdfValue> entry in _first.Catalog)
         {
-            if (Array.IndexOf(Rebuilt, entry.Key) >= 0 || (_settings.LiftRestrictions && entry.Key.Equals(Perms)))
+            if (Array.IndexOf(Rebuilt, entry.Key) >= 0
+                || (_settings.LiftRestrictions && entry.Key.Equals(PdfNames.Perms)))
+            {
                 continue;
+            }
 
             if (_whole || Array.IndexOf(Always, entry.Key) >= 0)
                 _writer.Catalog[entry.Key] = _copier.Copy(_first, entry.Value);
@@ -650,12 +643,12 @@ internal sealed class FileAssembler
             _writer.Catalog[OCProperties] = optional;
 
         if (InteractiveForm() is { } form)
-            _writer.Catalog[AcroForm] = form;
+            _writer.Catalog[PdfNames.AcroForm] = form;
 
         CopyNames();
         ExtendMetadata();
 
-        if (_first.Resolve(_first.Trailer, Info) is { Kind: PdfValueKind.Dictionary } dictionary)
+        if (_first.Resolve(_first.Trailer, PdfNames.Info) is { Kind: PdfValueKind.Dictionary } dictionary)
             _writer.InfoDictionary = _copier.CopyDictionary(_first, dictionary.AsDictionary());
     }
 
@@ -722,7 +715,7 @@ internal sealed class FileAssembler
         if (_settings.Metadata.Count == 0)
             return;
 
-        byte[]? existing = _first.Catalog.TryGetValue(Metadata, out PdfValue metadata)
+        byte[]? existing = _first.Catalog.TryGetValue(PdfNames.Metadata, out PdfValue metadata)
             && _first.Stream(metadata) is { } stream
             ? _first.Decode(stream)
             : null;

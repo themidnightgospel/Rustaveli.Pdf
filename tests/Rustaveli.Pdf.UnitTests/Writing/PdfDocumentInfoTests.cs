@@ -9,7 +9,6 @@ public class PdfDocumentInfoTests
     {
         PdfDocumentInfo info = new PdfDocumentInfo();
 
-        Assert.True(info.IsEmpty);
         Assert.Equal("<<>>", Latin1.Written(writer => writer.WriteDictionary(info.ToDictionary())));
     }
 
@@ -22,7 +21,7 @@ public class PdfDocumentInfoTests
     [InlineData("Producer")]
     [InlineData("CreationDate")]
     [InlineData("ModificationDate")]
-    public void IsNotEmptyOnceAnyEntryIsSet(string property)
+    public void HasAnEntryOnceAnyPropertyIsSet(string property)
     {
         PdfDocumentInfo info = new PdfDocumentInfo();
         DateTimeOffset date = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
@@ -39,7 +38,6 @@ public class PdfDocumentInfoTests
             default: info.ModificationDate = date; break;
         }
 
-        Assert.False(info.IsEmpty);
         Assert.Single(info.ToDictionary());
     }
 

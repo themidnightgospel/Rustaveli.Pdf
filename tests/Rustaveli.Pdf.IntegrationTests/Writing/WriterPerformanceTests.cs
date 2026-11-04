@@ -22,7 +22,7 @@ public class WriterPerformanceTests(ITestOutputHelper output)
         using MemoryStream stream = new MemoryStream();
         using (PdfDocumentWriter document = new PdfDocumentWriter(stream, options))
         {
-            PdfReference translucent = document.GetOpacityState(0.5);
+            PdfReference translucent = document.GetOpacityState(0.5, 0.5);
             for (int index = 0; index < pageCount; index++)
             {
                 PdfPage page = document.BeginPage(595.28f, 841.89f);

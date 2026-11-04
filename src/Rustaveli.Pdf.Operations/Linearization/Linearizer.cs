@@ -17,18 +17,11 @@ namespace Rustaveli.Pdf.Operations.Linearization;
 /// </remarks>
 internal static class Linearizer
 {
-    private static readonly PdfName Root = new PdfName("Root");
-    private static readonly PdfName ObjStm = new PdfName("ObjStm");
-    private static readonly PdfName S = new PdfName("S");
-    private static readonly PdfName O = new PdfName("O");
-    private static readonly PdfName PageMode = new PdfName("PageMode");
-    private static readonly PdfName UseOutlines = new PdfName("UseOutlines");
-    private static readonly PdfName Outlines = new PdfName("Outlines");
-
     /// <summary>Catalog entries a viewer needs before it shows the first page (F.3.4).</summary>
     private static readonly PdfName[] Opening =
     [
-        new PdfName("ViewerPreferences"), new PdfName("PageMode"), new PdfName("Threads"), new PdfName("OpenAction"), new PdfName("AcroForm"),
+        PdfNames.ViewerPreferences, PdfNames.PageMode, new PdfName("Threads"), new PdfName("OpenAction"),
+        PdfNames.AcroForm,
     ];
 
     /// <summary>The width every offset in the linearization dictionary is written at, so it can be filled in last.</summary>
@@ -48,7 +41,7 @@ internal static class Linearizer
 
             if (value is SourceStream stream
                 && (PdfSource.IsOfType(stream.Dictionary, PdfNames.XRef)
-                    || PdfSource.IsOfType(stream.Dictionary, ObjStm)))
+                    || PdfSource.IsOfType(stream.Dictionary, PdfNames.ObjStm)))
             {
                 continue;
             }
@@ -59,7 +52,7 @@ internal static class Linearizer
             objects[number] = value;
         }
 
-        int catalog = source.Trailer[Root].AsReference().ObjectNumber;
+        int catalog = source.Trailer[PdfNames.Root].AsReference().ObjectNumber;
         int? info = source.Trailer.TryGetValue(PdfNames.Info, out PdfValue given) && given.Kind == PdfValueKind.Reference ? given.AsReference().ObjectNumber : null;
         List<int> pages = source.Pages.Select(page => page.ObjectNumber).ToList();
 
@@ -86,8 +79,9 @@ internal static class Linearizer
         // The file was finished plain, so what its encryption needs declared is declared as it is laid out.
         encryption?.DeclareExtension(root);
 
-        if (root.TryGetValue(PageMode, out PdfValue mode) && mode.Kind == PdfValueKind.Name && mode.AsName().Equals(UseOutlines)
-            && root.TryGetValue(Outlines, out PdfValue outlines))
+        if (root.TryGetValue(PdfNames.PageMode, out PdfValue mode) && mode.Kind == PdfValueKind.Name
+            && mode.AsName().Equals(PdfNames.UseOutlines)
+            && root.TryGetValue(PdfNames.Outlines, out PdfValue outlines))
         {
             outline = Reach(outlines, objects, boundaries).Where(placed.Add).ToList();
         }
@@ -484,7 +478,7 @@ internal static class Linearizer
                 sharing.Write(0, 1);
 
             byte[] sharedTable = sharing.ToArray();
-            PdfDictionary dictionary = new PdfDictionary { [S] = pageTable.Length };
+            PdfDictionary dictionary = new PdfDictionary { [PdfNames.S] = pageTable.Length };
             byte[] data = [.. pageTable, .. sharedTable];
 
             if (_outline.Count > 0)
@@ -497,7 +491,7 @@ internal static class Linearizer
                 outline.Write(_outline.Count, 32);
                 outline.Write(_outline.Sum(number => sizes[_numbers[number]]), 32);
 
-                dictionary[O] = data.Length;
+                dictionary[PdfNames.O] = data.Length;
                 data = [.. data, .. outline.ToArray()];
             }
 

@@ -20,21 +20,20 @@ internal sealed class PdfPageTree(PdfFileWriter writer)
     public const int MaxKids = 32;
 
     private readonly List<Node> _leaves = new List<Node>();
-
-    public int Count { get; private set; }
+    private int _count;
 
     /// <summary>
     /// Appends <paramref name="page"/> as the next page and returns the node to name as its <c>/Parent</c>.
     /// </summary>
     public PdfReference Add(PdfReference page)
     {
-        if (Count % MaxKids == 0)
+        if (_count % MaxKids == 0)
             _leaves.Add(new Node(writer.Reserve()));
 
         Node leaf = _leaves[_leaves.Count - 1];
         leaf.Kids.Add(page);
         leaf.PageCount++;
-        Count++;
+        _count++;
         return leaf.Reference;
     }
 

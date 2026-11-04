@@ -18,13 +18,8 @@ namespace Rustaveli.Pdf.Writing;
 /// </remarks>
 internal sealed class ContentStreamBuilder : IDisposable
 {
-    private readonly PdfByteWriter _writer;
+    private readonly PdfByteWriter _writer = new PdfByteWriter(1024);
     private bool _inTextArray;
-
-    public ContentStreamBuilder(int initialCapacity = 1024)
-    {
-        _writer = new PdfByteWriter(initialCapacity);
-    }
 
     public int Length => _writer.Length;
 

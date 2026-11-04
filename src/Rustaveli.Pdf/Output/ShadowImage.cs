@@ -9,15 +9,7 @@ namespace Rustaveli.Pdf.Output;
 /// </summary>
 internal static class ShadowImage
 {
-    private static readonly PdfName Image = new PdfName("Image");
-    private static readonly PdfName Width = new PdfName("Width");
-    private static readonly PdfName Height = new PdfName("Height");
-    private static readonly PdfName BitsPerComponent = new PdfName("BitsPerComponent");
-    private static readonly PdfName SMask = new PdfName("SMask");
     private static readonly PdfName Interpolate = new PdfName("Interpolate");
-    private static readonly PdfName DeviceGray = new PdfName("DeviceGray");
-    private static readonly PdfName DeviceRgb = new PdfName("DeviceRGB");
-    private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
 
     /// <summary>The image XObject for a shadow of <paramref name="ink"/> covering <paramref name="mask"/>.</summary>
     /// <param name="file">Where the image is written.</param>
@@ -30,13 +22,13 @@ internal static class ShadowImage
     public static PdfReference Write(PdfFileWriter file, ShadowMask mask, Ink ink, bool archival)
     {
         PdfReference softMask = file.WriteStream(
-            Dictionary(mask.Width, mask.Height, DeviceGray, interpolate: !archival),
+            Dictionary(mask.Width, mask.Height, PdfNames.DeviceGray, interpolate: !archival),
             mask.Coverage);
 
         // A soft mask need not match its image's size, so the ink is one pixel however large the shadow.
         bool cmyk = !archival && ink.Model == InkModel.Cmyk;
-        PdfDictionary image = Dictionary(1, 1, cmyk ? DeviceCmyk : DeviceRgb, interpolate: !archival);
-        image[SMask] = softMask;
+        PdfDictionary image = Dictionary(1, 1, cmyk ? PdfNames.DeviceCMYK : PdfNames.DeviceRGB, interpolate: !archival);
+        image[PdfNames.SMask] = softMask;
 
         return file.WriteStream(image, cmyk ? Cmyk(ink) : Rgb(ink));
     }
@@ -46,11 +38,11 @@ internal static class ShadowImage
         PdfDictionary dictionary = new PdfDictionary
         {
             [PdfNames.Type] = PdfNames.XObject,
-            [PdfNames.Subtype] = Image,
-            [Width] = width,
-            [Height] = height,
+            [PdfNames.Subtype] = PdfNames.Image,
+            [PdfNames.Width] = width,
+            [PdfNames.Height] = height,
             [PdfNames.ColorSpace] = space,
-            [BitsPerComponent] = 8,
+            [PdfNames.BitsPerComponent] = 8,
         };
 
         if (interpolate)

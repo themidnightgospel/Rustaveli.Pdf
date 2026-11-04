@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Rustaveli.Pdf.Writing;
@@ -18,6 +19,17 @@ internal readonly struct PdfReference : IEquatable<PdfReference>
     /// <summary>The object number; zero only for <c>default</c>, which refers to nothing.</summary>
     public int ObjectNumber { get; }
 
+    /// <summary>
+    /// Throws <see cref="ArgumentException"/> for <paramref name="parameterName"/> when <paramref name="reference"/>
+    /// is <c>default</c>: it numbers no object, and writing it as <c>0 0 R</c> would make a reference nothing can
+    /// resolve.
+    /// </summary>
+    public static void ThrowIfDefault(PdfReference reference, string parameterName)
+    {
+        if (reference.ObjectNumber == 0)
+            ThrowNeverAssigned(parameterName);
+    }
+
     public static bool operator ==(PdfReference left, PdfReference right) => left.Equals(right);
 
     public static bool operator !=(PdfReference left, PdfReference right) => !left.Equals(right);
@@ -29,4 +41,10 @@ internal readonly struct PdfReference : IEquatable<PdfReference>
     public override int GetHashCode() => ObjectNumber;
 
     public override string ToString() => ObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 R";
+
+    // Apart from the check, which runs for every reference put in a dictionary and every resource named, so that it
+    // stays small enough to inline.
+    [DoesNotReturn]
+    private static void ThrowNeverAssigned(string parameterName) =>
+        throw new ArgumentException("The reference was never assigned an object number.", parameterName);
 }

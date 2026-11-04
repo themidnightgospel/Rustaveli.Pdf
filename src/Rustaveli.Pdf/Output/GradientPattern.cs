@@ -16,7 +16,6 @@ internal static class GradientPattern
     private static readonly PdfName PatternType = new PdfName("PatternType");
     private static readonly PdfName Shading = new PdfName("Shading");
     private static readonly PdfName ShadingType = new PdfName("ShadingType");
-    private static readonly PdfName ColorSpace = new PdfName("ColorSpace");
     private static readonly PdfName Coords = new PdfName("Coords");
     private static readonly PdfName Function = new PdfName("Function");
     private static readonly PdfName Functions = new PdfName("Functions");
@@ -24,8 +23,6 @@ internal static class GradientPattern
     private static readonly PdfName Matrix = new PdfName("Matrix");
     private static readonly PdfName Bounds = new PdfName("Bounds");
     private static readonly PdfName Encode = new PdfName("Encode");
-    private static readonly PdfName DeviceRgb = new PdfName("DeviceRGB");
-    private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
 
     /// <summary>The pattern dictionary for <paramref name="gradient"/> between two points of the drawing space.</summary>
     public static PdfDictionary Create(Gradient gradient, Offset start, Offset end, Transform placement, bool rgbOnly)
@@ -36,7 +33,7 @@ internal static class GradientPattern
         PdfDictionary shading = new PdfDictionary
         {
             [ShadingType] = 2,
-            [ColorSpace] = cmyk ? DeviceCmyk : DeviceRgb,
+            [PdfNames.ColorSpace] = cmyk ? PdfNames.DeviceCMYK : PdfNames.DeviceRGB,
             [Coords] = new PdfArray(4) { start.X, start.Y, end.X, end.Y },
             [Function] = Blend(inks, gradient.Positions, cmyk),
             [Extend] = new PdfArray(2) { true, true },

@@ -13,14 +13,7 @@ namespace Rustaveli.Pdf.Operations.Reading;
 /// </remarks>
 internal static class StreamDecoder
 {
-    private static readonly PdfName Filter = PdfNames.Filter;
-    private static readonly PdfName DecodeParms = PdfNames.DecodeParms;
-    private static readonly PdfName Predictor = new PdfName("Predictor");
-    private static readonly PdfName Colors = new PdfName("Colors");
-    private static readonly PdfName BitsPerComponent = new PdfName("BitsPerComponent");
-    private static readonly PdfName Columns = new PdfName("Columns");
     private static readonly PdfName EarlyChange = new PdfName("EarlyChange");
-    private static readonly PdfName Name = new PdfName("Name");
 
     /// <summary>
     /// The stream's data with every filter it names undone, <paramref name="resolve"/> following references in its
@@ -32,7 +25,7 @@ internal static class StreamDecoder
         List<PdfName> filters = [];
         List<PdfDictionary?> parameters = [];
 
-        if (dictionary.TryGetValue(Filter, out PdfValue named))
+        if (dictionary.TryGetValue(PdfNames.Filter, out PdfValue named))
         {
             named = resolve(named);
 
@@ -51,7 +44,7 @@ internal static class StreamDecoder
             }
         }
 
-        if (dictionary.TryGetValue(DecodeParms, out PdfValue given))
+        if (dictionary.TryGetValue(PdfNames.DecodeParms, out PdfValue given))
         {
             given = resolve(given);
 
@@ -83,7 +76,9 @@ internal static class StreamDecoder
             "ASCIIHexDecode" or "AHx" => AsciiHex(data),
             "ASCII85Decode" or "A85" => Ascii85(data),
             "RunLengthDecode" or "RL" => RunLength(data),
-            "Crypt" when parameters is null || !parameters.TryGetValue(Name, out PdfValue name) || CryptFilterName(resolve(name)) == "Identity" => data,
+            "Crypt" when parameters is null
+                || !parameters.TryGetValue(PdfNames.Name, out PdfValue name)
+                || CryptFilterName(resolve(name)) == "Identity" => data,
             _ => throw new NotSupportedException($"Streams encoded with {filter.Value} are copied as they are, never decoded."),
         };
 
@@ -135,14 +130,14 @@ internal static class StreamDecoder
     /// <summary>Undoes a PNG or TIFF predictor, row by row (7.4.4.4).</summary>
     private static byte[] Predict(byte[] data, PdfDictionary? parameters, Func<PdfValue, PdfValue> resolve)
     {
-        int predictor = Integer(parameters, Predictor, 1, resolve);
+        int predictor = Integer(parameters, PdfNames.Predictor, 1, resolve);
 
         if (predictor <= 1)
             return data;
 
-        int colors = Math.Max(1, Integer(parameters, Colors, 1, resolve));
-        int bits = Math.Max(1, Integer(parameters, BitsPerComponent, 8, resolve));
-        int columns = Math.Max(1, Integer(parameters, Columns, 1, resolve));
+        int colors = Math.Max(1, Integer(parameters, PdfNames.Colors, 1, resolve));
+        int bits = Math.Max(1, Integer(parameters, PdfNames.BitsPerComponent, 8, resolve));
+        int columns = Math.Max(1, Integer(parameters, PdfNames.Columns, 1, resolve));
         int pixel = Math.Max(1, ((colors * bits) + 7) / 8);
         int row = ((colors * bits * columns) + 7) / 8;
 

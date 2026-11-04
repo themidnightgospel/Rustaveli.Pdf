@@ -60,7 +60,7 @@ public class PdfDocumentWriterTests
         PdfFileReader reader = Write(document =>
         {
             PdfPage page = document.BeginPage(new PdfRectangle(0, 0, 200, 100));
-            PdfName state = page.Resources.GetExtGStateName(document.GetOpacityState(0.5));
+            PdfName state = page.Resources.GetExtGStateName(document.GetOpacityState(0.5, 0.5));
             page.Content.SetGraphicsState(state);
             page.Content.Rectangle(10, 10, 50, 20);
             page.Content.Fill();
@@ -292,9 +292,6 @@ public class PdfDocumentWriterTests
         {
             PdfPage first = document.BeginPage(100, 100);
             PdfPage second = document.BeginPage(200, 200);
-            Assert.Equal(0, first.Index);
-            Assert.Equal(1, second.Index);
-            Assert.Equal(2, document.PageCount);
 
             document.EndPage(second);
             document.EndPage(first);
@@ -353,22 +350,6 @@ public class PdfDocumentWriterTests
     }
 
     [Fact]
-    public void ListsAnnotationsTheCallerWrote()
-    {
-        PdfReference annotation = default;
-
-        PdfFileReader reader = Write(document =>
-        {
-            PdfPage page = document.BeginPage(100, 100);
-            annotation = document.File.Write(new PdfDictionary { [PdfNames.Type] = PdfNames.Annot });
-            page.AddAnnotation(annotation);
-            document.EndPage(page);
-        });
-
-        Assert.Equal(new List<object?> { new ParsedReference(annotation.ObjectNumber, 0) }, OnlyPage(reader)["Annots"]);
-    }
-
-    [Fact]
     public void RefusesInvalidLinkArguments()
     {
         using PdfDocumentWriter document = new PdfDocumentWriter(new MemoryStream());
@@ -378,9 +359,6 @@ public class PdfDocumentWriterTests
         Assert.Equal(
             "destination",
             Assert.Throws<ArgumentNullException>(() => page.AddDestinationLink(default, null!)).ParamName);
-        ArgumentException annotation = Assert.Throws<ArgumentException>(() => page.AddAnnotation(default));
-        Assert.Equal("annotation", annotation.ParamName);
-        Assert.StartsWith("The reference was never assigned an object number.", annotation.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -441,10 +419,10 @@ public class PdfDocumentWriterTests
 
         PdfFileReader reader = Write(document =>
         {
-            half = document.GetOpacityState(0.5);
+            half = document.GetOpacityState(0.5, 0.5);
             Assert.Equal(half, document.GetOpacityState(0.5, 0.5));
-            Assert.Equal(half, document.GetOpacityState(0.500004));
-            Assert.NotEqual(half, document.GetOpacityState(0.50001));
+            Assert.Equal(half, document.GetOpacityState(0.500004, 0.500004));
+            Assert.NotEqual(half, document.GetOpacityState(0.50001, 0.50001));
             mixed = document.GetOpacityState(0.5, 0.25);
             Assert.NotEqual(half, mixed);
             Assert.NotEqual(mixed, document.GetOpacityState(0.25, 0.5));
@@ -537,7 +515,7 @@ public class PdfDocumentWriterTests
         Assert.Equal("The document has been finished.", Refusal(() => document.BeginPage(10, 10)));
         Assert.Equal("The document has been finished.", Refusal(() => document.EndPage(page)));
         Assert.Equal("The document has been finished.", Refusal(() => document.AddNamedDestination("x", page.Reference, 0, 0)));
-        Assert.Equal("The document has been finished.", Refusal(() => document.GetOpacityState(1)));
+        Assert.Equal("The document has been finished.", Refusal(() => document.GetOpacityState(1, 1)));
     }
 
     [Theory]

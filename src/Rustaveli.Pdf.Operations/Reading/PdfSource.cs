@@ -22,24 +22,16 @@ internal sealed class PdfSource
 {
     private readonly object _gate = new object();
 
-    private static readonly PdfName Root = new PdfName("Root");
-    private static readonly PdfName Encrypt = new PdfName("Encrypt");
-    private static readonly PdfName Prev = new PdfName("Prev");
     private static readonly PdfName XRefStm = new PdfName("XRefStm");
     private static readonly PdfName Index = new PdfName("Index");
-    private static readonly PdfName W = new PdfName("W");
-    private static readonly PdfName First = new PdfName("First");
-    private static readonly PdfName ObjStm = new PdfName("ObjStm");
-    private static readonly PdfName XRef = new PdfName("XRef");
-    private static readonly PdfName MediaBox = PdfNames.MediaBox;
-    private static readonly PdfName CropBox = new PdfName("CropBox");
-    private static readonly PdfName Rotate = new PdfName("Rotate");
 
     /// <summary>What a page takes from the page tree when it does not say for itself (7.7.3.4).</summary>
-    private static readonly PdfName[] Inherited = [PdfNames.Resources, MediaBox, CropBox, Rotate];
+    private static readonly PdfName[] Inherited =
+        [PdfNames.Resources, PdfNames.MediaBox, PdfNames.CropBox, PdfNames.Rotate];
 
     /// <summary>What a cross-reference stream's dictionary says of the stream itself rather than of the file.</summary>
-    private static readonly PdfName[] StreamOnly = [PdfNames.Type, PdfNames.Length, PdfNames.Filter, PdfNames.DecodeParms, W, Index, Prev];
+    private static readonly PdfName[] StreamOnly =
+        [PdfNames.Type, PdfNames.Length, PdfNames.Filter, PdfNames.DecodeParms, PdfNames.W, Index, PdfNames.Prev];
 
     /// <summary>An object read from somewhere other than where the cross-reference section said.</summary>
     private static readonly object Misplaced = new object();
@@ -70,7 +62,7 @@ internal sealed class PdfSource
     public bool WasRepaired => _rebuilt;
 
     public PdfDictionary Catalog =>
-        Resolve(Trailer, Root) is { Kind: PdfValueKind.Dictionary } catalog
+        Resolve(Trailer, PdfNames.Root) is { Kind: PdfValueKind.Dictionary } catalog
             ? catalog.AsDictionary()
             : throw PdfParser.Damaged("it has no catalog");
 
@@ -98,7 +90,7 @@ internal sealed class PdfSource
 
         PdfSource source = new PdfSource(data);
 
-        if (!source.TryReadCrossReferences() || !source.Trailer.ContainsKey(Root))
+        if (!source.TryReadCrossReferences() || !source.Trailer.ContainsKey(PdfNames.Root))
             source.Rebuild();
 
         source.Unlock(password);
@@ -108,7 +100,7 @@ internal sealed class PdfSource
 
     private void Unlock(string? password)
     {
-        if (!Trailer.TryGetValue(Encrypt, out PdfValue encrypt))
+        if (!Trailer.TryGetValue(PdfNames.Encrypt, out PdfValue encrypt))
             return;
 
         if (encrypt.Kind == PdfValueKind.Reference)
@@ -182,7 +174,7 @@ internal sealed class PdfSource
     {
         if (read is SourceStream stream)
         {
-            if (IsOfType(stream.Dictionary, XRef))
+            if (IsOfType(stream.Dictionary, PdfNames.XRef))
                 return stream;
 
             PdfDictionary dictionary = Decrypt(number, generation, stream.Dictionary).AsDictionary();
@@ -418,8 +410,8 @@ internal sealed class PdfSource
             }
 
             // A page with no media box anywhere above it is taken to be US Letter, as viewers take it.
-            if (!page.ContainsKey(MediaBox))
-                page[MediaBox] = new PdfArray(4) { 0, 0, 612, 792 };
+            if (!page.ContainsKey(PdfNames.MediaBox))
+                page[PdfNames.MediaBox] = new PdfArray(4) { 0, 0, 612, 792 };
 
             pages.Add(new SourcePage(this, number, page));
         }
@@ -526,7 +518,7 @@ internal sealed class PdfSource
             int count = Resolve(stream.Dictionary, PdfNames.N) is { Kind: PdfValueKind.Integer } total
                 ? (int)total.AsInteger()
                 : 0;
-            long first = Resolve(stream.Dictionary, First) is { Kind: PdfValueKind.Integer } start
+            long first = Resolve(stream.Dictionary, PdfNames.First) is { Kind: PdfValueKind.Integer } start
                 ? start.AsInteger()
                 : 0;
 
@@ -589,7 +581,10 @@ internal sealed class PdfSource
                     latest = false;
                 }
 
-                offset = trailer.TryGetValue(Prev, out PdfValue previous) && previous.Kind == PdfValueKind.Integer ? previous.AsInteger() : -1;
+                offset = trailer.TryGetValue(PdfNames.Prev, out PdfValue previous)
+                    && previous.Kind == PdfValueKind.Integer
+                    ? previous.AsInteger()
+                    : -1;
             }
 
             return !latest;
@@ -668,7 +663,7 @@ internal sealed class PdfSource
 
         PdfDictionary dictionary = value.AsDictionary();
 
-        if (!IsOfType(dictionary, XRef))
+        if (!IsOfType(dictionary, PdfNames.XRef))
             throw PdfParser.Damaged("a cross-reference stream is not of type XRef");
 
         byte[] data = StreamDecoder.Decode(dictionary, StreamData(parser.Position, dictionary), value => value);
@@ -719,8 +714,12 @@ internal sealed class PdfSource
     /// </summary>
     private static int[]? Widths(PdfDictionary dictionary)
     {
-        if (!dictionary.TryGetValue(W, out PdfValue value) || value.Kind != PdfValueKind.Array || value.AsArray().Count < 3)
+        if (!dictionary.TryGetValue(PdfNames.W, out PdfValue value)
+            || value.Kind != PdfValueKind.Array
+            || value.AsArray().Count < 3)
+        {
             return null;
+        }
 
         int[] width = new int[3];
 
@@ -836,7 +835,7 @@ internal sealed class PdfSource
     {
         foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderBy(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
         {
-            if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, ObjStm))
+            if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, PdfNames.ObjStm))
                 continue;
 
             try
@@ -938,7 +937,7 @@ internal sealed class PdfSource
         // was made with and the information are named there as well as the catalog.
         foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderByDescending(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
         {
-            if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, XRef))
+            if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, PdfNames.XRef))
                 continue;
 
             foreach (KeyValuePair<PdfName, PdfValue> entry in stream.Dictionary)
@@ -948,7 +947,7 @@ internal sealed class PdfSource
             }
         }
 
-        if (trailer.ContainsKey(Root))
+        if (trailer.ContainsKey(PdfNames.Root))
             return trailer;
 
         foreach (int number in _entries.Keys.OrderByDescending(number => number))
@@ -962,7 +961,7 @@ internal sealed class PdfSource
 
             if (value.Kind == PdfValueKind.Dictionary && IsOfType(value.AsDictionary(), PdfNames.Catalog))
             {
-                trailer[Root] = new PdfReference(number);
+                trailer[PdfNames.Root] = new PdfReference(number);
                 return trailer;
             }
         }

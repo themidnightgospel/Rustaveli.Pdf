@@ -19,19 +19,14 @@ internal static class StructureTree
     private static readonly PdfName ParentTree = new PdfName("ParentTree");
     private static readonly PdfName ParentTreeNextKey = new PdfName("ParentTreeNextKey");
     private static readonly PdfName Nums = new PdfName("Nums");
-    private static readonly PdfName MarkInfo = new PdfName("MarkInfo");
-    private static readonly PdfName Marked = new PdfName("Marked");
     private static readonly PdfName K = new PdfName("K");
-    private static readonly PdfName P = new PdfName("P");
     private static readonly PdfName Pg = new PdfName("Pg");
     private static readonly PdfName Alt = new PdfName("Alt");
     private static readonly PdfName E = new PdfName("E");
-    private static readonly PdfName Lang = new PdfName("Lang");
     private static readonly PdfName Mcr = new PdfName("MCR");
     private static readonly PdfName Mcid = new PdfName("MCID");
     private static readonly PdfName Objr = new PdfName("OBJR");
     private static readonly PdfName Obj = new PdfName("Obj");
-    private static readonly PdfName O = new PdfName("O");
     private static readonly PdfName Table = new PdfName("Table");
     private static readonly PdfName Scope = new PdfName("Scope");
     private static readonly PdfName Row = new PdfName("Row");
@@ -85,7 +80,7 @@ internal static class StructureTree
 
         file.Write(tree, treeRoot);
         writer.Catalog[StructTreeRoot] = tree;
-        writer.Catalog[MarkInfo] = new PdfDictionary { [Marked] = true };
+        writer.Catalog[PdfNames.MarkInfo] = new PdfDictionary { [PdfNames.Marked] = true };
     }
 
     /// <summary>Reserves an object for every element holding content, itself or below; returns whether this one does.</summary>
@@ -135,7 +130,7 @@ internal static class StructureTree
         {
             [PdfNames.Type] = StructElem,
             [PdfNames.S] = new PdfName(element.Role),
-            [P] = parent,
+            [PdfNames.P] = parent,
             [K] = kids,
         };
 
@@ -149,7 +144,7 @@ internal static class StructureTree
             dictionary[E] = PdfString.FromText(expansion);
 
         if (element.Language is { } language)
-            dictionary[Lang] = PdfString.FromText(language);
+            dictionary[PdfNames.Lang] = PdfString.FromText(language);
 
         if (TableAttributes(element) is { } attributes)
             dictionary[PdfNames.A] = attributes;
@@ -163,7 +158,7 @@ internal static class StructureTree
         if (element.Scope is null && element.RowSpan == 1 && element.ColumnSpan == 1)
             return null;
 
-        PdfDictionary attributes = new PdfDictionary { [O] = Table };
+        PdfDictionary attributes = new PdfDictionary { [PdfNames.O] = Table };
 
         if (element.Scope is { } scope)
             attributes[Scope] = scope == TableScope.Row ? Row : Column;

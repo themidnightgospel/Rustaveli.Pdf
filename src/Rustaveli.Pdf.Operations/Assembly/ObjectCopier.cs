@@ -14,9 +14,6 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 /// </remarks>
 internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption)
 {
-    private static readonly PdfName Dest = new PdfName("Dest");
-    private static readonly PdfName EmbeddedFile = new PdfName("EmbeddedFile");
-
     private readonly Dictionary<(PdfSource Source, int Number), PdfReference?> _targets = [];
     private readonly Queue<(PdfSource Source, int Number, PdfReference Target)> _pending = new Queue<(PdfSource, int, PdfReference)>();
     private readonly Dictionary<PdfSource, Dictionary<string, PdfValue>> _named = [];
@@ -75,7 +72,7 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
         if (_named.TryGetValue(source, out Dictionary<string, PdfValue>? named))
         {
             // A link's /Dest, or a go-to action's /D; a remote go-to's names another file's destination, and is left be.
-            PdfName? key = dictionary.ContainsKey(Dest) ? Dest
+            PdfName? key = dictionary.ContainsKey(PdfNames.Dest) ? PdfNames.Dest
                 : source.Resolve(dictionary, PdfNames.S) is { Kind: PdfValueKind.Name } kind
                     && kind.AsName().Equals(PdfNames.GoTo) ? PdfNames.D
                 : null;
@@ -151,7 +148,7 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
         if (source.Encryption is not { HasKey: false } locked || locked.EmbeddedFiles == PdfEncryption.Cipher.None)
             return;
 
-        bool attachment = PdfSource.IsOfType(dictionary, EmbeddedFile);
+        bool attachment = PdfSource.IsOfType(dictionary, PdfNames.EmbeddedFile);
 
         if (attachment && !(ReferenceEquals(encryption, locked) && locked.EmbeddedFiles == PdfEncryption.Cipher.Aes256))
         {

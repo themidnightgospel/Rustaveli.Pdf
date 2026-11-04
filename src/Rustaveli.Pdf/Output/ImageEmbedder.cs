@@ -12,19 +12,10 @@ namespace Rustaveli.Pdf.Output;
 /// </remarks>
 internal sealed class ImageEmbedder(PdfFileWriter file)
 {
-    private static readonly PdfName Image = new PdfName("Image");
-    private static readonly PdfName Width = new PdfName("Width");
-    private static readonly PdfName Height = new PdfName("Height");
-    private static readonly PdfName BitsPerComponent = new PdfName("BitsPerComponent");
     private static readonly PdfName DctDecode = new PdfName("DCTDecode");
     private static readonly PdfName ColorTransform = new PdfName("ColorTransform");
-    private static readonly PdfName Colors = new PdfName("Colors");
     private static readonly PdfName Decode = new PdfName("Decode");
     private static readonly PdfName Mask = new PdfName("Mask");
-    private static readonly PdfName SMask = new PdfName("SMask");
-    private static readonly PdfName DeviceGray = new PdfName("DeviceGray");
-    private static readonly PdfName DeviceRgb = new PdfName("DeviceRGB");
-    private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
     private static readonly PdfName Indexed = new PdfName("Indexed");
     private static readonly PdfName IccBased = new PdfName("ICCBased");
     private static readonly PdfName Alternate = new PdfName("Alternate");
@@ -57,11 +48,11 @@ internal sealed class ImageEmbedder(PdfFileWriter file)
         PdfDictionary dictionary = new PdfDictionary
         {
             [PdfNames.Type] = PdfNames.XObject,
-            [PdfNames.Subtype] = Image,
-            [Width] = image.Width,
-            [Height] = image.Height,
+            [PdfNames.Subtype] = PdfNames.Image,
+            [PdfNames.Width] = image.Width,
+            [PdfNames.Height] = image.Height,
             [PdfNames.ColorSpace] = ColorSpace(image.ColorSpace),
-            [BitsPerComponent] = image.BitsPerComponent,
+            [PdfNames.BitsPerComponent] = image.BitsPerComponent,
             [PdfNames.Filter] = image.Filter == ImageFilter.Dct ? DctDecode : PdfNames.FlateDecode,
         };
 
@@ -70,8 +61,8 @@ internal sealed class ImageEmbedder(PdfFileWriter file)
             dictionary[PdfNames.DecodeParms] = new PdfDictionary
             {
                 [PdfNames.Predictor] = flate.Predictor,
-                [Colors] = flate.Colors,
-                [BitsPerComponent] = flate.BitsPerComponent,
+                [PdfNames.Colors] = flate.Colors,
+                [PdfNames.BitsPerComponent] = flate.BitsPerComponent,
                 [PdfNames.Columns] = flate.Columns,
             };
         }
@@ -88,7 +79,7 @@ internal sealed class ImageEmbedder(PdfFileWriter file)
             dictionary[Mask] = Numbers(key.Select(value => (double)value));
 
         if (image.SoftMask is EncodedImage softMask)
-            dictionary[SMask] = Write(softMask);
+            dictionary[PdfNames.SMask] = Write(softMask);
 
         // Already encoded — DCT or Flate with a predictor — so written as it is.
         return file.WriteStream(dictionary, image.Data.Span, PdfStreamCompression.None);
@@ -96,9 +87,9 @@ internal sealed class ImageEmbedder(PdfFileWriter file)
 
     private PdfValue ColorSpace(ImageColorSpace space) => space.Kind switch
     {
-        ImageColorSpaceKind.DeviceGray => DeviceGray,
-        ImageColorSpaceKind.DeviceRgb => DeviceRgb,
-        ImageColorSpaceKind.DeviceCmyk => DeviceCmyk,
+        ImageColorSpaceKind.DeviceGray => PdfNames.DeviceGray,
+        ImageColorSpaceKind.DeviceRgb => PdfNames.DeviceRGB,
+        ImageColorSpaceKind.DeviceCmyk => PdfNames.DeviceCMYK,
         ImageColorSpaceKind.Indexed => new PdfArray(4)
         {
             Indexed,

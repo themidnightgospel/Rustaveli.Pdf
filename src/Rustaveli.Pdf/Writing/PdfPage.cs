@@ -8,27 +8,20 @@ namespace Rustaveli.Pdf.Writing;
 /// </summary>
 internal sealed class PdfPage
 {
-    /// <summary>An annotation's flags, <c>/F</c>.</summary>
-    private static readonly PdfName Flags = new PdfName("F");
-
     private readonly PdfFileWriter _file;
     private PdfDictionary? _entries;
     private List<PdfReference>? _annotations;
 
-    internal PdfPage(PdfFileWriter file, PdfReference reference, PdfReference parent, int index, PdfRectangle mediaBox)
+    internal PdfPage(PdfFileWriter file, PdfReference reference, PdfReference parent, PdfRectangle mediaBox)
     {
         _file = file;
         Reference = reference;
         Parent = parent;
-        Index = index;
         MediaBox = mediaBox;
     }
 
     /// <summary>The page object's reference, for destinations and links that point at this page.</summary>
     public PdfReference Reference { get; }
-
-    /// <summary>Zero-based position of the page in the document.</summary>
-    public int Index { get; }
 
     public PdfRectangle MediaBox { get; }
 
@@ -87,15 +80,6 @@ internal sealed class PdfPage
             entries);
     }
 
-    /// <summary>Lists an annotation the caller wrote itself in the page's <c>/Annots</c>.</summary>
-    public void AddAnnotation(PdfReference annotation)
-    {
-        if (annotation.ObjectNumber == 0)
-            throw new ArgumentException("The reference was never assigned an object number.", nameof(annotation));
-
-        (_annotations ??= []).Add(annotation);
-    }
-
     private static byte[] EncodeUri(string uri)
     {
         byte[] utf8 = Encoding.UTF8.GetBytes(uri);
@@ -129,8 +113,8 @@ internal sealed class PdfPage
             [PdfNames.Border] = new PdfArray { 0, 0, 0 },
             [PdfNames.A] = action,
 
-            // Printed with the page, as PDF/A requires of every annotation.
-            [Flags] = 4,
+            // Flagged to print with the page, as PDF/A requires of every annotation.
+            [PdfNames.F] = 4,
         };
 
         if (entries is not null)
