@@ -54,14 +54,12 @@ internal static class ShadowImage
     private static byte[] Rgb(Ink ink)
     {
         (float red, float green, float blue) = ink.ToRgb();
-        return [ToByte(red), ToByte(green), ToByte(blue)];
+        return [Clamp.ToByte(red), Clamp.ToByte(green), Clamp.ToByte(blue)];
     }
 
     private static byte[] Cmyk(Ink ink)
     {
         (float cyan, float magenta, float yellow, float black) = ink.ToCmyk();
-        return [ToByte(cyan), ToByte(magenta), ToByte(yellow), ToByte(black)];
+        return [Clamp.ToByte(cyan), Clamp.ToByte(magenta), Clamp.ToByte(yellow), Clamp.ToByte(black)];
     }
-
-    private static byte ToByte(float fraction) => (byte)Math.Round(Math.Min(1f, Math.Max(0f, fraction)) * 255);
 }

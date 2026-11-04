@@ -72,7 +72,7 @@ internal sealed class ShadowMask
 
         byte[] coverage = new byte[field.Length];
         for (int index = 0; index < coverage.Length; index++)
-            coverage[index] = (byte)Math.Round(Math.Min(1f, Math.Max(0f, field[index])) * 255);
+            coverage[index] = Clamp.ToByte(field[index]);
 
         return new ShadowMask(width, height, pixelsPerPoint, margin, coverage);
     }

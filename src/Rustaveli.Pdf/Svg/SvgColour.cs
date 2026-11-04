@@ -76,12 +76,13 @@ internal static class SvgColour
         if (parts.Length < 3)
             return null;
 
-        float alpha = parts.Length > 3 ? Channel(parts[3], 1) : 1;
+        float opacity = Clamp.Fraction(parts.Length > 3 ? Channel(parts[3], 1) : 1);
 
         return function switch
         {
-            "rgb" or "rgba" => Ink.Rgb(Byte(Channel(parts[0], 255)), Byte(Channel(parts[1], 255)), Byte(Channel(parts[2], 255))).WithOpacity(Clamp(alpha)),
-            "hsl" or "hsla" => Hsl(Number(parts[0]), Channel(parts[1], 1), Channel(parts[2], 1)).WithOpacity(Clamp(alpha)),
+            "rgb" or "rgba" => Ink.Rgb(Byte(parts[0]), Byte(parts[1]), Byte(parts[2])).WithOpacity(opacity),
+            "hsl" or "hsla" =>
+                Ink.Hsl(Number(parts[0]), Channel(parts[1], 1), Channel(parts[2], 1)).WithOpacity(opacity),
             _ => null,
         };
     }
@@ -108,28 +109,6 @@ internal static class SvgColour
     private static float Number(string text) =>
         float.TryParse(text.Replace("deg", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out float number) ? number : 0;
 
-    private static byte Byte(float value) => (byte)Math.Round(Math.Min(255, Math.Max(0, value)));
-
-    private static float Clamp(float fraction) => Math.Min(1, Math.Max(0, fraction));
-
-    private static Ink Hsl(float hue, float saturation, float lightness)
-    {
-        float h = ((hue % 360) + 360) % 360 / 60;
-        float s = Clamp(saturation), l = Clamp(lightness);
-        float chroma = (1 - Math.Abs((2 * l) - 1)) * s;
-        float second = chroma * (1 - Math.Abs((h % 2) - 1));
-        float lift = l - (chroma / 2);
-
-        (float red, float green, float blue) = (int)h switch
-        {
-            0 => (chroma, second, 0f),
-            1 => (second, chroma, 0f),
-            2 => (0f, chroma, second),
-            3 => (0f, second, chroma),
-            4 => (second, 0f, chroma),
-            _ => (chroma, 0f, second),
-        };
-
-        return Ink.Rgb(Byte((red + lift) * 255), Byte((green + lift) * 255), Byte((blue + lift) * 255));
-    }
+    /// <summary>An RGB channel, a number or a percentage of 255, kept from 0 to 255.</summary>
+    private static byte Byte(string channel) => (byte)Math.Round(Clamp.Between(Channel(channel, 255), 0, 255));
 }

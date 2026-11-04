@@ -32,9 +32,6 @@ internal sealed class PdfSurface : IPageSink
     private static readonly PdfName Artifact = new PdfName("Artifact");
     private static readonly PdfName Tabs = new PdfName("Tabs");
 
-    /// <summary>Control-point distance, as a fraction of the radius, of a cubic Bézier approximating a quarter circle.</summary>
-    private const double Kappa = 0.5522847498307936;
-
     private readonly PdfDocumentWriter _writer;
     private readonly TypeShaper _shaper;
     private readonly FontEmbedder _fonts;
@@ -809,22 +806,42 @@ internal sealed class PdfSurface : IPageSink
         content.LineTo(right - topRight, y);
 
         if (topRight > 0)
-            content.CurveTo(right - topRight + (topRight * Kappa), y, right, y + topRight - (topRight * Kappa), right, y + topRight);
+        {
+            content.CurveTo(
+                right - topRight + (topRight * VectorPath.Kappa), y,
+                right, y + topRight - (topRight * VectorPath.Kappa),
+                right, y + topRight);
+        }
 
         content.LineTo(right, bottom - bottomRight);
 
         if (bottomRight > 0)
-            content.CurveTo(right, bottom - bottomRight + (bottomRight * Kappa), right - bottomRight + (bottomRight * Kappa), bottom, right - bottomRight, bottom);
+        {
+            content.CurveTo(
+                right, bottom - bottomRight + (bottomRight * VectorPath.Kappa),
+                right - bottomRight + (bottomRight * VectorPath.Kappa), bottom,
+                right - bottomRight, bottom);
+        }
 
         content.LineTo(x + bottomLeft, bottom);
 
         if (bottomLeft > 0)
-            content.CurveTo(x + bottomLeft - (bottomLeft * Kappa), bottom, x, bottom - bottomLeft + (bottomLeft * Kappa), x, bottom - bottomLeft);
+        {
+            content.CurveTo(
+                x + bottomLeft - (bottomLeft * VectorPath.Kappa), bottom,
+                x, bottom - bottomLeft + (bottomLeft * VectorPath.Kappa),
+                x, bottom - bottomLeft);
+        }
 
         content.LineTo(x, y + topLeft);
 
         if (topLeft > 0)
-            content.CurveTo(x, y + topLeft - (topLeft * Kappa), x + topLeft - (topLeft * Kappa), y, x + topLeft, y);
+        {
+            content.CurveTo(
+                x, y + topLeft - (topLeft * VectorPath.Kappa),
+                x + topLeft - (topLeft * VectorPath.Kappa), y,
+                x + topLeft, y);
+        }
 
         content.ClosePath();
     }

@@ -48,7 +48,7 @@ internal static class PdfNumbers
     /// </remarks>
     public static int WriteReal(double value, Span<byte> destination)
     {
-        if (double.IsNaN(value) || double.IsInfinity(value))
+        if (!Numbers.IsFinite(value))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(value), value, "PDF has no representation for NaN or infinity.");

@@ -40,7 +40,7 @@ public sealed class Gradient
     {
         ArgumentNullException.ThrowIfNull(stops);
 
-        if (float.IsNaN(angle) || float.IsInfinity(angle))
+        if (!Numbers.IsFinite(angle))
             throw new ArgumentException("A gradient's angle must be a finite number of degrees.", nameof(angle));
 
         Check(stops);

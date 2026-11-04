@@ -86,7 +86,7 @@ internal ref struct LineBreakEnumerator
         // LB2: never break at the start of the text. The first character is not judged, only remembered.
         if (!_ended)
         {
-            int codepoint = CodepointAt(0, out _next);
+            int codepoint = Utf16.CodepointAt(text, 0, out _next);
             Advance(LineBreakProperties.Of(codepoint), codepoint);
         }
     }
@@ -110,7 +110,9 @@ internal ref struct LineBreakEnumerator
         while (_next < _text.Length)
         {
             int position = _next;
-            int codepoint = CodepointAt(position, out int length);
+
+            // A surrogate without its partner stands for itself, which the table classes as a letter.
+            int codepoint = Utf16.CodepointAt(_text, position, out int length);
             LineBreakProperties properties = LineBreakProperties.Of(codepoint);
             _next += length;
 
@@ -479,7 +481,7 @@ internal ref struct LineBreakEnumerator
     {
         while (index < _text.Length)
         {
-            int codepoint = CodepointAt(index, out int length);
+            int codepoint = Utf16.CodepointAt(_text, index, out int length);
             LineBreakProperties properties = LineBreakProperties.Of(codepoint);
             index += length;
 
@@ -488,24 +490,6 @@ internal ref struct LineBreakEnumerator
         }
 
         return LineBreakProperties.EndOfText;
-    }
-
-    /// <summary>
-    /// The code point at <paramref name="index"/>. A surrogate without its partner stands for itself, which the
-    /// table classes as a letter.
-    /// </summary>
-    private readonly int CodepointAt(int index, out int length)
-    {
-        char character = _text[index];
-
-        if (char.IsHighSurrogate(character) && index + 1 < _text.Length && char.IsLowSurrogate(_text[index + 1]))
-        {
-            length = 2;
-            return char.ConvertToUtf32(character, _text[index + 1]);
-        }
-
-        length = 1;
-        return character;
     }
 
     /// <summary>

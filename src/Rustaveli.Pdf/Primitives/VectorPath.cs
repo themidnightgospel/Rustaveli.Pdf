@@ -11,7 +11,7 @@ namespace Rustaveli.Pdf;
 public sealed class VectorPath
 {
     /// <summary>Control-point distance, as a fraction of the radius, of a cubic Bézier approximating a quarter circle.</summary>
-    private const double Kappa = 0.5522847498307936;
+    internal const double Kappa = 0.5522847498307936;
 
     private readonly List<PathVerb> _verbs = [];
     private readonly List<Offset> _points = [];

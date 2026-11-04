@@ -16,15 +16,14 @@ internal static class ScriptDetection
     /// <summary>The script of the first character of <paramref name="text"/> that has one; <c>DFLT</c> when none has.</summary>
     public static ScriptTag Of(ReadOnlySpan<char> text)
     {
-        for (int index = 0; index < text.Length; index++)
+        for (int index = 0; index < text.Length;)
         {
-            int codepoint = text[index];
-
-            if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
-                codepoint = char.ConvertToUtf32(text[index], text[++index]);
+            int codepoint = Utf16.CodepointAt(text, index, out int length);
 
             if (Of(codepoint) is ScriptTag script)
                 return script;
+
+            index += length;
         }
 
         return ScriptTag.Default;

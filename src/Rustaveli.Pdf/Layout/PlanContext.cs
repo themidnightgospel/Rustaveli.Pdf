@@ -7,12 +7,18 @@ namespace Rustaveli.Pdf.Layout;
 /// </summary>
 internal sealed class PlanContext(ITypeMeasurer measurer, Pagination pagination)
 {
+    /// <summary>
+    /// The resolution images generated at their final size are generated at unless an export sets another: 288 pixels
+    /// per inch, sharp in print. A constant, so it can be a parameter's default.
+    /// </summary>
+    public const float DefaultResolution = 288;
+
     public ITypeMeasurer Measurer { get; } = measurer;
 
     public Pagination Pagination { get; } = pagination;
 
     /// <summary>The resolution images generated at their final size are generated at, in pixels per inch.</summary>
-    public float Resolution { get; internal set; } = 288;
+    public float Resolution { get; internal set; } = DefaultResolution;
 
     /// <summary>
     /// The style text inherits when it specifies none of its own. Set per page run before rendering, which lets

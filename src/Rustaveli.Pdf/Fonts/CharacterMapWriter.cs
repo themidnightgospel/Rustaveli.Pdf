@@ -1,3 +1,4 @@
+using Rustaveli.Pdf.Text;
 using static Rustaveli.Pdf.Fonts.PlatformEncoding;
 
 namespace Rustaveli.Pdf.Fonts;
@@ -27,7 +28,7 @@ internal static class CharacterMapWriter
     public static byte[] Write(IEnumerable<KeyValuePair<int, ushort>> mappings, bool symbol)
     {
         KeyValuePair<int, ushort>[] sorted = mappings
-            .Where(static mapping => mapping.Key is >= 0 and <= 0x10FFFF)
+            .Where(static mapping => mapping.Key is >= 0 and <= Utf16.MaxCodepoint)
             .OrderBy(static mapping => mapping.Key)
             .ToArray();
 

@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Text;
+
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
@@ -8,7 +10,6 @@ internal sealed class SegmentedCoverageSubtable : CharacterMapSubtable
 {
     private const int GroupsOffset = 16;
     private const int GroupSize = 12;
-    private const int MaximumCodepoint = 0x10FFFF;
 
     private readonly ReadOnlyMemory<byte> _groups;
     private readonly int _count;
@@ -65,7 +66,7 @@ internal sealed class SegmentedCoverageSubtable : CharacterMapSubtable
         {
             int position = group * GroupSize;
             uint start = BigEndian.UInt32(_groups.Span, position);
-            long end = Math.Min(BigEndian.UInt32(_groups.Span, position + 4), MaximumCodepoint);
+            long end = Math.Min(BigEndian.UInt32(_groups.Span, position + 4), Utf16.MaxCodepoint);
             uint startGlyph = BigEndian.UInt32(_groups.Span, position + 8);
 
             for (long code = Math.Max(start, previousEnd + 1); code <= end; code++)

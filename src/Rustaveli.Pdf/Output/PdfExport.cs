@@ -142,7 +142,8 @@ public static class PdfExport
 
         using PdfSurface surface = new PdfSurface(writer, shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);
-        Typesetter.Render(document, surface, measurer, options?.ImageResolution ?? 288, options?.WritesStructure == true);
+        float resolution = options?.ImageResolution ?? PlanContext.DefaultResolution;
+        Typesetter.Render(document, surface, measurer, resolution, options?.WritesStructure == true);
 
         // PDF/A and PDF/UA forbid drawing the missing glyph, so every character must be found under them.
         bool everyGlyph = options?.RequireEveryGlyph == true

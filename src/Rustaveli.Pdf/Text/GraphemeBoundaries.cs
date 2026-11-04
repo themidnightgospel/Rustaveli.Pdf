@@ -49,11 +49,11 @@ internal struct GraphemeBoundaries
     /// </summary>
     public bool Begins(ReadOnlySpan<char> text, int start, int length)
     {
-        bool begins = Begins(CodepointAt(text, start, out int first));
+        bool begins = Begins(Utf16.CodepointAt(text, start, out int first));
 
         for (int index = start + first; index < start + length;)
         {
-            Begins(CodepointAt(text, index, out int next));
+            Begins(Utf16.CodepointAt(text, index, out int next));
             index += next;
         }
 
@@ -77,7 +77,7 @@ internal struct GraphemeBoundaries
 
         while (index < text.Length)
         {
-            int codepoint = CodepointAt(text, index, out int length);
+            int codepoint = Utf16.CodepointAt(text, index, out int length);
 
             if (boundaries.Begins(codepoint) && index > 0)
                 break;
@@ -86,21 +86,6 @@ internal struct GraphemeBoundaries
         }
 
         return index;
-    }
-
-    /// <summary>The character at <paramref name="index"/>: a surrogate pair read as one, a lone surrogate as itself.</summary>
-    public static int CodepointAt(ReadOnlySpan<char> text, int index, out int length)
-    {
-        char character = text[index];
-
-        if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
-        {
-            length = 2;
-            return char.ConvertToUtf32(character, text[index + 1]);
-        }
-
-        length = 1;
-        return character;
     }
 
     /// <summary>

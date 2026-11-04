@@ -30,7 +30,9 @@ internal static class Typesetter
     /// <param name="resolution">The resolution generated images are asked for.</param>
     /// <param name="tagged">Whether the final pass records the document's structure, for a tagged PDF.</param>
     /// <param name="inspection">Where the final pass records every frame it draws, for a preview's inspector.</param>
-    public static void Render(Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = 288, bool tagged = false, LayoutInspection? inspection = null)
+    public static void Render(
+        Document document, IPageSink pages, ITypeMeasurer measurer, float resolution = PlanContext.DefaultResolution,
+        bool tagged = false, LayoutInspection? inspection = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(pages);
@@ -194,8 +196,8 @@ internal static class Typesetter
         float width = section.Margins.Horizontal + Math.Max(contentPlan.Size.Width, bands.Width);
         float height = section.Margins.Vertical + bands.HeadHeight + contentPlan.Size.Height + bands.FootHeight;
         Extent pageSize = new Extent(
-            Clamp(width, smallest.Width, largest.Width),
-            Clamp(height, smallest.Height, largest.Height));
+            Clamp.Between(width, smallest.Width, largest.Width),
+            Clamp.Between(height, smallest.Height, largest.Height));
 
         try
         {
@@ -411,8 +413,6 @@ internal static class Typesetter
 
         return trace.Describe();
     }
-
-    private static float Clamp(float value, float smallest, float largest) => Math.Min(largest, Math.Max(smallest, value));
 
     /// <summary>The height of the running head and foot, and the width the wider of them takes.</summary>
     private readonly record struct Bands(float HeadHeight, float FootHeight, float Width);

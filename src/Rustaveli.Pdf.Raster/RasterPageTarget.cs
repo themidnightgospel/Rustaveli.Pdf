@@ -1,3 +1,4 @@
+using System.Globalization;
 using SkiaSharp;
 
 namespace Rustaveli.Pdf.Raster;
@@ -12,7 +13,7 @@ internal sealed class RasterPageTarget(ImageExportOptions options) : ISkiaPageTa
         if (_surface is not null)
             throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
 
-        float scale = options.Resolution / 72f;
+        float scale = options.Resolution / Lengths.PointsPerInch;
         SKImageInfo info = new SKImageInfo(Pixels(size.Width, scale), Pixels(size.Height, scale), SKColorType.Rgba8888, SKAlphaType.Premul);
 
         _surface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Skia could not allocate a {info.Width}×{info.Height} page.");
@@ -58,7 +59,13 @@ internal sealed class RasterPageTarget(ImageExportOptions options) : ISkiaPageTa
         double pixels = Math.Round((double)points * scale, MidpointRounding.AwayFromZero);
 
         if (pixels > int.MaxValue)
-            throw new InvalidOperationException(FormattableString.Invariant($"A page {points} points long at {scale * 72} pixels per inch has more pixels than an image can have."));
+        {
+            throw new InvalidOperationException(string.Format(
+                CultureInfo.InvariantCulture,
+                "A page {0} points long at {1} pixels per inch has more pixels than an image can have.",
+                points,
+                scale * Lengths.PointsPerInch));
+        }
 
         return Math.Max(1, (int)pixels);
     }

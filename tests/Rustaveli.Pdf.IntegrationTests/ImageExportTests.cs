@@ -219,4 +219,23 @@ public class ImageExportTests
         Assert.Throws<ArgumentNullException>(() => ImageExport.ExportImages(null!));
         Assert.Throws<ArgumentNullException>(() => TwoPages().ExportImages((Func<int, string>)null!));
     }
+
+    [Fact]
+    public void EveryExportRefusesAResolutionInTheSameWords()
+    {
+        const string Message = "A resolution is a finite number of pixels per inch above nothing.";
+        ArgumentOutOfRangeException[] errors =
+        [
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ImageExportOptions { Resolution = 0 }),
+            Assert.Throws<ArgumentOutOfRangeException>(() => new VectorExportOptions { ImageResolution = 0 }),
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PreviewOptions { Resolution = 0 }),
+        ];
+
+        Assert.All(errors, error =>
+        {
+            Assert.Equal("value", error.ParamName);
+            Assert.Equal(0f, error.ActualValue);
+            Assert.StartsWith(Message, error.Message, StringComparison.Ordinal);
+        });
+    }
 }
