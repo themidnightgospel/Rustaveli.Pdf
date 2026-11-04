@@ -70,9 +70,9 @@ internal sealed class PdfSource
     public bool WasRepaired => _rebuilt;
 
     public PdfDictionary Catalog =>
-        Resolve(Trailer.TryGetValue(Root, out PdfValue root) ? root : PdfValue.Null) is { Kind: PdfValueKind.Dictionary } catalog
+        Resolve(Trailer, Root) is { Kind: PdfValueKind.Dictionary } catalog
             ? catalog.AsDictionary()
-            : throw new UnreadableFileException("The file is not a PDF this library can read: it has no catalog.");
+            : throw PdfParser.Damaged("it has no catalog");
 
     /// <summary>The object numbers the file holds, in order.</summary>
     public IEnumerable<int> ObjectNumbers
@@ -116,9 +116,9 @@ internal sealed class PdfSource
 
         PdfDictionary dictionary = Resolve(encrypt) is { Kind: PdfValueKind.Dictionary } found
             ? found.AsDictionary()
-            : throw new UnreadableFileException("The file is not a PDF this library can read: its encryption dictionary is missing.");
+            : throw PdfParser.Damaged("its encryption dictionary is missing");
 
-        byte[] id = Trailer.TryGetValue(PdfNames.ID, out PdfValue ids) && Resolve(ids) is { Kind: PdfValueKind.Array } pair
+        byte[] id = Resolve(Trailer, PdfNames.ID) is { Kind: PdfValueKind.Array } pair
             && pair.AsArray().Count > 0 && pair.AsArray()[0].Kind == PdfValueKind.String
             ? pair.AsArray()[0].AsString().Bytes.ToArray()
             : [];
@@ -132,7 +132,7 @@ internal sealed class PdfSource
         }
         catch (InvalidDataException exception)
         {
-            throw new UnreadableFileException("The file is not a PDF this library can read: " + exception.Message, exception);
+            throw PdfParser.Damaged(exception);
         }
         finally
         {
@@ -182,7 +182,7 @@ internal sealed class PdfSource
     {
         if (read is SourceStream stream)
         {
-            if (stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(XRef))
+            if (IsOfType(stream.Dictionary, XRef))
                 return stream;
 
             PdfDictionary dictionary = Decrypt(number, generation, stream.Dictionary).AsDictionary();
@@ -213,7 +213,7 @@ internal sealed class PdfSource
 
                 PdfArray rest = new PdfArray(value.AsArray().Count - 1);
 
-                foreach (PdfValue item in value.AsArray().Cast<PdfValue>().Skip(1))
+                foreach (PdfValue item in value.AsArray().Skip(1))
                     rest.Add(item);
 
                 plain[entry.Key] = rest;
@@ -326,6 +326,13 @@ internal sealed class PdfSource
         return value.Kind == PdfValueKind.Reference ? PdfValue.Null : value;
     }
 
+    /// <summary>
+    /// What <paramref name="dictionary"/> holds as <paramref name="key"/>, with references followed; null when it holds
+    /// nothing there, as a null entry is no entry at all (7.3.7).
+    /// </summary>
+    public PdfValue Resolve(PdfDictionary dictionary, PdfName key) =>
+        Resolve(dictionary.TryGetValue(key, out PdfValue value) ? value : PdfValue.Null);
+
     /// <summary>The stream a value refers to, or null if it refers to something else.</summary>
     public SourceStream? Stream(PdfValue value) =>
         value.Kind == PdfValueKind.Reference ? GetObject(value.AsReference().ObjectNumber) as SourceStream : null;
@@ -360,23 +367,25 @@ internal sealed class PdfSource
     private List<SourcePage> ReadPages()
     {
         List<SourcePage> pages = [];
-        HashSet<int> visited = _pageTree;
-        visited.Clear();
+        _pageTree.Clear();
 
         if (!Catalog.TryGetValue(PdfNames.Pages, out PdfValue tree) || tree.Kind != PdfValueKind.Reference)
-            throw new UnreadableFileException("The file is not a PDF this library can read: its catalog has no page tree.");
+            throw PdfParser.Damaged("its catalog has no page tree");
 
         Visit(tree.AsReference().ObjectNumber, new PdfDictionary());
         return pages;
 
         void Visit(int number, PdfDictionary inherited)
         {
-            if (!visited.Add(number) || Resolve(new PdfReference(number)) is not { Kind: PdfValueKind.Dictionary } found)
+            if (!_pageTree.Add(number)
+                || Resolve(new PdfReference(number)) is not { Kind: PdfValueKind.Dictionary } found)
+            {
                 return;
+            }
 
             PdfDictionary node = found.AsDictionary();
 
-            if (node.TryGetValue(PdfNames.Kids, out PdfValue kids) && Resolve(kids) is { Kind: PdfValueKind.Array } children)
+            if (Resolve(node, PdfNames.Kids) is { Kind: PdfValueKind.Array } children)
             {
                 PdfDictionary passed = new PdfDictionary();
 
@@ -462,7 +471,7 @@ internal sealed class PdfSource
     private byte[] StreamData(int position, PdfDictionary dictionary) =>
         StreamExtent(position, dictionary, Resolve) is (int start, int length)
             ? Data.AsSpan(start, length).ToArray()
-            : throw new UnreadableFileException("The file is not a PDF this library can read: a stream has no end.");
+            : throw PdfParser.Damaged("a stream has no end");
 
     /// <summary>
     /// Where a stream's data begins, from just past its <c>stream</c> keyword, and how long it is: as long as its
@@ -514,10 +523,10 @@ internal sealed class PdfSource
                 return Misplaced;
 
             byte[] data = Decode(stream);
-            int count = Resolve(stream.Dictionary.TryGetValue(PdfNames.N, out PdfValue n) ? n : PdfValue.Null) is { Kind: PdfValueKind.Integer } total
+            int count = Resolve(stream.Dictionary, PdfNames.N) is { Kind: PdfValueKind.Integer } total
                 ? (int)total.AsInteger()
                 : 0;
-            long first = Resolve(stream.Dictionary.TryGetValue(First, out PdfValue f) ? f : PdfValue.Null) is { Kind: PdfValueKind.Integer } start
+            long first = Resolve(stream.Dictionary, First) is { Kind: PdfValueKind.Integer } start
                 ? start.AsInteger()
                 : 0;
 
@@ -556,12 +565,13 @@ internal sealed class PdfSource
     {
         try
         {
-            int keyword = Data.AsSpan(Math.Max(0, Data.Length - 4096)).LastIndexOf("startxref"u8);
+            int tail = Math.Max(0, Data.Length - 4096);
+            int keyword = Data.AsSpan(tail).LastIndexOf("startxref"u8);
 
             if (keyword < 0)
                 return false;
 
-            PdfParser parser = new PdfParser(Data, Math.Max(0, Data.Length - 4096) + keyword + "startxref".Length);
+            PdfParser parser = new PdfParser(Data, tail + keyword + "startxref".Length);
 
             if (!parser.TryReadInteger(out long offset))
                 return false;
@@ -610,7 +620,7 @@ internal sealed class PdfSource
             for (long index = 0; index < count; index++)
             {
                 if (!parser.TryReadInteger(out long position) || !parser.TryReadInteger(out _))
-                    throw parser.Damaged("a cross-reference entry is not an offset and a generation");
+                    throw PdfParser.Damaged("a cross-reference entry is not an offset and a generation");
 
                 ReadOnlySpan<byte> type = parser.ReadToken();
 
@@ -625,12 +635,12 @@ internal sealed class PdfSource
                 else if (type.SequenceEqual("f"u8))
                     table.Add((number, null));
                 else
-                    throw parser.Damaged("a cross-reference entry is neither in use nor free");
+                    throw PdfParser.Damaged("a cross-reference entry is neither in use nor free");
             }
         }
 
         if (!parser.TryReadKeyword("trailer"u8))
-            throw parser.Damaged("a cross-reference table has no trailer");
+            throw PdfParser.Damaged("a cross-reference table has no trailer");
 
         PdfDictionary trailer = parser.ReadValue().AsDictionary();
 
@@ -649,26 +659,27 @@ internal sealed class PdfSource
         PdfParser parser = new PdfParser(Data, (int)offset);
 
         if (!parser.TryReadInteger(out long number) || !parser.TryReadInteger(out _) || !parser.TryReadKeyword("obj"u8))
-            throw parser.Damaged("a cross-reference section is neither a table nor a stream");
+            throw PdfParser.Damaged("a cross-reference section is neither a table nor a stream");
 
         PdfValue value = parser.ReadValue();
 
         if (value.Kind != PdfValueKind.Dictionary || !parser.TryReadKeyword("stream"u8))
-            throw parser.Damaged("a cross-reference stream is not a stream");
+            throw PdfParser.Damaged("a cross-reference stream is not a stream");
 
         PdfDictionary dictionary = value.AsDictionary();
 
-        if (!dictionary.TryGetValue(PdfNames.Type, out PdfValue type) || type.Kind != PdfValueKind.Name || !type.AsName().Equals(XRef))
-            throw parser.Damaged("a cross-reference stream is not of type XRef");
+        if (!IsOfType(dictionary, XRef))
+            throw PdfParser.Damaged("a cross-reference stream is not of type XRef");
 
         byte[] data = StreamDecoder.Decode(dictionary, StreamData(parser.Position, dictionary), value => value);
-        int[] width = Widths(dictionary) ?? throw parser.Damaged("a cross-reference stream's /W does not give the widths of its three fields");
+        int[] width = Widths(dictionary)
+            ?? throw PdfParser.Damaged("a cross-reference stream's /W does not give the widths of its three fields");
         int row = width[0] + width[1] + width[2];
         PdfArray ranges = dictionary.TryGetValue(Index, out PdfValue given)
             ? given.AsArray()
             : dictionary.TryGetValue(PdfNames.Size, out PdfValue size) && size.Kind == PdfValueKind.Integer
                 ? new PdfArray(2) { 0, size.AsInteger() }
-                : throw parser.Damaged("a cross-reference stream has neither /Index nor /Size");
+                : throw PdfParser.Damaged("a cross-reference stream has neither /Index nor /Size");
         int position = 0;
 
         for (int range = 0; range + 1 < ranges.Count; range += 2)
@@ -863,7 +874,11 @@ internal sealed class PdfSource
         }
     }
 
-    private static bool IsOfType(PdfDictionary dictionary, PdfName type) =>
+    /// <summary>
+    /// Whether <paramref name="dictionary"/> names <paramref name="type"/> as its <c>/Type</c>. The entry is taken only
+    /// as it is written: a type given by reference is no type.
+    /// </summary>
+    public static bool IsOfType(PdfDictionary dictionary, PdfName type) =>
         dictionary.TryGetValue(PdfNames.Type, out PdfValue given) && given.Kind == PdfValueKind.Name && given.AsName().Equals(type);
 
     /// <summary>Where "<c>n g obj</c>" begins, for the keyword at <paramref name="keyword"/>, or -1 if it is not one.</summary>
@@ -952,6 +967,6 @@ internal sealed class PdfSource
             }
         }
 
-        throw new UnreadableFileException("The file is not a PDF this library can read: no catalog could be found in it.");
+        throw PdfParser.Damaged("no catalog could be found in it");
     }
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.Operations.Reading;
@@ -15,6 +16,9 @@ internal sealed class PdfParser(byte[] data, int position = 0)
 {
     /// <summary>How deeply arrays and dictionaries may nest before the file is taken to be damaged.</summary>
     private const int MaximumDepth = 256;
+
+    /// <summary>How the message of every error for a damaged file begins.</summary>
+    private const string Unreadable = "The file is not a PDF this library can read: ";
 
     public byte[] Data { get; } = data;
 
@@ -424,8 +428,12 @@ internal sealed class PdfParser(byte[] data, int position = 0)
         }
     }
 
-    public UnreadableFileException Damaged(string what) =>
-        new UnreadableFileException($"The file is not a PDF this library can read: {what}.");
+    /// <summary>The error for a file damaged as <paramref name="what"/> says, a clause that ends its message.</summary>
+    public static UnreadableFileException Damaged(string what) => new UnreadableFileException($"{Unreadable}{what}.");
+
+    /// <summary>The error for a file damaged as <paramref name="cause"/> says, in a sentence of its own.</summary>
+    public static UnreadableFileException Damaged(Exception cause) =>
+        new UnreadableFileException(Unreadable + cause.Message, cause);
 
     private static bool IsDigits(ReadOnlySpan<byte> token)
     {
@@ -448,7 +456,8 @@ internal sealed class PdfParser(byte[] data, int position = 0)
         return value;
     }
 
-    private static int HexValue(byte value) => value switch
+    /// <summary>The value of a hexadecimal digit, or -1 for what is not one.</summary>
+    public static int HexValue(byte value) => value switch
     {
         >= (byte)'0' and <= (byte)'9' => value - '0',
         >= (byte)'a' and <= (byte)'f' => value - 'a' + 10,
@@ -456,13 +465,5 @@ internal sealed class PdfParser(byte[] data, int position = 0)
         _ => -1,
     };
 
-    private static string Text(ReadOnlySpan<byte> token)
-    {
-        char[] characters = new char[token.Length];
-
-        for (int index = 0; index < token.Length; index++)
-            characters[index] = (char)token[index];
-
-        return new string(characters);
-    }
+    private static string Text(ReadOnlySpan<byte> token) => Encoding.Latin1.GetString(token);
 }

@@ -76,11 +76,12 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
         {
             // A link's /Dest, or a go-to action's /D; a remote go-to's names another file's destination, and is left be.
             PdfName? key = dictionary.ContainsKey(Dest) ? Dest
-                : dictionary.TryGetValue(PdfNames.S, out PdfValue action) && source.Resolve(action) is { Kind: PdfValueKind.Name } kind && kind.AsName().Equals(PdfNames.GoTo) ? PdfNames.D
+                : source.Resolve(dictionary, PdfNames.S) is { Kind: PdfValueKind.Name } kind
+                    && kind.AsName().Equals(PdfNames.GoTo) ? PdfNames.D
                 : null;
 
-            if (key is { } found && dictionary.TryGetValue(found, out PdfValue given)
-                && Key(source.Resolve(given)) is { } name && named.TryGetValue(name, out PdfValue explicitly))
+            if (key is { } found && Key(source.Resolve(dictionary, found)) is { } name
+                && named.TryGetValue(name, out PdfValue explicitly))
             {
                 copied[found] = Copy(source, explicitly);
             }
@@ -100,14 +101,14 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
         PdfDictionary catalog = source.Catalog;
 
         // Names are looked up by their bytes, whether the file gives them as strings (PDF 1.2) or as names (PDF 1.1).
-        if (catalog.TryGetValue(PdfNames.Names, out PdfValue names) && source.Resolve(names) is { Kind: PdfValueKind.Dictionary } tree
+        if (source.Resolve(catalog, PdfNames.Names) is { Kind: PdfValueKind.Dictionary } tree
             && tree.AsDictionary().TryGetValue(PdfNames.Dests, out PdfValue root))
         {
             foreach ((PdfString name, PdfValue value) in PdfNameTreeReader.Entries(source, root))
                 Add(Key(name)!, value);
         }
 
-        if (catalog.TryGetValue(PdfNames.Dests, out PdfValue old) && source.Resolve(old) is { Kind: PdfValueKind.Dictionary } dests)
+        if (source.Resolve(catalog, PdfNames.Dests) is { Kind: PdfValueKind.Dictionary } dests)
         {
             foreach (KeyValuePair<PdfName, PdfValue> entry in dests.AsDictionary())
                 Add(Key(entry.Key)!, entry.Value);
@@ -150,7 +151,7 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
         if (source.Encryption is not { HasKey: false } locked || locked.EmbeddedFiles == PdfEncryption.Cipher.None)
             return;
 
-        bool attachment = dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name && type.AsName().Equals(EmbeddedFile);
+        bool attachment = PdfSource.IsOfType(dictionary, EmbeddedFile);
 
         if (attachment && !(ReferenceEquals(encryption, locked) && locked.EmbeddedFiles == PdfEncryption.Cipher.Aes256))
         {

@@ -46,7 +46,7 @@ internal static class StreamDecoder
                 {
                     filters.Add(resolve(item) is { Kind: PdfValueKind.Name } filter
                         ? filter.AsName()
-                        : throw new UnreadableFileException("The file is not a PDF this library can read: a stream's filter is not a name."));
+                        : throw PdfParser.Damaged("a stream's filter is not a name"));
                 }
             }
         }
@@ -92,7 +92,7 @@ internal static class StreamDecoder
     private static string CryptFilterName(PdfValue name) =>
         name.Kind == PdfValueKind.Name
             ? name.AsName().Value
-            : throw new UnreadableFileException("The file is not a PDF this library can read: a stream's crypt filter is named with something other than a name.");
+            : throw PdfParser.Damaged("a stream's crypt filter is named with something other than a name");
 
     /// <summary>
     /// The most a stream is inflated to: far more than any page's content or object stream holds, and far less than the
@@ -119,7 +119,7 @@ internal static class StreamDecoder
             while ((read = inflater.Read(buffer, 0, buffer.Length)) > 0)
             {
                 if (output.Length + read > MaximumInflatedLength)
-                    throw new UnreadableFileException($"The file is not a PDF this library can read: a stream inflates to more than {MaximumInflatedLength >> 20} MB.");
+                    throw PdfParser.Damaged($"a stream inflates to more than {MaximumInflatedLength >> 20} MB");
 
                 output.Write(buffer, 0, read);
             }
@@ -278,13 +278,7 @@ internal static class StreamDecoder
             if (value == '>')
                 break;
 
-            int digit = value switch
-            {
-                >= (byte)'0' and <= (byte)'9' => value - '0',
-                >= (byte)'a' and <= (byte)'f' => value - 'a' + 10,
-                >= (byte)'A' and <= (byte)'F' => value - 'A' + 10,
-                _ => -1,
-            };
+            int digit = PdfParser.HexValue(value);
 
             if (digit < 0)
                 continue;

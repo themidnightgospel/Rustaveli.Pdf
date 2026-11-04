@@ -46,8 +46,12 @@ internal static class Linearizer
         {
             object value = source.GetObject(number);
 
-            if (value is SourceStream stream && TypeOf(stream.Dictionary) is { } type && (type.Equals(PdfNames.XRef) || type.Equals(ObjStm)))
+            if (value is SourceStream stream
+                && (PdfSource.IsOfType(stream.Dictionary, PdfNames.XRef)
+                    || PdfSource.IsOfType(stream.Dictionary, ObjStm)))
+            {
                 continue;
+            }
 
             if (value is PdfValue { Kind: PdfValueKind.Null })
                 continue;
@@ -176,9 +180,6 @@ internal static class Linearizer
                 break;
         }
     }
-
-    private static PdfName? TypeOf(PdfDictionary dictionary) =>
-        dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.Kind == PdfValueKind.Name ? type.AsName() : null;
 
     /// <summary>Where each object goes, what it is numbered, and the file laid out from them.</summary>
     private sealed class Layout

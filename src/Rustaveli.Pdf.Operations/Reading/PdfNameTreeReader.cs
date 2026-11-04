@@ -29,8 +29,7 @@ internal static class PdfNameTreeReader
 
             PdfDictionary dictionary = found.AsDictionary();
 
-            if (dictionary.TryGetValue(PdfNames.Names, out PdfValue pairs)
-                && source.Resolve(pairs) is { Kind: PdfValueKind.Array } array)
+            if (source.Resolve(dictionary, PdfNames.Names) is { Kind: PdfValueKind.Array } array)
             {
                 PdfArray items = array.AsArray();
 
@@ -41,8 +40,7 @@ internal static class PdfNameTreeReader
                 }
             }
 
-            if (dictionary.TryGetValue(PdfNames.Kids, out PdfValue kids)
-                && source.Resolve(kids) is { Kind: PdfValueKind.Array } children)
+            if (source.Resolve(dictionary, PdfNames.Kids) is { Kind: PdfValueKind.Array } children)
             {
                 foreach (PdfValue kid in children.AsArray())
                     Visit(kid, depth + 1);

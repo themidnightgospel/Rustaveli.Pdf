@@ -277,7 +277,9 @@ public class PdfSourceTests
         Assert.False(own.Dictionary.ContainsKey(PdfNames.Filter));
         Assert.False(own.Dictionary.ContainsKey(PdfNames.DecodeParms));
         Assert.Equal("deflated beneath", Encoding.ASCII.GetString(source.Decode(deflated)));
-        Assert.Equal(["FlateDecode"], source.Resolve(deflated.Dictionary[PdfNames.Filter]).AsArray().Cast<PdfValue>().Select(filter => filter.AsName().Value));
+        Assert.Equal(
+            ["FlateDecode"],
+            source.Resolve(deflated.Dictionary[PdfNames.Filter]).AsArray().Select(filter => filter.AsName().Value));
 
         // Saved without protection, the attachment is plain.
         PdfSource plain = PdfSource.Open(PdfFile.Open(AttachmentsOnly().ToArray(), "att").Unprotect().ToArray());
