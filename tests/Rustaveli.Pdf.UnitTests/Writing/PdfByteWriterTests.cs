@@ -202,7 +202,7 @@ public class PdfByteWriterTests
 
         string written = Latin1.Written(writer =>
         {
-            writer.WriteArray(array);
+            writer.WriteValue(array);
             writer.WriteDictionary(dictionary);
         });
 
@@ -248,7 +248,7 @@ public class PdfByteWriterTests
     [Fact]
     public void WritesNestingUpToTheLimit()
     {
-        string written = Latin1.Written(writer => writer.WriteArray(Nested(PdfByteWriter.MaxNestingDepth)));
+        string written = Latin1.Written(writer => writer.WriteValue(Nested(PdfByteWriter.MaxNestingDepth)));
 
         Assert.Equal(new string('[', PdfByteWriter.MaxNestingDepth) + new string(']', PdfByteWriter.MaxNestingDepth), written);
     }
@@ -257,9 +257,10 @@ public class PdfByteWriterTests
     public void RefusesNestingBeyondTheLimit()
     {
         using PdfByteWriter writer = new PdfByteWriter();
+        PdfArray nested = Nested(PdfByteWriter.MaxNestingDepth + 1);
 
         InvalidOperationException exception =
-            Assert.Throws<InvalidOperationException>(() => writer.WriteArray(Nested(PdfByteWriter.MaxNestingDepth + 1)));
+            Assert.Throws<InvalidOperationException>(() => writer.WriteValue(nested));
 
         Assert.Equal(
             "Arrays and dictionaries nest more than 64 deep; the object graph probably contains itself.",

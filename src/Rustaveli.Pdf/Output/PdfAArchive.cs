@@ -8,12 +8,9 @@ namespace Rustaveli.Pdf.Output;
 /// </summary>
 internal static class PdfAArchive
 {
-    private static readonly PdfName OutputIntents = new PdfName("OutputIntents");
     private static readonly PdfName OutputIntent = new PdfName("OutputIntent");
-    private static readonly PdfName S = new PdfName("S");
     private static readonly PdfName PdfA = new PdfName("GTS_PDFA1");
     private static readonly PdfName OutputConditionIdentifier = new PdfName("OutputConditionIdentifier");
-    private static readonly PdfName Info = new PdfName("Info");
     private static readonly PdfName DestOutputProfile = new PdfName("DestOutputProfile");
 
     /// <summary>The part of PDF/A and its level, as XMP names them.</summary>
@@ -33,14 +30,14 @@ internal static class PdfAArchive
     {
         PdfReference profile = writer.File.WriteStream(new PdfDictionary { [PdfNames.N] = 3 }, SrgbProfile.Bytes);
 
-        writer.Catalog[OutputIntents] = new PdfArray(1)
+        writer.Catalog[PdfNames.OutputIntents] = new PdfArray(1)
         {
             new PdfDictionary
             {
                 [PdfNames.Type] = OutputIntent,
-                [S] = PdfA,
+                [PdfNames.S] = PdfA,
                 [OutputConditionIdentifier] = PdfString.FromText(SrgbProfile.Name),
-                [Info] = PdfString.FromText(SrgbProfile.Name),
+                [PdfNames.Info] = PdfString.FromText(SrgbProfile.Name),
                 [DestOutputProfile] = profile,
             },
         };

@@ -29,11 +29,7 @@ namespace Rustaveli.Pdf.Output;
 internal sealed class PdfSurface : IPageSink
 {
     private static readonly PdfName Separation = new PdfName("Separation");
-    private static readonly PdfName DeviceRgb = new PdfName("DeviceRGB");
-    private static readonly PdfName DeviceCmyk = new PdfName("DeviceCMYK");
     private static readonly PdfName Artifact = new PdfName("Artifact");
-    private static readonly PdfName StructParents = new PdfName("StructParents");
-    private static readonly PdfName StructParent = new PdfName("StructParent");
     private static readonly PdfName Tabs = new PdfName("Tabs");
 
     /// <summary>Control-point distance, as a fraction of the radius, of a cubic Bézier approximating a quarter circle.</summary>
@@ -130,7 +126,7 @@ internal sealed class PdfSurface : IPageSink
         {
             if (_pageMarks is { } marks)
             {
-                page.Entries[StructParents] = _nextParentKey;
+                page.Entries[PdfNames.StructParents] = _nextParentKey;
                 _parents.Add(_nextParentKey++, marks);
             }
 
@@ -266,7 +262,7 @@ internal sealed class PdfSurface : IPageSink
 
         PdfDictionary entries = new PdfDictionary
         {
-            [StructParent] = key,
+            [PdfNames.StructParent] = key,
             [PdfNames.Contents] = PdfString.FromText(description),
         };
 
@@ -1016,7 +1012,7 @@ internal sealed class PdfSurface : IPageSink
         {
             Separation,
             new PdfName(ink.SpotName!),
-            cmyk ? DeviceCmyk : DeviceRgb,
+            cmyk ? PdfNames.DeviceCMYK : PdfNames.DeviceRGB,
             tintTransform,
         });
 

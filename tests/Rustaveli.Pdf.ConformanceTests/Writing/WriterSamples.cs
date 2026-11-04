@@ -135,7 +135,7 @@ internal static class WriterSamples
         content.RestoreState();
 
         content.SaveState();
-        content.SetGraphicsState(page.Resources.GetExtGStateName(document.GetOpacityState(0.5)));
+        content.SetGraphicsState(page.Resources.GetExtGStateName(document.GetOpacityState(0.5, 0.5)));
         content.SetFillCmyk(0, 0.8, 0.9, 0);
         content.SetStrokeRgb(0, 0, 0);
         content.Rectangle(100, 200, 150, 150);

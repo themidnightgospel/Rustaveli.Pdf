@@ -9,7 +9,6 @@ namespace Rustaveli.Pdf.Writing;
 /// </summary>
 internal static class XmpPacket
 {
-    private static readonly PdfName Metadata = new PdfName("Metadata");
     private static readonly PdfName Xml = new PdfName("XML");
 
     /// <summary>
@@ -28,8 +27,8 @@ internal static class XmpPacket
     /// </summary>
     public static void Write(PdfDocumentWriter writer, byte[] packet)
     {
-        writer.Catalog[Metadata] = writer.File.WriteStream(
-            new PdfDictionary { [PdfNames.Type] = Metadata, [PdfNames.Subtype] = Xml },
+        writer.Catalog[PdfNames.Metadata] = writer.File.WriteStream(
+            new PdfDictionary { [PdfNames.Type] = PdfNames.Metadata, [PdfNames.Subtype] = Xml },
             packet,
             PdfStreamCompression.None);
     }
@@ -65,11 +64,11 @@ internal static class XmpPacket
         if (info.Subject is { } subject)
             xmp.Append("   <dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(subject, "Subject")).Append("</rdf:li></rdf:Alt></dc:description>\n");
 
-        Simple(xmp, "pdf:Keywords", "Keywords", info.Keywords);
-        Simple(xmp, "pdf:Producer", "Producer", info.Producer);
-        Simple(xmp, "xmp:CreatorTool", "Creator", info.Creator);
-        Simple(xmp, "xmp:CreateDate", "CreationDate", Date(info.CreationDate));
-        Simple(xmp, "xmp:ModifyDate", "ModificationDate", Date(info.ModificationDate));
+        AppendProperty(xmp, "pdf:Keywords", "Keywords", info.Keywords);
+        AppendProperty(xmp, "pdf:Producer", "Producer", info.Producer);
+        AppendProperty(xmp, "xmp:CreatorTool", "Creator", info.Creator);
+        AppendProperty(xmp, "xmp:CreateDate", "CreationDate", Date(info.CreationDate));
+        AppendProperty(xmp, "xmp:ModifyDate", "ModificationDate", Date(info.ModificationDate));
 
         xmp.Append("  </rdf:Description>\n");
 
@@ -109,7 +108,7 @@ internal static class XmpPacket
         + "   </pdfaExtension:schemas>\n"
         + "  </rdf:Description>\n";
 
-    private static void Simple(StringBuilder xmp, string property, string entry, string? value)
+    private static void AppendProperty(StringBuilder xmp, string property, string entry, string? value)
     {
         if (value is not null)
             xmp.Append("   <").Append(property).Append('>').Append(Escape(value, entry)).Append("</").Append(property).Append(">\n");

@@ -169,6 +169,8 @@ minor version to the next; from 1.0, nothing public changes incompatibly within 
   Every PDF is unchanged.
 - A typeface registered from a stream that can seek is read straight into an array of its length, which the library
   keeps, rather than into a growing buffer and out again: registering the 607 KB Noto Sans allocates half what it did.
+- Writing a file that isn't encrypted no longer allocates 32 bytes for every object written outside an object
+  stream: the cipher for its strings was looked up through a closure made each time.
 
 **Tests**
 

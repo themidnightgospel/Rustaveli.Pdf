@@ -21,13 +21,6 @@ internal sealed class PdfResources
     private Category? _colorSpaces;
     private Category? _patterns;
 
-    public bool IsEmpty =>
-        IsUnused(_fonts)
-        && IsUnused(_xObjects)
-        && IsUnused(_graphicsStates)
-        && IsUnused(_colorSpaces)
-        && IsUnused(_patterns);
-
     public PdfName GetFontName(PdfReference font) => (_fonts ??= new Category(PdfNames.Font, "F")).NameFor(font);
 
     /// <summary>The name for an image or form XObject.</summary>
@@ -60,8 +53,6 @@ internal sealed class PdfResources
         return resources;
     }
 
-    private static bool IsUnused(Category? category) => category is null || category.IsEmpty;
-
     private sealed class Category(PdfName key, string prefix)
     {
         private readonly Dictionary<int, PdfName> _names = new Dictionary<int, PdfName>();
@@ -71,8 +62,7 @@ internal sealed class PdfResources
 
         public PdfName NameFor(PdfReference reference)
         {
-            if (reference.ObjectNumber == 0)
-                throw new ArgumentException("The reference was never assigned an object number.", nameof(reference));
+            PdfReference.ThrowIfDefault(reference, nameof(reference));
 
             if (_names.TryGetValue(reference.ObjectNumber, out PdfName? existing))
                 return existing;

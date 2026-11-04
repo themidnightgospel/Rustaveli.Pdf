@@ -36,7 +36,6 @@ public class PdfResourcesTests(ITestOutputHelper output)
     {
         PdfResources resources = new PdfResources();
 
-        Assert.True(resources.IsEmpty);
         Assert.Equal("<<>>", Written(resources));
     }
 
@@ -76,7 +75,6 @@ public class PdfResourcesTests(ITestOutputHelper output)
         resources.GetFontName(new PdfReference(13));
         resources.GetFontName(new PdfReference(12));
 
-        Assert.False(resources.IsEmpty);
         Assert.Equal("<</Font<</F1 12 0 R/F2 13 0 R>>/ExtGState<</GS1 9 0 R>>>>", Written(resources));
     }
 
@@ -102,7 +100,7 @@ public class PdfResourcesTests(ITestOutputHelper output)
     [InlineData("ExtGState")]
     [InlineData("ColorSpace")]
     [InlineData("Pattern")]
-    public void IsNotEmptyOnceAnyCategoryIsUsed(string category)
+    public void WritesACategoryOnceItIsUsed(string category)
     {
         PdfResources resources = new PdfResources();
 
@@ -115,7 +113,7 @@ public class PdfResourcesTests(ITestOutputHelper output)
             _ => resources.GetPatternName(new PdfReference(1)),
         };
 
-        Assert.False(resources.IsEmpty);
+        Assert.Equal(category, Assert.Single(resources.ToDictionary()).Key.Value);
     }
 
     [Fact]
@@ -127,7 +125,6 @@ public class PdfResourcesTests(ITestOutputHelper output)
 
         Assert.Equal("reference", exception.ParamName);
         Assert.StartsWith("The reference was never assigned an object number.", exception.Message, StringComparison.Ordinal);
-        Assert.True(resources.IsEmpty);
         Assert.Equal("<<>>", Written(resources));
     }
 }

@@ -403,6 +403,44 @@ public class PdfFileWriterTests
 
         Assert.True(allocated < data.Length / 10, $"Writing {data.Length} bytes allocated {allocated}.");
     }
+
+    [Fact]
+    public void AStreamInAnUnencryptedFileIsWrittenWithoutAllocating()
+    {
+        // Every page's content stream is written this way, and a file nobody encrypts has no cipher to make for it.
+        byte[] data = new byte[1000];
+        PdfDictionary dictionary = new PdfDictionary();
+
+        using PdfFileWriter writer = new PdfFileWriter(Stream.Null, Options(PdfCrossReferenceFormat.Table));
+        writer.WriteStream(dictionary, data, PdfStreamCompression.None);
+
+        long Writing()
+        {
+            PdfReference reference = writer.Reserve();
+            return Allocations.Of(() => writer.WriteStream(reference, dictionary, data, PdfStreamCompression.None));
+        }
+
+        Assert.Equal(0, Allocations.Fewest(Writing));
+    }
+
+    [Fact]
+    public void AnObjectInAnUnencryptedFileIsWrittenWithoutAllocating()
+    {
+        // Every object of a file with a cross-reference table is written this way, and a file nobody encrypts has no
+        // cipher to make for the object's strings.
+        PdfDictionary dictionary = new PdfDictionary { [Type] = Catalog };
+
+        using PdfFileWriter writer = new PdfFileWriter(Stream.Null, Options(PdfCrossReferenceFormat.Table));
+        writer.Write(dictionary);
+
+        long Writing()
+        {
+            PdfReference reference = writer.Reserve();
+            return Allocations.Of(() => writer.Write(reference, dictionary));
+        }
+
+        Assert.Equal(0, Allocations.Fewest(Writing));
+    }
 #endif
 
     [Fact]

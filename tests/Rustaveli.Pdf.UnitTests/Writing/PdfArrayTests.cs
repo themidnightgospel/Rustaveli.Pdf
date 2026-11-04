@@ -23,7 +23,7 @@ public class PdfArrayTests
 
         array[1] = 9;
 
-        Assert.Equal("[1 9]", Latin1.Written(writer => writer.WriteArray(array)));
+        Assert.Equal("[1 9]", Latin1.Written(writer => writer.WriteValue(array)));
     }
 
     [Fact]

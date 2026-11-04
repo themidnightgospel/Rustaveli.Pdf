@@ -23,8 +23,6 @@ namespace Rustaveli.Pdf;
 /// </remarks>
 public static class PdfExport
 {
-    private static readonly PdfName Lang = new PdfName("Lang");
-    private static readonly PdfName ViewerPreferences = new PdfName("ViewerPreferences");
     private static readonly PdfName DisplayDocTitle = new PdfName("DisplayDocTitle");
 
     /// <summary>Exports the document as PDF, returning the file's bytes.</summary>
@@ -126,7 +124,7 @@ public static class PdfExport
         CopyInfo(document.Info, writer.Info);
 
         if (!string.IsNullOrWhiteSpace(document.Info.Language))
-            writer.Catalog[Lang] = PdfString.FromText(document.Info.Language!.Trim());
+            writer.Catalog[PdfNames.Lang] = PdfString.FromText(document.Info.Language!.Trim());
 
         if (archival)
             PdfAArchive.Declare(writer);
@@ -140,7 +138,7 @@ public static class PdfExport
         }
 
         if (accessibility != PdfUAConformance.None)
-            writer.Catalog[ViewerPreferences] = new PdfDictionary { [DisplayDocTitle] = true };
+            writer.Catalog[PdfNames.ViewerPreferences] = new PdfDictionary { [DisplayDocTitle] = true };
 
         using PdfSurface surface = new PdfSurface(writer, shaper, options);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(shaper);

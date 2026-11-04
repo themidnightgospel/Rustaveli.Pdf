@@ -45,8 +45,6 @@ internal sealed class PdfFileWriter : IDisposable
     /// <summary>Pending output is handed to the stream once it passes this size.</summary>
     private const int FlushThreshold = 64 * 1024;
 
-    private static readonly PdfName Encrypt = new PdfName("Encrypt");
-
     private readonly Stream _output;
     private readonly CompressionLevel _compressionLevel;
     private readonly byte[]? _fixedId;
@@ -161,8 +159,12 @@ internal sealed class PdfFileWriter : IDisposable
         FlushIfFull();
     }
 
+    // The lambda is made apart: one capturing the reference here would be allocated on every call, encrypted or not.
     private Func<byte[], byte[]>? StringCipher(PdfReference reference) =>
-        _encryption is { } encryption ? data => encryption.EncryptString(reference.ObjectNumber, data) : null;
+        _encryption is { } encryption ? CipherFor(encryption, reference.ObjectNumber) : null;
+
+    private static Func<byte[], byte[]> CipherFor(Security.PdfEncryption encryption, int objectNumber) =>
+        data => encryption.EncryptString(objectNumber, data);
 
     /// <summary>Writes a stream as a new indirect object and returns its reference.</summary>
     public PdfReference WriteStream(
@@ -205,18 +207,14 @@ internal sealed class PdfFileWriter : IDisposable
 
         ReadOnlySpan<byte> body = compress ? _compressed.WrittenSpan : data;
 
-        if (_encryption is { } encryption)
-        {
-            // Data is compressed first and encrypted after: encrypted data does not compress. A stream left readable is
-            // written as it is, without a copy.
-            ReadOnlySpan<byte> written = encryption.Covers(dictionary) ? encryption.EncryptStream(reference.ObjectNumber, dictionary, body) : body;
-            _pending.StringCipher = StringCipher(reference);
-            WriteStreamObject(reference, dictionary, written, compress);
-            _pending.StringCipher = null;
-            return;
-        }
+        // Data is compressed first and encrypted after: encrypted data does not compress. A stream left readable is
+        // written as it is, without a copy.
+        if (_encryption is { } encryption && encryption.Covers(dictionary))
+            body = encryption.EncryptStream(reference.ObjectNumber, dictionary, body);
 
+        _pending.StringCipher = StringCipher(reference);
         WriteStreamObject(reference, dictionary, body, compress);
+        _pending.StringCipher = null;
     }
 
     /// <summary>
@@ -292,7 +290,7 @@ internal sealed class PdfFileWriter : IDisposable
             trailer[PdfNames.Info] = infoReference;
 
         if (encrypt is PdfReference encryptReference)
-            trailer[Encrypt] = encryptReference;
+            trailer[PdfNames.Encrypt] = encryptReference;
 
         PdfString idString = new PdfString(id, PdfStringForm.Hex);
         trailer[PdfNames.ID] = new PdfArray { idString, idString };

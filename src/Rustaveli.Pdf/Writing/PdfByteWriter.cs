@@ -193,8 +193,6 @@ internal sealed class PdfByteWriter : IDisposable
 
     public void WriteValue(PdfValue value) => WriteValue(value, 0);
 
-    public void WriteArray(PdfArray array) => WriteArray(array, 0);
-
     public void WriteDictionary(PdfDictionary dictionary) => WriteDictionary(dictionary, 0);
 
     /// <summary>

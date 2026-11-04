@@ -10,16 +10,11 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 internal static class AttachmentWriter
 {
     private static readonly PdfName Filespec = new PdfName("Filespec");
-    private static readonly PdfName EmbeddedFile = new PdfName("EmbeddedFile");
-    private static readonly PdfName F = new PdfName("F");
     private static readonly PdfName UF = new PdfName("UF");
     private static readonly PdfName EF = new PdfName("EF");
     private static readonly PdfName Desc = new PdfName("Desc");
     private static readonly PdfName AFRelationship = new PdfName("AFRelationship");
     private static readonly PdfName Params = new PdfName("Params");
-    private static readonly PdfName Size = PdfNames.Size;
-    private static readonly PdfName CreationDate = PdfNames.CreationDate;
-    private static readonly PdfName ModDate = PdfNames.ModDate;
     private static readonly PdfName CheckSum = new PdfName("CheckSum");
 
     /// <summary>
@@ -30,15 +25,15 @@ internal static class AttachmentWriter
     {
         PdfDictionary parameters = new PdfDictionary
         {
-            [Size] = attachment.Content.Length,
-            [ModDate] = PdfDate.Format(attachment.ModificationDate ?? now),
+            [PdfNames.Size] = attachment.Content.Length,
+            [PdfNames.ModDate] = PdfDate.Format(attachment.ModificationDate ?? now),
             [CheckSum] = new PdfString(MD5.HashData(attachment.Content), PdfStringForm.Hex),
         };
 
         if (attachment.CreationDate is { } created)
-            parameters[CreationDate] = PdfDate.Format(created);
+            parameters[PdfNames.CreationDate] = PdfDate.Format(created);
 
-        PdfDictionary stream = new PdfDictionary { [PdfNames.Type] = EmbeddedFile, [Params] = parameters };
+        PdfDictionary stream = new PdfDictionary { [PdfNames.Type] = PdfNames.EmbeddedFile, [Params] = parameters };
 
         if (attachment.MediaType is { Length: > 0 } type)
             stream[PdfNames.Subtype] = new PdfName(type);
@@ -47,9 +42,9 @@ internal static class AttachmentWriter
         PdfDictionary specification = new PdfDictionary
         {
             [PdfNames.Type] = Filespec,
-            [F] = PdfString.FromText(attachment.Name),
+            [PdfNames.F] = PdfString.FromText(attachment.Name),
             [UF] = PdfString.FromText(attachment.Name),
-            [EF] = new PdfDictionary { [F] = data, [UF] = data },
+            [EF] = new PdfDictionary { [PdfNames.F] = data, [UF] = data },
             [AFRelationship] = new PdfName(attachment.Relationship.ToString()),
         };
 

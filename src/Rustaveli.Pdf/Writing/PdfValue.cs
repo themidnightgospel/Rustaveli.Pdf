@@ -45,10 +45,7 @@ internal readonly struct PdfValue
 
     public static implicit operator PdfValue(PdfReference value)
     {
-        // default(PdfReference) numbers no object; writing "0 0 R" would produce a reference nothing can resolve.
-        if (value.ObjectNumber == 0)
-            throw new ArgumentException("The reference was never assigned an object number.", nameof(value));
-
+        PdfReference.ThrowIfDefault(value, nameof(value));
         return new PdfValue(PdfValueKind.Reference, value.ObjectNumber, null);
     }
 

@@ -21,10 +21,7 @@ internal sealed class PdfDocumentInfo
 
     public DateTimeOffset? ModificationDate { get; set; }
 
-    public bool IsEmpty =>
-        Title == null && Author == null && Subject == null && Keywords == null && Creator == null && Producer == null
-        && CreationDate == null && ModificationDate == null;
-
+    /// <summary>The information dictionary, with an entry for each property set; empty when none is.</summary>
     public PdfDictionary ToDictionary()
     {
         PdfDictionary dictionary = new PdfDictionary(8);

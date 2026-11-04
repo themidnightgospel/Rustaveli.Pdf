@@ -20,7 +20,9 @@ internal static class PdfNumbers
     /// </summary>
     public const int MaxLength = 24;
 
-    private static readonly long[] PowersOfTen = [1, 10, 100, 1_000, 10_000, 100_000];
+    // Ten to the power of each count of decimals a real is written with, from none to MaxDecimals.
+    private static readonly long[] PowersOfTen =
+        Enumerable.Range(0, MaxDecimals + 1).Select(decimals => (long)Math.Pow(10, decimals)).ToArray();
 
     /// <summary>
     /// Writes <paramref name="value"/> in decimal. <paramref name="destination"/> must hold <see cref="MaxLength"/>
@@ -101,7 +103,7 @@ internal static class PdfNumbers
     // Seven significant digits, but never more than MaxDecimals after the point.
     private static int DecimalsFor(double magnitude) => magnitude switch
     {
-        < 100 => 5,
+        < 100 => MaxDecimals,
         < 1_000 => 4,
         < 10_000 => 3,
         < 100_000 => 2,

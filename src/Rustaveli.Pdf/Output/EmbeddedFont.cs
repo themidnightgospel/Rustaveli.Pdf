@@ -50,7 +50,6 @@ internal sealed class EmbeddedFont
     private static readonly PdfName Ordering = new PdfName("Ordering");
     private static readonly PdfName Supplement = new PdfName("Supplement");
     private static readonly PdfName CidToGidMap = new PdfName("CIDToGIDMap");
-    private static readonly PdfName Identity = new PdfName("Identity");
     private static readonly PdfName Encoding = new PdfName("Encoding");
     private static readonly PdfName IdentityH = new PdfName("Identity-H");
     private static readonly PdfName DescendantFonts = new PdfName("DescendantFonts");
@@ -155,7 +154,9 @@ internal sealed class EmbeddedFont
             [CidSystemInfo] = SystemInfo(),
             [FontDescriptor] = WriteDescriptor(file, name, FontFile2, program),
             [PdfNames.W] = widthRanges,
-            [CidToGidMap] = shared.Count == 0 ? Identity : file.WriteStream(new PdfDictionary(), CidToGidMapOf(font.GlyphCount, shared)),
+            [CidToGidMap] = shared.Count == 0
+                ? PdfNames.Identity
+                : file.WriteStream(new PdfDictionary(), CidToGidMapOf(font.GlyphCount, shared)),
         });
 
         WriteType0(file, name, cidFont, characters);

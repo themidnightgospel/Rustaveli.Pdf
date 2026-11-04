@@ -19,10 +19,6 @@ namespace Rustaveli.Pdf.Writing;
 /// </remarks>
 internal sealed class PdfDocumentWriter : IDisposable
 {
-    private static readonly PdfName Outlines = new PdfName("Outlines");
-    private static readonly PdfName PageMode = new PdfName("PageMode");
-    private static readonly PdfName UseOutlines = new PdfName("UseOutlines");
-
     /// <summary>The page entries the writer sets itself, which a page's own entries may not repeat.</summary>
     private static readonly PdfName[] PageKeys =
         [PdfNames.Type, PdfNames.Parent, PdfNames.MediaBox, PdfNames.Resources, PdfNames.Contents, PdfNames.Annots];
@@ -69,8 +65,6 @@ internal sealed class PdfDocumentWriter : IDisposable
     /// </summary>
     public PdfDictionary Catalog { get; } = new PdfDictionary();
 
-    public int PageCount => _pages.Count;
-
     public PdfPage BeginPage(double width, double height) => BeginPage(new PdfRectangle(0, 0, width, height));
 
     public PdfPage BeginPage(PdfRectangle mediaBox)
@@ -78,7 +72,7 @@ internal sealed class PdfDocumentWriter : IDisposable
         ThrowIfFinished();
         PdfReference reference = File.Reserve();
         PdfReference parent = _pages.Add(reference);
-        PdfPage page = new PdfPage(File, reference, parent, _pages.Count - 1, mediaBox);
+        PdfPage page = new PdfPage(File, reference, parent, mediaBox);
         _openPages.Add(page);
         return page;
     }
@@ -164,7 +158,7 @@ internal sealed class PdfDocumentWriter : IDisposable
         if (_destinations.ContainsKey(name))
             return false;
 
-        _destinations.Add(name, new PdfArray(5) { page, PdfNames.XYZ, left, top, PdfValue.Null });
+        _destinations.Add(name, Destination(page, left, top));
         return true;
     }
 
@@ -181,11 +175,8 @@ internal sealed class PdfDocumentWriter : IDisposable
         if (level < 1)
             throw new ArgumentOutOfRangeException(nameof(level), level, "Outline levels start at 1.");
 
-        _outline.Add((title, level, new PdfArray(5) { page, PdfNames.XYZ, left, top, PdfValue.Null }));
+        _outline.Add((title, level, Destination(page, left, top)));
     }
-
-    /// <summary>A graphics state applying one opacity to fills and strokes alike.</summary>
-    public PdfReference GetOpacityState(double alpha) => GetOpacityState(alpha, alpha);
 
     /// <summary>
     /// A graphics state setting constant opacity for fills (<c>/ca</c>) and strokes (<c>/CA</c>), each from 0
@@ -232,29 +223,13 @@ internal sealed class PdfDocumentWriter : IDisposable
         };
 
         if (_destinations.Count > 0)
-        {
-            PdfNameTree tree = new PdfNameTree();
-            foreach (KeyValuePair<string, PdfArray> destination in _destinations)
-                tree.Add(PdfString.FromText(destination.Key), destination.Value);
-
-            // Name trees a caller supplied, embedded files say, are kept beside the destinations.
-            PdfDictionary names = new PdfDictionary();
-
-            if (Catalog.TryGetValue(PdfNames.Names, out PdfValue given))
-            {
-                foreach (KeyValuePair<PdfName, PdfValue> entry in given.AsDictionary())
-                    names[entry.Key] = entry.Value;
-            }
-
-            names[PdfNames.Dests] = tree.Write(File);
-            catalog[PdfNames.Names] = names;
-        }
+            catalog[PdfNames.Names] = Names();
 
         if (_outline.Count > 0)
         {
             // A document with bookmarks opens with them showing.
-            catalog[Outlines] = PdfOutline.Write(File, _outline);
-            catalog[PageMode] = UseOutlines;
+            catalog[PdfNames.Outlines] = PdfOutline.Write(File, _outline);
+            catalog[PdfNames.PageMode] = PdfNames.UseOutlines;
         }
 
         foreach (KeyValuePair<PdfName, PdfValue> entry in Catalog)
@@ -268,9 +243,45 @@ internal sealed class PdfDocumentWriter : IDisposable
         // Readers look up the catalog while reading the trailer, often before they set up decryption, so an encrypted
         // file keeps it out of the object streams, where it is read without decrypting anything first.
         PdfReference root = File.Encryption is null ? File.Write(catalog) : File.WriteOutsideObjectStreams(catalog);
-        PdfReference? info = InfoDictionary is { } copied ? File.Write(copied) : Info.IsEmpty ? null : File.Write(Info.ToDictionary());
+        PdfReference? info = WriteInfo();
         File.Finish(root, info);
         _finished = true;
+    }
+
+    /// <summary>
+    /// The catalog's <c>/Names</c>: the named destinations' tree, written now, beside the name trees the caller put in
+    /// <see cref="Catalog"/>.
+    /// </summary>
+    private PdfDictionary Names()
+    {
+        PdfNameTree tree = new PdfNameTree();
+        foreach (KeyValuePair<string, PdfArray> destination in _destinations)
+            tree.Add(PdfString.FromText(destination.Key), destination.Value);
+
+        // Name trees a caller supplied, embedded files say, are kept beside the destinations.
+        PdfDictionary names = new PdfDictionary();
+
+        if (Catalog.TryGetValue(PdfNames.Names, out PdfValue given))
+        {
+            foreach (KeyValuePair<PdfName, PdfValue> entry in given.AsDictionary())
+                names[entry.Key] = entry.Value;
+        }
+
+        names[PdfNames.Dests] = tree.Write(File);
+        return names;
+    }
+
+    /// <summary>
+    /// Writes <see cref="InfoDictionary"/>, or else what <see cref="Info"/> says; null when it says nothing, so the
+    /// trailer has no <c>/Info</c>.
+    /// </summary>
+    private PdfReference? WriteInfo()
+    {
+        if (InfoDictionary is { } copied)
+            return File.Write(copied);
+
+        PdfDictionary info = Info.ToDictionary();
+        return info.Count > 0 ? File.Write(info) : null;
     }
 
     /// <summary>Releases buffers, including those of pages never ended. Does not finish the document.</summary>
@@ -281,6 +292,13 @@ internal sealed class PdfDocumentWriter : IDisposable
 
         File.Dispose();
     }
+
+    /// <summary>
+    /// An <c>/XYZ</c> destination: <paramref name="page"/> with (<paramref name="left"/>, <paramref name="top"/>) at
+    /// the top-left of the window, at the zoom the reader already has.
+    /// </summary>
+    private static PdfArray Destination(PdfReference page, double left, double top) =>
+        new PdfArray(5) { page, PdfNames.XYZ, left, top, PdfValue.Null };
 
     private static void CheckAlpha(double alpha, string name)
     {

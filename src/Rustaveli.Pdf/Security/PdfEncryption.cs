@@ -15,16 +15,12 @@ namespace Rustaveli.Pdf.Security;
 /// </remarks>
 internal sealed class PdfEncryption
 {
-    private static readonly PdfName Filter = PdfNames.Filter;
     private static readonly PdfName Standard = new PdfName("Standard");
     private static readonly PdfName V = new PdfName("V");
     private static readonly PdfName R = new PdfName("R");
-    private static readonly PdfName O = new PdfName("O");
     private static readonly PdfName U = new PdfName("U");
     private static readonly PdfName OE = new PdfName("OE");
     private static readonly PdfName UE = new PdfName("UE");
-    private static readonly PdfName P = new PdfName("P");
-    private static readonly PdfName Perms = new PdfName("Perms");
     private static readonly PdfName CF = new PdfName("CF");
     private static readonly PdfName StmF = new PdfName("StmF");
     private static readonly PdfName StrF = new PdfName("StrF");
@@ -35,25 +31,23 @@ internal sealed class PdfEncryption
     private static readonly PdfName AesV2 = new PdfName("AESV2");
     private static readonly PdfName AesV3 = new PdfName("AESV3");
     private static readonly PdfName V2 = new PdfName("V2");
-    private static readonly PdfName Identity = new PdfName("Identity");
     private static readonly PdfName EncryptMetadata = new PdfName("EncryptMetadata");
-    private static readonly PdfName Metadata = new PdfName("Metadata");
-    private static readonly PdfName Extensions = new PdfName("Extensions");
     private static readonly PdfName Adbe = new PdfName("ADBE");
     private static readonly PdfName BaseVersion = new PdfName("BaseVersion");
     private static readonly PdfName ExtensionLevel = new PdfName("ExtensionLevel");
     private static readonly PdfName Pdf17 = new PdfName("1.7");
     private static readonly PdfName EFF = new PdfName("EFF");
     private static readonly PdfName EFOpen = new PdfName("EFOpen");
-    private static readonly PdfName EmbeddedFile = new PdfName("EmbeddedFile");
     private static readonly PdfName Crypt = new PdfName("Crypt");
-    private static readonly PdfName Name = new PdfName("Name");
 
     private static readonly PdfName SubFilter = new PdfName("SubFilter");
 
     /// <summary>The entries of an encryption dictionary of the standard security handler, its crypt filters apart.</summary>
     private static readonly PdfName[] HandlerEntries =
-        [Filter, SubFilter, V, PdfNames.Length, StmF, StrF, EFF, R, O, U, OE, UE, P, Perms, EncryptMetadata];
+    [
+        PdfNames.Filter, SubFilter, V, PdfNames.Length, StmF, StrF, EFF, R, PdfNames.O, U, OE, UE, PdfNames.P,
+        PdfNames.Perms, EncryptMetadata,
+    ];
 
     /// <summary>The entries that define a crypt filter of the standard security handler.</summary>
     private static readonly PdfName[] FilterEntries = [PdfNames.Type, CFM, AuthEvent, PdfNames.Length];
@@ -62,7 +56,7 @@ internal sealed class PdfEncryption
     /// The entries read again once the key is known: the permissions, the copy of them that 256-bit AES keeps
     /// encrypted, and whether the metadata is encrypted.
     /// </summary>
-    private static readonly PdfName[] EntriesReadAgain = [P, Perms, EncryptMetadata];
+    private static readonly PdfName[] EntriesReadAgain = [PdfNames.P, PdfNames.Perms, EncryptMetadata];
 
     private readonly byte[] _key;
 
@@ -157,13 +151,13 @@ internal sealed class PdfEncryption
 
         PdfDictionary dictionary = new PdfDictionary
         {
-            [Filter] = Standard,
+            [PdfNames.Filter] = Standard,
             [V] = version,
             [R] = revision,
             [PdfNames.Length] = length * 8,
-            [O] = new PdfString(ownerEntry, PdfStringForm.Hex),
+            [PdfNames.O] = new PdfString(ownerEntry, PdfStringForm.Hex),
             [U] = new PdfString(StandardSecurity.User(key, id, revision), PdfStringForm.Hex),
-            [P] = permissions,
+            [PdfNames.P] = permissions,
         };
 
         if (version == 4)
@@ -217,21 +211,22 @@ internal sealed class PdfEncryption
 
         PdfDictionary dictionary = new PdfDictionary
         {
-            [Filter] = Standard,
+            [PdfNames.Filter] = Standard,
             [V] = 5,
             [R] = 6,
             [PdfNames.Length] = 256,
             [CF] = new PdfDictionary { [StdCF] = new PdfDictionary { [CFM] = AesV3, [AuthEvent] = DocOpen, [PdfNames.Length] = 32 } },
             [StmF] = StdCF,
             [StrF] = StdCF,
-            [O] = new PdfString(ownerEntry, PdfStringForm.Hex),
+            [PdfNames.O] = new PdfString(ownerEntry, PdfStringForm.Hex),
             [U] = new PdfString(userEntry, PdfStringForm.Hex),
             [OE] = new PdfString(ownerKey, PdfStringForm.Hex),
             [UE] = new PdfString(userKey, PdfStringForm.Hex),
-            [P] = permissions,
+            [PdfNames.P] = permissions,
             // ECB because ISO 32000-2 says so (Algorithm 10): /Perms is a single block, a copy of the permissions
             // with four random bytes that a reader decrypts to check nothing altered them. Nothing else is written in ECB.
-            [Perms] = new PdfString(StandardSecurity.Aes(key, null, perms, true, CipherMode.ECB, PaddingMode.None), PdfStringForm.Hex),
+            [PdfNames.Perms] = new PdfString(
+                StandardSecurity.Aes(key, null, perms, true, CipherMode.ECB, PaddingMode.None), PdfStringForm.Hex),
         };
 
         if (!encryptsMetadata)
@@ -248,8 +243,11 @@ internal sealed class PdfEncryption
     /// </summary>
     public void DeclareExtension(PdfDictionary catalog)
     {
-        if (_extended && !catalog.ContainsKey(Extensions))
-            catalog[Extensions] = new PdfDictionary { [Adbe] = new PdfDictionary { [BaseVersion] = Pdf17, [ExtensionLevel] = 8 } };
+        if (_extended && !catalog.ContainsKey(PdfNames.Extensions))
+        {
+            catalog[PdfNames.Extensions] =
+                new PdfDictionary { [Adbe] = new PdfDictionary { [BaseVersion] = Pdf17, [ExtensionLevel] = 8 } };
+        }
     }
 
     /// <summary>
@@ -263,14 +261,14 @@ internal sealed class PdfEncryption
     /// </exception>
     public static PdfEncryption? Open(PdfDictionary dictionary, byte[] id, string password, Func<PdfValue, PdfValue> resolve)
     {
-        if (!Standard.Equals(NameEntry(dictionary, Filter, resolve)))
+        if (!Standard.Equals(NameEntry(dictionary, PdfNames.Filter, resolve)))
             throw new NotSupportedException("The file is encrypted by a security handler other than the standard, password one.");
 
         int version = Integer(dictionary, V, 0, resolve);
         int revision = Integer(dictionary, R, 0, resolve);
-        int permissions = Integer(dictionary, P, 0, resolve);
+        int permissions = Integer(dictionary, PdfNames.P, 0, resolve);
         bool encryptsMetadata = MetadataEncrypted(dictionary, resolve);
-        byte[] owner = Bytes(dictionary, O, resolve);
+        byte[] owner = Bytes(dictionary, PdfNames.O, resolve);
         byte[] user = Bytes(dictionary, U, resolve);
 
         if (revision >= 5)
@@ -400,11 +398,11 @@ internal sealed class PdfEncryption
         int permissions = BinaryPrimitives.ReadInt32LittleEndian(block);
 
         // The block holds the low 32 bits of /P, which writers give as a signed or an unsigned number.
-        bool agrees = Dictionary.TryGetValue(P, out PdfValue given) && given.Kind == PdfValueKind.Integer
+        bool agrees = Dictionary.TryGetValue(PdfNames.P, out PdfValue given) && given.Kind == PdfValueKind.Integer
             && unchecked((uint)given.AsInteger()) == unchecked((uint)permissions);
 
         if (!agrees)
-            Dictionary[P] = permissions;
+            Dictionary[PdfNames.P] = permissions;
 
         bool encryptsMetadata = block[8] != (byte)'F';
 
@@ -418,7 +416,7 @@ internal sealed class PdfEncryption
     /// </summary>
     private byte[]? SealedPermissions()
     {
-        byte[] encrypted = Bytes(Dictionary, Perms, value => value);
+        byte[] encrypted = Bytes(Dictionary, PdfNames.Perms, value => value);
 
         // Only 256-bit AES has a 32-byte key; a file opened without its key has none.
         if (_key.Length != 32 || encrypted.Length < 16)
@@ -515,16 +513,16 @@ internal sealed class PdfEncryption
         }
 
         // Without the key an attachment is left as it was read, encrypted.
-        if (type is not null && type.Equals(EmbeddedFile))
+        if (type is not null && type.Equals(PdfNames.EmbeddedFile))
             return HasKey ? EmbeddedFiles : Cipher.None;
 
-        return type is not null && type.Equals(Metadata) && !EncryptsMetadata ? Cipher.None : Streams;
+        return type is not null && type.Equals(PdfNames.Metadata) && !EncryptsMetadata ? Cipher.None : Streams;
     }
 
     /// <summary>The crypt filter a stream whose first filter is <c>/Crypt</c> names in its parameters, Identity by default; null for any other stream.</summary>
     private static PdfName? OwnCryptFilter(PdfDictionary stream, Func<PdfValue, PdfValue> resolve)
     {
-        PdfValue filters = stream.TryGetValue(Filter, out PdfValue given) ? resolve(given) : PdfValue.Null;
+        PdfValue filters = stream.TryGetValue(PdfNames.Filter, out PdfValue given) ? resolve(given) : PdfValue.Null;
         PdfValue first = filters.Kind == PdfValueKind.Array && filters.AsArray().Count > 0 ? resolve(filters.AsArray()[0]) : filters;
 
         if (first.Kind != PdfValueKind.Name || !first.AsName().Equals(Crypt))
@@ -533,9 +531,10 @@ internal sealed class PdfEncryption
         PdfValue parameters = stream.TryGetValue(PdfNames.DecodeParms, out PdfValue held) ? resolve(held) : PdfValue.Null;
         PdfValue own = parameters.Kind == PdfValueKind.Array && parameters.AsArray().Count > 0 ? resolve(parameters.AsArray()[0]) : parameters;
 
-        return own.Kind == PdfValueKind.Dictionary && NameEntry(own.AsDictionary(), Name, resolve) is { } chosen
+        return own.Kind == PdfValueKind.Dictionary
+            && NameEntry(own.AsDictionary(), PdfNames.Name, resolve) is { } chosen
             ? chosen
-            : Identity;
+            : PdfNames.Identity;
     }
 
     private static byte[]? OpenAes256(PdfDictionary dictionary, string password, byte[] owner, byte[] user, int revision, Func<PdfValue, PdfValue> resolve)
@@ -589,10 +588,12 @@ internal sealed class PdfEncryption
 
         PdfName name = type.AsName();
 
-        if (name.Equals(EmbeddedFile))
+        if (name.Equals(PdfNames.EmbeddedFile))
             return EmbeddedFiles;
 
-        return name.Equals(PdfNames.XRef) || (name.Equals(Metadata) && !EncryptsMetadata) ? Cipher.None : Streams;
+        return name.Equals(PdfNames.XRef) || (name.Equals(PdfNames.Metadata) && !EncryptsMetadata)
+            ? Cipher.None
+            : Streams;
     }
 
     /// <summary>Whether a stream with <paramref name="dictionary"/> is written encrypted.</summary>
@@ -676,7 +677,7 @@ internal sealed class PdfEncryption
     private static Cipher FilterCipher(
         PdfDictionary dictionary, PdfName name, Cipher fallback, Func<PdfValue, PdfValue> resolve)
     {
-        if (name.Equals(Identity))
+        if (name.Equals(PdfNames.Identity))
             return Cipher.None;
 
         return Defined(dictionary, name, resolve) is { } filter ? Method(filter, fallback, resolve) : fallback;
