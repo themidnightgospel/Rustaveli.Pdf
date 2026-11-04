@@ -105,10 +105,9 @@ public static class FrameModifiers
         if (!(shadow.Blur >= 0) || float.IsInfinity(shadow.Blur))
             throw new ArgumentOutOfRangeException(nameof(shadow), shadow.Blur, "A shadow's blur is a finite number of points, not negative.");
 
-        if (!IsFinite(shadow.Spread) || !IsFinite(shadow.Offset.X) || !IsFinite(shadow.Offset.Y))
+        if (!Numbers.IsFinite(shadow.Spread) || !Numbers.IsFinite(shadow.Offset.X) ||
+            !Numbers.IsFinite(shadow.Offset.Y))
             throw new ArgumentOutOfRangeException(nameof(shadow), "A shadow's offset and spread are finite numbers of points.");
-
-        static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
         return Attach(parent, new ShadowBlock { Shadow = shadow });
     }

@@ -131,7 +131,7 @@ internal ref struct GlyphWalk
                 return false;
 
             int start = _next;
-            (int codepoint, int length) = Read(start);
+            int codepoint = Utf16.CodepointAt(_text, start, out int length);
             OpenTypeFont face = FaceFor(codepoint, _previousFace);
 
             if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) && Shape(face, start, length))
@@ -184,7 +184,7 @@ internal ref struct GlyphWalk
     {
         while (index < _text.Length)
         {
-            (int codepoint, int length) = Read(index);
+            int codepoint = Utf16.CodepointAt(_text, index, out int length);
 
             if (!IsSetAsNothing(face, codepoint))
                 break;
@@ -208,7 +208,7 @@ internal ref struct GlyphWalk
 
         while (end < _text.Length)
         {
-            (int codepoint, int length) = Read(end);
+            int codepoint = Utf16.CodepointAt(_text, end, out int length);
 
             if (!ReferenceEquals(FaceFor(codepoint, face), face))
                 break;
@@ -308,7 +308,7 @@ internal ref struct GlyphWalk
         bool opens = index == 0 || buffer.Clusters[index - 1] != cluster;
         int start = _runStart + cluster;
         int length = opens ? ClusterEnd(buffer, index) - cluster : 0;
-        (int codepoint, int single) = Read(start);
+        int codepoint = Utf16.CodepointAt(_text, start, out int single);
         ushort glyph = buffer.Glyphs[index];
 
         string? text = !opens ? string.Empty
@@ -340,7 +340,7 @@ internal ref struct GlyphWalk
 
         for (int at = start; at < end;)
         {
-            (int codepoint, int length) = Read(at);
+            int codepoint = Utf16.CodepointAt(_text, at, out int length);
 
             if (!InvisibleCharacters.Contains(codepoint))
                 return false;
@@ -413,15 +413,6 @@ internal ref struct GlyphWalk
         _previousJoined = joined;
 
         return first || !begins || between ? 0f : _tracking;
-    }
-
-    private readonly (int Codepoint, int Length) Read(int index)
-    {
-        char character = _text[index];
-
-        return char.IsHighSurrogate(character) && index + 1 < _text.Length && char.IsLowSurrogate(_text[index + 1])
-            ? (char.ConvertToUtf32(character, _text[index + 1]), 2)
-            : (character, 1);
     }
 
     private void Release()

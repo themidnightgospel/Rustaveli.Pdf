@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Text;
+
 namespace Rustaveli.Pdf.Fonts.Substitution;
 
 /// <summary>
@@ -65,14 +67,9 @@ internal sealed class GlyphBuffer
 
         while (index < text.Length)
         {
-            int start = index;
-            char character = text[index++];
-            int codepoint = character;
-
-            if (char.IsHighSurrogate(character) && index < text.Length && char.IsLowSurrogate(text[index]))
-                codepoint = char.ConvertToUtf32(character, text[index++]);
-
-            Add(font.GetGlyphId(codepoint), start);
+            int codepoint = Utf16.CodepointAt(text, index, out int length);
+            Add(font.GetGlyphId(codepoint), index);
+            index += length;
         }
     }
 

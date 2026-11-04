@@ -169,25 +169,5 @@ public sealed class SampleData
     private System.DateTime Day() => new System.DateTime(2000, 1, 1).AddDays(_random.Next(0, 30 * 365));
 
     /// <summary>An ink of a random hue at the saturation and lightness given, from HSL.</summary>
-    private Ink Hue(float saturation, float lightness)
-    {
-        float hue = _random.Next(0, 360) / 60f;
-        float chroma = (1 - Math.Abs((2 * lightness) - 1)) * saturation;
-        float second = chroma * (1 - Math.Abs((hue % 2) - 1));
-        float lift = lightness - (chroma / 2);
-
-        (float red, float green, float blue) = (int)hue switch
-        {
-            0 => (chroma, second, 0f),
-            1 => (second, chroma, 0f),
-            2 => (0f, chroma, second),
-            3 => (0f, second, chroma),
-            4 => (second, 0f, chroma),
-            _ => (chroma, 0f, second),
-        };
-
-        return Pdf.Ink.Rgb(Byte(red + lift), Byte(green + lift), Byte(blue + lift));
-
-        static byte Byte(float fraction) => (byte)Math.Round(Math.Min(1f, Math.Max(0f, fraction)) * 255);
-    }
+    private Ink Hue(float saturation, float lightness) => Pdf.Ink.Hsl(_random.Next(0, 360), saturation, lightness);
 }

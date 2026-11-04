@@ -15,6 +15,14 @@ public class PlanContextTests
     }
 
     [Fact]
+    public void GeneratedImagesAreAskedForAtTwoHundredAndEightyEightPixelsPerInchUnlessSet()
+    {
+        Assert.Equal(288f, PlanContext.DefaultResolution);
+        Assert.Equal(PlanContext.DefaultResolution, LayoutHarness.Context().Resolution);
+        Assert.Equal(PlanContext.DefaultResolution, new PdfExportOptions().ImageResolution);
+    }
+
+    [Fact]
     public void StartsWithTheDefaultStyleFlowingLeftToRight()
     {
         PlanContext context = LayoutHarness.Context();

@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Layout;
+
 namespace Rustaveli.Pdf;
 
 /// <summary>
@@ -36,13 +38,7 @@ public sealed class PdfExportOptions
     public float ImageResolution
     {
         get => _imageResolution;
-        set
-        {
-            if (!(value > 0) || float.IsInfinity(value))
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A resolution is a finite number of pixels per inch above nothing.");
-
-            _imageResolution = value;
-        }
+        set => _imageResolution = Numbers.Resolution(value, nameof(value));
     }
 
     /// <summary>
@@ -52,13 +48,7 @@ public sealed class PdfExportOptions
     public int? ImageQuality
     {
         get => _imageQuality;
-        set
-        {
-            if (value is < 1 or > 100)
-                throw new ArgumentOutOfRangeException(nameof(value), value, "Quality runs from 1 to 100.");
-
-            _imageQuality = value;
-        }
+        set => _imageQuality = value is { } quality ? Numbers.Quality(quality, nameof(value)) : null;
     }
 
     /// <summary>
@@ -68,13 +58,7 @@ public sealed class PdfExportOptions
     public float? MaximumImageResolution
     {
         get => _maximumImageResolution;
-        set
-        {
-            if (value is { } resolution && (!(resolution > 0) || float.IsInfinity(resolution)))
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A resolution is a finite number of pixels per inch above nothing.");
-
-            _maximumImageResolution = value;
-        }
+        set => _maximumImageResolution = value is { } resolution ? Numbers.Resolution(resolution, nameof(value)) : null;
     }
 
     /// <summary>What re-encodes images when a quality or maximum resolution asks for it.</summary>
@@ -122,5 +106,5 @@ public sealed class PdfExportOptions
 
     private float? _maximumImageResolution;
 
-    private float _imageResolution = 288;
+    private float _imageResolution = PlanContext.DefaultResolution;
 }

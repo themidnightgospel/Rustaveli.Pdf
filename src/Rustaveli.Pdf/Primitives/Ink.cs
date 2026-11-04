@@ -70,6 +70,31 @@ public readonly struct Ink : IEquatable<Ink>
     public static Ink Rgb(byte red, byte green, byte blue) =>
         new Ink(InkModel.Rgb, red / 255f, green / 255f, blue / 255f, 0, 1, null, InkModel.Rgb, 1);
 
+    /// <summary>
+    /// An RGB ink from a hue in degrees, any number of turns either way, and a saturation and a lightness, each kept
+    /// from 0 to 1.
+    /// </summary>
+    internal static Ink Hsl(float hue, float saturation, float lightness)
+    {
+        float h = ((hue % 360) + 360) % 360 / 60;
+        float s = Clamp.Fraction(saturation), l = Clamp.Fraction(lightness);
+        float chroma = (1 - Math.Abs((2 * l) - 1)) * s;
+        float second = chroma * (1 - Math.Abs((h % 2) - 1));
+        float lift = l - (chroma / 2);
+
+        (float red, float green, float blue) = (int)h switch
+        {
+            0 => (chroma, second, 0f),
+            1 => (second, chroma, 0f),
+            2 => (0f, chroma, second),
+            3 => (0f, second, chroma),
+            4 => (second, 0f, chroma),
+            _ => (chroma, 0f, second),
+        };
+
+        return Rgb(Clamp.ToByte(red + lift), Clamp.ToByte(green + lift), Clamp.ToByte(blue + lift));
+    }
+
     public static Ink Cmyk(float cyan, float magenta, float yellow, float black)
     {
         RequireFraction(cyan, nameof(cyan));

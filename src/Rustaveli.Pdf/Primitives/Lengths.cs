@@ -3,7 +3,7 @@ namespace Rustaveli.Pdf;
 public static class Lengths
 {
     // A PDF point is 1/72 inch, which fixes every other factor below.
-    private const float PointsPerInch = 72f;
+    internal const float PointsPerInch = 72f;
     private const float MillimetresPerInch = 25.4f;
     private const float PointsPerPica = 12f;
 
@@ -51,4 +51,14 @@ public static class Lengths
     public static float Mils(this int value) => ((float)value).ToPoints(LengthUnit.Mil);
 
     public static float Picas(this int value) => ((float)value).ToPoints(LengthUnit.Pica);
+
+    /// <summary>
+    /// The pixels <paramref name="points"/> take at <paramref name="pixelsPerInch"/>: rounded up, and at least one.
+    /// </summary>
+    /// <remarks>
+    /// The points are made inches before the inches are made pixels. The other way round, float rounding can come out
+    /// a pixel apart.
+    /// </remarks>
+    internal static int PixelCount(float points, float pixelsPerInch) =>
+        Math.Max(1, (int)Math.Ceiling(points / PointsPerInch * pixelsPerInch));
 }

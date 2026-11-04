@@ -12,13 +12,7 @@ public sealed class PreviewOptions
     public float Resolution
     {
         get => _resolution;
-        set
-        {
-            if (!(value > 0) || float.IsInfinity(value))
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A resolution is a finite number of pixels per inch above nothing.");
-
-            _resolution = value;
-        }
+        set => _resolution = Numbers.Resolution(value, nameof(value));
     }
 
     /// <summary>Whether the preview opens in the system's browser as it starts; on by default.</summary>

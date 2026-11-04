@@ -424,4 +424,48 @@ public class InkTests
         Assert.Equal("spot 'Gold' 40%", Ink.Spot("Gold", Ink.Black).Tint(0.4f).ToString());
         Assert.Equal("#000000 at 50% opacity", Ink.Rgb(0, 0, 0).WithOpacity(0.5f).ToString());
     }
+
+    [Theory]
+    [InlineData(0f, 1f, 0.5f, "#FF0000")]
+    [InlineData(120f, 1f, 0.5f, "#00FF00")]
+    [InlineData(-120f, 1f, 0.5f, "#0000FF")]
+    [InlineData(420f, 1f, 0.5f, "#FFFF00")]
+    [InlineData(30f, 2f, -1f, "#000000")]
+    public void AnRgbInkIsMadeFromHueSaturationAndLightness(float hue, float saturation, float lightness, string rgb) =>
+        Assert.Equal(rgb, Ink.Hsl(hue, saturation, lightness).ToString());
+
+    /// <summary>
+    /// Sample data's inks, a whole degree of hue at a time, come out as they did when sample data worked HSL out for
+    /// itself, the way it did below.
+    /// </summary>
+    [Theory]
+    [InlineData(0.65f, 0.45f)]
+    [InlineData(0.45f, 0.88f)]
+    public void EveryWholeDegreeOfHueGivesTheInkSampleDataHasAlwaysGiven(float saturation, float lightness)
+    {
+        for (int degrees = 0; degrees < 360; degrees++)
+            Assert.Equal(SampleHue(degrees, saturation, lightness), Ink.Hsl(degrees, saturation, lightness));
+
+        static Ink SampleHue(int degrees, float saturation, float lightness)
+        {
+            float hue = degrees / 60f;
+            float chroma = (1 - Math.Abs((2 * lightness) - 1)) * saturation;
+            float second = chroma * (1 - Math.Abs((hue % 2) - 1));
+            float lift = lightness - (chroma / 2);
+
+            (float red, float green, float blue) = (int)hue switch
+            {
+                0 => (chroma, second, 0f),
+                1 => (second, chroma, 0f),
+                2 => (0f, chroma, second),
+                3 => (0f, second, chroma),
+                4 => (second, 0f, chroma),
+                _ => (chroma, 0f, second),
+            };
+
+            return Ink.Rgb(Byte(red + lift), Byte(green + lift), Byte(blue + lift));
+
+            static byte Byte(float fraction) => (byte)Math.Round(Math.Min(1f, Math.Max(0f, fraction)) * 255);
+        }
+    }
 }

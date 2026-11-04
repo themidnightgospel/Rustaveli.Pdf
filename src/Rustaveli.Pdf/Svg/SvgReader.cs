@@ -649,7 +649,8 @@ internal sealed class SvgReader
                 foreach (XElement stop in stops)
                 {
                     Dictionary<string, string> declared = Declared(stop);
-                    float position = Math.Max(last, Math.Min(1, Math.Max(0, SvgLength.Fraction((string?)stop.Attribute("offset"), 0))));
+                    float offset = Clamp.Fraction(SvgLength.Fraction((string?)stop.Attribute("offset"), 0));
+                    float position = Math.Max(last, offset);
                     Ink ink = SolidPaint(Value(declared, "stop-color") ?? "black", declared) ?? Ink.Rgb(0, 0, 0);
                     read.Add(new GradientStop(position, ink.WithOpacity(ink.Opacity * opacity * Opacity(Value(declared, "stop-opacity")))));
                     last = position;

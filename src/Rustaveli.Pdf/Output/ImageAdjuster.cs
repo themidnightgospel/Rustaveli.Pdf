@@ -29,8 +29,8 @@ internal sealed class ImageAdjuster(PdfExportOptions? options)
 
         if (resolution is { } pixelsPerInch)
         {
-            width = Math.Min(width, Math.Max(1, (int)Math.Ceiling(size.Width / 72 * pixelsPerInch)));
-            height = Math.Min(height, Math.Max(1, (int)Math.Ceiling(size.Height / 72 * pixelsPerInch)));
+            width = Math.Min(width, Lengths.PixelCount(size.Width, pixelsPerInch));
+            height = Math.Min(height, Lengths.PixelCount(size.Height, pixelsPerInch));
         }
 
         // Fine enough already, and not to be recompressed: nothing to do.

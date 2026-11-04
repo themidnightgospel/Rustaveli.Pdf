@@ -70,25 +70,15 @@ public sealed class RasterImage : IImage
     /// The image, to be compressed at <paramref name="quality"/> from 1, smallest, to 100, finest, when embedded —
     /// as JPEG, or losslessly where it has transparency. Needs an image processor at export.
     /// </summary>
-    public RasterImage WithQuality(int quality)
-    {
-        if (quality is < 1 or > 100)
-            throw new ArgumentOutOfRangeException(nameof(quality), quality, "Quality runs from 1 to 100.");
-
-        return new RasterImage(this, quality, MaximumResolution);
-    }
+    public RasterImage WithQuality(int quality) =>
+        new RasterImage(this, Numbers.Quality(quality, nameof(quality)), MaximumResolution);
 
     /// <summary>
     /// The image, embedded at no more than <paramref name="pixelsPerInch"/> where it is shown: an image placed smaller
     /// than its pixels need is scaled down. Needs an image processor at export.
     /// </summary>
-    public RasterImage WithMaximumResolution(float pixelsPerInch)
-    {
-        if (!(pixelsPerInch > 0) || float.IsInfinity(pixelsPerInch))
-            throw new ArgumentOutOfRangeException(nameof(pixelsPerInch), pixelsPerInch, "A resolution is a finite number of pixels per inch above nothing.");
-
-        return new RasterImage(this, Quality, pixelsPerInch);
-    }
+    public RasterImage WithMaximumResolution(float pixelsPerInch) =>
+        new RasterImage(this, Quality, Numbers.Resolution(pixelsPerInch, nameof(pixelsPerInch)));
 
     /// <summary>The width in pixels, the right way up: an EXIF orientation that turns the image is applied.</summary>
     public int PixelWidth => IsTurned ? StoredHeight : StoredWidth;

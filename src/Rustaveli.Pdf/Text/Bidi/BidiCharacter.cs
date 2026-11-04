@@ -5,8 +5,6 @@ namespace Rustaveli.Pdf.Text.Bidi;
 /// </summary>
 internal static class BidiCharacter
 {
-    private const int MaxCodepoint = 0x10FFFF;
-
     /// <summary>
     /// The class of <paramref name="codepoint"/>. Unassigned code points have the class the Unicode Character Database
     /// gives them by default: right-to-left in the blocks set aside for right-to-left scripts, left-to-right elsewhere.
@@ -14,7 +12,7 @@ internal static class BidiCharacter
     /// </summary>
     public static BidiClass ClassOf(int codepoint)
     {
-        if ((uint)codepoint > MaxCodepoint)
+        if ((uint)codepoint > Utf16.MaxCodepoint)
             return BidiClass.L;
 
         const int Stage2Mask = (1 << BidiCharacterTables.ClassStage2Bits) - 1;

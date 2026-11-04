@@ -25,8 +25,8 @@ internal sealed class GeneratedImageBlock : Block
         float resolution = context.Planning.Resolution;
         ImageRequest request = new ImageRequest(
             availableSpace,
-            Math.Max(1, (int)Math.Ceiling(availableSpace.Width / 72 * resolution)),
-            Math.Max(1, (int)Math.Ceiling(availableSpace.Height / 72 * resolution)),
+            Lengths.PixelCount(availableSpace.Width, resolution),
+            Lengths.PixelCount(availableSpace.Height, resolution),
             resolution);
 
         if (Generate(request) is { Length: > 0 } image)

@@ -832,7 +832,7 @@ internal sealed class TextBlock : Block
         // that answers them all the same.
         LineFits taken = LineFits.None;
 
-        if (MaxLines is not null || !IsFinite(maxWidth))
+        if (MaxLines is not null || !Numbers.IsFinite(maxWidth))
             taken.Tie();
 
         // Only reached before anything is drawn: from then on the pinned wrapping above is returned whole, which
@@ -1435,8 +1435,8 @@ internal sealed class TextBlock : Block
         /// path to the same lines. The indent enters only the opening line's budget, reckoned afresh here.
         /// </summary>
         public bool Cover(float width, TypeStyle style, float indent, PlanContext context) =>
-            IsFinite(width) && ReferenceEquals(_measurer, context.Measurer) && _direction == context.ReadingDirection
-            && style.Equals(_style) && _fits.HoldAt(width, indent);
+            Numbers.IsFinite(width) && ReferenceEquals(_measurer, context.Measurer)
+            && _direction == context.ReadingDirection && style.Equals(_style) && _fits.HoldAt(width, indent);
     }
 
     /// <summary>
@@ -1526,8 +1526,6 @@ internal sealed class TextBlock : Block
     /// what the indent leaves, and never less than none.
     /// </summary>
     private static float OpeningBudget(float width, float indent) => Math.Max(0, width - indent);
-
-    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
     /// <summary>
     /// One piece of a line: a stretch of text — a word, the space after it, part of a word broken across lines, an

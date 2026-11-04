@@ -102,7 +102,7 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
     {
         for (int index = 0; index < text.Length;)
         {
-            int codepoint = GraphemeBoundaries.CodepointAt(text, index, out int length);
+            int codepoint = Utf16.CodepointAt(text, index, out int length);
 
             if (!primary.HasGlyph(codepoint) && !InvisibleCharacters.Contains(codepoint))
                 return true;

@@ -96,4 +96,14 @@ public class LengthUnitTests
         Approximately.Equal(12f, 1.Picas());
         Approximately.Equal(1f.Inches(), 6.Picas());
     }
+
+    // 529.2 points are 7.35 inches, 1470 pixels at 200 an inch. Divided by 72 first, as every caller has always worked
+    // it out, float rounding takes the count just past 1470, to 1471; multiplied first, it stays at 1470.
+    [Fact]
+    public void PointsAreDividedIntoInchesBeforeTheyAreCountedInPixels() =>
+        Assert.Equal(1471, Lengths.PixelCount(529.2f, 200));
+
+    [Fact]
+    public void AnythingAtAllTakesAPixel() =>
+        Assert.Equal(1, Lengths.PixelCount(0.001f, 1));
 }

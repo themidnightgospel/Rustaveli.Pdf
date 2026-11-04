@@ -12,13 +12,7 @@ public sealed class ImageExportOptions
     public float Resolution
     {
         get => _resolution;
-        set
-        {
-            if (!(value > 0) || float.IsInfinity(value))
-                throw new ArgumentOutOfRangeException(nameof(value), value, "A resolution is a finite number of pixels per inch above nothing.");
-
-            _resolution = value;
-        }
+        set => _resolution = Numbers.Resolution(value, nameof(value));
     }
 
     /// <summary>The image format. PNG by default.</summary>

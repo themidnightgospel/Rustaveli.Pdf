@@ -48,24 +48,18 @@ internal sealed class BidiParagraph
 
         for (int index = 0; index < text.Length; index++)
         {
-            char character = text[index];
+            BidiClass type = BidiCharacter.ClassOf(Utf16.CodepointAt(text, index, out int length));
+            classes[index] = type;
+            types[index] = type;
 
-            if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
+            if (length == 2)
             {
-                BidiClass type = BidiCharacter.ClassOf(char.ConvertToUtf32(character, text[index + 1]));
-                classes[index] = type;
                 classes[index + 1] = type;
-                types[index] = type;
 
                 // The low surrogate is passed over like a boundary neutral, which leaves it the level of the character
                 // before it: its own high surrogate.
                 types[index + 1] = BidiClass.BN;
                 index++;
-            }
-            else
-            {
-                classes[index] = BidiCharacter.ClassOf(character);
-                types[index] = classes[index];
             }
         }
 
@@ -197,15 +191,11 @@ internal sealed class BidiParagraph
     {
         for (int index = 0; index < text.Length; index++)
         {
-            char character = text[index];
-            if (character < FirstRightToLeftCandidate)
+            if (text[index] < FirstRightToLeftCandidate)
                 continue;
 
             // The low half of a pair is looked at again on its own, as a lone surrogate, which is left-to-right.
-            int codepoint = char.IsHighSurrogate(character) && index + 1 < text.Length &&
-                            char.IsLowSurrogate(text[index + 1])
-                ? char.ConvertToUtf32(character, text[index + 1])
-                : character;
+            int codepoint = Utf16.CodepointAt(text, index, out _);
 
             if (!StaysLeftToRight(BidiCharacter.ClassOf(codepoint)))
                 return false;

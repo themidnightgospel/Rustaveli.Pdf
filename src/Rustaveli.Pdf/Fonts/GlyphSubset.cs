@@ -1,3 +1,5 @@
+using Rustaveli.Pdf.Text;
+
 namespace Rustaveli.Pdf.Fonts;
 
 /// <summary>
@@ -174,7 +176,8 @@ internal sealed class GlyphSubset
 
     /// <summary>A code point as text; the replacement character for a value that is no Unicode scalar value.</summary>
     internal static string TextOf(int codepoint) =>
-        char.ConvertFromUtf32(codepoint is >= 0 and <= 0x10FFFF and (< 0xD800 or > 0xDFFF) ? codepoint : 0xFFFD);
+        char.ConvertFromUtf32(
+            codepoint is >= 0 and <= Utf16.MaxCodepoint and (< 0xD800 or > 0xDFFF) ? codepoint : 0xFFFD);
 
     /// <summary>Builds the subset font, keeping every subset glyph id handed out so far.</summary>
     /// <param name="keepHinting">Whether the glyphs keep their hinting, which fonts that need it keep regardless.</param>
