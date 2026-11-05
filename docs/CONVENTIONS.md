@@ -150,7 +150,9 @@ settings; `.editorconfig` (`end_of_line = lf`) makes editors write LF in the fir
 ## Public types live in one namespace; everything else is internal
 
 Every public type is in the `Rustaveli.Pdf` namespace, whichever package or folder it is in, so one `using`
-directive is enough to write any document. `Composition/`, `Primitives/` and `Exceptions/` hold public types only.
+directive is enough to write any document. `Composition/` and `Exceptions/` hold public types only. `Primitives/`
+holds public types and, in the same namespace, the internal helpers values are checked, clamped, written and read
+with: `Numbers`, `Writable`, `Clamp`, `PointText` and `StreamBytes`, and `VectorPath`'s steps, `PathVerb`.
 A topic folder may hold a public type beside its internals — `TypefaceLibrary` in `Fonts/`, `RasterImage` in
 `Images/`, `PdfExport` in `Output/` — and its internal types take a namespace named after the folder:
 `Rustaveli.Pdf.Fonts`, `Rustaveli.Pdf.Output`. `Blocks/`, `Layout/`, `Drawing/`, `Text/` and `Writing/` are
