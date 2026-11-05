@@ -37,7 +37,8 @@ internal sealed class HarfBuzzShaper : IComplexShaper
 
     public bool Handles(ReadOnlySpan<char> run)
     {
-        // Read a character at a time, not a code unit: Adlam, Brahmi and the like lie beyond the Basic Multilingual Plane.
+        // Read a character at a time, not a code unit: Adlam, Brahmi and the like lie beyond the Basic Multilingual
+        // Plane.
         for (int index = 0; index < run.Length;)
         {
             int character = Utf16.CodepointAt(run, index, out int length);
@@ -52,7 +53,12 @@ internal sealed class HarfBuzzShaper : IComplexShaper
     }
 
     public void Shape(
-        OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft, List<ComplexGlyph> output)
+        OpenTypeFont face,
+        ReadOnlySpan<char> run,
+        float pointSize,
+        TypeFeatures features,
+        bool rightToLeft,
+        List<ComplexGlyph> output)
     {
         Font font = FontFor(face);
         Buffer buffer = _buffer ??= new Buffer();

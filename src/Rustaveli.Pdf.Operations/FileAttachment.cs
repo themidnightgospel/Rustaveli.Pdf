@@ -29,7 +29,9 @@ public sealed class FileAttachment
 
     public DateTimeOffset? CreationDate { get; init; }
 
-    /// <summary>When the file last changed; PDF/A-3 requires one, and the moment of saving stands in when none is given.</summary>
+    /// <summary>
+    /// When the file last changed; PDF/A-3 requires one, and the moment of saving stands in when none is given.
+    /// </summary>
     public DateTimeOffset? ModificationDate { get; init; }
 
     /// <summary>How the file relates to the document, as PDF/A-3 records it.</summary>

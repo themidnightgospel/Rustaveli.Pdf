@@ -8,7 +8,9 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 /// </summary>
 internal static class PageSelection
 {
-    /// <summary>The zero-based indexes of the pages <paramref name="text"/> names, in its order; every page for null.</summary>
+    /// <summary>
+    /// The zero-based indexes of the pages <paramref name="text"/> names, in its order; every page for null.
+    /// </summary>
     public static List<int> Parse(string? text, int count, string parameter)
     {
         if (text is null)

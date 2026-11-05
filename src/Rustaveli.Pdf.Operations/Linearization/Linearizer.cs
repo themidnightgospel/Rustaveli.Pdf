@@ -24,7 +24,9 @@ internal static class Linearizer
         PdfNames.AcroForm,
     ];
 
-    /// <summary>The width every offset in the linearization dictionary is written at, so it can be filled in last.</summary>
+    /// <summary>
+    /// The width every offset in the linearization dictionary is written at, so it can be filled in last.
+    /// </summary>
     private const string Offset = "D10";
 
     /// <summary>The length of a cross-reference entry: offset, generation, type and end of line (7.5.4).</summary>
@@ -53,7 +55,10 @@ internal static class Linearizer
         }
 
         int catalog = source.Trailer[PdfNames.Root].AsReference().ObjectNumber;
-        int? info = source.Trailer.TryGetValue(PdfNames.Info, out PdfValue given) && given.Kind == PdfValueKind.Reference ? given.AsReference().ObjectNumber : null;
+        int? info = source.Trailer.TryGetValue(PdfNames.Info, out PdfValue given)
+            && given.Kind == PdfValueKind.Reference
+            ? given.AsReference().ObjectNumber
+            : null;
         List<int> pages = source.Pages.Select(page => page.ObjectNumber).ToList();
 
         // Pages, the tree above them, the catalog and the information are where reaching stops: none belongs to a page.
@@ -90,7 +95,8 @@ internal static class Linearizer
         {
             if (root.TryGetValue(key, out PdfValue value))
             {
-                foreach (int number in Reach(value, objects, boundaries).Where(number => !usage.ContainsKey(number) && placed.Add(number)))
+                foreach (int number in Reach(value, objects, boundaries)
+                    .Where(number => !usage.ContainsKey(number) && placed.Add(number)))
                     opening.Add(number);
             }
         }
@@ -100,14 +106,20 @@ internal static class Linearizer
         for (int page = 1; page < pages.Count; page++)
             later.Add(reached[page].Where(number => usage[number] == 1 && placed.Add(number)).ToList());
 
-        List<int> shared = reached.Skip(1).SelectMany(set => set).Where(number => usage[number] > 1 && placed.Add(number)).ToList();
+        List<int> shared = reached.Skip(1)
+            .SelectMany(set => set)
+            .Where(number => usage[number] > 1 && placed.Add(number))
+            .ToList();
         List<int> rest = objects.Keys.Where(placed.Add).OrderBy(number => number).ToList();
 
         Layout layout = new Layout(opening, reached, outline, later, shared, rest, usage);
         layout.Write(objects, source, catalog, info, encryption, output);
     }
 
-    /// <summary>The objects reachable from <paramref name="start"/>, in the order reached, stopping at <paramref name="boundaries"/>.</summary>
+    /// <summary>
+    /// The objects reachable from <paramref name="start"/>, in the order reached, stopping at
+    /// <paramref name="boundaries"/>.
+    /// </summary>
     private static List<int> Reach(int start, Dictionary<int, object> objects, HashSet<int> boundaries)
     {
         List<int> order = [start];
@@ -199,7 +211,14 @@ internal static class Linearizer
         private int _mainCount;
         private byte[] _trailer = [];
 
-        public Layout(List<int> opening, List<List<int>> reached, List<int> outline, List<List<int>> later, List<int> shared, List<int> rest, Dictionary<int, int> usage)
+        public Layout(
+            List<int> opening,
+            List<List<int>> reached,
+            List<int> outline,
+            List<List<int>> later,
+            List<int> shared,
+            List<int> rest,
+            Dictionary<int, int> usage)
         {
             _opening = opening;
             _firstPage = reached[0];
@@ -380,7 +399,12 @@ internal static class Linearizer
         }
 
         /// <summary>The hint stream: the page offset hint table, then the shared object hint table (F.4).</summary>
-        private SourceStream HintStream(Dictionary<int, long> offsets, Dictionary<int, long> sizes, long hintAt, long hintLength, long firstPageEnd)
+        private SourceStream HintStream(
+            Dictionary<int, long> offsets,
+            Dictionary<int, long> sizes,
+            long hintAt,
+            long hintLength,
+            long firstPageEnd)
         {
             // Locations in hint tables are given as though the hint stream were not there (F.4).
             long Location(int number) => offsets[number] > hintAt ? offsets[number] - hintLength : offsets[number];
@@ -388,7 +412,9 @@ internal static class Linearizer
             // Every object of the first page's section is an entry of the shared object table, then each shared object.
             List<int> firstSection = [.. _firstPage, .. _outline];
             List<int> entries = [.. firstSection, .. _shared];
-            Dictionary<int, int> identifiers = entries.Select((number, index) => (number, index)).ToDictionary(pair => pair.number, pair => pair.index);
+            Dictionary<int, int> identifiers = entries
+                .Select((number, index) => (number, index))
+                .ToDictionary(pair => pair.number, pair => pair.index);
 
             int pageCount = _later.Count + 1;
             long[] objectCounts = new long[pageCount];
@@ -404,10 +430,16 @@ internal static class Linearizer
             {
                 List<int> own = _later[page - 1];
                 objectCounts[page] = own.Count;
-                lengths[page] = own.Count == 0 ? 0 : offsets[_numbers[own[^1]]] + sizes[_numbers[own[^1]]] - offsets[_numbers[own[0]]];
+                lengths[page] = own.Count == 0
+                    ? 0
+                    : offsets[_numbers[own[^1]]] + sizes[_numbers[own[^1]]] - offsets[_numbers[own[0]]];
 
                 // A page refers to the shared objects it reaches, whichever section they lie in.
-                references[page] = _usage.Where(use => use.Value > 1 && _reached[page].Contains(use.Key)).Select(use => identifiers[use.Key]).OrderBy(identifier => identifier).ToList();
+                references[page] = _usage
+                    .Where(use => use.Value > 1 && _reached[page].Contains(use.Key))
+                    .Select(use => identifiers[use.Key])
+                    .OrderBy(identifier => identifier)
+                    .ToList();
             }
 
             BitWriter table = new BitWriter();
@@ -508,7 +540,9 @@ internal static class Linearizer
             if (value is SourceStream stream)
             {
                 PdfDictionary dictionary = Remap(stream.Dictionary).AsDictionary();
-                byte[] data = encryption is not null && encryption.Covers(dictionary) ? encryption.EncryptStream(number, dictionary, stream.Data) : stream.Data;
+                byte[] data = encryption is not null && encryption.Covers(dictionary)
+                    ? encryption.EncryptStream(number, dictionary, stream.Data)
+                    : stream.Data;
                 dictionary[PdfNames.Length] = data.Length;
                 writer.WriteDictionary(dictionary);
                 writer.StringCipher = null;
@@ -526,14 +560,17 @@ internal static class Linearizer
             return writer.WrittenSpan.ToArray();
         }
 
-        private byte[] Serialize(int number, PdfDictionary dictionary, PdfEncryption? encryption) => Serialize(number, (object)(PdfValue)dictionary, encryption);
+        private byte[] Serialize(int number, PdfDictionary dictionary, PdfEncryption? encryption) =>
+            Serialize(number, (object)(PdfValue)dictionary, encryption);
 
         private PdfValue Remap(PdfValue value)
         {
             switch (value.Kind)
             {
                 case PdfValueKind.Reference:
-                    return _numbers.TryGetValue(value.AsReference().ObjectNumber, out int renumbered) ? new PdfReference(renumbered) : PdfValue.Null;
+                    return _numbers.TryGetValue(value.AsReference().ObjectNumber, out int renumbered)
+                        ? new PdfReference(renumbered)
+                        : PdfValue.Null;
 
                 case PdfValueKind.Array:
                     PdfArray array = new PdfArray(value.AsArray().Count);
@@ -554,7 +591,15 @@ internal static class Linearizer
             }
         }
 
-        private static byte[] LinearizationDictionary(int number, long length, long hintAt, long hintLength, int firstPage, long firstPageEnd, int pages, long mainEntries) =>
+        private static byte[] LinearizationDictionary(
+            int number,
+            long length,
+            long hintAt,
+            long hintLength,
+            int firstPage,
+            long firstPageEnd,
+            int pages,
+            long mainEntries) =>
             Ascii(
                 $"{number} 0 obj\n<</Linearized 1/L {Padded(length)}/H[{Padded(hintAt)} {Padded(hintLength)}]"
                 + $"/O {Padded(firstPage)}/E {Padded(firstPageEnd)}/N {Padded(pages)}/T {Padded(mainEntries)}"

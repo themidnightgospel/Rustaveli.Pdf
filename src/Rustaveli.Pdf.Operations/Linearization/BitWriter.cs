@@ -1,6 +1,8 @@
 namespace Rustaveli.Pdf.Operations.Linearization;
 
-/// <summary>Writes values of any width from 0 to 32 bits, most significant first, as the hint tables pack them.</summary>
+/// <summary>
+/// Writes values of any width from 0 to 32 bits, most significant first, as the hint tables pack them.
+/// </summary>
 internal sealed class BitWriter
 {
     private readonly List<byte> _bytes = [];

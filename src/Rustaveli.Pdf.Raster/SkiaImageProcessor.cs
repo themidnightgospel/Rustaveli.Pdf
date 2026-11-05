@@ -18,15 +18,19 @@ public sealed class SkiaImageProcessor : IImageProcessor
             throw new ArgumentOutOfRangeException(nameof(request), "An image is at least one pixel each way.");
 
         using SKData source = SKData.CreateCopy(request.Source.ToArray());
-        using SKCodec codec = SKCodec.Create(source) ?? throw new ArgumentException("The image could not be decoded.", nameof(request));
+        using SKCodec codec = SKCodec.Create(source)
+            ?? throw new ArgumentException("The image could not be decoded.", nameof(request));
 
         // Converted to sRGB as it is decoded, and kept in sRGB to the end: re-encoded, the image carries no profile of
         // its own, so its samples must already be in the colours the PDF takes them to be in.
-        using SKBitmap stored = SKBitmap.Decode(codec, codec.Info.WithColorSpace(SKColorSpace.CreateSrgb())) ?? throw new ArgumentException("The image could not be decoded.", nameof(request));
+        using SKBitmap stored = SKBitmap.Decode(codec, codec.Info.WithColorSpace(SKColorSpace.CreateSrgb()))
+            ?? throw new ArgumentException("The image could not be decoded.", nameof(request));
         using SKBitmap upright = Upright(stored, codec.EncodedOrigin);
         using SKBitmap scaled = upright.Resize(
-            new SKImageInfo(request.PixelWidth, request.PixelHeight, upright.ColorType, upright.AlphaType, upright.ColorSpace),
-            new SKSamplingOptions(SKCubicResampler.Mitchell)) ?? throw new InvalidOperationException("The image could not be scaled.");
+            new SKImageInfo(
+                request.PixelWidth, request.PixelHeight, upright.ColorType, upright.AlphaType, upright.ColorSpace),
+            new SKSamplingOptions(SKCubicResampler.Mitchell))
+            ?? throw new InvalidOperationException("The image could not be scaled.");
 
         using SKData encoded = request.Quality is int quality && !HasTransparency(scaled)
             ? scaled.Encode(SKEncodedImageFormat.Jpeg, quality)
@@ -35,12 +39,15 @@ public sealed class SkiaImageProcessor : IImageProcessor
         return encoded.ToArray();
     }
 
-    /// <summary>The pixels as they are meant to be seen, after the turn or mirroring the EXIF origin asks for.</summary>
+    /// <summary>
+    /// The pixels as they are meant to be seen, after the turn or mirroring the EXIF origin asks for.
+    /// </summary>
     private static SKBitmap Upright(SKBitmap stored, SKEncodedOrigin origin)
     {
         int width = stored.Width;
         int height = stored.Height;
-        bool turned = origin is SKEncodedOrigin.LeftTop or SKEncodedOrigin.RightTop or SKEncodedOrigin.RightBottom or SKEncodedOrigin.LeftBottom;
+        bool turned = origin is SKEncodedOrigin.LeftTop or SKEncodedOrigin.RightTop or SKEncodedOrigin.RightBottom
+            or SKEncodedOrigin.LeftBottom;
 
         // Each maps a stored pixel (x, y) to where it is seen, as x' = a·x + b·y + c and y' = d·x + e·y + f.
         SKMatrix matrix = origin switch
@@ -55,7 +62,8 @@ public sealed class SkiaImageProcessor : IImageProcessor
             _ => SKMatrix.Identity,
         };
 
-        SKBitmap upright = new SKBitmap(new SKImageInfo(turned ? height : width, turned ? width : height, stored.ColorType, stored.AlphaType, stored.ColorSpace));
+        SKBitmap upright = new SKBitmap(new SKImageInfo(
+            turned ? height : width, turned ? width : height, stored.ColorType, stored.AlphaType, stored.ColorSpace));
 
         using SKCanvas canvas = new SKCanvas(upright);
         canvas.Clear(SKColors.Transparent);
@@ -73,7 +81,8 @@ public sealed class SkiaImageProcessor : IImageProcessor
 
         // The alpha of every pixel, copied out in one call and read as bytes: asking for each pixel in turn is a
         // native call apiece, 24 million of them for a photograph of 24 megapixels.
-        using SKBitmap alpha = bitmap.Copy(SKColorType.Alpha8) ?? throw new InvalidOperationException("The image's transparency could not be read.");
+        using SKBitmap alpha = bitmap.Copy(SKColorType.Alpha8)
+            ?? throw new InvalidOperationException("The image's transparency could not be read.");
         ReadOnlySpan<byte> samples = alpha.GetPixelSpan();
 
         for (int y = 0; y < alpha.Height; y++)

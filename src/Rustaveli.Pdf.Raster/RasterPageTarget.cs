@@ -11,12 +11,15 @@ internal sealed class RasterPageTarget(ImageExportOptions options) : ISkiaPageTa
     public SKCanvas Begin(Extent size, out SKPoint unitsPerPoint)
     {
         if (_surface is not null)
-            throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
+            throw new InvalidOperationException(
+                "A page is already open. EndPage must be called before the next BeginPage.");
 
         float scale = options.Resolution / Lengths.PointsPerInch;
-        SKImageInfo info = new SKImageInfo(Pixels(size.Width, scale), Pixels(size.Height, scale), SKColorType.Rgba8888, SKAlphaType.Premul);
+        SKImageInfo info = new SKImageInfo(
+            Pixels(size.Width, scale), Pixels(size.Height, scale), SKColorType.Rgba8888, SKAlphaType.Premul);
 
-        _surface = SKSurface.Create(info) ?? throw new InvalidOperationException($"Skia could not allocate a {info.Width}×{info.Height} page.");
+        _surface = SKSurface.Create(info)
+            ?? throw new InvalidOperationException($"Skia could not allocate a {info.Width}×{info.Height} page.");
         _surface.Canvas.Clear(options.Format == PageImageFormat.Jpeg ? SKColors.White : SKColors.Transparent);
 
         // The page fills the whole pixel grid, as a viewer rendering it at this resolution fills it: scaling by the
@@ -27,7 +30,8 @@ internal sealed class RasterPageTarget(ImageExportOptions options) : ISkiaPageTa
 
     public byte[] End()
     {
-        SKSurface surface = _surface ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
+        SKSurface surface = _surface
+            ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
         _surface = null;
 
         using (surface)

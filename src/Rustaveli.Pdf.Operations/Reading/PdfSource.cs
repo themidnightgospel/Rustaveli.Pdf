@@ -80,7 +80,9 @@ internal sealed class PdfSource
     public PdfEncryption? Encryption { get; private set; }
 
     /// <summary>Reads a file, opening it with <paramref name="password"/> if it is protected.</summary>
-    /// <exception cref="IncorrectPasswordException">The file is protected, and the password does not open it.</exception>
+    /// <exception cref="IncorrectPasswordException">
+    /// The file is protected, and the password does not open it.
+    /// </exception>
     public static PdfSource Open(byte[] data, string? password = null)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -132,7 +134,9 @@ internal sealed class PdfSource
         }
 
         Encryption = opened ?? throw new IncorrectPasswordException(
-            password is null ? "The file is protected by a password, and was opened without one." : "The password given does not open the file.");
+            password is null
+                ? "The file is protected by a password, and was opened without one."
+                : "The password given does not open the file.");
 
         // Whatever was read to find the encryption was read before it could be decrypted.
         _objects.Clear();
@@ -142,7 +146,10 @@ internal sealed class PdfSource
         // A rebuilt file's object streams were indexed while they could not be read: they are indexed again.
         if (_rebuilt)
         {
-            foreach (int number in _entries.Where(entry => entry.Value.IsCompressed).Select(entry => entry.Key).ToList())
+            foreach (int number in _entries
+                .Where(entry => entry.Value.IsCompressed)
+                .Select(entry => entry.Key)
+                .ToList())
                 _entries.Remove(number);
 
             IndexObjectStreams();
@@ -188,7 +195,9 @@ internal sealed class PdfSource
         return Decrypt(number, generation, (PdfValue)read);
     }
 
-    /// <summary>A stream's dictionary with its first filter, <c>/Crypt</c>, and that filter's parameters taken out.</summary>
+    /// <summary>
+    /// A stream's dictionary with its first filter, <c>/Crypt</c>, and that filter's parameters taken out.
+    /// </summary>
     private PdfDictionary WithoutCryptFilter(PdfDictionary dictionary)
     {
         PdfDictionary plain = new PdfDictionary(dictionary.Count);
@@ -430,7 +439,9 @@ internal sealed class PdfSource
         object read = ReadAt(entry.Offset, number, out int generation);
 
         // Objects in object streams were decrypted with their stream; the encryption dictionary never is.
-        return Encryption is null || number == _encryptNumber || ReferenceEquals(read, Misplaced) ? read : Decrypt(number, generation, read);
+        return Encryption is null || number == _encryptNumber || ReferenceEquals(read, Misplaced)
+            ? read
+            : Decrypt(number, generation, read);
     }
 
     /// <summary>
@@ -446,7 +457,10 @@ internal sealed class PdfSource
 
         PdfParser parser = new PdfParser(Data, (int)offset);
 
-        if (!parser.TryReadInteger(out long found) || found != number || !parser.TryReadInteger(out long given) || !parser.TryReadKeyword("obj"u8))
+        if (!parser.TryReadInteger(out long found)
+            || found != number
+            || !parser.TryReadInteger(out long given)
+            || !parser.TryReadKeyword("obj"u8))
             return Misplaced;
 
         generation = (int)given;
@@ -472,7 +486,8 @@ internal sealed class PdfSource
     private (int Start, int Length)? StreamExtent(
         int position, PdfDictionary dictionary, Func<PdfValue, PdfValue> resolve)
     {
-        // The keyword is followed by a line feed, or a carriage return and line feed; a lone carriage return is tolerated.
+        // The keyword is followed by a line feed, or a carriage return and line feed; a lone carriage return is
+        // tolerated.
         if (position < Data.Length && Data[position] == '\r')
             position++;
 
@@ -509,7 +524,8 @@ internal sealed class PdfSource
 
     private object LoadCompressed(int number, SourceEntry entry)
     {
-        if (!_objectStreams.TryGetValue(entry.Stream, out (int[] Numbers, long[] Offsets, byte[] Data, long First) held))
+        if (!_objectStreams.TryGetValue(
+            entry.Stream, out (int[] Numbers, long[] Offsets, byte[] Data, long First) held))
         {
             if (GetObject(entry.Stream) is not SourceStream stream)
                 return Misplaced;
@@ -527,7 +543,9 @@ internal sealed class PdfSource
             List<long> offsets = [];
 
             // Kept at full width: cast to 32 bits, a number or offset too large wraps round to one that looks valid.
-            for (int index = 0; index < count && header.TryReadInteger(out long contained) && header.TryReadInteger(out long offset); index++)
+            for (int index = 0;
+                index < count && header.TryReadInteger(out long contained) && header.TryReadInteger(out long offset);
+                index++)
             {
                 numbers.Add(contained <= int.MaxValue ? (int)contained : -1);
                 offsets.Add(offset);
@@ -544,7 +562,8 @@ internal sealed class PdfSource
         if (position < 0)
             return Misplaced;
 
-        // A damaged /First can put an object before the start of the data as easily as an offset can put it past the end.
+        // A damaged /First can put an object before the start of the data as easily as an offset can put it past
+        // the end.
         long at = held.First + held.Offsets[position];
 
         if (at < 0 || at >= held.Data.Length)
@@ -589,7 +608,9 @@ internal sealed class PdfSource
 
             return !latest;
         }
-        catch (Exception exception) when (exception is UnreadableFileException or NotSupportedException or InvalidOperationException or ArgumentException or IndexOutOfRangeException)
+        catch (Exception exception) when (
+            exception is UnreadableFileException or NotSupportedException or InvalidOperationException
+                or ArgumentException or IndexOutOfRangeException)
         {
             _entries.Clear();
             _freed.Clear();
@@ -759,7 +780,9 @@ internal sealed class PdfSource
             _freed.Add(number);
     }
 
-    /// <summary>Finds every object by scanning the file, as viewers do when its cross-reference section fails them.</summary>
+    /// <summary>
+    /// Finds every object by scanning the file, as viewers do when its cross-reference section fails them.
+    /// </summary>
     private void Rebuild()
     {
         _entries.Clear();
@@ -795,7 +818,8 @@ internal sealed class PdfSource
         IndexObjectStreams();
         Trailer = RebuiltTrailer();
 
-        int Next(int from) => from >= Data.Length ? -1 : Data.AsSpan(from).IndexOf("obj"u8) is int found and >= 0 ? from + found : -1;
+        int Next(int from) =>
+            from >= Data.Length ? -1 : Data.AsSpan(from).IndexOf("obj"u8) is int found and >= 0 ? from + found : -1;
     }
 
     /// <summary>
@@ -833,7 +857,11 @@ internal sealed class PdfSource
     /// </summary>
     private void IndexObjectStreams()
     {
-        foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderBy(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
+        foreach (int number in _entries
+            .Where(entry => !entry.Value.IsCompressed)
+            .OrderBy(entry => entry.Value.Offset)
+            .Select(entry => entry.Key)
+            .ToList())
         {
             if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, PdfNames.ObjStm))
                 continue;
@@ -841,11 +869,16 @@ internal sealed class PdfSource
             try
             {
                 PdfParser header = new PdfParser(Decode(stream));
-                long count = stream.Dictionary.TryGetValue(PdfNames.N, out PdfValue n) && n.Kind == PdfValueKind.Integer ? n.AsInteger() : 0;
+                long count = stream.Dictionary.TryGetValue(PdfNames.N, out PdfValue n) && n.Kind == PdfValueKind.Integer
+                    ? n.AsInteger()
+                    : 0;
 
-                for (int index = 0; index < count && header.TryReadInteger(out long contained) && header.TryReadInteger(out _); index++)
+                for (int index = 0;
+                    index < count && header.TryReadInteger(out long contained) && header.TryReadInteger(out _);
+                    index++)
                 {
-                    if (contained is > 0 and <= int.MaxValue && !(_entries.TryGetValue((int)contained, out SourceEntry found) && !found.IsCompressed))
+                    if (contained is > 0 and <= int.MaxValue
+                        && !(_entries.TryGetValue((int)contained, out SourceEntry found) && !found.IsCompressed))
                         _entries[(int)contained] = SourceEntry.InStream(number, index);
                 }
             }
@@ -878,9 +911,13 @@ internal sealed class PdfSource
     /// as it is written: a type given by reference is no type.
     /// </summary>
     public static bool IsOfType(PdfDictionary dictionary, PdfName type) =>
-        dictionary.TryGetValue(PdfNames.Type, out PdfValue given) && given.Kind == PdfValueKind.Name && given.AsName().Equals(type);
+        dictionary.TryGetValue(PdfNames.Type, out PdfValue given)
+            && given.Kind == PdfValueKind.Name
+            && given.AsName().Equals(type);
 
-    /// <summary>Where "<c>n g obj</c>" begins, for the keyword at <paramref name="keyword"/>, or -1 if it is not one.</summary>
+    /// <summary>
+    /// Where "<c>n g obj</c>" begins, for the keyword at <paramref name="keyword"/>, or -1 if it is not one.
+    /// </summary>
     private int ObjectStart(int keyword)
     {
         int position = keyword;
@@ -897,7 +934,8 @@ internal sealed class PdfSource
         {
             int start = at;
 
-            while (at > 0 && (whitespace ? PdfParser.IsWhitespace(Data[at - 1]) : Data[at - 1] is >= (byte)'0' and <= (byte)'9'))
+            while (at > 0
+                && (whitespace ? PdfParser.IsWhitespace(Data[at - 1]) : Data[at - 1] is >= (byte)'0' and <= (byte)'9'))
                 at--;
 
             return at < start;
@@ -935,7 +973,11 @@ internal sealed class PdfSource
 
         // A cross-reference stream's dictionary is the trailer of its update: the encryption, the identifier the key
         // was made with and the information are named there as well as the catalog.
-        foreach (int number in _entries.Where(entry => !entry.Value.IsCompressed).OrderByDescending(entry => entry.Value.Offset).Select(entry => entry.Key).ToList())
+        foreach (int number in _entries
+            .Where(entry => !entry.Value.IsCompressed)
+            .OrderByDescending(entry => entry.Value.Offset)
+            .Select(entry => entry.Key)
+            .ToList())
         {
             if (Readable(number) is not SourceStream stream || !IsOfType(stream.Dictionary, PdfNames.XRef))
                 continue;

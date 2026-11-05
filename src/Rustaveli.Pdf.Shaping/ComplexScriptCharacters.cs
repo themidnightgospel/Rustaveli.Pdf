@@ -28,7 +28,8 @@ internal static class ComplexScriptCharacters
         >= 0x10B80 and <= 0x10BAF => true, // Psalter Pahlavi
         >= 0x10D00 and <= 0x10D3F => true, // Hanifi Rohingya
         >= 0x10F30 and <= 0x10FDF => true, // Sogdian, Old Uyghur, Chorasmian
-        >= 0x11000 and <= 0x11AFF => true, // Brahmi, Kaithi, Chakma, Sharada, Grantha, Newa, Tirhuta, Modi, Takri, Ahom and more
+        >= 0x11000 and <= 0x11AFF => true, // Brahmi, Kaithi, Chakma, Sharada, Grantha, Newa, Tirhuta, Modi, Takri, Ahom
+                                           // and more
         >= 0x11C00 and <= 0x11DAF => true, // Bhaiksuki, Marchen, Masaram Gondi, Gunjala Gondi
         >= 0x11EE0 and <= 0x11F5F => true, // Makasar, Kawi
         >= 0x1E900 and <= 0x1E95F => true, // Adlam

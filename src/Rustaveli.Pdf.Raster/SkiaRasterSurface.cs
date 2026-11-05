@@ -27,11 +27,13 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
     /// <summary>
     /// Each face loaded into Skia once, for as long as the face itself lives, rather than once per export: loading
-    /// copies the whole font file, and a preview redrawn at every edit would copy a 20 MB CJK face every time. The table
-    /// is safe to share between threads, and a Skia typeface is immutable, so exports drawing at once share it too. A
-    /// typeface is let go with its face and released by its finalizer, never disposed while an export may be using it.
+    /// copies the whole font file, and a preview redrawn at every edit would copy a 20 MB CJK face every time. The
+    /// table is safe to share between threads, and a Skia typeface is immutable, so exports drawing at once share it
+    /// too. A typeface is let go with its face and released by its finalizer, never disposed while an export may be
+    /// using it.
     /// </summary>
-    private static readonly ConditionalWeakTable<OpenTypeFont, SKTypeface> Typefaces = new ConditionalWeakTable<OpenTypeFont, SKTypeface>();
+    private static readonly ConditionalWeakTable<OpenTypeFont, SKTypeface> Typefaces =
+        new ConditionalWeakTable<OpenTypeFont, SKTypeface>();
 
     private readonly Dictionary<RasterImage, SKImage> _images = [];
     private readonly List<byte[]> _pages = [];
@@ -51,7 +53,8 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
     public void BeginPage(Extent size)
     {
         if (_canvas is not null)
-            throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
+            throw new InvalidOperationException(
+                "A page is already open. EndPage must be called before the next BeginPage.");
 
         _canvas = target.Begin(size, out _pixelsPerPoint);
         _canvas.Scale(_pixelsPerPoint.X, _pixelsPerPoint.Y);
@@ -111,8 +114,18 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         using SKPaint paint = ShapePaint(ink);
         paint.Style = SKPaintStyle.Stroke;
         paint.StrokeWidth = style.Weight;
-        paint.StrokeCap = style.Cap switch { LineCap.Round => SKStrokeCap.Round, LineCap.Square => SKStrokeCap.Square, _ => SKStrokeCap.Butt };
-        paint.StrokeJoin = style.Join switch { LineJoin.Round => SKStrokeJoin.Round, LineJoin.Bevel => SKStrokeJoin.Bevel, _ => SKStrokeJoin.Miter };
+        paint.StrokeCap = style.Cap switch
+        {
+            LineCap.Round => SKStrokeCap.Round,
+            LineCap.Square => SKStrokeCap.Square,
+            _ => SKStrokeCap.Butt,
+        };
+        paint.StrokeJoin = style.Join switch
+        {
+            LineJoin.Round => SKStrokeJoin.Round,
+            LineJoin.Bevel => SKStrokeJoin.Bevel,
+            _ => SKStrokeJoin.Miter,
+        };
         paint.StrokeMiter = Math.Max(1, style.MiterLimit);
 
         if (style.Dashes is { Count: > 0 } dashes && dashes.Any(length => length > 0))
@@ -152,7 +165,10 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
                     break;
 
                 case PathVerb.Cubic:
-                    builder.CubicTo(points[point].X, points[point].Y, points[point + 1].X, points[point + 1].Y, points[point + 2].X, points[point + 2].Y);
+                    builder.CubicTo(
+                        points[point].X, points[point].Y,
+                        points[point + 1].X, points[point + 1].Y,
+                        points[point + 2].X, points[point + 2].Y);
                     point += 3;
                     break;
 
@@ -165,7 +181,8 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
         return builder.Detach();
     }
 
-    public void ClipRectangle(Extent size) => Canvas.ClipRect(SKRect.Create(0, 0, size.Width, size.Height), antialias: true);
+    public void ClipRectangle(Extent size) =>
+        Canvas.ClipRect(SKRect.Create(0, 0, size.Width, size.Height), antialias: true);
 
     public void FillRectangle(Offset topLeft, Extent size, Ink ink)
     {
@@ -178,15 +195,19 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
     }
 
     /// <summary>
-    /// <paramref name="rectangle"/>, made one pixel across wherever it is thinner, on the pixel its middle falls in. PDF
-    /// viewers draw thin fills so: a hairline rule shows as a crisp line rather than a faint smear across two pixels.
-    /// A page turned or slanted is drawn as given.
+    /// <paramref name="rectangle"/>, made one pixel across wherever it is thinner, on the pixel its middle falls in.
+    /// PDF viewers draw thin fills so: a hairline rule shows as a crisp line rather than a faint smear across two
+    /// pixels. A page turned or slanted is drawn as given.
     /// </summary>
     private SKRect AtLeastAPixel(SKRect rectangle)
     {
         SKMatrix matrix = Canvas.TotalMatrix;
 
-        if (matrix.SkewX != 0 || matrix.SkewY != 0 || matrix.Persp0 != 0 || matrix.Persp1 != 0 || !matrix.TryInvert(out SKMatrix inverse))
+        if (matrix.SkewX != 0
+            || matrix.SkewY != 0
+            || matrix.Persp0 != 0
+            || matrix.Persp1 != 0
+            || !matrix.TryInvert(out SKMatrix inverse))
             return rectangle;
 
         SKRect device = matrix.MapRect(rectangle);
@@ -259,7 +280,10 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
                 {
                     builder.MoveTo(from.X, from.Y);
                     foreach (CubicSegment segment in StrokeGeometry.Wave(from, to, thickness))
-                        builder.CubicTo(segment.Control1.X, segment.Control1.Y, segment.Control2.X, segment.Control2.Y, segment.End.X, segment.End.Y);
+                        builder.CubicTo(
+                            segment.Control1.X, segment.Control1.Y,
+                            segment.Control2.X, segment.Control2.Y,
+                            segment.End.X, segment.End.Y);
 
                     using SKPath wave = builder.Detach();
                     Canvas.DrawPath(wave, paint);
@@ -408,7 +432,8 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
     /// Maps the stored image, in its own pixels, onto the box so that it stands upright: each EXIF orientation carries
     /// the stored corners to where the upright image has them, as <c>PdfSurface.Placement</c> does for PDF.
     /// </summary>
-    internal static SKMatrix Placement(ExifOrientation orientation, float storedWidth, float storedHeight, float width, float height)
+    internal static SKMatrix Placement(
+        ExifOrientation orientation, float storedWidth, float storedHeight, float width, float height)
     {
         float across = width / storedWidth;
         float down = height / storedHeight;
@@ -439,7 +464,11 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
         _gradient?.Dispose();
         _gradient = SKShader.CreateLinearGradient(
-            new SKPoint(start.X, start.Y), new SKPoint(end.X, end.Y), colors, gradient.Positions.ToArray(), SKShaderTileMode.Clamp);
+            new SKPoint(start.X, start.Y),
+            new SKPoint(end.X, end.Y),
+            colors,
+            gradient.Positions.ToArray(),
+            SKShaderTileMode.Clamp);
     }
 
     public void EndGradient()
@@ -520,7 +549,13 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
     /// Adds a run of glyphs in one face to the text being drawn, or, for a target that wants text as outlines, draws
     /// each glyph's outline where it goes.
     /// </summary>
-    private void AddRun(SKTextBlobBuilder builder, SKPaint paint, OpenTypeFont face, float size, List<ushort> glyphs, List<SKPoint> positions)
+    private void AddRun(
+        SKTextBlobBuilder builder,
+        SKPaint paint,
+        OpenTypeFont face,
+        float size,
+        List<ushort> glyphs,
+        List<SKPoint> positions)
     {
         using SKFont font = new SKFont(TypefaceFor(face), size)
         {
@@ -576,7 +611,8 @@ internal sealed class SkiaRasterSurface(TypeShaper shaper, ISkiaPageTarget targe
 
         // Decoded into sRGB, the colours of the page, so an image with a profile of its own is drawn in the colours
         // the profile gives it rather than as its bare samples.
-        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
+        SKImageInfo info = new SKImageInfo(
+            codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
         using SKBitmap bitmap = new SKBitmap(info);
         SKCodecResult result = codec.GetPixels(info, bitmap.GetPixels());
 

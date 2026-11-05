@@ -14,7 +14,8 @@ internal sealed class XpsPageTarget : ISkiaPageTarget
 
     public XpsPageTarget()
     {
-        _document = SKDocument.CreateXps(_stream) ?? throw new PlatformNotSupportedException("XPS can only be written on Windows.");
+        _document = SKDocument.CreateXps(_stream)
+            ?? throw new PlatformNotSupportedException("XPS can only be written on Windows.");
     }
 
     public bool TextAsOutlines => false;
@@ -24,7 +25,8 @@ internal sealed class XpsPageTarget : ISkiaPageTarget
     public SKCanvas Begin(Extent size, out SKPoint unitsPerPoint)
     {
         if (_open)
-            throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
+            throw new InvalidOperationException(
+                "A page is already open. EndPage must be called before the next BeginPage.");
 
         _open = true;
         unitsPerPoint = new SKPoint(1, 1);
