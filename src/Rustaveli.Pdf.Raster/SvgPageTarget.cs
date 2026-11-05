@@ -14,7 +14,8 @@ internal sealed class SvgPageTarget : ISkiaPageTarget
     public SKCanvas Begin(Extent size, out SKPoint unitsPerPoint)
     {
         if (_canvas is not null)
-            throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
+            throw new InvalidOperationException(
+                "A page is already open. EndPage must be called before the next BeginPage.");
 
         _stream = new SKDynamicMemoryWStream();
         _canvas = SKSvgCanvas.Create(SKRect.Create(size.Width, size.Height), _stream);
@@ -24,7 +25,8 @@ internal sealed class SvgPageTarget : ISkiaPageTarget
 
     public byte[] End()
     {
-        SKCanvas canvas = _canvas ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
+        SKCanvas canvas = _canvas
+            ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
         SKDynamicMemoryWStream stream = _stream!;
         _canvas = null;
         _stream = null;

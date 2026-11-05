@@ -39,7 +39,9 @@ public sealed class PdfFile
     /// Opens the PDF file at <paramref name="path"/>, with <paramref name="password"/> — the owner's or the user's —
     /// if it is protected.
     /// </summary>
-    /// <exception cref="IncorrectPasswordException">The file is protected, and the password does not open it.</exception>
+    /// <exception cref="IncorrectPasswordException">
+    /// The file is protected, and the password does not open it.
+    /// </exception>
     /// <exception cref="UnreadableFileException">The file is not a PDF, or is damaged past repair.</exception>
     /// <exception cref="NotSupportedException">
     /// The file is protected by a security handler other than the standard, password one, such as a certificate's.
@@ -61,7 +63,9 @@ public sealed class PdfFile
         return new PdfFile(PdfSource.Open(data, password));
     }
 
-    /// <summary>Opens a PDF file read from <paramref name="stream"/>, which is read to its end and not closed.</summary>
+    /// <summary>
+    /// Opens a PDF file read from <paramref name="stream"/>, which is read to its end and not closed.
+    /// </summary>
     /// <inheritdoc cref="Open(string, string?)"/>
     public static PdfFile Open(Stream stream, string? password = null)
     {
@@ -80,21 +84,30 @@ public sealed class PdfFile
     {
         ArgumentNullException.ThrowIfNull(pages);
 
-        List<PageEntry> kept = PageSelection.Parse(pages, _pages.Count, nameof(pages)).Select(index => _pages[index].Clone()).ToList();
+        List<PageEntry> kept = PageSelection.Parse(pages, _pages.Count, nameof(pages))
+            .Select(index => _pages[index].Clone())
+            .ToList();
         _pages.Clear();
         _pages.AddRange(kept);
         return this;
     }
 
-    /// <summary>Adds the pages of the PDF file at <paramref name="path"/> after these — those <paramref name="pages"/> names, or all.</summary>
+    /// <summary>
+    /// Adds the pages of the PDF file at <paramref name="path"/> after these — those <paramref name="pages"/> names,
+    /// or all.
+    /// </summary>
     public PdfFile Append(string path, string? pages = null) => Append(Open(path), pages);
 
-    /// <summary>Adds the pages of <paramref name="other"/>, as they are now, after these — those <paramref name="pages"/> names, or all.</summary>
+    /// <summary>
+    /// Adds the pages of <paramref name="other"/>, as they are now, after these — those <paramref name="pages"/> names,
+    /// or all.
+    /// </summary>
     public PdfFile Append(PdfFile other, string? pages = null)
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        _pages.AddRange(PageSelection.Parse(pages, other._pages.Count, nameof(pages)).Select(index => other._pages[index].Clone()));
+        _pages.AddRange(PageSelection.Parse(pages, other._pages.Count, nameof(pages))
+            .Select(index => other._pages[index].Clone()));
         return this;
     }
 
@@ -111,7 +124,8 @@ public sealed class PdfFile
     /// starting again when they run out — so a one-page stamp goes on every page.
     /// </summary>
     /// <inheritdoc cref="Overlay(string, string?, string?)"/>
-    public PdfFile Overlay(PdfFile layer, string? onto = null, string? from = null) => Lay(layer, onto, from, over: true);
+    public PdfFile Overlay(PdfFile layer, string? onto = null, string? from = null) =>
+        Lay(layer, onto, from, over: true);
 
     /// <summary>
     /// Draws pages of the PDF file at <paramref name="path"/> beneath these, as a letterhead: beneath the pages
@@ -126,7 +140,8 @@ public sealed class PdfFile
     /// starting again when they run out.
     /// </summary>
     /// <inheritdoc cref="Underlay(string, string?, string?)"/>
-    public PdfFile Underlay(PdfFile layer, string? onto = null, string? from = null) => Lay(layer, onto, from, over: false);
+    public PdfFile Underlay(PdfFile layer, string? onto = null, string? from = null) =>
+        Lay(layer, onto, from, over: false);
 
     /// <summary>
     /// Attaches a file, listed among the attachments readers show and, for PDF/A-3, associated with the document by
@@ -150,7 +165,9 @@ public sealed class PdfFile
         return this;
     }
 
-    /// <summary>Saves the file protected as <paramref name="protection"/> says, in place of any protection it had.</summary>
+    /// <summary>
+    /// Saves the file protected as <paramref name="protection"/> says, in place of any protection it had.
+    /// </summary>
     public PdfFile Protect(Protection protection)
     {
         ArgumentNullException.ThrowIfNull(protection);
@@ -170,7 +187,10 @@ public sealed class PdfFile
         return this;
     }
 
-    /// <summary>Drops the restrictions a signature places on the file — what its <c>/Perms</c> allow — so it can be changed freely.</summary>
+    /// <summary>
+    /// Drops the restrictions a signature places on the file — what its <c>/Perms</c> allow — so it can be changed
+    /// freely.
+    /// </summary>
     public PdfFile LiftRestrictions()
     {
         _settings.LiftRestrictions = true;

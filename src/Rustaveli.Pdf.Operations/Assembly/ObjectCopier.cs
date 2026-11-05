@@ -15,17 +15,28 @@ namespace Rustaveli.Pdf.Operations.Assembly;
 internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption)
 {
     private readonly Dictionary<(PdfSource Source, int Number), PdfReference?> _targets = [];
-    private readonly Queue<(PdfSource Source, int Number, PdfReference Target)> _pending = new Queue<(PdfSource, int, PdfReference)>();
+    private readonly Queue<(PdfSource Source, int Number, PdfReference Target)> _pending =
+        new Queue<(PdfSource, int, PdfReference)>();
     private readonly Dictionary<PdfSource, Dictionary<string, PdfValue>> _named = [];
     private readonly Dictionary<(PdfSource Source, int Number), (PdfName Key, PdfValue Value)> _amended = [];
 
-    /// <summary>Sends every reference to <paramref name="number"/> in <paramref name="source"/> to <paramref name="target"/>, or to null.</summary>
+    /// <summary>
+    /// Sends every reference to <paramref name="number"/> in <paramref name="source"/> to <paramref name="target"/>,
+    /// or to null.
+    /// </summary>
     public void Redirect(PdfSource source, int number, PdfReference? target) => _targets[(source, number)] = target;
 
-    /// <summary>Has the dictionary <paramref name="number"/> in <paramref name="source"/> copied with <paramref name="key"/> set to <paramref name="value"/>.</summary>
-    public void Amend(PdfSource source, int number, PdfName key, PdfValue value) => _amended[(source, number)] = (key, value);
+    /// <summary>
+    /// Has the dictionary <paramref name="number"/> in <paramref name="source"/> copied with <paramref name="key"/> set
+    /// to <paramref name="value"/>.
+    /// </summary>
+    public void Amend(PdfSource source, int number, PdfName key, PdfValue value) =>
+        _amended[(source, number)] = (key, value);
 
-    /// <summary>A copy of <paramref name="value"/> for the file being written; objects it refers to are copied by <see cref="Flush"/>.</summary>
+    /// <summary>
+    /// A copy of <paramref name="value"/> for the file being written; objects it refers to are copied by
+    /// <see cref="Flush"/>.
+    /// </summary>
     public PdfValue Copy(PdfSource source, PdfValue value)
     {
         switch (value.Kind)
@@ -71,7 +82,8 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
 
         if (_named.TryGetValue(source, out Dictionary<string, PdfValue>? named))
         {
-            // A link's /Dest, or a go-to action's /D; a remote go-to's names another file's destination, and is left be.
+            // A link's /Dest, or a go-to action's /D; a remote go-to's names another file's destination, and is
+            // left be.
             PdfName? key = dictionary.ContainsKey(PdfNames.Dest) ? PdfNames.Dest
                 : source.Resolve(dictionary, PdfNames.S) is { Kind: PdfValueKind.Name } kind
                     && kind.AsName().Equals(PdfNames.GoTo) ? PdfNames.D
@@ -88,8 +100,8 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
     }
 
     /// <summary>
-    /// Has every named destination in <paramref name="source"/> — a link's, or a go-to action's — copied as the page and
-    /// place it names, for a file whose names are not kept: the names of each file mean its own pages, and the file
+    /// Has every named destination in <paramref name="source"/> — a link's, or a go-to action's — copied as the page
+    /// and place it names, for a file whose names are not kept: the names of each file mean its own pages, and the file
     /// being written keeps at most the first file's.
     /// </summary>
     public void ResolveNamedDestinations(PdfSource source)
@@ -118,7 +130,8 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
             // A destination is an array, or a dictionary holding one as /D (12.3.2.3).
             PdfValue found = source.Resolve(value);
 
-            if (found.Kind == PdfValueKind.Dictionary && found.AsDictionary().TryGetValue(PdfNames.D, out PdfValue inner))
+            if (found.Kind == PdfValueKind.Dictionary
+                && found.AsDictionary().TryGetValue(PdfNames.D, out PdfValue inner))
                 found = source.Resolve(inner);
 
             if (found.Kind == PdfValueKind.Array && !named.ContainsKey(name))
@@ -138,10 +151,10 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
     };
 
     /// <summary>
-    /// Refuses an attachment still encrypted, from a file whose attachments alone are encrypted and that was opened without
-    /// its password: it can be neither decrypted nor encrypted again. It is carried as it is only into a file keeping that
-    /// file's protection under 256-bit AES, whose keys do not depend on the object number; under RC4 and 128-bit AES they
-    /// do, and the number changes as the file is written.
+    /// Refuses an attachment still encrypted, from a file whose attachments alone are encrypted and that was opened
+    /// without its password: it can be neither decrypted nor encrypted again. It is carried as it is only into a file
+    /// keeping that file's protection under 256-bit AES, whose keys do not depend on the object number; under RC4 and
+    /// 128-bit AES they do, and the number changes as the file is written.
     /// </summary>
     private void RequireCarriable(PdfSource source, PdfDictionary dictionary)
     {
@@ -157,7 +170,9 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
         }
     }
 
-    /// <summary>Writes every object reached so far, and every object those reach, until nothing is left to copy.</summary>
+    /// <summary>
+    /// Writes every object reached so far, and every object those reach, until nothing is left to copy.
+    /// </summary>
     public void Flush()
     {
         while (_pending.Count > 0)
@@ -172,7 +187,11 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
                 RequireCarriable(source, dictionary);
 
                 // Data already encoded is kept as it is; data never compressed is compressed now.
-                file.WriteStream(target, dictionary, stream.Data, dictionary.ContainsKey(PdfNames.Filter) ? PdfStreamCompression.None : PdfStreamCompression.Auto);
+                file.WriteStream(
+                    target,
+                    dictionary,
+                    stream.Data,
+                    dictionary.ContainsKey(PdfNames.Filter) ? PdfStreamCompression.None : PdfStreamCompression.Auto);
                 continue;
             }
 
@@ -184,7 +203,8 @@ internal sealed class ObjectCopier(PdfFileWriter file, PdfEncryption? encryption
 
             PdfValue copied = Copy(source, value);
 
-            if (copied.Kind == PdfValueKind.Dictionary && _amended.TryGetValue((source, number), out (PdfName Key, PdfValue Value) amendment))
+            if (copied.Kind == PdfValueKind.Dictionary
+                && _amended.TryGetValue((source, number), out (PdfName Key, PdfValue Value) amendment))
                 copied.AsDictionary()[amendment.Key] = amendment.Value;
 
             file.Write(target, copied);

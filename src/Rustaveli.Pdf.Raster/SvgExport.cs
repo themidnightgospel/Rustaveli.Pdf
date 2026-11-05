@@ -28,8 +28,11 @@ public static class SvgExport
         return surface.Pages.Select(page => Encoding.UTF8.GetString(page)).ToArray();
     }
 
-    /// <summary>Exports every page as an SVG file, at the path <paramref name="pathOfPage"/> gives its number, from 1.</summary>
-    public static void ExportSvg(this Document document, Func<int, string> pathOfPage, VectorExportOptions? options = null)
+    /// <summary>
+    /// Exports every page as an SVG file, at the path <paramref name="pathOfPage"/> gives its number, from 1.
+    /// </summary>
+    public static void ExportSvg(
+        this Document document, Func<int, string> pathOfPage, VectorExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(pathOfPage);
 

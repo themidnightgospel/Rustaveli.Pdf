@@ -74,7 +74,8 @@ public sealed class PreviewSession : IDisposable
         _listener.Close();
 
         lock (Sessions)
-            Sessions.RemoveAll(reference => !reference.TryGetTarget(out PreviewSession? session) || ReferenceEquals(session, this));
+            Sessions.RemoveAll(reference =>
+                !reference.TryGetTarget(out PreviewSession? session) || ReferenceEquals(session, this));
     }
 
     /// <summary>Refreshes every open session: code has changed.</summary>
@@ -110,9 +111,11 @@ public sealed class PreviewSession : IDisposable
 
                     // Each block remembers the line that made it, so the inspector can lead back to it.
                     using (SourceCapture.Record())
-                        document = _compose() ?? throw new InvalidOperationException("The preview's compose function returned no document.");
+                        document = _compose() ?? throw new InvalidOperationException(
+                            "The preview's compose function returned no document.");
 
-                    ImageExportOptions options = new ImageExportOptions { Resolution = _options.Resolution, Typefaces = _options.Typefaces };
+                    ImageExportOptions options =
+                        new ImageExportOptions { Resolution = _options.Resolution, Typefaces = _options.Typefaces };
                     _pages = ImageExport.ExportImages(document, options, _frames).ToList();
                     _error = null;
                 }
@@ -150,9 +153,9 @@ public sealed class PreviewSession : IDisposable
     }
 
     /// <summary>
-    /// Where <paramref name="exception"/> was thrown in the code that composes the document, innermost first: the frames
-    /// of its stack that have a source line, which .NET's own do not, outside this library. They are what a writer
-    /// needs to find the line at fault; the type and message alone rarely say.
+    /// Where <paramref name="exception"/> was thrown in the code that composes the document, innermost first: the
+    /// frames of its stack that have a source line, which .NET's own do not, outside this library. They are what a
+    /// writer needs to find the line at fault; the type and message alone rarely say.
     /// </summary>
     private static IEnumerable<string> CallerFrames(Exception exception)
     {
@@ -161,10 +164,13 @@ public sealed class PreviewSession : IDisposable
         // .NET Framework has no frames at all, not an empty list, for an exception that was never thrown.
         foreach (StackFrame frame in new StackTrace(exception, fNeedFileInfo: true).GetFrames() ?? [])
         {
-            if (frame.GetFileName() is not { } file || frame.GetMethod() is not { DeclaringType: { } type } method || library.Contains(type.Assembly))
+            if (frame.GetFileName() is not { } file
+                || frame.GetMethod() is not { DeclaringType: { } type } method
+                || library.Contains(type.Assembly))
                 continue;
 
-            string parameters = string.Join(", ", method.GetParameters().Select(parameter => parameter.ParameterType.Name));
+            string parameters = string.Join(
+                ", ", method.GetParameters().Select(parameter => parameter.ParameterType.Name));
             // Nested types, a lambda's among them, are named with dots, as .NET's own stack traces name them.
             string typeName = type.ToString().Replace('+', '.');
             int line = frame.GetFileLineNumber();
@@ -174,15 +180,16 @@ public sealed class PreviewSession : IDisposable
     }
 
     /// <summary>
-    /// A listener started on <paramref name="port"/>, or on a free one when it is 0. A port found free can go to another
-    /// listener, another preview's among them, before this one registers it, so a free port is looked for again when
-    /// that happens, up to <see cref="PortAttempts"/> times. A port the caller chose is tried once.
+    /// A listener started on <paramref name="port"/>, or on a free one when it is 0. A port found free can go to
+    /// another listener, another preview's among them, before this one registers it, so a free port is looked for
+    /// again when that happens, up to <see cref="PortAttempts"/> times. A port the caller chose is tried once.
     /// </summary>
     private static (HttpListener Listener, Uri Url) Listen(int port, Func<int> freePort)
     {
         for (int attempt = 1; ; attempt++)
         {
-            Uri url = new Uri($"http://localhost:{(port > 0 ? port : freePort()).ToString(CultureInfo.InvariantCulture)}/");
+            Uri url = new Uri(
+                $"http://localhost:{(port > 0 ? port : freePort()).ToString(CultureInfo.InvariantCulture)}/");
             HttpListener listener = new HttpListener();
             listener.Prefixes.Add(url.ToString());
 
@@ -220,7 +227,8 @@ public sealed class PreviewSession : IDisposable
             {
                 context = _listener.GetContext();
             }
-            catch (Exception exception) when (exception is HttpListenerException or ObjectDisposedException or InvalidOperationException)
+            catch (Exception exception) when (
+                exception is HttpListenerException or ObjectDisposedException or InvalidOperationException)
             {
                 return;
             }
@@ -250,11 +258,17 @@ public sealed class PreviewSession : IDisposable
             {
                 Send(response, "image/png", PreviewPage.Icon);
             }
-            else if (PageNumber(path, "/pages/") is int number && Draw().Pages is { } pages && number >= 1 && number <= pages.Count)
+            else if (PageNumber(path, "/pages/") is int number
+                && Draw().Pages is { } pages
+                && number >= 1
+                && number <= pages.Count)
             {
                 Send(response, "image/png", pages[number - 1]);
             }
-            else if (PageNumber(path, "/frames/") is int page && Draw().Frames.Pages is { } drawn && page >= 1 && page <= drawn.Count)
+            else if (PageNumber(path, "/frames/") is int page
+                && Draw().Frames.Pages is { } drawn
+                && page >= 1
+                && page <= drawn.Count)
             {
                 Send(response, "application/json", Encoding.UTF8.GetBytes(Frames(drawn[page - 1])));
             }
@@ -281,7 +295,9 @@ public sealed class PreviewSession : IDisposable
         }
     }
 
-    /// <summary>The number after <paramref name="prefix"/> in <paramref name="path"/>, or null when there is none.</summary>
+    /// <summary>
+    /// The number after <paramref name="prefix"/> in <paramref name="path"/>, or null when there is none.
+    /// </summary>
     internal static int? PageNumber(string path, string prefix) =>
         path.StartsWith(prefix, StringComparison.Ordinal)
         && int.TryParse(path.Substring(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out int number)
@@ -292,7 +308,9 @@ public sealed class PreviewSession : IDisposable
     private string State()
     {
         (int version, IReadOnlyList<byte[]> pages, _, string? error) = Draw();
-        StringBuilder json = new StringBuilder("{\"version\":").Append(version.ToString(CultureInfo.InvariantCulture)).Append(",\"pages\":[");
+        StringBuilder json = new StringBuilder("{\"version\":")
+            .Append(version.ToString(CultureInfo.InvariantCulture))
+            .Append(",\"pages\":[");
 
         for (int index = 0; index < pages.Count; index++)
         {
@@ -350,15 +368,16 @@ public sealed class PreviewSession : IDisposable
     }
 
     /// <summary>
-    /// The link that opens <paramref name="source"/>, a file and a line, in the editor. Each part of the path is escaped
-    /// on its own, so a <c>#</c> or <c>?</c> in a folder's name — <c>C:\src\C#\Demo</c> — stays part of the path instead
-    /// of ending it; the separators, a drive's colon and the line number stay as they are.
+    /// The link that opens <paramref name="source"/>, a file and a line, in the editor. Each part of the path is
+    /// escaped on its own, so a <c>#</c> or <c>?</c> in a folder's name — <c>C:\src\C#\Demo</c> — stays part of the
+    /// path instead of ending it; the separators, a drive's colon and the line number stay as they are.
     /// </summary>
     internal static string EditorLink(string source)
     {
         Match line = Regex.Match(source, @":\d+$");
         string path = source.Substring(0, source.Length - line.Length).Replace('\\', '/');
-        string escaped = string.Join("/", path.Split('/').Select(part => Uri.EscapeDataString(part).Replace("%3A", ":")));
+        string escaped = string.Join(
+            "/", path.Split('/').Select(part => Uri.EscapeDataString(part).Replace("%3A", ":")));
 
         return "vscode://file/" + escaped + line.Value;
     }

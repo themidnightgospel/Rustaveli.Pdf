@@ -190,7 +190,8 @@ internal sealed class FileAssembler
         SourcePage page = entry.Page;
         PdfSource source = page.Source;
 
-        // The structure tree knows a page kept twice only as the first it became, whose place in it the copy must not claim.
+        // The structure tree knows a page kept twice only as the first it became, whose place in it the copy must
+        // not claim.
         PdfName[] leaving =
             KeptWhole(source) && !again ? [PdfNames.Parent] : [PdfNames.Parent, PdfNames.StructParents];
         PdfDictionary copied = _copier.CopyDictionary(source, page.Dictionary, leaving);
@@ -261,7 +262,8 @@ internal sealed class FileAssembler
         // on it is neither the page's text nor any part of its structure, so it is an artifact.
         bool artifact = own.ContainsKey(PdfNames.StructParents) || IsMarked(source);
 
-        foreach ((List<SourcePage> layers, StringBuilder content) in new[] { (entry.Beneath, before), (entry.Over, after) })
+        foreach ((List<SourcePage> layers, StringBuilder content)
+            in new[] { (entry.Beneath, before), (entry.Over, after) })
         {
             foreach (SourcePage layer in layers)
             {
@@ -322,7 +324,8 @@ internal sealed class FileAssembler
         if (VisibleBox(layer) is not { } from || VisibleBox(target) is not { } to)
             return string.Empty;
 
-        // /Rotate turns a page clockwise as it is shown; a clockwise turn maps (x, y) to (x cos + y sin, y cos - x sin).
+        // /Rotate turns a page clockwise as it is shown; a clockwise turn maps (x, y) to
+        // (x cos + y sin, y cos - x sin).
         int turn = (((Rotation(layer) - Rotation(target)) % 360) + 360) % 360;
         (double a, double b, double c, double d) = turn switch
         {
@@ -348,14 +351,19 @@ internal sealed class FileAssembler
         if (matrix.Select(Round).SequenceEqual([1d, 0d, 0d, 1d, 0d, 0d]))
             return string.Empty;
 
-        return string.Join(" ", matrix.Select(value => Round(value).ToString("0.#####", CultureInfo.InvariantCulture))) + " cm\n";
+        return string.Join(" ", matrix.Select(value => Round(value).ToString("0.#####", CultureInfo.InvariantCulture)))
+            + " cm\n";
 
         // Rounded to what the matrix is written with, and never to minus zero.
         static double Round(double value) => Math.Round(value, 5) is double rounded && rounded != 0 ? rounded : 0;
     }
 
-    /// <summary>A page's visible box — its crop box, or else its media box — or null when it is not four numbers enclosing something.</summary>
-    private static (double Left, double Bottom, double Right, double Top, double Width, double Height)? VisibleBox(SourcePage page)
+    /// <summary>
+    /// A page's visible box — its crop box, or else its media box — or null when it is not four numbers enclosing
+    /// something.
+    /// </summary>
+    private static (double Left, double Bottom, double Right, double Top, double Width, double Height)? VisibleBox(
+        SourcePage page)
     {
         PdfValue given = VisibleBoxEntry(page);
 
@@ -386,7 +394,9 @@ internal sealed class FileAssembler
     private static PdfValue VisibleBoxEntry(SourcePage page) =>
         page.Dictionary.TryGetValue(PdfNames.CropBox, out PdfValue crop) ? crop : page.Dictionary[PdfNames.MediaBox];
 
-    /// <summary>Whether <paramref name="source"/> says it is tagged: its catalog's <c>/MarkInfo</c> has <c>/Marked true</c>.</summary>
+    /// <summary>
+    /// Whether <paramref name="source"/> says it is tagged: its catalog's <c>/MarkInfo</c> has <c>/Marked true</c>.
+    /// </summary>
     private static bool IsMarked(PdfSource source) =>
         source.Resolve(source.Catalog, PdfNames.MarkInfo) is { Kind: PdfValueKind.Dictionary } info
         && source.Resolve(info.AsDictionary(), PdfNames.Marked) is { Kind: PdfValueKind.Boolean } flag
@@ -465,9 +475,15 @@ internal sealed class FileAssembler
             // A configuration that starts with every group hidden shows only those it names as on.
             if (source.Resolve(shown, BaseState) is { Kind: PdfValueKind.Name } name && name.AsName().Equals(Off))
             {
-                HashSet<int> on = [.. Items(source, shown, On).Where(group => group.Kind == PdfValueKind.Reference).Select(group => group.AsReference().ObjectNumber)];
+                HashSet<int> on =
+                [
+                    .. Items(source, shown, On)
+                        .Where(group => group.Kind == PdfValueKind.Reference)
+                        .Select(group => group.AsReference().ObjectNumber),
+                ];
 
-                foreach (PdfValue group in listed.Where(group => group.Kind == PdfValueKind.Reference && !on.Contains(group.AsReference().ObjectNumber)))
+                foreach (PdfValue group in listed.Where(group =>
+                    group.Kind == PdfValueKind.Reference && !on.Contains(group.AsReference().ObjectNumber)))
                     hidden.Add(_copier.Copy(source, group));
             }
             else
@@ -496,7 +512,9 @@ internal sealed class FileAssembler
         return merged;
     }
 
-    /// <summary>The items of the array <paramref name="dictionary"/> holds as <paramref name="key"/>, or none.</summary>
+    /// <summary>
+    /// The items of the array <paramref name="dictionary"/> holds as <paramref name="key"/>, or none.
+    /// </summary>
     private static List<PdfValue> Items(PdfSource source, PdfDictionary dictionary, PdfName key) =>
         source.Resolve(dictionary, key) is { Kind: PdfValueKind.Array } array ? array.AsArray().ToList() : [];
 
@@ -512,7 +530,8 @@ internal sealed class FileAssembler
 
         foreach (SourcePage page in _pages.Select(entry => entry.Page))
         {
-            foreach (PdfValue annotation in Items(page.Source, page.Dictionary, PdfNames.Annots).Where(annotation => annotation.Kind == PdfValueKind.Reference))
+            foreach (PdfValue annotation in Items(page.Source, page.Dictionary, PdfNames.Annots)
+                .Where(annotation => annotation.Kind == PdfValueKind.Reference))
                 kept.Add((page.Source, annotation.AsReference().ObjectNumber));
         }
 
@@ -529,7 +548,8 @@ internal sealed class FileAssembler
             PdfDictionary acroForm = found.AsDictionary();
             form ??= _copier.CopyDictionary(source, acroForm, Fields, DR);
 
-            foreach (PdfValue field in Items(source, acroForm, Fields).Where(field => field.Kind == PdfValueKind.Reference))
+            foreach (PdfValue field in Items(source, acroForm, Fields)
+                .Where(field => field.Kind == PdfValueKind.Reference))
             {
                 if (!KeptWhole(source) && !OnPageKept(source, field, []))
                     continue;
@@ -559,7 +579,8 @@ internal sealed class FileAssembler
                 return false;
 
             return kept.Contains((source, field.AsReference().ObjectNumber))
-                || (source.Resolve(field) is { Kind: PdfValueKind.Dictionary } node && Items(source, node.AsDictionary(), PdfNames.Kids).Any(kid => OnPageKept(source, kid, visited)));
+                || (source.Resolve(field) is { Kind: PdfValueKind.Dictionary } node
+                    && Items(source, node.AsDictionary(), PdfNames.Kids).Any(kid => OnPageKept(source, kid, visited)));
         }
     }
 

@@ -68,18 +68,21 @@ internal static class StreamDecoder
         return data;
     }
 
-    private static byte[] Apply(PdfName filter, byte[] data, PdfDictionary? parameters, Func<PdfValue, PdfValue> resolve) =>
+    private static byte[] Apply(
+        PdfName filter, byte[] data, PdfDictionary? parameters, Func<PdfValue, PdfValue> resolve) =>
         filter.Value switch
         {
             "FlateDecode" or "Fl" => Predict(Inflate(data), parameters, resolve),
-            "LZWDecode" or "LZW" => Predict(Lzw(data, Integer(parameters, EarlyChange, 1, resolve) != 0), parameters, resolve),
+            "LZWDecode" or "LZW" =>
+                Predict(Lzw(data, Integer(parameters, EarlyChange, 1, resolve) != 0), parameters, resolve),
             "ASCIIHexDecode" or "AHx" => AsciiHex(data),
             "ASCII85Decode" or "A85" => Ascii85(data),
             "RunLengthDecode" or "RL" => RunLength(data),
             "Crypt" when parameters is null
                 || !parameters.TryGetValue(PdfNames.Name, out PdfValue name)
                 || CryptFilterName(resolve(name)) == "Identity" => data,
-            _ => throw new NotSupportedException($"Streams encoded with {filter.Value} are copied as they are, never decoded."),
+            _ => throw new NotSupportedException(
+                $"Streams encoded with {filter.Value} are copied as they are, never decoded."),
         };
 
     /// <summary>The crypt filter a <c>/Crypt</c> filter's parameters name.</summary>
@@ -97,7 +100,9 @@ internal static class StreamDecoder
     internal const int MaximumInflatedLength = 256 << 20;
 
     /// <summary>A zlib stream's data. A stream cut short gives what was there, as viewers show what they can.</summary>
-    /// <exception cref="UnreadableFileException">The stream inflates past <see cref="MaximumInflatedLength"/>.</exception>
+    /// <exception cref="UnreadableFileException">
+    /// The stream inflates past <see cref="MaximumInflatedLength"/>.
+    /// </exception>
     public static byte[] Inflate(byte[] data)
     {
         // The two-byte zlib header, when present, precedes the raw deflate data; the checksum after it is not checked.
@@ -179,7 +184,9 @@ internal static class StreamDecoder
         return output;
     }
 
-    /// <summary>TIFF predictor 2, for 8-bit components: each byte is its difference from the one a pixel before.</summary>
+    /// <summary>
+    /// TIFF predictor 2, for 8-bit components: each byte is its difference from the one a pixel before.
+    /// </summary>
     private static byte[] Tiff(byte[] data, int row, int pixel, int bits)
     {
         if (bits != 8)
@@ -370,8 +377,11 @@ internal static class StreamDecoder
         return output.ToArray();
     }
 
-    private static int Integer(PdfDictionary? parameters, PdfName key, int fallback, Func<PdfValue, PdfValue> resolve) =>
-        parameters is not null && parameters.TryGetValue(key, out PdfValue value) && resolve(value) is { Kind: PdfValueKind.Integer } integer
+    private static int Integer(
+        PdfDictionary? parameters, PdfName key, int fallback, Func<PdfValue, PdfValue> resolve) =>
+        parameters is not null
+            && parameters.TryGetValue(key, out PdfValue value)
+            && resolve(value) is { Kind: PdfValueKind.Integer } integer
             ? (int)integer.AsInteger()
             : fallback;
 }

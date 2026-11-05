@@ -16,7 +16,9 @@ public sealed class VectorExportOptions
     /// </summary>
     public bool RequireEveryGlyph { get; set; }
 
-    /// <summary>The resolution images generated at their final size are generated at: 288 pixels an inch unless set.</summary>
+    /// <summary>
+    /// The resolution images generated at their final size are generated at: 288 pixels an inch unless set.
+    /// </summary>
     public float ImageResolution
     {
         get => _imageResolution;

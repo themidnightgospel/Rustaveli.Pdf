@@ -27,7 +27,8 @@ internal sealed class PdfParser(byte[] data, int position = 0)
     public static bool IsWhitespace(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32;
 
     public static bool IsDelimiter(byte value) =>
-        value is (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']' or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
+        value is (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
+            or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
 
     public static bool IsRegular(byte value) => !IsWhitespace(value) && !IsDelimiter(value);
 
@@ -163,7 +164,9 @@ internal sealed class PdfParser(byte[] data, int position = 0)
         {
             SkipWhitespace();
 
-            if (Position < Data.Length && Data[Position] == 'R' && (Position + 1 == Data.Length || !IsRegular(Data[Position + 1])))
+            if (Position < Data.Length
+                && Data[Position] == 'R'
+                && (Position + 1 == Data.Length || !IsRegular(Data[Position + 1])))
             {
                 Position++;
                 return true;
@@ -199,7 +202,8 @@ internal sealed class PdfParser(byte[] data, int position = 0)
         if (integer && long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long whole))
             return whole;
 
-        double real = double.Parse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+        double real = double.Parse(
+            text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
         return PdfValue.ReadReal(real, token.ToArray());
     }
 
@@ -220,7 +224,10 @@ internal sealed class PdfParser(byte[] data, int position = 0)
 
         for (int index = 0; index < raw.Length; index++)
         {
-            if (raw[index] == '#' && index + 2 < raw.Length && HexValue(raw[index + 1]) is int high and >= 0 && HexValue(raw[index + 2]) is int low and >= 0)
+            if (raw[index] == '#'
+                && index + 2 < raw.Length
+                && HexValue(raw[index + 1]) is int high and >= 0
+                && HexValue(raw[index + 2]) is int low and >= 0)
             {
                 bytes.Add((byte)((high << 4) | low));
                 index += 2;
@@ -316,7 +323,9 @@ internal sealed class PdfParser(byte[] data, int position = 0)
             case >= (byte)'0' and <= (byte)'7':
                 int code = value - '0';
 
-                for (int digit = 1; digit < 3 && Position < Data.Length && Data[Position] is >= (byte)'0' and <= (byte)'7'; digit++)
+                for (int digit = 1;
+                    digit < 3 && Position < Data.Length && Data[Position] is >= (byte)'0' and <= (byte)'7';
+                    digit++)
                     code = (code * 8) + (Data[Position++] - '0');
 
                 bytes.Add((byte)code);

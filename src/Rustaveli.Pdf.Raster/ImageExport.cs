@@ -18,7 +18,8 @@ public static class ImageExport
         ExportImages(document, options, inspection: null);
 
     /// <summary>Exports every page as an image, recording every frame drawn in <paramref name="inspection"/>.</summary>
-    internal static IReadOnlyList<byte[]> ExportImages(Document document, ImageExportOptions? options, LayoutInspection? inspection)
+    internal static IReadOnlyList<byte[]> ExportImages(
+        Document document, ImageExportOptions? options, LayoutInspection? inspection)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -40,7 +41,8 @@ public static class ImageExport
     /// Exports every page as an image file, at the path <paramref name="pathOfPage"/> gives for its page number,
     /// counted from 1.
     /// </summary>
-    public static void ExportImages(this Document document, Func<int, string> pathOfPage, ImageExportOptions? options = null)
+    public static void ExportImages(
+        this Document document, Func<int, string> pathOfPage, ImageExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(pathOfPage);
 

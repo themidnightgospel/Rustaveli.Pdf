@@ -8,7 +8,9 @@ namespace Rustaveli.Pdf.Preview;
 /// </summary>
 internal static class HotReload
 {
-    /// <summary>Called first, to drop what the changed code had cached; a preview caches only its drawn pages.</summary>
+    /// <summary>
+    /// Called first, to drop what the changed code had cached; a preview caches only its drawn pages.
+    /// </summary>
     public static void ClearCache(Type[]? updatedTypes) => PreviewSession.RefreshAll();
 
     /// <summary>Called once the application has been updated.</summary>

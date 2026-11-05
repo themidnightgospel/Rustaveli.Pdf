@@ -19,7 +19,8 @@ public static class DocumentPreview
     /// Shows the document until <paramref name="whenStopped"/> calls the action it is handed, saying where on
     /// <paramref name="output"/>. What <paramref name="whenStopped"/> returns is disposed once the preview stops.
     /// </summary>
-    internal static void Preview(Func<Document> compose, PreviewOptions? options, TextWriter output, Func<Action, IDisposable> whenStopped)
+    internal static void Preview(
+        Func<Document> compose, PreviewOptions? options, TextWriter output, Func<Action, IDisposable> whenStopped)
     {
         using PreviewSession session = StartPreview(compose, options);
         using ManualResetEventSlim stopped = new ManualResetEventSlim();
@@ -29,7 +30,9 @@ public static class DocumentPreview
         stopped.Wait();
     }
 
-    /// <summary>Starts showing the document <paramref name="compose"/> makes, returning the session that serves it.</summary>
+    /// <summary>
+    /// Starts showing the document <paramref name="compose"/> makes, returning the session that serves it.
+    /// </summary>
     public static PreviewSession StartPreview(Func<Document> compose, PreviewOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(compose);
@@ -65,11 +68,14 @@ public static class DocumentPreview
         }
         catch (Exception exception) when (exception is Win32Exception or PlatformNotSupportedException)
         {
-            Console.Error.WriteLine($"No browser could be opened ({exception.Message}); open {url} to see the preview.");
+            Console.Error.WriteLine(
+                $"No browser could be opened ({exception.Message}); open {url} to see the preview.");
         }
     }
 
-    /// <summary>Calls <paramref name="stop"/> when Ctrl+C is pressed, instead of ending the process, until disposed.</summary>
+    /// <summary>
+    /// Calls <paramref name="stop"/> when Ctrl+C is pressed, instead of ending the process, until disposed.
+    /// </summary>
     private static IDisposable WhenCtrlC(Action stop)
     {
         ConsoleCancelEventHandler handler = (_, arguments) =>

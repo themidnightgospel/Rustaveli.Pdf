@@ -52,7 +52,8 @@ internal static class MetadataExtender
 
         foreach (XElement property in description.Elements().ToList())
         {
-            if (property.Name == Extension + "schemas" && existing.SelectMany(held => held.Elements(Extension + "schemas")).FirstOrDefault() is { } schemas)
+            if (property.Name == Extension + "schemas"
+                && existing.SelectMany(held => held.Elements(Extension + "schemas")).FirstOrDefault() is { } schemas)
             {
                 JoinSchemas(schemas, property, description);
                 property.Remove();
@@ -89,7 +90,10 @@ internal static class MetadataExtender
             }
         }
 
-        static bool IsProperty(XAttribute attribute) => !attribute.IsNamespaceDeclaration && attribute.Name.Namespace != Rdf && attribute.Name.Namespace != XNamespace.Xml;
+        static bool IsProperty(XAttribute attribute) =>
+            !attribute.IsNamespaceDeclaration
+            && attribute.Name.Namespace != Rdf
+            && attribute.Name.Namespace != XNamespace.Xml;
     }
 
     /// <summary>
@@ -123,7 +127,10 @@ internal static class MetadataExtender
     }
 
     private static XDocument Empty() =>
-        new XDocument(new XElement(X + "xmpmeta", new XAttribute(XNamespace.Xmlns + "x", X), new XElement(Rdf + "RDF", new XAttribute(XNamespace.Xmlns + "rdf", Rdf))));
+        new XDocument(new XElement(
+            X + "xmpmeta",
+            new XAttribute(XNamespace.Xmlns + "x", X),
+            new XElement(Rdf + "RDF", new XAttribute(XNamespace.Xmlns + "rdf", Rdf))));
 
     private static XDocument Parse(byte[] data)
     {
@@ -135,11 +142,14 @@ internal static class MetadataExtender
         }
         catch (XmlException exception)
         {
-            throw new UnreadableFileException("The file's metadata is not well-formed XML, so it cannot be added to.", exception);
+            throw new UnreadableFileException(
+                "The file's metadata is not well-formed XML, so it cannot be added to.", exception);
         }
     }
 
-    /// <summary>The elements of <paramref name="xml"/>, which may be several, the <c>rdf</c> prefix known without declaring it.</summary>
+    /// <summary>
+    /// The elements of <paramref name="xml"/>, which may be several, the <c>rdf</c> prefix known without declaring it.
+    /// </summary>
     private static IEnumerable<XElement> Fragment(string xml)
     {
         XmlNamespaceManager namespaces = new XmlNamespaceManager(new NameTable());
@@ -149,7 +159,8 @@ internal static class MetadataExtender
 
         try
         {
-            using XmlReader reader = XmlReader.Create(new StringReader(xml), new XmlReaderSettings { ConformanceLevel = ConformanceLevel.Fragment }, context);
+            using XmlReader reader = XmlReader.Create(
+                new StringReader(xml), new XmlReaderSettings { ConformanceLevel = ConformanceLevel.Fragment }, context);
             reader.MoveToContent();
 
             while (!reader.EOF)
@@ -162,7 +173,8 @@ internal static class MetadataExtender
         }
         catch (XmlException exception)
         {
-            throw new ArgumentException("The metadata to add is not well-formed XML: " + exception.Message, nameof(xml), exception);
+            throw new ArgumentException(
+                "The metadata to add is not well-formed XML: " + exception.Message, nameof(xml), exception);
         }
 
         if (elements.Count == 0)
