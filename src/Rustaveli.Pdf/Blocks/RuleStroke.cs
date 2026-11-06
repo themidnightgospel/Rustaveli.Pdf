@@ -6,7 +6,8 @@ namespace Rustaveli.Pdf.Blocks;
 /// How a rule is stroked: its weight, its ink or a gradient in its place, and either a <see cref="StrokeStyle"/> or a
 /// pattern of dashes.
 /// </summary>
-internal readonly record struct RuleStroke(float Weight, Ink Ink, StrokeStyle Style, IReadOnlyList<float>? Dashes, Gradient? Gradient = null)
+internal readonly record struct RuleStroke(
+    float Weight, Ink Ink, StrokeStyle Style, IReadOnlyList<float>? Dashes, Gradient? Gradient = null)
 {
     /// <summary>
     /// How much room the rule takes across its length: its weight, or three times it for a wave, which swings a
@@ -36,7 +37,8 @@ internal readonly record struct RuleStroke(float Weight, Ink Ink, StrokeStyle St
     {
         if (Dashes is null && Style == StrokeStyle.Solid)
         {
-            surface.FillRectangle(Offset.Zero, across ? new Extent(size.Width, Weight) : new Extent(Weight, size.Height), ink);
+            surface.FillRectangle(
+                Offset.Zero, across ? new Extent(size.Width, Weight) : new Extent(Weight, size.Height), ink);
             return;
         }
 

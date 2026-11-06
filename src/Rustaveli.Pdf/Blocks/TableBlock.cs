@@ -45,10 +45,14 @@ internal sealed class TableBlock : Block
         /// <summary>Why a body cell cannot be set in the row it is given, or null when every one can.</summary>
         public string? BodyUnset { get; set; }
 
-        /// <summary>Why a header or footer cell cannot be set in the row it is given, or null when every one can.</summary>
+        /// <summary>
+        /// Why a header or footer cell cannot be set in the row it is given, or null when every one can.
+        /// </summary>
         public string? BandUnset { get; set; }
 
-        /// <summary>Why some cell of the table cannot be set in the row it is given, or null when every one can.</summary>
+        /// <summary>
+        /// Why some cell of the table cannot be set in the row it is given, or null when every one can.
+        /// </summary>
         public string? Unset => BodyUnset ?? BandUnset;
 
         public float HeaderHeight => HeaderHeights.Sum();
@@ -146,7 +150,9 @@ internal sealed class TableBlock : Block
             return true;
         }
 
-        /// <summary>In a band in row order, the place of the first cell starting below <paramref name="row"/>.</summary>
+        /// <summary>
+        /// In a band in row order, the place of the first cell starting below <paramref name="row"/>.
+        /// </summary>
         private int FirstStartingAfter(int row)
         {
             int low = 0;
@@ -167,7 +173,9 @@ internal sealed class TableBlock : Block
 
         public CellBlock this[int place] => _cells[place];
 
-        /// <summary>Whether no other cell starts below the cell at <paramref name="place"/> in any column it covers.</summary>
+        /// <summary>
+        /// Whether no other cell starts below the cell at <paramref name="place"/> in any column it covers.
+        /// </summary>
         public bool IsLastInItsColumns(int place)
         {
             _lastInColumns ??= LastInTheirColumns();
@@ -349,18 +357,24 @@ internal sealed class TableBlock : Block
         if (layout.HeaderHeights.Length != 0)
         {
             using (tagging && repeat ? tags.Untag() : default(TagStack.Scope))
-                DrawBand(layout.Head, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head, heads: true);
+                DrawBand(
+                    layout.Head, layout.HeaderHeights, layout, 1, layout.HeaderHeights.Length, top, context, head,
+                    heads: true);
 
             top += layout.HeaderHeight;
         }
 
-        DrawBand(layout.Body, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, body, heads: false, ExtendLastCells);
+        DrawBand(
+            layout.Body, layout.BodyHeights, layout, _completedRows + 1, lastRow, top, context, body,
+            heads: false, ExtendLastCells);
         top += takenHeight;
 
         if (layout.FooterHeights.Length != 0)
         {
             using TagStack.Scope scope = tagging && repeat ? tags.Untag() : default;
-            DrawBand(layout.Foot, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context, foot, heads: false);
+            DrawBand(
+                layout.Foot, layout.FooterHeights, layout, 1, layout.FooterHeights.Length, top, context, foot,
+                heads: false);
         }
 
         _completedRows = lastRow;
@@ -614,7 +628,8 @@ internal sealed class TableBlock : Block
     /// the rows they cover. <paramref name="unset"/> says why a cell cannot be set in the rows it is given, if one
     /// cannot.
     /// </summary>
-    private static float[] MeasureRowHeights(List<CellBlock> cells, TableLayout layout, PlanContext context, string band, out string? unset)
+    private static float[] MeasureRowHeights(
+        List<CellBlock> cells, TableLayout layout, PlanContext context, string band, out string? unset)
     {
         unset = null;
 

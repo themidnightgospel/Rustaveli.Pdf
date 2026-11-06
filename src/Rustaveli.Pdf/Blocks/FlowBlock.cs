@@ -197,7 +197,12 @@ internal sealed class FlowBlock : Block
     /// A line: its items, their sizes and whether they take a place in it, how many do, how wide and tall it is, and
     /// where it starts.
     /// </summary>
-    private readonly record struct Line(IReadOnlyList<(int Index, Extent Size, bool TakesPlace)> Items, int Shown, float Width, float Height, float Top);
+    private readonly record struct Line(
+        IReadOnlyList<(int Index, Extent Size, bool TakesPlace)> Items,
+        int Shown,
+        float Width,
+        float Height,
+        float Top);
 
     /// <summary>The lines that fit, the index of the first item left over, and the height they take.</summary>
     private readonly record struct Layout(List<Line> Lines, int Placed, float Height);

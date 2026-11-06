@@ -73,7 +73,8 @@ public static class PdfExport
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        string path = Path.Combine(Path.GetTempPath(), $"{Name(document)}-{Guid.NewGuid().ToString("N").Substring(0, 8)}.pdf");
+        string path = Path.Combine(
+            Path.GetTempPath(), $"{Name(document)}-{Guid.NewGuid().ToString("N").Substring(0, 8)}.pdf");
         document.ExportPdf(path, options);
         Open(path);
         return path;
@@ -81,12 +82,17 @@ public static class PdfExport
 
     /// <summary>Opens a file in the application the system uses for its kind.</summary>
     internal static Action<string> Open { get; set; } =
-        path => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
+        path => System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
 
-    /// <summary>A file name from the document's title, keeping only letters, digits and dashes; "document" without one.</summary>
+    /// <summary>
+    /// A file name from the document's title, keeping only letters, digits and dashes; "document" without one.
+    /// </summary>
     private static string Name(Document document)
     {
-        string title = new string((document.Info.Title ?? string.Empty).Select(character => char.IsLetterOrDigit(character) ? character : '-').ToArray()).Trim('-');
+        string title = new string((document.Info.Title ?? string.Empty)
+            .Select(character => char.IsLetterOrDigit(character) ? character : '-')
+            .ToArray()).Trim('-');
         return title.Length == 0 ? "document" : title.Substring(0, Math.Min(title.Length, 40));
     }
 
@@ -94,7 +100,8 @@ public static class PdfExport
     {
         TypeShaper shaper = (options?.Typefaces ?? TypefaceLibrary.Shared).Shaper;
         if (options?.Protection is not null && options.IsArchival)
-            throw new InvalidOperationException("PDF/A forbids encryption: a document cannot be both protected and archival.");
+            throw new InvalidOperationException(
+                "PDF/A forbids encryption: a document cannot be both protected and archival.");
 
         // ISO 14289-1, 7.16: a protected PDF/UA file must still let assistive technology extract its content.
         if (options?.Protection is { AllowAccessibility: false } && options.Accessibility != PdfUAConformance.None)

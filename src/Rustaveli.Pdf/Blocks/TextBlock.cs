@@ -49,7 +49,9 @@ internal sealed class TextBlock : Block
         Environment.Is64BitProcess;
 #endif
 
-    /// <summary>For tests: rebuild on every reuse across widths, and fail if the lines differ from those in any bit.</summary>
+    /// <summary>
+    /// For tests: rebuild on every reuse across widths, and fail if the lines differ from those in any bit.
+    /// </summary>
     internal static bool VerifiesReuse { get; set; }
 
     /// <summary>For tests: how many times lines have been reused across widths on this thread.</summary>
@@ -73,7 +75,9 @@ internal sealed class TextBlock : Block
     /// <summary>Vertical gap inserted before every paragraph after the first.</summary>
     public float SpaceBetweenParagraphs { get; set; }
 
-    /// <summary>The most lines the block shows; text beyond them is cut, and the last line ends with <see cref="Ellipsis"/>.</summary>
+    /// <summary>
+    /// The most lines the block shows; text beyond them is cut, and the last line ends with <see cref="Ellipsis"/>.
+    /// </summary>
     public int? MaxLines { get; set; }
 
     /// <summary>What ends the last line when <see cref="MaxLines"/> cuts text short.</summary>
@@ -191,7 +195,8 @@ internal sealed class TextBlock : Block
     protected override void RenderCore(Extent availableSpace, RenderContext context)
     {
         // A blocker means planning deferred, so this paragraph should not have been asked to draw here.
-        TextLine[] lines = BuildLines(availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);
+        TextLine[] lines = BuildLines(
+            availableSpace.Width, availableSpace.Height, context.Planning, out string? blocker);
 
         if (blocker is not null || _completedLines >= lines.Length)
             return;
@@ -267,7 +272,9 @@ internal sealed class TextBlock : Block
 
         float baseline = top + line.Ascent;
         float indent = line.StartsParagraph ? EffectiveIndent(context.Planning) : 0f;
-        (int firstWord, int lastWord, int spaces) = Alignment == LineAlignment.Justified ? line.WordGaps() : (-1, -1, 0);
+        (int firstWord, int lastWord, int spaces) = Alignment == LineAlignment.Justified
+            ? line.WordGaps()
+            : (-1, -1, 0);
         bool stretched = Alignment == LineAlignment.Justified && !endsParagraph && spaces > 0;
 
         // A justified line fills the width from the start edge, the indent taking its place there, by sharing the
@@ -595,7 +602,8 @@ internal sealed class TextBlock : Block
     /// Draws a piece's underline, strike-through and overline where the font places them and as thick as it draws
     /// them, unless the style says otherwise; a font silent on either falls back to proportions of the type.
     /// </summary>
-    private static void DrawStrokes(ISurface surface, TypeStyle style, TypeMetrics metrics, float x, float width, float baseline)
+    private static void DrawStrokes(
+        ISurface surface, TypeStyle style, TypeMetrics metrics, float x, float width, float baseline)
     {
         Ink ink = style.StrokeInk ?? style.Ink;
         Offset Start(float y) => new Offset(x, y);
@@ -603,7 +611,9 @@ internal sealed class TextBlock : Block
 
         if (style.HasUnderline)
         {
-            float offset = metrics.UnderlineOffset > 0 ? metrics.UnderlineOffset : metrics.Descent * UnderlineDepthRatio;
+            float offset = metrics.UnderlineOffset > 0
+                ? metrics.UnderlineOffset
+                : metrics.Descent * UnderlineDepthRatio;
             float weight = Weight(style, metrics.UnderlineWeight);
             surface.DrawLine(Start(baseline + offset), End(baseline + offset), weight, ink, style.StrokeStyle);
         }
@@ -699,7 +709,8 @@ internal sealed class TextBlock : Block
     /// Lines reused at a width they were not built at; while <see cref="VerifiesReuse"/> is on, built afresh there as
     /// well and compared bit for bit, any difference thrown.
     /// </summary>
-    private TextLine[] Verified(TextLine[] reused, float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context)
+    private TextLine[] Verified(
+        TextLine[] reused, float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context)
     {
         ReusedAcrossWidths++;
 
@@ -762,7 +773,8 @@ internal sealed class TextBlock : Block
     /// as long as they are and no longer.
     /// </summary>
     private TextLine[] BuildLinesAfresh(
-        float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker, out LineFits fits)
+        float maxWidth, float maxHeight, TypeStyle blockStyle, PlanContext context, out string? blocker,
+        out LineFits fits)
     {
         PieceList pieces = PieceList.Borrow();
 
@@ -794,7 +806,9 @@ internal sealed class TextBlock : Block
         foreach (TextLine line in lines)
         {
             bool joined = joins && line.Bidi is null;
-            int count = joined ? Coalesce(items, line.First, line.Count, written) : Move(items, line.First, line.Count, written);
+            int count = joined
+                ? Coalesce(items, line.First, line.Count, written)
+                : Move(items, line.First, line.Count, written);
             line.Place(written, count, joined);
             written += count;
         }
@@ -806,7 +820,9 @@ internal sealed class TextBlock : Block
             line.Seal(kept);
     }
 
-    /// <summary>Moves <paramref name="count"/> pieces from <paramref name="from"/> down to <paramref name="to"/>.</summary>
+    /// <summary>
+    /// Moves <paramref name="count"/> pieces from <paramref name="from"/> down to <paramref name="to"/>.
+    /// </summary>
     private static int Move(Piece[] pieces, int from, int count, int to)
     {
         Array.Copy(pieces, from, pieces, to, count);
@@ -869,8 +885,8 @@ internal sealed class TextBlock : Block
 
         void CloseParagraph()
         {
-            // Text that is left to right throughout is drawn as it is stored, and needs nothing more. Most text is known
-            // to be so by its characters alone, without resolving anything.
+            // Text that is left to right throughout is drawn as it is stored, and needs nothing more. Most text is
+            // known to be so by its characters alone, without resolving anything.
             if (lines.Count > paragraphStart && paragraph.Length > 0
                 && !BidiParagraph.ResolvesLeftToRight(paragraph.Text, direction))
             {
@@ -1157,14 +1173,21 @@ internal sealed class TextBlock : Block
                 continue;
             }
 
-            // Always consume at least one character, otherwise an impossibly narrow box would loop forever — and a whole
-            // one, as a reader sees it, so a surrogate pair or a letter and its accent are never split across lines.
+            // Always consume at least one character, otherwise an impossibly narrow box would loop forever — and a
+            // whole one, as a reader sees it, so a surrogate pair or a letter and its accent are never split across
+            // lines.
             if (fitting == 0)
                 fitting = GraphemeBoundaries.FirstLength(remaining);
 
             float chunkWidth = context.Measurer.MeasureWidth(remaining.Slice(0, fitting), style);
 
-            current.Add(word with { Start = word.Start + taken, Length = fitting, Width = chunkWidth, Offset = word.Offset + taken });
+            current.Add(word with
+            {
+                Start = word.Start + taken,
+                Length = fitting,
+                Width = chunkWidth,
+                Offset = word.Offset + taken,
+            });
             taken += fitting;
 
             if (taken == word.Length)
@@ -1189,7 +1212,13 @@ internal sealed class TextBlock : Block
         // Replaced one for one, so the piece still covers the same characters of its paragraph's text.
         string shown = last.Characters.Slice(0, last.Length - 1).ToString() + ShownHyphen;
         line.RemoveLast();
-        line.Add(last with { Text = shown, Start = 0, Length = shown.Length, Width = measurer.MeasureWidth(shown, last.Style) });
+        line.Add(last with
+        {
+            Text = shown,
+            Start = 0,
+            Length = shown.Length,
+            Width = measurer.MeasureWidth(shown, last.Style),
+        });
     }
 
     private static bool EndsWithSoftHyphen(ReadOnlySpan<char> text) =>
@@ -1401,7 +1430,8 @@ internal sealed class TextBlock : Block
             if (_buffer is not null && Length + more <= _buffer.Length)
                 return;
 
-            char[] larger = ArrayPool<char>.Shared.Rent(Math.Max(256, Math.Max(Length + more, (_buffer?.Length ?? 0) * 2)));
+            char[] larger = ArrayPool<char>.Shared.Rent(
+                Math.Max(256, Math.Max(Length + more, (_buffer?.Length ?? 0) * 2)));
 
             if (_buffer is not null)
             {
@@ -1479,7 +1509,9 @@ internal sealed class TextBlock : Block
         }
     }
 
-    /// <summary>One line class's fit tests: a test fits while its left side is at most the budget plus the tolerance.</summary>
+    /// <summary>
+    /// One line class's fit tests: a test fits while its left side is at most the budget plus the tolerance.
+    /// </summary>
     private struct FitBounds
     {
         // With nothing recorded, the widest fit is below every limit and the narrowest failure above it.
@@ -1517,7 +1549,10 @@ internal sealed class TextBlock : Block
             }
         }
 
-        /// <summary>Whether, against <paramref name="limit"/> (a budget plus the tolerance), what fitted fits and what failed fails.</summary>
+        /// <summary>
+        /// Whether, against <paramref name="limit"/> (a budget plus the tolerance), what fitted fits and what failed
+        /// fails.
+        /// </summary>
         public readonly bool HoldAt(float limit) => _widestFit <= limit && !(_narrowestFailure <= limit);
     }
 
@@ -1567,7 +1602,9 @@ internal sealed class TextBlock : Block
 
         public InlinePosition Position => Source?.InlinePosition ?? InlinePosition.OnBaseline;
 
-        /// <summary>Its characters as a slice of the text it is cut from, which a surface may keep: texts never change.</summary>
+        /// <summary>
+        /// Its characters as a slice of the text it is cut from, which a surface may keep: texts never change.
+        /// </summary>
         public ReadOnlyMemory<char> Slice => Text.AsMemory(Start, Length);
     }
 

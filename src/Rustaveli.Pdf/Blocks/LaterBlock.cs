@@ -21,7 +21,8 @@ internal sealed class LaterBlock : Block
 
     internal override int ChildCount => 1;
 
-    internal override Block? ChildAt(int index) => index == 0 ? _content : throw new ArgumentOutOfRangeException(nameof(index));
+    internal override Block? ChildAt(int index) =>
+        index == 0 ? _content : throw new ArgumentOutOfRangeException(nameof(index));
 
     /// <remarks>
     /// A new pass starts from the beginning. Content not kept is let go here too, so that each pass composes its own;

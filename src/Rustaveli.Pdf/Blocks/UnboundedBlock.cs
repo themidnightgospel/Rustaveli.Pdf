@@ -20,7 +20,8 @@ internal sealed class UnboundedBlock : EnclosingBlock
             FitKind.Complete => Fit.Complete(Extent.Zero),
 
             // The room offered is already the largest page there is, so the rest has nowhere further to go.
-            FitKind.Partial => Fit.Defer("Unbounded content does not fit even on the largest page, so the rest would be lost."),
+            FitKind.Partial => Fit.Defer(
+                "Unbounded content does not fit even on the largest page, so the rest would be lost."),
             _ => plan,
         };
     }
