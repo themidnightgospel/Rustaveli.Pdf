@@ -66,7 +66,9 @@ public static class FrameContent
         FrameAttachment.Attach(parent, new GeneratedArtworkBlock { Generate = generate });
     }
 
-    /// <summary>Adds vector artwork, scaled to the frame according to <paramref name="fit"/> and kept vector in the PDF.</summary>
+    /// <summary>
+    /// Adds vector artwork, scaled to the frame according to <paramref name="fit"/> and kept vector in the PDF.
+    /// </summary>
     public static void Artwork(this IFrame parent, Artwork artwork, ImageFitting fit = ImageFitting.FitWidth)
     {
         ArgumentNullException.ThrowIfNull(artwork);
@@ -214,7 +216,9 @@ public static class FrameContent
         Block? existing = FrameAttachment.Slot(parent).Child;
         if (existing != null)
         {
-            throw new CompositionException("This frame already holds " + existing.GetType().Name + ", so it cannot be left blank. Blank states that nothing was ever placed here; it does not remove existing content.");
+            throw new CompositionException(
+                "This frame already holds " + existing.GetType().Name +
+                ", so it cannot be left blank. Blank states that nothing was ever placed here; it does not remove existing content.");
         }
     }
 }

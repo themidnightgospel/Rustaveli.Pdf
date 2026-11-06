@@ -45,7 +45,9 @@ public sealed class ContentTag
     /// <summary>An index of terms and where they appear.</summary>
     public static ContentTag Index { get; } = new ContentTag("Index");
 
-    /// <summary>A table of contents, made of <see cref="ContentsEntry"/> content and nested tables of contents.</summary>
+    /// <summary>
+    /// A table of contents, made of <see cref="ContentsEntry"/> content and nested tables of contents.
+    /// </summary>
     public static ContentTag Contents { get; } = new ContentTag("TOC");
 
     /// <summary>One entry in a table of contents.</summary>
@@ -56,7 +58,9 @@ public sealed class ContentTag
     /// </summary>
     public static ContentTag Paragraph { get; } = new ContentTag("P");
 
-    /// <summary>A list, made of <see cref="ListItem"/> content. Lists composed as lists are tagged without asking.</summary>
+    /// <summary>
+    /// A list, made of <see cref="ListItem"/> content. Lists composed as lists are tagged without asking.
+    /// </summary>
     public static ContentTag List { get; } = new ContentTag("L");
 
     /// <summary>One item of a list: its <see cref="ListLabel"/> and its <see cref="ListBody"/>.</summary>
@@ -83,7 +87,9 @@ public sealed class ContentTag
     /// <summary>A footnote or endnote.</summary>
     public static ContentTag Note { get; } = new ContentTag("Note");
 
-    /// <summary>Words within a paragraph set apart for no more particular reason, such as a change of language.</summary>
+    /// <summary>
+    /// Words within a paragraph set apart for no more particular reason, such as a change of language.
+    /// </summary>
     public static ContentTag Span { get; } = new ContentTag("Span");
 
     /// <summary>A heading, from level 1 for the outermost to level 6.</summary>

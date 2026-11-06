@@ -1,6 +1,8 @@
 namespace Rustaveli.Pdf;
 
-/// <summary>How strongly a protected PDF is encrypted, from the weakest readers still honour to the strongest.</summary>
+/// <summary>
+/// How strongly a protected PDF is encrypted, from the weakest readers still honour to the strongest.
+/// </summary>
 public enum EncryptionLevel
 {
     /// <summary>RC4 with a 40-bit key: PDF 1.1's, opened by every reader and by anyone who tries.</summary>

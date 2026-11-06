@@ -43,16 +43,22 @@ public sealed class GridComposer
     /// <summary>Sets the room between one row and the next, in points; none unless set.</summary>
     public void SpaceBetweenRows(float value) => _rowSpace = Numbers.NotNegative(value, nameof(value));
 
-    /// <summary>Sets a row its cells do not fill against the start of the row. This is how rows are set unless told otherwise.</summary>
+    /// <summary>
+    /// Sets a row its cells do not fill against the start of the row. This is how rows are set unless told otherwise.
+    /// </summary>
     public void FlushLeft() => _placement = HorizontalPlacement.Left;
 
-    /// <summary>Sets a row its cells do not fill in the middle, with the columns left over shared either side.</summary>
+    /// <summary>
+    /// Sets a row its cells do not fill in the middle, with the columns left over shared either side.
+    /// </summary>
     public void Centered() => _placement = HorizontalPlacement.Center;
 
     /// <summary>Sets a row its cells do not fill against the end of the row.</summary>
     public void FlushRight() => _placement = HorizontalPlacement.Right;
 
-    /// <summary>Adds a cell spanning <paramref name="span"/> columns, and returns the frame its content goes into.</summary>
+    /// <summary>
+    /// Adds a cell spanning <paramref name="span"/> columns, and returns the frame its content goes into.
+    /// </summary>
     public IFrame Cell(int span = 1)
     {
         if (span < 1)

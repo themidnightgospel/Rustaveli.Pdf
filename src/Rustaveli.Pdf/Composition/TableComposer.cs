@@ -43,14 +43,18 @@ public sealed class TableComposer
     /// </summary>
     public void ExtendLastCellsToBottom() => _table.ExtendLastCells = true;
 
-    /// <summary>Adds cells to the rows drawn at the top of every page the table runs on to, after any added already.</summary>
+    /// <summary>
+    /// Adds cells to the rows drawn at the top of every page the table runs on to, after any added already.
+    /// </summary>
     public void HeaderRows(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
         handler(_header);
     }
 
-    /// <summary>Adds cells to the rows drawn at the bottom of every page the table runs on to, after any added already.</summary>
+    /// <summary>
+    /// Adds cells to the rows drawn at the bottom of every page the table runs on to, after any added already.
+    /// </summary>
     public void FooterRows(Action<TableBand> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
@@ -80,7 +84,8 @@ public sealed class TableComposer
             foreach ((List<CellBlock> cells, string _) in bands)
             {
                 if (cells.Count > 0)
-                    throw new CompositionException("A table declares its columns with Columns(...) before its cells can be placed.");
+                    throw new CompositionException(
+                        "A table declares its columns with Columns(...) before its cells can be placed.");
             }
 
             return;

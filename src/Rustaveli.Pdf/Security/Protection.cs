@@ -8,8 +8,8 @@ namespace Rustaveli.Pdf;
 /// Restrictions are honoured by readers, not enforced by the encryption: anyone who can open a file can read it. Only
 /// a user password keeps a file closed.
 /// <para>
-/// Only <see cref="EncryptionLevel.AesWith256Bits"/> takes a password in any script; the older levels take PDFDocEncoding,
-/// roughly Latin-1, and a password with other characters is refused rather than weakened.
+/// Only <see cref="EncryptionLevel.AesWith256Bits"/> takes a password in any script; the older levels take
+/// PDFDocEncoding, roughly Latin-1, and a password with other characters is refused rather than weakened.
 /// </para>
 /// </remarks>
 public sealed class Protection
@@ -49,7 +49,9 @@ public sealed class Protection
     /// <summary>Whether pages may be inserted, rotated or removed, and bookmarks and thumbnails made.</summary>
     public bool AllowAssembling { get; init; } = true;
 
-    /// <summary>Whether the XMP metadata is encrypted too; off lets search engines read it without the password.</summary>
+    /// <summary>
+    /// Whether the XMP metadata is encrypted too; off lets search engines read it without the password.
+    /// </summary>
     public bool EncryptMetadata { get; init; } = true;
 
     /// <summary>The permissions as the <c>/P</c> entry holds them (ISO 32000-1, table 22).</summary>

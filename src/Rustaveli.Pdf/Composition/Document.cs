@@ -18,10 +18,14 @@ public sealed class Document : IComposition
     /// <summary>The section each document merged into this one begins at; this document alone is one, from 0.</summary>
     private readonly List<int> _partStarts = [0];
 
-    /// <summary>The style sheet of each document merged into this one, in order; none for a document composed alone.</summary>
+    /// <summary>
+    /// The style sheet of each document merged into this one, in order; none for a document composed alone.
+    /// </summary>
     private readonly List<StyleSheet> _partStyles = [];
 
-    /// <summary>Composes this document again from scratch: its composing code run anew, or its parts merged anew.</summary>
+    /// <summary>
+    /// Composes this document again from scratch: its composing code run anew, or its parts merged anew.
+    /// </summary>
     private readonly Func<Document> _recompose;
 
     private int _pageLimit = 10_000;
@@ -60,7 +64,9 @@ public sealed class Document : IComposition
     /// <summary>Which merged document the section at <paramref name="section"/> came from.</summary>
     internal int PartOf(int section) => _partStarts.FindLastIndex(start => start <= section);
 
-    /// <summary>The style sheet of the merged document <paramref name="part"/>, which its content names styles from.</summary>
+    /// <summary>
+    /// The style sheet of the merged document <paramref name="part"/>, which its content names styles from.
+    /// </summary>
     internal StyleSheet StylesOf(int part) => _partStyles.Count > part ? _partStyles[part] : Styles;
 
     /// <summary>
@@ -72,7 +78,8 @@ public sealed class Document : IComposition
         ArgumentNullException.ThrowIfNull(documents);
 
         if (documents.Length == 0 || documents.Any(document => document is null))
-            throw new ArgumentException("Merging needs one document or more, and no null among them.", nameof(documents));
+            throw new ArgumentException(
+                "Merging needs one document or more, and no null among them.", nameof(documents));
 
         Document[] parts = documents.ToArray();
         return MergeOf(parts);
@@ -175,7 +182,8 @@ public sealed class Document : IComposition
         }
         catch (Exception ex) when (!(ex is CompositionException))
         {
-            throw new CompositionException("The document could not be composed. See the inner exception for details.", ex);
+            throw new CompositionException(
+                "The document could not be composed. See the inner exception for details.", ex);
         }
         return document;
     }

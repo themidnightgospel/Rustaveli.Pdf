@@ -85,7 +85,9 @@ public sealed class TextComposer
     /// </summary>
     public RunComposer LastFolioOf(string anchor) => LastFolioOf(anchor, Numerals.Arabic);
 
-    /// <summary>Appends the number of the page an anchor's content ends on, written by <paramref name="format"/>.</summary>
+    /// <summary>
+    /// Appends the number of the page an anchor's content ends on, written by <paramref name="format"/>.
+    /// </summary>
     public RunComposer LastFolioOf(string anchor, Func<int, string> format) =>
         Anchored(anchor, format, page => page.LastFolioOf(anchor));
 
@@ -95,7 +97,9 @@ public sealed class TextComposer
     /// </summary>
     public RunComposer FolioWithin(string anchor) => FolioWithin(anchor, Numerals.Arabic);
 
-    /// <summary>Appends this page's number counted from the page an anchor begins on, written by <paramref name="format"/>.</summary>
+    /// <summary>
+    /// Appends this page's number counted from the page an anchor begins on, written by <paramref name="format"/>.
+    /// </summary>
     public RunComposer FolioWithin(string anchor, Func<int, string> format) =>
         Anchored(anchor, format, page => page.FolioOf(anchor) is int first ? page.Folio - first + 1 : null);
 
@@ -104,7 +108,8 @@ public sealed class TextComposer
 
     /// <summary>Appends how many pages an anchor's content spans, written by <paramref name="format"/>.</summary>
     public RunComposer PageCountOf(string anchor, Func<int, string> format) =>
-        Anchored(anchor, format, page => page.FolioOf(anchor) is int first && page.LastFolioOf(anchor) is int last ? last - first + 1 : null);
+        Anchored(anchor, format, page =>
+            page.FolioOf(anchor) is int first && page.LastFolioOf(anchor) is int last ? last - first + 1 : null);
 
     /// <summary>Appends text that opens an external URL when clicked.</summary>
     public RunComposer Link(string text, string url)
@@ -210,7 +215,9 @@ public sealed class TextComposer
         _block.Alignment = LineAlignment.Start;
     }
 
-    /// <summary>Sets lines flush against the edge they end at: right in left-to-right text, left in right-to-left.</summary>
+    /// <summary>
+    /// Sets lines flush against the edge they end at: right in left-to-right text, left in right-to-left.
+    /// </summary>
     public void FlushEnd()
     {
         _block.Alignment = LineAlignment.End;
@@ -245,7 +252,9 @@ public sealed class TextComposer
         return new RunComposer(run);
     }
 
-    /// <summary>A number read from where an anchor fell, written by <paramref name="format"/>; "?" until it is known.</summary>
+    /// <summary>
+    /// A number read from where an anchor fell, written by <paramref name="format"/>; "?" until it is known.
+    /// </summary>
     private RunComposer Anchored(string anchor, Func<int, string> format, Func<Pagination, int?> number)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
