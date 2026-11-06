@@ -65,7 +65,9 @@ public sealed class RunComposer
     /// <summary>Draws a line above the run.</summary>
     public RunComposer Overline(bool value = true) => Refine(style => style.Overline(value));
 
-    /// <summary>How the run's underline, strike-through and overline are drawn: solid, double, dotted, dashed or wavy.</summary>
+    /// <summary>
+    /// How the run's underline, strike-through and overline are drawn: solid, double, dotted, dashed or wavy.
+    /// </summary>
     public RunComposer StrokeStyle(StrokeStyle style) => Refine(current => current.WithStrokeStyle(style));
 
     /// <summary>The ink of the run's underline, strike-through and overline, in place of the text's own.</summary>
@@ -73,7 +75,9 @@ public sealed class RunComposer
 
     public RunComposer StrokeInk(string hex) => StrokeInk(Rustaveli.Pdf.Ink.Hex(hex));
 
-    /// <summary>The weight of the run's underline, strike-through and overline, in points, in place of the font's own.</summary>
+    /// <summary>
+    /// The weight of the run's underline, strike-through and overline, in points, in place of the font's own.
+    /// </summary>
     public RunComposer StrokeWeight(float weight)
     {
         TypeStyle.Size(weight, nameof(weight));
@@ -127,7 +131,9 @@ public sealed class RunComposer
     /// <summary>Sets lowercase letters as small capitals, where the face has them.</summary>
     public RunComposer SmallCapitals(bool value = true) => Refine(style => style.SmallCapitals(value));
 
-    /// <summary>Sets old-style figures, which rise and descend like lowercase letters, where the face has them.</summary>
+    /// <summary>
+    /// Sets old-style figures, which rise and descend like lowercase letters, where the face has them.
+    /// </summary>
     public RunComposer OldstyleFigures(bool value = true) => Refine(style => style.OldstyleFigures(value));
 
     /// <summary>Sets figures all one width, so columns of numbers align, where the face has them.</summary>

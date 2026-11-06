@@ -20,13 +20,16 @@ public sealed class Artwork
     /// <summary>The artwork's own size, in points, before it is scaled to its frame.</summary>
     public Extent Size { get; }
 
-    /// <summary>Artwork <paramref name="width"/> by <paramref name="height"/> points, drawn by <paramref name="draw"/>.</summary>
+    /// <summary>
+    /// Artwork <paramref name="width"/> by <paramref name="height"/> points, drawn by <paramref name="draw"/>.
+    /// </summary>
     public static Artwork Draw(float width, float height, Action<ArtworkComposer> draw)
     {
         ArgumentNullException.ThrowIfNull(draw);
 
         if (!(width > 0) || !(height > 0) || float.IsInfinity(width) || float.IsInfinity(height))
-            throw new ArgumentOutOfRangeException(nameof(width), "Artwork has a finite size greater than nothing each way.");
+            throw new ArgumentOutOfRangeException(
+                nameof(width), "Artwork has a finite size greater than nothing each way.");
 
         ArtworkComposer composer = new ArtworkComposer();
         draw(composer);

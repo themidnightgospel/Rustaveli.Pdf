@@ -97,23 +97,28 @@ public static class FrameModifiers
     }
 
     /// <summary>
-    /// Casts a shadow from the frame onto what lies beneath it. Round its corners with <see cref="RoundCorners(IFrame, float)"/>
-    /// directly after, to match a rounded fill.
+    /// Casts a shadow from the frame onto what lies beneath it. Round its corners with
+    /// <see cref="RoundCorners(IFrame, float)"/> directly after, to match a rounded fill.
     /// </summary>
     public static IFrame DropShadow(this IFrame parent, Shadow shadow)
     {
         if (!(shadow.Blur >= 0) || float.IsInfinity(shadow.Blur))
-            throw new ArgumentOutOfRangeException(nameof(shadow), shadow.Blur, "A shadow's blur is a finite number of points, not negative.");
+            throw new ArgumentOutOfRangeException(
+                nameof(shadow), shadow.Blur, "A shadow's blur is a finite number of points, not negative.");
 
         if (!Numbers.IsFinite(shadow.Spread) || !Numbers.IsFinite(shadow.Offset.X) ||
             !Numbers.IsFinite(shadow.Offset.Y))
-            throw new ArgumentOutOfRangeException(nameof(shadow), "A shadow's offset and spread are finite numbers of points.");
+            throw new ArgumentOutOfRangeException(
+                nameof(shadow), "A shadow's offset and spread are finite numbers of points.");
 
         return Attach(parent, new ShadowBlock { Shadow = shadow });
     }
 
-    /// <summary>Casts a shadow of <paramref name="ink"/>, blurred by <paramref name="blur"/> and moved by the offset.</summary>
-    public static IFrame DropShadow(this IFrame parent, Ink ink, float blur, float offsetX = 0, float offsetY = 0, float spread = 0) =>
+    /// <summary>
+    /// Casts a shadow of <paramref name="ink"/>, blurred by <paramref name="blur"/> and moved by the offset.
+    /// </summary>
+    public static IFrame DropShadow(
+        this IFrame parent, Ink ink, float blur, float offsetX = 0, float offsetY = 0, float spread = 0) =>
         parent.DropShadow(new Shadow(ink, blur, new Offset(offsetX, offsetY), spread));
 
     /// <summary>
@@ -125,10 +130,14 @@ public static class FrameModifiers
     /// Rounds each corner of the fill, stroke or shadow this directly follows to its own radius, clockwise from the
     /// top left; zero leaves a corner square.
     /// </summary>
-    public static IFrame RoundCorners(this IFrame parent, float topLeft, float topRight, float bottomRight, float bottomLeft) =>
+    public static IFrame RoundCorners(
+        this IFrame parent, float topLeft, float topRight, float bottomRight, float bottomLeft) =>
         parent.RoundCorners(new Corners(topLeft, topRight, bottomRight, bottomLeft));
 
-    /// <summary>Rounds each corner of the fill, stroke or shadow this directly follows to its radius in <paramref name="corners"/>.</summary>
+    /// <summary>
+    /// Rounds each corner of the fill, stroke or shadow this directly follows to its radius in
+    /// <paramref name="corners"/>.
+    /// </summary>
     public static IFrame RoundCorners(this IFrame parent, Corners corners) => parent switch
     {
         FillBlock fill => Assign(fill, corners),
@@ -275,7 +284,8 @@ public static class FrameModifiers
     /// Adds to the alignment just placed while it still holds nothing, so that <c>.FlushRight().Middle()</c> aligns
     /// on both axes in one block instead of nesting two, the inner of which would be given only its content's size.
     /// </summary>
-    private static IFrame Place(IFrame parent, HorizontalPlacement? horizontal = null, VerticalPlacement? vertical = null)
+    private static IFrame Place(
+        IFrame parent, HorizontalPlacement? horizontal = null, VerticalPlacement? vertical = null)
     {
         // Only fold into an aligner that is still empty. Once it has content, `.FlushRight()` on the same slot
         // is a second, separate piece of composition and must not quietly replace the first.
@@ -297,7 +307,9 @@ public static class FrameModifiers
     public static IFrame ShiftDown(this IFrame parent, float value) =>
         Attach(parent, new ShiftBlock { Offset = new Offset(0, Numbers.AnyWay(value, nameof(value))) });
 
-    /// <summary>Scales the content by <paramref name="factor"/> each way: negative mirrors it, zero is refused.</summary>
+    /// <summary>
+    /// Scales the content by <paramref name="factor"/> each way: negative mirrors it, zero is refused.
+    /// </summary>
     public static IFrame Scale(this IFrame parent, float factor)
     {
         Numbers.NotZero(factor, nameof(factor));
@@ -306,7 +318,11 @@ public static class FrameModifiers
 
     /// <summary>Scales the content across and down: negative mirrors it, zero is refused.</summary>
     public static IFrame Scale(this IFrame parent, float scaleX, float scaleY) =>
-        Attach(parent, new ScaleBlock { ScaleX = Numbers.NotZero(scaleX, nameof(scaleX)), ScaleY = Numbers.NotZero(scaleY, nameof(scaleY)) });
+        Attach(parent, new ScaleBlock
+        {
+            ScaleX = Numbers.NotZero(scaleX, nameof(scaleX)),
+            ScaleY = Numbers.NotZero(scaleY, nameof(scaleY)),
+        });
 
     /// <summary>Rotates a quarter turn anticlockwise, swapping the layout axes.</summary>
     public static IFrame TurnLeft(this IFrame parent) =>
@@ -401,8 +417,8 @@ public static class FrameModifiers
 
     /// <summary>
     /// Shows the frame's edges — the room it was given — as a dashed outline over its content, labelled in the top
-    /// corner if <paramref name="label"/> is given, in <paramref name="ink"/> or a strong red: for seeing where frames lie
-    /// while a document is laid out.
+    /// corner if <paramref name="label"/> is given, in <paramref name="ink"/> or a strong red: for seeing where frames
+    /// lie while a document is laid out.
     /// </summary>
     public static IFrame ShowFrameEdges(this IFrame parent, string? label = null, Ink? ink = null) =>
         Attach(parent, new FrameEdgesBlock(label, ink ?? Ink.Rgb(0xE5, 0x39, 0x35)));
@@ -417,7 +433,9 @@ public static class FrameModifiers
         return Attach(parent, new LabelBlock { Label = label });
     }
 
-    /// <summary>Gives the frame the document's frame style named <paramref name="name"/>, returning the frame content goes in.</summary>
+    /// <summary>
+    /// Gives the frame the document's frame style named <paramref name="name"/>, returning the frame content goes in.
+    /// </summary>
     public static IFrame Style(this IFrame parent, string name)
     {
         ArgumentNullException.ThrowIfNull(parent);
@@ -450,39 +468,92 @@ public static class FrameModifiers
     /// Draws a horizontal rule across the available width, solid unless <paramref name="style"/> says otherwise. A
     /// wavy rule takes three times its weight, the wave swinging a weight either side of its centre.
     /// </summary>
-    public static void Rule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink ?? Ink.Black, Style = style });
+    public static void Rule(
+        this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new RuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Ink = ink ?? Ink.Black,
+            Style = style,
+        });
 
     /// <summary>
     /// Draws a horizontal rule across the available width in dashes and gaps of the lengths in
     /// <paramref name="dashes"/>, alternating and starting with a dash: <c>[4, 2]</c> is dashes of 4 points 2 apart.
     /// </summary>
     public static void Rule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
-        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink, Dashes = Checked(dashes) });
+        Attach(parent, new RuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Ink = ink,
+            Dashes = Checked(dashes),
+        });
 
     /// <summary>Draws a horizontal rule across the available width in a gradient along its length.</summary>
-    public static void Rule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+    public static void Rule(
+        this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new RuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)),
+            Style = style,
+        });
 
-    /// <summary>Draws a horizontal rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    /// <summary>
+    /// Draws a horizontal rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.
+    /// </summary>
     public static void Rule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
-        Attach(parent, new RuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
+        Attach(parent, new RuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)),
+            Dashes = Checked(dashes),
+        });
 
-    /// <summary>Draws a vertical rule down the available height, solid unless <paramref name="style"/> says otherwise.</summary>
-    public static void VerticalRule(this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink ?? Ink.Black, Style = style });
+    /// <summary>
+    /// Draws a vertical rule down the available height, solid unless <paramref name="style"/> says otherwise.
+    /// </summary>
+    public static void VerticalRule(
+        this IFrame parent, float weight = 1f, Ink? ink = null, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new VerticalRuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Ink = ink ?? Ink.Black,
+            Style = style,
+        });
 
-    /// <summary>Draws a vertical rule down the available height in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    /// <summary>
+    /// Draws a vertical rule down the available height in dashes and gaps of the lengths in
+    /// <paramref name="dashes"/>.
+    /// </summary>
     public static void VerticalRule(this IFrame parent, float weight, Ink ink, IReadOnlyList<float> dashes) =>
-        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Ink = ink, Dashes = Checked(dashes) });
+        Attach(parent, new VerticalRuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Ink = ink,
+            Dashes = Checked(dashes),
+        });
 
     /// <summary>Draws a vertical rule down the available height in a gradient along its length.</summary>
-    public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
-        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Style = style });
+    public static void VerticalRule(
+        this IFrame parent, float weight, Gradient gradient, StrokeStyle style = StrokeStyle.Solid) =>
+        Attach(parent, new VerticalRuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)),
+            Style = style,
+        });
 
-    /// <summary>Draws a vertical rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.</summary>
+    /// <summary>
+    /// Draws a vertical rule in a gradient, in dashes and gaps of the lengths in <paramref name="dashes"/>.
+    /// </summary>
     public static void VerticalRule(this IFrame parent, float weight, Gradient gradient, IReadOnlyList<float> dashes) =>
-        Attach(parent, new VerticalRuleBlock { Weight = Numbers.NotNegative(weight, nameof(weight)), Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)), Dashes = Checked(dashes) });
+        Attach(parent, new VerticalRuleBlock
+        {
+            Weight = Numbers.NotNegative(weight, nameof(weight)),
+            Gradient = gradient ?? throw new ArgumentNullException(nameof(gradient)),
+            Dashes = Checked(dashes),
+        });
 
     /// <summary>
     /// A copy of a dash pattern, checked now rather than when the page is drawn: a pattern of no lengths, a negative
@@ -492,8 +563,10 @@ public static class FrameModifiers
     {
         ArgumentNullException.ThrowIfNull(dashes);
 
-        if (dashes.Count == 0 || dashes.Any(length => !(length >= 0) || float.IsInfinity(length)) || dashes.All(length => length == 0))
-            throw new ArgumentException("A dash pattern needs lengths that are finite, none negative and not all zero.", nameof(dashes));
+        if (dashes.Count == 0 || dashes.Any(length => !(length >= 0) || float.IsInfinity(length)) ||
+            dashes.All(length => length == 0))
+            throw new ArgumentException(
+                "A dash pattern needs lengths that are finite, none negative and not all zero.", nameof(dashes));
 
         return dashes.ToArray();
     }
@@ -502,7 +575,9 @@ public static class FrameModifiers
     public static void Placeholder(this IFrame parent, Ink? ink = null) =>
         Attach(parent, new PlaceholderBlock { Ink = ink ?? PlaceholderBlock.DefaultInk });
 
-    /// <summary>Fills the available space with a block standing in for unwritten content, saying what will go there.</summary>
+    /// <summary>
+    /// Fills the available space with a block standing in for unwritten content, saying what will go there.
+    /// </summary>
     public static void Placeholder(this IFrame parent, string label, Ink? ink = null)
     {
         ArgumentNullException.ThrowIfNull(label);

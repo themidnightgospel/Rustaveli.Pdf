@@ -9,7 +9,8 @@ namespace Rustaveli.Pdf;
 /// </summary>
 public sealed class ArtworkComposer
 {
-    private const string WritableNumbers = "Artwork is drawn with numbers a PDF can hold: finite, and below 10^15 in magnitude.";
+    private const string WritableNumbers =
+        "Artwork is drawn with numbers a PDF can hold: finite, and below 10^15 in magnitude.";
 
     private readonly List<Action<ISurface, ITypeMeasurer>> _steps = [];
     private int _saved;
@@ -73,7 +74,9 @@ public sealed class ArtworkComposer
         _steps.Add((surface, _) => surface.Concatenate(a, b, c, d, e, f));
     }
 
-    /// <summary>Confines what follows, until the next <see cref="RestoreState"/>, to the inside of <paramref name="path"/>.</summary>
+    /// <summary>
+    /// Confines what follows, until the next <see cref="RestoreState"/>, to the inside of <paramref name="path"/>.
+    /// </summary>
     public void Clip(VectorPath path, FillRule rule = FillRule.NonZero)
     {
         VectorPath drawn = WritableCopy(path);
@@ -87,7 +90,9 @@ public sealed class ArtworkComposer
         _steps.Add((surface, _) => surface.FillPath(drawn, ink, rule));
     }
 
-    /// <summary>Fills <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
+    /// <summary>
+    /// Fills <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.
+    /// </summary>
     public void Fill(VectorPath path, Gradient gradient, FillRule rule = FillRule.NonZero)
     {
         VectorPath drawn = WritableCopy(path);
@@ -100,7 +105,9 @@ public sealed class ArtworkComposer
         });
     }
 
-    /// <summary>Strokes <paramref name="path"/> with <paramref name="ink"/>, as <paramref name="style"/> says.</summary>
+    /// <summary>
+    /// Strokes <paramref name="path"/> with <paramref name="ink"/>, as <paramref name="style"/> says.
+    /// </summary>
     public void Stroke(VectorPath path, Ink ink, LineStyle style)
     {
         VectorPath drawn = WritableCopy(path);
@@ -108,7 +115,9 @@ public sealed class ArtworkComposer
         _steps.Add((surface, _) => surface.StrokePath(drawn, ink, line));
     }
 
-    /// <summary>Strokes <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.</summary>
+    /// <summary>
+    /// Strokes <paramref name="path"/> with <paramref name="gradient"/>, laid across the path's bounds.
+    /// </summary>
     public void Stroke(VectorPath path, Gradient gradient, LineStyle style)
     {
         VectorPath drawn = WritableCopy(path);
@@ -209,7 +218,10 @@ public sealed class ArtworkComposer
         _ => 0,
     };
 
-    /// <summary>Places <paramref name="image"/> in the box at (<paramref name="x"/>, <paramref name="y"/>), stretched to fill it.</summary>
+    /// <summary>
+    /// Places <paramref name="image"/> in the box at (<paramref name="x"/>, <paramref name="y"/>), stretched to
+    /// fill it.
+    /// </summary>
     public void Image(IImage image, float x, float y, float width, float height)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -236,8 +248,8 @@ public sealed class ArtworkComposer
     }
 
     /// <summary>
-    /// Whether <paramref name="gradient"/> can be laid across <paramref name="path"/>: its axis, from the path's bounds,
-    /// can be written to a PDF. Gradients read from outside are checked with this before they are drawn.
+    /// Whether <paramref name="gradient"/> can be laid across <paramref name="path"/>: its axis, from the path's
+    /// bounds, can be written to a PDF. Gradients read from outside are checked with this before they are drawn.
     /// </summary>
     internal static bool CanLay(Gradient gradient, VectorPath path)
     {
@@ -286,18 +298,26 @@ public sealed class ArtworkComposer
         VectorPath copy = path.Copy();
 
         if (!copy.IsWritable)
-            throw new ArgumentOutOfRangeException(nameof(path), "Every point of a path is a number a PDF can hold: finite, and below 10^15 in magnitude.");
+            throw new ArgumentOutOfRangeException(
+                nameof(path),
+                "Every point of a path is a number a PDF can hold: finite, and below 10^15 in magnitude.");
 
         return copy;
     }
 
-    /// <summary>A copy of <paramref name="style"/> with its own dashes, which a later change to the caller's list does not reach, checked.</summary>
+    /// <summary>
+    /// A copy of <paramref name="style"/> with its own dashes, which a later change to the caller's list does not
+    /// reach, checked.
+    /// </summary>
     private static LineStyle WritableCopy(LineStyle style)
     {
         LineStyle copy = style with { Dashes = style.Dashes?.ToArray() };
 
-        if (!Writable.Is(copy.Weight) || !Writable.Is(copy.MiterLimit) || !Writable.Is(copy.DashOffset) || (copy.Dashes is { } dashes && !dashes.All(Writable.Is)))
-            throw new ArgumentOutOfRangeException(nameof(style), "A line's weight, miter limit and dashes are numbers a PDF can hold: finite, and below 10^15 in magnitude.");
+        if (!Writable.Is(copy.Weight) || !Writable.Is(copy.MiterLimit) || !Writable.Is(copy.DashOffset)
+            || (copy.Dashes is { } dashes && !dashes.All(Writable.Is)))
+            throw new ArgumentOutOfRangeException(
+                nameof(style),
+                "A line's weight, miter limit and dashes are numbers a PDF can hold: finite, and below 10^15 in magnitude.");
 
         return copy;
     }
@@ -308,7 +328,9 @@ public sealed class ArtworkComposer
         ArgumentNullException.ThrowIfNull(gradient);
 
         if (!CanLay(gradient, path))
-            throw new ArgumentOutOfRangeException(nameof(gradient), "The gradient, laid across this path, reaches beyond the numbers a PDF can hold: finite, and below 10^15 in magnitude.");
+            throw new ArgumentOutOfRangeException(
+                nameof(gradient),
+                "The gradient, laid across this path, reaches beyond the numbers a PDF can hold: finite, and below 10^15 in magnitude.");
 
         return path.Bounds();
     }

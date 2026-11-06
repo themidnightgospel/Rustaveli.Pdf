@@ -88,14 +88,17 @@ public sealed class SampleData
     public string PersonName() => Pick(GivenNames) + " " + Pick(FamilyNames);
 
     /// <summary>An email address at one of the domains reserved for examples.</summary>
-    public string EmailAddress() => (Pick(GivenNames) + "." + Pick(FamilyNames)).ToLowerInvariant() + "@" + Pick(Domains);
+    public string EmailAddress() =>
+        (Pick(GivenNames) + "." + Pick(FamilyNames)).ToLowerInvariant() + "@" + Pick(Domains);
 
     /// <summary>A web address on one of the domains reserved for examples.</summary>
     public string WebAddress() => "https://www." + Pick(Domains) + "/" + Pick(Latin);
 
     /// <summary>A telephone number in the international format.</summary>
     public string TelephoneNumber() =>
-        string.Format(CultureInfo.InvariantCulture, "+{0} {1:000} {2:000} {3:0000}", Between(1, 99), Between(100, 999), Between(0, 999), Between(0, 9999));
+        string.Format(
+            CultureInfo.InvariantCulture, "+{0} {1:000} {2:000} {3:0000}",
+            Between(1, 99), Between(100, 999), Between(0, 999), Between(0, 9999));
 
     /// <summary>A whole number from 0 to 9999.</summary>
     public string Number() => Between(0, 9999).ToString(CultureInfo.InvariantCulture);
@@ -110,7 +113,8 @@ public sealed class SampleData
     public string Amount() => "€" + (_random.Next(100, 100_000) / 100m).ToString("0.00", CultureInfo.InvariantCulture);
 
     /// <summary>A time of day on the twenty-four hour clock.</summary>
-    public string TimeOfDay() => string.Format(CultureInfo.InvariantCulture, "{0:00}:{1:00}", Between(0, 23), Between(0, 59));
+    public string TimeOfDay() =>
+        string.Format(CultureInfo.InvariantCulture, "{0:00}:{1:00}", Between(0, 23), Between(0, 59));
 
     /// <summary>A date between 2000 and 2029, as <c>yyyy-MM-dd</c>.</summary>
     public string Date() => Day().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -157,7 +161,8 @@ public sealed class SampleData
         return RasterImage.FromBytes(PngWriter.Rgb(width, height, pixels));
     }
 
-    private static byte Channel(float from, float to, float along) => (byte)Math.Round((from + ((to - from) * along)) * 255);
+    private static byte Channel(float from, float to, float along) =>
+        (byte)Math.Round((from + ((to - from) * along)) * 255);
 
     private static string Capitalised(string text) =>
         text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text.Substring(1);

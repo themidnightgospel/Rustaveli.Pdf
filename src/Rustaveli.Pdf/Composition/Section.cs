@@ -43,7 +43,8 @@ public sealed class Section
         set
         {
             if (!IsLength(value.Left) || !IsLength(value.Top) || !IsLength(value.Right) || !IsLength(value.Bottom))
-                throw new ArgumentOutOfRangeException(nameof(Margins), value, "Margins are finite numbers of points, none negative.");
+                throw new ArgumentOutOfRangeException(
+                    nameof(Margins), value, "Margins are finite numbers of points, none negative.");
 
             _margins = value;
         }

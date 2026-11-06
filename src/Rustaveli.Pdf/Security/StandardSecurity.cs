@@ -37,10 +37,14 @@ internal static class StandardSecurity
     }
 
     /// <summary>Algorithm 2: the file key from the padded user password.</summary>
-    public static byte[] FileKey(byte[] paddedUser, byte[] owner, int permissions, byte[] id, int revision, int length, bool encryptMetadata)
+    public static byte[] FileKey(
+        byte[] paddedUser, byte[] owner, int permissions, byte[] id, int revision, int length, bool encryptMetadata)
     {
         using MD5 md5 = MD5.Create();
-        List<byte> input = [.. paddedUser, .. owner.AsSpan(0, 32).ToArray(), .. BitConverter.GetBytes(permissions), .. id];
+        List<byte> input =
+        [
+            .. paddedUser, .. owner.AsSpan(0, 32).ToArray(), .. BitConverter.GetBytes(permissions), .. id,
+        ];
 
         if (revision >= 4 && !encryptMetadata)
             input.AddRange([0xFF, 0xFF, 0xFF, 0xFF]);
@@ -56,7 +60,9 @@ internal static class StandardSecurity
         return hash.AsSpan(0, length).ToArray();
     }
 
-    /// <summary>Algorithm 3: the owner entry, the padded user password encrypted by a key from the owner password.</summary>
+    /// <summary>
+    /// Algorithm 3: the owner entry, the padded user password encrypted by a key from the owner password.
+    /// </summary>
     public static byte[] Owner(string ownerPassword, string userPassword, int revision, int length)
     {
         byte[] key = OwnerKey(ownerPassword.Length > 0 ? ownerPassword : userPassword, revision, length);
@@ -88,13 +94,23 @@ internal static class StandardSecurity
     }
 
     /// <summary>Algorithm 6: the file key if <paramref name="paddedUser"/> is the user password, else null.</summary>
-    public static byte[]? AuthenticateUser(byte[] paddedUser, byte[] owner, byte[] user, int permissions, byte[] id, int revision, int length, bool encryptMetadata)
+    public static byte[]? AuthenticateUser(
+        byte[] paddedUser,
+        byte[] owner,
+        byte[] user,
+        int permissions,
+        byte[] id,
+        int revision,
+        int length,
+        bool encryptMetadata)
     {
         byte[] key = FileKey(paddedUser, owner, permissions, id, revision, length, encryptMetadata);
         byte[] expected = User(key, id, revision);
         int compared = revision == 2 ? 32 : 16;
 
-        return user.Length >= compared && expected.AsSpan(0, compared).SequenceEqual(user.AsSpan(0, compared)) ? key : null;
+        return user.Length >= compared && expected.AsSpan(0, compared).SequenceEqual(user.AsSpan(0, compared))
+            ? key
+            : null;
     }
 
     /// <summary>Algorithm 7: the padded user password the owner password recovers, which then opens the file.</summary>
@@ -112,11 +128,17 @@ internal static class StandardSecurity
         return entry;
     }
 
-    /// <summary>Algorithm 1: the key one object is encrypted with, from the file key, its number and its generation.</summary>
+    /// <summary>
+    /// Algorithm 1: the key one object is encrypted with, from the file key, its number and its generation.
+    /// </summary>
     public static byte[] ObjectKey(byte[] fileKey, int objectNumber, bool aes, int generation = 0)
     {
         using MD5 md5 = MD5.Create();
-        List<byte> input = [.. fileKey, (byte)objectNumber, (byte)(objectNumber >> 8), (byte)(objectNumber >> 16), (byte)generation, (byte)(generation >> 8)];
+        List<byte> input =
+        [
+            .. fileKey, (byte)objectNumber, (byte)(objectNumber >> 8), (byte)(objectNumber >> 16),
+            (byte)generation, (byte)(generation >> 8),
+        ];
 
         if (aes)
             input.AddRange("sAlT"u8.ToArray());
@@ -156,7 +178,9 @@ internal static class StandardSecurity
             for (int copy = 0; copy < 64; copy++)
                 single.CopyTo(repeated, copy * single.Length);
 
-            encrypted = Aes(key.AsSpan(0, 16).ToArray(), key.AsSpan(16, 16).ToArray(), repeated, encrypt: true, CipherMode.CBC, PaddingMode.None);
+            encrypted = Aes(
+                key.AsSpan(0, 16).ToArray(), key.AsSpan(16, 16).ToArray(),
+                repeated, encrypt: true, CipherMode.CBC, PaddingMode.None);
 
             int remainder = 0;
             for (int index = 0; index < 16; index++)
@@ -190,9 +214,9 @@ internal static class StandardSecurity
     }
 
     /// <summary>
-    /// <paramref name="data"/> encrypted with AES in CBC mode and PKCS #7 padding under a random vector, which comes first,
-    /// as PDF stores a string or stream (ISO 32000-1, 7.6.2). A stream can be most of a document, so it is encrypted
-    /// straight into the one array returned rather than copied on the way.
+    /// <paramref name="data"/> encrypted with AES in CBC mode and PKCS #7 padding under a random vector, which comes
+    /// first, as PDF stores a string or stream (ISO 32000-1, 7.6.2). A stream can be most of a document, so it is
+    /// encrypted straight into the one array returned rather than copied on the way.
     /// </summary>
     public static byte[] EncryptCbc(byte[] key, ReadOnlySpan<byte> data)
     {

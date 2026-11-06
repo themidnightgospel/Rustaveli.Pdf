@@ -28,7 +28,8 @@ public sealed class LayersComposer
     public IFrame BaseLayer()
     {
         if (_layers.Layers.Exists(layer => layer.IsBase))
-            throw new CompositionException("Layers have one BaseLayer, whose size the stack takes; it is already declared.");
+            throw new CompositionException(
+                "Layers have one BaseLayer, whose size the stack takes; it is already declared.");
 
         return Add(isBase: true);
     }

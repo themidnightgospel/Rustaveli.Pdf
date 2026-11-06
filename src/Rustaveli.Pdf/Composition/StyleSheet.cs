@@ -20,15 +20,21 @@ public sealed class StyleSheet
     [ThreadStatic]
     private static StyleSheet? _inForce;
 
-    private readonly Dictionary<string, (string? BasedOn, Func<TypeStyle, TypeStyle> Style)> _types = new Dictionary<string, (string?, Func<TypeStyle, TypeStyle>)>(StringComparer.Ordinal);
-    private readonly Dictionary<string, (string? BasedOn, Action<TextComposer> Format)> _paragraphs = new Dictionary<string, (string?, Action<TextComposer>)>(StringComparer.Ordinal);
-    private readonly Dictionary<string, (string? BasedOn, Func<IFrame, IFrame> Frame)> _frames = new Dictionary<string, (string?, Func<IFrame, IFrame>)>(StringComparer.Ordinal);
+    private readonly Dictionary<string, (string? BasedOn, Func<TypeStyle, TypeStyle> Style)> _types =
+        new Dictionary<string, (string?, Func<TypeStyle, TypeStyle>)>(StringComparer.Ordinal);
+    private readonly Dictionary<string, (string? BasedOn, Action<TextComposer> Format)> _paragraphs =
+        new Dictionary<string, (string?, Action<TextComposer>)>(StringComparer.Ordinal);
+    private readonly Dictionary<string, (string? BasedOn, Func<IFrame, IFrame> Frame)> _frames =
+        new Dictionary<string, (string?, Func<IFrame, IFrame>)>(StringComparer.Ordinal);
 
     /// <summary>The style sheet of the document being composed or set on this thread.</summary>
     internal static StyleSheet InForce =>
-        _inForce ?? throw new CompositionException("Named styles are applied while a document is composed, from the document's Styles.");
+        _inForce ?? throw new CompositionException(
+            "Named styles are applied while a document is composed, from the document's Styles.");
 
-    /// <summary>Defines a type style: how words named with it are set, such as <c>style => style.Italic()</c>.</summary>
+    /// <summary>
+    /// Defines a type style: how words named with it are set, such as <c>style => style.Italic()</c>.
+    /// </summary>
     public StyleSheet DefineType(string name, Func<TypeStyle, TypeStyle> style, string? basedOn = null) =>
         Define(_types, name, style, basedOn);
 
@@ -72,7 +78,8 @@ public sealed class StyleSheet
         return frame => chain.Aggregate(frame, (current, step) => step(current));
     }
 
-    private StyleSheet Define<T>(Dictionary<string, (string? BasedOn, T Style)> styles, string name, T style, string? basedOn)
+    private StyleSheet Define<T>(
+        Dictionary<string, (string? BasedOn, T Style)> styles, string name, T style, string? basedOn)
         where T : class
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
