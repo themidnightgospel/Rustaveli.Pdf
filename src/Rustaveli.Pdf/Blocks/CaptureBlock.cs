@@ -18,7 +18,8 @@ internal sealed class CaptureBlock : EnclosingBlock
             return;
 
         if (!context.DrawsAhead)
-            context.Pagination.RegisterPosition(Name, new CapturedPosition(context.Pagination.Folio, context.Surface.Origin, availableSpace));
+            context.Pagination.RegisterPosition(
+                Name, new CapturedPosition(context.Pagination.Folio, context.Surface.Origin, availableSpace));
 
         base.RenderCore(availableSpace, context);
     }

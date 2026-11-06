@@ -63,7 +63,8 @@ internal sealed class StackBlock : Block
         {
             placed.Clear();
 
-            // A stack of far more items than most would otherwise keep a record its size for as long as the thread lives.
+            // A stack of far more items than most would otherwise keep a record its size for as long as the thread
+            // lives.
             if (placed.Capacity <= MostKept)
                 _spare = placed;
         }

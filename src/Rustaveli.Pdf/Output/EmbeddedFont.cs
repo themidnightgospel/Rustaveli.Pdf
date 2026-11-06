@@ -200,10 +200,18 @@ internal sealed class EmbeddedFont
             [PdfNames.W] = widths,
         });
 
-        WriteType0(file, name, cidFont, shown.Where(entry => entry.Value.Text is not null).Select(entry => (entry.Key, entry.Value.Text!)).ToList());
+        WriteType0(
+            file,
+            name,
+            cidFont,
+            shown
+                .Where(entry => entry.Value.Text is not null)
+                .Select(entry => (entry.Key, entry.Value.Text!))
+                .ToList());
     }
 
-    private void WriteType0(PdfFileWriter file, string name, PdfReference cidFont, List<(ushort Code, string Text)> characters)
+    private void WriteType0(
+        PdfFileWriter file, string name, PdfReference cidFont, List<(ushort Code, string Text)> characters)
     {
         PdfDictionary type0 = new PdfDictionary
         {
@@ -276,7 +284,8 @@ internal sealed class EmbeddedFont
             BinaryPrimitives.WriteUInt16BigEndian(map.AsSpan(2 * glyph), (ushort)glyph);
 
         for (int index = 0; index < shared.Count; index++)
-            BinaryPrimitives.WriteUInt16BigEndian(map.AsSpan(2 * (GlyphSubset.FirstSharedCode + index)), shared[index].Glyph);
+            BinaryPrimitives.WriteUInt16BigEndian(
+                map.AsSpan(2 * (GlyphSubset.FirstSharedCode + index)), shared[index].Glyph);
 
         return map;
     }

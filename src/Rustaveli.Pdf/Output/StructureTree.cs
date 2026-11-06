@@ -38,7 +38,8 @@ internal static class StructureTree
     /// Writes the tree under <paramref name="root"/>, with <paramref name="parents"/> — each page's elements by
     /// marked-content number, and each annotation's element, under their keys — and marks the document tagged.
     /// </summary>
-    public static void Write(PdfDocumentWriter writer, StructureElement root, IReadOnlyDictionary<int, object> parents, int nextKey)
+    public static void Write(
+        PdfDocumentWriter writer, StructureElement root, IReadOnlyDictionary<int, object> parents, int nextKey)
     {
         PdfFileWriter file = writer.File;
         Dictionary<StructureElement, PdfReference> references = [];
@@ -83,8 +84,11 @@ internal static class StructureTree
         writer.Catalog[PdfNames.MarkInfo] = new PdfDictionary { [PdfNames.Marked] = true };
     }
 
-    /// <summary>Reserves an object for every element holding content, itself or below; returns whether this one does.</summary>
-    private static bool Reserve(StructureElement element, PdfFileWriter file, Dictionary<StructureElement, PdfReference> references)
+    /// <summary>
+    /// Reserves an object for every element holding content, itself or below; returns whether this one does.
+    /// </summary>
+    private static bool Reserve(
+        StructureElement element, PdfFileWriter file, Dictionary<StructureElement, PdfReference> references)
     {
         bool holds = false;
 
@@ -97,10 +101,17 @@ internal static class StructureTree
         return holds;
     }
 
-    private static void WriteElement(StructureElement element, PdfReference parent, PdfFileWriter file, Dictionary<StructureElement, PdfReference> references)
+    private static void WriteElement(
+        StructureElement element,
+        PdfReference parent,
+        PdfFileWriter file,
+        Dictionary<StructureElement, PdfReference> references)
     {
         // Content on the element's first page is named by number alone; content elsewhere says which page it is on.
-        PdfReference? page = element.Kids.OfType<MarkedContentReference>().Select(mark => (PdfReference?)mark.Page).FirstOrDefault();
+        PdfReference? page = element.Kids
+            .OfType<MarkedContentReference>()
+            .Select(mark => (PdfReference?)mark.Page)
+            .FirstOrDefault();
         PdfArray kids = new PdfArray(element.Kids.Count);
 
         foreach (object kid in element.Kids)
@@ -121,7 +132,12 @@ internal static class StructureTree
                     break;
 
                 case ObjectReference annotation:
-                    kids.Add(new PdfDictionary { [PdfNames.Type] = Objr, [Obj] = annotation.Target, [Pg] = annotation.Page });
+                    kids.Add(new PdfDictionary
+                    {
+                        [PdfNames.Type] = Objr,
+                        [Obj] = annotation.Target,
+                        [Pg] = annotation.Page,
+                    });
                     break;
             }
         }
@@ -152,7 +168,9 @@ internal static class StructureTree
         file.Write(references[element], dictionary);
     }
 
-    /// <summary>What a table cell heads and spans, for a cell that heads others or spans more than one row or column.</summary>
+    /// <summary>
+    /// What a table cell heads and spans, for a cell that heads others or spans more than one row or column.
+    /// </summary>
     private static PdfDictionary? TableAttributes(StructureElement element)
     {
         if (element.Scope is null && element.RowSpan == 1 && element.ColumnSpan == 1)

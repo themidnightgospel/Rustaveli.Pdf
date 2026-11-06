@@ -66,8 +66,8 @@ public sealed class PdfExportOptions
 
     /// <summary>
     /// The PDF/A part and level the document is written to, <see cref="PdfAConformance.None"/> unless set. Under PDF/A
-    /// every glyph must be found, as if <see cref="RequireEveryGlyph"/> were on, and CMYK images without a colour profile
-    /// need an <see cref="ImageProcessor"/> to become RGB.
+    /// every glyph must be found, as if <see cref="RequireEveryGlyph"/> were on, and CMYK images without a colour
+    /// profile need an <see cref="ImageProcessor"/> to become RGB.
     /// </summary>
     public PdfAConformance Conformance { get; set; }
 
@@ -100,7 +100,8 @@ public sealed class PdfExportOptions
 
     /// <summary>Whether the structure is written: asked for, or needed by the standard claimed.</summary>
     internal bool WritesStructure =>
-        Tagged || Accessibility != PdfUAConformance.None || Conformance is PdfAConformance.PdfA2A or PdfAConformance.PdfA3A;
+        Tagged || Accessibility != PdfUAConformance.None
+        || Conformance is PdfAConformance.PdfA2A or PdfAConformance.PdfA3A;
 
     private int? _imageQuality;
 

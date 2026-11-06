@@ -47,7 +47,8 @@ internal static class FileOutput
             {
                 // Replacing can fail after the file replaced is gone, and then the new file is the only copy left.
                 kept = true;
-                throw new IOException($"{target} was removed but could not be replaced. The new file is {partial}.", exception);
+                throw new IOException(
+                    $"{target} was removed but could not be replaced. The new file is {partial}.", exception);
             }
         }
         finally
@@ -79,5 +80,6 @@ internal static class FileOutput
 
     /// <summary>Whether the failure is one another process holding the file open gives.</summary>
     internal static bool IsHeld(IOException exception) =>
-        exception.HResult is SharingViolation or UnableToRemoveReplaced or UnableToMoveReplacement or UnableToMoveReplacement2;
+        exception.HResult is SharingViolation or UnableToRemoveReplaced or UnableToMoveReplacement
+            or UnableToMoveReplacement2;
 }

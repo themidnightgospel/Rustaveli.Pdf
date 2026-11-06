@@ -36,7 +36,8 @@ internal sealed class ListBlock : Block
 
     internal override int ChildCount => 1;
 
-    internal override Block? ChildAt(int index) => index == 0 ? _list : throw new ArgumentOutOfRangeException(nameof(index));
+    internal override Block? ChildAt(int index) =>
+        index == 0 ? _list : throw new ArgumentOutOfRangeException(nameof(index));
 
     /// <summary>
     /// Assembles the marker-and-content rows. Called once composition is complete, because the numbering, the

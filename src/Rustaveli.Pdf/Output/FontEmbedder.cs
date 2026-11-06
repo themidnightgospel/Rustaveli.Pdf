@@ -7,7 +7,9 @@ namespace Rustaveli.Pdf.Output;
 /// The faces one document uses, each embedded once however many pages show it.
 /// </summary>
 /// <param name="file">The file the fonts are written to.</param>
-/// <param name="keepHinting">Whether TrueType glyphs keep their hinting; see <see cref="PdfExportOptions.KeepFontHinting"/>.</param>
+/// <param name="keepHinting">
+/// Whether TrueType glyphs keep their hinting; see <see cref="PdfExportOptions.KeepFontHinting"/>.
+/// </param>
 internal sealed class FontEmbedder(PdfFileWriter file, bool keepHinting)
 {
     private readonly Dictionary<OpenTypeFont, EmbeddedFont> _fonts = [];

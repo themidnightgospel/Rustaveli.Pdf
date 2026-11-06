@@ -24,7 +24,9 @@ internal static class GradientPattern
     private static readonly PdfName Bounds = new PdfName("Bounds");
     private static readonly PdfName Encode = new PdfName("Encode");
 
-    /// <summary>The pattern dictionary for <paramref name="gradient"/> between two points of the drawing space.</summary>
+    /// <summary>
+    /// The pattern dictionary for <paramref name="gradient"/> between two points of the drawing space.
+    /// </summary>
     public static PdfDictionary Create(Gradient gradient, Offset start, Offset end, Transform placement, bool rgbOnly)
     {
         IReadOnlyList<Ink> inks = gradient.Inks;

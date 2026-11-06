@@ -13,7 +13,9 @@ namespace Rustaveli.Pdf.Blocks;
 /// </remarks>
 internal sealed class FlowColumnsBlock : Block
 {
-    /// <summary>Balancing narrows in on the shortest height this many times, to well under a point on any page.</summary>
+    /// <summary>
+    /// Balancing narrows in on the shortest height this many times, to well under a point on any page.
+    /// </summary>
     private const int BalancingSteps = 16;
 
     public int Count { get; set; } = 2;
@@ -46,7 +48,8 @@ internal sealed class FlowColumnsBlock : Block
         float width = ColumnWidth(availableSpace.Width);
 
         if (width <= 0)
-            return Fit.Defer(FormattableString.Invariant($"{Count} columns with gutters of {Gutter:F1} leave no width in {availableSpace.Width:F1} points."));
+            return Fit.Defer(FormattableString.Invariant(
+                $"{Count} columns with gutters of {Gutter:F1} leave no width in {availableSpace.Width:F1} points."));
 
         Pour pour = Forecast(width, availableSpace.Height, context);
 
@@ -54,7 +57,8 @@ internal sealed class FlowColumnsBlock : Block
         {
             return pour.Done
                 ? Fit.Nothing()
-                : Fit.Defer(FormattableString.Invariant($"The story does not fit even one column {width:F1} by {availableSpace.Height:F1} points."));
+                : Fit.Defer(FormattableString.Invariant(
+                    $"The story does not fit even one column {width:F1} by {availableSpace.Height:F1} points."));
         }
 
         Extent size = new Extent(availableSpace.Width, pour.Height);
@@ -190,6 +194,8 @@ internal sealed class FlowColumnsBlock : Block
         return new Pour(Count, tallest, column.Height, Done: false);
     }
 
-    /// <summary>How many columns the story took, the tallest of them, the height each was given, and whether it ended.</summary>
+    /// <summary>
+    /// How many columns the story took, the tallest of them, the height each was given, and whether it ended.
+    /// </summary>
     private readonly record struct Pour(int Columns, float Height, float ColumnHeight, bool Done);
 }

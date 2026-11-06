@@ -26,7 +26,8 @@ internal static class CellPlacement
             while (candidate + span - 1 <= columnCount && !IsFree(occupied, cell.Row, candidate, span, cell.RowSpan))
                 candidate++;
 
-            // Moved to another row it would not be where it was put, and kept in this one it would cover a cell that is.
+            // Moved to another row it would not be where it was put, and kept in this one it would cover a cell that
+            // is.
             if (candidate + span - 1 > columnCount)
             {
                 throw new CompositionException(

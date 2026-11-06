@@ -43,22 +43,30 @@ internal sealed class PdfSurface : IPageSink
     private EmbeddedFont? _lastFont;
 
     /// <summary>
-    /// Whether the file is PDF/A: every ink is written as RGB, as its sRGB output intent needs, and nothing asks a viewer
-    /// to smooth an image.
+    /// Whether the file is PDF/A: every ink is written as RGB, as its sRGB output intent needs, and nothing asks a
+    /// viewer to smooth an image.
     /// </summary>
     private readonly bool _archival;
-    private readonly Dictionary<(string Name, InkModel Model, (float, float, float, float) Components), PdfReference> _separations = [];
-    private readonly Dictionary<(Extent Size, Corners Corners, float Deviation, Ink Ink), (PdfReference Image, ShadowMask Mask)> _shadows = [];
+    private readonly Dictionary<
+        (string Name, InkModel Model, (float, float, float, float) Components),
+        PdfReference> _separations = [];
+    private readonly Dictionary<
+        (Extent Size, Corners Corners, float Deviation, Ink Ink),
+        (PdfReference Image, ShadowMask Mask)> _shadows = [];
     private readonly Stack<State> _saved = new Stack<State>();
     private byte[] _codes = new byte[128];
     private PdfPage? _page;
     private float _pageHeight;
     private State _state;
 
-    /// <summary>The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.</summary>
+    /// <summary>
+    /// The pattern fills and strokes are painted with instead of their ink, and its opacity, while set.
+    /// </summary>
     private (PdfName Pattern, float Opacity)? _gradient;
 
-    /// <summary>Whether the gradient begun could not be placed, so that fills and strokes until it ends are left out.</summary>
+    /// <summary>
+    /// Whether the gradient begun could not be placed, so that fills and strokes until it ends are left out.
+    /// </summary>
     private bool _unplacedGradient;
 
     /// <summary>Whether content is marked for the structure tree, as a tagged PDF needs.</summary>
@@ -96,14 +104,16 @@ internal sealed class PdfSurface : IPageSink
         _tagging = options?.WritesStructure == true;
     }
 
-    private PdfPage Page => _page ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
+    private PdfPage Page =>
+        _page ?? throw new InvalidOperationException("No page is open. BeginPage must be called before drawing.");
 
     private ContentStreamBuilder Content => Page.Content;
 
     public void BeginPage(Extent size)
     {
         if (_page is not null)
-            throw new InvalidOperationException("A page is already open. EndPage must be called before the next BeginPage.");
+            throw new InvalidOperationException(
+                "A page is already open. EndPage must be called before the next BeginPage.");
 
         _page = _writer.BeginPage(size.Width, size.Height);
         _pageHeight = size.Height;
@@ -140,7 +150,9 @@ internal sealed class PdfSurface : IPageSink
     /// <summary>For tests: how many times a face's embedding has been looked up.</summary>
     internal int FontLookups => _fonts.Lookups;
 
-    /// <summary>Writes the fonts and the structure, now that every page has been drawn, and completes the file.</summary>
+    /// <summary>
+    /// Writes the fonts and the structure, now that every page has been drawn, and completes the file.
+    /// </summary>
     public void Finish()
     {
         _fonts.WriteAll();
@@ -241,15 +253,17 @@ internal sealed class PdfSurface : IPageSink
     }
 
     /// <summary>
-    /// Entries placing a link annotation in the structure, in the link element it belongs to — the one in force, or a new
-    /// one — or null when the document is not tagged.
+    /// Entries placing a link annotation in the structure, in the link element it belongs to — the one in force, or a
+    /// new one — or null when the document is not tagged.
     /// </summary>
     private (PdfDictionary Entries, StructureElement Link)? LinkEntries(string description)
     {
         if (!_tagging || _root is null)
             return null;
 
-        StructureElement link = _tag is { Role: "Link" } current ? current : new StructureElement("Link", _tag ?? _root);
+        StructureElement link = _tag is { Role: "Link" } current
+            ? current
+            : new StructureElement("Link", _tag ?? _root);
 
         if (!ReferenceEquals(link, _tag))
             link.Parent!.Kids.Add(link);
@@ -292,7 +306,8 @@ internal sealed class PdfSurface : IPageSink
     // In the flipped, Y-down space the engine draws in, this matrix turns clockwise.
     public void RotateClockwise(float degrees) => Concatenate(Transform.Rotation(degrees));
 
-    public void Concatenate(float a, float b, float c, float d, float e, float f) => Concatenate(new Transform(a, b, c, d, e, f));
+    public void Concatenate(float a, float b, float c, float d, float e, float f) =>
+        Concatenate(new Transform(a, b, c, d, e, f));
 
     public void FillPath(VectorPath path, Ink ink, FillRule rule)
     {
@@ -386,7 +401,10 @@ internal sealed class PdfSurface : IPageSink
                     break;
 
                 case PathVerb.Cubic:
-                    content.CurveTo(points[point].X, points[point].Y, points[point + 1].X, points[point + 1].Y, points[point + 2].X, points[point + 2].Y);
+                    content.CurveTo(
+                        points[point].X, points[point].Y,
+                        points[point + 1].X, points[point + 1].Y,
+                        points[point + 2].X, points[point + 2].Y);
                     point += 3;
                     break;
 
@@ -485,7 +503,10 @@ internal sealed class PdfSurface : IPageSink
                 SetLineWidth(thickness);
                 content.MoveTo(from.X, from.Y);
                 foreach (CubicSegment segment in StrokeGeometry.Wave(from, to, thickness))
-                    content.CurveTo(segment.Control1.X, segment.Control1.Y, segment.Control2.X, segment.Control2.Y, segment.End.X, segment.End.Y);
+                    content.CurveTo(
+                        segment.Control1.X, segment.Control1.Y,
+                        segment.Control2.X, segment.Control2.Y,
+                        segment.End.X, segment.End.Y);
 
                 content.Stroke();
                 break;
@@ -863,7 +884,9 @@ internal sealed class PdfSurface : IPageSink
         content.EndTextArray();
     }
 
-    /// <summary>Shows the codes buffered so far. Every caller has buffered at least one glyph since the last flush.</summary>
+    /// <summary>
+    /// Shows the codes buffered so far. Every caller has buffered at least one glyph since the last flush.
+    /// </summary>
     private void Flush(ContentStreamBuilder content, ref int pending)
     {
         content.AppendText(_codes.AsSpan(0, pending));
@@ -873,8 +896,8 @@ internal sealed class PdfSurface : IPageSink
     public void BeginGradient(Gradient gradient, Offset position, Extent size)
     {
         // A pattern is placed in the page's own space, by the transform in force, which transforms that could each be
-        // written may have multiplied beyond what can be. The gradient cannot be placed then, and what it would paint is
-        // left out, since painting it in any ink would be wrong.
+        // written may have multiplied beyond what can be. The gradient cannot be placed then, and what it would paint
+        // is left out, since painting it in any ink would be wrong.
         if (!_state.Matrix.IsWritable)
         {
             _unplacedGradient = true;
@@ -882,7 +905,8 @@ internal sealed class PdfSurface : IPageSink
         }
 
         (Offset start, Offset end) = gradient.Axis(position, size);
-        PdfReference pattern = _writer.File.Write(GradientPattern.Create(gradient, start, end, _state.Matrix, _archival));
+        PdfReference pattern = _writer.File.Write(
+            GradientPattern.Create(gradient, start, end, _state.Matrix, _archival));
 
         _gradient = (Page.Resources.GetPatternName(pattern), gradient.Opacity);
     }

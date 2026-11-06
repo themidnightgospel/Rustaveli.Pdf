@@ -78,7 +78,8 @@ internal sealed class DynamicBlock<TState>(IDynamicContent<TState> content) : Bl
         }
 
         DynamicPart<TState> part = content.Compose(new DynamicPage(context, room), _state)
-            ?? throw new InvalidOperationException($"{content.GetType().Name}.Compose returned no part for page {pagination.Folio}.");
+            ?? throw new InvalidOperationException(
+                $"{content.GetType().Name}.Compose returned no part for page {pagination.Folio}.");
 
         Frame frame = new Frame();
         part.Content(frame);

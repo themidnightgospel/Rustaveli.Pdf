@@ -11,7 +11,9 @@ namespace Rustaveli.Pdf.Output;
 /// </remarks>
 internal sealed class ImageAdjuster(PdfExportOptions? options)
 {
-    private readonly Dictionary<(ImageContentHash Content, int Width, int Height, int? Quality), RasterImage> _adjusted = [];
+    private readonly Dictionary<
+        (ImageContentHash Content, int Width, int Height, int? Quality),
+        RasterImage> _adjusted = [];
 
     public RasterImage Adjust(RasterImage image, Extent size)
     {
@@ -47,7 +49,9 @@ internal sealed class ImageAdjuster(PdfExportOptions? options)
             return adjusted;
 
         IImageProcessor processor = options?.ImageProcessor ?? throw new InvalidOperationException(
-            (toRgb ? "A CMYK image with no colour profile must become RGB under PDF/A" : "An image asks for a quality or a maximum resolution") +
+            (toRgb
+                ? "A CMYK image with no colour profile must become RGB under PDF/A"
+                : "An image asks for a quality or a maximum resolution") +
             ", which needs PdfExportOptions.ImageProcessor: SkiaImageProcessor from the Rustaveli.Pdf.Raster package, for one.");
 
         adjusted = RasterImage.Load(processor.Process(new ImageProcessing(image.Source, width, height, quality)));

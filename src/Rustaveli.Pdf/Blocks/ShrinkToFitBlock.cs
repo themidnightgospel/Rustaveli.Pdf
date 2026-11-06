@@ -7,8 +7,8 @@ namespace Rustaveli.Pdf.Blocks;
 /// </summary>
 /// <remarks>
 /// The scale cannot be worked out from the child's size, because content need not grow in proportion to its room:
-/// text given a wider line breaks into fewer lines and gets shorter. So the scale is searched for, by halving an interval known to
-/// hold the answer, asking the child at each step whether it fits.
+/// text given a wider line breaks into fewer lines and gets shorter. So the scale is searched for, by halving an
+/// interval known to hold the answer, asking the child at each step whether it fits.
 /// </remarks>
 internal sealed class ShrinkToFitBlock : EnclosingBlock
 {

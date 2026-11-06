@@ -34,7 +34,8 @@ internal sealed class PlaceholderBlock : Block
 
     internal override int ChildCount => 1;
 
-    internal override Block? ChildAt(int index) => index == 0 ? _label : throw new ArgumentOutOfRangeException(nameof(index));
+    internal override Block? ChildAt(int index) =>
+        index == 0 ? _label : throw new ArgumentOutOfRangeException(nameof(index));
 
     protected override Fit PlanCore(Extent availableSpace, PlanContext context) =>
         Fit.Complete(availableSpace);
