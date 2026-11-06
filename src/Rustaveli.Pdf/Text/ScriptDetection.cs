@@ -13,7 +13,9 @@ namespace Rustaveli.Pdf.Text;
 /// </remarks>
 internal static class ScriptDetection
 {
-    /// <summary>The script of the first character of <paramref name="text"/> that has one; <c>DFLT</c> when none has.</summary>
+    /// <summary>
+    /// The script of the first character of <paramref name="text"/> that has one; <c>DFLT</c> when none has.
+    /// </summary>
     public static ScriptTag Of(ReadOnlySpan<char> text)
     {
         for (int index = 0; index < text.Length;)

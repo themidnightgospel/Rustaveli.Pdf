@@ -99,7 +99,9 @@ internal sealed class SvgStyleSheet
                 if (end < 0)
                     end = text.Length;
 
-                string part = marker is '.' or '#' ? text.Substring(position + 1, end - position - 1) : text.Substring(position, end - position);
+                string part = marker is '.' or '#'
+                    ? text.Substring(position + 1, end - position - 1)
+                    : text.Substring(position, end - position);
 
                 if (marker == '.')
                     classes.Add(part);
@@ -125,7 +127,8 @@ internal sealed class SvgStyleSheet
             if (Classes.Count == 0)
                 return true;
 
-            string[] own = ((string?)element.Attribute("class") ?? string.Empty).Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
+            string[] own = ((string?)element.Attribute("class") ?? string.Empty)
+                .Split([' ', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
             return Classes.All(own.Contains);
         }
     }

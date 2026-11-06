@@ -138,7 +138,9 @@ internal sealed class BidiParagraph
     /// </summary>
     /// <param name="start">Where the line starts in the paragraph.</param>
     /// <param name="length">The line's length, including any white space it ends with.</param>
-    /// <param name="runs">Receives the runs, replacing what it held; reuse one list across lines to allocate nothing.</param>
+    /// <param name="runs">
+    /// Receives the runs, replacing what it held; reuse one list across lines to allocate nothing.
+    /// </param>
     public void GetVisualRuns(int start, int length, List<BidiRun> runs)
     {
         ArgumentNullException.ThrowIfNull(runs);
@@ -266,7 +268,9 @@ internal sealed class BidiParagraph
 
             int level = explicitLevels[index];
             BidiClass embedding = (level & 1) == 0 ? BidiClass.L : BidiClass.R;
-            BidiClass sos = Boundary(level, KeptBefore(types, index) is int before ? explicitLevels[before] : paragraphLevel);
+            BidiClass sos = Boundary(
+                level,
+                KeptBefore(types, index) is int before ? explicitLevels[before] : paragraphLevel);
 
             int last = indices[count - 1];
             BidiClass eos = Boundary(
@@ -339,7 +343,8 @@ internal sealed class BidiParagraph
     private static bool ContinuesSequence(
         ReadOnlySpan<BidiClass> classes, ReadOnlySpan<BidiClass> types, ReadOnlySpan<byte> explicitLevels,
         ReadOnlySpan<int> isolates, int runStart) =>
-        classes[runStart] == BidiClass.PDI && isolates[runStart] >= 0 && EndsRun(types, explicitLevels, isolates[runStart]);
+        classes[runStart] == BidiClass.PDI && isolates[runStart] >= 0 &&
+        EndsRun(types, explicitLevels, isolates[runStart]);
 
     private static int CollectSequence(
         ReadOnlySpan<BidiClass> classes, ReadOnlySpan<BidiClass> types, ReadOnlySpan<byte> explicitLevels,

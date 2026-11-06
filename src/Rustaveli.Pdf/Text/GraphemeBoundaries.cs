@@ -25,7 +25,9 @@ internal struct GraphemeBoundaries
     private bool _started;
     private bool _halfFlag;
 
-    /// <summary>Takes the next character, and says whether it begins a new cluster rather than extending the one before.</summary>
+    /// <summary>
+    /// Takes the next character, and says whether it begins a new cluster rather than extending the one before.
+    /// </summary>
     public bool Begins(int codepoint)
     {
         LineBreakClass kind = LineBreakProperties.Of(codepoint).Class;

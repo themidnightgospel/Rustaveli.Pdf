@@ -35,13 +35,15 @@ internal static class SvgLength
         while (end < value.Length && (char.IsDigit(value[end]) || value[end] is '.' or '-' or '+' or 'e' or 'E'))
         {
             // An "e" starts an "em" unit unless a digit or sign follows it.
-            if (value[end] is 'e' or 'E' && (end + 1 >= value.Length || !(char.IsDigit(value[end + 1]) || value[end + 1] is '-' or '+')))
+            if (value[end] is 'e' or 'E' &&
+                (end + 1 >= value.Length || !(char.IsDigit(value[end + 1]) || value[end + 1] is '-' or '+')))
                 break;
 
             end++;
         }
 
-        if (!float.TryParse(value.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out float number))
+        if (!float.TryParse(
+                value.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out float number))
             return fallback;
 
         float length = value.Substring(end).Trim().ToLowerInvariant() switch
@@ -74,7 +76,12 @@ internal static class SvgLength
         string value = text!.Trim();
         bool percent = value.EndsWith("%", StringComparison.Ordinal);
 
-        return float.TryParse(percent ? value.Substring(0, value.Length - 1) : value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) && Writable.Is(number)
+        return float.TryParse(
+                percent ? value.Substring(0, value.Length - 1) : value,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out float number)
+            && Writable.Is(number)
             ? (percent ? number / 100 : number)
             : fallback;
     }

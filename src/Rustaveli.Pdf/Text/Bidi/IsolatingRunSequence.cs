@@ -70,7 +70,8 @@ internal static class IsolatingRunSequence
             while (end < types.Length && types[end] == BidiClass.ET)
                 end++;
 
-            if ((position > 0 && types[position - 1] == BidiClass.EN) || (end < types.Length && types[end] == BidiClass.EN))
+            if ((position > 0 && types[position - 1] == BidiClass.EN) ||
+                (end < types.Length && types[end] == BidiClass.EN))
                 types.Slice(position, end - position).Fill(BidiClass.EN);
 
             position = end;
@@ -101,8 +102,12 @@ internal static class IsolatingRunSequence
     /// </summary>
     /// <param name="types">The sequence's types, after the weak rules.</param>
     /// <param name="indices">Where each position of the sequence is in the paragraph.</param>
-    /// <param name="text">The paragraph's text; empty when the paragraph was given as classes, which have no brackets.</param>
-    /// <param name="original">The paragraph's types before the weak rules, indexed by position in the paragraph.</param>
+    /// <param name="text">
+    /// The paragraph's text; empty when the paragraph was given as classes, which have no brackets.
+    /// </param>
+    /// <param name="original">
+    /// The paragraph's types before the weak rules, indexed by position in the paragraph.
+    /// </param>
     /// <param name="sos">The type before the sequence.</param>
     /// <param name="embedding">The sequence's embedding direction, L or R.</param>
     /// <param name="closings">Working space as long as the sequence.</param>

@@ -28,9 +28,12 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
     /// shaped once. Styles are compared by identity: they are made once and shared by every run set in them, and
     /// comparing two by their values on every word measured would cost what the width saves.
     /// </summary>
-    private readonly Dictionary<TypeStyle, WidthTable> _widths = new Dictionary<TypeStyle, WidthTable>(new ByIdentity());
+    private readonly Dictionary<TypeStyle, WidthTable> _widths =
+        new Dictionary<TypeStyle, WidthTable>(new ByIdentity());
 
-    /// <summary>The style measured last and its widths: words come a line at a time, most of them in one style.</summary>
+    /// <summary>
+    /// The style measured last and its widths: words come a line at a time, most of them in one style.
+    /// </summary>
     private (TypeStyle? Style, WidthTable? Widths) _last;
 
 #if !NET
@@ -54,7 +57,9 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         PostTable? post = font.Post;
         Os2Table? os2 = font.Os2;
         float underlineWeight = post is null ? 0f : font.ToPoints(post.UnderlineThickness, size);
-        float underlineOffset = post is null ? 0f : -font.ToPoints(post.UnderlinePosition, size) + (underlineWeight / 2);
+        float underlineOffset = post is null
+            ? 0f
+            : -font.ToPoints(post.UnderlinePosition, size) + (underlineWeight / 2);
         float strikeWeight = os2 is null ? 0f : font.ToPoints(os2.StrikeoutSize, size);
         float strikeHeight = os2 is null ? 0f : font.ToPoints(os2.StrikeoutPosition, size) - (strikeWeight / 2);
 
@@ -97,7 +102,9 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
         return metrics;
     }
 
-    /// <summary>Whether <paramref name="primary"/> lacks a character of <paramref name="text"/> that is drawn.</summary>
+    /// <summary>
+    /// Whether <paramref name="primary"/> lacks a character of <paramref name="text"/> that is drawn.
+    /// </summary>
     private static bool FallsBack(OpenTypeFont primary, ReadOnlySpan<char> text)
     {
         for (int index = 0; index < text.Length;)
@@ -131,7 +138,8 @@ internal sealed class OpenTypeMeasurer(TypeShaper shaper) : ITypeMeasurer
 
         // Looked up by the characters themselves, so a word measured before costs no string.
 #if NET
-        Dictionary<string, float>.AlternateLookup<ReadOnlySpan<char>> known = widths.GetAlternateLookup<ReadOnlySpan<char>>();
+        Dictionary<string, float>.AlternateLookup<ReadOnlySpan<char>> known =
+            widths.GetAlternateLookup<ReadOnlySpan<char>>();
 
         if (known.TryGetValue(text, out float width))
             return width;

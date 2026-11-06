@@ -27,7 +27,8 @@ internal sealed class SvgReader
         "font-family", "font-weight", "font-style", "visibility", "clip-rule", "text-anchor",
     };
 
-    private static readonly HashSet<string> Properties = new HashSet<string>(Inherited, StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> Properties = new HashSet<string>(
+        Inherited, StringComparer.OrdinalIgnoreCase)
     {
         "opacity", "display", "clip-path", "stop-color", "stop-opacity",
     };
@@ -254,7 +255,8 @@ internal sealed class SvgReader
             art.RestoreState();
     }
 
-    private void NestedViewport(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
+    private void NestedViewport(
+        XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
     {
         float x = Across(element, "x");
         float y = Down(element, "y");
@@ -309,10 +311,12 @@ internal sealed class SvgReader
 
         return (string?)child.Attribute("systemLanguage") is not { } languages
             || languages.Split(',').Select(language => language.Trim()).Any(language =>
-                language.Equals("en", StringComparison.OrdinalIgnoreCase) || language.StartsWith("en-", StringComparison.OrdinalIgnoreCase));
+                language.Equals("en", StringComparison.OrdinalIgnoreCase)
+                || language.StartsWith("en-", StringComparison.OrdinalIgnoreCase));
     }
 
-    private void RenderChildren(XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
+    private void RenderChildren(
+        XElement element, Dictionary<string, string> style, float opacity, ArtworkComposer art, int depth)
     {
         foreach (XElement child in element.Elements())
         {
@@ -357,7 +361,9 @@ internal sealed class SvgReader
             art.TextRuns(setting.Runs);
     }
 
-    /// <summary>The characters within <paramref name="parent"/>, and within the spans and links in it, as runs.</summary>
+    /// <summary>
+    /// The characters within <paramref name="parent"/>, and within the spans and links in it, as runs.
+    /// </summary>
     private void Spans(XElement parent, Dictionary<string, string> style, float opacity, TextSetting setting, int depth)
     {
         foreach (XNode node in parent.Nodes())
@@ -387,7 +393,9 @@ internal sealed class SvgReader
         }
     }
 
-    /// <summary>Takes the position an element gives the character it starts with, over any given it from outside.</summary>
+    /// <summary>
+    /// Takes the position an element gives the character it starts with, over any given it from outside.
+    /// </summary>
     private void Place(XElement element, TextSetting setting)
     {
         (float? x, float? y, float? dx, float? dy) = setting.Pending;
@@ -398,7 +406,9 @@ internal sealed class SvgReader
             FirstLength(element, "dy", _viewport.Height) ?? dy);
     }
 
-    /// <summary>Adds characters, with white space collapsed, to the run before when nothing sets them apart from it.</summary>
+    /// <summary>
+    /// Adds characters, with white space collapsed, to the run before when nothing sets them apart from it.
+    /// </summary>
     private static void Add(string value, Dictionary<string, string> style, float opacity, TextSetting setting)
     {
         StringBuilder collapsed = new StringBuilder(value.Length);
@@ -435,7 +445,13 @@ internal sealed class SvgReader
         }
 
         (float? x, float? y, float? dx, float? dy) = setting.Pending;
-        setting.Runs.Add(new ArtworkComposer.Span(collapsed.ToString(), type, anchor, visible) { X = x, Y = y, Dx = dx ?? 0, Dy = dy ?? 0 });
+        setting.Runs.Add(new ArtworkComposer.Span(collapsed.ToString(), type, anchor, visible)
+        {
+            X = x,
+            Y = y,
+            Dx = dx ?? 0,
+            Dy = dy ?? 0,
+        });
         setting.Pending = default;
         setting.LastLook = look;
     }
@@ -444,7 +460,8 @@ internal sealed class SvgReader
     /// The type the style in force sets text in, how it is anchored, and whether it is drawn at all or only takes its
     /// room: hidden, or filled with nothing.
     /// </summary>
-    private static (TypeStyle Type, TextAnchor Anchor, bool Visible) TypeOf(Dictionary<string, string> style, float opacity)
+    private static (TypeStyle Type, TextAnchor Anchor, bool Visible) TypeOf(
+        Dictionary<string, string> style, float opacity)
     {
         Ink? fill = SolidPaint(Value(style, "fill") ?? "black", style);
         bool visible = fill is not null && Value(style, "visibility") is not ("hidden" or "collapse");
@@ -456,14 +473,19 @@ internal sealed class SvgReader
         if (size < 0)
             size = SvgLength.DefaultFontSize;
 
-        string[] families = (Value(style, "font-family") ?? "sans-serif").Split(',').Select(family => family.Trim(' ', '"', '\'')).Where(family => family.Length > 0).ToArray();
+        string[] families = (Value(style, "font-family") ?? "sans-serif")
+            .Split(',')
+            .Select(family => family.Trim(' ', '"', '\''))
+            .Where(family => family.Length > 0)
+            .ToArray();
         TypeStyle type = TypeStyle.Default
             .WithTypeface(families.Length > 0 ? families[0] : "sans-serif", families.Skip(1).ToArray())
             .WithPointSize(size)
             .WithInk(ink.WithOpacity(ink.Opacity * opacity * Opacity(Value(style, "fill-opacity"))))
 
             // Of the weights a typeface may come in, the one nearest the weight asked for.
-            .WithWeight((TypeWeight)Math.Min(900, Math.Max(100, Math.Round(Weight(style) / 100, MidpointRounding.AwayFromZero) * 100)));
+            .WithWeight((TypeWeight)Math.Min(
+                900, Math.Max(100, Math.Round(Weight(style) / 100, MidpointRounding.AwayFromZero) * 100)));
 
         if (Value(style, "font-style") is "italic" or "oblique")
             type = type.Italic();
@@ -481,7 +503,9 @@ internal sealed class SvgReader
     /// <summary>The first length of a list such as a text's x, or null when there is none to read.</summary>
     private static float? FirstLength(XElement element, string name, float reference)
     {
-        string? first = ((string?)element.Attribute(name))?.Split([' ', ',', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        string? first = ((string?)element.Attribute(name))
+            ?.Split([' ', ',', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault();
         float length = SvgLength.Read(first, reference, float.NaN);
         return float.IsNaN(length) ? null : length;
     }
@@ -493,7 +517,8 @@ internal sealed class SvgReader
         float height = Down(element, "height");
 
         // Only images carried in the document are drawn; nothing is fetched from elsewhere.
-        if (href is null || !href.StartsWith("data:", StringComparison.OrdinalIgnoreCase) || !(width > 0) || !(height > 0))
+        if (href is null || !href.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+            !(width > 0) || !(height > 0))
             return;
 
         int comma = href.IndexOf(',');
@@ -505,7 +530,8 @@ internal sealed class SvgReader
             RasterImage image = RasterImage.FromBytes(Convert.FromBase64String(href.Substring(comma + 1).Trim()));
             art.Image(image, Across(element, "x"), Down(element, "y"), width, height);
         }
-        catch (Exception exception) when (exception is FormatException or ArgumentException or NotSupportedException or InvalidDataException)
+        catch (Exception exception) when (
+            exception is FormatException or ArgumentException or NotSupportedException or InvalidDataException)
         {
             // An image that cannot be read is left out, as a browser leaves it.
         }
@@ -542,8 +568,18 @@ internal sealed class SvgReader
 
         LineStyle line = new LineStyle(
             weight,
-            Value(style, "stroke-linecap") switch { "round" => LineCap.Round, "square" => LineCap.Square, _ => LineCap.Butt },
-            Value(style, "stroke-linejoin") switch { "round" => LineJoin.Round, "bevel" => LineJoin.Bevel, _ => LineJoin.Miter },
+            Value(style, "stroke-linecap") switch
+            {
+                "round" => LineCap.Round,
+                "square" => LineCap.Square,
+                _ => LineCap.Butt,
+            },
+            Value(style, "stroke-linejoin") switch
+            {
+                "round" => LineJoin.Round,
+                "bevel" => LineJoin.Bevel,
+                _ => LineJoin.Miter,
+            },
             Fraction(Value(style, "stroke-miterlimit"), 4),
             Dashes(Value(style, "stroke-dasharray")),
             SvgLength.Read(Value(style, "stroke-dashoffset"), Diagonal, 0));
@@ -615,8 +651,12 @@ internal sealed class SvgReader
             return stops[0].Ink;
 
         bool ofBox = Inherit(element, "gradientUnits") != "userSpaceOnUse";
-        Offset start = new Offset(Coordinate(element, "x1", ofBox, 0, _viewport.Width), Coordinate(element, "y1", ofBox, 0, _viewport.Height));
-        Offset end = new Offset(Coordinate(element, "x2", ofBox, 1, _viewport.Width), Coordinate(element, "y2", ofBox, 0, _viewport.Height));
+        Offset start = new Offset(
+            Coordinate(element, "x1", ofBox, 0, _viewport.Width),
+            Coordinate(element, "y1", ofBox, 0, _viewport.Height));
+        Offset end = new Offset(
+            Coordinate(element, "x2", ofBox, 1, _viewport.Width),
+            Coordinate(element, "y2", ofBox, 0, _viewport.Height));
 
         if (SvgTransform.Read(Inherit(element, "gradientTransform")) is { } matrix)
         {
@@ -632,7 +672,9 @@ internal sealed class SvgReader
     /// viewport the shape is drawn in, <paramref name="extent"/> along this axis.
     /// </summary>
     private float Coordinate(XElement element, string name, bool ofBox, float fallback, float extent) =>
-        ofBox ? SvgLength.Fraction(Inherit(element, name), fallback) : SvgLength.Read(Inherit(element, name), extent, fallback * extent);
+        ofBox
+            ? SvgLength.Fraction(Inherit(element, name), fallback)
+            : SvgLength.Read(Inherit(element, name), extent, fallback * extent);
 
     /// <summary>A gradient's stops, from itself or the gradient it refers to, in order and at their opacity.</summary>
     private List<GradientStop> Stops(XElement element, float opacity)
@@ -652,7 +694,8 @@ internal sealed class SvgReader
                     float offset = Clamp.Fraction(SvgLength.Fraction((string?)stop.Attribute("offset"), 0));
                     float position = Math.Max(last, offset);
                     Ink ink = SolidPaint(Value(declared, "stop-color") ?? "black", declared) ?? Ink.Rgb(0, 0, 0);
-                    read.Add(new GradientStop(position, ink.WithOpacity(ink.Opacity * opacity * Opacity(Value(declared, "stop-opacity")))));
+                    read.Add(new GradientStop(
+                        position, ink.WithOpacity(ink.Opacity * opacity * Opacity(Value(declared, "stop-opacity")))));
                     last = position;
                 }
 
@@ -672,7 +715,8 @@ internal sealed class SvgReader
         return Ink.Rgb(
             (byte)Math.Round(colours.Average(colour => colour.Red) * 255),
             (byte)Math.Round(colours.Average(colour => colour.Green) * 255),
-            (byte)Math.Round(colours.Average(colour => colour.Blue) * 255)).WithOpacity(stops.Average(stop => stop.Ink.Opacity));
+            (byte)Math.Round(colours.Average(colour => colour.Blue) * 255))
+            .WithOpacity(stops.Average(stop => stop.Ink.Opacity));
     }
 
     /// <summary>An attribute of a gradient, or of the gradient it refers to when it has none of its own.</summary>
@@ -705,7 +749,8 @@ internal sealed class SvgReader
 
         string id = trimmed.Substring(4).TrimEnd(')').Trim(' ', '"', '\'').TrimStart('#');
 
-        if (!_byId.TryGetValue(id, out XElement? clip) || clip.Name.LocalName != "clipPath" || (string?)clip.Attribute("clipPathUnits") == "objectBoundingBox")
+        if (!_byId.TryGetValue(id, out XElement? clip) || clip.Name.LocalName != "clipPath" ||
+            (string?)clip.Attribute("clipPathUnits") == "objectBoundingBox")
             return null;
 
         VectorPath path = new VectorPath();
@@ -745,7 +790,9 @@ internal sealed class SvgReader
         }
     }
 
-    /// <summary>The path of a basic shape or path element, or null for any other element or a shape of no size.</summary>
+    /// <summary>
+    /// The path of a basic shape or path element, or null for any other element or a shape of no size.
+    /// </summary>
     private VectorPath? Shape(XElement element)
     {
         switch (element.Name.LocalName)
@@ -781,17 +828,23 @@ internal sealed class SvgReader
             case "circle":
             {
                 float radius = SvgLength.Read((string?)element.Attribute("r"), Diagonal, 0);
-                return radius > 0 ? new VectorPath().AddCircle(Across(element, "cx"), Down(element, "cy"), radius) : null;
+                return radius > 0
+                    ? new VectorPath().AddCircle(Across(element, "cx"), Down(element, "cy"), radius)
+                    : null;
             }
 
             case "ellipse":
             {
                 float rx = Across(element, "rx"), ry = Down(element, "ry");
-                return rx > 0 && ry > 0 ? new VectorPath().AddEllipse(Across(element, "cx"), Down(element, "cy"), rx, ry) : null;
+                return rx > 0 && ry > 0
+                    ? new VectorPath().AddEllipse(Across(element, "cx"), Down(element, "cy"), rx, ry)
+                    : null;
             }
 
             case "line":
-                return new VectorPath().MoveTo(Across(element, "x1"), Down(element, "y1")).LineTo(Across(element, "x2"), Down(element, "y2"));
+                return new VectorPath()
+                    .MoveTo(Across(element, "x1"), Down(element, "y1"))
+                    .LineTo(Across(element, "x2"), Down(element, "y2"));
 
             case "polyline":
             case "polygon":
@@ -813,7 +866,9 @@ internal sealed class SvgReader
         }
     }
 
-    /// <summary>The properties an element declares: presentation attributes, then style sheet rules, then its style.</summary>
+    /// <summary>
+    /// The properties an element declares: presentation attributes, then style sheet rules, then its style.
+    /// </summary>
     private Dictionary<string, string> Declared(XElement element)
     {
         Dictionary<string, string> declared = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -837,7 +892,9 @@ internal sealed class SvgReader
     }
 
     private XElement? Referenced(XElement element) =>
-        Href(element) is { } href && href.StartsWith("#", StringComparison.Ordinal) && _byId.TryGetValue(href.Substring(1), out XElement? target)
+        Href(element) is { } href
+            && href.StartsWith("#", StringComparison.Ordinal)
+            && _byId.TryGetValue(href.Substring(1), out XElement? target)
             ? target
             : null;
 
@@ -860,7 +917,8 @@ internal sealed class SvgReader
         if (viewBox is null)
             return true;
 
-        string[] aspect = ((string?)element.Attribute("preserveAspectRatio") ?? "xMidYMid meet").Split([' '], StringSplitOptions.RemoveEmptyEntries);
+        string[] aspect = ((string?)element.Attribute("preserveAspectRatio") ?? "xMidYMid meet")
+            .Split([' '], StringSplitOptions.RemoveEmptyEntries);
         float scaleX = width / viewBox[2];
         float scaleY = height / viewBox[3];
 
@@ -912,11 +970,15 @@ internal sealed class SvgReader
     /// What a percentage that is neither across nor down, such as a radius or a stroke's width, is taken of: the
     /// viewport's diagonal over the square root of two, as SVG says.
     /// </summary>
-    private float Diagonal => (float)Math.Sqrt((((double)_viewport.Width * _viewport.Width) + ((double)_viewport.Height * _viewport.Height)) / 2);
+    private float Diagonal => (float)Math.Sqrt(
+        (((double)_viewport.Width * _viewport.Width) + ((double)_viewport.Height * _viewport.Height)) / 2);
 
     /// <summary>The weight in force, as a number: 400, a normal weight, unless one is inherited.</summary>
     private static float Weight(Dictionary<string, string> style) =>
-        Value(style, "font-weight") is { } weight && float.TryParse(weight, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) ? number : 400;
+        Value(style, "font-weight") is { } weight
+            && float.TryParse(weight, NumberStyles.Float, CultureInfo.InvariantCulture, out float number)
+            ? number
+            : 400;
 
     /// <summary>
     /// The weight <paramref name="value"/> comes to, bolder and lighter taken from <paramref name="inherited"/> as CSS
@@ -928,25 +990,33 @@ internal sealed class SvgReader
         "bold" => 700,
         "bolder" => inherited < 350 ? 400 : inherited < 550 ? 700 : inherited < 900 ? 900 : inherited,
         "lighter" => inherited < 100 ? inherited : inherited < 550 ? 100 : inherited < 750 ? 400 : 700,
-        _ => float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) && number >= 1 && number <= 1000 ? number : null,
+        _ => float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number)
+            && number >= 1 && number <= 1000
+            ? number
+            : null,
     };
 
     private static float Fraction(string? text, float fallback) => Math.Max(0, SvgLength.Fraction(text, fallback));
 
-    /// <summary>An opacity, fully opaque when none is given, and clamped to the range from 0 to 1 as SVG clamps it.</summary>
+    /// <summary>
+    /// An opacity, fully opaque when none is given, and clamped to the range from 0 to 1 as SVG clamps it.
+    /// </summary>
     private static float Opacity(string? text) => Math.Min(1, Fraction(text, 1));
 
     private static string? Value(Dictionary<string, string> style, string name) =>
         style.TryGetValue(name, out string? value) ? value : null;
 
     private static Offset Apply(Matrix matrix, Offset point) =>
-        new Offset((matrix.A * point.X) + (matrix.C * point.Y) + matrix.E, (matrix.B * point.X) + (matrix.D * point.Y) + matrix.F);
+        new Offset(
+            (matrix.A * point.X) + (matrix.C * point.Y) + matrix.E,
+            (matrix.B * point.X) + (matrix.D * point.Y) + matrix.F);
 
     /// <summary>
-    /// The style an element's properties give it within <paramref name="parent"/>'s: its inherited properties taken over
-    /// the parent's, except where they say to inherit.
+    /// The style an element's properties give it within <paramref name="parent"/>'s: its inherited properties taken
+    /// over the parent's, except where they say to inherit.
     /// </summary>
-    private static Dictionary<string, string> Cascade(Dictionary<string, string> parent, Dictionary<string, string> declared)
+    private static Dictionary<string, string> Cascade(
+        Dictionary<string, string> parent, Dictionary<string, string> declared)
     {
         Dictionary<string, string> style = new Dictionary<string, string>(parent, StringComparer.OrdinalIgnoreCase);
 
@@ -970,18 +1040,26 @@ internal sealed class SvgReader
         return style;
     }
 
-    /// <summary>What setting a text element has come to: its runs so far, and what the next characters take from them.</summary>
+    /// <summary>
+    /// What setting a text element has come to: its runs so far, and what the next characters take from them.
+    /// </summary>
     private sealed class TextSetting
     {
         public List<ArtworkComposer.Span> Runs { get; } = [];
 
-        /// <summary>Whether the last character set was a space, or none has been, so that a space now is collapsed.</summary>
+        /// <summary>
+        /// Whether the last character set was a space, or none has been, so that a space now is collapsed.
+        /// </summary>
         public bool AfterSpace { get; set; } = true;
 
-        /// <summary>The position the next character set is given, by the element it starts: none unless one says.</summary>
+        /// <summary>
+        /// The position the next character set is given, by the element it starts: none unless one says.
+        /// </summary>
         public Placement Pending { get; set; }
 
-        /// <summary>How the last run looks, which the next characters join when they look the same and are not placed.</summary>
+        /// <summary>
+        /// How the last run looks, which the next characters join when they look the same and are not placed.
+        /// </summary>
         public Look LastLook { get; set; }
 
         /// <summary>How many times characters have been set, so a span that set none can be told apart.</summary>

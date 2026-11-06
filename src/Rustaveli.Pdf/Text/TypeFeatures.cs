@@ -33,7 +33,9 @@ internal sealed class TypeFeatures : IEquatable<TypeFeatures>
     /// </summary>
     public bool Kerns { get; } = true;
 
-    /// <summary>These settings with <paramref name="tag"/> set to <paramref name="value"/>, replacing any before.</summary>
+    /// <summary>
+    /// These settings with <paramref name="tag"/> set to <paramref name="value"/>, replacing any before.
+    /// </summary>
     public TypeFeatures With(FeatureTag tag, int value)
     {
         List<FeatureSetting> settings = _settings.Where(setting => setting.Tag != tag).ToList();
@@ -58,5 +60,7 @@ internal sealed class TypeFeatures : IEquatable<TypeFeatures>
     }
 
     public override string ToString() =>
-        _settings.Length == 0 ? "none" : string.Join(" ", _settings.Select(setting => $"{setting.Tag}={setting.Value}"));
+        _settings.Length == 0
+            ? "none"
+            : string.Join(" ", _settings.Select(setting => $"{setting.Tag}={setting.Value}"));
 }

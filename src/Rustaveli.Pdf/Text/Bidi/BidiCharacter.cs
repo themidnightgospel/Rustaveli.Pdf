@@ -21,9 +21,11 @@ internal static class BidiCharacter
         int run = BidiCharacterTables.ClassStage1[
             codepoint >> (BidiCharacterTables.ClassStage2Bits + BidiCharacterTables.ClassStage3Bits)];
         int block = BidiCharacterTables.ClassStage2[
-            (run << BidiCharacterTables.ClassStage2Bits) + ((codepoint >> BidiCharacterTables.ClassStage3Bits) & Stage2Mask)];
+            (run << BidiCharacterTables.ClassStage2Bits) +
+            ((codepoint >> BidiCharacterTables.ClassStage3Bits) & Stage2Mask)];
 
-        return (BidiClass)BidiCharacterTables.ClassStage3[(block << BidiCharacterTables.ClassStage3Bits) + (codepoint & Stage3Mask)];
+        return (BidiClass)BidiCharacterTables.ClassStage3[
+            (block << BidiCharacterTables.ClassStage3Bits) + (codepoint & Stage3Mask)];
     }
 
     /// <summary>

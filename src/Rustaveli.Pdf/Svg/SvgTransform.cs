@@ -15,7 +15,8 @@ internal static class SvgTransform
     /// a matrix that cannot.
     /// </summary>
     public static bool IsWritable(Matrix matrix) =>
-        Writable.Is(matrix.A) && Writable.Is(matrix.B) && Writable.Is(matrix.C) && Writable.Is(matrix.D) && Writable.Is(matrix.E) && Writable.Is(matrix.F);
+        Writable.Is(matrix.A) && Writable.Is(matrix.B) && Writable.Is(matrix.C)
+        && Writable.Is(matrix.D) && Writable.Is(matrix.E) && Writable.Is(matrix.F);
 
     /// <summary>The matrix of <paramref name="list"/>, or null when it holds nothing that can be read.</summary>
     public static Matrix? Read(string? list)
