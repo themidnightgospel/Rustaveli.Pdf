@@ -31,15 +31,21 @@ internal sealed class TypeShaper
         ["Times New Roman", "Times", "Liberation Serif", "Nimbus Roman", "Tinos", "DejaVu Serif", "Noto Serif"];
 
     private static readonly string[] MonospaceSubstitutes =
-        ["Courier New", "Courier", "Liberation Mono", "Nimbus Mono PS", "Cousine", "DejaVu Sans Mono", "Noto Sans Mono"];
+    [
+        "Courier New", "Courier", "Liberation Mono", "Nimbus Mono PS", "Cousine", "DejaVu Sans Mono", "Noto Sans Mono",
+    ];
 
     private readonly FontCatalog _catalog;
     private readonly IReadOnlyList<string> _fallbackTypefaces;
-    private readonly ConcurrentDictionary<FontRequest, OpenTypeFont> _faces = new(FontCatalog.FamilyIgnoringCase.Instance);
+    private readonly ConcurrentDictionary<FontRequest, OpenTypeFont> _faces =
+        new(FontCatalog.FamilyIgnoringCase.Instance);
     // Fallbacks are searched for in the weight and slant asked for, so those are part of what is remembered: one face
     // can be the primary of several weights, and each weight wants its own fallback.
-    private readonly ConcurrentDictionary<(OpenTypeFont Primary, FaceStyle Style, TypefaceFallbacks Fallbacks, int Codepoint), OpenTypeFont> _fallbacks = new();
-    private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups = new();
+    private readonly ConcurrentDictionary<
+        (OpenTypeFont Primary, FaceStyle Style, TypefaceFallbacks Fallbacks, int Codepoint),
+        OpenTypeFont> _fallbacks = new();
+    private readonly ConcurrentDictionary<(OpenTypeFont, ScriptTag, TypeFeatures), (int Index, int Value)[]> _lookups =
+        new();
 
     [ThreadStatic]
     private static ShapingScratch? _spareScratch;
@@ -47,7 +53,8 @@ internal sealed class TypeShaper
     // Held rather than converted from the method group on every call: text is measured on the hot path.
     private readonly Func<FontRequest, OpenTypeFont> _find;
 
-    public TypeShaper(FontCatalog catalog, IReadOnlyList<string>? fallbackTypefaces = null, IComplexShaper? complex = null)
+    public TypeShaper(
+        FontCatalog catalog, IReadOnlyList<string>? fallbackTypefaces = null, IComplexShaper? complex = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
 
@@ -92,8 +99,8 @@ internal sealed class TypeShaper
     }
 
     /// <summary>
-    /// Walks <paramref name="text"/> as <see cref="Walk"/> does left to right, for measuring: the glyphs are the same, but
-    /// one standing for several characters does not carry them, which only reading the text back needs.
+    /// Walks <paramref name="text"/> as <see cref="Walk"/> does left to right, for measuring: the glyphs are the same,
+    /// but one standing for several characters does not carry them, which only reading the text back needs.
     /// </summary>
     public GlyphWalk Measure(ReadOnlySpan<char> text, TypeStyle style)
     {
@@ -109,8 +116,8 @@ internal sealed class TypeShaper
     /// sits on.
     /// </summary>
     /// <remarks>
-    /// A glyph's kerning and tracking are with the glyph before it in logical order. Between clusters that neighbour now
-    /// follows it, so what a cluster's first glyph carries moves to the first glyph of the cluster before it.
+    /// A glyph's kerning and tracking are with the glyph before it in logical order. Between clusters that neighbour
+    /// now follows it, so what a cluster's first glyph carries moves to the first glyph of the cluster before it.
     /// </remarks>
     private static List<ShapedGlyph> InDisplayOrder(List<ShapedGlyph> logical, string text)
     {
@@ -167,14 +174,17 @@ internal sealed class TypeShaper
     /// A face whose GSUB table cannot be read is set without substitutions: its text still reads, where refusing the
     /// face would lose it.
     /// </remarks>
-    internal IReadOnlyList<(int Index, int Value)> LookupsFor(OpenTypeFont face, ScriptTag script, TypeFeatures features)
+    internal IReadOnlyList<(int Index, int Value)> LookupsFor(
+        OpenTypeFont face, ScriptTag script, TypeFeatures features)
     {
         if (face.Substitutions is null)
             return [];
 
         (OpenTypeFont, ScriptTag, TypeFeatures) key = (face, script, features);
 
-        return _lookups.TryGetValue(key, out (int Index, int Value)[]? known) ? known : _lookups.GetOrAdd(key, ResolveLookups);
+        return _lookups.TryGetValue(key, out (int Index, int Value)[]? known)
+            ? known
+            : _lookups.GetOrAdd(key, ResolveLookups);
     }
 
     /// <summary>
@@ -190,7 +200,8 @@ internal sealed class TypeShaper
 
     internal static void ReturnScratch(ShapingScratch scratch) => _spareScratch = scratch;
 
-    private static (int Index, int Value)[] ResolveLookups((OpenTypeFont Face, ScriptTag Script, TypeFeatures Features) key)
+    private static (int Index, int Value)[] ResolveLookups(
+        (OpenTypeFont Face, ScriptTag Script, TypeFeatures Features) key)
     {
         try
         {
@@ -276,10 +287,13 @@ internal sealed class TypeShaper
     /// made once per character and style, and the catalog keeps what makes it cheap: which face matches a family, and
     /// which installed faces cover each block.
     /// </remarks>
-    private OpenTypeFont FindFallback(OpenTypeFont primary, FontRequest request, TypefaceFallbacks fallbacks, int codepoint)
+    private OpenTypeFont FindFallback(
+        OpenTypeFont primary, FontRequest request, TypefaceFallbacks fallbacks, int codepoint)
     {
         // The style's own fallbacks come first, then the library's.
-        IReadOnlyList<string> families = fallbacks.Names.Count == 0 ? _fallbackTypefaces : [.. fallbacks.Names, .. _fallbackTypefaces];
+        IReadOnlyList<string> families = fallbacks.Names.Count == 0
+            ? _fallbackTypefaces
+            : [.. fallbacks.Names, .. _fallbackTypefaces];
 
         // No face anywhere has the character, so the primary sets it as its missing-glyph box.
         return _catalog.FindFallback(codepoint, request, families)

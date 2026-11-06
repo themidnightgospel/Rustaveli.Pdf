@@ -17,7 +17,9 @@ internal static class ExplicitLevels
     /// Sets <paramref name="levels"/> to each character's explicit level, and resets the types of characters inside an
     /// override to its direction.
     /// </summary>
-    /// <param name="classes">The characters' own classes, which rule X5c reads to decide the direction of an FSI.</param>
+    /// <param name="classes">
+    /// The characters' own classes, which rule X5c reads to decide the direction of an FSI.
+    /// </param>
     /// <param name="isolates">
     /// For each isolate initiator, its matching PDI, or the paragraph's length when it has none (BD9); empty when there
     /// are no isolates.
@@ -196,6 +198,7 @@ internal static class ExplicitLevels
         return BidiClass.ON;
     }
 
-    // The least odd level above the current one for a right-to-left scope, the least even level for a left-to-right one.
+    // The least odd level above the current one for a right-to-left scope, the least even level for a left-to-right
+    // one.
     private static int NextLevel(int level, bool rightToLeft) => rightToLeft ? (level + 1) | 1 : (level + 2) & ~1;
 }

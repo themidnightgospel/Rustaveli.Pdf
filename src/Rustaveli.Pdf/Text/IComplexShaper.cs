@@ -27,5 +27,6 @@ internal interface IComplexShaper
     /// </param>
     /// <param name="output">Receives the glyphs, clusters counted from the start of <paramref name="run"/>.</param>
     void Shape(
-        OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft, List<ComplexGlyph> output);
+        OpenTypeFont face, ReadOnlySpan<char> run, float pointSize, TypeFeatures features, bool rightToLeft,
+        List<ComplexGlyph> output);
 }

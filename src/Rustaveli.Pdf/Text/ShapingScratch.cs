@@ -10,7 +10,9 @@ internal sealed class ShapingScratch
 {
     public GlyphBuffer Buffer { get; } = new GlyphBuffer();
 
-    /// <summary>Where a complex shaper placed the glyphs in <see cref="Buffer"/>; empty for glyphs the core set.</summary>
+    /// <summary>
+    /// Where a complex shaper placed the glyphs in <see cref="Buffer"/>; empty for glyphs the core set.
+    /// </summary>
     public List<ComplexGlyph> Placements { get; } = [];
 
     private SubstitutionSession? _session;

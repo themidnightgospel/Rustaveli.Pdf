@@ -15,7 +15,9 @@ internal readonly struct WidthKey
     /// <summary>A key kept with its width.</summary>
     public WidthKey(string text) => _text = text;
 
-    /// <summary>A key looked up and never kept: the first <paramref name="length"/> characters of <paramref name="probe"/>.</summary>
+    /// <summary>
+    /// A key looked up and never kept: the first <paramref name="length"/> characters of <paramref name="probe"/>.
+    /// </summary>
     public WidthKey(char[] probe, int length)
     {
         _probe = probe;
@@ -25,7 +27,8 @@ internal readonly struct WidthKey
     /// <summary>Keys compared by their characters, ordinally.</summary>
     public static IEqualityComparer<WidthKey> Comparer { get; } = new ByCharacters();
 
-    public ReadOnlySpan<char> Characters => _text is not null ? _text.AsSpan() : new ReadOnlySpan<char>(_probe, 0, _length);
+    public ReadOnlySpan<char> Characters =>
+        _text is not null ? _text.AsSpan() : new ReadOnlySpan<char>(_probe, 0, _length);
 
     private sealed class ByCharacters : IEqualityComparer<WidthKey>
     {

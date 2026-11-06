@@ -54,7 +54,9 @@ internal ref struct GlyphWalk
     /// <param name="shaper">Chooses faces and substitutions.</param>
     /// <param name="primary">The style's own face.</param>
     /// <param name="request">The face asked for, which fallbacks are matched against.</param>
-    /// <param name="text">The text to set, with any character that has a mirror image taken as it when it reads right to left.</param>
+    /// <param name="text">
+    /// The text to set, with any character that has a mirror image taken as it when it reads right to left.
+    /// </param>
     /// <param name="style">
     /// The type it is set in: its size, the space added to each word space, the features it turns on or off, its own
     /// fallback typefaces, and its tracking, which each glyph says whether it takes.
@@ -134,7 +136,8 @@ internal ref struct GlyphWalk
             int codepoint = Utf16.CodepointAt(_text, start, out int length);
             OpenTypeFont face = FaceFor(codepoint, _previousFace);
 
-            if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) && Shape(face, start, length))
+            if (start >= _plainEnd && (face.Substitutions is not null || _shaper.Complex is not null) &&
+                Shape(face, start, length))
                 continue;
 
             ushort glyph = face.GetGlyphId(codepoint);
@@ -174,7 +177,8 @@ internal ref struct GlyphWalk
     /// soft hyphen, which the face's glyph would show mid-line.
     /// </summary>
     private static bool IsSetAsNothing(OpenTypeFont face, int codepoint) =>
-        InvisibleCharacters.Contains(codepoint) && (codepoint == InvisibleCharacters.SoftHyphen || !face.HasGlyph(codepoint));
+        InvisibleCharacters.Contains(codepoint)
+        && (codepoint == InvisibleCharacters.SoftHyphen || !face.HasGlyph(codepoint));
 
     /// <summary>
     /// Where the characters from <paramref name="index"/> that <paramref name="face"/> sets as nothing end, so that
@@ -376,7 +380,14 @@ internal ref struct GlyphWalk
     /// </summary>
     private readonly string? TextOf(int start, int length) => _keepText ? _text.Slice(start, length).ToString() : null;
 
-    private void Emit(OpenTypeFont face, ushort glyph, int codepoint, int start, int length, string? text, ComplexGlyph? placed = null)
+    private void Emit(
+        OpenTypeFont face,
+        ushort glyph,
+        int codepoint,
+        int start,
+        int length,
+        string? text,
+        ComplexGlyph? placed = null)
     {
         // A glyph a complex shaper placed moves the pen as it said, kerning included, and is drawn where it said.
         float advance = placed?.Advance ?? face.GetAdvance(glyph, _pointSize);
@@ -390,7 +401,8 @@ internal ref struct GlyphWalk
         float extra = length == 1 && codepoint is ' ' or NoBreakSpace ? _wordSpacing : 0f;
 
         Current = new ShapedGlyph(
-            face, glyph, codepoint, start, length, advance, kerning, extra, text, placed?.XOffset ?? 0f, placed?.YOffset ?? 0f,
+            face, glyph, codepoint, start, length, advance, kerning, extra, text,
+            placed?.XOffset ?? 0f, placed?.YOffset ?? 0f,
             _tracking == 0 ? 0f : TrackingBefore(codepoint, start, length));
         _previousFace = face;
         _previousGlyph = glyph;

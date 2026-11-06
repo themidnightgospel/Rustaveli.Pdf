@@ -200,7 +200,8 @@ internal ref struct LineBreakEnumerator
             return Decision.Prohibited;
 
         // LB15a: nor after an initial quotation mark that opens a quotation, even after spaces.
-        if ((before == QUPi && OpensQuotation(Consult(_twoBefore).Class)) || (before == SP && _spacesFollowOpeningQuote))
+        if ((before == QUPi && OpensQuotation(Consult(_twoBefore).Class)) ||
+            (before == SP && _spacesFollowOpeningQuote))
             return Decision.Prohibited;
 
         // LB15b: nor before a final quotation mark that closes one.
@@ -303,7 +304,8 @@ internal ref struct LineBreakEnumerator
             return Decision.Prohibited;
 
         // LB27: treat a Korean syllable block the same as an ideograph.
-        if ((before is JL or JV or JT or H2 or H3 && after == PO) || (before == PR && after is JL or JV or JT or H2 or H3))
+        if ((before is JL or JV or JT or H2 or H3 && after == PO) ||
+            (before == PR && after is JL or JV or JT or H2 or H3))
             return Decision.Prohibited;
 
         // LB28: do not break between letters.

@@ -58,7 +58,9 @@ internal static class LineReordering
     /// Rule L2: the line's level runs in the order they are displayed, left to right.
     /// </summary>
     /// <param name="levels">The line's levels, after <see cref="ResetWhitespace"/>.</param>
-    /// <param name="lineStart">Where the line starts in the paragraph, which the runs' positions are measured from.</param>
+    /// <param name="lineStart">
+    /// Where the line starts in the paragraph, which the runs' positions are measured from.
+    /// </param>
     /// <param name="runs">Receives the runs, replacing what it held.</param>
     /// <remarks>
     /// Reversing whole runs rather than characters gives the same order, since a run's characters all share one level:

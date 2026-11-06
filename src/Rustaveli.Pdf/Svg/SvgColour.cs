@@ -8,7 +8,8 @@ namespace Rustaveli.Pdf.Svg;
 /// </summary>
 internal static class SvgColour
 {
-    private static readonly Dictionary<string, int> Named = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, int> Named = new Dictionary<string, int>(
+        StringComparer.OrdinalIgnoreCase)
     {
         ["aliceblue"] = 0xF0F8FF, ["antiquewhite"] = 0xFAEBD7, ["aqua"] = 0x00FFFF, ["aquamarine"] = 0x7FFFD4,
         ["azure"] = 0xF0FFFF, ["beige"] = 0xF5F5DC, ["bisque"] = 0xFFE4C4, ["black"] = 0x000000,
@@ -19,7 +20,8 @@ internal static class SvgColour
         ["darkgray"] = 0xA9A9A9, ["darkgreen"] = 0x006400, ["darkgrey"] = 0xA9A9A9, ["darkkhaki"] = 0xBDB76B,
         ["darkmagenta"] = 0x8B008B, ["darkolivegreen"] = 0x556B2F, ["darkorange"] = 0xFF8C00, ["darkorchid"] = 0x9932CC,
         ["darkred"] = 0x8B0000, ["darksalmon"] = 0xE9967A, ["darkseagreen"] = 0x8FBC8F, ["darkslateblue"] = 0x483D8B,
-        ["darkslategray"] = 0x2F4F4F, ["darkslategrey"] = 0x2F4F4F, ["darkturquoise"] = 0x00CED1, ["darkviolet"] = 0x9400D3,
+        ["darkslategray"] = 0x2F4F4F, ["darkslategrey"] = 0x2F4F4F,
+        ["darkturquoise"] = 0x00CED1, ["darkviolet"] = 0x9400D3,
         ["deeppink"] = 0xFF1493, ["deepskyblue"] = 0x00BFFF, ["dimgray"] = 0x696969, ["dimgrey"] = 0x696969,
         ["dodgerblue"] = 0x1E90FF, ["firebrick"] = 0xB22222, ["floralwhite"] = 0xFFFAF0, ["forestgreen"] = 0x228B22,
         ["fuchsia"] = 0xFF00FF, ["gainsboro"] = 0xDCDCDC, ["ghostwhite"] = 0xF8F8FF, ["gold"] = 0xFFD700,
@@ -27,17 +29,22 @@ internal static class SvgColour
         ["greenyellow"] = 0xADFF2F, ["honeydew"] = 0xF0FFF0, ["hotpink"] = 0xFF69B4, ["indianred"] = 0xCD5C5C,
         ["indigo"] = 0x4B0082, ["ivory"] = 0xFFFFF0, ["khaki"] = 0xF0E68C, ["lavender"] = 0xE6E6FA,
         ["lavenderblush"] = 0xFFF0F5, ["lawngreen"] = 0x7CFC00, ["lemonchiffon"] = 0xFFFACD, ["lightblue"] = 0xADD8E6,
-        ["lightcoral"] = 0xF08080, ["lightcyan"] = 0xE0FFFF, ["lightgoldenrodyellow"] = 0xFAFAD2, ["lightgray"] = 0xD3D3D3,
+        ["lightcoral"] = 0xF08080, ["lightcyan"] = 0xE0FFFF,
+        ["lightgoldenrodyellow"] = 0xFAFAD2, ["lightgray"] = 0xD3D3D3,
         ["lightgreen"] = 0x90EE90, ["lightgrey"] = 0xD3D3D3, ["lightpink"] = 0xFFB6C1, ["lightsalmon"] = 0xFFA07A,
-        ["lightseagreen"] = 0x20B2AA, ["lightskyblue"] = 0x87CEFA, ["lightslategray"] = 0x778899, ["lightslategrey"] = 0x778899,
+        ["lightseagreen"] = 0x20B2AA, ["lightskyblue"] = 0x87CEFA,
+        ["lightslategray"] = 0x778899, ["lightslategrey"] = 0x778899,
         ["lightsteelblue"] = 0xB0C4DE, ["lightyellow"] = 0xFFFFE0, ["lime"] = 0x00FF00, ["limegreen"] = 0x32CD32,
         ["linen"] = 0xFAF0E6, ["magenta"] = 0xFF00FF, ["maroon"] = 0x800000, ["mediumaquamarine"] = 0x66CDAA,
-        ["mediumblue"] = 0x0000CD, ["mediumorchid"] = 0xBA55D3, ["mediumpurple"] = 0x9370DB, ["mediumseagreen"] = 0x3CB371,
-        ["mediumslateblue"] = 0x7B68EE, ["mediumspringgreen"] = 0x00FA9A, ["mediumturquoise"] = 0x48D1CC, ["mediumvioletred"] = 0xC71585,
+        ["mediumblue"] = 0x0000CD, ["mediumorchid"] = 0xBA55D3,
+        ["mediumpurple"] = 0x9370DB, ["mediumseagreen"] = 0x3CB371,
+        ["mediumslateblue"] = 0x7B68EE, ["mediumspringgreen"] = 0x00FA9A,
+        ["mediumturquoise"] = 0x48D1CC, ["mediumvioletred"] = 0xC71585,
         ["midnightblue"] = 0x191970, ["mintcream"] = 0xF5FFFA, ["mistyrose"] = 0xFFE4E1, ["moccasin"] = 0xFFE4B5,
         ["navajowhite"] = 0xFFDEAD, ["navy"] = 0x000080, ["oldlace"] = 0xFDF5E6, ["olive"] = 0x808000,
         ["olivedrab"] = 0x6B8E23, ["orange"] = 0xFFA500, ["orangered"] = 0xFF4500, ["orchid"] = 0xDA70D6,
-        ["palegoldenrod"] = 0xEEE8AA, ["palegreen"] = 0x98FB98, ["paleturquoise"] = 0xAFEEEE, ["palevioletred"] = 0xDB7093,
+        ["palegoldenrod"] = 0xEEE8AA, ["palegreen"] = 0x98FB98,
+        ["paleturquoise"] = 0xAFEEEE, ["palevioletred"] = 0xDB7093,
         ["papayawhip"] = 0xFFEFD5, ["peachpuff"] = 0xFFDAB9, ["peru"] = 0xCD853F, ["pink"] = 0xFFC0CB,
         ["plum"] = 0xDDA0DD, ["powderblue"] = 0xB0E0E6, ["purple"] = 0x800080, ["rebeccapurple"] = 0x663399,
         ["red"] = 0xFF0000, ["rosybrown"] = 0xBC8F8F, ["royalblue"] = 0x4169E1, ["saddlebrown"] = 0x8B4513,
@@ -71,7 +78,8 @@ internal static class SvgColour
             return null;
 
         string function = value.Substring(0, open).Trim().ToLowerInvariant();
-        string[] parts = value.Substring(open + 1, value.Length - open - 2).Split([',', ' ', '/'], StringSplitOptions.RemoveEmptyEntries);
+        string[] parts = value.Substring(open + 1, value.Length - open - 2)
+            .Split([',', ' ', '/'], StringSplitOptions.RemoveEmptyEntries);
 
         if (parts.Length < 3)
             return null;
@@ -92,22 +100,29 @@ internal static class SvgColour
         if (digits.Length is 3 or 4)
             digits = string.Concat(digits.Select(digit => new string(digit, 2)));
 
-        if (digits.Length is not (6 or 8) || !int.TryParse(digits.Substring(0, 6), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int rgb))
+        if (digits.Length is not (6 or 8) ||
+            !int.TryParse(digits.Substring(0, 6), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int rgb))
             return null;
 
         Ink ink = Ink.Rgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
 
-        return digits.Length == 8 && int.TryParse(digits.Substring(6), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int alpha)
+        return digits.Length == 8
+            && int.TryParse(digits.Substring(6), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int alpha)
             ? ink.WithOpacity(alpha / 255f)
             : ink;
     }
 
     /// <summary>A channel as a number, or as a percentage of <paramref name="full"/>.</summary>
     private static float Channel(string text, float full) =>
-        text.EndsWith("%", StringComparison.Ordinal) ? Number(text.Substring(0, text.Length - 1)) / 100 * full : Number(text);
+        text.EndsWith("%", StringComparison.Ordinal)
+            ? Number(text.Substring(0, text.Length - 1)) / 100 * full
+            : Number(text);
 
     private static float Number(string text) =>
-        float.TryParse(text.Replace("deg", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out float number) ? number : 0;
+        float.TryParse(
+            text.Replace("deg", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out float number)
+            ? number
+            : 0;
 
     /// <summary>An RGB channel, a number or a percentage of 255, kept from 0 to 255.</summary>
     private static byte Byte(string channel) => (byte)Math.Round(Clamp.Between(Channel(channel, 255), 0, 255));
