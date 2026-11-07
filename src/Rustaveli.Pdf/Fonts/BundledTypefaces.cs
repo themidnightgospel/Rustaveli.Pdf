@@ -14,9 +14,11 @@ namespace Rustaveli.Pdf.Fonts;
 /// </remarks>
 internal static class BundledTypefaces
 {
-    private static readonly string[] Files = ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf", "NotoSans-BoldItalic.ttf"];
+    private static readonly string[] Files =
+        ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf", "NotoSans-BoldItalic.ttf"];
 
-    private static readonly Lazy<FontFaceInfo[]> Faces = new Lazy<FontFaceInfo[]>(Load, LazyThreadSafetyMode.ExecutionAndPublication);
+    private static readonly Lazy<FontFaceInfo[]> Faces =
+        new Lazy<FontFaceInfo[]>(Load, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>The bundled face nearest <paramref name="style"/>.</summary>
     public static OpenTypeFont Match(FaceStyle style) => FontMatcher.Select(Faces.Value, style)!.Load();
@@ -26,9 +28,14 @@ internal static class BundledTypefaces
     /// null for any other name.
     /// </summary>
     public static OpenTypeFont? Named(string family, FaceStyle style) =>
-        FontMatcher.Select(Faces.Value.Where(face => string.Equals(face.Names.PreferredFamily, family.Trim(), StringComparison.OrdinalIgnoreCase)), style)?.Load();
+        FontMatcher.Select(
+            Faces.Value.Where(face =>
+                string.Equals(face.Names.PreferredFamily, family.Trim(), StringComparison.OrdinalIgnoreCase)),
+            style)?.Load();
 
-    /// <summary>A bundled face that has <paramref name="codepoint"/>, nearest <paramref name="style"/>; null when none has it.</summary>
+    /// <summary>
+    /// A bundled face that has <paramref name="codepoint"/>, nearest <paramref name="style"/>; null when none has it.
+    /// </summary>
     public static OpenTypeFont? Covering(int codepoint, FaceStyle style) =>
         FontMatcher.Select(Faces.Value.Where(face => face.Covers(codepoint)), style)?.Load();
 

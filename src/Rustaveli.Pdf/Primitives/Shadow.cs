@@ -13,7 +13,9 @@ namespace Rustaveli.Pdf;
 /// <param name="Spread">How much larger than the frame the shadow is on every side; negative makes it smaller.</param>
 public readonly record struct Shadow(Ink Ink, float Blur, Offset Offset = default, float Spread = 0)
 {
-    /// <summary>The shape the shadow takes before it is blurred: the frame moved by the offset and grown by the spread.</summary>
+    /// <summary>
+    /// The shape the shadow takes before it is blurred: the frame moved by the offset and grown by the spread.
+    /// </summary>
     internal (Offset Position, Extent Size, Corners Corners) Shape(Offset position, Extent size, Corners corners)
     {
         float spread = Spread;

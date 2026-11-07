@@ -68,7 +68,8 @@ internal sealed class SubstitutionSession
 
     private static long WorkFor(GlyphBuffer buffer) => BaseWork + (WorkPerGlyph * buffer.Count);
 
-    private static int LengthFor(GlyphBuffer buffer) => (int)Math.Min(int.MaxValue, BaseLength + (LengthPerGlyph * buffer.Count));
+    private static int LengthFor(GlyphBuffer buffer) =>
+        (int)Math.Min(int.MaxValue, BaseLength + (LengthPerGlyph * buffer.Count));
 
     /// <summary>The value of the feature whose lookup is being applied, which chooses among alternates.</summary>
     public int FeatureValue { get; set; } = 1;

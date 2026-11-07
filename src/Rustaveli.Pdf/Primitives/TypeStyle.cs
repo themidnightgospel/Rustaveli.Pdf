@@ -74,7 +74,9 @@ public sealed record TypeStyle
     /// <summary>The ink of underlines, strike-throughs and overlines; the text's own ink when not set.</summary>
     public Ink? StrokeInk { get; init; }
 
-    /// <summary>The weight of underlines, strike-throughs and overlines, in points; the font's own when not set.</summary>
+    /// <summary>
+    /// The weight of underlines, strike-throughs and overlines, in points; the font's own when not set.
+    /// </summary>
     public float? StrokeWeight
     {
         get => _strokeWeight;
@@ -184,13 +186,17 @@ public sealed record TypeStyle
     /// <summary>A copy with lowercase letters set as small capitals, where the face has them.</summary>
     public TypeStyle SmallCapitals(bool value = true) => WithFeature(FeatureTag.SmallCapitals, value);
 
-    /// <summary>A copy with old-style figures, which rise and descend like lowercase letters, where the face has them.</summary>
+    /// <summary>
+    /// A copy with old-style figures, which rise and descend like lowercase letters, where the face has them.
+    /// </summary>
     public TypeStyle OldstyleFigures(bool value = true) => WithFeature(FeatureTag.OldstyleFigures, value);
 
     /// <summary>A copy with figures all one width, so columns of numbers align, where the face has them.</summary>
     public TypeStyle TabularFigures(bool value = true) => WithFeature(FeatureTag.TabularFigures, value);
 
-    /// <summary>A copy that reads in <paramref name="direction"/>, set apart from the text around it; null to follow it.</summary>
+    /// <summary>
+    /// A copy that reads in <paramref name="direction"/>, set apart from the text around it; null to follow it.
+    /// </summary>
     public TypeStyle WithDirection(ReadingDirection? direction) => this with { Direction = direction };
 
     public TypeStyle WithStrokeStyle(StrokeStyle style) => this with { StrokeStyle = style };
@@ -234,7 +240,9 @@ public sealed record TypeStyle
     internal static float Size(float value, string name) => Numbers.NotNegative(value, name);
 
     /// <summary>Checks a typeface's name and the list of its fallbacks, as a style set in them needs them.</summary>
-    /// <exception cref="ArgumentException"><paramref name="fontFamily"/> is null, empty or only white space.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="fontFamily"/> is null, empty or only white space.
+    /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="fallbacks"/> is null.</exception>
     internal static void TypefaceNames(string fontFamily, string[] fallbacks)
     {
@@ -242,7 +250,9 @@ public sealed record TypeStyle
         ArgumentNullException.ThrowIfNull(fallbacks);
     }
 
-    /// <summary>Checks an OpenType feature setting: a tag of four printable ASCII characters, and a value of zero or more.</summary>
+    /// <summary>
+    /// Checks an OpenType feature setting: a tag of four printable ASCII characters, and a value of zero or more.
+    /// </summary>
     /// <exception cref="ArgumentException"><paramref name="tag"/> is not four printable ASCII characters.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
     internal static void Feature(string tag, int value)
@@ -251,10 +261,14 @@ public sealed record TypeStyle
         ArgumentOutOfRangeException.ThrowIfNegative(value);
 
         if (tag.Length != 4 || tag.Any(character => character is < ' ' or > '~'))
-            throw new ArgumentException($"An OpenType feature tag is four printable ASCII characters, such as \"liga\"; \"{tag}\" is not.", nameof(tag));
+            throw new ArgumentException(
+                $"An OpenType feature tag is four printable ASCII characters, such as \"liga\"; \"{tag}\" is not.",
+                nameof(tag));
     }
 
-    /// <summary><paramref name="value"/>, a spacing that may tighten as well as loosen: a number a PDF can write.</summary>
+    /// <summary>
+    /// <paramref name="value"/>, a spacing that may tighten as well as loosen: a number a PDF can write.
+    /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">It is NaN, or 10^15 or more either way.</exception>
     internal static float Spacing(float value, string name) => Numbers.AnyWay(value, name);
 }

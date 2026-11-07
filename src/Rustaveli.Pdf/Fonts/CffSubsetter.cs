@@ -48,7 +48,8 @@ internal static class CffSubsetter
     /// it inside an OpenType font, but by a thousand once it stands alone, so the subset is given the matrix.
     /// </param>
     /// <param name="glyphs">The glyphs to keep, each with the CID it is to have.</param>
-    public static byte[]? TrySubset(ReadOnlyMemory<byte> table, int unitsPerEm, IEnumerable<(ushort Cid, ushort Glyph)> glyphs)
+    public static byte[]? TrySubset(
+        ReadOnlyMemory<byte> table, int unitsPerEm, IEnumerable<(ushort Cid, ushort Glyph)> glyphs)
     {
         try
         {
@@ -126,10 +127,12 @@ internal static class CffSubsetter
 
             selection[index] = fdSelect is null ? (byte)0 : fdSelect[glyph];
             (int start, int length) = charStrings.GetItem(cff, glyph);
-            outlines.Add(CharStringFlattener.Flatten(cff, start, length, globalSubrs, fonts[selection[index]].LocalSubrs));
+            outlines.Add(CharStringFlattener.Flatten(
+                cff, start, length, globalSubrs, fonts[selection[index]].LocalSubrs));
         }
 
-        return Write(cff.AsSpan(nameStart, nameLength).ToArray(), top, topEntries, unitsPerEm, fonts, kept, outlines, selection);
+        return Write(
+            cff.AsSpan(nameStart, nameLength).ToArray(), top, topEntries, unitsPerEm, fonts, kept, outlines, selection);
     }
 
     /// <summary>
@@ -208,7 +211,9 @@ internal static class CffSubsetter
         bool fontDictsScale = fonts.Any(font => font.Dict.Length > 0);
 
         if (unscaled && fontDictsScale)
-            fonts = fonts.Select(font => font.Dict.Length > 0 ? font : font with { Dict = UnitsPerEmMatrix(unitsPerEm) }).ToList();
+            fonts = fonts
+                .Select(font => font.Dict.Length > 0 ? font : font with { Dict = UnitsPerEmMatrix(unitsPerEm) })
+                .ToList();
 
         // The top dict's size does not depend on the offsets it holds, each written in five bytes, so it is laid out
         // once with zeros to be measured, then again with the offsets found.
@@ -313,7 +318,9 @@ internal static class CffSubsetter
         return charset.ToArray();
     }
 
-    /// <summary>The entries of <paramref name="dict"/> whose operators it keeps, exactly as they were written.</summary>
+    /// <summary>
+    /// The entries of <paramref name="dict"/> whose operators it keeps, exactly as they were written.
+    /// </summary>
     private static byte[] Copy(ReadOnlySpan<byte> dict, List<CffDictEntry> entries, Func<int, bool> keeps)
     {
         FontDataWriter copy = new FontDataWriter();
@@ -327,7 +334,8 @@ internal static class CffSubsetter
         return copy.ToArray();
     }
 
-    private static CffDictEntry? Find(List<CffDictEntry> entries, int op) => entries.LastOrDefault(entry => entry.Operator == op);
+    private static CffDictEntry? Find(List<CffDictEntry> entries, int op) =>
+        entries.LastOrDefault(entry => entry.Operator == op);
 
     private static CffDictEntry Required(List<CffDictEntry> entries, int op) =>
         Find(entries, op) ?? throw new FontFormatException($"The CFF font lacks DICT operator {op}.");
@@ -397,7 +405,9 @@ internal static class CffSubsetter
             dict.UInt8((nibbles[index] << 4) | nibbles[index + 1]);
     }
 
-    /// <summary>An integer in five bytes, however small, so a DICT's size does not depend on the offsets in it.</summary>
+    /// <summary>
+    /// An integer in five bytes, however small, so a DICT's size does not depend on the offsets in it.
+    /// </summary>
     private static void Offset(FontDataWriter dict, int value)
     {
         dict.UInt8(29);
@@ -454,8 +464,11 @@ internal static class CffSubsetter
         return size;
     }
 
-    private static int OffsetSize(int largest) => largest <= 0xFF ? 1 : largest <= 0xFFFF ? 2 : largest <= 0xFFFFFF ? 3 : 4;
+    private static int OffsetSize(int largest) =>
+        largest <= 0xFF ? 1 : largest <= 0xFFFF ? 2 : largest <= 0xFFFFFF ? 3 : 4;
 
-    /// <summary>A font dict as the subset writes it, with its private dict and the subroutines its glyphs call.</summary>
+    /// <summary>
+    /// A font dict as the subset writes it, with its private dict and the subroutines its glyphs call.
+    /// </summary>
     private sealed record FontDict(byte[] Dict, byte[] Private, CffIndex LocalSubrs);
 }

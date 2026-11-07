@@ -48,7 +48,9 @@ internal sealed class FontFileSource
 
     public bool IsLoaded => Volatile.Read(ref _data).IsValueCreated;
 
-    /// <summary>One read however many threads ask at once: the file may be large, and the result is kept for good.</summary>
+    /// <summary>
+    /// One read however many threads ask at once: the file may be large, and the result is kept for good.
+    /// </summary>
     private static Lazy<ReadOnlyMemory<byte>> ReadOnce(string path) =>
         new Lazy<ReadOnlyMemory<byte>>(() => File.ReadAllBytes(path), LazyThreadSafetyMode.ExecutionAndPublication);
 }

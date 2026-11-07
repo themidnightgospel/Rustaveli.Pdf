@@ -16,6 +16,8 @@ public readonly record struct PageFacts(int Folio, int? PageCount)
     /// <summary>Whether this is the document's last page; false while the page count is not yet known.</summary>
     public bool IsLast => Folio == PageCount;
 
-    /// <summary>Whether the page has an odd number, which is a right-hand page in a book opening on the right.</summary>
+    /// <summary>
+    /// Whether the page has an odd number, which is a right-hand page in a book opening on the right.
+    /// </summary>
     public bool IsOdd => Folio % 2 == 1;
 }

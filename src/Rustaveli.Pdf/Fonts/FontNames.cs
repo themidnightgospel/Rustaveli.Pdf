@@ -80,7 +80,8 @@ internal sealed class FontNames
     public bool IsLastResort => IsLastResortName(PreferredFamily) || IsLastResortName(PostScriptName);
 
     private static bool IsLastResortName(string name) =>
-        string.Equals(new string(name.Where(char.IsLetter).ToArray()), "LastResort", StringComparison.OrdinalIgnoreCase);
+        string.Equals(
+            new string(name.Where(char.IsLetter).ToArray()), "LastResort", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The names of <see cref="PreferredFamily"/> in every language.</summary>
     public IReadOnlyList<string> PreferredFamilyAliases =>

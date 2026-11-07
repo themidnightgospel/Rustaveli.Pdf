@@ -285,7 +285,8 @@ internal sealed class OpenTypeFont
     /// </summary>
     private KerningSource? ReadKerning()
     {
-        if (Refinement(TableTag.Gpos, static data => new GlyphPositioningKerning(data)) is { HasPairs: true } positioning)
+        if (Refinement(TableTag.Gpos, static data => new GlyphPositioningKerning(data))
+            is { HasPairs: true } positioning)
             return positioning;
 
         if (Refinement(TableTag.Kern, static data => new LegacyKerningTable(data)) is { HasPairs: true } legacy)

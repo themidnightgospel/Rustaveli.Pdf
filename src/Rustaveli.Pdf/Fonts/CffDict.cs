@@ -116,7 +116,8 @@ internal static class CffDict
                         text.Append('-');
                         break;
                     case 0xF:
-                        return double.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                        return double.TryParse(
+                            text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
                             ? value
                             : throw new FontFormatException($"\"{text}\" is not a CFF real number.");
                     default:

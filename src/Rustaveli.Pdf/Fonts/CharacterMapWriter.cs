@@ -125,7 +125,9 @@ internal static class CharacterMapWriter
 
     private static int Format12Length(int groupCount) => Format12HeaderSize + (groupCount * Format12GroupSize);
 
-    /// <summary>A Windows platform record pointing at a subtable <paramref name="offset"/> bytes into the table.</summary>
+    /// <summary>
+    /// A Windows platform record pointing at a subtable <paramref name="offset"/> bytes into the table.
+    /// </summary>
     private static void EncodingRecord(FontDataWriter table, int encoding, int offset)
     {
         table.UInt16(WindowsPlatform);

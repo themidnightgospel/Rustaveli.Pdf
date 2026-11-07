@@ -19,7 +19,9 @@ public sealed class Gradient
     /// </summary>
     private readonly (Offset Start, Offset End, bool OfBox)? _line;
 
-    /// <summary>A blend at <paramref name="angle"/> degrees through <paramref name="inks"/>, evenly spaced, in order.</summary>
+    /// <summary>
+    /// A blend at <paramref name="angle"/> degrees through <paramref name="inks"/>, evenly spaced, in order.
+    /// </summary>
     /// <exception cref="ArgumentException">
     /// Fewer than two inks, inks of different opacity, or an angle that is not a finite number.
     /// </exception>
@@ -119,7 +121,9 @@ public sealed class Gradient
     }
 
     private static GradientStop[] Evenly(Ink[] inks) =>
-        inks.Select((ink, index) => new GradientStop(inks.Length < 2 ? 0 : (float)index / (inks.Length - 1), ink)).ToArray();
+        inks
+            .Select((ink, index) => new GradientStop(inks.Length < 2 ? 0 : (float)index / (inks.Length - 1), ink))
+            .ToArray();
 
     private static void Check(GradientStop[] stops)
     {
@@ -131,7 +135,8 @@ public sealed class Gradient
             float position = stops[index].Position;
 
             if (!(position >= 0 && position <= 1))
-                throw new ArgumentException("A gradient stop lies from 0 at the start of the blend to 1 at its end.", nameof(stops));
+                throw new ArgumentException(
+                    "A gradient stop lies from 0 at the start of the blend to 1 at its end.", nameof(stops));
 
             if (index > 0 && position < stops[index - 1].Position)
                 throw new ArgumentException("Gradient stops are given in order along the blend.", nameof(stops));

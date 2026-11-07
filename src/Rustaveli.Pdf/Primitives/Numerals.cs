@@ -21,7 +21,9 @@ public static class Numerals
     /// <summary>1, 2, 3, in the digits every culture reads.</summary>
     public static string Arabic(int number) => number.ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>I, II, III … MMMCMXCIX. Roman numerals have no zero and nothing past 3999 is legible, so those stay arabic.</summary>
+    /// <summary>
+    /// I, II, III … MMMCMXCIX. Roman numerals have no zero and nothing past 3999 is legible, so those stay arabic.
+    /// </summary>
     public static string UpperRoman(int number)
     {
         if (number is <= 0 or > 3999)
@@ -45,7 +47,9 @@ public static class Numerals
     /// <summary>i, ii, iii, as front matter is numbered.</summary>
     public static string LowerRoman(int number) => UpperRoman(number).ToLowerInvariant();
 
-    /// <summary>A, B … Z, AA, AB — as spreadsheet columns run, so the sequence never ends. Zero and below stay arabic.</summary>
+    /// <summary>
+    /// A, B … Z, AA, AB — as spreadsheet columns run, so the sequence never ends. Zero and below stay arabic.
+    /// </summary>
     public static string UpperAlpha(int number)
     {
         if (number <= 0)

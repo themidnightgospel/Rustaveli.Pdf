@@ -56,7 +56,8 @@ public sealed class TypefaceLibrary
     /// </summary>
     public IReadOnlyList<string> Fallbacks
     {
-        // Replaced whole under the lock, never changed in place: a volatile read sees the latest list without taking it.
+        // Replaced whole under the lock, never changed in place: a volatile read sees the latest list without taking
+        // it.
         get => Volatile.Read(ref _fallbacks);
         set
         {
@@ -122,11 +123,15 @@ public sealed class TypefaceLibrary
         RegisterUnderLock(() => _catalog.RegisterFile(path, typeface), nameof(path));
     }
 
-    /// <summary>Registers every face in a font embedded in <paramref name="assembly"/> as a manifest resource.</summary>
+    /// <summary>
+    /// Registers every face in a font embedded in <paramref name="assembly"/> as a manifest resource.
+    /// </summary>
     /// <param name="assembly">The assembly the font is embedded in.</param>
     /// <param name="resource">The resource's full name, as <c>Assembly.GetManifestResourceNames</c> lists it.</param>
     /// <param name="typeface">A typeface name to register it under besides its own.</param>
-    /// <exception cref="ArgumentException">The assembly has no such resource, or it is not a font this library can read.</exception>
+    /// <exception cref="ArgumentException">
+    /// The assembly has no such resource, or it is not a font this library can read.
+    /// </exception>
     public void RegisterResource(Assembly assembly, string resource, string? typeface = null)
     {
         ArgumentNullException.ThrowIfNull(assembly);
@@ -168,7 +173,8 @@ public sealed class TypefaceLibrary
             }
             catch (FontFormatException exception)
             {
-                throw new ArgumentException("This is not a font this library can read: " + exception.Message, parameter, exception);
+                throw new ArgumentException(
+                    "This is not a font this library can read: " + exception.Message, parameter, exception);
             }
 
             // Faces resolved before now may be shadowed by what was just registered.

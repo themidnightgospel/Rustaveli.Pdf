@@ -20,7 +20,16 @@ public readonly struct Ink : IEquatable<Ink>
     private readonly float _third;
     private readonly float _fourth;
 
-    private Ink(InkModel model, float first, float second, float third, float fourth, float opacity, string? spotName, InkModel fallbackModel, float spotTint)
+    private Ink(
+        InkModel model,
+        float first,
+        float second,
+        float third,
+        float fourth,
+        float opacity,
+        string? spotName,
+        InkModel fallbackModel,
+        float spotTint)
     {
         Model = model;
         _first = first;
@@ -111,14 +120,24 @@ public readonly struct Ink : IEquatable<Ink>
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         if (fallback.Model == InkModel.Spot)
-            throw new ArgumentException("A spot ink's fallback must be an RGB or CMYK colour, not another spot ink.", nameof(fallback));
+            throw new ArgumentException(
+                "A spot ink's fallback must be an RGB or CMYK colour, not another spot ink.", nameof(fallback));
 
-        return new Ink(InkModel.Spot, fallback._first, fallback._second, fallback._third, fallback._fourth, fallback.Opacity, name, fallback.Model, 1);
+        return new Ink(
+            InkModel.Spot,
+            fallback._first,
+            fallback._second,
+            fallback._third,
+            fallback._fourth,
+            fallback.Opacity,
+            name,
+            fallback.Model,
+            1);
     }
 
     /// <summary>
-    /// Parses <c>#RGB</c>, <c>#ARGB</c>, <c>#RRGGBB</c> or <c>#AARRGGBB</c> as an RGB ink. The leading hash is optional;
-    /// an alpha channel becomes the ink's opacity.
+    /// Parses <c>#RGB</c>, <c>#ARGB</c>, <c>#RRGGBB</c> or <c>#AARRGGBB</c> as an RGB ink. The leading hash is
+    /// optional; an alpha channel becomes the ink's opacity.
     /// </summary>
     public static Ink Hex(string hex)
     {
@@ -152,9 +171,28 @@ public readonly struct Ink : IEquatable<Ink>
 
         return Model switch
         {
-            InkModel.Rgb => new Ink(InkModel.Rgb, TowardPaper(_first, amount), TowardPaper(_second, amount), TowardPaper(_third, amount), 0, Opacity, null, InkModel.Rgb, 1),
-            InkModel.Cmyk => new Ink(InkModel.Cmyk, _first * amount, _second * amount, _third * amount, _fourth * amount, Opacity, null, InkModel.Cmyk, 1),
-            _ => new Ink(InkModel.Spot, _first, _second, _third, _fourth, Opacity, SpotName, FallbackModel, SpotTint * amount)
+            InkModel.Rgb => new Ink(
+                InkModel.Rgb,
+                TowardPaper(_first, amount),
+                TowardPaper(_second, amount),
+                TowardPaper(_third, amount),
+                0,
+                Opacity,
+                null,
+                InkModel.Rgb,
+                1),
+            InkModel.Cmyk => new Ink(
+                InkModel.Cmyk,
+                _first * amount,
+                _second * amount,
+                _third * amount,
+                _fourth * amount,
+                Opacity,
+                null,
+                InkModel.Cmyk,
+                1),
+            _ => new Ink(
+                InkModel.Spot, _first, _second, _third, _fourth, Opacity, SpotName, FallbackModel, SpotTint * amount)
         };
     }
 
@@ -255,7 +293,8 @@ public readonly struct Ink : IEquatable<Ink>
 
     private static byte Byte(float fraction) => (byte)Math.Round(fraction * 255);
 
-    private static string Percent(float fraction) => (fraction * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    private static string Percent(float fraction) =>
+        (fraction * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%";
 
     private static void RequireFraction(float value, string name)
     {
