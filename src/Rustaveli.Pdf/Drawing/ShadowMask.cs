@@ -39,7 +39,9 @@ internal sealed class ShadowMask
     /// <summary>The grid's size in points.</summary>
     public Extent Size => new Extent(Width / PixelsPerPoint, Height / PixelsPerPoint);
 
-    /// <summary>The blurred coverage of a rectangle of <paramref name="size"/> with <paramref name="corners"/>.</summary>
+    /// <summary>
+    /// The blurred coverage of a rectangle of <paramref name="size"/> with <paramref name="corners"/>.
+    /// </summary>
     public static ShadowMask Create(Extent size, Corners corners, float deviation)
     {
         float margin = deviation * 3;

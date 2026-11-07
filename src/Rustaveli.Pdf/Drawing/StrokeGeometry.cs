@@ -60,7 +60,9 @@ internal static class StrokeGeometry
             from.Y + (unitY * distance) + (normalY * offset));
     }
 
-    /// <summary>The unit normal to the line, turned a quarter clockwise; for a zero-length line, straight down.</summary>
+    /// <summary>
+    /// The unit normal to the line, turned a quarter clockwise; for a zero-length line, straight down.
+    /// </summary>
     private static (float X, float Y) Normal(Offset from, Offset to)
     {
         float dx = to.X - from.X;

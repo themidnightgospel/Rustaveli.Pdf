@@ -40,13 +40,19 @@ internal interface ISurface
     /// </summary>
     void ScaleAxes(float horizontal, float vertical);
 
-    /// <summary>Turns the current space clockwise on the page about its origin, by <paramref name="degrees"/>.</summary>
+    /// <summary>
+    /// Turns the current space clockwise on the page about its origin, by <paramref name="degrees"/>.
+    /// </summary>
     void RotateClockwise(float degrees);
 
-    /// <summary>Applies the affine matrix [a b c d e f] after the transform in force, in PDF's order of terms.</summary>
+    /// <summary>
+    /// Applies the affine matrix [a b c d e f] after the transform in force, in PDF's order of terms.
+    /// </summary>
     void Concatenate(float a, float b, float c, float d, float e, float f);
 
-    /// <summary>Limits drawing to a rectangle of <paramref name="size"/> at the origin, until the next restore.</summary>
+    /// <summary>
+    /// Limits drawing to a rectangle of <paramref name="size"/> at the origin, until the next restore.
+    /// </summary>
     void ClipRectangle(Extent size);
 
     /// <summary>
@@ -125,7 +131,9 @@ internal interface ISurface
     /// </summary>
     void NameDestination(string name, Offset at);
 
-    /// <summary>Adds an entry to the document's outline, at <paramref name="level"/>, leading to the current origin.</summary>
+    /// <summary>
+    /// Adds an entry to the document's outline, at <paramref name="level"/>, leading to the current origin.
+    /// </summary>
     void AddBookmark(string title, int level);
 
     /// <summary>

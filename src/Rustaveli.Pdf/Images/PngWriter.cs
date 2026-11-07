@@ -8,7 +8,9 @@ namespace Rustaveli.Pdf.Images;
 /// </summary>
 internal static class PngWriter
 {
-    /// <summary>A PNG of <paramref name="width"/> by <paramref name="height"/> pixels, three bytes each, a row at a time.</summary>
+    /// <summary>
+    /// A PNG of <paramref name="width"/> by <paramref name="height"/> pixels, three bytes each, a row at a time.
+    /// </summary>
     public static byte[] Rgb(int width, int height, byte[] pixels)
     {
         int rowBytes = width * 3;

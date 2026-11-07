@@ -3,14 +3,14 @@ using System.Globalization;
 namespace Rustaveli.Pdf.Writing;
 
 /// <summary>
-/// The resource dictionary of one content stream: the fonts, XObjects, graphics states, colour spaces and patterns it uses,
-/// each under a short name the stream's operators refer to.
+/// The resource dictionary of one content stream: the fonts, XObjects, graphics states, colour spaces and patterns it
+/// uses, each under a short name the stream's operators refer to.
 /// </summary>
 /// <remarks>
 /// Asking for the same object twice returns the same name, so callers can ask on every use instead of keeping their
 /// own map. Names are assigned in order of first use per category — <c>/F1</c>, <c>/F2</c> for fonts, <c>/X1</c>
-/// for XObjects, <c>/GS1</c> for graphics states, <c>/CS1</c> for colour spaces, <c>/P1</c> for patterns — and are local to this dictionary:
-/// the same font may be <c>/F1</c> on one page and <c>/F2</c> on another.
+/// for XObjects, <c>/GS1</c> for graphics states, <c>/CS1</c> for colour spaces, <c>/P1</c> for patterns — and are
+/// local to this dictionary: the same font may be <c>/F1</c> on one page and <c>/F2</c> on another.
 /// </remarks>
 internal sealed class PdfResources
 {
