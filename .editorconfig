@@ -60,6 +60,7 @@ csharp_style_expression_bodied_properties = when_on_single_line:silent
 csharp_style_prefer_primary_constructors = true:suggestion
 csharp_style_prefer_pattern_matching = true:suggestion
 csharp_style_collection_expression = true:suggestion
+csharp_indent_case_contents_when_block = false
 
 dotnet_sort_system_directives_first = true
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
