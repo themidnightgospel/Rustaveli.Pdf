@@ -8,4 +8,5 @@ namespace Rustaveli.Pdf;
 /// The quality, from 1 to 100, to compress at, or null to keep the image lossless. An image with transparency is kept
 /// lossless whatever the quality.
 /// </param>
-public readonly record struct ImageProcessing(ReadOnlyMemory<byte> Source, int PixelWidth, int PixelHeight, int? Quality);
+public readonly record struct ImageProcessing(
+    ReadOnlyMemory<byte> Source, int PixelWidth, int PixelHeight, int? Quality);

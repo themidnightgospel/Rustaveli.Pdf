@@ -100,8 +100,17 @@ internal static class Typesetter
         }
     }
 
-    /// <summary>Runs the document once through <paramref name="pages"/>; returns how many pages each merged document took.</summary>
-    private static int[] RunPass(Document document, IPageSink pages, ITypeMeasurer measurer, Pagination pagination, float resolution, StructureElement? structure = null, LayoutInspection? inspection = null)
+    /// <summary>
+    /// Runs the document once through <paramref name="pages"/>; returns how many pages each merged document took.
+    /// </summary>
+    private static int[] RunPass(
+        Document document,
+        IPageSink pages,
+        ITypeMeasurer measurer,
+        Pagination pagination,
+        float resolution,
+        StructureElement? structure = null,
+        LayoutInspection? inspection = null)
     {
         pagination.ResetForNewPass();
 
@@ -132,7 +141,9 @@ internal static class Typesetter
             // drawn it all: content composed only as it is reached cannot be found in the document beforehand.
             bool ordered = pages is not CountingPageSink && pagination.SetsDrawOrder(index);
             IPageSink sink = ordered ? new LayeredPageSink(pages) : pages;
-            RenderContext context = ordered ? new RenderContext(sink, layout, structure) { Inspection = inspection } : direct;
+            RenderContext context = ordered
+                ? new RenderContext(sink, layout, structure) { Inspection = inspection }
+                : direct;
 
             layout.DefaultType = section.DefaultType;
             layout.ReadingDirection = section.ReadingDirection;
@@ -334,7 +345,8 @@ internal static class Typesetter
         if (section.RunningHeadSlot.Child is not null)
         {
             using (context.Tags.Untag())
-                context.RenderAllotted(section.RunningHeadSlot, new Extent(contentSpace.Width, bands.HeadHeight), measuredHeight);
+                context.RenderAllotted(
+                    section.RunningHeadSlot, new Extent(contentSpace.Width, bands.HeadHeight), measuredHeight);
         }
 
         // Each part was measured in the room left by those above it, on the tallest page allowed; a page sized to its
@@ -350,7 +362,10 @@ internal static class Typesetter
             surface.MoveOrigin(new Offset(0, footTop));
 
             using (context.Tags.Untag())
-                context.RenderAllotted(section.RunningFootSlot, new Extent(contentSpace.Width, bands.FootHeight), measuredHeight - bands.HeadHeight);
+                context.RenderAllotted(
+                    section.RunningFootSlot,
+                    new Extent(contentSpace.Width, bands.FootHeight),
+                    measuredHeight - bands.HeadHeight);
 
             surface.MoveOrigin(new Offset(0, -footTop));
         }
@@ -369,12 +384,15 @@ internal static class Typesetter
 
         if (headPlan.IsDeferred)
             throw new OversetException(
-                $"The running head does not fit in {available}. Reason: {headPlan.DeferReason}" + Trace(section.RunningHeadSlot, available, layout));
+                $"The running head does not fit in {available}. Reason: {headPlan.DeferReason}" +
+                Trace(section.RunningHeadSlot, available, layout));
 
         Extent remaining = new Extent(available.Width, available.Height - headPlan.Size.Height);
 
         if (remaining.IsNegative)
-            throw new OversetException(FormattableString.Invariant($"The running head ({headPlan.Size.Height:F1} points) is taller than the page."));
+            throw new OversetException(
+                FormattableString.Invariant(
+                    $"The running head ({headPlan.Size.Height:F1} points) is taller than the page."));
 
         // A running head that swallows the whole page nearly always holds content that expands to fill whatever
         // it is offered — vertical placement or Expand — in a band with no height of its own to work with.
@@ -388,9 +406,11 @@ internal static class Typesetter
 
         if (footPlan.IsDeferred)
             throw new OversetException(
-                $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}" + Trace(section.RunningFootSlot, remaining, layout));
+                $"The running foot does not fit in {remaining}. Reason: {footPlan.DeferReason}" +
+                Trace(section.RunningFootSlot, remaining, layout));
 
-        return new Bands(headPlan.Size.Height, footPlan.Size.Height, Math.Max(headPlan.Size.Width, footPlan.Size.Width));
+        return new Bands(
+            headPlan.Size.Height, footPlan.Size.Height, Math.Max(headPlan.Size.Width, footPlan.Size.Width));
     }
 
     /// <summary>

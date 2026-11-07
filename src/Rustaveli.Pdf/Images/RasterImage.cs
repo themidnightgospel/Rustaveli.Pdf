@@ -106,7 +106,9 @@ public sealed class RasterImage : IImage
     /// <summary>A fingerprint of <see cref="Source"/>.</summary>
     internal ImageContentHash ContentHash { get; }
 
-    /// <summary>True when the orientation turns the image a quarter, so its upright width is its stored height.</summary>
+    /// <summary>
+    /// True when the orientation turns the image a quarter, so its upright width is its stored height.
+    /// </summary>
     private bool IsTurned => Orientation is >= ExifOrientation.Transpose and <= ExifOrientation.Rotate270;
 
     /// <summary>
@@ -150,7 +152,8 @@ public sealed class RasterImage : IImage
         }
         catch (ImageFormatException exception)
         {
-            throw new ArgumentException("This is not an image that can be embedded: " + exception.Message, parameter, exception);
+            throw new ArgumentException(
+                "This is not an image that can be embedded: " + exception.Message, parameter, exception);
         }
     }
 

@@ -43,7 +43,9 @@ internal sealed class LayoutInspection
             return "\"" + labelled.Label + "\"";
 
         string name = block.GetType().Name;
-        return name.EndsWith("Block", StringComparison.Ordinal) ? name.Substring(0, name.Length - "Block".Length) : name;
+        return name.EndsWith("Block", StringComparison.Ordinal)
+            ? name.Substring(0, name.Length - "Block".Length)
+            : name;
     }
 
     /// <summary>One frame drawn: its name, where it came from, its top left on the page and its room.</summary>

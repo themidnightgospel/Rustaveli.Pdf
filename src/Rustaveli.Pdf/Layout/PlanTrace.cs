@@ -66,7 +66,9 @@ internal sealed class PlanTrace
     private static string Length(float length) =>
         length >= Extent.Max.Height ? "unbounded" : length.ToString("0.#", CultureInfo.InvariantCulture);
 
-    /// <summary>One measurement: what was measured, in what room, what it reported, and what it measured in turn.</summary>
+    /// <summary>
+    /// One measurement: what was measured, in what room, what it reported, and what it measured in turn.
+    /// </summary>
     internal sealed class Node(Block block, Extent space, Node? parent)
     {
         public Block Block { get; } = block;

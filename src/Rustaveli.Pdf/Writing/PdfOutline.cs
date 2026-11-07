@@ -13,7 +13,8 @@ internal static class PdfOutline
     private static readonly PdfName Last = new PdfName("Last");
 
     /// <summary>The outline's root, written with every entry beneath it.</summary>
-    public static PdfReference Write(PdfFileWriter file, IReadOnlyList<(string Title, int Level, PdfArray Destination)> entries)
+    public static PdfReference Write(
+        PdfFileWriter file, IReadOnlyList<(string Title, int Level, PdfArray Destination)> entries)
     {
         Node root = new Node(string.Empty, 0, null, file.Reserve());
         List<Node> open = [root];

@@ -56,7 +56,9 @@ internal sealed class PdfDocumentWriter : IDisposable
 
     public PdfDocumentInfo Info { get; } = new PdfDocumentInfo();
 
-    /// <summary>An information dictionary written as it is in place of <see cref="Info"/>, as one copied from another file.</summary>
+    /// <summary>
+    /// An information dictionary written as it is in place of <see cref="Info"/>, as one copied from another file.
+    /// </summary>
     public PdfDictionary? InfoDictionary { get; set; }
 
     /// <summary>

@@ -81,7 +81,9 @@ internal sealed class Pagination
             ? new AnchorPages(Math.Min(pages.First, folio), Math.Max(pages.Last, folio))
             : new AnchorPages(folio, folio);
 
-    /// <summary>Records that content captured under <paramref name="name"/> was drawn where <paramref name="position"/> says.</summary>
+    /// <summary>
+    /// Records that content captured under <paramref name="name"/> was drawn where <paramref name="position"/> says.
+    /// </summary>
     internal void RegisterPosition(string name, CapturedPosition position)
     {
         if (!_recordingPositions.TryGetValue(name, out List<CapturedPosition>? positions))
@@ -129,7 +131,9 @@ internal sealed class Pagination
     /// </summary>
     internal bool FoundWhatWasKnown() =>
         _recording.All(anchor => _known.TryGetValue(anchor.Key, out AnchorPages known) && known == anchor.Value)
-        && _recordingPositions.All(captured => _knownPositions.TryGetValue(captured.Key, out List<CapturedPosition>? known) && known.SequenceEqual(captured.Value));
+        && _recordingPositions.All(captured =>
+            _knownPositions.TryGetValue(captured.Key, out List<CapturedPosition>? known)
+            && known.SequenceEqual(captured.Value));
 
     /// <summary>
     /// Prepares for another rendering pass over the same document.

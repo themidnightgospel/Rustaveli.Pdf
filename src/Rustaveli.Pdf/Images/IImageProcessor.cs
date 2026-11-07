@@ -8,8 +8,8 @@ namespace Rustaveli.Pdf;
 public interface IImageProcessor
 {
     /// <summary>
-    /// The image <paramref name="request"/> describes, the right way up, re-encoded as a PNG or JPEG of the pixels asked
-    /// for.
+    /// The image <paramref name="request"/> describes, the right way up, re-encoded as a PNG or JPEG of the pixels
+    /// asked for.
     /// </summary>
     byte[] Process(ImageProcessing request);
 }

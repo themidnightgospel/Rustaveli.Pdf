@@ -6,9 +6,9 @@ namespace Rustaveli.Pdf.Layout;
 /// The base unit of a document tree: something that can report how much space it needs and then draw itself.
 /// </summary>
 /// <remarks>
-/// Every block must honour one rule: <see cref="Block.Render" /> may only consume the space that <see cref="Block.Plan" />
-/// promised for the same available space. The pagination engine measures first to decide what fits on the current
-/// page, so a block that draws more than it measured will overflow silently.
+/// Every block must honour one rule: <see cref="Block.Render" /> may only consume the space that
+/// <see cref="Block.Plan" /> promised for the same available space. The pagination engine measures first to decide
+/// what fits on the current page, so a block that draws more than it measured will overflow silently.
 /// </remarks>
 internal abstract class Block
 {
@@ -117,7 +117,9 @@ internal abstract class Block
     /// </summary>
     internal virtual int ChildCount => 0;
 
-    /// <summary>The direct child at <paramref name="index"/>, from 0 to <see cref="ChildCount"/>; null for an empty slot.</summary>
+    /// <summary>
+    /// The direct child at <paramref name="index"/>, from 0 to <see cref="ChildCount"/>; null for an empty slot.
+    /// </summary>
     internal virtual Block? ChildAt(int index) => throw new ArgumentOutOfRangeException(nameof(index));
 
     /// <summary>

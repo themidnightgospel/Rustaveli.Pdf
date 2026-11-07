@@ -48,21 +48,26 @@ internal static class XmpPacket
 
         if (archive is (int part, char level))
         {
-            xmp.Append("   <pdfaid:part>").Append(part.ToString(CultureInfo.InvariantCulture)).Append("</pdfaid:part>\n");
+            xmp.Append("   <pdfaid:part>").Append(part.ToString(CultureInfo.InvariantCulture))
+                .Append("</pdfaid:part>\n");
             xmp.Append("   <pdfaid:conformance>").Append(level).Append("</pdfaid:conformance>\n");
         }
 
         if (accessibility is { } accessible)
-            xmp.Append("   <pdfuaid:part>").Append(accessible.ToString(CultureInfo.InvariantCulture)).Append("</pdfuaid:part>\n");
+            xmp.Append("   <pdfuaid:part>").Append(accessible.ToString(CultureInfo.InvariantCulture))
+                .Append("</pdfuaid:part>\n");
 
         if (info.Title is { } title)
-            xmp.Append("   <dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(title, "Title")).Append("</rdf:li></rdf:Alt></dc:title>\n");
+            xmp.Append("   <dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(title, "Title"))
+                .Append("</rdf:li></rdf:Alt></dc:title>\n");
 
         if (info.Author is { } author)
-            xmp.Append("   <dc:creator><rdf:Seq><rdf:li>").Append(Escape(author, "Author")).Append("</rdf:li></rdf:Seq></dc:creator>\n");
+            xmp.Append("   <dc:creator><rdf:Seq><rdf:li>").Append(Escape(author, "Author"))
+                .Append("</rdf:li></rdf:Seq></dc:creator>\n");
 
         if (info.Subject is { } subject)
-            xmp.Append("   <dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(subject, "Subject")).Append("</rdf:li></rdf:Alt></dc:description>\n");
+            xmp.Append("   <dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">").Append(Escape(subject, "Subject"))
+                .Append("</rdf:li></rdf:Alt></dc:description>\n");
 
         AppendProperty(xmp, "pdf:Keywords", "Keywords", info.Keywords);
         AppendProperty(xmp, "pdf:Producer", "Producer", info.Producer);
@@ -72,7 +77,8 @@ internal static class XmpPacket
 
         xmp.Append("  </rdf:Description>\n");
 
-        // PDF/A admits only the schemas it predefines, and those a file describes itself; PDF/UA's is not among the first.
+        // PDF/A admits only the schemas it predefines, and those a file describes itself;
+        // PDF/UA's is not among the first.
         if (archive is not null && accessibility is not null)
             xmp.Append(AccessibilitySchema);
 
@@ -83,10 +89,13 @@ internal static class XmpPacket
         return Encoding.UTF8.GetBytes(xmp.ToString());
     }
 
-    /// <summary>The description of PDF/UA's identification schema, as PDF/A requires of a schema it does not define.</summary>
+    /// <summary>
+    /// The description of PDF/UA's identification schema, as PDF/A requires of a schema it does not define.
+    /// </summary>
     private const string AccessibilitySchema =
         "  <rdf:Description rdf:about=\"\" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\""
-        + " xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\" xmlns:pdfaProperty=\"http://www.aiim.org/pdfa/ns/property#\">\n"
+        + " xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\""
+        + " xmlns:pdfaProperty=\"http://www.aiim.org/pdfa/ns/property#\">\n"
         + "   <pdfaExtension:schemas>\n"
         + "    <rdf:Bag>\n"
         + "     <rdf:li rdf:parseType=\"Resource\">\n"
@@ -111,10 +120,13 @@ internal static class XmpPacket
     private static void AppendProperty(StringBuilder xmp, string property, string entry, string? value)
     {
         if (value is not null)
-            xmp.Append("   <").Append(property).Append('>').Append(Escape(value, entry)).Append("</").Append(property).Append(">\n");
+            xmp.Append("   <").Append(property).Append('>').Append(Escape(value, entry))
+                .Append("</").Append(property).Append(">\n");
     }
 
-    /// <summary>A date as XMP writes it, to the second and with its offset, as the information dictionary has it.</summary>
+    /// <summary>
+    /// A date as XMP writes it, to the second and with its offset, as the information dictionary has it.
+    /// </summary>
     private static string? Date(DateTimeOffset? date) =>
         date?.ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture);
 
@@ -166,7 +178,8 @@ internal static class XmpPacket
                     break;
 
                 default:
-                    if (!char.IsHighSurrogate(character) || index + 1 == text.Length || !char.IsLowSurrogate(text[index + 1]))
+                    if (!char.IsHighSurrogate(character) || index + 1 == text.Length
+                        || !char.IsLowSurrogate(text[index + 1]))
                     {
                         // Leaving the character out would make the metadata disagree with the information dictionary,
                         // and there is no escape for it, so the document is refused rather than described wrongly.

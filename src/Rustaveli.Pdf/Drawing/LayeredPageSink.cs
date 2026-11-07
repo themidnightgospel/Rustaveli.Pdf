@@ -18,7 +18,9 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
     private readonly TransformTracker _transform = new TransformTracker();
     private Change? _state;
 
-    /// <summary>The element drawings are made in, and whether any has been named: untagged output never names one.</summary>
+    /// <summary>
+    /// The element drawings are made in, and whether any has been named: untagged output never names one.
+    /// </summary>
     private StructureElement? _tag;
     private bool _tagged;
 
@@ -110,16 +112,19 @@ internal sealed class LayeredPageSink(IPageSink pages) : IPageSink
         _transform.Concatenate(a, b, c, d, e, f);
     }
 
-    public void ClipPath(VectorPath path, FillRule rule) => _state = new Change(_state, surface => surface.ClipPath(path, rule));
+    public void ClipPath(VectorPath path, FillRule rule) =>
+        _state = new Change(_state, surface => surface.ClipPath(path, rule));
 
     public void FillPath(VectorPath path, Ink ink, FillRule rule) => Hold(surface => surface.FillPath(path, ink, rule));
 
-    public void StrokePath(VectorPath path, Ink ink, LineStyle style) => Hold(surface => surface.StrokePath(path, ink, style));
+    public void StrokePath(VectorPath path, Ink ink, LineStyle style) =>
+        Hold(surface => surface.StrokePath(path, ink, style));
 
     public void FillRectangle(Offset topLeft, Extent size, Ink ink) =>
         Hold(surface => surface.FillRectangle(topLeft, size, ink));
 
-    public void DrawRoundedRectangle(Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f) =>
+    public void DrawRoundedRectangle(
+        Offset position, Extent size, Corners corners, Ink color, float strokeWidth = 0f) =>
         Hold(surface => surface.DrawRoundedRectangle(position, size, corners, color, strokeWidth));
 
     public void DrawLine(Offset from, Offset to, float thickness, Ink color, StrokeStyle style = StrokeStyle.Solid) =>

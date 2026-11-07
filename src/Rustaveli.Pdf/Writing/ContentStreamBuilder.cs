@@ -34,7 +34,9 @@ internal sealed class ContentStreamBuilder : IDisposable
     /// <summary>How many marked sequences are waiting for their <c>EMC</c>.</summary>
     public int MarkedDepth { get; private set; }
 
-    /// <summary>Throws unless every saved state has been restored, every text object ended and every marked sequence closed.</summary>
+    /// <summary>
+    /// Throws unless every saved state has been restored, every text object ended and every marked sequence closed.
+    /// </summary>
     public void EnsureComplete()
     {
         if (InTextObject)

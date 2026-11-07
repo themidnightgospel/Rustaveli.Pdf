@@ -14,10 +14,13 @@ namespace Rustaveli.Pdf.Layout;
 /// </remarks>
 internal static class SourceCapture
 {
-    /// <summary>The library's own assemblies, whose frames lie between a block and the code that asked for it.</summary>
+    /// <summary>
+    /// The library's own assemblies, whose frames lie between a block and the code that asked for it.
+    /// </summary>
     private static readonly HashSet<string> Library = new HashSet<string>(StringComparer.Ordinal)
     {
-        "Rustaveli.Pdf", "Rustaveli.Pdf.Operations", "Rustaveli.Pdf.Preview", "Rustaveli.Pdf.Raster", "Rustaveli.Pdf.Shaping",
+        "Rustaveli.Pdf", "Rustaveli.Pdf.Operations", "Rustaveli.Pdf.Preview", "Rustaveli.Pdf.Raster",
+        "Rustaveli.Pdf.Shaping",
     };
 
     [ThreadStatic]
@@ -45,7 +48,8 @@ internal static class SourceCapture
         {
             string? assembly = frame.GetMethod()?.DeclaringType?.Assembly.GetName().Name;
 
-            if (assembly is null || Library.Contains(assembly) || assembly.StartsWith("System", StringComparison.Ordinal))
+            if (assembly is null || Library.Contains(assembly)
+                || assembly.StartsWith("System", StringComparison.Ordinal))
                 continue;
 
             // Code built without its symbols, such as a helper package, is passed through to the code that called it.

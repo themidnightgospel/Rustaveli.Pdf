@@ -134,8 +134,8 @@ internal sealed class PdfFileWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes <paramref name="value"/> as a new indirect object at its own offset, never in an object stream, and returns
-    /// its reference.
+    /// Writes <paramref name="value"/> as a new indirect object at its own offset, never in an object stream, and
+    /// returns its reference.
     /// </summary>
     public PdfReference WriteOutsideObjectStreams(PdfValue value)
     {
@@ -278,7 +278,8 @@ internal sealed class PdfFileWriter : IDisposable
         return width;
     }
 
-    private static PdfDictionary Trailer(int size, PdfReference root, PdfReference? info, byte[] id, PdfReference? encrypt)
+    private static PdfDictionary Trailer(
+        int size, PdfReference root, PdfReference? info, byte[] id, PdfReference? encrypt)
     {
         PdfDictionary trailer = new PdfDictionary
         {

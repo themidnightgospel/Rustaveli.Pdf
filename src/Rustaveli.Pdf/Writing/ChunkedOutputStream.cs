@@ -10,7 +10,9 @@ namespace Rustaveli.Pdf.Writing;
 /// <remarks>Disposing it returns the chunks to the pool, so what was written does not survive it.</remarks>
 internal sealed class ChunkedOutputStream : Stream
 {
-    /// <summary>The size of each chunk: large enough that a file takes few, small enough to stay off the large object heap.</summary>
+    /// <summary>
+    /// The size of each chunk: large enough that a file takes few, small enough to stay off the large object heap.
+    /// </summary>
     internal const int ChunkSize = 64 * 1024;
 
     private readonly long _maximumLength;
@@ -26,7 +28,10 @@ internal sealed class ChunkedOutputStream : Stream
     {
     }
 
-    /// <summary>A stream holding at most <paramref name="maximumLength"/> bytes; a <c>MemoryStream</c> holds <see cref="int.MaxValue"/>.</summary>
+    /// <summary>
+    /// A stream holding at most <paramref name="maximumLength"/> bytes; a <c>MemoryStream</c> holds
+    /// <see cref="int.MaxValue"/>.
+    /// </summary>
     internal ChunkedOutputStream(long maximumLength) => _maximumLength = maximumLength;
 
     public override bool CanRead => false;
