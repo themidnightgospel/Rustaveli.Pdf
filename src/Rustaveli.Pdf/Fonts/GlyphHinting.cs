@@ -28,7 +28,8 @@ internal static class GlyphHinting
     /// <summary>Whether the font named <paramref name="names"/> draws its glyphs wrongly without its hinting.</summary>
     public static bool IsNeededBy(FontNames names) =>
         AssembledByInstructions.Any(part =>
-            names.Family.Contains(part, StringComparison.Ordinal) || names.PreferredFamily.Contains(part, StringComparison.Ordinal));
+            names.Family.Contains(part, StringComparison.Ordinal)
+            || names.PreferredFamily.Contains(part, StringComparison.Ordinal));
 
     /// <summary>
     /// Appends <paramref name="glyph"/> to <paramref name="output"/> without its instructions, outline unchanged; a

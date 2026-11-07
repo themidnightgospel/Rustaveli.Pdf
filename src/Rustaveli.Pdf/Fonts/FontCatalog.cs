@@ -44,7 +44,9 @@ internal sealed class FontCatalog
     /// <summary>A catalog of registered fonts only, whose output cannot depend on the machine.</summary>
     public static FontCatalog WithoutSystemFonts() => new FontCatalog(SystemFontIndex.Empty);
 
-    /// <summary>Registers every face of a font file held in memory, also under <paramref name="alias"/> when given.</summary>
+    /// <summary>
+    /// Registers every face of a font file held in memory, also under <paramref name="alias"/> when given.
+    /// </summary>
     /// <exception cref="FontFormatException">The data is not a font this library can read.</exception>
     public IReadOnlyList<FontFaceInfo> Register(ReadOnlyMemory<byte> data, string? alias = null) =>
         Register(new FontFileSource(data), alias);
@@ -162,7 +164,9 @@ internal sealed class FontCatalog
     {
         IReadOnlyList<OpenTypeFont> fonts = OpenTypeFont.LoadAll(source.Data);
         string? name = string.IsNullOrWhiteSpace(alias) ? null : alias!.Trim();
-        FontFaceInfo[] faces = fonts.Select(font => FontFaceInfo.FromFont(source, font, registered: true, name)).ToArray();
+        FontFaceInfo[] faces = fonts
+            .Select(font => FontFaceInfo.FromFont(source, font, registered: true, name))
+            .ToArray();
 
         lock (_registrationLock)
         {

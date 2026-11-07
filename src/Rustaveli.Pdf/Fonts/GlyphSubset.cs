@@ -78,7 +78,9 @@ internal sealed class GlyphSubset
         }
     }
 
-    /// <summary>For each code from <see cref="FirstSharedCode"/> on, the subset glyph id it shows and what it reads as.</summary>
+    /// <summary>
+    /// For each code from <see cref="FirstSharedCode"/> on, the subset glyph id it shows and what it reads as.
+    /// </summary>
     public IReadOnlyList<(ushort Glyph, string Text)> SharedCodes
     {
         get
@@ -180,8 +182,11 @@ internal sealed class GlyphSubset
             codepoint is >= 0 and <= Utf16.MaxCodepoint and (< 0xD800 or > 0xDFFF) ? codepoint : 0xFFFD);
 
     /// <summary>Builds the subset font, keeping every subset glyph id handed out so far.</summary>
-    /// <param name="keepHinting">Whether the glyphs keep their hinting, which fonts that need it keep regardless.</param>
-    public TrueTypeSubset Build(bool keepHinting = false) => TrueTypeSubsetter.SubsetInOrder(Font, OriginalGlyphIds, keepHinting);
+    /// <param name="keepHinting">
+    /// Whether the glyphs keep their hinting, which fonts that need it keep regardless.
+    /// </param>
+    public TrueTypeSubset Build(bool keepHinting = false) =>
+        TrueTypeSubsetter.SubsetInOrder(Font, OriginalGlyphIds, keepHinting);
 
     /// <summary>
     /// Whether a use shows what the glyph's own code reads as, or offers nothing to tell: checked without building
@@ -195,7 +200,9 @@ internal sealed class GlyphSubset
         if (codepoint == NoCodepoint)
             return true;
 
-        return recorded is not null && recorded.Length == (codepoint > 0xFFFF ? 2 : 1) && char.ConvertToUtf32(recorded, 0) == codepoint;
+        return recorded is not null
+            && recorded.Length == (codepoint > 0xFFFF ? 2 : 1)
+            && char.ConvertToUtf32(recorded, 0) == codepoint;
     }
 
     private ushort Number(ushort glyph, string? offered)
@@ -204,7 +211,8 @@ internal sealed class GlyphSubset
         ushort number = (ushort)_glyphs.Count;
 
         if (number >= FirstSharedCode)
-            throw new InvalidOperationException($"A document can use at most {FirstSharedCode - 1} glyphs of one font.");
+            throw new InvalidOperationException(
+                $"A document can use at most {FirstSharedCode - 1} glyphs of one font.");
 
         _glyphs.Add(glyph);
 
@@ -228,7 +236,8 @@ internal sealed class GlyphSubset
             return code;
 
         if (_sharedCodes.Count > ushort.MaxValue - FirstSharedCode)
-            throw new InvalidOperationException("A document can show glyphs of one font with at most 32768 other texts.");
+            throw new InvalidOperationException(
+                "A document can show glyphs of one font with at most 32768 other texts.");
 
         code = (ushort)(FirstSharedCode + _sharedCodes.Count);
         _sharedCodes.Add((number, offered));

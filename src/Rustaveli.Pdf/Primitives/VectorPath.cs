@@ -10,7 +10,9 @@ namespace Rustaveli.Pdf;
 /// </remarks>
 public sealed class VectorPath
 {
-    /// <summary>Control-point distance, as a fraction of the radius, of a cubic Bézier approximating a quarter circle.</summary>
+    /// <summary>
+    /// Control-point distance, as a fraction of the radius, of a cubic Bézier approximating a quarter circle.
+    /// </summary>
     internal const double Kappa = 0.5522847498307936;
 
     private readonly List<PathVerb> _verbs = [];
@@ -24,7 +26,9 @@ public sealed class VectorPath
 
     internal IReadOnlyList<PathVerb> Verbs => _verbs;
 
-    /// <summary>The points each verb takes, in order: one for a move or line, three for a curve, none for a close.</summary>
+    /// <summary>
+    /// The points each verb takes, in order: one for a move or line, three for a curve, none for a close.
+    /// </summary>
     internal IReadOnlyList<Offset> Points => _points;
 
     /// <summary>
@@ -54,7 +58,9 @@ public sealed class VectorPath
         return this;
     }
 
-    /// <summary>A cubic Bézier curve to (<paramref name="x"/>, <paramref name="y"/>) through two control points.</summary>
+    /// <summary>
+    /// A cubic Bézier curve to (<paramref name="x"/>, <paramref name="y"/>) through two control points.
+    /// </summary>
     public VectorPath CurveTo(float x1, float y1, float x2, float y2, float x, float y)
     {
         StartIfNeeded();
@@ -66,7 +72,9 @@ public sealed class VectorPath
         return this;
     }
 
-    /// <summary>A quadratic Bézier curve to (<paramref name="x"/>, <paramref name="y"/>) through one control point.</summary>
+    /// <summary>
+    /// A quadratic Bézier curve to (<paramref name="x"/>, <paramref name="y"/>) through one control point.
+    /// </summary>
     public VectorPath QuadraticTo(float controlX, float controlY, float x, float y)
     {
         StartIfNeeded();
@@ -83,10 +91,11 @@ public sealed class VectorPath
     }
 
     /// <summary>
-    /// An elliptical arc to (<paramref name="x"/>, <paramref name="y"/>), as SVG draws one: radii, the ellipse's turn in
-    /// degrees, and which of the four possible arcs — the large or the small, clockwise or not.
+    /// An elliptical arc to (<paramref name="x"/>, <paramref name="y"/>), as SVG draws one: radii, the ellipse's turn
+    /// in degrees, and which of the four possible arcs — the large or the small, clockwise or not.
     /// </summary>
-    public VectorPath ArcTo(float radiusX, float radiusY, float rotation, bool largeArc, bool clockwise, float x, float y)
+    public VectorPath ArcTo(
+        float radiusX, float radiusY, float rotation, bool largeArc, bool clockwise, float x, float y)
     {
         StartIfNeeded();
         Offset start = _current;
@@ -104,7 +113,8 @@ public sealed class VectorPath
         double cos = Math.Cos(phi);
         double sin = Math.Sin(phi);
 
-        // The endpoints moved to the ellipse's own axes, from the midpoint between them (SVG implementation notes, F.6.5).
+        // The endpoints moved to the ellipse's own axes, from the midpoint between them (SVG implementation notes,
+        // F.6.5).
         double dx = (start.X - x) / 2.0;
         double dy = (start.Y - y) / 2.0;
         double x1 = (cos * dx) + (sin * dy);
@@ -188,7 +198,9 @@ public sealed class VectorPath
     public VectorPath AddRectangle(float x, float y, float width, float height) =>
         MoveTo(x, y).LineTo(x + width, y).LineTo(x + width, y + height).LineTo(x, y + height).Close();
 
-    /// <summary>A rectangle with each corner rounded to its own radius, fitted to the rectangle as CSS fits them.</summary>
+    /// <summary>
+    /// A rectangle with each corner rounded to its own radius, fitted to the rectangle as CSS fits them.
+    /// </summary>
     public VectorPath AddRoundedRectangle(float x, float y, float width, float height, Corners corners)
     {
         Corners radii = corners.FittedTo(new Extent(width, height));
@@ -211,14 +223,23 @@ public sealed class VectorPath
         return Close();
 
         // A quarter circle from one point to the next, leaving in one direction and arriving in another.
-        void Corner(float fromX, float fromY, float toX, float toY, float radius, float outX, float outY, float inX, float inY)
+        void Corner(
+            float fromX, float fromY, float toX, float toY, float radius, float outX, float outY, float inX, float inY)
         {
             if (radius > 0)
-                CurveTo(fromX + (outX * radius * k), fromY + (outY * radius * k), toX - (inX * radius * k), toY - (inY * radius * k), toX, toY);
+                CurveTo(
+                    fromX + (outX * radius * k),
+                    fromY + (outY * radius * k),
+                    toX - (inX * radius * k),
+                    toY - (inY * radius * k),
+                    toX,
+                    toY);
         }
     }
 
-    /// <summary>An ellipse centred at (<paramref name="centreX"/>, <paramref name="centreY"/>), as a closed figure.</summary>
+    /// <summary>
+    /// An ellipse centred at (<paramref name="centreX"/>, <paramref name="centreY"/>), as a closed figure.
+    /// </summary>
     public VectorPath AddEllipse(float centreX, float centreY, float radiusX, float radiusY)
     {
         float kx = (float)(radiusX * Kappa);
@@ -236,8 +257,11 @@ public sealed class VectorPath
             .Close();
     }
 
-    /// <summary>A circle centred at (<paramref name="centreX"/>, <paramref name="centreY"/>), as a closed figure.</summary>
-    public VectorPath AddCircle(float centreX, float centreY, float radius) => AddEllipse(centreX, centreY, radius, radius);
+    /// <summary>
+    /// A circle centred at (<paramref name="centreX"/>, <paramref name="centreY"/>), as a closed figure.
+    /// </summary>
+    public VectorPath AddCircle(float centreX, float centreY, float radius) =>
+        AddEllipse(centreX, centreY, radius, radius);
 
     /// <summary>
     /// Adds every figure of <paramref name="path"/>, each point mapped (x, y) to (a·x + c·y + e, b·x + d·y + f): a
@@ -288,7 +312,9 @@ public sealed class VectorPath
         return copy;
     }
 
-    /// <summary>The box every point of the path, control points included, lies within; empty for an empty path.</summary>
+    /// <summary>
+    /// The box every point of the path, control points included, lies within; empty for an empty path.
+    /// </summary>
     internal (Offset Position, Extent Size) Bounds()
     {
         if (_points.Count == 0)

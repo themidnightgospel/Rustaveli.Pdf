@@ -26,7 +26,8 @@ public readonly record struct Corners(float TopLeft, float TopRight, float Botto
     /// </summary>
     internal Corners FittedTo(Extent size)
     {
-        Corners corners = new Corners(Math.Max(0, TopLeft), Math.Max(0, TopRight), Math.Max(0, BottomRight), Math.Max(0, BottomLeft));
+        Corners corners = new Corners(
+            Math.Max(0, TopLeft), Math.Max(0, TopRight), Math.Max(0, BottomRight), Math.Max(0, BottomLeft));
         float scale = 1f;
 
         scale = Math.Min(scale, Room(size.Width, corners.TopLeft + corners.TopRight));
@@ -36,7 +37,11 @@ public readonly record struct Corners(float TopLeft, float TopRight, float Botto
 
         return scale >= 1f
             ? corners
-            : new Corners(corners.TopLeft * scale, corners.TopRight * scale, corners.BottomRight * scale, corners.BottomLeft * scale);
+            : new Corners(
+                corners.TopLeft * scale,
+                corners.TopRight * scale,
+                corners.BottomRight * scale,
+                corners.BottomLeft * scale);
     }
 
     /// <summary>

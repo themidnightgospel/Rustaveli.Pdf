@@ -10,7 +10,9 @@ internal sealed record CffDictEntry(int Operator, double[] Operands, int Start, 
     /// Operand <paramref name="index"/>, the first by default, as an integer; a DICT written otherwise is not a font.
     /// </summary>
     public int Integer(int index = 0) =>
-        index < Operands.Length && Operands[index] == Math.Floor(Operands[index]) && Math.Abs(Operands[index]) <= int.MaxValue
+        index < Operands.Length
+        && Operands[index] == Math.Floor(Operands[index])
+        && Math.Abs(Operands[index]) <= int.MaxValue
             ? (int)Operands[index]
             : throw new FontFormatException($"CFF DICT operator {Operator} lacks the integer operand it needs.");
 }

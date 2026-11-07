@@ -66,8 +66,11 @@ internal static class TrueTypeSubsetter
     /// </summary>
     /// <param name="font">The font to subset.</param>
     /// <param name="numbering">Original glyph ids in subset order; the first must be 0, and none may repeat.</param>
-    /// <param name="keepHinting">Whether the glyphs keep their hinting, which fonts that need it keep regardless.</param>
-    public static TrueTypeSubset SubsetInOrder(OpenTypeFont font, IReadOnlyList<ushort> numbering, bool keepHinting = false)
+    /// <param name="keepHinting">
+    /// Whether the glyphs keep their hinting, which fonts that need it keep regardless.
+    /// </param>
+    public static TrueTypeSubset SubsetInOrder(
+        OpenTypeFont font, IReadOnlyList<ushort> numbering, bool keepHinting = false)
     {
         ArgumentNullException.ThrowIfNull(font);
         ArgumentNullException.ThrowIfNull(numbering);

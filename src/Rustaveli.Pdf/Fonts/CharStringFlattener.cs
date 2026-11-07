@@ -246,7 +246,9 @@ internal sealed class CharStringFlattener
         _operandCount = 0;
     }
 
-    /// <summary>Writes out the operands not yet written; they stay on the stack until an operator consumes them.</summary>
+    /// <summary>
+    /// Writes out the operands not yet written; they stay on the stack until an operator consumes them.
+    /// </summary>
     private void WritePending()
     {
         foreach ((int start, int length, _) in _pending)

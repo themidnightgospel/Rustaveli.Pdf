@@ -73,8 +73,12 @@ internal sealed class FontFaceInfo
     public bool IsLoaded => Volatile.Read(ref _font).IsValueCreated;
 
     /// <summary>Describes a face already loaded, as a registered font is, keeping that very instance.</summary>
-    public static FontFaceInfo FromFont(FontFileSource source, OpenTypeFont font, bool registered, string? alias = null) =>
-        new FontFaceInfo(source, font.FaceIndex, font.Names, font.Style, font.Outlines, registered, font) { Alias = alias };
+    public static FontFaceInfo FromFont(
+        FontFileSource source, OpenTypeFont font, bool registered, string? alias = null) =>
+        new FontFaceInfo(source, font.FaceIndex, font.Names, font.Style, font.Outlines, registered, font)
+        {
+            Alias = alias,
+        };
 
     /// <summary>The font, loaded on first call and kept.</summary>
     /// <exception cref="FontFormatException">The file is not a font this library can read.</exception>

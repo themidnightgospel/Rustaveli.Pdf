@@ -5,7 +5,9 @@ namespace Rustaveli.Pdf;
 /// </summary>
 public enum StrokeAlignment
 {
-    /// <summary>Within the frame, its outer edge on the frame's. The default: it never reaches past the frame.</summary>
+    /// <summary>
+    /// Within the frame, its outer edge on the frame's. The default: it never reaches past the frame.
+    /// </summary>
     Inside,
 
     /// <summary>Centred on the frame's edge, half within and half beyond.</summary>

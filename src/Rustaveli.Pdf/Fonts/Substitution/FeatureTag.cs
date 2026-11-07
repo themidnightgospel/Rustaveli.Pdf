@@ -30,7 +30,9 @@ internal readonly record struct FeatureTag(uint Value)
     /// <summary><c>liga</c>: the ligatures set by default, such as fi and ffl.</summary>
     public static readonly FeatureTag StandardLigatures = Parse("liga");
 
-    /// <summary><c>rclt</c>: contextual alternates a script cannot be written without, which calt cannot turn off.</summary>
+    /// <summary>
+    /// <c>rclt</c>: contextual alternates a script cannot be written without, which calt cannot turn off.
+    /// </summary>
     public static readonly FeatureTag RequiredContextualAlternates = Parse("rclt");
 
     /// <summary><c>dlig</c>: ligatures for special effect, off by default.</summary>
