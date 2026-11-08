@@ -85,7 +85,10 @@ public class OutputTests
             ["accessible"] = accessible,
         });
 
-        Assert.True(broken.Values.All(rules => rules.Count == 0), "veraPDF found:\n" + string.Join("\n", broken.SelectMany(file => file.Value.Select(rule => file.Key + ": " + rule))));
+        Assert.True(
+            broken.Values.All(rules => rules.Count == 0),
+            "veraPDF found:\n"
+            + string.Join("\n", broken.SelectMany(file => file.Value.Select(rule => file.Key + ": " + rule))));
     }
 
     [Fact]

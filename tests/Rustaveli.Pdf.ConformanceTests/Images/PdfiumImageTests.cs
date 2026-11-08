@@ -19,7 +19,8 @@ public class PdfiumImageTests(ITestOutputHelper output)
 
     public static TheoryData<string> Pngs => new TheoryData<string>(Fixtures(".png"));
 
-    public static TheoryData<string> Jpegs => new TheoryData<string>(Fixtures(".jpg").Where(name => !name.Contains("cmyk")));
+    public static TheoryData<string> Jpegs =>
+        new TheoryData<string>(Fixtures(".jpg").Where(name => !name.Contains("cmyk")));
 
     private static IEnumerable<string> Fixtures(string extension) =>
         Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "assets", "images"), "*" + extension)
@@ -27,14 +28,16 @@ public class PdfiumImageTests(ITestOutputHelper output)
             .Where(name => !name.StartsWith("x", StringComparison.Ordinal))
             .OrderBy(name => name, StringComparer.Ordinal);
 
-    private static byte[] Fixture(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "assets", "images", name));
+    private static byte[] Fixture(string name) =>
+        File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "assets", "images", name));
 
     /// <summary>Skia's decoding of the file, composited over white, as RGB.</summary>
     private static byte[] Expected(byte[] file)
     {
         using SKData data = SKData.CreateCopy(file);
         using SKCodec codec = SKCodec.Create(data);
-        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        SKImageInfo info = new SKImageInfo(
+            codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
         using SKBitmap bitmap = new SKBitmap(info);
         Assert.Equal(SKCodecResult.Success, codec.GetPixels(info, bitmap.GetPixels()));
 
@@ -44,7 +47,8 @@ public class PdfiumImageTests(ITestOutputHelper output)
         {
             int alpha = rgba[(pixel * 4) + 3];
             for (int channel = 0; channel < 3; channel++)
-                rgb[(pixel * 3) + channel] = (byte)(((rgba[(pixel * 4) + channel] * alpha) + (255 * (255 - alpha)) + 127) / 255);
+                rgb[(pixel * 3) + channel] =
+                    (byte)(((rgba[(pixel * 4) + channel] * alpha) + (255 * (255 - alpha)) + 127) / 255);
         }
 
         return rgb;

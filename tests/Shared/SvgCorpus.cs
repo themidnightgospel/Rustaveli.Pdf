@@ -20,21 +20,25 @@ public static class SvgCorpus
         "structure/svg/zero-size.svg",
     };
 
-    /// <summary>Every document, by its path under the corpus with forward slashes, which is how a test names it.</summary>
+    /// <summary>
+    /// Every document, by its path under the corpus with forward slashes, which is how a test names it.
+    /// </summary>
     public static TheoryData<string> Documents
     {
         get
         {
             TheoryData<string> documents = new TheoryData<string>();
 
-            foreach (string file in Directory.EnumerateFiles(Folder, "*.svg", SearchOption.AllDirectories).OrderBy(file => file, StringComparer.Ordinal))
+            foreach (string file in Directory.EnumerateFiles(Folder, "*.svg", SearchOption.AllDirectories)
+                .OrderBy(file => file, StringComparer.Ordinal))
                 documents.Add(file.Substring(Folder.Length + 1).Replace('\\', '/'));
 
             return documents;
         }
     }
 
-    public static string PathOf(string document) => Path.Combine(Folder, document.Replace('/', Path.DirectorySeparatorChar));
+    public static string PathOf(string document) =>
+        Path.Combine(Folder, document.Replace('/', Path.DirectorySeparatorChar));
 
     /// <summary>
     /// The size, in points, a document gives itself where it says so plainly: a width and height in pixels, or a view
@@ -45,11 +49,15 @@ public static class SvgCorpus
         XmlReaderSettings settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Parse, XmlResolver = null };
         using XmlReader reader = XmlReader.Create(PathOf(document), settings);
         XElement root = XDocument.Load(reader).Root!;
-        float[]? viewBox = ((string?)root.Attribute("viewBox"))?.Split([' ', ',', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(value => float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number) ? number : float.NaN)
+        float[]? viewBox = ((string?)root.Attribute("viewBox"))
+            ?.Split([' ', ',', '\t', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(value => float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float number)
+                ? number
+                : float.NaN)
             .ToArray();
 
-        if (viewBox is not null && (viewBox.Length != 4 || viewBox.Any(float.IsNaN) || !(viewBox[2] > 0) || !(viewBox[3] > 0)))
+        if (viewBox is not null
+            && (viewBox.Length != 4 || viewBox.Any(float.IsNaN) || !(viewBox[2] > 0) || !(viewBox[3] > 0)))
             return null;
 
         float? width = Pixels((string?)root.Attribute("width"), viewBox?[2] ?? 300);
@@ -68,6 +76,8 @@ public static class SvgCorpus
         if (number.EndsWith("px", StringComparison.Ordinal))
             number = number.Substring(0, number.Length - 2);
 
-        return float.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out float pixels) ? pixels : null;
+        return float.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out float pixels)
+            ? pixels
+            : null;
     }
 }

@@ -13,8 +13,11 @@ public class OtherWritersTests
 {
     private const string Password = "reader";
 
-    /// <summary>qpdf's arguments for each way of laying a file out, around <c>{input}</c> and <c>{output}</c>.</summary>
-    private static readonly Dictionary<string, string[]> Layouts = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    /// <summary>
+    /// qpdf's arguments for each way of laying a file out, around <c>{input}</c> and <c>{output}</c>.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> Layouts = new Dictionary<string, string[]>(
+        StringComparer.Ordinal)
     {
         ["object streams"] = ["--object-streams=generate", "{input}", "{output}"],
         ["no object streams"] = ["--object-streams=disable", "{input}", "{output}"],
@@ -25,7 +28,8 @@ public class OtherWritersTests
         ["line end before endstream"] = ["--newline-before-endstream", "{input}", "{output}"],
         ["AES-256"] = ["--encrypt", Password, "owner", "256", "--", "{input}", "{output}"],
         ["AES-128"] = ["--encrypt", Password, "owner", "128", "--use-aes=y", "--", "{input}", "{output}"],
-        ["RC4-128"] = ["--allow-weak-crypto", "--encrypt", Password, "owner", "128", "--use-aes=n", "--", "{input}", "{output}"],
+        ["RC4-128"] =
+            ["--allow-weak-crypto", "--encrypt", Password, "owner", "128", "--use-aes=n", "--", "{input}", "{output}"],
         ["RC4-40"] = ["--allow-weak-crypto", "--encrypt", Password, "owner", "40", "--", "{input}", "{output}"],
     };
 

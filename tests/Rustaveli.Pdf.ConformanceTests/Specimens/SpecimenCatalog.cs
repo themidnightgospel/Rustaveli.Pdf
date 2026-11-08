@@ -51,9 +51,9 @@ public static class SpecimenCatalog
     /// a CID-keyed Chinese face whose glyphs come from several font dicts, and a face with no subroutines at all.
     /// </summary>
     /// <summary>
-    /// Content decided page by page or only when layout reaches it: a ledger composed for each page it reaches, bringing
-    /// its total forward and carrying it on; then content composed late, content let past its frame, placeholders, a
-    /// frame turned on its side and one held to a proportion.
+    /// Content decided page by page or only when layout reaches it: a ledger composed for each page it reaches,
+    /// bringing its total forward and carrying it on; then content composed late, content let past its frame,
+    /// placeholders, a frame turned on its side and one held to a proportion.
     /// </summary>
     private static Document PerPageContent() => Document.Compose(composition => composition.Section(section =>
     {
@@ -66,8 +66,10 @@ public static class SpecimenCatalog
             stack.SpaceBetween(10f);
             stack.Add().Text(text => text.Run("Ledger, composed for each page").PointSize(14f).Bold());
             stack.Add().ComposePerPage(new Ledger(entries: 40));
-            stack.Add().ComposeLater(frame => frame.Fill(TestInks.LimeLighten3).Inset(6f).Text("Composed only when layout reached it."));
-            stack.Add().Height(14f).Unbounded().Text("Unbounded: this line may run past the frame it was given, and is drawn whole.");
+            stack.Add().ComposeLater(
+                frame => frame.Fill(TestInks.LimeLighten3).Inset(6f).Text("Composed only when layout reached it."));
+            stack.Add().Height(14f).Unbounded()
+                .Text("Unbounded: this line may run past the frame it was given, and is drawn whole.");
 
             stack.Add().Columns(columns =>
             {
@@ -81,7 +83,9 @@ public static class SpecimenCatalog
         });
     }));
 
-    /// <summary>Ledger entries, as many on each page as it holds, bringing the running total forward and carrying it on.</summary>
+    /// <summary>
+    /// Ledger entries, as many on each page as it holds, bringing the running total forward and carrying it on.
+    /// </summary>
     private sealed class Ledger(int entries) : IDynamicContent<int>
     {
         private const float RowHeight = 16f;
@@ -99,7 +103,8 @@ public static class SpecimenCatalog
                 frame => frame.Stack(stack =>
                 {
                     if (state > 0)
-                        stack.Add().Height(RowHeight).FlushRight().Text("Brought forward " + Total(state).ToString(CultureInfo.InvariantCulture));
+                        stack.Add().Height(RowHeight).FlushRight()
+                            .Text("Brought forward " + Total(state).ToString(CultureInfo.InvariantCulture));
 
                     for (int entry = state; entry < next; entry++)
                     {
@@ -111,7 +116,8 @@ public static class SpecimenCatalog
                     }
 
                     if (next < entries)
-                        stack.Add().Height(RowHeight).FlushRight().Text("Carried forward " + Total(next).ToString(CultureInfo.InvariantCulture));
+                        stack.Add().Height(RowHeight).FlushRight()
+                            .Text("Carried forward " + Total(next).ToString(CultureInfo.InvariantCulture));
                 }),
                 next,
                 next < entries);
@@ -129,7 +135,8 @@ public static class SpecimenCatalog
         stack.Add().Text(text =>
         {
             text.DefaultType(type => type.WithTypeface("Specimen Subrs").WithPointSize(16f));
-            text.Run("Subroutines, written out: the quick brown fox jumps over the lazy dog. ÅÉÎÕÜ åéîõü ©®±¼ 0123456789");
+            text.Run(
+                "Subroutines, written out: the quick brown fox jumps over the lazy dog. ÅÉÎÕÜ åéîõü ©®±¼ 0123456789");
         });
 
         stack.Add().Text(text =>
@@ -182,10 +189,13 @@ public static class SpecimenCatalog
         });
     }));
 
-    /// <summary>Paragraph settings: justification, alignment by direction, line limits, breaking anywhere, inline frames.</summary>
+    /// <summary>
+    /// Paragraph settings: justification, alignment by direction, line limits, breaking anywhere, inline frames.
+    /// </summary>
     private static Document Paragraphs() => Page(content => content.Stack(stack =>
     {
-        const string Prose = "Typesetting is the composition of text by means of arranging physical type or its digital "
+        const string Prose =
+            "Typesetting is the composition of text by means of arranging physical type or its digital "
             + "equivalents. Stored letters and other symbols are retrieved and ordered according to a language's "
             + "orthography for visual display.";
 
@@ -228,7 +238,11 @@ public static class SpecimenCatalog
         {
             text.DefaultType(type => type.WithPointSize(14f));
 
-            foreach (InlinePosition position in new[] { InlinePosition.OnBaseline, InlinePosition.BelowBaseline, InlinePosition.TextTop, InlinePosition.TextBottom, InlinePosition.Middle })
+            foreach (InlinePosition position in new[]
+            {
+                InlinePosition.OnBaseline, InlinePosition.BelowBaseline, InlinePosition.TextTop,
+                InlinePosition.TextBottom, InlinePosition.Middle
+            })
             {
                 text.Run(" " + position + " ");
                 text.Inline(frame => frame.Width(10f).Height(10f).Fill(TestInks.Teal), position);
@@ -241,7 +255,10 @@ public static class SpecimenCatalog
     {
         stack.SpaceBetween(12f);
 
-        foreach (StrokeStyle style in new[] { StrokeStyle.Solid, StrokeStyle.Double, StrokeStyle.Dotted, StrokeStyle.Dashed, StrokeStyle.Wavy })
+        foreach (StrokeStyle style in new[]
+        {
+            StrokeStyle.Solid, StrokeStyle.Double, StrokeStyle.Dotted, StrokeStyle.Dashed, StrokeStyle.Wavy
+        })
         {
             stack.Add().Text(text =>
             {
@@ -355,8 +372,10 @@ public static class SpecimenCatalog
             table.HeaderRows(header =>
             {
                 header.Cell().Fill(TestInks.Indigo).Inset(4f).Text(text => text.Run("Code").Bold().Ink(TestInks.White));
-                header.Cell().Fill(TestInks.Indigo).Inset(4f).Text(text => text.Run("Description").Bold().Ink(TestInks.White));
-                header.Cell().Fill(TestInks.Indigo).Inset(4f).FlushRight().Text(text => text.Run("Amount").Bold().Ink(TestInks.White));
+                header.Cell().Fill(TestInks.Indigo).Inset(4f)
+                    .Text(text => text.Run("Description").Bold().Ink(TestInks.White));
+                header.Cell().Fill(TestInks.Indigo).Inset(4f).FlushRight()
+                    .Text(text => text.Run("Amount").Bold().Ink(TestInks.White));
             });
             for (int index = 1; index <= 6; index++)
             {
@@ -409,7 +428,8 @@ public static class SpecimenCatalog
             columns.Fixed(120f).ShiftAcross(10f).ShiftDown(6f).Fill(TestInks.PinkLighten3).Inset(6f).Text("moved");
         });
 
-        stack.Add().Width(160f).Height(24f).ShrinkToFit().Text("Scaled down until this whole sentence fits the box it was given.");
+        stack.Add().Width(160f).Height(24f).ShrinkToFit()
+            .Text("Scaled down until this whole sentence fits the box it was given.");
 
         stack.Add().Width(120f).Proportion(2f).Fill(TestInks.LimeLighten3).Centered().Middle().Text("2 : 1");
     }));
@@ -441,10 +461,13 @@ public static class SpecimenCatalog
             art.Fill(new VectorPath().AddCircle(50, 60, 40), TestInks.TealLighten3);
             art.Stroke(new VectorPath().AddCircle(50, 60, 40), TestInks.Grey, new LineStyle(3));
 
-            VectorPath wave = new VectorPath().MoveTo(110, 100).CurveTo(130, 10, 170, 10, 190, 100).QuadraticTo(210, 140, 230, 60);
+            VectorPath wave = new VectorPath().MoveTo(110, 100).CurveTo(130, 10, 170, 10, 190, 100)
+                .QuadraticTo(210, 140, 230, 60);
             art.Stroke(wave, TestInks.Grey, new LineStyle(4, LineCap.Round));
 
-            VectorPath arc = new VectorPath().MoveTo(250, 90).ArcTo(40, 25, 20, largeArc: true, clockwise: true, 330, 60).Close();
+            VectorPath arc = new VectorPath().MoveTo(250, 90)
+                .ArcTo(40, 25, 20, largeArc: true, clockwise: true, 330, 60)
+                .Close();
             art.Fill(arc, TestInks.AmberLighten3);
             art.Stroke(arc, TestInks.Grey, new LineStyle(2, Join: LineJoin.Round));
 
@@ -463,15 +486,23 @@ public static class SpecimenCatalog
             art.Translate(80, 0);
             art.Stroke(zigzag, TestInks.Grey, new LineStyle(10, LineCap.Square, LineJoin.Bevel));
             art.Translate(80, 0);
-            art.Stroke(new VectorPath().MoveTo(0, 50).LineTo(140, 50), TestInks.Grey, new LineStyle(3, Dashes: [12, 4, 2, 4]));
-            art.Stroke(new VectorPath().MoveTo(0, 70).LineTo(140, 70), TestInks.Grey, new LineStyle(3, LineCap.Round, Dashes: [0, 8]));
+            art.Stroke(
+                new VectorPath().MoveTo(0, 50).LineTo(140, 50),
+                TestInks.Grey,
+                new LineStyle(3, Dashes: [12, 4, 2, 4]));
+            art.Stroke(
+                new VectorPath().MoveTo(0, 70).LineTo(140, 70),
+                TestInks.Grey,
+                new LineStyle(3, LineCap.Round, Dashes: [0, 8]));
         });
 
         stack.Add().Artwork(strokes);
 
         Artwork transformed = Artwork.Draw(400, 120, art =>
         {
-            art.Fill(new VectorPath().AddRoundedRectangle(10, 10, 110, 100, Corners.All(16)), new Gradient(30, TestInks.TealLighten3, TestInks.PinkLighten3));
+            art.Fill(
+                new VectorPath().AddRoundedRectangle(10, 10, 110, 100, Corners.All(16)),
+                new Gradient(30, TestInks.TealLighten3, TestInks.PinkLighten3));
 
             art.SaveState();
             art.Clip(new VectorPath().AddCircle(200, 60, 45));
@@ -482,7 +513,10 @@ public static class SpecimenCatalog
             art.SaveState();
             art.Transform(1, 0, 0.4f, 1, 260, 20);
             art.Fill(new VectorPath().AddRectangle(0, 0, 60, 80), TestInks.PinkLighten3);
-            art.Stroke(new VectorPath().AddRectangle(0, 0, 60, 80), Gradient.Down(TestInks.Grey, TestInks.TealLighten3), new LineStyle(4));
+            art.Stroke(
+                new VectorPath().AddRectangle(0, 0, 60, 80),
+                Gradient.Down(TestInks.Grey, TestInks.TealLighten3),
+                new LineStyle(4));
             art.RestoreState();
 
             art.Text("Artwork", 300, 110, TypeStyle.Default.WithTypeface(TestFonts.Sans).WithPointSize(14f));
@@ -514,8 +548,13 @@ public static class SpecimenCatalog
             flow.Centered();
             flow.Middle();
 
-            foreach (string tag in new[] { "layout", "typesetting", "columns", "grid", "flow", "rules", "shadows", "gradients", "draw order", "PDF", "pages" })
-                flow.Add().Fill(TestInks.TealLighten3).RoundCorners(8).InsetHorizontal(8f).InsetVertical(tag.Length % 3 == 0 ? 6f : 3f).Text(tag);
+            foreach (string tag in new[]
+            {
+                "layout", "typesetting", "columns", "grid", "flow", "rules", "shadows", "gradients",
+                "draw order", "PDF", "pages"
+            })
+                flow.Add().Fill(TestInks.TealLighten3).RoundCorners(8).InsetHorizontal(8f)
+                    .InsetVertical(tag.Length % 3 == 0 ? 6f : 3f).Text(tag);
         });
 
         stack.Add().Grid(grid =>
@@ -549,7 +588,8 @@ public static class SpecimenCatalog
 
         stack.Add().Height(40f).Layered(layers =>
         {
-            layers.BaseLayer().DrawOrder(1).ShiftAcross(20f).ShiftDown(10f).Width(120f).Height(24f).Fill(TestInks.PinkLighten3).Centered().Middle().Text("drawn over");
+            layers.BaseLayer().DrawOrder(1).ShiftAcross(20f).ShiftDown(10f).Width(120f).Height(24f)
+                .Fill(TestInks.PinkLighten3).Centered().Middle().Text("drawn over");
             layers.Layer().Width(120f).Height(24f).Fill(TestInks.TealLighten3).Centered().Middle().Text("drawn after");
         });
     }));
@@ -566,10 +606,14 @@ public static class SpecimenCatalog
         stack.Add().Columns(columns =>
         {
             columns.Gutter(16f);
-            columns.Fixed(100f).Height(50f).Fill(TestInks.TealLighten3).RoundCorners(0, 12, 24, 6).Centered().Middle().Text("corners");
-            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Inside).Fill(TestInks.AmberLighten3).Centered().Middle().Text("inside");
-            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Center).Fill(TestInks.AmberLighten3).Centered().Middle().Text("centred");
-            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Outside).RoundCorners(10).Fill(TestInks.AmberLighten3).RoundCorners(10).Centered().Middle().Text("outside");
+            columns.Fixed(100f).Height(50f).Fill(TestInks.TealLighten3).RoundCorners(0, 12, 24, 6)
+                .Centered().Middle().Text("corners");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Inside)
+                .Fill(TestInks.AmberLighten3).Centered().Middle().Text("inside");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Center)
+                .Fill(TestInks.AmberLighten3).Centered().Middle().Text("centred");
+            columns.Fixed(100f).Height(50f).Stroke(4f).StrokeInk(TestInks.Grey).AlignStroke(StrokeAlignment.Outside)
+                .RoundCorners(10).Fill(TestInks.AmberLighten3).RoundCorners(10).Centered().Middle().Text("outside");
         });
 
         stack.Add().Height(70f).Columns(columns =>
@@ -583,19 +627,29 @@ public static class SpecimenCatalog
         stack.Add().Columns(columns =>
         {
             columns.Gutter(16f);
-            columns.Fixed(100f).Height(50f).Fill(Gradient.Across(TestInks.TealLighten3, TestInks.AmberLighten3, TestInks.PinkLighten3)).Centered().Middle().Text("across");
-            columns.Fixed(100f).Height(50f).Fill(new Gradient(45f, TestInks.TealLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("45°");
-            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Down(TestInks.PinkLighten3, TestInks.Grey)).Centered().Middle().Text("stroke");
-            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Across(TestInks.PinkLighten3, TestInks.Grey)).RoundCorners(12).Centered().Middle().Text("rounded");
+            columns.Fixed(100f).Height(50f)
+                .Fill(Gradient.Across(TestInks.TealLighten3, TestInks.AmberLighten3, TestInks.PinkLighten3))
+                .Centered().Middle().Text("across");
+            columns.Fixed(100f).Height(50f).Fill(new Gradient(45f, TestInks.TealLighten3, TestInks.Grey))
+                .RoundCorners(12).Centered().Middle().Text("45°");
+            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Down(TestInks.PinkLighten3, TestInks.Grey))
+                .Centered().Middle().Text("stroke");
+            columns.Fixed(100f).Height(50f).Stroke(5f).StrokeInk(Gradient.Across(TestInks.PinkLighten3, TestInks.Grey))
+                .RoundCorners(12).Centered().Middle().Text("rounded");
         });
 
         stack.Add().Columns(columns =>
         {
             columns.Gutter(24f);
-            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 8f, 4f, 4f).Fill(Ink.White).Centered().Middle().Text("soft");
-            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 0f, 6f, 6f).Fill(Ink.White).Centered().Middle().Text("sharp");
-            columns.Fixed(100f).Height(50f).DropShadow(new Shadow(TestInks.PinkLighten3, 16f, Spread: 4f)).RoundCorners(12).Fill(Ink.White).RoundCorners(12).Centered().Middle().Text("glow");
-            columns.Fixed(100f).Height(50f).DropShadow(new Shadow(Ink.Black.WithOpacity(0.4f), 6f, new Offset(0, 8), -4f)).Fill(TestInks.AmberLighten3).Centered().Middle().Text("lifted");
+            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 8f, 4f, 4f).Fill(Ink.White)
+                .Centered().Middle().Text("soft");
+            columns.Fixed(100f).Height(50f).DropShadow(TestInks.Grey, 0f, 6f, 6f).Fill(Ink.White)
+                .Centered().Middle().Text("sharp");
+            columns.Fixed(100f).Height(50f).DropShadow(new Shadow(TestInks.PinkLighten3, 16f, Spread: 4f))
+                .RoundCorners(12).Fill(Ink.White).RoundCorners(12).Centered().Middle().Text("glow");
+            columns.Fixed(100f).Height(50f)
+                .DropShadow(new Shadow(Ink.Black.WithOpacity(0.4f), 6f, new Offset(0, 8), -4f))
+                .Fill(TestInks.AmberLighten3).Centered().Middle().Text("lifted");
         });
 
         stack.Add().Rule(4f, Gradient.Across(TestInks.TealLighten3, TestInks.PinkLighten3));
@@ -656,13 +710,17 @@ public static class SpecimenCatalog
         // Each fit mode gets a box it can satisfy: fitting the width needs free height, and fitting the height needs
         // free width. Area and unproportional fit any box.
         stack.Add().Text("Width");
-        stack.Add().Width(200f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.FitWidth);
+        stack.Add().Width(200f).Stroke(0.5f).StrokeInk(TestInks.Grey)
+            .Image(RasterImage.FromBytes(photograph), ImageFitting.FitWidth);
         stack.Add().Text("Height");
-        stack.Add().Height(100f).FlushLeft().Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.FitHeight);
+        stack.Add().Height(100f).FlushLeft().Stroke(0.5f).StrokeInk(TestInks.Grey)
+            .Image(RasterImage.FromBytes(photograph), ImageFitting.FitHeight);
         stack.Add().Text("Area");
-        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.Proportionally);
+        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey)
+            .Image(RasterImage.FromBytes(photograph), ImageFitting.Proportionally);
         stack.Add().Text("Unproportional");
-        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey).Image(RasterImage.FromBytes(photograph), ImageFitting.Stretch);
+        stack.Add().Width(300f).Height(120f).Stroke(0.5f).StrokeInk(TestInks.Grey)
+            .Image(RasterImage.FromBytes(photograph), ImageFitting.Stretch);
     }));
 
     private static Document LayersAndDecoration() => Page(content => content.Stack(stack =>
@@ -671,8 +729,10 @@ public static class SpecimenCatalog
 
         stack.Add().Height(160f).Layered(layers =>
         {
-            layers.Layer().Centered().Middle().Text(text => text.Run("WATERMARK").PointSize(40f).Ink(TestInks.GreyLighten3));
-            layers.BaseLayer().Inset(10f).Text("The base layer sets the size; other layers draw behind or in front of it.");
+            layers.Layer().Centered().Middle()
+                .Text(text => text.Run("WATERMARK").PointSize(40f).Ink(TestInks.GreyLighten3));
+            layers.BaseLayer().Inset(10f)
+                .Text("The base layer sets the size; other layers draw behind or in front of it.");
             layers.Layer().FlushRight().FlushBottom().Inset(6f).Text(text => text.Run("corner").Ink(TestInks.Red));
         });
 

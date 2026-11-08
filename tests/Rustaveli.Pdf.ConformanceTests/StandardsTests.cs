@@ -13,7 +13,8 @@ public class StandardsTests
     [
         ("a2b", new PdfExportOptions { Conformance = PdfAConformance.PdfA2B }),
         ("a3u", new PdfExportOptions { Conformance = PdfAConformance.PdfA3U }),
-        ("a2a-ua1", new PdfExportOptions { Conformance = PdfAConformance.PdfA2A, Accessibility = PdfUAConformance.PdfUA1 }),
+        ("a2a-ua1",
+            new PdfExportOptions { Conformance = PdfAConformance.PdfA2A, Accessibility = PdfUAConformance.PdfUA1 }),
         ("ua1", new PdfExportOptions { Accessibility = PdfUAConformance.PdfUA1 }),
     ];
 
@@ -37,7 +38,9 @@ public class StandardsTests
 
         IReadOnlyDictionary<string, IReadOnlyList<string>> failures = VeraPdf.Validate(files);
 
-        Assert.Equal(files.Keys.OrderBy(name => name, StringComparer.Ordinal), failures.Keys.OrderBy(name => name, StringComparer.Ordinal));
+        Assert.Equal(
+            files.Keys.OrderBy(name => name, StringComparer.Ordinal),
+            failures.Keys.OrderBy(name => name, StringComparer.Ordinal));
 
         string[] broken = failures.Where(file => file.Value.Count > 0)
             .SelectMany(file => file.Value.Select(rule => $"{file.Key}: {rule}"))
@@ -54,9 +57,14 @@ public class StandardsTests
         Document document = SpecimenCatalog.All[0].Build();
         document.Info.Title = "Q3\r\nReport";
         document.Info.Subject = "Carriage\rreturn";
-        byte[] pdf = document.ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA2B, ImageProcessor = SkiaImageProcessor.Instance });
+        byte[] pdf = document.ExportPdf(new PdfExportOptions
+        {
+            Conformance = PdfAConformance.PdfA2B,
+            ImageProcessor = SkiaImageProcessor.Instance
+        });
 
-        IReadOnlyList<string> broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["line-breaks"] = pdf })["line-breaks"];
+        IReadOnlyList<string> broken =
+            VeraPdf.Validate(new Dictionary<string, byte[]> { ["line-breaks"] = pdf })["line-breaks"];
 
         Assert.True(broken.Count == 0, "veraPDF found:\n" + string.Join("\n", broken));
     }
@@ -68,16 +76,19 @@ public class StandardsTests
         Document document = SpecimenCatalog.All[0].Build();
         document.Info.Title = "A\u0001B";
 
-        Assert.Throws<InvalidOperationException>(() => document.ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA2B }));
+        Assert.Throws<InvalidOperationException>(
+            () => document.ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA2B }));
     }
 
     /// <summary>
-    /// Everything tagging touches: headings, a paragraph with a link, a figure, decoration, a list, a table spanning pages
-    /// with repeated headings and row headings, a change of language and untagged content, under a running head and foot.
+    /// Everything tagging touches: headings, a paragraph with a link, a figure, decoration, a list, a table spanning
+    /// pages with repeated headings and row headings, a change of language and untagged content,
+    /// under a running head and foot.
     /// </summary>
     private static Document Structured()
     {
-        RasterImage picture = RasterImage.FromFile(Path.Combine(AppContext.BaseDirectory, "assets", "images", "basn2c08.png"));
+        RasterImage picture =
+            RasterImage.FromFile(Path.Combine(AppContext.BaseDirectory, "assets", "images", "basn2c08.png"));
 
         return Document.Compose(composition => composition.Section(section =>
         {

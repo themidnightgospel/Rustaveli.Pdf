@@ -34,7 +34,10 @@ public class ExistingFilesTests
             .Save("contract-with-appendix.pdf");
 
         Assert.Equal(
-            ["Contract 1", "Contract 2", "Contract 3", "Contract 5", "Contract 8", "Contract 9", "Contract 10", "Appendix 1", "Terms 2"],
+            [
+                "Contract 1", "Contract 2", "Contract 3", "Contract 5", "Contract 8", "Contract 9", "Contract 10",
+                "Appendix 1", "Terms 2"
+            ],
             GuideReader.PageTexts("contract-with-appendix.pdf"));
     }
 
@@ -61,10 +64,13 @@ public class ExistingFilesTests
     public void AttachmentsAndElectronicInvoices()
     {
         using TemporaryWorkingDirectory directory = new TemporaryWorkingDirectory();
-        Document invoiceDocument = Document.Compose(composition => composition.Section(section => section.Body().Text("Invoice")));
+        Document invoiceDocument =
+            Document.Compose(composition => composition.Section(section => section.Body().Text("Invoice")));
         invoiceDocument.Info.Title = "Invoice";
         invoiceDocument.ExportPdf("invoice.pdf", new PdfExportOptions { Conformance = PdfAConformance.PdfA3B });
-        File.WriteAllText("factur-x.xml", "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\"/>");
+        File.WriteAllText(
+            "factur-x.xml",
+            "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\"/>");
         File.WriteAllText("factur-x-metadata.xmp", OperationsTests.FacturX);
 
         PdfFile.Open("invoice.pdf")
@@ -77,7 +83,8 @@ public class ExistingFilesTests
             .AddMetadata(File.ReadAllText("factur-x-metadata.xmp"))
             .Save("invoice-with-data.pdf");
 
-        IReadOnlyList<string> broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["invoice"] = File.ReadAllBytes("invoice-with-data.pdf") })["invoice"];
+        IReadOnlyList<string> broken = VeraPdf.Validate(
+            new Dictionary<string, byte[]> { ["invoice"] = File.ReadAllBytes("invoice-with-data.pdf") })["invoice"];
         Assert.True(broken.Count == 0, "veraPDF found:\n" + string.Join("\n", broken));
     }
 
@@ -99,7 +106,8 @@ public class ExistingFilesTests
         Assert.Throws<IncorrectPasswordException>(() => PdfFile.Open("report-protected.pdf"));
         Assert.False(PdfFile.Open("report-for-the-web.pdf").WasProtected);
 
-        (int code, string report, _) = Qpdf.Run(File.ReadAllBytes("report-for-the-web.pdf"), "--check-linearization", "{input}");
+        (int code, string report, _) = Qpdf.Run(
+            File.ReadAllBytes("report-for-the-web.pdf"), "--check-linearization", "{input}");
         Assert.True(code == 0, report);
     }
 

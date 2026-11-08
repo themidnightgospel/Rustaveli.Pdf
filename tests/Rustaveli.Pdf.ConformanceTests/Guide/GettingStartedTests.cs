@@ -65,14 +65,16 @@ public class GettingStartedTests
         }));
 
         GuideOutput.Show(letter, "reusing-parts", trim: true);
-        Assert.Equal("Tamar Beridze 12 Rustaveli Avenue Tbilisi 0108 Dear Tamar,", GuideReader.Text(letter.ExportPdf()));
+        Assert.Equal(
+            "Tamar Beridze 12 Rustaveli Avenue Tbilisi 0108 Dear Tamar,", GuideReader.Text(letter.ExportPdf()));
     }
 
     [Fact]
     public void Exporting()
     {
         using TemporaryWorkingDirectory directory = new TemporaryWorkingDirectory();
-        Document document = Document.Compose(composition => composition.Section(section => section.Body().Text("Exported")));
+        Document document =
+            Document.Compose(composition => composition.Section(section => section.Body().Text("Exported")));
 
         byte[] bytes = document.ExportPdf();
 

@@ -33,7 +33,8 @@ internal static class Qpdf
 
             // 0 is clean. 3 is "succeeded with warnings", which is still a defect in a file we wrote ourselves.
             if (process.ExitCode != 0)
-                throw new InvalidOperationException($"qpdf --check failed with exit code {process.ExitCode}:\n{output}");
+                throw new InvalidOperationException(
+                    $"qpdf --check failed with exit code {process.ExitCode}:\n{output}");
 
             return output;
         }
@@ -44,9 +45,9 @@ internal static class Qpdf
     }
 
     /// <summary>
-    /// Runs qpdf with <paramref name="arguments"/> around an input file holding <paramref name="pdf"/> and an output file,
-    /// written in their places as <c>{input}</c> and <c>{output}</c>; returns its exit code, what it printed, and the
-    /// output file if it wrote one.
+    /// Runs qpdf with <paramref name="arguments"/> around an input file holding <paramref name="pdf"/> and an output
+    /// file, written in their places as <c>{input}</c> and <c>{output}</c>; returns its exit code, what it printed, and
+    /// the output file if it wrote one.
     /// </summary>
     public static (int ExitCode, string Output, byte[]? File) Run(byte[] pdf, params string[] arguments)
     {
@@ -64,7 +65,9 @@ internal static class Qpdf
             };
 
             foreach (string argument in arguments)
-                start.ArgumentList.Add(argument.Replace("{input}", input, StringComparison.Ordinal).Replace("{output}", output, StringComparison.Ordinal));
+                start.ArgumentList.Add(argument
+                    .Replace("{input}", input, StringComparison.Ordinal)
+                    .Replace("{output}", output, StringComparison.Ordinal));
 
             using Process process = Process.Start(start)!;
             string printed = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
@@ -89,7 +92,8 @@ internal static class Qpdf
 
         if (Directory.Exists(RepositoryPaths.Tools))
         {
-            string? fetched = Directory.EnumerateFiles(RepositoryPaths.Tools, name, SearchOption.AllDirectories).FirstOrDefault();
+            string? fetched = Directory.EnumerateFiles(RepositoryPaths.Tools, name, SearchOption.AllDirectories)
+                .FirstOrDefault();
             if (fetched != null)
                 return fetched;
         }

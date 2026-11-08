@@ -60,11 +60,14 @@ public class PreviewAndDebuggingTests
         OversetException failure = Assert.Throws<OversetException>(() => document.ExportPdf());
 
         // The guide shows the message word for word.
-        string guide = File.ReadAllText(Path.Combine(RepositoryPaths.Root, "docs", "guide", "preview-and-debugging.md")).Replace("\r\n", "\n", StringComparison.Ordinal);
+        string guide = File.ReadAllText(Path.Combine(RepositoryPaths.Root, "docs", "guide", "preview-and-debugging.md"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
         Assert.Contains("```text\n" + failure.Message + "\n```", guide, StringComparison.Ordinal);
     }
 
-    /// <summary>What the guide's console program runs; it waits for Ctrl+C, so it is compiled here but never called.</summary>
+    /// <summary>
+    /// What the guide's console program runs; it waits for Ctrl+C, so it is compiled here but never called.
+    /// </summary>
     internal static void Program()
     {
         DocumentPreview.Preview(InvoiceDocument.Compose);

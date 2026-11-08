@@ -20,7 +20,10 @@ public class ProtectionTests
         { EncryptionLevel.AesWith256Bits, "R = 6", "256" },
     };
 
-    private static byte[] Specimen() => SpecimenCatalog.All.First(specimen => specimen.Name.Contains("image", StringComparison.OrdinalIgnoreCase)).Build().ExportPdf();
+    private static byte[] Specimen() =>
+        SpecimenCatalog.All.First(specimen => specimen.Name.Contains("image", StringComparison.OrdinalIgnoreCase))
+            .Build()
+            .ExportPdf();
 
     [Theory]
     [MemberData(nameof(Levels))]
@@ -29,7 +32,8 @@ public class ProtectionTests
         TestFonts.EnsureRegistered();
         byte[] pdf = SpecimenCatalog.All[0].Build().ExportPdf(new PdfExportOptions
         {
-            Protection = new Protection { UserPassword = User, OwnerPassword = Owner, Encryption = level, AllowCopying = false },
+            Protection =
+                new Protection { UserPassword = User, OwnerPassword = Owner, Encryption = level, AllowCopying = false },
         });
 
         (int _, string encryption, _) = Qpdf.Run(pdf, $"--password={Owner}", "--show-encryption", "{input}");
@@ -52,15 +56,18 @@ public class ProtectionTests
 
     [Theory]
     [MemberData(nameof(Levels))]
-    public void Aes256IsDeclaredAsTheAdobeExtensionAPdf17FileNeedsForIt(EncryptionLevel level, string revision, string bits)
+    public void Aes256IsDeclaredAsTheAdobeExtensionAPdf17FileNeedsForIt(
+        EncryptionLevel level, string revision, string bits)
     {
-        // 256-bit AES (/V 5 /R 6) came after PDF 1.7: a 1.7 file declares it as Adobe's extension level 8 in its catalog.
+        // 256-bit AES (/V 5 /R 6) came after PDF 1.7:
+        // a 1.7 file declares it as Adobe's extension level 8 in its catalog.
         TestFonts.EnsureRegistered();
         Protection protection = new Protection { Encryption = level };
         byte[] plain = Specimen();
         _ = (revision, bits);
 
-        // Exported protected, protected afterwards, and protected and laid out for the web, which encrypts as it lays out.
+        // Exported protected, protected afterwards, and protected and laid out for the web,
+        // which encrypts as it lays out.
         foreach (byte[] pdf in new[]
         {
             SpecimenCatalog.All[0].Build().ExportPdf(new PdfExportOptions { Protection = protection }),
@@ -75,7 +82,8 @@ public class ProtectionTests
             Assert.Contains("/Type /Catalog", catalog, StringComparison.Ordinal);
             Assert.Equal(
                 level == EncryptionLevel.AesWith256Bits,
-                System.Text.RegularExpressions.Regex.IsMatch(catalog, @"/Extensions << /ADBE << /BaseVersion /1\.7 /ExtensionLevel 8 >> >>"));
+                System.Text.RegularExpressions.Regex.IsMatch(
+                    catalog, @"/Extensions << /ADBE << /BaseVersion /1\.7 /ExtensionLevel 8 >> >>"));
         }
     }
 
@@ -91,7 +99,8 @@ public class ProtectionTests
             _ => [],
         };
 
-        (int code, string printed, byte[]? encrypted) = Qpdf.Run(Specimen(), ["--allow-weak-crypto", "--encrypt", User, Owner, bits, .. aes, "--", "{input}", "{output}"]);
+        (int code, string printed, byte[]? encrypted) = Qpdf.Run(
+            Specimen(), ["--allow-weak-crypto", "--encrypt", User, Owner, bits, .. aes, "--", "{input}", "{output}"]);
         Assert.True(code == 0 && encrypted is not null, printed);
 
         Assert.Throws<IncorrectPasswordException>(() => PdfFile.Open(encrypted!));
@@ -105,10 +114,16 @@ public class ProtectionTests
             byte[] kept = file.ToArray();
             (int _, string encryption, _) = Qpdf.Run(kept, $"--password={User}", "--show-encryption", "{input}");
             Assert.Contains(revision, encryption, StringComparison.Ordinal);
-            Assert.Contains("No syntax or stream encoding errors found", Qpdf.Run(kept, $"--password={User}", "--check", "{input}").Output, StringComparison.Ordinal);
+            Assert.Contains(
+                "No syntax or stream encoding errors found",
+                Qpdf.Run(kept, $"--password={User}", "--check", "{input}").Output,
+                StringComparison.Ordinal);
 
             byte[] plain = PdfFile.Open(encrypted!, password).Unprotect().ToArray();
-            Assert.Contains("File is not encrypted", Qpdf.Run(plain, "--show-encryption", "{input}").Output, StringComparison.Ordinal);
+            Assert.Contains(
+                "File is not encrypted",
+                Qpdf.Run(plain, "--show-encryption", "{input}").Output,
+                StringComparison.Ordinal);
             Assert.Contains("No syntax or stream encoding errors found", Qpdf.Check(plain), StringComparison.Ordinal);
         }
     }
@@ -117,12 +132,22 @@ public class ProtectionTests
     public void AFileIsReprotectedAtAnotherStrength()
     {
         TestFonts.EnsureRegistered();
-        byte[] weak = PdfFile.Open(Specimen()).Protect(new Protection { UserPassword = User, Encryption = EncryptionLevel.Rc4With40Bits }).ToArray();
+        byte[] weak = PdfFile.Open(Specimen())
+            .Protect(new Protection { UserPassword = User, Encryption = EncryptionLevel.Rc4With40Bits })
+            .ToArray();
 
-        byte[] strong = PdfFile.Open(weak, User).Protect(new Protection { UserPassword = "new", Encryption = EncryptionLevel.AesWith256Bits }).ToArray();
+        byte[] strong = PdfFile.Open(weak, User)
+            .Protect(new Protection { UserPassword = "new", Encryption = EncryptionLevel.AesWith256Bits })
+            .ToArray();
 
-        Assert.Contains("R = 6", Qpdf.Run(strong, "--password=new", "--show-encryption", "{input}").Output, StringComparison.Ordinal);
-        Assert.Contains("No syntax or stream encoding errors found", Qpdf.Run(strong, "--password=new", "--check", "{input}").Output, StringComparison.Ordinal);
+        Assert.Contains(
+            "R = 6",
+            Qpdf.Run(strong, "--password=new", "--show-encryption", "{input}").Output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "No syntax or stream encoding errors found",
+            Qpdf.Run(strong, "--password=new", "--check", "{input}").Output,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -131,7 +156,10 @@ public class ProtectionTests
         TestFonts.EnsureRegistered();
         byte[] restricted = PdfFile.Open(Specimen()).Protect(new Protection { AllowPrinting = false }).ToArray();
 
-        Assert.Contains("print low resolution: not allowed", Qpdf.Run(restricted, "--show-encryption", "{input}").Output, StringComparison.Ordinal);
+        Assert.Contains(
+            "print low resolution: not allowed",
+            Qpdf.Run(restricted, "--show-encryption", "{input}").Output,
+            StringComparison.Ordinal);
         Assert.True(PdfFile.Open(restricted).WasProtected);
     }
 
@@ -161,17 +189,22 @@ public class ProtectionTests
         // ISO 14289-1, 7.16: a protected PDF/UA file must let assistive technology read its content.
         TestFonts.EnsureRegistered();
 
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Accessible().ExportPdf(new PdfExportOptions
-        {
-            Accessibility = PdfUAConformance.PdfUA1,
-            Protection = new Protection { AllowAccessibility = false },
-        }));
+        InvalidOperationException error =
+            Assert.Throws<InvalidOperationException>(() => Accessible().ExportPdf(new PdfExportOptions
+            {
+                Accessibility = PdfUAConformance.PdfUA1,
+                Protection = new Protection { AllowAccessibility = false },
+            }));
 
         Assert.Contains(nameof(Protection.AllowAccessibility), error.Message, StringComparison.Ordinal);
 
         // Outside PDF/UA the permission is the author's to withhold.
-        byte[] withheld = Accessible().ExportPdf(new PdfExportOptions { Protection = new Protection { AllowAccessibility = false } });
-        Assert.Contains("accessibility: not allowed", Qpdf.Run(withheld, "--show-encryption", "{input}").Output, StringComparison.Ordinal);
+        byte[] withheld = Accessible().ExportPdf(
+            new PdfExportOptions { Protection = new Protection { AllowAccessibility = false } });
+        Assert.Contains(
+            "accessibility: not allowed",
+            Qpdf.Run(withheld, "--show-encryption", "{input}").Output,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -181,9 +214,9 @@ public class ProtectionTests
         IReadOnlyList<string> broken = [];
 
         // veraPDF 1.30.2 fails to open about one AES-256 file in twenty with the empty password that opens it, for some
-        // of the random salts the key is derived with: 150 files each opened in qpdf, and eight of them veraPDF refused.
-        // qpdf opening each one shows the file is sound, so a refusal is veraPDF's, and a fresh export, with fresh salts,
-        // is checked instead; five refusals in a row would be a real one.
+        // of the random salts the key is derived with: 150 files each opened in qpdf, and eight of them veraPDF
+        // refused. qpdf opening each one shows the file is sound, so a refusal is veraPDF's, and a fresh export, with
+        // fresh salts, is checked instead; five refusals in a row would be a real one.
         for (int attempt = 0; attempt < 5; attempt++)
         {
             byte[] pdf = Accessible().ExportPdf(new PdfExportOptions
@@ -195,8 +228,10 @@ public class ProtectionTests
             Qpdf.Check(pdf);
             broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["protected-ua1"] = pdf })["protected-ua1"];
 
-            // Any report of a rule is a real finding; only veraPDF failing to read a file qpdf has just opened is retried.
-            if (!broken.Any(problem => problem.StartsWith("veraPDF produced no validation report", StringComparison.Ordinal)))
+            // Any report of a rule is a real finding;
+            // only veraPDF failing to read a file qpdf has just opened is retried.
+            if (!broken.Any(
+                problem => problem.StartsWith("veraPDF produced no validation report", StringComparison.Ordinal)))
                 break;
         }
 

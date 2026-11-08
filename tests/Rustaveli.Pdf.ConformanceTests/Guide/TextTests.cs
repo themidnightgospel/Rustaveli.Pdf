@@ -29,7 +29,8 @@ public class TextTests
 
         // Tracked and raised letters are not gathered into words, so the runs are read letter by letter.
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(document.ExportPdf());
-        string letters = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)).Replace(" ", string.Empty, StringComparison.Ordinal);
+        string letters = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value))
+            .Replace(" ", string.Empty, StringComparison.Ordinal);
         Assert.Equal("Typeissetinruns,eachstyledonitsown:underlined,highlighted,trackedout,orraised2.", letters);
     }
 
@@ -112,7 +113,10 @@ public class TextTests
         byte[] bytes = document.ExportPdf();
         IReadOnlyList<string> pages = GuideReader.PageTexts(bytes);
 
-        Assert.StartsWith("The method is set out on page 2. Read it now. The data is at example.org.", pages[0], StringComparison.Ordinal);
+        Assert.StartsWith(
+            "The method is set out on page 2. Read it now. The data is at example.org.",
+            pages[0],
+            StringComparison.Ordinal);
         Assert.EndsWith("i of ii", pages[0], StringComparison.Ordinal);
         Assert.EndsWith("ii of ii", pages[1], StringComparison.Ordinal);
 
@@ -168,7 +172,8 @@ public class TextTests
 
         // Joined letters take their contextual forms, so the page is read letter by letter against what was set.
         using UglyToad.PdfPig.PdfDocument read = UglyToad.PdfPig.PdfDocument.Open(pdf);
-        string letters = string.Concat(read.GetPage(1).Letters.Select(letter => letter.Value)).Replace(" ", string.Empty, StringComparison.Ordinal);
+        string letters = string.Concat(read.GetPage(1).Letters.Select(letter => letter.Value))
+            .Replace(" ", string.Empty, StringComparison.Ordinal);
         Assert.Equal("مرحبا بالعالم".Replace(" ", string.Empty, StringComparison.Ordinal).Length, letters.Length);
     }
 
@@ -246,7 +251,8 @@ public class TextTests
     }
 
     /// <summary>An A5 page, as the examples that begin at the body are set on.</summary>
-    private static Document Page(Action<Section> compose) => Document.Compose(composition => composition.Section(section =>
+    private static Document Page(
+        Action<Section> compose) => Document.Compose(composition => composition.Section(section =>
     {
         section.Trim = PaperSizes.A5;
         section.Margins = Sides.All(36);

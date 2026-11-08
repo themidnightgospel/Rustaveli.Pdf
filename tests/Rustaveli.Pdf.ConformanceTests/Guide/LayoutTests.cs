@@ -126,7 +126,8 @@ public class LayoutTests
         });
 
         GuideOutput.Show(document, "lists", trim: true);
-        Assert.Equal("i. Read the brief. ii. Set the type. iii. Send the proofs.", GuideReader.Text(document.ExportPdf()));
+        Assert.Equal(
+            "i. Read the brief. ii. Set the type. iii. Send the proofs.", GuideReader.Text(document.ExportPdf()));
     }
 
     [Fact]
@@ -216,7 +217,8 @@ public class LayoutTests
         GuideOutput.Show(document, "grids-and-flows");
         string text = GuideReader.Text(document.ExportPdf());
 
-        Assert.StartsWith("Half Quarter Quarter typesetting layout pdf invoices reports", text, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "Half Quarter Quarter typesetting layout pdf invoices reports", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -260,12 +262,17 @@ public class LayoutTests
 
         Assert.StartsWith("Annual report ", pages[0], StringComparison.Ordinal);
         Assert.DoesNotContain("continued", pages[0], StringComparison.Ordinal);
-        Assert.All(pages.Skip(1), page => Assert.StartsWith("Annual report, continued", page, StringComparison.Ordinal));
-        Assert.StartsWith("Annual report, continued Appendix", pages.Single(page => page.Contains("Appendix", StringComparison.Ordinal)), StringComparison.Ordinal);
+        Assert.All(
+            pages.Skip(1), page => Assert.StartsWith("Annual report, continued", page, StringComparison.Ordinal));
+        Assert.StartsWith(
+            "Annual report, continued Appendix",
+            pages.Single(page => page.Contains("Appendix", StringComparison.Ordinal)),
+            StringComparison.Ordinal);
     }
 
     /// <summary>An A5 page, as the examples that begin at the body are set on.</summary>
-    private static Document Page(Action<Section> compose) => Document.Compose(composition => composition.Section(section =>
+    private static Document Page(
+        Action<Section> compose) => Document.Compose(composition => composition.Section(section =>
     {
         section.Trim = PaperSizes.A5;
         section.Margins = Sides.All(36);

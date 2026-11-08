@@ -102,12 +102,14 @@ internal sealed class SingleImagePdf
                 return "/DeviceCMYK";
 
             case ImageColorSpaceKind.Indexed:
-                string lookup = string.Concat(space.Palette.ToArray().Select(value => value.ToString("X2", CultureInfo.InvariantCulture)));
+                string lookup = string.Concat(
+                    space.Palette.ToArray().Select(value => value.ToString("X2", CultureInfo.InvariantCulture)));
                 return $"[/Indexed {ColorSpace(space.Base!)} {space.HighValue} <{lookup}>]";
 
             default:
                 IccProfile profile = space.Profile!;
-                int stream = AddStream($"/N {profile.ComponentCount} /Alternate {ColorSpace(space.Alternate!)}", profile.Data.Span);
+                int stream = AddStream(
+                    $"/N {profile.ComponentCount} /Alternate {ColorSpace(space.Alternate!)}", profile.Data.Span);
                 return $"[/ICCBased {stream} 0 R]";
         }
     }
@@ -134,7 +136,9 @@ internal sealed class SingleImagePdf
         table.Append(CultureInfo.InvariantCulture, $"xref\n0 {_objects.Count + 1}\n0000000000 65535 f \n");
         foreach (long offset in offsets)
             table.Append(offset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
-        table.Append(CultureInfo.InvariantCulture, $"trailer\n<< /Size {_objects.Count + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        table.Append(
+            CultureInfo.InvariantCulture,
+            $"trailer\n<< /Size {_objects.Count + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
         output.Write(Encoding.ASCII.GetBytes(table.ToString()));
 
         return output.ToArray();
