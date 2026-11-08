@@ -5,8 +5,9 @@
 // Downloads are pinned by version and verified by SHA-256 before being unpacked: against the publisher's manifest
 // where there is one, against the hash recorded here where there is not. The tests look here, then on PATH.
 //
-// qpdf is fetched on Windows only; on Linux and macOS it comes from the package manager. veraPDF, which runs on Java, is
-// fetched everywhere; on Windows a Java runtime is fetched for it too, elsewhere the one on PATH or JAVA_HOME is used.
+// qpdf is fetched on Windows only; on Linux and macOS it comes from the package manager.
+// veraPDF, which runs on Java, is fetched everywhere; on Windows a Java runtime is fetched for it too, elsewhere the
+// one on PATH or JAVA_HOME is used.
 
 #:property PublishAot=false
 
@@ -39,8 +40,8 @@ string java = windows ? await FetchJava() : FindJava();
 await FetchVeraPdf(java);
 return 0;
 
-// The Linux archive stores its shared library as a symbolic link, which ZIP extraction writes out as a small plain file,
-// so the binary cannot load; Linux and macOS use their package managers' qpdf instead.
+// The Linux archive stores its shared library as a symbolic link, which ZIP extraction writes out as a small plain
+// file, so the binary cannot load; Linux and macOS use their package managers' qpdf instead.
 async Task FetchQpdf()
 {
     string asset = $"qpdf-{QpdfVersion}-msvc64.zip";
@@ -99,7 +100,9 @@ async Task FetchVeraPdf(string javaExecutable)
     string staging = Path.Combine(tools, $"verapdf-installer-{VeraPdfVersion}");
     Unzip(archive, staging);
 
-    string installer = Directory.EnumerateFiles(staging, "verapdf-izpack-installer-*.jar", SearchOption.AllDirectories).Single();
+    string installer = Directory
+        .EnumerateFiles(staging, "verapdf-izpack-installer-*.jar", SearchOption.AllDirectories)
+        .Single();
     string answers = Path.Combine(staging, "auto-install.xml");
     File.WriteAllText(answers, $"""
         <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -153,7 +156,8 @@ static void Verify(string asset, byte[] archive, string? expected)
     string actual = Convert.ToHexString(SHA256.HashData(archive)).ToLowerInvariant();
 
     if (expected == null || !string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
-        throw new InvalidOperationException($"checksum mismatch for {asset}: expected {expected ?? "(not listed)"}, got {actual}");
+        throw new InvalidOperationException(
+            $"checksum mismatch for {asset}: expected {expected ?? "(not listed)"}, got {actual}");
 }
 
 static void Unzip(byte[] archive, string target)
@@ -175,14 +179,17 @@ static string FindJava()
         .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
         .Select(directory => Path.Combine(directory, "java"))
         .FirstOrDefault(File.Exists)
-        ?? throw new InvalidOperationException("veraPDF needs Java: install a Java runtime, 11 or later, or set JAVA_HOME.");
+        ?? throw new InvalidOperationException(
+            "veraPDF needs Java: install a Java runtime, 11 or later, or set JAVA_HOME.");
 }
 
 // Found by walking up from the working directory, not from this script's location: a file-based app's build output
 // is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
 static string RepositoryRoot()
 {
-    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory);
+        directory != null;
+        directory = directory.Parent)
     {
         if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
             return directory.FullName;

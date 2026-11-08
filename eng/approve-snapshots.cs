@@ -41,7 +41,9 @@ return 0;
 // is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
 static string RepositoryRoot()
 {
-    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory);
+        directory != null;
+        directory = directory.Parent)
     {
         if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
             return directory.FullName;

@@ -16,6 +16,7 @@ internal static class Targets
         "images" => ImageTarget.Run,
         "svg" => SvgTarget.Run,
         "pdf" => PdfTarget.Run,
-        _ => throw new ArgumentException($"There is no fuzz target named {name}; there are {string.Join(", ", Names)}.", nameof(name)),
+        _ => throw new ArgumentException(
+            $"There is no fuzz target named {name}; there are {string.Join(", ", Names)}.", nameof(name)),
     };
 }

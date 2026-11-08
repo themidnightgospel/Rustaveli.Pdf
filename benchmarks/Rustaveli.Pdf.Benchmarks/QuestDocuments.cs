@@ -27,7 +27,8 @@ public static class QuestDocuments
     }
 
     // Qualified: inside Rustaveli.Pdf.Benchmarks, a bare Document is this library's own.
-    private static QuestPDF.Fluent.Document Build(DocumentKind kind, List<Image> images) => QuestPDF.Fluent.Document.Create(container => container.Page(page =>
+    private static QuestPDF.Fluent.Document Build(
+        DocumentKind kind, List<Image> images) => QuestPDF.Fluent.Document.Create(container => container.Page(page =>
     {
         page.Size(PageSizes.A4);
         page.Margin(40f);
@@ -77,7 +78,8 @@ public static class QuestDocuments
                     column.Spacing(8f);
                     for (int index = 0; index < 40; index++)
                     {
-                        Image image = Image.FromBinaryData(BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
+                        Image image = Image.FromBinaryData(
+                            BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
                         images.Add(image);
                         column.Item().Image(image).FitWidth();
                         column.Item().Text($"Figure {index + 1}");

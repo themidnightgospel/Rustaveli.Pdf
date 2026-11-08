@@ -21,7 +21,8 @@ if (args is ["repro", string name, string file])
 }
 
 string target = Environment.GetEnvironmentVariable("FUZZ_TARGET")
-    ?? throw new InvalidOperationException("Name the target to fuzz in FUZZ_TARGET: " + string.Join(", ", Targets.Names) + ".");
+    ?? throw new InvalidOperationException(
+        "Name the target to fuzz in FUZZ_TARGET: " + string.Join(", ", Targets.Names) + ".");
 
 ReadOnlySpanAction run = Targets.Named(target);
 Fuzzer.LibFuzzer.Run(run);

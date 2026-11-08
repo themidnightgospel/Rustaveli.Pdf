@@ -26,7 +26,8 @@ using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Figure = (string Name, string Unit, double Value);
 using Measured = (double Time, double Deviation, double Allocated);
-using Palette = (string Background, string Border, string Text, string Muted, string Accent, string Better, string Worse);
+using Palette =
+    (string Background, string Border, string Text, string Muted, string Accent, string Better, string Worse);
 
 const double Limit = 0.10;
 const string Parallel = "Eight documents in parallel";
@@ -93,7 +94,12 @@ static int Results(string folder, string sizesFile, string output, string questO
             Both($"{document} · allocated", "KB", mine.Allocated, quest.Allocated, null);
         }
 
-        Both($"{document} · file size", "KB", (int)size!["Rustaveli"]! / 1024.0, (int)size["Reference"]! / 1024.0, null);
+        Both(
+            $"{document} · file size",
+            "KB",
+            (int)size!["Rustaveli"]! / 1024.0,
+            (int)size["Reference"]! / 1024.0,
+            null);
     }
 
     if (measured.TryGetValue("RustaveliParallel", out Measured parallel)
@@ -102,7 +108,8 @@ static int Results(string folder, string sizesFile, string output, string questO
         Both($"{Parallel} · time", "ms", parallel.Time, questParallel.Time, parallel.Deviation);
     }
 
-    JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    JsonSerializerOptions options =
+        new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
     File.WriteAllText(output, ours.ToJsonString(options));
     File.WriteAllText(questOutput, theirs.ToJsonString(options));
     Console.WriteLine($"{ours.Count} numbers written to {output}, and QuestPDF's to {questOutput}");
@@ -130,7 +137,9 @@ static JsonObject Entry(string name, string unit, double value, string? range, s
 static int Compare(string numbersFile, string questFile, string baselineFile, string mainOutput, string questOutput)
 {
     List<Figure> ours = Read(numbersFile);
-    Dictionary<string, double> quest = ours.Count == 0 ? [] : Read(questFile).ToDictionary(entry => entry.Name, entry => entry.Value);
+    Dictionary<string, double> quest = ours.Count == 0
+        ? []
+        : Read(questFile).ToDictionary(entry => entry.Name, entry => entry.Value);
     (Dictionary<string, double> main, string? commit) = Baseline(baselineFile);
 
     // Where the measured source can be read, as of the pull request's commit, so its lines stay where they point.
@@ -250,7 +259,9 @@ static string Picture(
     string title = $"Rustaveli.Pdf against {reference} ({ReferenceNote})";
 
     void Text(double x, double y, string text, string fill, string extra = "") =>
-        svg.AppendLine(CultureInfo.InvariantCulture, $"""  <text x="{x}" y="{y}" fill="{fill}"{extra}>{Escape(text)}</text>""");
+        svg.AppendLine(
+            CultureInfo.InvariantCulture,
+            $"""  <text x="{x}" y="{y}" fill="{fill}"{extra}>{Escape(text)}</text>""");
 
     svg.AppendLine(CultureInfo.InvariantCulture, $"""<svg xmlns="http://www.w3.org/2000/svg" width="{Width}" height="{height}" viewBox="0 0 {Width} {height}" role="img" aria-label="{Escape(title)}">""");
     svg.AppendLine("""  <style>text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }</style>""");
@@ -263,7 +274,9 @@ static string Picture(
     for (int column = 0; column < figures.Length; column++)
         Text(columns[column], 88, Capitalised(figures[column]), colours.Muted, Right + Bold);
 
-    svg.AppendLine(CultureInfo.InvariantCulture, $"""  <line x1="24" y1="96" x2="{Width - 24}" y2="96" stroke="{colours.Border}"/>""");
+    svg.AppendLine(
+        CultureInfo.InvariantCulture,
+        $"""  <line x1="24" y1="96" x2="{Width - 24}" y2="96" stroke="{colours.Border}"/>""");
 
     double y = Top + 18;
 
@@ -318,7 +331,10 @@ static string Picture(
     return svg.ToString();
 }
 
-static string Escape(string text) => text.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
+static string Escape(string text) => text
+    .Replace("&", "&amp;", StringComparison.Ordinal)
+    .Replace("<", "&lt;", StringComparison.Ordinal)
+    .Replace(">", "&gt;", StringComparison.Ordinal);
 
 static void AgainstQuest(
     List<Figure> ours, Dictionary<string, double> quest, string? source, string? measured, string output)
@@ -352,8 +368,10 @@ static void AgainstQuest(
         comment.AppendLine($"| | {string.Join(" | ", figures.Select(figure => Capitalised(FigureOf(figure.Name))))} |");
         comment.AppendLine($"|---|{string.Concat(figures.Select(_ => "---:|"))}");
         comment.AppendLine($"| {Linked("Rustaveli.Pdf", mine)} | {amounts} |");
-        comment.AppendLine($"| {Linked(reference, theirs)} | {string.Join(" | ", figures.Select(figure => Theirs(figure, quest)))} |");
-        comment.AppendLine($"| Difference | {string.Join(" | ", figures.Select(figure => Difference(figure, quest)))} |");
+        comment.AppendLine(
+            $"| {Linked(reference, theirs)} | {string.Join(" | ", figures.Select(figure => Theirs(figure, quest)))} |");
+        comment.AppendLine(
+            $"| Difference | {string.Join(" | ", figures.Select(figure => Difference(figure, quest)))} |");
     }
 
     File.WriteAllText(output, comment.ToString());
@@ -464,7 +482,9 @@ static string Short(string commit) => commit[..Math.Min(7, commit.Length)];
 // release it was measured against.
 static string Reference()
 {
-    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory);
+        directory != null;
+        directory = directory.Parent)
     {
         string packages = Path.Combine(directory.FullName, "Directory.Packages.props");
 
@@ -472,7 +492,8 @@ static string Reference()
             continue;
 
         string? version = XDocument.Load(packages).Descendants("PackageVersion")
-            .FirstOrDefault(package => (string?)package.Attribute("Include") == "QuestPDF")?.Attribute("Version")?.Value;
+            .FirstOrDefault(package => (string?)package.Attribute("Include") == "QuestPDF")
+            ?.Attribute("Version")?.Value;
 
         return version is null
             ? throw new InvalidOperationException("Directory.Packages.props pins no version of QuestPDF.")

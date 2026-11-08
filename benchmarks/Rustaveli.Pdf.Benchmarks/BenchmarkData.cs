@@ -31,7 +31,8 @@ public static class BenchmarkData
         for (int index = 0; index < count; index++)
         {
             int length = random.Next(30, 90);
-            paragraphs.Add(string.Join(" ", Enumerable.Range(0, length).Select(_ => Words[random.Next(Words.Length)])) + ".");
+            paragraphs.Add(
+                string.Join(" ", Enumerable.Range(0, length).Select(_ => Words[random.Next(Words.Length)])) + ".");
         }
 
         return paragraphs;
@@ -44,9 +45,13 @@ public static class BenchmarkData
 
         for (int index = 0; index < count; index++)
         {
-            string description = string.Join(" ", Enumerable.Range(0, random.Next(2, 7)).Select(_ => Words[random.Next(Words.Length)]));
+            string description = string.Join(
+                " ", Enumerable.Range(0, random.Next(2, 7)).Select(_ => Words[random.Next(Words.Length)]));
             decimal amount = random.Next(100, 999_999) / 100m;
-            lines.Add(new LineItem($"SKU-{index:D5}", description, amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)));
+            lines.Add(new LineItem(
+                $"SKU-{index:D5}",
+                description,
+                amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)));
         }
 
         return lines;

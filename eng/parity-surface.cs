@@ -3,7 +3,8 @@
 //     dotnet run eng/parity-surface.cs            writes artifacts/parity/questpdf-surface.md
 //
 // Reflection over the published assembly is the only way QuestPDF's surface enters this repository: its source is
-// never read (docs/adr/0008-clean-room.md). The version comes from Directory.Packages.props, pinned with the test oracle.
+// never read (docs/adr/0008-clean-room.md).
+// The version comes from Directory.Packages.props, pinned with the test oracle.
 
 #:package QuestPDF
 #:property PublishAot=false
@@ -59,7 +60,11 @@ File.WriteAllText(file, output.ToString());
 Console.WriteLine($"wrote {Path.GetFullPath(file)}");
 
 static string Kind(Type type) =>
-    type.IsEnum ? "enum" : type.IsInterface ? "interface" : type.IsValueType ? "struct" : type.IsAbstract && type.IsSealed ? "static class" : "class";
+    type.IsEnum ? "enum"
+    : type.IsInterface ? "interface"
+    : type.IsValueType ? "struct"
+    : type.IsAbstract && type.IsSealed ? "static class"
+    : "class";
 
 static string Describe(MemberInfo member) => member switch
 {
@@ -73,7 +78,9 @@ static string Describe(MemberInfo member) => member switch
 // is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
 static string RepositoryRoot()
 {
-    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory);
+        directory != null;
+        directory = directory.Parent)
     {
         if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
             return directory.FullName;
