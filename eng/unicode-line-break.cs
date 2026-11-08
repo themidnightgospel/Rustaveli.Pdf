@@ -103,7 +103,8 @@ if (directLimit < 256)
 
 for (int codepoint = 0; codepoint < CodepointCount; codepoint++)
 {
-    int leaf = middle[(top[codepoint >> TopShift] << (TopShift - MiddleShift)) | ((codepoint >> MiddleShift) & (MiddleSize - 1))];
+    int leaf = middle[
+        (top[codepoint >> TopShift] << (TopShift - MiddleShift)) | ((codepoint >> MiddleShift) & (MiddleSize - 1))];
 
     if (leaves[(leaf << MiddleShift) | (codepoint & (LeafSize - 1))] != values[codepoint])
         throw new InvalidOperationException($"The trie reads U+{codepoint:X4} back wrongly.");
@@ -183,7 +184,9 @@ string[] Read(string fileName, string versionMarker, string? property = null)
 
         string[] range = fields[0].Split("..");
         int first = int.Parse(range[0], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        int last = range.Length == 1 ? first : int.Parse(range[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        int last = range.Length == 1
+            ? first
+            : int.Parse(range[1], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         Array.Fill(result, fields[1], first, last - first + 1);
     }
 
@@ -246,7 +249,9 @@ static void AppendArray(StringBuilder source, string name, string summary, IRead
 // is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
 static string RepositoryRoot()
 {
-    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory);
+        directory != null;
+        directory = directory.Parent)
     {
         if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
             return directory.FullName;

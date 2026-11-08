@@ -24,7 +24,8 @@ internal static class SvgTarget
 
         try
         {
-            _ = Document.Compose(composition => composition.Section(section => section.Body().Artwork(artwork))).ExportPdf();
+            _ = Document.Compose(composition => composition.Section(section => section.Body().Artwork(artwork)))
+                .ExportPdf();
         }
         catch (OversetException)
         {

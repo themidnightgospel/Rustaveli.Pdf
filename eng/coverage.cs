@@ -36,7 +36,8 @@ JsonElement totals = summary.RootElement.GetProperty("summary");
 double line = totals.GetProperty("linecoverage").GetDouble();
 double branch = totals.GetProperty("branchcoverage").GetDouble();
 
-using JsonDocument thresholds = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "eng", "coverage-thresholds.json")));
+using JsonDocument thresholds =
+    JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "eng", "coverage-thresholds.json")));
 double minLine = thresholds.RootElement.GetProperty("line").GetDouble();
 double minBranch = thresholds.RootElement.GetProperty("branch").GetDouble();
 
@@ -68,7 +69,9 @@ static void Run(string file, string arguments)
 // is cached and can be shared between checkouts, so a path captured at compile time may name a different one.
 static string RepositoryRoot()
 {
-    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory); directory != null; directory = directory.Parent)
+    for (DirectoryInfo? directory = new DirectoryInfo(Environment.CurrentDirectory);
+        directory != null;
+        directory = directory.Parent)
     {
         if (File.Exists(Path.Combine(directory.FullName, "Rustaveli.Pdf.slnx")))
             return directory.FullName;

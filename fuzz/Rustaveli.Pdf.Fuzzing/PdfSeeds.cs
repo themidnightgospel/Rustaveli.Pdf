@@ -49,8 +49,12 @@ internal static class PdfSeeds
 
         byte[] plain = document.ExportPdf();
         File.WriteAllBytes(Path.Combine(folder, "plain.pdf"), plain);
-        File.WriteAllBytes(Path.Combine(folder, "tagged.pdf"), document.ExportPdf(new PdfExportOptions { Accessibility = PdfUAConformance.PdfUA1 }));
-        File.WriteAllBytes(Path.Combine(folder, "protected.pdf"), document.ExportPdf(new PdfExportOptions { Protection = new Protection { OwnerPassword = "owner" } }));
+        File.WriteAllBytes(
+            Path.Combine(folder, "tagged.pdf"),
+            document.ExportPdf(new PdfExportOptions { Accessibility = PdfUAConformance.PdfUA1 }));
+        File.WriteAllBytes(
+            Path.Combine(folder, "protected.pdf"),
+            document.ExportPdf(new PdfExportOptions { Protection = new Protection { OwnerPassword = "owner" } }));
         File.WriteAllBytes(Path.Combine(folder, "linearised.pdf"), PdfFile.Open(plain).OptimizeForWeb().ToArray());
         File.WriteAllBytes(
             Path.Combine(folder, "pdfa3-attachment.pdf"),

@@ -4,8 +4,9 @@ namespace Rustaveli.Pdf.Fuzzing;
 
 /// <summary>
 /// A font file — a single face or a collection — read and used as a document would use it: every face's tables read,
-/// text mapped, measured and kerned, and subsets built. The only acceptable failure is <see cref="FontFormatException"/>;
-/// a subset, once made, is this library's own output, and must read back without any exception at all.
+/// text mapped, measured and kerned, and subsets built. The only acceptable failure is
+/// <see cref="FontFormatException"/>; a subset, once made, is this library's own output, and must read back without
+/// any exception at all.
 /// </summary>
 internal static class FontTarget
 {
@@ -56,7 +57,9 @@ internal static class FontTarget
         }
     }
 
-    /// <summary>Uses the face every way a document does; the TrueType and CFF subsets made of it, where it has either.</summary>
+    /// <summary>
+    /// Uses the face every way a document does; the TrueType and CFF subsets made of it, where it has either.
+    /// </summary>
     private static (byte[]? TrueType, byte[]? Cff) Use(OpenTypeFont face)
     {
         _ = face.Names.PostScriptName;

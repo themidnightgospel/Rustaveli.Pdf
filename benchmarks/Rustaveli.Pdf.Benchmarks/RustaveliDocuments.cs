@@ -1,6 +1,8 @@
 namespace Rustaveli.Pdf.Benchmarks;
 
-/// <summary>The benchmark documents, built with this library. Mirrors <see cref="QuestDocuments" /> element for element.</summary>
+/// <summary>
+/// The benchmark documents, built with this library. Mirrors <see cref="QuestDocuments" /> element for element.
+/// </summary>
 public static class RustaveliDocuments
 {
     public static byte[] Generate(DocumentKind kind)
@@ -59,7 +61,8 @@ public static class RustaveliDocuments
                     stack.SpaceBetween(8f);
                     for (int index = 0; index < 40; index++)
                     {
-                        RasterImage image = RasterImage.FromBytes(BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
+                        RasterImage image = RasterImage.FromBytes(
+                            BenchmarkData.Photographs[index % BenchmarkData.Photographs.Count]);
                         stack.Add().Image(image, ImageFitting.FitWidth);
                         stack.Add().Text($"Figure {index + 1}");
                     }

@@ -3,8 +3,8 @@ namespace Rustaveli.Pdf.Fuzzing;
 /// <summary>
 /// A PDF file opened, repaired where it can be, and written out again, plainly and linearised for the web. The only
 /// acceptable failures are those <see cref="PdfFile.Open(byte[], string?)"/> documents, and a file of no pages is only
-/// opened; the files
-/// written are this library's own output, and must open and save again without any exception at all.
+/// opened; the files written are this library's own output, and must open and save again without any exception at
+/// all.
 /// </summary>
 internal static class PdfTarget
 {
@@ -24,7 +24,8 @@ internal static class PdfTarget
             saved = file.ToArray();
             linearised = PdfFile.Open(input.ToArray()).OptimizeForWeb().ToArray();
         }
-        catch (Exception exception) when (exception is UnreadableFileException or IncorrectPasswordException or NotSupportedException)
+        catch (Exception exception)
+            when (exception is UnreadableFileException or IncorrectPasswordException or NotSupportedException)
         {
             return;
         }
