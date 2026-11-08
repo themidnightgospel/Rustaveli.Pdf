@@ -111,10 +111,14 @@ public class ShapingTests
     [Fact]
     public void TheNamedFeaturesMatchTheirTags()
     {
-        Assert.Equal(Shape("a", Sans.WithFeature("smcp")).Single().Glyph, Shape("a", Sans.SmallCapitals()).Single().Glyph);
-        Assert.Equal(Shape("3", Sans.WithFeature("onum")).Single().Glyph, Shape("3", Sans.OldstyleFigures()).Single().Glyph);
-        Assert.Equal(Shape("1", Sans.WithFeature("tnum")).Single().Glyph, Shape("1", Sans.TabularFigures()).Single().Glyph);
-        Assert.Equal(Shape("1", Sans.Ligatures(false)).Single().Glyph, Shape("1", Sans.WithFeature("liga", 0)).Single().Glyph);
+        Assert.Equal(
+            Shape("a", Sans.WithFeature("smcp")).Single().Glyph, Shape("a", Sans.SmallCapitals()).Single().Glyph);
+        Assert.Equal(
+            Shape("3", Sans.WithFeature("onum")).Single().Glyph, Shape("3", Sans.OldstyleFigures()).Single().Glyph);
+        Assert.Equal(
+            Shape("1", Sans.WithFeature("tnum")).Single().Glyph, Shape("1", Sans.TabularFigures()).Single().Glyph);
+        Assert.Equal(
+            Shape("1", Sans.Ligatures(false)).Single().Glyph, Shape("1", Sans.WithFeature("liga", 0)).Single().Glyph);
     }
 
     [Fact]
@@ -221,8 +225,12 @@ public class ShapingTests
     [Fact]
     public void ASurrogateWithoutItsPartnerIsSetAsACharacterOfItsOwn()
     {
-        Assert.Equal([(0xD835, 0, 1), ('a', 1, 1)], Shape("\uD835a", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
-        Assert.Equal([('a', 0, 1), (0xD835, 1, 1)], Shape("a\uD835", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
+        Assert.Equal(
+            [(0xD835, 0, 1), ('a', 1, 1)],
+            Shape("\uD835a", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
+        Assert.Equal(
+            [('a', 0, 1), (0xD835, 1, 1)],
+            Shape("a\uD835", Sans).Select(glyph => (glyph.Codepoint, glyph.Start, glyph.Length)));
     }
 
     [Theory]
@@ -255,7 +263,9 @@ public class ShapingTests
         foreach (ShapedGlyph glyph in library.Shaper.Walk("a️b\t".AsSpan(), specimen))
             glyphs.Add(glyph);
 
-        Assert.Equal([(0, 2, "a️"), (2, 1, "b"), (3, 1, " ")], glyphs.Select(glyph => (glyph.Start, glyph.Length, glyph.ReadsAs)));
+        Assert.Equal(
+            [(0, 2, "a️"), (2, 1, "b"), (3, 1, " ")],
+            glyphs.Select(glyph => (glyph.Start, glyph.Length, glyph.ReadsAs)));
         Assert.DoesNotContain(glyphs, glyph => glyph.Glyph == 0);
     }
 
@@ -277,7 +287,9 @@ public class ShapingTests
         Assert.Equal(measurer.MeasureWidth("a b", Sans), measurer.MeasureWidth("a\tb", Sans));
     }
 
-    /// <summary>The lines of <paramref name="text"/> set in a column <paramref name="width"/> wide, top first, as read back.</summary>
+    /// <summary>
+    /// The lines of <paramref name="text"/> set in a column <paramref name="width"/> wide, top first, as read back.
+    /// </summary>
     private static List<string> Lines(string text, float width)
     {
         byte[] pdf = Document.Compose(composition => composition.Section(section =>
@@ -326,7 +338,9 @@ public class ShapingTests
         ushort closing = Shape(")", Sans).Single().Glyph;
 
         // The closing bracket, read last, is displayed first — mirrored into an opening one — and the opening last.
-        Assert.Equal([opening, closing], ShapeRightToLeft("(x)", Sans).Where(glyph => glyph.Codepoint != 'x').Select(glyph => glyph.Glyph));
+        Assert.Equal(
+            [opening, closing],
+            ShapeRightToLeft("(x)", Sans).Where(glyph => glyph.Codepoint != 'x').Select(glyph => glyph.Glyph));
         Assert.Equal(closing, ShapeRightToLeft("(", Sans).Single().Glyph);
     }
 

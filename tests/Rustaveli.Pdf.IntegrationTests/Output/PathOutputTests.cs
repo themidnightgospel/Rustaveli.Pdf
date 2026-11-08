@@ -13,7 +13,8 @@ public class PathOutputTests
 {
     private static readonly Ink Red = Ink.Rgb(255, 0, 0);
 
-    private static readonly VectorPath Triangle = new VectorPath().MoveTo(10, 10).LineTo(50, 10).CurveTo(60, 20, 60, 40, 30, 50).Close();
+    private static readonly VectorPath Triangle =
+        new VectorPath().MoveTo(10, 10).LineTo(50, 10).CurveTo(60, 20, 60, 40, 30, 50).Close();
 
     /// <summary>The content stream of one page, 100 points square, drawn by <paramref name="draw"/>.</summary>
     private static string Content(Action<PdfSurface> draw)
@@ -32,7 +33,12 @@ public class PathOutputTests
         using PdfDocument parsed = PdfDocument.Open(stream.ToArray());
 
         return Encoding.ASCII.GetString(parsed.GetPage(1).Operations
-            .Select(operation => { using MemoryStream buffer = new MemoryStream(); operation.Write(buffer); return buffer.ToArray(); })
+            .Select(operation =>
+            {
+                using MemoryStream buffer = new MemoryStream();
+                operation.Write(buffer);
+                return buffer.ToArray();
+            })
             .SelectMany(bytes => bytes.Append((byte)'\n'))
             .ToArray());
     }
@@ -158,10 +164,13 @@ public class PathOutputTests
     {
         using SKBitmap page = Image(Artwork.Draw(100, 100, art =>
         {
-            art.Stroke(new VectorPath().MoveTo(0, 50).LineTo(100, 50), Red, new LineStyle(6, Dashes: [10], DashOffset: 0));
+            art.Stroke(
+                new VectorPath().MoveTo(0, 50).LineTo(100, 50), Red, new LineStyle(6, Dashes: [10], DashOffset: 0));
             art.Transform(1, 0, 0, 1, 0, 30);
-            art.Stroke(new VectorPath().MoveTo(0, 50).LineTo(100, 50), Red, new LineStyle(6, LineCap.Round, LineJoin.Round));
-            art.Stroke(new VectorPath().MoveTo(0, 60).LineTo(100, 60), Red, new LineStyle(6, LineCap.Square, LineJoin.Bevel));
+            art.Stroke(
+                new VectorPath().MoveTo(0, 50).LineTo(100, 50), Red, new LineStyle(6, LineCap.Round, LineJoin.Round));
+            art.Stroke(
+                new VectorPath().MoveTo(0, 60).LineTo(100, 60), Red, new LineStyle(6, LineCap.Square, LineJoin.Bevel));
         }));
 
         Assert.True(IsRed(page.GetPixel(5, 50)));

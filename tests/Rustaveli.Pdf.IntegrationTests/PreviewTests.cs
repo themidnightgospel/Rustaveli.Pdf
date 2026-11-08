@@ -16,7 +16,8 @@ public class PreviewTests
 {
     private static readonly HttpClient Client = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
 
-    private static Document Pages(int count, string label = "Page") => Document.Compose(composition => composition.Section(section =>
+    private static Document Pages(
+        int count, string label = "Page") => Document.Compose(composition => composition.Section(section =>
     {
         section.Trim = new Extent(144, 72);
         section.DefaultType = TypeStyle.Default.WithTypeface(TestFonts.Sans);
@@ -35,7 +36,8 @@ public class PreviewTests
     private static PreviewSession Start(Func<Document> compose) =>
         DocumentPreview.StartPreview(compose, new PreviewOptions { OpenBrowser = false, Resolution = 72 });
 
-    private static Task<string> Get(PreviewSession session, string path) => Client.GetStringAsync(new Uri(session.Url, path));
+    private static Task<string> Get(PreviewSession session, string path) =>
+        Client.GetStringAsync(new Uri(session.Url, path));
 
     [Fact]
     public async Task ServesThePageItsPagesAndTheirState()
@@ -66,7 +68,8 @@ public class PreviewTests
         session.Refresh();
 
         Assert.Equal(2, session.Version);
-        Assert.Contains("\"version\":2,\"pages\":[[192,96],[192,96]]", await Get(session, "/state"), StringComparison.Ordinal);
+        Assert.Contains(
+            "\"version\":2,\"pages\":[[192,96],[192,96]]", await Get(session, "/state"), StringComparison.Ordinal);
         Assert.Equal(2, composed);
     }
 
@@ -95,14 +98,18 @@ public class PreviewTests
 
         string state = await Get(session, "/state");
 
-        Assert.StartsWith("{\"version\":1,\"pages\":[],\"error\":\"OversetException: The body cannot be set", state, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "{\"version\":1,\"pages\":[],\"error\":\"OversetException: The body cannot be set",
+            state,
+            StringComparison.Ordinal);
         Assert.Contains("\\n  \\\"Too tall\\\", offered 100 × 100: does not fit", state, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task WhatTheComposingCodeThrowsIsShownWithWhatCausedIt()
     {
-        using PreviewSession session = Start(() => throw new InvalidOperationException("Not written yet", new FormatException("bad date")));
+        using PreviewSession session = Start(
+            () => throw new InvalidOperationException("Not written yet", new FormatException("bad date")));
 
         string state = await Get(session, "/state");
 
@@ -175,7 +182,8 @@ public class PreviewTests
     {
         LayoutInspection.Node node = new LayoutInspection.Node("Stack", source, Offset.Zero, Extent.Zero, null);
 
-        Assert.Contains("\"editor\":" + PreviewSession.Quote(editor), PreviewSession.Frames([node]), StringComparison.Ordinal);
+        Assert.Contains(
+            "\"editor\":" + PreviewSession.Quote(editor), PreviewSession.Frames([node]), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -209,7 +217,10 @@ public class PreviewTests
     {
         using PreviewSession session = Start(() => Pages(1));
 
-        Assert.Contains("<link rel=\"icon\" type=\"image/png\" href=\"/icon.png\">", await Get(session, "/"), StringComparison.Ordinal);
+        Assert.Contains(
+            "<link rel=\"icon\" type=\"image/png\" href=\"/icon.png\">",
+            await Get(session, "/"),
+            StringComparison.Ordinal);
 
         byte[] icon = await Client.GetByteArrayAsync(new Uri(session.Url, "/icon.png"));
 
@@ -245,10 +256,12 @@ public class PreviewTests
             }));
 
         previewing.Start();
-        SpinWait.SpinUntil(() => output.ToString().Contains("Previewing at", StringComparison.Ordinal), TimeSpan.FromSeconds(30));
+        SpinWait.SpinUntil(
+            () => output.ToString().Contains("Previewing at", StringComparison.Ordinal), TimeSpan.FromSeconds(30));
 
         string said = output.ToString();
-        Uri url = new Uri(said.Substring("Previewing at ".Length, said.IndexOf(" — ", StringComparison.Ordinal) - "Previewing at ".Length));
+        Uri url = new Uri(said.Substring(
+            "Previewing at ".Length, said.IndexOf(" — ", StringComparison.Ordinal) - "Previewing at ".Length));
         Assert.EndsWith("press Ctrl+C to stop." + Environment.NewLine, said, StringComparison.Ordinal);
         Assert.Contains("\"version\":1", await Client.GetStringAsync(new Uri(url, "/state")), StringComparison.Ordinal);
         Assert.True(previewing.IsAlive);
@@ -329,11 +342,14 @@ public class PreviewTests
         Action<string> open = PdfExport.Open;
 
         // As Process.Start fails on a Linux machine without xdg-open, and on a platform with no processes to start.
-        PdfExport.Open = _ => throw (unsupported ? new PlatformNotSupportedException() : (Exception)new System.ComponentModel.Win32Exception(2, "No such file or directory"));
+        PdfExport.Open = _ => throw (unsupported
+            ? new PlatformNotSupportedException()
+            : (Exception)new System.ComponentModel.Win32Exception(2, "No such file or directory"));
 
         try
         {
-            using PreviewSession session = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { Resolution = 72 });
+            using PreviewSession session = DocumentPreview.StartPreview(
+                () => Pages(1), new PreviewOptions { Resolution = 72 });
 
             Assert.Contains("\"version\":1", await Get(session, "/state"), StringComparison.Ordinal);
         }
@@ -352,14 +368,16 @@ public class PreviewTests
 
         try
         {
-            Assert.Throws<NotSupportedException>(() => DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { Port = port }));
+            Assert.Throws<NotSupportedException>(
+                () => DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { Port = port }));
         }
         finally
         {
             PdfExport.Open = open;
         }
 
-        using PreviewSession again = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
+        using PreviewSession again = DocumentPreview.StartPreview(
+            () => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
         Assert.Equal(port, again.Url.Port);
     }
 
@@ -440,7 +458,10 @@ public class PreviewTests
         Assert.Equal(144f, options.Resolution);
         Assert.True(options.OpenBrowser);
         Assert.Null(options.Typefaces);
-        Assert.Contains("pixels per inch", Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = 0).Message, StringComparison.Ordinal);
+        Assert.Contains(
+            "pixels per inch",
+            Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = 0).Message,
+            StringComparison.Ordinal);
         Assert.Throws<ArgumentOutOfRangeException>(() => options.Resolution = float.PositiveInfinity);
         Assert.Throws<ArgumentNullException>(() => DocumentPreview.StartPreview(null!));
     }
@@ -452,7 +473,8 @@ public class PreviewTests
         // for Hyper-V — where a port picked at random might be.
         int port = PreviewSession.FreePort();
 
-        using PreviewSession session = DocumentPreview.StartPreview(() => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
+        using PreviewSession session = DocumentPreview.StartPreview(
+            () => Pages(1), new PreviewOptions { OpenBrowser = false, Port = port });
 
         Assert.Equal(port, session.Url.Port);
         Assert.Contains("\"version\":1", await Get(session, "/state"), StringComparison.Ordinal);

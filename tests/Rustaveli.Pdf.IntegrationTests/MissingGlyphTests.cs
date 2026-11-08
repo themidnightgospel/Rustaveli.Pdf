@@ -36,7 +36,8 @@ public class MissingGlyphTests
     [Fact]
     public void TextEveryTypefaceCoversPasses()
     {
-        byte[] pdf = Build("Hello, world").ExportPdf(new PdfExportOptions { Typefaces = Latin, RequireEveryGlyph = true });
+        byte[] pdf = Build("Hello, world").ExportPdf(
+            new PdfExportOptions { Typefaces = Latin, RequireEveryGlyph = true });
 
         Assert.NotEmpty(pdf);
     }
@@ -48,7 +49,8 @@ public class MissingGlyphTests
     [InlineData("﻿")]
     public void CharactersThatAreNeverDrawnNeedNoGlyph(string invisible)
     {
-        byte[] pdf = Build($"a{invisible}b").ExportPdf(new PdfExportOptions { Typefaces = Latin, RequireEveryGlyph = true });
+        byte[] pdf = Build($"a{invisible}b").ExportPdf(
+            new PdfExportOptions { Typefaces = Latin, RequireEveryGlyph = true });
 
         Assert.NotEmpty(pdf);
     }

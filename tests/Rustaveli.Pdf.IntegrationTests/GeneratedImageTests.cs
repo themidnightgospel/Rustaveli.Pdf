@@ -7,7 +7,8 @@ namespace Rustaveli.Pdf.IntegrationTests;
 /// </summary>
 public class GeneratedImageTests
 {
-    private static Document Asking(List<ImageRequest> requests) => Document.Compose(composition => composition.Section(section =>
+    private static Document Asking(
+        List<ImageRequest> requests) => Document.Compose(composition => composition.Section(section =>
     {
         section.Trim = new Extent(144, 72);
         section.Body().Image(request =>

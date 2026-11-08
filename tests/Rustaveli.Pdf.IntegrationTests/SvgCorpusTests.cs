@@ -40,7 +40,8 @@ public class SvgCorpusTests
             Assert.Equal(size, drawn.Artwork.Size);
 
         // Most documents outline their picture with a rectangle, which is drawn whatever else is left out.
-        bool framed = File.ReadAllText(SvgCorpus.PathOf(document)).Contains("id=\"frame\"") && !Blank.Contains(document);
+        bool framed = File.ReadAllText(SvgCorpus.PathOf(document)).Contains("id=\"frame\"")
+            && !Blank.Contains(document);
 
         using (UglyToad.PdfPig.PdfDocument read = UglyToad.PdfPig.PdfDocument.Open(drawn.Pdf))
         {
@@ -79,6 +80,7 @@ public class SvgCorpusTests
             section.Body().Artwork(artwork, ImageFitting.Proportionally);
         }));
 
-        return (artwork, page.ExportPdf(), page.ExportImages(new ImageExportOptions { Resolution = 72, Format = PageImageFormat.Png }));
+        return (artwork, page.ExportPdf(), page.ExportImages(
+            new ImageExportOptions { Resolution = 72, Format = PageImageFormat.Png }));
     }
 }

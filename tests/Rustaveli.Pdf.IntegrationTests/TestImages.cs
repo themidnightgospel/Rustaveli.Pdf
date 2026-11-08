@@ -24,8 +24,11 @@ internal static class TestImages
     /// </summary>
     public static byte[] LinearGreyPng(int width, int height)
     {
-        SKImageInfo info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque, SKColorSpace.CreateSrgbLinear());
-        byte[] samples = Enumerable.Range(0, width * height * 4).Select(index => index % 4 == 3 ? (byte)255 : (byte)128).ToArray();
+        SKImageInfo info = new SKImageInfo(
+            width, height, SKColorType.Rgba8888, SKAlphaType.Opaque, SKColorSpace.CreateSrgbLinear());
+        byte[] samples = Enumerable.Range(0, width * height * 4)
+            .Select(index => index % 4 == 3 ? (byte)255 : (byte)128)
+            .ToArray();
 
         using SKImage image = SKImage.FromPixelCopy(info, samples, info.RowBytes);
         using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
@@ -35,8 +38,10 @@ internal static class TestImages
     /// <summary>The colour at the centre of an encoded image, converted to sRGB as its colour profile says.</summary>
     public static SKColor CentreInSrgb(byte[] encoded)
     {
-        using SKCodec codec = SKCodec.Create(new MemoryStream(encoded)) ?? throw new InvalidOperationException("Not an image.");
-        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
+        using SKCodec codec =
+            SKCodec.Create(new MemoryStream(encoded)) ?? throw new InvalidOperationException("Not an image.");
+        SKImageInfo info = new SKImageInfo(
+            codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul, SKColorSpace.CreateSrgb());
         using SKBitmap bitmap = new SKBitmap(info);
         codec.GetPixels(info, bitmap.GetPixels());
         return bitmap.GetPixel(info.Width / 2, info.Height / 2);

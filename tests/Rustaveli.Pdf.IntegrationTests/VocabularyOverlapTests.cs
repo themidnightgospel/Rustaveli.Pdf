@@ -19,7 +19,8 @@ public class VocabularyOverlapTests
         "<Clone>$", "Dispose", "Equals", "Format", "FromFile", "FromStream", "GetHashCode", "Save", "ToString",
 
         // Layout.
-        "Cell", "Columns", "Compose", "Grid", "Height", "Image", "Landscape", "Layer", "MaxHeight", "MaxWidth", "MinHeight",
+        "Cell", "Columns", "Compose", "Grid", "Height", "Image", "Landscape", "Layer",
+        "MaxHeight", "MaxWidth", "MinHeight",
         "Merge", "MinWidth", "Placeholder", "Portrait", "Rotate", "Scale", "Section", "Stack", "Table", "Width",
 
         // Typography.
@@ -33,7 +34,10 @@ public class VocabularyOverlapTests
     };
 
     private static readonly Assembly[] Ours =
-        [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(UnreadableFileException).Assembly, typeof(DocumentPreview).Assembly];
+    [
+        typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(UnreadableFileException).Assembly,
+        typeof(DocumentPreview).Assembly
+    ];
 
     private static readonly Assembly Theirs = typeof(QuestPDF.Fluent.Document).Assembly;
 
@@ -49,7 +53,9 @@ public class VocabularyOverlapTests
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToList();
 
-        Assert.True(coined.Count == 0, "Method names shared with QuestPDF that are not plain words: " + string.Join(", ", coined));
+        Assert.True(
+            coined.Count == 0,
+            "Method names shared with QuestPDF that are not plain words: " + string.Join(", ", coined));
     }
 
     [Fact]
@@ -63,13 +69,16 @@ public class VocabularyOverlapTests
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToList();
 
-        Assert.True(coined.Count == 0, "Type names shared with QuestPDF that are not plain words: " + string.Join(", ", coined));
+        Assert.True(
+            coined.Count == 0,
+            "Type names shared with QuestPDF that are not plain words: " + string.Join(", ", coined));
     }
 
     private static HashSet<string> PublicMethodNames(Assembly assembly) =>
         new HashSet<string>(
             assembly.GetExportedTypes()
-                .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+                .SelectMany(type => type.GetMethods(
+                    BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 .Where(method => !method.IsSpecialName)
                 .Select(method => method.Name),
             StringComparer.Ordinal);

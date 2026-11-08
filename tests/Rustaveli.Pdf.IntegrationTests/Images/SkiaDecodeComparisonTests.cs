@@ -26,7 +26,8 @@ public class SkiaDecodeComparisonTests
     {
         using SKData data = SKData.CreateCopy(file);
         using SKCodec codec = SKCodec.Create(data);
-        SKImageInfo info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        SKImageInfo info =
+            new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
         using SKBitmap bitmap = new SKBitmap(info);
 
         Assert.Equal(SKCodecResult.Success, codec.GetPixels(info, bitmap.GetPixels()));
@@ -34,7 +35,8 @@ public class SkiaDecodeComparisonTests
     }
 
     // Skia narrows 16-bit samples by rounding, the readers here by truncating: one level apart at most.
-    private static void AssertSamePixels(string name, byte[] expected, byte[] actual, int width, int height, int bitDepth)
+    private static void AssertSamePixels(
+        string name, byte[] expected, byte[] actual, int width, int height, int bitDepth)
     {
         int tolerance = bitDepth == 16 ? 1 : 0;
         Assert.Equal(width * height * 4, actual.Length);

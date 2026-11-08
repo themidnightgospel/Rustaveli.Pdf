@@ -17,7 +17,8 @@ public static class TestFonts
 {
     public const string Sans = "Noto Sans";
 
-    private static readonly string[] SansFiles = ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf", "NotoSans-BoldItalic.ttf"];
+    private static readonly string[] SansFiles =
+        ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSans-Italic.ttf", "NotoSans-BoldItalic.ttf"];
 
     public static string PathOf(string fileName) => Path.Combine(AppContext.BaseDirectory, "fonts", fileName);
 

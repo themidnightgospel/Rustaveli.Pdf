@@ -30,7 +30,8 @@ public class ImageProcessingTests
     {
         RasterImage image = RasterImage.FromBytes(TestImages.Png(400, 200));
 
-        IPdfImage embedded = Embedded(Export(image, new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, MaximumImageResolution = 72 }));
+        IPdfImage embedded = Embedded(Export(
+            image, new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, MaximumImageResolution = 72 }));
 
         Assert.Equal((100, 50), (embedded.WidthInSamples, embedded.HeightInSamples));
     }
@@ -40,7 +41,8 @@ public class ImageProcessingTests
     {
         RasterImage image = RasterImage.FromBytes(TestImages.Png(40, 20)).WithQuality(50);
 
-        string pdf = Encoding.Latin1.GetString(Export(image, new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, Compress = false }));
+        string pdf = Encoding.Latin1.GetString(Export(
+            image, new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, Compress = false }));
 
         Assert.Contains("/DCTDecode", pdf, StringComparison.Ordinal);
     }
@@ -52,7 +54,9 @@ public class ImageProcessingTests
         bitmap.Erase(new SKColor(255, 0, 0, 128));
         using SKData png = bitmap.Encode(SKEncodedImageFormat.Png, 100);
 
-        string pdf = Encoding.Latin1.GetString(Export(RasterImage.FromBytes(png.ToArray()).WithQuality(50), new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, Compress = false }));
+        string pdf = Encoding.Latin1.GetString(Export(
+            RasterImage.FromBytes(png.ToArray()).WithQuality(50),
+            new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, Compress = false }));
 
         Assert.DoesNotContain("/DCTDecode", pdf, StringComparison.Ordinal);
         Assert.Contains("/SMask", pdf, StringComparison.Ordinal);
@@ -65,7 +69,9 @@ public class ImageProcessingTests
         bitmap.Erase(new SKColor(255, 0, 0, 255));
         using SKData png = bitmap.Encode(SKEncodedImageFormat.Png, 100);
 
-        string pdf = Encoding.Latin1.GetString(Export(RasterImage.FromBytes(png.ToArray()).WithQuality(50), new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, Compress = false }));
+        string pdf = Encoding.Latin1.GetString(Export(
+            RasterImage.FromBytes(png.ToArray()).WithQuality(50),
+            new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance, Compress = false }));
 
         Assert.Contains("/DCTDecode", pdf, StringComparison.Ordinal);
     }
@@ -86,7 +92,11 @@ public class ImageProcessingTests
         RasterImage image = RasterImage.FromFile(ImagePath("jpeg-exif-orientation6.jpg"));
         Assert.True(image.PixelHeight > image.PixelWidth || image.PixelWidth > image.PixelHeight);
 
-        IPdfImage embedded = Embedded(Export(image.WithQuality(80), new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance }, image.PixelWidth, image.PixelHeight));
+        IPdfImage embedded = Embedded(Export(
+            image.WithQuality(80),
+            new PdfExportOptions { ImageProcessor = SkiaImageProcessor.Instance },
+            image.PixelWidth,
+            image.PixelHeight));
 
         // Stored on its side; processed, it is stored the way it is seen.
         Assert.Equal((image.PixelWidth, image.PixelHeight), (embedded.WidthInSamples, embedded.HeightInSamples));
@@ -105,7 +115,8 @@ public class ImageProcessingTests
     {
         // A 4 by 2 image, red in its stored top left corner, the rest white.
         byte[] jpeg = JpegWithOrigin(origin);
-        byte[] processed = SkiaImageProcessor.Instance.Process(new ImageProcessing(jpeg, Turned(origin) ? 20 : 40, Turned(origin) ? 40 : 20, null));
+        byte[] processed = SkiaImageProcessor.Instance.Process(
+            new ImageProcessing(jpeg, Turned(origin) ? 20 : 40, Turned(origin) ? 40 : 20, null));
 
         using SKBitmap upright = SKBitmap.Decode(processed);
         using SKBitmap expected = Upright(origin);
@@ -113,7 +124,8 @@ public class ImageProcessingTests
         Assert.Equal((expected.Width, expected.Height), (upright.Width, upright.Height));
 
         // The red square is in the same corner of both; each corner is red or white, never in between.
-        foreach ((int x, int y) in new[] { (3, 3), (expected.Width - 4, 3), (3, expected.Height - 4), (expected.Width - 4, expected.Height - 4) })
+        foreach ((int x, int y) in new[]
+            { (3, 3), (expected.Width - 4, 3), (3, expected.Height - 4), (expected.Width - 4, expected.Height - 4) })
             Assert.Equal(expected.GetPixel(x, y).Green < 128, upright.GetPixel(x, y).Green < 128);
     }
 
@@ -141,22 +153,28 @@ public class ImageProcessingTests
     [InlineData("basn3p08.png")]
     public void EveryKindOfImageIsProcessedInSrgb(string name)
     {
-        byte[] processed = SkiaImageProcessor.Instance.Process(new ImageProcessing(File.ReadAllBytes(ImagePath(name)), 8, 8, 80));
+        byte[] processed = SkiaImageProcessor.Instance.Process(
+            new ImageProcessing(File.ReadAllBytes(ImagePath(name)), 8, 8, 80));
 
         using SKCodec codec = SKCodec.Create(new MemoryStream(processed));
         Assert.Equal((8, 8), (codec.Info.Width, codec.Info.Height));
-        Assert.True(codec.Info.ColorSpace is null || codec.Info.ColorSpace.IsSrgb, $"{name} came out in another colour space.");
+        Assert.True(
+            codec.Info.ColorSpace is null || codec.Info.ColorSpace.IsSrgb,
+            $"{name} came out in another colour space.");
     }
 
     [Fact]
     public void AProcessorNeedsPixelsToMake()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => SkiaImageProcessor.Instance.Process(new ImageProcessing(TestImages.Png(4, 2), 0, 1, null)));
-        Assert.Throws<ArgumentException>(() => SkiaImageProcessor.Instance.Process(new ImageProcessing(new byte[] { 1, 2, 3 }, 1, 1, null)));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => SkiaImageProcessor.Instance.Process(new ImageProcessing(TestImages.Png(4, 2), 0, 1, null)));
+        Assert.Throws<ArgumentException>(
+            () => SkiaImageProcessor.Instance.Process(new ImageProcessing(new byte[] { 1, 2, 3 }, 1, 1, null)));
     }
 
     private static bool Turned(SKEncodedOrigin origin) =>
-        origin is SKEncodedOrigin.LeftTop or SKEncodedOrigin.RightTop or SKEncodedOrigin.RightBottom or SKEncodedOrigin.LeftBottom;
+        origin is SKEncodedOrigin.LeftTop or SKEncodedOrigin.RightTop or SKEncodedOrigin.RightBottom
+            or SKEncodedOrigin.LeftBottom;
 
     /// <summary>
     /// A 40 by 20 JPEG with its EXIF orientation set, red in the stored top left quarter's corner square, white else.
@@ -195,8 +213,10 @@ public class ImageProcessingTests
         bitmap.Erase(SKColors.White);
 
         // Where the stored top left square lands once the image is the right way up.
-        bool right = origin is SKEncodedOrigin.TopRight or SKEncodedOrigin.BottomRight or SKEncodedOrigin.RightTop or SKEncodedOrigin.RightBottom;
-        bool bottom = origin is SKEncodedOrigin.BottomRight or SKEncodedOrigin.BottomLeft or SKEncodedOrigin.RightBottom or SKEncodedOrigin.LeftBottom;
+        bool right = origin is SKEncodedOrigin.TopRight or SKEncodedOrigin.BottomRight or SKEncodedOrigin.RightTop
+            or SKEncodedOrigin.RightBottom;
+        bool bottom = origin is SKEncodedOrigin.BottomRight or SKEncodedOrigin.BottomLeft or SKEncodedOrigin.RightBottom
+            or SKEncodedOrigin.LeftBottom;
         int left = right ? bitmap.Width - 10 : 0;
         int top = bottom ? bitmap.Height - 10 : 0;
 

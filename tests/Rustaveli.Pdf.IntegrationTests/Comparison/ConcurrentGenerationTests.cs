@@ -20,7 +20,8 @@ public class ConcurrentGenerationTests(ITestOutputHelper output)
     public void ConcurrentRendersProduceIdenticalDocuments()
     {
         byte[] expected = Recipes.RustaveliTable();
-        ConcurrentBag<(int Bytes, int Words, string First)> results = new ConcurrentBag<(int Bytes, int Words, string First)>();
+        ConcurrentBag<(int Bytes, int Words, string First)> results =
+            new ConcurrentBag<(int Bytes, int Words, string First)>();
         ConcurrentBag<string> kept = new ConcurrentBag<string>();
 
         Parallel.For(0, Iterations, _ =>
@@ -39,7 +40,8 @@ public class ConcurrentGenerationTests(ITestOutputHelper output)
         });
 
         if (!kept.IsEmpty)
-            output.WriteLine($"Renders unlike the one drawn alone ({expected.Length} bytes): {string.Join(", ", kept)}");
+            output.WriteLine(
+                $"Renders unlike the one drawn alone ({expected.Length} bytes): {string.Join(", ", kept)}");
 
         List<int> byteSizes = results.Select(result => result.Bytes).Distinct().OrderBy(size => size).ToList();
         List<int> wordCounts = results.Select(result => result.Words).Distinct().OrderBy(count => count).ToList();
@@ -50,10 +52,18 @@ public class ConcurrentGenerationTests(ITestOutputHelper output)
                          $"firstWords=[{string.Join("|", firstWords)}]");
 
         // Differing byte sizes would mean the corruption happened while writing, not while reading.
-        Assert.True(byteSizes.Count == 1, $"Concurrent renders produced {byteSizes.Count} distinct file sizes: {string.Join(", ", byteSizes)}");
-        Assert.True(wordCounts.Count == 1, $"Concurrent renders produced {wordCounts.Count} distinct word counts: {string.Join(", ", wordCounts)}");
-        Assert.True(firstWords is ["Code"], $"Concurrent renders disagreed on the first word: {string.Join(" | ", firstWords)}");
-        Assert.True(kept.IsEmpty, $"{kept.Count} concurrent renders differ from the one drawn alone, kept at: {string.Join(", ", kept)}");
+        Assert.True(
+            byteSizes.Count == 1,
+            $"Concurrent renders produced {byteSizes.Count} distinct file sizes: {string.Join(", ", byteSizes)}");
+        Assert.True(
+            wordCounts.Count == 1,
+            $"Concurrent renders produced {wordCounts.Count} distinct word counts: {string.Join(", ", wordCounts)}");
+        Assert.True(
+            firstWords is ["Code"],
+            $"Concurrent renders disagreed on the first word: {string.Join(" | ", firstWords)}");
+        Assert.True(
+            kept.IsEmpty,
+            $"{kept.Count} concurrent renders differ from the one drawn alone, kept at: {string.Join(", ", kept)}");
     }
 
     [Fact]

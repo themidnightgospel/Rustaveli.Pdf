@@ -40,7 +40,8 @@ public class SurfaceOriginTests
     [InlineData(150f)]
     public void TheRasterSurfaceReportsItsOriginInPointsAtAnyResolution(float resolution)
     {
-        using SkiaRasterSurface surface = new SkiaRasterSurface(TypefaceLibrary.Shared.Shaper, new ImageExportOptions { Resolution = resolution });
+        using SkiaRasterSurface surface = new SkiaRasterSurface(
+            TypefaceLibrary.Shared.Shaper, new ImageExportOptions { Resolution = resolution });
 
         surface.BeginPage(new Extent(200, 300));
         Assert.Equal(Offset.Zero, surface.Origin);

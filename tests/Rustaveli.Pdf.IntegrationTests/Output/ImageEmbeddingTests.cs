@@ -22,7 +22,8 @@ public class ImageEmbeddingTests
             .Select(name => name!)
 
             // PngSuite names its corrupt files with a leading x.
-            .Where(name => (name.EndsWith(".png", StringComparison.Ordinal) && !name.StartsWith('x')) || name.EndsWith(".jpg", StringComparison.Ordinal))
+            .Where(name => (name.EndsWith(".png", StringComparison.Ordinal) && !name.StartsWith('x'))
+                || name.EndsWith(".jpg", StringComparison.Ordinal))
             .OrderBy(name => name, StringComparer.Ordinal);
 
     private static byte[] Export(params RasterImage[] images) =>

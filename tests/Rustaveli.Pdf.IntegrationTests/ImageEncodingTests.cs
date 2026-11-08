@@ -67,7 +67,8 @@ public class ImageEncodingTests
         // The same bytes loaded twice are still one image: it is matched by content, not by instance.
         byte[] png = FlatColour(SKEncodedImageFormat.Png);
 
-        string pdf = Encoding.Latin1.GetString(DocumentWithImages(png, png).ExportPdf(new PdfExportOptions { Compress = false }));
+        string pdf = Encoding.Latin1.GetString(
+            DocumentWithImages(png, png).ExportPdf(new PdfExportOptions { Compress = false }));
 
         Assert.Single(Regex.Matches(pdf, @"/Subtype\s*/Image\b"));
     }

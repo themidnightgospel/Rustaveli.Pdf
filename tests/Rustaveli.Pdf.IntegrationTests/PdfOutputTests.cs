@@ -280,7 +280,8 @@ public class PdfOutputTests
         List<Word> firstWords = words.Where(word => word.Text == "First" || word.Text == "Second").ToList();
 
         Assert.Equal(2, firstWords.Count);
-        Assert.All(firstWords, word => Assert.True(word.BoundingBox.Left > 45, $"'{word.Text}' should be indented past the 30pt margin."));
+        Assert.All(firstWords, word => Assert.True(
+            word.BoundingBox.Left > 45, $"'{word.Text}' should be indented past the 30pt margin."));
     }
 
     [Fact]

@@ -48,7 +48,8 @@ public class GradientOutputTests
     [Fact]
     public void StopsInsideTheBlendHoldTheirInkToTheEnds()
     {
-        string pdf = Export(stack => stack.Add().Height(40).Fill(new Gradient(0, new GradientStop(0.25f, Red), new GradientStop(0.75f, Blue))));
+        string pdf = Export(stack => stack.Add().Height(40)
+            .Fill(new Gradient(0, new GradientStop(0.25f, Red), new GradientStop(0.75f, Blue))));
 
         // Red up to a quarter, the blend to three quarters, and blue from there.
         Assert.Matches(@"/FunctionType 3\s*/Domain\s*\[0 1\]", pdf);
@@ -59,7 +60,8 @@ public class GradientOutputTests
     [Fact]
     public void ProcessInksBlendInCmyk()
     {
-        string pdf = Export(stack => stack.Add().Height(40).Fill(Gradient.Across(Ink.Cmyk(1, 0, 0, 0), Ink.Cmyk(0, 0, 0, 1))));
+        string pdf = Export(stack => stack.Add().Height(40)
+            .Fill(Gradient.Across(Ink.Cmyk(1, 0, 0, 0), Ink.Cmyk(0, 0, 0, 1))));
 
         Assert.Matches(@"/ColorSpace\s*/DeviceCMYK", pdf);
         Assert.Matches(@"/C0\s*\[1 0 0 0\]\s*/C1\s*\[0 0 0 1\]", pdf);
@@ -68,7 +70,8 @@ public class GradientOutputTests
     [Fact]
     public void MixedInksBlendInRgb()
     {
-        string pdf = Export(stack => stack.Add().Height(40).Fill(Gradient.Across(Ink.Cmyk(0, 0, 0, 1), Ink.Spot("Signal", Red))));
+        string pdf = Export(stack => stack.Add().Height(40)
+            .Fill(Gradient.Across(Ink.Cmyk(0, 0, 0, 1), Ink.Spot("Signal", Red))));
 
         Assert.Matches(@"/ColorSpace\s*/DeviceRGB", pdf);
         Assert.Matches(@"/C0\s*\[0 0 0\]\s*/C1\s*\[1 0 0\]", pdf);
@@ -108,7 +111,8 @@ public class GradientOutputTests
     [Fact]
     public void ATranslucentGradientIsDrawnAtItsOpacity()
     {
-        string pdf = Export(stack => stack.Add().Height(40).Fill(Gradient.Across(Red.WithOpacity(0.5f), Blue.WithOpacity(0.5f))));
+        string pdf = Export(stack => stack.Add().Height(40)
+            .Fill(Gradient.Across(Red.WithOpacity(0.5f), Blue.WithOpacity(0.5f))));
 
         Assert.Matches(@"/ca 0\.5", pdf);
     }

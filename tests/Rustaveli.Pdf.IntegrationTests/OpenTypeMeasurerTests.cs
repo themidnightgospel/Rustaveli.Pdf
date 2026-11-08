@@ -35,7 +35,8 @@ public class OpenTypeMeasurerTests
                 $"Within {midway:F2}pt, between the widths of the first {boundaries[index]} and {boundaries[index + 1]} code units.");
         }
 
-        Assert.Equal(text.Length, Measurer.MeasureCharactersFitting(text, style, Measurer.MeasureWidth(text, style) + 1));
+        Assert.Equal(
+            text.Length, Measurer.MeasureCharactersFitting(text, style, Measurer.MeasureWidth(text, style) + 1));
     }
 
     [Theory]
@@ -76,7 +77,8 @@ public class OpenTypeMeasurerTests
         // An independent reading of the same file: Skia's, unhinted, at the same size. Within a thousandth of a point,
         // since the two scale font units in different orders and platforms round the last bit differently.
         using SKTypeface typeface = SKTypeface.FromFile(TestFonts.PathOf("NotoSans-Regular.ttf"));
-        using SKFont font = new SKFont(typeface, Style.PointSize) { Hinting = SKFontHinting.None, LinearMetrics = true };
+        using SKFont font =
+            new SKFont(typeface, Style.PointSize) { Hinting = SKFontHinting.None, LinearMetrics = true };
         SKFontMetrics native = font.Metrics;
         TypeMetrics metrics = Measurer.GetMetrics(Style);
 
@@ -172,7 +174,9 @@ public class OpenTypeMeasurerTests
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
 
         foreach (string word in words.Concat(words))
-            Assert.Equal(new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper).MeasureWidth(word, Style), measurer.MeasureWidth(word, Style));
+            Assert.Equal(
+                new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper).MeasureWidth(word, Style),
+                measurer.MeasureWidth(word, Style));
     }
 
     [Fact]
@@ -233,7 +237,8 @@ public class OpenTypeMeasurerTests
     {
         string text = "A" + MathBoldA;
 
-        Assert.Equal(Measurer.MeasureWidth(text, Style) + 5, Measurer.MeasureWidth(text, Style.WithTracking(5)), 0.001f);
+        Assert.Equal(
+            Measurer.MeasureWidth(text, Style) + 5, Measurer.MeasureWidth(text, Style.WithTracking(5)), 0.001f);
     }
 
     [Fact]
@@ -242,8 +247,10 @@ public class OpenTypeMeasurerTests
         // Without ccmp, Noto Sans sets e and a combining acute as two glyphs; the acute stays over the e.
         TypeStyle separate = Style.WithFeature("ccmp", 0);
 
-        Assert.Equal(Measurer.MeasureWidth("é", separate), Measurer.MeasureWidth("é", separate.WithTracking(5)), 0.001f);
-        Assert.Equal(Measurer.MeasureWidth("aé", separate) + 5, Measurer.MeasureWidth("aé", separate.WithTracking(5)), 0.001f);
+        Assert.Equal(
+            Measurer.MeasureWidth("é", separate), Measurer.MeasureWidth("é", separate.WithTracking(5)), 0.001f);
+        Assert.Equal(
+            Measurer.MeasureWidth("aé", separate) + 5, Measurer.MeasureWidth("aé", separate.WithTracking(5)), 0.001f);
     }
 
     [Fact]
