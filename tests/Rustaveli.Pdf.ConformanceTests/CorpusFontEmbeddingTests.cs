@@ -23,7 +23,8 @@ public class CorpusFontEmbeddingTests
         { "KernTableTest-Regular.ttf", "Kern Table Test", false, "KernTableTest-Regular" },
     };
 
-    private static string PathOf(string file) => Path.Combine(AppContext.BaseDirectory, "assets", "fonts", "corpus", file);
+    private static string PathOf(string file) =>
+        Path.Combine(AppContext.BaseDirectory, "assets", "fonts", "corpus", file);
 
     private static byte[] Export(string file, string typeface, bool bold, PdfExportOptions options)
     {
@@ -56,7 +57,8 @@ public class CorpusFontEmbeddingTests
 
         foreach (JsonProperty entry in objects.EnumerateObject())
         {
-            if (!entry.Value.TryGetProperty("value", out JsonElement value) || value.ValueKind != JsonValueKind.Object ||
+            if (!entry.Value.TryGetProperty("value", out JsonElement value) ||
+                value.ValueKind != JsonValueKind.Object ||
                 !value.TryGetProperty("/Type", out JsonElement type) || type.GetString() != "/FontDescriptor")
             {
                 continue;
@@ -78,7 +80,8 @@ public class CorpusFontEmbeddingTests
 
     [Theory]
     [MemberData(nameof(Faces))]
-    public void EachFormatEmbedsAPlainTrueTypeSubsetThatQpdfAccepts(string file, string typeface, bool bold, string postScriptName)
+    public void EachFormatEmbedsAPlainTrueTypeSubsetThatQpdfAccepts(
+        string file, string typeface, bool bold, string postScriptName)
     {
         byte[] pdf = Export(file, typeface, bold, new PdfExportOptions());
 
@@ -109,7 +112,9 @@ public class CorpusFontEmbeddingTests
             Assert.True(kept != 0, $"The subset lacks '{character}'.");
             Assert.Equal(source.GetAdvance(shown), subset.GetAdvance(kept));
             Assert.True(source.TryGetGlyphBounds(shown, out GlyphBounds shownBounds));
-            Assert.True(subset.TryGetGlyphBounds(kept, out GlyphBounds keptBounds), $"The subset has no outline for '{character}'.");
+            Assert.True(
+                subset.TryGetGlyphBounds(kept, out GlyphBounds keptBounds),
+                $"The subset has no outline for '{character}'.");
             Assert.Equal(shownBounds, keptBounds);
         }
     }

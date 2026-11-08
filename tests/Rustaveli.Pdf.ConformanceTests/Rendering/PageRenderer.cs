@@ -29,7 +29,8 @@ internal static class PageRenderer
             {
                 IntPtr document = PdfiumNative.LoadMemDocument(pinned.AddrOfPinnedObject(), pdf.Length, null);
                 if (document == IntPtr.Zero)
-                    throw new InvalidOperationException($"PDFium could not open the document (error {PdfiumNative.GetLastError().Value}).");
+                    throw new InvalidOperationException(
+                        $"PDFium could not open the document (error {PdfiumNative.GetLastError().Value}).");
 
                 try
                 {
@@ -69,7 +70,8 @@ internal static class PageRenderer
                 PdfiumNative.RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, PdfiumNative.RenderAnnotations);
 
                 // BGRx from PDFium maps onto Skia's BGRA with the alpha byte ignored.
-                SKBitmap result = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Opaque));
+                SKBitmap result =
+                    new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Opaque));
                 int stride = PdfiumNative.GetStride(bitmap);
                 IntPtr source = PdfiumNative.GetBuffer(bitmap);
                 IntPtr target = result.GetPixels();

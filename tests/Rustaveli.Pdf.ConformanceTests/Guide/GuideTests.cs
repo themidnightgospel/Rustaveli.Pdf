@@ -12,7 +12,8 @@ namespace Rustaveli.Pdf.ConformanceTests.Guide;
 /// </remarks>
 public class GuideTests
 {
-    private static readonly Regex CodeBlock = new Regex("```csharp\\r?\\n(.*?)```", RegexOptions.Singleline | RegexOptions.Compiled);
+    private static readonly Regex CodeBlock =
+        new Regex("```csharp\\r?\\n(.*?)```", RegexOptions.Singleline | RegexOptions.Compiled);
 
     private static readonly Regex UsingDirective = new Regex(@"^using [A-Za-z][\w.]*;$", RegexOptions.Compiled);
 
@@ -20,7 +21,8 @@ public class GuideTests
     {
         TheoryData<string> documents = new TheoryData<string> { "README.md", "docs/README.md" };
 
-        foreach (string guide in Directory.GetFiles(Path.Combine(RepositoryPaths.Root, "docs", "guide"), "*.md").OrderBy(path => path, StringComparer.Ordinal))
+        foreach (string guide in Directory.GetFiles(Path.Combine(RepositoryPaths.Root, "docs", "guide"), "*.md")
+            .OrderBy(path => path, StringComparer.Ordinal))
             documents.Add("docs/guide/" + Path.GetFileName(guide));
 
         return documents;
@@ -38,7 +40,9 @@ public class GuideTests
             string example = Normalize(block.Groups[1].Value);
             string opening = example.Split('\n')[0];
 
-            Assert.True(tests.Contains(example, StringComparison.Ordinal), $"{document}: the example beginning \"{opening}\" is not run by any test.");
+            Assert.True(
+                tests.Contains(example, StringComparison.Ordinal),
+                $"{document}: the example beginning \"{opening}\" is not run by any test.");
         }
     }
 
@@ -58,17 +62,22 @@ public class GuideTests
 
     [Fact]
     public void LinesAreComparedWithoutIndentationBlankLinesOrUsingDirectives() =>
-        Assert.Equal("Document document = Make();\nusing PdfFile file = Open();", Normalize("using Rustaveli.Pdf;\n\n    Document document = Make();\r\n\tusing PdfFile file = Open();\n"));
+        Assert.Equal(
+            "Document document = Make();\nusing PdfFile file = Open();",
+            Normalize("using Rustaveli.Pdf;\n\n    Document document = Make();\r\n\tusing PdfFile file = Open();\n"));
 
     /// <summary>The guide tests and the README's quick start, as one text.</summary>
     private static string Tests()
     {
         IEnumerable<string> files = Directory.GetFiles(Path.Combine(RepositoryPaths.Project, "Guide"), "*.cs")
-            .Append(Path.Combine(RepositoryPaths.Root, "tests", "Rustaveli.Pdf.IntegrationTests", "QuickStartTests.cs"));
+            .Append(
+                Path.Combine(RepositoryPaths.Root, "tests", "Rustaveli.Pdf.IntegrationTests", "QuickStartTests.cs"));
 
         return string.Join("\n", files.Select(file => Normalize(File.ReadAllText(file))));
     }
 
     private static string Normalize(string code) =>
-        string.Join("\n", code.Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0 && !UsingDirective.IsMatch(line)));
+        string.Join("\n", code.Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !UsingDirective.IsMatch(line)));
 }

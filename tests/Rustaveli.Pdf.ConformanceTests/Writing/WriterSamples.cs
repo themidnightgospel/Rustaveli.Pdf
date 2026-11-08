@@ -3,7 +3,9 @@ using Rustaveli.Pdf.Writing;
 
 namespace Rustaveli.Pdf.ConformanceTests.Writing;
 
-/// <summary>Complete documents written directly with the managed writer, exercising every feature that needs no font.</summary>
+/// <summary>
+/// Complete documents written directly with the managed writer, exercising every feature that needs no font.
+/// </summary>
 internal static class WriterSamples
 {
     public static PdfWriterOptions Options(string format, CompressionLevel level = CompressionLevel.Optimal) =>
@@ -25,7 +27,9 @@ internal static class WriterSamples
         return output.ToArray();
     }
 
-    /// <summary>Three pages of shapes, colours, transparency, a spot colour, a form XObject, links and destinations.</summary>
+    /// <summary>
+    /// Three pages of shapes, colours, transparency, a spot colour, a form XObject, links and destinations.
+    /// </summary>
     public static byte[] Showcase(PdfWriterOptions options) => Write(options, document =>
     {
         document.Info.Title = "Writer showcase — ვეფხისტყაოსანი";

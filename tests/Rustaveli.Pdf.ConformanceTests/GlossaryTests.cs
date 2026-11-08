@@ -8,7 +8,11 @@ namespace Rustaveli.Pdf.ConformanceTests;
 /// </summary>
 public class GlossaryTests
 {
-    private static readonly Assembly[] Packages = [typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(ComplexScripts).Assembly, typeof(UnreadableFileException).Assembly, typeof(DocumentPreview).Assembly];
+    private static readonly Assembly[] Packages =
+    [
+        typeof(Document).Assembly, typeof(ImageExport).Assembly, typeof(ComplexScripts).Assembly,
+        typeof(UnreadableFileException).Assembly, typeof(DocumentPreview).Assembly
+    ];
 
     private static readonly string Glossary =
         File.ReadAllText(Path.Combine(RepositoryPaths.Root, "docs", "GLOSSARY.md"));
@@ -38,7 +42,8 @@ public class GlossaryTests
         string name = NameOf(fullName);
 
         // Named in its own right (`Section`), by a member (`Section.Trim`), a call or a generic (`Snippet<T>`).
-        bool named = new[] { "`", ".", "(", "<" }.Any(next => Glossary.Contains("`" + name + next, StringComparison.Ordinal));
+        bool named = new[] { "`", ".", "(", "<" }
+            .Any(next => Glossary.Contains("`" + name + next, StringComparison.Ordinal));
 
         Assert.True(named, $"docs/GLOSSARY.md does not name the public type {name}.");
     }

@@ -4,8 +4,8 @@ using System.Xml.Linq;
 namespace Rustaveli.Pdf.ConformanceTests.Validation;
 
 /// <summary>
-/// Runs veraPDF, the reference validator for PDF/A and PDF/UA, over files claiming either: each is checked against every
-/// part and level its metadata claims, rule by rule.
+/// Runs veraPDF, the reference validator for PDF/A and PDF/UA, over files claiming either: each is checked against
+/// every part and level its metadata claims, rule by rule.
 /// </summary>
 internal static class VeraPdf
 {
@@ -55,7 +55,8 @@ internal static class VeraPdf
 
             // No report at all is veraPDF itself failing, not a file failing it: say what veraPDF said.
             if (string.IsNullOrWhiteSpace(report))
-                throw new InvalidOperationException($"veraPDF wrote no report and exited with {process.ExitCode}:\n{errors.Result}");
+                throw new InvalidOperationException(
+                    $"veraPDF wrote no report and exited with {process.ExitCode}:\n{errors.Result}");
 
             return Failures(XDocument.Parse(report), errors.Result);
         }
@@ -65,10 +66,13 @@ internal static class VeraPdf
         }
     }
 
-    /// <summary>Each file's broken rules, from the machine-readable report: clause, test and what the rule asks.</summary>
+    /// <summary>
+    /// Each file's broken rules, from the machine-readable report: clause, test and what the rule asks.
+    /// </summary>
     private static Dictionary<string, IReadOnlyList<string>> Failures(XDocument report, string errors)
     {
-        Dictionary<string, IReadOnlyList<string>> failures = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        Dictionary<string, IReadOnlyList<string>> failures =
+            new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
 
         foreach (XElement job in report.Descendants("job"))
         {
@@ -84,7 +88,8 @@ internal static class VeraPdf
             {
                 string profile = validation.Attribute("profileName")?.Value ?? "?";
 
-                foreach (XElement rule in validation.Descendants("rule").Where(rule => rule.Attribute("status")?.Value == "failed"))
+                foreach (XElement rule in validation.Descendants("rule")
+                    .Where(rule => rule.Attribute("status")?.Value == "failed"))
                 {
                     broken.Add(
                         $"{profile} {rule.Attribute("clause")?.Value}-{rule.Attribute("testNumber")?.Value}: " +
@@ -100,10 +105,13 @@ internal static class VeraPdf
 
     private static (string Java, string Home) Locate()
     {
-        string home = Environment.GetEnvironmentVariable("VERAPDF") is { Length: > 0 } configured && Directory.Exists(configured)
+        string home = Environment.GetEnvironmentVariable("VERAPDF") is { Length: > 0 } configured
+                && Directory.Exists(configured)
             ? configured
             : Directory.Exists(RepositoryPaths.Tools)
-                ? Directory.EnumerateDirectories(RepositoryPaths.Tools, "verapdf-*").FirstOrDefault(directory => Directory.Exists(Path.Combine(directory, "bin"))) ?? string.Empty
+                ? Directory.EnumerateDirectories(RepositoryPaths.Tools, "verapdf-*")
+                    .FirstOrDefault(directory => Directory.Exists(Path.Combine(directory, "bin")))
+                    ?? string.Empty
                 : string.Empty;
 
         if (home.Length == 0)
@@ -135,6 +143,7 @@ internal static class VeraPdf
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(directory => Path.Combine(directory, name))
             .FirstOrDefault(File.Exists)
-            ?? throw new InvalidOperationException("veraPDF needs Java: install a Java runtime, 11 or later, or set JAVA_HOME.");
+            ?? throw new InvalidOperationException(
+                "veraPDF needs Java: install a Java runtime, 11 or later, or set JAVA_HOME.");
     }
 }

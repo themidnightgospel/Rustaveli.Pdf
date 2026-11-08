@@ -22,18 +22,25 @@ internal static class GuideOutput
     /// <summary>White space kept round a trimmed image, in pixels.</summary>
     private const int TrimMargin = 24;
 
-    /// <summary>Saves page <paramref name="page"/> of <paramref name="document"/> as <c>docs/images/guide/<paramref name="name"/>.png</c>.</summary>
+    /// <summary>
+    /// Saves page <paramref name="page"/> of <paramref name="document"/> as
+    /// <c>docs/images/guide/<paramref name="name"/>.png</c>.
+    /// </summary>
     /// <param name="document">The document the example composed.</param>
     /// <param name="name">The image's name, which the guide refers to it by.</param>
     /// <param name="page">The page to show, counted from 1.</param>
-    /// <param name="trim">Cuts the page down to what is set on it, for an example that fills only part of a page.</param>
+    /// <param name="trim">
+    /// Cuts the page down to what is set on it, for an example that fills only part of a page.
+    /// </param>
     /// <param name="typefaces">The typefaces the example exports with, when it registers its own.</param>
-    public static void Show(Document document, string name, int page = 1, bool trim = false, TypefaceLibrary? typefaces = null)
+    public static void Show(
+        Document document, string name, int page = 1, bool trim = false, TypefaceLibrary? typefaces = null)
     {
         if (Environment.GetEnvironmentVariable("RUSTAVELI_GUIDE_IMAGES") != "1")
             return;
 
-        byte[] image = document.ExportImages(new ImageExportOptions { Resolution = Resolution, Typefaces = typefaces })[page - 1];
+        byte[] image = document.ExportImages(
+            new ImageExportOptions { Resolution = Resolution, Typefaces = typefaces })[page - 1];
         string path = Path.Combine(RepositoryPaths.Root, "docs", "images", "guide", name + ".png");
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -41,8 +48,9 @@ internal static class GuideOutput
     }
 
     /// <summary>
-    /// The frames drawn on the first page of <paramref name="document"/>, as the preview's inspector records them, saved
-    /// beside its image as <c>docs/images/guide/<paramref name="name"/>-frames.json</c> for the home page's inspector.
+    /// The frames drawn on the first page of <paramref name="document"/>, as the preview's inspector records them,
+    /// saved beside its image as <c>docs/images/guide/<paramref name="name"/>-frames.json</c>
+    /// for the home page's inspector.
     /// </summary>
     /// <param name="document">The document the example composed.</param>
     /// <param name="name">The name its page image was saved under.</param>
@@ -53,7 +61,8 @@ internal static class GuideOutput
         LayoutInspection inspection = new LayoutInspection();
 
         using (CountingPageSink nowhere = new CountingPageSink())
-            Typesetter.Render(document, nowhere, new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper), inspection: inspection);
+            Typesetter.Render(
+                document, nowhere, new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper), inspection: inspection);
 
         List<InspectedFrame> frames = [];
 
@@ -69,7 +78,8 @@ internal static class GuideOutput
         return frames;
     }
 
-    private static readonly JsonSerializerOptions Json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions Json =
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private static void Flatten(LayoutInspection.Node node, int depth, Extent page, List<InspectedFrame> frames)
     {
@@ -88,7 +98,9 @@ internal static class GuideOutput
     /// <summary>A frame on the page: its name, how deep it is nested, and its box as fractions of the page.</summary>
     public sealed record InspectedFrame(string Name, int Depth, double X, double Y, double Width, double Height);
 
-    /// <summary>The page laid on white paper, as it prints: a page image is transparent wherever nothing is set.</summary>
+    /// <summary>
+    /// The page laid on white paper, as it prints: a page image is transparent wherever nothing is set.
+    /// </summary>
     private static byte[] OnPaper(byte[] png, bool trim)
     {
         using SKBitmap page = SKBitmap.Decode(png);

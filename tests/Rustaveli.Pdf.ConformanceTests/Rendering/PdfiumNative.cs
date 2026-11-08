@@ -57,5 +57,6 @@ internal static partial class PdfiumNative
     public static partial void DestroyBitmap(IntPtr bitmap);
 
     [LibraryImport(Library, EntryPoint = "FPDF_RenderPageBitmap")]
-    public static partial void RenderPageBitmap(IntPtr bitmap, IntPtr page, int startX, int startY, int sizeX, int sizeY, int rotate, int flags);
+    public static partial void RenderPageBitmap(
+        IntPtr bitmap, IntPtr page, int startX, int startY, int sizeX, int sizeY, int rotate, int flags);
 }

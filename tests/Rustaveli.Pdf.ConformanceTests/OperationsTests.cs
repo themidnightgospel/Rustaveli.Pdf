@@ -34,8 +34,15 @@ public class OperationsTests
         byte[] pdf = specimen.Build().ExportPdf();
         byte[] other = SpecimenCatalog.All[0].Build().ExportPdf();
 
-        byte[] linear = PdfFile.Open(pdf).Append(PdfFile.Open(other)).Append(PdfFile.Open(pdf)).OptimizeForWeb().ToArray();
-        byte[] protectedLinear = PdfFile.Open(pdf).Protect(new Protection { UserPassword = "web", Encryption = EncryptionLevel.Rc4With128Bits }).OptimizeForWeb().ToArray();
+        byte[] linear = PdfFile.Open(pdf)
+            .Append(PdfFile.Open(other))
+            .Append(PdfFile.Open(pdf))
+            .OptimizeForWeb()
+            .ToArray();
+        byte[] protectedLinear = PdfFile.Open(pdf)
+            .Protect(new Protection { UserPassword = "web", Encryption = EncryptionLevel.Rc4With128Bits })
+            .OptimizeForWeb()
+            .ToArray();
 
         foreach ((byte[] file, string password) in new[] { (linear, string.Empty), (protectedLinear, "web") })
         {
@@ -78,7 +85,9 @@ public class OperationsTests
         Assert.True(broken.Length == 0, "veraPDF found:\n" + string.Join("\n", broken));
     }
 
-    /// <summary>The Factur-X description of an invoice attached to a PDF/A-3 file, with the schema PDF/A needs to know it by.</summary>
+    /// <summary>
+    /// The Factur-X description of an invoice attached to a PDF/A-3 file, with the schema PDF/A needs to know it by.
+    /// </summary>
     internal static readonly string FacturX =
         "<rdf:Description rdf:about=\"\" xmlns:fx=\"urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#\">"
         + "<fx:DocumentType>INVOICE</fx:DocumentType><fx:DocumentFileName>factur-x.xml</fx:DocumentFileName>"
@@ -105,7 +114,8 @@ public class OperationsTests
     public void AnInvoiceAttachedToAPdfA3FileKeepsItPdfA3()
     {
         TestFonts.EnsureRegistered();
-        byte[] archived = SpecimenCatalog.All[0].Build().ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA3B });
+        byte[] archived = SpecimenCatalog.All[0].Build().ExportPdf(
+            new PdfExportOptions { Conformance = PdfAConformance.PdfA3B });
 
         byte[] invoice = PdfFile.Open(archived)
             .Attach(new FileAttachment("factur-x.xml", "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\"/>"u8.ToArray())
@@ -117,7 +127,8 @@ public class OperationsTests
             .AddMetadata(FacturX)
             .ToArray();
 
-        IReadOnlyList<string> broken = VeraPdf.Validate(new Dictionary<string, byte[]> { ["invoice"] = invoice })["invoice"];
+        IReadOnlyList<string> broken =
+            VeraPdf.Validate(new Dictionary<string, byte[]> { ["invoice"] = invoice })["invoice"];
 
         Assert.True(broken.Count == 0, "veraPDF found:\n" + string.Join("\n", broken));
     }

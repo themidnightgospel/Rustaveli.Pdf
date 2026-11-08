@@ -32,7 +32,8 @@ internal static class SnapshotAssert
             Assert.Fail($"'{name}' is {received.Width}×{received.Height} but the approved snapshot is {approved.Width}×{approved.Height}. Received: {written}");
         }
 
-        using SKBitmap diff = new SKBitmap(new SKImageInfo(received.Width, received.Height, SKColorType.Bgra8888, SKAlphaType.Opaque));
+        using SKBitmap diff =
+            new SKBitmap(new SKImageInfo(received.Width, received.Height, SKColorType.Bgra8888, SKAlphaType.Opaque));
         int changed = 0;
 
         for (int y = 0; y < received.Height; y++)

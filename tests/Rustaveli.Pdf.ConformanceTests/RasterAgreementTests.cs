@@ -26,7 +26,8 @@ public class RasterAgreementTests(ITestOutputHelper output)
         TestFonts.EnsureRegistered();
 
         List<SKBitmap> rendered = PageRenderer.Render(specimen.Build().ExportPdf(), DotsPerInch);
-        IReadOnlyList<byte[]> drawn = specimen.Build().ExportImages(new ImageExportOptions { Resolution = DotsPerInch });
+        IReadOnlyList<byte[]> drawn =
+            specimen.Build().ExportImages(new ImageExportOptions { Resolution = DotsPerInch });
 
         try
         {
@@ -62,7 +63,9 @@ public class RasterAgreementTests(ITestOutputHelper output)
                 SKColor a = Flatten(first.GetPixel(x, y));
                 SKColor b = Flatten(second.GetPixel(x, y));
 
-                if (Math.Abs(a.Red - b.Red) > ChannelTolerance || Math.Abs(a.Green - b.Green) > ChannelTolerance || Math.Abs(a.Blue - b.Blue) > ChannelTolerance)
+                if (Math.Abs(a.Red - b.Red) > ChannelTolerance
+                    || Math.Abs(a.Green - b.Green) > ChannelTolerance
+                    || Math.Abs(a.Blue - b.Blue) > ChannelTolerance)
                     differing++;
             }
         }

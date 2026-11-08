@@ -141,11 +141,14 @@ public class ImagesAndArtworkTests
         double width = PaperSizes.A5.Width - 72;
         double[] expected = [36, 36 + (width / 3), 36 + (width * 2 / 3)];
         Assert.Equal(3, lefts.Count);
-        Assert.All(Enumerable.Range(0, 3), bar => Assert.True(Math.Abs(lefts[bar] - expected[bar]) < 0.1, $"Bar {bar + 1} starts at {lefts[bar]}, not {expected[bar]}."));
+        Assert.All(Enumerable.Range(0, 3), bar => Assert.True(
+            Math.Abs(lefts[bar] - expected[bar]) < 0.1,
+            $"Bar {bar + 1} starts at {lefts[bar]}, not {expected[bar]}."));
     }
 
     /// <summary>An A5 page, as the examples that begin at the body are set on.</summary>
-    private static Document Page(Action<Section> compose) => Document.Compose(composition => composition.Section(section =>
+    private static Document Page(
+        Action<Section> compose) => Document.Compose(composition => composition.Section(section =>
     {
         section.Trim = PaperSizes.A5;
         section.Margins = Sides.All(36);
