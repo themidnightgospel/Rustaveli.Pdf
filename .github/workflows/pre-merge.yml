@@ -239,12 +239,8 @@ jobs:
       - name: Install validators (qpdf)
         run: brew install qpdf
 
-      # veraPDF validates PDF/A and PDF/UA output; it runs on Java.
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
-        with:
-          distribution: temurin
-          java-version: '21'
-
+      # veraPDF validates PDF/A and PDF/UA output; it runs on the image's own JDK, which JAVA_HOME names. setup-java
+      # finds no Temurin in this image's tool cache, so it would download one on every run.
       - name: Fetch validators (veraPDF)
         run: dotnet run eng/tools.cs
 
