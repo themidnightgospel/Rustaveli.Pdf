@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794214740578,
+  "lastUpdate": 1794225884175,
   "repoUrl": "https://github.com/themidnightgospel/Rustaveli.Pdf",
   "entries": {
     "Rustaveli.Pdf": [
@@ -12305,6 +12305,113 @@ window.BENCHMARK_DATA = {
             "range": "± 0.74",
             "unit": "ms",
             "extra": "QuestPDF 2026.5.0: 27.0 ms, −79%"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "bubachelidze1@gmail.com",
+            "name": "Bitchiko Tchelidze",
+            "username": "themidnightgospel"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "77d1904863a1a1c9062c699b7d99ef020b74617f",
+          "message": "Merge pull request #305 from themidnightgospel/ci/macos-image-java\n\nUse the macOS image's own JDK for veraPDF",
+          "timestamp": "2026-11-09T16:01:12+04:00",
+          "tree_id": "72d0de4b2e66c51dc6ec8dd3dc0d6f918f32c90c",
+          "url": "https://github.com/themidnightgospel/Rustaveli.Pdf/commit/77d1904863a1a1c9062c699b7d99ef020b74617f"
+        },
+        "date": 1794225883309,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "Invoice · time",
+            "value": 0.993,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 2.69 ms, −63%"
+          },
+          {
+            "name": "Invoice · allocated",
+            "value": 114.099,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 359 KB, −68%"
+          },
+          {
+            "name": "Invoice · file size",
+            "value": 6.642,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 14.7 KB, −55%"
+          },
+          {
+            "name": "Report · time",
+            "value": 160.895,
+            "range": "± 0.89",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 243 ms, −34%"
+          },
+          {
+            "name": "Report · allocated",
+            "value": 1441.527,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 8,189 KB, −82%"
+          },
+          {
+            "name": "Report · file size",
+            "value": 171.695,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 950 KB, −82%"
+          },
+          {
+            "name": "LargeTable · time",
+            "value": 311.408,
+            "range": "± 29.5",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 737 ms, −58%"
+          },
+          {
+            "name": "LargeTable · allocated",
+            "value": 20784.18,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 121,367 KB, −83%"
+          },
+          {
+            "name": "LargeTable · file size",
+            "value": 568.252,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 1,042 KB, −45%"
+          },
+          {
+            "name": "Images · time",
+            "value": 63.237,
+            "range": "± 0.49",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 1,315 ms, −95%"
+          },
+          {
+            "name": "Images · allocated",
+            "value": 2405.94,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 17,170 KB, −86%"
+          },
+          {
+            "name": "Images · file size",
+            "value": 138.802,
+            "unit": "KB",
+            "extra": "QuestPDF 2026.5.0: 3,498 KB, −96%"
+          },
+          {
+            "name": "Eight documents in parallel · time",
+            "value": 4.387,
+            "range": "± 0.31",
+            "unit": "ms",
+            "extra": "QuestPDF 2026.5.0: 18.7 ms, −76%"
           }
         ]
       }
