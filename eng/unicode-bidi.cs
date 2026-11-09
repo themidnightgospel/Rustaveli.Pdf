@@ -26,13 +26,29 @@ string[] classNames =
 // The @missing lines, which give the class of code points the data lines do not list, use the long value aliases.
 Dictionary<string, string> longNames = new Dictionary<string, string>
 {
-    ["Left_To_Right"] = "L", ["Right_To_Left"] = "R", ["Arabic_Letter"] = "AL", ["European_Number"] = "EN",
-    ["European_Separator"] = "ES", ["European_Terminator"] = "ET", ["Arabic_Number"] = "AN",
-    ["Common_Separator"] = "CS", ["Nonspacing_Mark"] = "NSM", ["Boundary_Neutral"] = "BN",
-    ["Paragraph_Separator"] = "B", ["Segment_Separator"] = "S", ["White_Space"] = "WS", ["Other_Neutral"] = "ON",
-    ["Left_To_Right_Embedding"] = "LRE", ["Left_To_Right_Override"] = "LRO", ["Right_To_Left_Embedding"] = "RLE",
-    ["Right_To_Left_Override"] = "RLO", ["Pop_Directional_Format"] = "PDF", ["Left_To_Right_Isolate"] = "LRI",
-    ["Right_To_Left_Isolate"] = "RLI", ["First_Strong_Isolate"] = "FSI", ["Pop_Directional_Isolate"] = "PDI",
+    ["Left_To_Right"] = "L",
+    ["Right_To_Left"] = "R",
+    ["Arabic_Letter"] = "AL",
+    ["European_Number"] = "EN",
+    ["European_Separator"] = "ES",
+    ["European_Terminator"] = "ET",
+    ["Arabic_Number"] = "AN",
+    ["Common_Separator"] = "CS",
+    ["Nonspacing_Mark"] = "NSM",
+    ["Boundary_Neutral"] = "BN",
+    ["Paragraph_Separator"] = "B",
+    ["Segment_Separator"] = "S",
+    ["White_Space"] = "WS",
+    ["Other_Neutral"] = "ON",
+    ["Left_To_Right_Embedding"] = "LRE",
+    ["Left_To_Right_Override"] = "LRO",
+    ["Right_To_Left_Embedding"] = "RLE",
+    ["Right_To_Left_Override"] = "RLO",
+    ["Pop_Directional_Format"] = "PDF",
+    ["Left_To_Right_Isolate"] = "LRI",
+    ["Right_To_Left_Isolate"] = "RLI",
+    ["First_Strong_Isolate"] = "FSI",
+    ["Pop_Directional_Isolate"] = "PDI",
 };
 
 const int CodeSpace = 0x110000;

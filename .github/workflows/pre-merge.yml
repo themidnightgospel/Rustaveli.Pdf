@@ -247,8 +247,11 @@ jobs:
       - name: Build (Release, warnings are errors)
         run: dotnet build Rustaveli.Pdf.slnx -c Release
 
+      # The scripts in eng/ belong to no project, so the solution leaves them out; the folder check covers them.
       - name: Whitespace as .editorconfig has it
-        run: dotnet format whitespace Rustaveli.Pdf.slnx --verify-no-changes --no-restore
+        run: |
+          dotnet format whitespace Rustaveli.Pdf.slnx --verify-no-changes --no-restore
+          dotnet format whitespace --folder --include eng/ --verify-no-changes
 
       - name: Test
         run: dotnet test Rustaveli.Pdf.slnx -c Release --no-build
