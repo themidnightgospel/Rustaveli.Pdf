@@ -46,7 +46,7 @@
       no test reached, so branch coverage measured by 6 read higher than it was.
     -->
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
-    <PackageVersion Include="CsCheck" Version="5.0.0" />
+    <PackageVersion Include="CsCheck" Version="5.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="PdfPig" Version="0.1.16" />
 
