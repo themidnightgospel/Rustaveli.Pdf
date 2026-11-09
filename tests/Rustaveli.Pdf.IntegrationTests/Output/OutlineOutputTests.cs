@@ -65,7 +65,8 @@ public class OutlineOutputTests
     [Fact]
     public void ADocumentWithBookmarksOpensShowingThem()
     {
-        string pdf = Encoding.Latin1.GetString(Export(stack => stack.Add().Bookmark("Only").Text("x"), compress: false));
+        string pdf = Encoding.Latin1.GetString(
+            Export(stack => stack.Add().Bookmark("Only").Text("x"), compress: false));
 
         Assert.Matches(@"/PageMode\s*/UseOutlines", pdf);
         Assert.Matches(@"/Count\s*1", pdf);
@@ -83,7 +84,8 @@ public class OutlineOutputTests
     [Fact]
     public void TheDocumentsLanguageIsWritten()
     {
-        string pdf = Encoding.Latin1.GetString(Export(stack => stack.Add().Text("x"), info => info.Language = " ka-GE ", compress: false));
+        string pdf = Encoding.Latin1.GetString(
+            Export(stack => stack.Add().Text("x"), info => info.Language = " ka-GE ", compress: false));
 
         Assert.Matches(@"/Lang\s*\(ka-GE\)", pdf);
     }
@@ -91,7 +93,8 @@ public class OutlineOutputTests
     [Fact]
     public void NoLanguageIsWrittenUnlessGiven()
     {
-        string pdf = Encoding.Latin1.GetString(Export(stack => stack.Add().Text("x"), info => info.Language = " ", compress: false));
+        string pdf = Encoding.Latin1.GetString(
+            Export(stack => stack.Add().Text("x"), info => info.Language = " ", compress: false));
 
         Assert.DoesNotContain("/Lang", pdf, StringComparison.Ordinal);
     }

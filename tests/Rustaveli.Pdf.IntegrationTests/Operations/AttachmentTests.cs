@@ -42,8 +42,13 @@ public class AttachmentTests
         return files!.Select(file => (file.Name, Encoding.UTF8.GetString(file.Bytes.ToArray()))).ToList();
     }
 
-    private static FileAttachment Text(string name, string content, AttachmentRelationship relationship = AttachmentRelationship.Unspecified) =>
-        new FileAttachment(name, Encoding.UTF8.GetBytes(content)) { MediaType = "text/plain", Relationship = relationship };
+    private static FileAttachment Text(
+        string name, string content, AttachmentRelationship relationship = AttachmentRelationship.Unspecified) =>
+        new FileAttachment(name, Encoding.UTF8.GetBytes(content))
+        {
+            MediaType = "text/plain",
+            Relationship = relationship
+        };
 
     [Fact]
     public void AttachedFilesAreListedWithTheirContent()
@@ -53,7 +58,9 @@ public class AttachmentTests
             .Attach(new FileAttachment("data.csv", Encoding.UTF8.GetBytes("a,b")) { Description = "The figures" })
             .ToArray();
 
-        Assert.Equal([("data.csv", "a,b"), ("notes.txt", "Remember")], Attached(pdf).OrderBy(file => file.Name, StringComparer.Ordinal));
+        Assert.Equal(
+            [("data.csv", "a,b"), ("notes.txt", "Remember")],
+            Attached(pdf).OrderBy(file => file.Name, StringComparer.Ordinal));
     }
 
     [Fact]
@@ -76,14 +83,19 @@ public class AttachmentTests
         Assert.Equal([("factur-x.xml", "<Invoice/>")], Attached(saved));
 
         PdfSource source = PdfSource.Open(saved);
-        PdfDictionary specification = source.Resolve(Assert.Single(source.Resolve(source.Catalog[new PdfName("AF")]).AsArray())).AsDictionary();
-        PdfDictionary embedded = source.Resolve(source.Resolve(specification[new PdfName("EF")]).AsDictionary()[new PdfName("F")]).AsDictionary();
+        PdfDictionary specification = source.Resolve(
+            Assert.Single(source.Resolve(source.Catalog[new PdfName("AF")]).AsArray())).AsDictionary();
+        PdfDictionary embedded = source.Resolve(
+            source.Resolve(specification[new PdfName("EF")]).AsDictionary()[new PdfName("F")]).AsDictionary();
         PdfDictionary parameters = source.Resolve(embedded[new PdfName("Params")]).AsDictionary();
 
         Assert.Equal("Alternative", specification[new PdfName("AFRelationship")].AsName().Value);
         Assert.Equal("text/xml", embedded[PdfNames.Subtype].AsName().Value);
         Assert.Equal(10L, parameters[PdfNames.Size].AsInteger());
-        Assert.StartsWith("D:20260102030405", Encoding.ASCII.GetString(parameters[PdfNames.ModDate].AsString().Bytes.ToArray()), StringComparison.Ordinal);
+        Assert.StartsWith(
+            "D:20260102030405",
+            Encoding.ASCII.GetString(parameters[PdfNames.ModDate].AsString().Bytes.ToArray()),
+            StringComparison.Ordinal);
         Assert.Equal(16, parameters[new PdfName("CheckSum")].AsString().Bytes.Length);
     }
 
@@ -94,7 +106,9 @@ public class AttachmentTests
 
         byte[] again = PdfFile.Open(first).KeepPages("2").Attach(Text("added.txt", "New")).ToArray();
 
-        Assert.Equal([("added.txt", "New"), ("kept.txt", "Old")], Attached(again).OrderBy(file => file.Name, StringComparer.Ordinal));
+        Assert.Equal(
+            [("added.txt", "New"), ("kept.txt", "Old")],
+            Attached(again).OrderBy(file => file.Name, StringComparer.Ordinal));
     }
 
     [Fact]
@@ -105,7 +119,9 @@ public class AttachmentTests
             .Attach(Text("a.txt", "3"))
             .ToArray();
 
-        Assert.Equal(["a.txt", "a.txt (2)", "a.txt (3)"], Attached(pdf).Select(file => file.Name).OrderBy(name => name, StringComparer.Ordinal));
+        Assert.Equal(
+            ["a.txt", "a.txt (2)", "a.txt (3)"],
+            Attached(pdf).Select(file => file.Name).OrderBy(name => name, StringComparer.Ordinal));
     }
 
     [Fact]
@@ -120,7 +136,9 @@ public class AttachmentTests
 
             Assert.Equal(Path.GetFileName(path), attachment.Name);
             Assert.NotNull(attachment.ModificationDate);
-            Assert.Equal([(Path.GetFileName(path), "From disk")], Attached(PdfFile.Open(Document()).Attach(attachment).ToArray()));
+            Assert.Equal(
+                [(Path.GetFileName(path), "From disk")],
+                Attached(PdfFile.Open(Document()).Attach(attachment).ToArray()));
         }
         finally
         {
@@ -166,13 +184,18 @@ public class AttachmentTests
     [Fact]
     public void AFileWithoutMetadataGainsAPacketHoldingWhatIsAdded()
     {
-        string metadata = Metadata(PdfFile.Open(Document()).AddMetadata(Invoice).AddMetadata("<rdf:Description rdf:about=\"\"/><rdf:Description rdf:about=\"x\"/>").ToArray());
+        string metadata = Metadata(PdfFile.Open(Document())
+            .AddMetadata(Invoice)
+            .AddMetadata("<rdf:Description rdf:about=\"\"/><rdf:Description rdf:about=\"x\"/>")
+            .ToArray());
 
         Assert.Equal(3, Regex.Matches(metadata, "<rdf:Description").Count);
         Assert.Contains("adobe:ns:meta/", metadata, StringComparison.Ordinal);
     }
 
-    /// <summary>A description of an invoice, as <see cref="Invoice"/>, with the extension schema PDF/A needs to know it by.</summary>
+    /// <summary>
+    /// A description of an invoice, as <see cref="Invoice"/>, with the extension schema PDF/A needs to know it by.
+    /// </summary>
     private static string DescribedInvoice(string type) =>
         $"<rdf:Description rdf:about=\"\" xmlns:fx=\"urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#\"><fx:DocumentType>{type}</fx:DocumentType></rdf:Description>"
         + "<rdf:Description rdf:about=\"\" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\""
@@ -196,17 +219,23 @@ public class AttachmentTests
         }));
         document.Info.Title = "Invoice";
         document.Info.Language = "en";
-        byte[] archived = document.ExportPdf(new PdfExportOptions { Conformance = PdfAConformance.PdfA3B, Accessibility = PdfUAConformance.PdfUA1 });
+        byte[] archived = document.ExportPdf(
+            new PdfExportOptions { Conformance = PdfAConformance.PdfA3B, Accessibility = PdfUAConformance.PdfUA1 });
 
         byte[] once = PdfFile.Open(archived).AddMetadata(DescribedInvoice("DRAFT")).ToArray();
-        XDocument twice = XDocument.Parse(Metadata(PdfFile.Open(once).AddMetadata(DescribedInvoice("INVOICE")).AddMetadata(DescribedInvoice("INVOICE")).ToArray()));
+        XDocument twice = XDocument.Parse(Metadata(PdfFile.Open(once)
+            .AddMetadata(DescribedInvoice("INVOICE"))
+            .AddMetadata(DescribedInvoice("INVOICE"))
+            .ToArray()));
 
         XNamespace extension = "http://www.aiim.org/pdfa/ns/extension/";
         XNamespace schema = "http://www.aiim.org/pdfa/ns/schema#";
         XNamespace factur = "urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#";
         XElement schemas = Assert.Single(twice.Descendants(extension + "schemas"));
 
-        Assert.Equal(["http://www.aiim.org/pdfua/ns/id/", "urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"], schemas.Descendants(schema + "namespaceURI").Select(uri => uri.Value));
+        Assert.Equal(
+            ["http://www.aiim.org/pdfua/ns/id/", "urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#"],
+            schemas.Descendants(schema + "namespaceURI").Select(uri => uri.Value));
         Assert.Equal("INVOICE", Assert.Single(twice.Descendants(factur + "DocumentType")).Value);
         Assert.Single(twice.Descendants(XNamespace.Get("http://www.aiim.org/pdfa/ns/id/") + "part"));
     }
@@ -214,7 +243,8 @@ public class AttachmentTests
     [Fact]
     public void APropertyGivenAsAnAttributeIsReplacedLikeAnyOther()
     {
-        static string Kind(string rest) => "<rdf:Description rdf:about=\"\" xmlns:k=\"urn:kind\" " + rest + "</rdf:Description>";
+        static string Kind(string rest) =>
+            "<rdf:Description rdf:about=\"\" xmlns:k=\"urn:kind\" " + rest + "</rdf:Description>";
 
         byte[] pdf = PdfFile.Open(Document())
             .AddMetadata(Kind("k:Kind=\"a\"><k:Other>kept</k:Other>"))
@@ -226,9 +256,12 @@ public class AttachmentTests
 
         XDocument metadata = XDocument.Parse(Metadata(pdf));
         XNamespace kind = "urn:kind";
-        List<XElement> descriptions = metadata.Descendants(XNamespace.Get("http://www.w3.org/1999/02/22-rdf-syntax-ns#") + "Description").ToList();
+        List<XElement> descriptions = metadata
+            .Descendants(XNamespace.Get("http://www.w3.org/1999/02/22-rdf-syntax-ns#") + "Description")
+            .ToList();
 
-        Assert.Equal(["c"], descriptions.Select(description => (string?)description.Attribute(kind + "Kind")).OfType<string>());
+        Assert.Equal(
+            ["c"], descriptions.Select(description => (string?)description.Attribute(kind + "Kind")).OfType<string>());
         Assert.Empty(metadata.Descendants(kind + "Kind"));
         Assert.Equal("kept", Assert.Single(metadata.Descendants(kind + "Other")).Value);
         Assert.Single(metadata.Descendants(XNamespace.Get("http://www.aiim.org/pdfa/ns/schema#") + "namespaceURI"));

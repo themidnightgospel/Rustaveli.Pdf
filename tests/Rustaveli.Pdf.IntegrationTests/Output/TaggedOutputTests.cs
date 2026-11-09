@@ -9,7 +9,8 @@ namespace Rustaveli.Pdf.IntegrationTests.Output;
 /// </summary>
 public class TaggedOutputTests
 {
-    private static string Export(Action<Section> compose, PdfExportOptions? options = null, Action<DocumentInfo>? info = null)
+    private static string Export(
+        Action<Section> compose, PdfExportOptions? options = null, Action<DocumentInfo>? info = null)
     {
         Document document = Document.Compose(composition => composition.Section(section =>
         {
@@ -46,12 +47,15 @@ public class TaggedOutputTests
             .Select(line => line.Split(' ', '>').Last())
             .ToList();
 
-    /// <summary>The tag of the marked sequence open at <paramref name="index"/> in a content stream, or null for none.</summary>
+    /// <summary>
+    /// The tag of the marked sequence open at <paramref name="index"/> in a content stream, or null for none.
+    /// </summary>
     private static string? MarkedAt(string content, int index)
     {
         Stack<string> open = new Stack<string>();
 
-        foreach (Match line in Regex.Matches(content.Substring(0, index), @"^(?:/(\w+)[^\n]*\b(BMC|BDC)|EMC)$", RegexOptions.Multiline).Cast<Match>())
+        foreach (Match line in Regex.Matches(
+            content.Substring(0, index), @"^(?:/(\w+)[^\n]*\b(BMC|BDC)|EMC)$", RegexOptions.Multiline).Cast<Match>())
         {
             if (line.Value == "EMC")
                 open.Pop();
@@ -101,13 +105,16 @@ public class TaggedOutputTests
 
         string content = Assert.Single(Contents(pdf));
         Assert.Single(Regex.Matches(content, "BDC"));
-        Assert.Matches(@"^/P<</MCID 0>>BDC\n[\s\S]*BT[\s\S]*ET[\s\S]*ET\nEMC\n", content.Substring(content.IndexOf("/P<<", StringComparison.Ordinal)));
+        Assert.Matches(
+            @"^/P<</MCID 0>>BDC\n[\s\S]*BT[\s\S]*ET[\s\S]*ET\nEMC\n",
+            content.Substring(content.IndexOf("/P<<", StringComparison.Ordinal)));
     }
 
     [Fact]
     public void DrawingsAndImagesOutsideAFigureAreDecorationAndInsideItBelongToIt()
     {
-        RasterImage image = RasterImage.FromFile(Path.Combine(AppContext.BaseDirectory, "assets", "images", "basn2c08.png"));
+        RasterImage image =
+            RasterImage.FromFile(Path.Combine(AppContext.BaseDirectory, "assets", "images", "basn2c08.png"));
 
         string pdf = Body(stack =>
         {
@@ -185,7 +192,9 @@ public class TaggedOutputTests
         // Links take their keys as they are drawn, the page its own once it ends.
         Assert.Equal(
             ["0", "1"],
-            Regex.Matches(pdf, @"/Subtype\s*/Link[\s\S]*?/StructParent (\d+)").Cast<Match>().Select(match => match.Groups[1].Value));
+            Regex.Matches(pdf, @"/Subtype\s*/Link[\s\S]*?/StructParent (\d+)")
+                .Cast<Match>()
+                .Select(match => match.Groups[1].Value));
         Assert.Matches(@"/Contents\s*\(https://example\.com/\)", pdf);
         Assert.Matches(@"/Contents\s*\(notes\)", pdf);
         Assert.Equal(2, Regex.Matches(pdf, @"/Type\s*/OBJR").Count);
@@ -244,7 +253,10 @@ public class TaggedOutputTests
         Assert.Single(Regex.Matches(pdf, @"/Type\s*/OBJR"));
 
         string content = Assert.Single(Contents(pdf));
-        int[] texts = Regex.Matches(content, @"^BT$", RegexOptions.Multiline).Cast<Match>().Select(match => match.Index).ToArray();
+        int[] texts = Regex.Matches(content, @"^BT$", RegexOptions.Multiline)
+            .Cast<Match>()
+            .Select(match => match.Index)
+            .ToArray();
         Assert.Equal(["P", "Artifact"], texts.Select(index => MarkedAt(content, index)));
     }
 
@@ -273,7 +285,10 @@ public class TaggedOutputTests
         });
 
         string content = Assert.Single(Contents(pdf));
-        int[] texts = Regex.Matches(content, @"^BT$", RegexOptions.Multiline).Cast<Match>().Select(match => match.Index).ToArray();
+        int[] texts = Regex.Matches(content, @"^BT$", RegexOptions.Multiline)
+            .Cast<Match>()
+            .Select(match => match.Index)
+            .ToArray();
 
         Assert.Equal(2, texts.Length);
         Assert.Equal("Artifact", MarkedAt(content, texts[0]));
@@ -290,14 +305,16 @@ public class TaggedOutputTests
         });
 
         string content = Assert.Single(Contents(pdf));
-        Assert.True(content.IndexOf("/P<<", StringComparison.Ordinal) < content.IndexOf("/H1<<", StringComparison.Ordinal));
+        Assert.True(
+            content.IndexOf("/P<<", StringComparison.Ordinal) < content.IndexOf("/H1<<", StringComparison.Ordinal));
         Assert.Matches(@"/S\s*/H1", pdf);
     }
 
     [Fact]
     public void PdfUAShowsTheTitleAndClaimsThePart()
     {
-        string pdf = Body(stack => stack.Add().Text("Hello"), new PdfExportOptions { Accessibility = PdfUAConformance.PdfUA1 });
+        string pdf = Body(
+            stack => stack.Add().Text("Hello"), new PdfExportOptions { Accessibility = PdfUAConformance.PdfUA1 });
 
         Assert.Matches(@"/ViewerPreferences\s*<<\s*/DisplayDocTitle\s+true\s*>>", pdf);
         Assert.Contains("<pdfuaid:part>1</pdfuaid:part>", pdf, StringComparison.Ordinal);

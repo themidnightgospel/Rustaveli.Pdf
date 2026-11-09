@@ -38,7 +38,8 @@ public class FontFormatCorpusTests
         return library;
     }
 
-    private static Document Paragraph(string text, TypeStyle style) => Document.Compose(composition => composition.Section(section =>
+    private static Document Paragraph(
+        string text, TypeStyle style) => Document.Compose(composition => composition.Section(section =>
     {
         // Wide enough for the sentence on one line at 12 points, so the text reads back without a line break in it.
         section.Trim = new Extent(600, 120);
@@ -56,7 +57,9 @@ public class FontFormatCorpusTests
     private static void AssertSetIn(Page page, string postScriptName)
     {
         // A subset's name is the face's PostScript name behind a tag of six capital letters.
-        Assert.All(page.Letters, letter => Assert.Matches("^[A-Z]{6}\\+" + Regex.Escape(postScriptName) + "$", letter.FontName));
+        Assert.All(
+            page.Letters,
+            letter => Assert.Matches("^[A-Z]{6}\\+" + Regex.Escape(postScriptName) + "$", letter.FontName));
     }
 
     [Theory]
@@ -64,7 +67,8 @@ public class FontFormatCorpusTests
     [InlineData(Collection, TestFonts.Sans, false, "NotoSans-Regular")]
     [InlineData(Collection, TestFonts.Sans, true, "NotoSans-Bold")]
     [InlineData(KernTable, KernTableFamily, false, "KernTableTest-Regular")]
-    public void TextSetInEachFormatReadsBackAsWrittenInThatFace(string file, string typeface, bool bold, string postScriptName)
+    public void TextSetInEachFormatReadsBackAsWrittenInThatFace(
+        string file, string typeface, bool bold, string postScriptName)
     {
         TypefaceLibrary library = LibraryWith(file);
         TypeStyle style = TypeStyle.Default.WithTypeface(typeface).WithPointSize(12);
@@ -129,7 +133,8 @@ public class FontFormatCorpusTests
         Assert.Equal(1, library.Shaper.Resolve(TypeStyle.Default.WithTypeface("NotoSans-Bold")).FaceIndex);
 
         // Both faces are read from one copy of the file.
-        Assert.True(regular.FileData.Equals(bold.FileData), "The faces of a collection share the file they were read from.");
+        Assert.True(
+            regular.FileData.Equals(bold.FileData), "The faces of a collection share the file they were read from.");
     }
 
     [Fact]
@@ -177,8 +182,10 @@ public class FontFormatCorpusTests
         library.SearchFolder(Path.GetDirectoryName(PathOf(Collection))!);
         TypeStyle style = TypeStyle.Default;
 
-        Assert.Equal("SourceSans3VF-ExtraLight", library.Shaper.Resolve(style.WithTypeface(SourceSans)).Names.PostScriptName);
-        Assert.Equal("NotoSans-Bold", library.Shaper.Resolve(style.WithTypeface(TestFonts.Sans).Bold()).Names.PostScriptName);
+        Assert.Equal(
+            "SourceSans3VF-ExtraLight", library.Shaper.Resolve(style.WithTypeface(SourceSans)).Names.PostScriptName);
+        Assert.Equal(
+            "NotoSans-Bold", library.Shaper.Resolve(style.WithTypeface(TestFonts.Sans).Bold()).Names.PostScriptName);
         Assert.IsType<LegacyKerningTable>(library.Shaper.Resolve(style.WithTypeface(KernTableFamily)).Kerning);
     }
 
@@ -206,7 +213,8 @@ public class FontFormatCorpusTests
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(library.Shaper);
         TypeStyle kerned = TypeStyle.Default.WithTypeface(KernTableFamily).WithPointSize(100);
 
-        float difference = measurer.MeasureWidth(pair, kerned) - measurer.MeasureWidth(pair, kerned.WithFeature("kern", 0));
+        float difference = measurer.MeasureWidth(pair, kerned)
+            - measurer.MeasureWidth(pair, kerned.WithFeature("kern", 0));
 
         // At 100 points a font unit of a 1000-unit em is a tenth of a point.
         Assert.Equal(adjustment / 10f, difference, 3);
@@ -242,7 +250,9 @@ public class FontFormatCorpusTests
 
         Assert.Equal(OutlineFormat.TrueType, face.Outlines);
         Assert.Equal(200, face.Style.Weight);
-        Assert.True(face.GetKerning(face.GetGlyphId('A'), face.GetGlyphId('V')) < 0, "The default instance keeps its GPOS kerning.");
+        Assert.True(
+            face.GetKerning(face.GetGlyphId('A'), face.GetGlyphId('V')) < 0,
+            "The default instance keeps its GPOS kerning.");
         Assert.Same(face, library.Shaper.Resolve(style.Bold()));
         Assert.Same(face, library.Shaper.Resolve(style.WithWeight(TypeWeight.Black)));
         Assert.Equal(measurer.MeasureWidth("Hamburg", style), measurer.MeasureWidth("Hamburg", style.Bold()));

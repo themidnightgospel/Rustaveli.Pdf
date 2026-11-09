@@ -21,7 +21,8 @@ public class OpenPdfTests : IDisposable
 
     private static Document Titled(string? title)
     {
-        Document document = Document.Compose(composition => composition.Section(section => section.Body().Text("Hello")));
+        Document document =
+            Document.Compose(composition => composition.Section(section => section.Body().Text("Hello")));
         document.Info.Title = title;
         return document;
     }
@@ -34,7 +35,8 @@ public class OpenPdfTests : IDisposable
         Assert.Equal([path], _opened);
         Assert.StartsWith(Path.GetTempPath(), path, StringComparison.Ordinal);
         Assert.StartsWith("Quarterly-report--Q3-2026-", Path.GetFileName(path), StringComparison.Ordinal);
-        Assert.StartsWith("%PDF-", System.Text.Encoding.ASCII.GetString(File.ReadAllBytes(path), 0, 5), StringComparison.Ordinal);
+        Assert.StartsWith(
+            "%PDF-", System.Text.Encoding.ASCII.GetString(File.ReadAllBytes(path), 0, 5), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -46,7 +48,8 @@ public class OpenPdfTests : IDisposable
 
     [Fact]
     public void ALongTitleIsShortened() =>
-        Assert.Equal(40 + "-12345678.pdf".Length, Path.GetFileName(Titled(new string('a', 100)).ExportPdfAndOpen()).Length);
+        Assert.Equal(
+            40 + "-12345678.pdf".Length, Path.GetFileName(Titled(new string('a', 100)).ExportPdfAndOpen()).Length);
 
     [Fact]
     public void ADocumentIsNeeded() =>

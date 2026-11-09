@@ -56,7 +56,8 @@ internal static class EmbeddedPixels
         {
             for (int index = 0; index < samples.Length; index++)
             {
-                if (samples[index] < image.ColorKeyMask[index * 2] || samples[index] > image.ColorKeyMask[(index * 2) + 1])
+                if (samples[index] < image.ColorKeyMask[index * 2]
+                    || samples[index] > image.ColorKeyMask[(index * 2) + 1])
                     return 255;
             }
 

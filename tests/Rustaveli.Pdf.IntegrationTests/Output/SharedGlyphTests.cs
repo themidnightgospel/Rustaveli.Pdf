@@ -25,7 +25,8 @@ public class SharedGlyphTests
     {
         List<ShapedGlyph> glyphs = [];
 
-        foreach (ShapedGlyph glyph in Library.Shaper.Walk(text.AsSpan(), TypeStyle.Default.WithTypeface(TestFonts.Sans)))
+        foreach (ShapedGlyph glyph in Library.Shaper.Walk(
+            text.AsSpan(), TypeStyle.Default.WithTypeface(TestFonts.Sans)))
             glyphs.Add(glyph);
 
         return glyphs;

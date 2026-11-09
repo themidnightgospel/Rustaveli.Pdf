@@ -15,7 +15,8 @@ public class ComplexScriptTests
     private const string Salaam = "سلام";
 
     private static readonly TypeStyle Arabic = TypeStyle.Default.WithTypeface("Noto Sans Arabic").WithPointSize(20);
-    private static readonly TypeStyle Devanagari = TypeStyle.Default.WithTypeface("Noto Sans Devanagari").WithPointSize(20);
+    private static readonly TypeStyle Devanagari =
+        TypeStyle.Default.WithTypeface("Noto Sans Devanagari").WithPointSize(20);
 
     private static readonly TypefaceLibrary Plain = Library();
     private static readonly TypefaceLibrary Shaped = Library().ShapeComplexScripts();
@@ -28,7 +29,8 @@ public class ComplexScriptTests
         return library;
     }
 
-    private static List<ShapedGlyph> Shape(TypefaceLibrary library, string text, TypeStyle style, bool rightToLeft = false)
+    private static List<ShapedGlyph> Shape(
+        TypefaceLibrary library, string text, TypeStyle style, bool rightToLeft = false)
     {
         List<ShapedGlyph> glyphs = [];
 
@@ -134,8 +136,12 @@ public class ComplexScriptTests
         List<ShapedGlyph> glyphs = Shape(Plain, "का", Devanagari);
 
         Assert.Equal(2, glyphs.Count);
-        Assert.Equal(0, measurer.MeasureCharactersFitting("का", Devanagari, glyphs[0].Advance + (glyphs[1].Advance / 2)));
-        Assert.Equal(2, measurer.MeasureCharactersFitting("काका", Devanagari, measurer.MeasureWidth("का", Devanagari) + (glyphs[0].Advance / 2)));
+        Assert.Equal(
+            0, measurer.MeasureCharactersFitting("का", Devanagari, glyphs[0].Advance + (glyphs[1].Advance / 2)));
+        Assert.Equal(
+            2,
+            measurer.MeasureCharactersFitting(
+                "काका", Devanagari, measurer.MeasureWidth("का", Devanagari) + (glyphs[0].Advance / 2)));
     }
 
     [Fact]
@@ -183,7 +189,10 @@ public class ComplexScriptTests
             })).ExportPdf(new PdfExportOptions { Typefaces = Plain });
 
             using PdfDocument parsed = PdfDocument.Open(pdf);
-            return parsed.GetPage(1).Letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 2)).Distinct().ToList();
+            return parsed.GetPage(1).Letters
+                .Select(letter => Math.Round(letter.StartBaseLine.Y, 2))
+                .Distinct()
+                .ToList();
         }
 
         List<double> latin = Baselines("a\nb\nc");
@@ -201,7 +210,8 @@ public class ComplexScriptTests
         TypeMetrics both = measurer.GetMetrics("a " + Salaam, sans);
 
         Assert.Equal(own, measurer.GetMetrics("abc", sans));
-        Assert.Equal((arabic.Ascent, arabic.Descent, own.UnderlineOffset), (both.Ascent, both.Descent, both.UnderlineOffset));
+        Assert.Equal(
+            (arabic.Ascent, arabic.Descent, own.UnderlineOffset), (both.Ascent, both.Descent, both.UnderlineOffset));
     }
 
     [Fact]
@@ -237,7 +247,8 @@ public class ComplexScriptTests
         float advances = Shape(Shaped, Salaam, Arabic).Sum(glyph => glyph.Advance);
 
         Assert.Equal(advances, measurer.MeasureWidth(Salaam, Arabic), 0.001f);
-        Assert.NotEqual(new OpenTypeMeasurer(Plain.Shaper).MeasureWidth(Salaam, Arabic), measurer.MeasureWidth(Salaam, Arabic));
+        Assert.NotEqual(
+            new OpenTypeMeasurer(Plain.Shaper).MeasureWidth(Salaam, Arabic), measurer.MeasureWidth(Salaam, Arabic));
     }
 
     [Fact]
@@ -282,7 +293,8 @@ public class ComplexScriptTests
     [Fact]
     public async Task AFaceFirstShapedOnTwoThreadsAtOnceIsMadeIntoOneFont()
     {
-        // Whoever makes the font waits a while for another thread to try as well: were both let in, both would make one.
+        // Whoever makes the font waits a while for another thread to try as well:
+        // were both let in, both would make one.
         OpenTypeFont face = FontAssets.Load("NotoSansArabic-Regular.ttf");
         int made = 0;
         using Barrier both = new Barrier(2);
@@ -315,7 +327,8 @@ public class ComplexScriptTests
 
     [Fact]
     public void ALibraryIsRequired() =>
-        Assert.Equal("library", Assert.Throws<ArgumentNullException>(() => ComplexScripts.ShapeComplexScripts(null!)).ParamName);
+        Assert.Equal(
+            "library", Assert.Throws<ArgumentNullException>(() => ComplexScripts.ShapeComplexScripts(null!)).ParamName);
 
     [Theory]
     [InlineData('֐', true)]

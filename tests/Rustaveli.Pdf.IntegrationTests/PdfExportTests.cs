@@ -69,7 +69,8 @@ public class PdfExportTests
         string path = TempPath();
 
         Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.ExportPdf()).ParamName);
-        Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.ExportPdf(new MemoryStream())).ParamName);
+        Assert.Equal(
+            "document", Assert.Throws<ArgumentNullException>(() => missing!.ExportPdf(new MemoryStream())).ParamName);
         Assert.Equal("document", Assert.Throws<ArgumentNullException>(() => missing!.ExportPdf(path)).ParamName);
         Assert.False(File.Exists(path));
     }
@@ -77,7 +78,8 @@ public class PdfExportTests
     [Fact]
     public void TheStreamOverloadRejectsAMissingStream()
     {
-        ArgumentNullException error = Assert.Throws<ArgumentNullException>(() => TextDocument().ExportPdf((Stream)null!));
+        ArgumentNullException error = Assert.Throws<ArgumentNullException>(
+            () => TextDocument().ExportPdf((Stream)null!));
 
         Assert.Equal("stream", error.ParamName);
     }
@@ -85,7 +87,8 @@ public class PdfExportTests
     [Fact]
     public void ThePathOverloadRejectsAMissingPath()
     {
-        ArgumentNullException error = Assert.Throws<ArgumentNullException>(() => TextDocument().ExportPdf((string)null!));
+        ArgumentNullException error = Assert.Throws<ArgumentNullException>(
+            () => TextDocument().ExportPdf((string)null!));
 
         Assert.Equal("path", error.ParamName);
     }
@@ -130,7 +133,8 @@ public class PdfExportTests
             page.Body().Stack(stack =>
             {
                 for (int paragraph = 0; paragraph < 200; paragraph++)
-                    stack.Add().Text($"Paragraph {paragraph}: the words of a document long enough to span several pages.");
+                    stack.Add().Text(
+                        $"Paragraph {paragraph}: the words of a document long enough to span several pages.");
             });
         }));
         document.ExportPdf(Stream.Null);
@@ -315,7 +319,9 @@ public class PdfExportTests
         Assert.False(parsed.Structure.Catalog.CatalogDictionary.ContainsKey(NameToken.Create("OutputIntents")));
     }
 
-    /// <summary>Awaits <paramref name="task"/>, failing with <paramref name="failure"/> if it has not finished in time.</summary>
+    /// <summary>
+    /// Awaits <paramref name="task"/>, failing with <paramref name="failure"/> if it has not finished in time.
+    /// </summary>
     private static async Task<T> Within<T>(TimeSpan limit, Task<T> task, string failure)
     {
         Task finished = await Task.WhenAny(task, Task.Delay(limit));
@@ -348,7 +354,8 @@ public class PdfExportTests
             release.Set();
         }
 
-        using PdfDocument held = PdfDocument.Open(await Within(Timeout, holder, "The first export did not finish once released."));
+        using PdfDocument held = PdfDocument.Open(
+            await Within(Timeout, holder, "The first export did not finish once released."));
         using PdfDocument parsed = PdfDocument.Open(concurrent);
 
         Assert.Equal(1, held.NumberOfPages);
@@ -451,10 +458,12 @@ public class PdfExportTests
         // Uncompressed, the font program lies in the file as it is, its table directory naming its tables.
         byte[] fpgm = "fpgm"u8.ToArray();
         Assert.False(Contains(document.ExportPdf(new PdfExportOptions { Compress = false }), fpgm));
-        Assert.True(Contains(document.ExportPdf(new PdfExportOptions { Compress = false, KeepFontHinting = true }), fpgm));
+        Assert.True(
+            Contains(document.ExportPdf(new PdfExportOptions { Compress = false, KeepFontHinting = true }), fpgm));
 
         Assert.False(new PdfExportOptions().KeepFontHinting);
-        Assert.True(unhinted.Length < hinted.Length * 0.7, $"{unhinted.Length} bytes unhinted against {hinted.Length} hinted.");
+        Assert.True(
+            unhinted.Length < hinted.Length * 0.7, $"{unhinted.Length} bytes unhinted against {hinted.Length} hinted.");
 
         // Either way the text is the same text.
         using PdfDocument read = PdfDocument.Open(unhinted);

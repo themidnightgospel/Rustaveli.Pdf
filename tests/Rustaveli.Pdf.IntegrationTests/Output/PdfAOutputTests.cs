@@ -13,7 +13,10 @@ public class PdfAOutputTests
 
     private static string ImagePath(string name) => Path.Combine(AppContext.BaseDirectory, "assets", "images", name);
 
-    private static string Export(Action<StackComposer> compose, PdfAConformance conformance = PdfAConformance.PdfA2B, IImageProcessor? processor = null)
+    private static string Export(
+        Action<StackComposer> compose,
+        PdfAConformance conformance = PdfAConformance.PdfA2B,
+        IImageProcessor? processor = null)
     {
         Document document = Document.Compose(composition => composition.Section(section =>
         {
@@ -31,7 +34,8 @@ public class PdfAOutputTests
         document.Info.CreationDate = new DateTimeOffset(2026, 9, 28, 10, 30, 15, TimeSpan.FromHours(4));
         document.Info.ModificationDate = new DateTimeOffset(2026, 9, 28, 11, 0, 0, TimeSpan.Zero);
 
-        return Encoding.Latin1.GetString(document.ExportPdf(new PdfExportOptions { Conformance = conformance, Compress = false, ImageProcessor = processor }));
+        return Encoding.Latin1.GetString(document.ExportPdf(
+            new PdfExportOptions { Conformance = conformance, Compress = false, ImageProcessor = processor }));
     }
 
     [Theory]
@@ -54,7 +58,8 @@ public class PdfAOutputTests
         string pdf = Export(stack => stack.Add().Text("Kept"));
 
         Assert.Contains("<rdf:li xml:lang=\"x-default\">Archive &amp; keep</rdf:li>", pdf, StringComparison.Ordinal);
-        Assert.Contains("<dc:creator><rdf:Seq><rdf:li>Registry</rdf:li></rdf:Seq></dc:creator>", pdf, StringComparison.Ordinal);
+        Assert.Contains(
+            "<dc:creator><rdf:Seq><rdf:li>Registry</rdf:li></rdf:Seq></dc:creator>", pdf, StringComparison.Ordinal);
         Assert.Contains("<rdf:li xml:lang=\"x-default\">Records</rdf:li>", pdf, StringComparison.Ordinal);
         Assert.Contains("<pdf:Keywords>a, b</pdf:Keywords>", pdf, StringComparison.Ordinal);
         Assert.Contains("<pdf:Producer>Rustaveli.Pdf</pdf:Producer>", pdf, StringComparison.Ordinal);
@@ -138,7 +143,8 @@ public class PdfAOutputTests
     {
         RasterImage image = RasterImage.FromFile(ImagePath("jpeg-cmyk-adobe.jpg"));
 
-        RenderingException exception = Assert.Throws<RenderingException>(() => Export(stack => stack.Add().Width(40).Image(image)));
+        RenderingException exception = Assert.Throws<RenderingException>(
+            () => Export(stack => stack.Add().Width(40).Image(image)));
 
         InvalidOperationException cause = Assert.IsType<InvalidOperationException>(exception.InnerException);
         Assert.Contains("PDF/A", cause.Message, StringComparison.Ordinal);

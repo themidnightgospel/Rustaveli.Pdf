@@ -44,7 +44,8 @@ public class SvgExportTests
 
         Assert.Empty(page.Descendants(Svg + "text"));
         Assert.True(page.Descendants(Svg + "path").Count() > 5);
-        Assert.Contains(page.Descendants(Svg + "image"), image => image.Attributes().Any(attribute => attribute.Value.StartsWith("data:image/", StringComparison.Ordinal)));
+        Assert.Contains(page.Descendants(Svg + "image"), image => image.Attributes().Any(
+            attribute => attribute.Value.StartsWith("data:image/", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -66,7 +67,9 @@ public class SvgExportTests
         {
             TwoPages().ExportSvg(page => Path.Combine(folder, $"page-{page}.svg"));
 
-            Assert.Equal(["page-1.svg", "page-2.svg"], Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal));
+            Assert.Equal(
+                ["page-1.svg", "page-2.svg"],
+                Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal));
         }
         finally
         {
@@ -80,7 +83,11 @@ public class SvgExportTests
         Document document = Document.Compose(composition => composition.Section(section =>
             section.Body().Text(text => text.Run("").Typeface(TestFonts.Sans))));
 
-        Assert.Throws<MissingGlyphException>(() => document.ExportSvg(new VectorExportOptions { RequireEveryGlyph = true, Typefaces = TestFonts.NewLibrary(includeInstalled: false) }));
+        Assert.Throws<MissingGlyphException>(() => document.ExportSvg(new VectorExportOptions
+        {
+            RequireEveryGlyph = true,
+            Typefaces = TestFonts.NewLibrary(includeInstalled: false)
+        }));
     }
 
     [Fact]
@@ -90,7 +97,11 @@ public class SvgExportTests
         Document document = Document.Compose(composition => composition.Section(section =>
         {
             section.Trim = new Extent(72, 72);
-            section.Body().Image(request => { requests.Add(request); return TestImages.Png(request.PixelWidth, request.PixelHeight); });
+            section.Body().Image(request =>
+            {
+                requests.Add(request);
+                return TestImages.Png(request.PixelWidth, request.PixelHeight);
+            });
         }));
 
         document.ExportSvg(new VectorExportOptions { ImageResolution = 100 });

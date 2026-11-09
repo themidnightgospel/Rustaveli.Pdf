@@ -15,7 +15,8 @@ public class FontRegistrationTests
 {
     private static string FontFile => TestFonts.PathOf("NotoSans-Regular.ttf");
 
-    private static Document Build(string text, TypeStyle style) => Document.Compose(composition => composition.Section(section =>
+    private static Document Build(
+        string text, TypeStyle style) => Document.Compose(composition => composition.Section(section =>
     {
         section.Trim = PaperSizes.A4;
         section.Margins = Sides.All(30);
@@ -135,7 +136,8 @@ public class FontRegistrationTests
         // registered, none exists, and the registered face sets the text.
         TypefaceLibrary library = TestFonts.NewLibrary(includeInstalled: false);
 
-        Assert.Equal(TestFonts.Sans, library.Shaper.Resolve(TypeStyle.Default.WithTypeface(typeface)).Names.PreferredFamily);
+        Assert.Equal(
+            TestFonts.Sans, library.Shaper.Resolve(TypeStyle.Default.WithTypeface(typeface)).Names.PreferredFamily);
     }
 
     [Fact]
@@ -198,12 +200,16 @@ public class FontRegistrationTests
     public void TextNamingNoTypefaceIsSetInTheBundledNotoSansWhateverTheMachineHas()
     {
         // No typeface named, none registered and none installed: the default is the package's own.
-        Document document = Document.Compose(composition => composition.Section(section => section.Body().Text("Default")));
+        Document document =
+            Document.Compose(composition => composition.Section(section => section.Body().Text("Default")));
 
-        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf(new PdfExportOptions { Typefaces = new TypefaceLibrary(includeInstalled: false) }));
+        using PdfDocument parsed = PdfDocument.Open(
+            document.ExportPdf(new PdfExportOptions { Typefaces = new TypefaceLibrary(includeInstalled: false) }));
 
         Assert.Equal("Default", parsed.GetPage(1).Text);
-        Assert.All(parsed.GetPage(1).Letters, letter => Assert.EndsWith("+NotoSans-Regular", letter.FontName, StringComparison.Ordinal));
+        Assert.All(
+            parsed.GetPage(1).Letters,
+            letter => Assert.EndsWith("+NotoSans-Regular", letter.FontName, StringComparison.Ordinal));
     }
 
     [Theory]
@@ -215,11 +221,15 @@ public class FontRegistrationTests
     {
         // Bold italic in particular: set in the italic alone, it would lose its weight.
         Document document = Document.Compose(composition => composition.Section(section =>
-            section.Body().Text(text => text.Run("Styled").Style(style => bold ? style.Bold().Italic(italic) : style.Italic(italic)))));
+            section.Body().Text(text => text.Run("Styled")
+                .Style(style => bold ? style.Bold().Italic(italic) : style.Italic(italic)))));
 
-        using PdfDocument parsed = PdfDocument.Open(document.ExportPdf(new PdfExportOptions { Typefaces = new TypefaceLibrary(includeInstalled: false) }));
+        using PdfDocument parsed = PdfDocument.Open(
+            document.ExportPdf(new PdfExportOptions { Typefaces = new TypefaceLibrary(includeInstalled: false) }));
 
-        Assert.All(parsed.GetPage(1).Letters, letter => Assert.EndsWith("+" + face, letter.FontName, StringComparison.Ordinal));
+        Assert.All(
+            parsed.GetPage(1).Letters,
+            letter => Assert.EndsWith("+" + face, letter.FontName, StringComparison.Ordinal));
     }
 
     [Theory]
@@ -234,7 +244,9 @@ public class FontRegistrationTests
 
         Assert.Equal("Noto Sans", library.Shaper.Resolve(style).Names.PreferredFamily);
         Assert.Equal("Bold", library.Shaper.Resolve(style.Bold()).Names.PreferredSubfamily);
-        Assert.Equal("Noto Sans Georgian", library.Shaper.Resolve(TypeStyle.Default.WithTypeface("Helvetica")).Names.PreferredFamily);
+        Assert.Equal(
+            "Noto Sans Georgian",
+            library.Shaper.Resolve(TypeStyle.Default.WithTypeface("Helvetica")).Names.PreferredFamily);
     }
 
     [Fact]
@@ -260,6 +272,8 @@ public class FontRegistrationTests
         library.RegisterFile(FontFile);
 
         Assert.NotSame(before, library.Shaper);
-        Assert.Equal(TestFonts.Sans, library.Shaper.Resolve(TypeStyle.Default.WithTypeface(TestFonts.Sans)).Names.PreferredFamily);
+        Assert.Equal(
+            TestFonts.Sans,
+            library.Shaper.Resolve(TypeStyle.Default.WithTypeface(TestFonts.Sans)).Names.PreferredFamily);
     }
 }

@@ -71,7 +71,11 @@ public class XpsExportTests
         Document document = Document.Compose(composition => composition.Section(section =>
             section.Body().Text(text => text.Run("").Typeface(TestFonts.Sans))));
 
-        Assert.Throws<MissingGlyphException>(() => document.ExportXps(new VectorExportOptions { RequireEveryGlyph = true, Typefaces = TestFonts.NewLibrary(includeInstalled: false) }));
+        Assert.Throws<MissingGlyphException>(() => document.ExportXps(new VectorExportOptions
+        {
+            RequireEveryGlyph = true,
+            Typefaces = TestFonts.NewLibrary(includeInstalled: false)
+        }));
     }
 
     [Fact]

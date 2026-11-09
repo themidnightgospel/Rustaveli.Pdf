@@ -16,7 +16,8 @@ public class WriterReadBackTests
 {
     private static readonly DateTimeOffset Created = new DateTimeOffset(2026, 9, 26, 10, 30, 15, TimeSpan.FromHours(4));
 
-    private static readonly DateTimeOffset Modified = new DateTimeOffset(2026, 9, 27, 8, 5, 0, TimeSpan.FromMinutes(-210));
+    private static readonly DateTimeOffset Modified =
+        new DateTimeOffset(2026, 9, 27, 8, 5, 0, TimeSpan.FromMinutes(-210));
 
     private static byte[] Write(string format, Action<PdfDocumentWriter> build)
     {
@@ -93,7 +94,9 @@ public class WriterReadBackTests
         Assert.All(links, link => Assert.Equal(0, link.Border.BorderWidth));
 
         Annotation web = links[0];
-        Assert.Equal((50.0, 700.0, 250.0, 720.0), (web.Rectangle.Left, web.Rectangle.Bottom, web.Rectangle.Right, web.Rectangle.Top));
+        Assert.Equal(
+            (50.0, 700.0, 250.0, 720.0),
+            (web.Rectangle.Left, web.Rectangle.Bottom, web.Rectangle.Right, web.Rectangle.Top));
         Assert.Equal("https://example.com/%E1%83%95?q=a%20b", Assert.IsType<UriAction>(web.Action).Uri);
 
         ExplicitDestination destination = Assert.IsType<GoToAction>(links[1].Action).Destination;

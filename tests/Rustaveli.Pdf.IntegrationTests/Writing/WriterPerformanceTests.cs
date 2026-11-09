@@ -84,8 +84,10 @@ public class WriterPerformanceTests(ITestOutputHelper output)
 
         // Work is counted rather than timed, as a stalled CI machine can take seconds over what takes a fraction of
         // one. The time is held only to a bound a hung writer would pass; the benchmarks job measures throughput.
-        Assert.True(comparedForAll < 11 * comparedForATenth, $"{comparedForATenth} entries compared for a tenth of the pages.");
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromMinutes(1), $"Writing {PageCount} pages took {stopwatch.Elapsed}.");
+        Assert.True(
+            comparedForAll < 11 * comparedForATenth, $"{comparedForATenth} entries compared for a tenth of the pages.");
+        Assert.True(
+            stopwatch.Elapsed < TimeSpan.FromMinutes(1), $"Writing {PageCount} pages took {stopwatch.Elapsed}.");
         using PdfDocument document = PdfDocument.Open(pdf);
         Assert.Equal(PageCount, document.NumberOfPages);
     }

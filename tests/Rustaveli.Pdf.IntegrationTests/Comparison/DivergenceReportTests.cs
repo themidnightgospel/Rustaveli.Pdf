@@ -35,7 +35,8 @@ public class DivergenceReportTests(ITestOutputHelper output)
         output.WriteLine($"bytes          : ours={ours.Length:N0} quest={theirs.Length:N0}");
         output.WriteLine($"pages          : ours={mine.PageCount} quest={reference.PageCount}");
         output.WriteLine($"words          : ours={mine.AllWords.Count()} quest={reference.AllWords.Count()}");
-        output.WriteLine($"word sequences : {(mine.AllWords.SequenceEqual(reference.AllWords) ? "identical" : "DIFFER")}");
+        output.WriteLine(
+            $"word sequences : {(mine.AllWords.SequenceEqual(reference.AllWords) ? "identical" : "DIFFER")}");
 
         int pages = Math.Min(mine.PageCount, reference.PageCount);
 
@@ -80,7 +81,8 @@ public class DivergenceReportTests(ITestOutputHelper output)
                 if (mineWords[index] == referenceWords[index])
                     continue;
 
-                output.WriteLine($"first difference at word {index}: ours='{mineWords[index]}' quest='{referenceWords[index]}'");
+                output.WriteLine(
+                    $"first difference at word {index}: ours='{mineWords[index]}' quest='{referenceWords[index]}'");
                 break;
             }
         }

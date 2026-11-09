@@ -82,7 +82,8 @@ public class PdfFileTests
     [InlineData(" 1 , 1 ", "One One")]
     [InlineData("LAST-last", "Three")]
     public void PageListsReadAsPrintDialogsReadThem(string pages, string expected) =>
-        Assert.Equal(expected, string.Join(" ", Read(PdfFile.Open(Pages("One", "Two", "Three")).KeepPages(pages).ToArray())));
+        Assert.Equal(
+            expected, string.Join(" ", Read(PdfFile.Open(Pages("One", "Two", "Three")).KeepPages(pages).ToArray())));
 
     [Theory]
     [InlineData("")]
@@ -92,7 +93,8 @@ public class PdfFileTests
     [InlineData("+1")]
     public void APageListThatIsNotOneIsRefused(string pages)
     {
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => PdfFile.Open(Pages("One", "Two")).KeepPages(pages));
+        ArgumentException exception = Assert.Throws<ArgumentException>(
+            () => PdfFile.Open(Pages("One", "Two")).KeepPages(pages));
 
         Assert.Equal("pages", exception.ParamName);
     }
@@ -103,7 +105,8 @@ public class PdfFileTests
     [InlineData("1-9")]
     public void APageNotInTheFileIsRefused(string pages)
     {
-        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => PdfFile.Open(Pages("One", "Two")).KeepPages(pages));
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(
+            () => PdfFile.Open(Pages("One", "Two")).KeepPages(pages));
 
         Assert.Contains("not among the 2 pages", exception.Message, StringComparison.Ordinal);
     }
@@ -190,7 +193,9 @@ public class PdfFileTests
     {
         PdfSource source = PdfSource.Open(pdf);
         return source.ObjectNumbers.Count(number => source.GetObject(number) is SourceStream stream
-            && stream.Dictionary.TryGetValue(PdfNames.Subtype, out PdfValue subtype) && subtype.Kind == PdfValueKind.Name && subtype.AsName().Value == "Form");
+            && stream.Dictionary.TryGetValue(PdfNames.Subtype, out PdfValue subtype)
+            && subtype.Kind == PdfValueKind.Name
+            && subtype.AsName().Value == "Form");
     }
 
     [Fact]
@@ -210,7 +215,8 @@ public class PdfFileTests
     /// A page of <paramref name="width"/> by <paramref name="height"/>, turned by <paramref name="rotate"/>, showing
     /// <paramref name="text"/> near its lower left corner.
     /// </summary>
-    private static byte[] Turned(int width, int height, int rotate, string text, string? box = null, string extra = "", string catalog = "")
+    private static byte[] Turned(
+        int width, int height, int rotate, string text, string? box = null, string extra = "", string catalog = "")
     {
         string content = $"BT /F1 12 Tf 20 20 Td ({text}) Tj ET";
         string pdf = $"%PDF-1.7\n1 0 obj<</Type/Catalog/Pages 2 0 R{catalog}>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
@@ -229,7 +235,8 @@ public class PdfFileTests
     private static (int Across, int Up) Direction(byte[] pdf, string word)
     {
         using PdfDocument document = PdfDocument.Open(pdf);
-        List<UglyToad.PdfPig.Content.Letter> letters = document.GetPage(1).Letters.Where(letter => word.Contains(letter.Value)).ToList();
+        List<UglyToad.PdfPig.Content.Letter> letters =
+            document.GetPage(1).Letters.Where(letter => word.Contains(letter.Value)).ToList();
         Assert.Equal(word, string.Concat(letters.Select(letter => letter.Value)));
 
         double across = letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
@@ -268,9 +275,13 @@ public class PdfFileTests
     public void AStampIsCentredOnThePageAndShrunkToFit(int width, int height, string extra, string placement)
     {
         byte[] stamp = Turned(width, height, 0, "Stamp", extra: extra);
-        string content = FirstPageContent(PdfFile.Open(Turned(200, 300, 0, "XYZ")).Overlay(PdfFile.Open(stamp)).ToArray());
+        string content = FirstPageContent(
+            PdfFile.Open(Turned(200, 300, 0, "XYZ")).Overlay(PdfFile.Open(stamp)).ToArray());
 
-        Assert.Contains($"q\n{placement}{(placement.Length > 0 ? "\n" : string.Empty)}/Layer0 Do\nQ", content, StringComparison.Ordinal);
+        Assert.Contains(
+            $"q\n{placement}{(placement.Length > 0 ? "\n" : string.Empty)}/Layer0 Do\nQ",
+            content,
+            StringComparison.Ordinal);
     }
 
     [Theory]
@@ -284,7 +295,10 @@ public class PdfFileTests
         byte[] stamp = onTheStamp ? Turned(0, 0, rotate, "Stamp", box) : Turned(200, 300, 0, "Stamp");
         byte[] page = onTheStamp ? Turned(200, 300, 0, "XYZ") : Turned(0, 0, rotate, "XYZ", box);
 
-        Assert.Contains("q\n/Layer0 Do\nQ", FirstPageContent(PdfFile.Open(page).Overlay(PdfFile.Open(stamp)).ToArray()), StringComparison.Ordinal);
+        Assert.Contains(
+            "q\n/Layer0 Do\nQ",
+            FirstPageContent(PdfFile.Open(page).Overlay(PdfFile.Open(stamp)).ToArray()),
+            StringComparison.Ordinal);
     }
 
     /// <summary>The first page's content, its streams decoded and joined.</summary>
@@ -294,7 +308,9 @@ public class PdfFileTests
         PdfValue contents = source.Pages[0].Dictionary[PdfNames.Contents];
         IEnumerable<PdfValue> streams =
             source.Resolve(contents) is { Kind: PdfValueKind.Array } array ? array.AsArray() : [contents];
-        return string.Join("\n", streams.Select(stream => System.Text.Encoding.Latin1.GetString(source.Decode(source.Stream(stream)!))));
+        return string.Join(
+            "\n",
+            streams.Select(stream => System.Text.Encoding.Latin1.GetString(source.Decode(source.Stream(stream)!))));
     }
 
     [Fact]
@@ -308,10 +324,14 @@ public class PdfFileTests
         }));
         byte[] tagged = document.ExportPdf(new PdfExportOptions { Tagged = true });
 
-        string content = FirstPageContent(PdfFile.Open(tagged).Overlay(PdfFile.Open(Layer("Stamp"))).Underlay(PdfFile.Open(Layer("Head"))).ToArray());
+        string content = FirstPageContent(PdfFile.Open(tagged)
+            .Overlay(PdfFile.Open(Layer("Stamp")))
+            .Underlay(PdfFile.Open(Layer("Head")))
+            .ToArray());
         string plain = FirstPageContent(PdfFile.Open(Pages("One")).Overlay(PdfFile.Open(Layer("Stamp"))).ToArray());
 
-        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(content, @"/Artifact BMC\s+q\s+/Layer\d+ Do\s+Q\s+EMC").Count);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(
+            content, @"/Artifact BMC\s+q\s+/Layer\d+ Do\s+Q\s+EMC").Count);
         Assert.Matches(@"q\s+/Layer\d+ Do\s+Q", plain);
         Assert.DoesNotContain("/Artifact", plain, StringComparison.Ordinal);
     }
@@ -326,7 +346,8 @@ public class PdfFileTests
     {
         byte[] page = Turned(200, 200, 0, "XYZ", catalog: catalog);
 
-        string content = FirstPageContent(PdfFile.Open(page).Overlay(PdfFile.Open(Turned(200, 200, 0, "Stamp"))).ToArray());
+        string content = FirstPageContent(
+            PdfFile.Open(page).Overlay(PdfFile.Open(Turned(200, 200, 0, "Stamp"))).ToArray());
 
         Assert.Equal(artifact, content.IndexOf("/Artifact BMC\nq\n/Layer0 Do\nQ\nEMC", StringComparison.Ordinal) >= 0);
     }
@@ -354,7 +375,9 @@ public class PdfFileTests
         PdfName structParent = new PdfName("StructParent");
         PdfSource source = PdfSource.Open(PdfFile.Open(Linked(tagged)).KeepPages("1, 1").ToArray());
 
-        List<PdfReference> annotations = source.Pages.Select(page => Assert.Single(source.Resolve(page.Dictionary[PdfNames.Annots]).AsArray()).AsReference()).ToList();
+        List<PdfReference> annotations = source.Pages
+            .Select(page => Assert.Single(source.Resolve(page.Dictionary[PdfNames.Annots]).AsArray()).AsReference())
+            .ToList();
         PdfDictionary first = source.Resolve(annotations[0]).AsDictionary();
         PdfDictionary second = source.Resolve(annotations[1]).AsDictionary();
 
@@ -375,7 +398,8 @@ public class PdfFileTests
     [Fact]
     public void APageKeptTwiceKeepsWhatItsAnnotationsListHoldsBesideAnnotations()
     {
-        byte[] page = Turned(200, 200, 0, "XYZ", extra: "/Annots[<</Type/Annot/Subtype/Square/Rect[0 0 9 9]/StructParent 4>> 7]");
+        byte[] page = Turned(
+            200, 200, 0, "XYZ", extra: "/Annots[<</Type/Annot/Subtype/Square/Rect[0 0 9 9]/StructParent 4>> 7]");
         PdfSource source = PdfSource.Open(PdfFile.Open(page).KeepPages("1, 1").ToArray());
 
         PdfArray again = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray();
@@ -388,7 +412,9 @@ public class PdfFileTests
         Assert.Equal(source.Pages[1].ObjectNumber, square[new PdfName("P")].AsReference().ObjectNumber);
     }
 
-    /// <summary>Two pages, the first linking to a destination named "target" on the second, as hyperref names them.</summary>
+    /// <summary>
+    /// Two pages, the first linking to a destination named "target" on the second, as hyperref names them.
+    /// </summary>
     private static byte[] CrossReferenced(string label)
     {
         Document document = Document.Compose(composition => composition.Section(section =>
@@ -413,14 +439,18 @@ public class PdfFileTests
     private static int LinkTarget(byte[] pdf, int page)
     {
         PdfSource source = PdfSource.Open(pdf);
-        PdfDictionary link = source.Resolve(source.Resolve(source.Pages[page - 1].Dictionary[PdfNames.Annots]).AsArray()[0]).AsDictionary();
-        PdfValue destination = source.Resolve(link.TryGetValue(new PdfName("Dest"), out PdfValue dest) ? dest : source.Resolve(link[PdfNames.A]).AsDictionary()[PdfNames.D]);
+        PdfDictionary link = source.Resolve(
+            source.Resolve(source.Pages[page - 1].Dictionary[PdfNames.Annots]).AsArray()[0]).AsDictionary();
+        PdfValue destination = source.Resolve(link.TryGetValue(new PdfName("Dest"), out PdfValue dest)
+            ? dest
+            : source.Resolve(link[PdfNames.A]).AsDictionary()[PdfNames.D]);
 
         if (destination.Kind == PdfValueKind.String)
         {
             PdfValue tree = source.Resolve(source.Catalog[PdfNames.Names]).AsDictionary()[PdfNames.Dests];
             destination = source.Resolve(PdfNameTreeReader.Entries(source, tree)
-                .Single(entry => entry.Key.Bytes.ToArray().SequenceEqual(destination.AsString().Bytes.ToArray())).Value);
+                .Single(
+                    entry => entry.Key.Bytes.ToArray().SequenceEqual(destination.AsString().Bytes.ToArray())).Value);
         }
 
         if (destination.Kind == PdfValueKind.Dictionary)
@@ -458,13 +488,17 @@ public class PdfFileTests
             + $"{link}/A<</S/GoToR/F(other.pdf)/D(tree)>>>>{link}/Dest(missing)>>{link}/Dest/Odd>>{link}/Dest[4 0 R/Fit]>>]>>endobj\n"
             + "4 0 obj<</Type/Page/Parent 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF";
 
-        PdfSource source = PdfSource.Open(PdfFile.Open(Pages("One")).Append(PdfFile.Open(System.Text.Encoding.ASCII.GetBytes(pdf))).ToArray());
+        PdfSource source = PdfSource.Open(
+            PdfFile.Open(Pages("One")).Append(PdfFile.Open(System.Text.Encoding.ASCII.GetBytes(pdf))).ToArray());
         List<PdfValue> destinations = source.Resolve(source.Pages[1].Dictionary[PdfNames.Annots]).AsArray()
             .Select(annotation => source.Resolve(annotation).AsDictionary())
-            .Select(annotation => annotation.TryGetValue(new PdfName("Dest"), out PdfValue dest) ? dest : source.Resolve(annotation[PdfNames.A]).AsDictionary()[PdfNames.D])
+            .Select(annotation => annotation.TryGetValue(new PdfName("Dest"), out PdfValue dest)
+                ? dest
+                : source.Resolve(annotation[PdfNames.A]).AsDictionary()[PdfNames.D])
             .ToList();
 
-        Assert.All(new[] { 0, 1, 2, 6 }, index => Assert.Equal(source.Pages[2].ObjectNumber, destinations[index].AsArray()[0].AsReference().ObjectNumber));
+        Assert.All(new[] { 0, 1, 2, 6 }, index => Assert.Equal(
+            source.Pages[2].ObjectNumber, destinations[index].AsArray()[0].AsReference().ObjectNumber));
         Assert.Equal("tree", System.Text.Encoding.ASCII.GetString(destinations[3].AsString().Bytes.ToArray()));
         Assert.Equal("missing", System.Text.Encoding.ASCII.GetString(destinations[4].AsString().Bytes.ToArray()));
         Assert.Equal("Odd", destinations[5].AsName().Value);
@@ -488,20 +522,26 @@ public class PdfFileTests
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    /// <summary>The names of the optional content groups a file lists, of those it hides, and how many its order lists.</summary>
+    /// <summary>
+    /// The names of the optional content groups a file lists, of those it hides, and how many its order lists.
+    /// </summary>
     private static (List<string> Groups, List<string> Hidden, int Ordered) OptionalContent(byte[] pdf)
     {
         PdfSource source = PdfSource.Open(pdf);
         PdfDictionary properties = source.Resolve(source.Catalog[new PdfName("OCProperties")]).AsDictionary();
         PdfDictionary configuration = source.Resolve(properties[PdfNames.D]).AsDictionary();
 
-        string Name(PdfValue group) => System.Text.Encoding.ASCII.GetString(source.Resolve(group).AsDictionary()[new PdfName("Name")].AsString().Bytes.ToArray());
+        string Name(PdfValue group) =>
+            System.Text.Encoding.ASCII.GetString(
+                source.Resolve(group).AsDictionary()[new PdfName("Name")].AsString().Bytes.ToArray());
 
         List<string> groups = source.Resolve(properties[new PdfName("OCGs")]).AsArray().Select(Name).ToList();
         List<string> hidden = configuration.TryGetValue(new PdfName("OFF"), out PdfValue off)
             ? source.Resolve(off).AsArray().Select(Name).ToList()
             : [];
-        int ordered = configuration.TryGetValue(new PdfName("Order"), out PdfValue order) ? source.Resolve(order).AsArray().Count : 0;
+        int ordered = configuration.TryGetValue(new PdfName("Order"), out PdfValue order)
+            ? source.Resolve(order).AsArray().Count
+            : 0;
         return (groups, hidden, ordered);
     }
 
@@ -512,9 +552,14 @@ public class PdfFileTests
         byte[] b = Layered("B", "<</BaseState/OFF/ON[6 0 R]/Order[5 0 R 6 0 R]/RBGroups[[5 0 R 6 0 R]]>>");
         byte[] c = Layered("C", "7");
 
-        (List<string> Groups, List<string> Hidden, int Ordered) kept = OptionalContent(PdfFile.Open(a).KeepPages("1").ToArray());
+        (List<string> Groups, List<string> Hidden, int Ordered) kept = OptionalContent(
+            PdfFile.Open(a).KeepPages("1").ToArray());
         (List<string> Groups, List<string> Hidden, int Ordered) appended = OptionalContent(
-            PdfFile.Open(Pages("One")).Append(PdfFile.Open(a)).Append(PdfFile.Open(b), "1").Append(PdfFile.Open(c), "1").ToArray());
+            PdfFile.Open(Pages("One"))
+                .Append(PdfFile.Open(a))
+                .Append(PdfFile.Open(b), "1")
+                .Append(PdfFile.Open(c), "1")
+                .ToArray());
 
         Assert.Equal(["A hidden", "A shown"], kept.Groups);
         Assert.Equal(["A hidden"], kept.Hidden);
@@ -526,7 +571,8 @@ public class PdfFileTests
 
     /// <summary>
     /// Two pages with a form: a text field <paramref name="field"/> on the first, holding <paramref name="value"/>, and
-    /// one named "later" on the second, its widget a kid of it; the form's resources name one font, <paramref name="font"/>.
+    /// one named "later" on the second, its widget a kid of it;
+    /// the form's resources name one font, <paramref name="font"/>.
     /// </summary>
     private static byte[] Form(string field, string value, string font)
     {
@@ -541,19 +587,27 @@ public class PdfFileTests
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    /// <summary>The names of a file's form fields, each with its value where it has one, and the fonts its form's resources name.</summary>
+    /// <summary>
+    /// The names of a file's form fields, each with its value where it has one,
+    /// and the fonts its form's resources name.
+    /// </summary>
     private static (List<string> Fields, List<string> Fonts) FormOf(byte[] pdf)
     {
         PdfSource source = PdfSource.Open(pdf);
         PdfDictionary form = source.Resolve(source.Catalog[new PdfName("AcroForm")]).AsDictionary();
 
-        string Text(PdfValue value) => System.Text.Encoding.ASCII.GetString(source.Resolve(value).AsString().Bytes.ToArray());
+        string Text(PdfValue value) =>
+            System.Text.Encoding.ASCII.GetString(source.Resolve(value).AsString().Bytes.ToArray());
 
         List<string> fields = source.Resolve(form[new PdfName("Fields")]).AsArray()
             .Select(field => source.Resolve(field).AsDictionary())
-            .Select(field => Text(field[new PdfName("T")]) + (field.TryGetValue(new PdfName("V"), out PdfValue value) ? "=" + Text(value) : string.Empty))
+            .Select(field => Text(field[new PdfName("T")])
+                + (field.TryGetValue(new PdfName("V"), out PdfValue value) ? "=" + Text(value) : string.Empty))
             .ToList();
-        List<string> fonts = source.Resolve(source.Resolve(form[new PdfName("DR")]).AsDictionary()[PdfNames.Font]).AsDictionary().Select(font => font.Key.Value).ToList();
+        List<string> fonts = source.Resolve(source.Resolve(form[new PdfName("DR")]).AsDictionary()[PdfNames.Font])
+            .AsDictionary()
+            .Select(font => font.Key.Value)
+            .ToList();
         return (fields, fonts);
     }
 
@@ -563,7 +617,8 @@ public class PdfFileTests
         byte[] a = Form("name", "first", "Helv");
         byte[] b = Form("name", "second", "ZaDb");
 
-        (List<string> Fields, List<string> Fonts) appended = FormOf(PdfFile.Open(a).Append(PdfFile.Open(b)).Append(PdfFile.Open(b), "1").ToArray());
+        (List<string> Fields, List<string> Fonts) appended = FormOf(
+            PdfFile.Open(a).Append(PdfFile.Open(b)).Append(PdfFile.Open(b), "1").ToArray());
         (List<string> Fields, List<string> Fonts) kept = FormOf(PdfFile.Open(a).KeepPages("2").ToArray());
 
         Assert.Equal(["name=first", "later", "name+1=second", "later+1", "name+2=second"], appended.Fields);
@@ -575,7 +630,10 @@ public class PdfFileTests
     [Fact]
     public void AFileOptimizedForTheWebOpensWithItsFirstPageFirst()
     {
-        byte[] linear = PdfFile.Open(Pages("One", "Two", "Three")).Overlay(PdfFile.Open(Layer("Stamp")), onto: "2").OptimizeForWeb().ToArray();
+        byte[] linear = PdfFile.Open(Pages("One", "Two", "Three"))
+            .Overlay(PdfFile.Open(Layer("Stamp")), onto: "2")
+            .OptimizeForWeb()
+            .ToArray();
         string start = System.Text.Encoding.ASCII.GetString(linear, 0, 200);
 
         Assert.Matches(@"^%PDF-1\.7\n%....\n\d+ 0 obj\n<</Linearized 1/L 0*" + linear.Length + "/", start);
@@ -626,7 +684,9 @@ public class PdfFileTests
     [Fact]
     public void AFileWhoseKeyIsLostIsUnreadable()
     {
-        byte[] data = PdfFile.Open(Pages("One")).Protect(new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.AesWith256Bits }).ToArray();
+        byte[] data = PdfFile.Open(Pages("One"))
+            .Protect(new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.AesWith256Bits })
+            .ToArray();
         string text = System.Text.Encoding.Latin1.GetString(data);
 
         // Renamed in place, as the handler is above: the owner's password is right, but the key it unwraps is gone.

@@ -59,7 +59,8 @@ public class FontFallbackTests
             if (primary.HasGlyph(codepoint))
                 continue;
 
-            string automatic = shaper.FaceFor(primary, new FontRequest(TestFonts.Sans), TypefaceFallbacks.None, codepoint).Names.PreferredFamily;
+            string automatic = shaper.FaceFor(
+                primary, new FontRequest(TestFonts.Sans), TypefaceFallbacks.None, codepoint).Names.PreferredFamily;
 
             FontFaceInfo? alternative = SystemFontIndex.Current.Faces
                 .Where(face => face.IsEmbeddable && face.Style.Slant == FontSlant.Upright)
@@ -100,7 +101,8 @@ public class FontFallbackTests
         float latinOnly = measurer.MeasureWidth(Latin, Sans);
         float mixed = measurer.MeasureWidth($"{Latin}{Cjk}", Sans);
 
-        Assert.True(mixed > latinOnly, $"Mixed-script text measured {mixed} against {latinOnly} for the Latin part alone.");
+        Assert.True(
+            mixed > latinOnly, $"Mixed-script text measured {mixed} against {latinOnly} for the Latin part alone.");
     }
 
     [Fact]
@@ -143,7 +145,8 @@ public class FontFallbackTests
         library.Fallbacks = [family];
 
         string drawnDirectly = FontOf(Build(character, Sans.WithTypeface(family)).ExportPdf(), character);
-        string drawnAsFallback = FontOf(Build($"A{character}").ExportPdf(new PdfExportOptions { Typefaces = library }), character);
+        string drawnAsFallback = FontOf(
+            Build($"A{character}").ExportPdf(new PdfExportOptions { Typefaces = library }), character);
         string automatic = FontOf(Build($"A{character}").ExportPdf(), character);
 
         Assert.Equal(drawnDirectly, drawnAsFallback);
@@ -180,14 +183,16 @@ public class FontFallbackTests
         TypeStyle georgian = TypeStyle.Default.WithTypeface("Noto Sans Georgian");
 
         Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", georgian));
-        Assert.Equal("Specimen Sans", FamilyOf(library, "A", georgian.WithTypeface("Noto Sans Georgian", "Specimen Sans")));
+        Assert.Equal(
+            "Specimen Sans", FamilyOf(library, "A", georgian.WithTypeface("Noto Sans Georgian", "Specimen Sans")));
     }
 
     [Fact]
     public void AStylesFallbacksAreTriedInOrder()
     {
         TypefaceLibrary library = CommittedLibrary();
-        TypeStyle style = TypeStyle.Default.WithTypeface("Noto Sans Georgian", "Nobody Has This", "Specimen Sans", TestFonts.Sans);
+        TypeStyle style =
+            TypeStyle.Default.WithTypeface("Noto Sans Georgian", "Nobody Has This", "Specimen Sans", TestFonts.Sans);
 
         // The first fallback nobody has is passed over; the next that has the letter sets it.
         Assert.Equal("Specimen Sans", FamilyOf(library, "A", style));
@@ -212,7 +217,8 @@ public class FontFallbackTests
 
         // The plain style finds Noto Sans for A first; a style naming Specimen Sans must still get Specimen Sans.
         Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", plain));
-        Assert.Equal("Specimen Sans", FamilyOf(library, "A", plain.WithTypeface("Noto Sans Georgian", "Specimen Sans")));
+        Assert.Equal(
+            "Specimen Sans", FamilyOf(library, "A", plain.WithTypeface("Noto Sans Georgian", "Specimen Sans")));
         Assert.Equal(TestFonts.Sans, FamilyOf(library, "A", plain));
     }
 
@@ -267,7 +273,8 @@ public class FontFallbackTests
         float whole = measurer.MeasureWidth(Cjk + Georgian, Sans);
         float parts = measurer.MeasureWidth(Cjk, Sans) + measurer.MeasureWidth(Georgian, Sans);
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"{Cjk} {Georgian}").ExportPdf(new PdfExportOptions { Typefaces = library }));
+        using PdfDocument parsed = PdfDocument.Open(
+            Build($"{Cjk} {Georgian}").ExportPdf(new PdfExportOptions { Typefaces = library }));
         Page page = parsed.GetPage(1);
 
         // The faces found are the platform's, so a failure names them: which one each letter was set in.
@@ -282,7 +289,8 @@ public class FontFallbackTests
     {
         TypefaceLibrary library = TestFonts.NewLibrary();
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"{Latin} {Cjk}", Sans.Italic()).ExportPdf(new PdfExportOptions { Typefaces = library }));
+        using PdfDocument parsed = PdfDocument.Open(
+            Build($"{Latin} {Cjk}", Sans.Italic()).ExportPdf(new PdfExportOptions { Typefaces = library }));
         string text = parsed.GetPage(1).Text;
 
         Assert.Contains(Latin, text);
@@ -299,9 +307,11 @@ public class FontFallbackTests
         OpenTypeMeasurer measurer = Measurer(library);
 
         float whole = measurer.MeasureWidth($"A{Unassigned}B", Sans);
-        float parts = measurer.MeasureWidth("A", Sans) + measurer.MeasureWidth(Unassigned, Sans) + measurer.MeasureWidth("B", Sans);
+        float parts = measurer.MeasureWidth("A", Sans) + measurer.MeasureWidth(Unassigned, Sans)
+            + measurer.MeasureWidth("B", Sans);
 
-        using PdfDocument parsed = PdfDocument.Open(Build($"A{Unassigned}B").ExportPdf(new PdfExportOptions { Typefaces = library }));
+        using PdfDocument parsed = PdfDocument.Open(
+            Build($"A{Unassigned}B").ExportPdf(new PdfExportOptions { Typefaces = library }));
         IReadOnlyList<Letter> letters = parsed.GetPage(1).Letters;
 
         Assert.Equal(parts, whole, 0.01f);

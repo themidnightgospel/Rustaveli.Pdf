@@ -24,7 +24,8 @@ public class ImageExportTests
         });
     }));
 
-    private static SKBitmap Decode(byte[] image) => SKBitmap.Decode(image) ?? throw new InvalidOperationException("Not an image.");
+    private static SKBitmap Decode(byte[] image) =>
+        SKBitmap.Decode(image) ?? throw new InvalidOperationException("Not an image.");
 
     private static bool IsNear(SKColor actual, SKColor expected, int tolerance) =>
         Math.Abs(actual.Red - expected.Red) <= tolerance &&
@@ -59,7 +60,8 @@ public class ImageExportTests
     [Fact]
     public void AGradientBlendsAcrossTheFrame()
     {
-        using SKBitmap page = Single(new Extent(100, 40), body => body.Fill(Gradient.Across(Ink.Rgb(255, 0, 0), Ink.Rgb(0, 0, 255))).Blank());
+        using SKBitmap page = Single(
+            new Extent(100, 40), body => body.Fill(Gradient.Across(Ink.Rgb(255, 0, 0), Ink.Rgb(0, 0, 255))).Blank());
 
         Assert.True(IsNear(page.GetPixel(0, 20), new SKColor(255, 0, 0), 8), page.GetPixel(0, 20).ToString());
         Assert.True(IsNear(page.GetPixel(50, 20), new SKColor(128, 0, 128), 8), page.GetPixel(50, 20).ToString());
@@ -139,7 +141,9 @@ public class ImageExportTests
         {
             TwoPages().ExportImages(number => Path.Combine(folder, $"page-{number}.png"));
 
-            Assert.Equal(["page-1.png", "page-2.png"], Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(name => name));
+            Assert.Equal(
+                ["page-1.png", "page-2.png"],
+                Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(name => name));
         }
         finally
         {
@@ -155,7 +159,8 @@ public class ImageExportTests
 
         // The pixels as stored, decoded without the orientation applied.
         using SKCodec codec = SKCodec.Create(ImagePath("jpeg-exif-orientation6.jpg"));
-        using SKBitmap stored = new SKBitmap(new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888));
+        using SKBitmap stored =
+            new SKBitmap(new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888));
         Assert.Equal(SKCodecResult.Success, codec.GetPixels(stored.Info, stored.GetPixels()));
         Assert.Equal((image.StoredWidth, image.StoredHeight), (stored.Width, stored.Height));
 
@@ -191,7 +196,8 @@ public class ImageExportTests
     [Fact]
     public void RefusesAnImageItCannotDecode()
     {
-        Document document = Document.Compose(composition => composition.Section(section => section.Body().Image(new ForeignImage())));
+        Document document =
+            Document.Compose(composition => composition.Section(section => section.Body().Image(new ForeignImage())));
 
         RenderingException error = Assert.Throws<RenderingException>(() => document.ExportImages());
 
@@ -201,7 +207,8 @@ public class ImageExportTests
     [Fact]
     public void RefusesAResolutionThatGivesMorePixelsThanCanBeCounted()
     {
-        Exception? error = Record.Exception(() => TwoPages().ExportImages(new ImageExportOptions { Resolution = 1e30f }));
+        Exception? error = Record.Exception(
+            () => TwoPages().ExportImages(new ImageExportOptions { Resolution = 1e30f }));
 
         Assert.Contains("more pixels than an image can have", error?.ToString());
     }

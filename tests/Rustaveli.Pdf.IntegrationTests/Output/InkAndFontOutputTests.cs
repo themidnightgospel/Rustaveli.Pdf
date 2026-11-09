@@ -77,7 +77,8 @@ public class InkAndFontOutputTests
     [Fact]
     public void RoundedStrokesAreStrokedInTheirInk()
     {
-        string pdf = Export(stack => stack.Add().Height(40).Stroke(2).StrokeInk(Process).RoundCorners(6).Text("Framed"));
+        string pdf = Export(
+            stack => stack.Add().Height(40).Stroke(2).StrokeInk(Process).RoundCorners(6).Text("Framed"));
 
         Assert.Matches(@"0\.1 0\.2 0\.3 0\.4 K", pdf);
         Assert.Matches(@"\sc\s", pdf);

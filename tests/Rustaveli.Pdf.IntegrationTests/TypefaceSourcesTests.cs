@@ -35,7 +35,9 @@ public class TypefaceSourcesTests
         library.RegisterFile(FontAssets.PathOf(Georgian), typeface: "Brand");
 
         Assert.Equal("NotoSansGeorgian-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Brand")));
-        Assert.Equal("NotoSansGeorgian-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Noto Sans Georgian")));
+        Assert.Equal(
+            "NotoSansGeorgian-Regular",
+            PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Noto Sans Georgian")));
     }
 
     [Fact]
@@ -62,7 +64,8 @@ public class TypefaceSourcesTests
         using (FileStream stream = File.OpenRead(FontAssets.PathOf("NotoSans-Regular.ttf")))
             library.Register(stream, "From A Stream");
 
-        Assert.Equal("NotoSansGeorgian-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("From Bytes")));
+        Assert.Equal(
+            "NotoSansGeorgian-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("From Bytes")));
         Assert.Equal("NotoSans-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("From A Stream")));
     }
 
@@ -84,7 +87,8 @@ public class TypefaceSourcesTests
         TypefaceLibrary library = Empty();
         library.RegisterResource(typeof(TypefaceSourcesTests).Assembly, "Fonts.Georgian.ttf", "Embedded");
 
-        Assert.Equal("NotoSansGeorgian-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Embedded")));
+        Assert.Equal(
+            "NotoSansGeorgian-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Embedded")));
     }
 
     [Fact]
@@ -101,10 +105,12 @@ public class TypefaceSourcesTests
     [Fact]
     public void ARegisteredResourceNeedsAnAssemblyAndAName()
     {
-        Assert.Equal("assembly", Assert.Throws<ArgumentNullException>(() => Empty().RegisterResource(null!, "x")).ParamName);
+        Assert.Equal(
+            "assembly", Assert.Throws<ArgumentNullException>(() => Empty().RegisterResource(null!, "x")).ParamName);
         Assert.Equal(
             "resource",
-            Assert.Throws<ArgumentNullException>(() => Empty().RegisterResource(typeof(TypefaceSourcesTests).Assembly, null!)).ParamName);
+            Assert.Throws<ArgumentNullException>(
+                () => Empty().RegisterResource(typeof(TypefaceSourcesTests).Assembly, null!)).ParamName);
     }
 
     [Fact]
@@ -115,7 +121,9 @@ public class TypefaceSourcesTests
 
         library.SearchFolder(folder.Path);
 
-        Assert.Equal("NotoSansGeorgian-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Noto Sans Georgian")));
+        Assert.Equal(
+            "NotoSansGeorgian-Regular",
+            PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Noto Sans Georgian")));
     }
 
     [Fact]
@@ -149,7 +157,8 @@ public class TypefaceSourcesTests
 
         library.SearchFolder(System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"no-fonts-{Guid.NewGuid():N}"));
 
-        Assert.Equal("NotoSans-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Noto Sans Georgian")));
+        Assert.Equal(
+            "NotoSans-Regular", PostScriptNameFor(library, TypeStyle.Default.WithTypeface("Noto Sans Georgian")));
     }
 
     [Theory]

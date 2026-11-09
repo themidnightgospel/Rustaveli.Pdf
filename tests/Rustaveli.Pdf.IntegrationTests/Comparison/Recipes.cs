@@ -19,7 +19,8 @@ public static class Recipes
             {
                 page.Trim = new Rustaveli.Pdf.Extent(595f, 842f);
                 page.Margins = Sides.All(40f);
-                page.DefaultType = Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
+                page.DefaultType =
+                    Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
                 page.Body().Stack(column =>
                 {
                     column.SpaceBetween(8f);
@@ -40,7 +41,8 @@ public static class Recipes
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
-                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
+                page.DefaultTextStyle(
+                    (QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
                 page.Content().Column(column =>
                 {
                     column.Spacing(8f);
@@ -61,7 +63,8 @@ public static class Recipes
             {
                 page.Trim = new Rustaveli.Pdf.Extent(595f, 842f);
                 page.Margins = Sides.All(40f);
-                page.DefaultType = Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
+                page.DefaultType =
+                    Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
                 page.RunningHead().Text("Quarterly Statement");
                 page.RunningFoot().Text(text =>
                 {
@@ -90,7 +93,8 @@ public static class Recipes
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
-                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
+                page.DefaultTextStyle(
+                    (QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
                 page.Header().Text("Quarterly Statement");
                 page.Footer().Text(text =>
                 {
@@ -119,7 +123,8 @@ public static class Recipes
             {
                 page.Trim = new Rustaveli.Pdf.Extent(595f, 842f);
                 page.Margins = Sides.All(40f);
-                page.DefaultType = Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
+                page.DefaultType =
+                    Rustaveli.Pdf.TypeStyle.Default.WithTypeface(RecipeData.FontFamily).WithPointSize(11f);
                 page.Body().Table(table =>
                 {
                     table.Columns(columns =>
@@ -153,7 +158,8 @@ public static class Recipes
             {
                 page.Size(595f, 842f);
                 page.Margin(40f);
-                page.DefaultTextStyle((QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
+                page.DefaultTextStyle(
+                    (QuestPDF.Infrastructure.TextStyle style) => style.FontFamily(RecipeData.FontFamily).FontSize(11f));
                 page.Content().Table(table =>
                 {
                     table.ColumnsDefinition(columns =>

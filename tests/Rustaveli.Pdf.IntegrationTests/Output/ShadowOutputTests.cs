@@ -89,9 +89,11 @@ public class ShadowOutputTests
     [Fact]
     public void APageImageShowsTheShadowSoftenedBeyondTheFrame()
     {
-        Document document = Compose(stack => stack.Add().Height(40).DropShadow(Ink.Rgb(0, 0, 0), 8, 0, 20).Fill(Ink.White).Blank());
+        Document document = Compose(
+            stack => stack.Add().Height(40).DropShadow(Ink.Rgb(0, 0, 0), 8, 0, 20).Fill(Ink.White).Blank());
 
-        using SKBitmap page = SKBitmap.Decode(document.ExportImages(new ImageExportOptions { Resolution = 72, Format = PageImageFormat.Jpeg })[0]);
+        using SKBitmap page = SKBitmap.Decode(
+            document.ExportImages(new ImageExportOptions { Resolution = 72, Format = PageImageFormat.Jpeg })[0]);
 
         // The frame is white and runs from 20 to 60 down the page; its shadow falls 20 lower, fading at its edge.
         SKColor under = page.GetPixel(100, 70);
@@ -107,9 +109,11 @@ public class ShadowOutputTests
     [Fact]
     public void APageImageShowsASharpShadowWithAHardEdge()
     {
-        Document document = Compose(stack => stack.Add().Height(40).DropShadow(Ink.Rgb(0, 0, 0), 0, 0, 20).Fill(Ink.White).Blank());
+        Document document = Compose(
+            stack => stack.Add().Height(40).DropShadow(Ink.Rgb(0, 0, 0), 0, 0, 20).Fill(Ink.White).Blank());
 
-        using SKBitmap page = SKBitmap.Decode(document.ExportImages(new ImageExportOptions { Resolution = 72, Format = PageImageFormat.Png })[0]);
+        using SKBitmap page = SKBitmap.Decode(
+            document.ExportImages(new ImageExportOptions { Resolution = 72, Format = PageImageFormat.Png })[0]);
 
         Assert.True(page.GetPixel(100, 78).Red < 10, page.GetPixel(100, 78).ToString());
         Assert.True(page.GetPixel(100, 82).Red > 245, page.GetPixel(100, 82).ToString());

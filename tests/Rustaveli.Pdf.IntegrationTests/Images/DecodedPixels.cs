@@ -41,14 +41,18 @@ internal sealed class DecodedPixels : IPngRowSink
                     case PngColorType.Gray:
                     case PngColorType.GrayAlpha:
                         rgba[offset] = rgba[offset + 1] = rgba[offset + 2] = To8(samples[0], header.BitDepth);
-                        rgba[offset + 3] = header.HasAlphaChannel ? To8(samples[1], header.BitDepth) : KeyAlpha(png, samples);
+                        rgba[offset + 3] = header.HasAlphaChannel
+                            ? To8(samples[1], header.BitDepth)
+                            : KeyAlpha(png, samples);
                         break;
 
                     default:
                         rgba[offset] = To8(samples[0], header.BitDepth);
                         rgba[offset + 1] = To8(samples[1], header.BitDepth);
                         rgba[offset + 2] = To8(samples[2], header.BitDepth);
-                        rgba[offset + 3] = header.HasAlphaChannel ? To8(samples[3], header.BitDepth) : KeyAlpha(png, samples);
+                        rgba[offset + 3] = header.HasAlphaChannel
+                            ? To8(samples[3], header.BitDepth)
+                            : KeyAlpha(png, samples);
                         break;
                 }
             }
