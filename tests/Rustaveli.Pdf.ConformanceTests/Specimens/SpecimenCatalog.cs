@@ -47,10 +47,6 @@ public static class SpecimenCatalog
         }));
 
     /// <summary>
-    /// Text in CFF fonts, each embedded as a subset: a name-keyed face whose glyphs call local and global subroutines,
-    /// a CID-keyed Chinese face whose glyphs come from several font dicts, and a face with no subroutines at all.
-    /// </summary>
-    /// <summary>
     /// Content decided page by page or only when layout reaches it: a ledger composed for each page it reaches,
     /// bringing its total forward and carrying it on; then content composed late, content let past its frame,
     /// placeholders, a frame turned on its side and one held to a proportion.
@@ -128,6 +124,10 @@ public static class SpecimenCatalog
         private static int Total(int upTo) => Enumerable.Range(0, upTo).Sum(Amount);
     }
 
+    /// <summary>
+    /// Text in CFF fonts, each embedded as a subset: a name-keyed face whose glyphs call local and global subroutines,
+    /// a CID-keyed Chinese face whose glyphs come from several font dicts, and a face with no subroutines at all.
+    /// </summary>
     private static Document CffFonts() => Page(content => content.Stack(stack =>
     {
         stack.SpaceBetween(14f);
