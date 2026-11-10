@@ -654,7 +654,7 @@ public class PdfSurfaceTests
     [Fact]
     public void TrackingKeepsASurrogatePairWholeAndCarriesAcrossFontRuns()
     {
-        // The pair falls outside Arial, so it is also a separate font run: the gap before "B" proves the spacing
+        // The pair falls outside Noto Sans, so it is also a separate font run: the gap before "B" proves the spacing
         // count carries on across runs rather than restarting in each.
         TypeStyle spaced = Style.WithTracking(6);
         OpenTypeMeasurer measurer = new OpenTypeMeasurer(TypefaceLibrary.Shared.Shaper);
