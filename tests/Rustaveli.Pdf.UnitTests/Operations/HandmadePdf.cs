@@ -20,7 +20,8 @@ internal sealed class HandmadePdf
     public HandmadePdf Object(int number, string body, int generation = 0)
     {
         _offsets[number] = _file.Length;
-        _file.Append(number.ToString(CultureInfo.InvariantCulture)).Append(' ').Append(generation.ToString(CultureInfo.InvariantCulture))
+        _file.Append(number.ToString(CultureInfo.InvariantCulture)).Append(' ')
+            .Append(generation.ToString(CultureInfo.InvariantCulture))
             .Append(" obj\n").Append(body).Append("\nendobj\n");
         return this;
     }
@@ -28,7 +29,8 @@ internal sealed class HandmadePdf
     /// <summary>Appends a stream object holding <paramref name="data"/>, its length as given or its true one.</summary>
     public HandmadePdf Stream(int number, string dictionary, string data, string? length = null)
     {
-        string entries = dictionary.TrimEnd('>').TrimEnd('>') + $" /Length {length ?? data.Length.ToString(CultureInfo.InvariantCulture)}>>";
+        string entries = dictionary.TrimEnd('>').TrimEnd('>')
+            + $" /Length {length ?? data.Length.ToString(CultureInfo.InvariantCulture)}>>";
         return Object(number, $"{entries}\nstream\n{data}\nendstream");
     }
 
@@ -55,22 +57,24 @@ internal sealed class HandmadePdf
         for (int number = 1; number <= numbers.Max(); number++)
         {
             if (_offsets.TryGetValue(number, out int offset))
-                _file.Append((misplace?.Invoke(number) ?? offset).ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n\r\n");
+                _file.Append((misplace?.Invoke(number) ?? offset).ToString("D10", CultureInfo.InvariantCulture))
+                    .Append(" 00000 n\r\n");
             else
                 _file.Append("0000000000 00000 f\r\n");
         }
 
         string previous = _lastSection >= 0 ? $" /Prev {_lastSection}" : string.Empty;
-        _file.Append("trailer\n<<").Append(trailer).Append(" /Size ").Append(numbers.Max() + 1).Append(previous).Append(">>\n");
+        _file.Append("trailer\n<<").Append(trailer).Append(" /Size ").Append(numbers.Max() + 1)
+            .Append(previous).Append(">>\n");
         _file.Append("startxref\n").Append(table).Append("\n%%EOF\n");
         _lastSection = table;
         return table;
     }
 
     /// <summary>
-    /// Appends a cross-reference stream, object <paramref name="number"/>, with <paramref name="dictionary"/>'s entries,
-    /// its fields <paramref name="widths"/> bytes wide and its rows <paramref name="rows"/>, each a type, a second and
-    /// a third field; returns the stream's offset.
+    /// Appends a cross-reference stream, object <paramref name="number"/>,
+    /// with <paramref name="dictionary"/>'s entries, its fields <paramref name="widths"/> bytes wide and its rows
+    /// <paramref name="rows"/>, each a type, a second and a third field; returns the stream's offset.
     /// </summary>
     public int StreamSection(int number, string dictionary, int[] widths, params long[][] rows)
     {

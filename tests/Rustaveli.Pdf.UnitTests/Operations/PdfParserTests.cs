@@ -56,7 +56,8 @@ public class PdfParserTests
     [InlineData("403.1.7")]
     [InlineData("1..2")]
     [InlineData("obj")]
-    public void RefusesWhatIsNeitherANumberNorAValue(string text) => Assert.Throws<UnreadableFileException>(() => Read(text));
+    public void RefusesWhatIsNeitherANumberNorAValue(string text) =>
+        Assert.Throws<UnreadableFileException>(() => Read(text));
 
 #if NET
     [Fact]
@@ -236,7 +237,8 @@ public class PdfParserTests
     [InlineData(32, true)]
     [InlineData((int)'(', false)]
     [InlineData((int)'a', false)]
-    public void KnowsWhitespace(int value, bool whitespace) => Assert.Equal(whitespace, PdfParser.IsWhitespace((byte)value));
+    public void KnowsWhitespace(int value, bool whitespace) =>
+        Assert.Equal(whitespace, PdfParser.IsWhitespace((byte)value));
 
     [Theory]
     [InlineData('(')]

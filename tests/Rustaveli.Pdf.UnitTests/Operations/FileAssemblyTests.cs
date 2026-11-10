@@ -37,9 +37,12 @@ public class FileAssemblyTests
             .Object(2, "<</Type/Pages/Kids[3 0 R]/Count 1>>")
             .Object(3, $"<</Type/Page/Parent 2 0 R{page}>>");
 
-    /// <summary>A page to lay on others, 200 points square unless <paramref name="page"/> says, drawing one line.</summary>
+    /// <summary>
+    /// A page to lay on others, 200 points square unless <paramref name="page"/> says, drawing one line.
+    /// </summary>
     private static PdfFile Stamp(string page = "/MediaBox[0 0 200 200]") =>
-        Opened(HandmadePdf.OnePage(page + "/Resources<</ProcSet[/PDF]>>/Contents 4 0 R").Stream(4, "<<>>", "0 0 m 9 9 l S"));
+        Opened(HandmadePdf.OnePage(page + "/Resources<</ProcSet[/PDF]>>/Contents 4 0 R")
+            .Stream(4, "<<>>", "0 0 m 9 9 l S"));
 
     /// <summary>The content streams of a page of <paramref name="source"/>, each decoded.</summary>
     private static List<string> Contents(PdfSource source, int page)
@@ -69,14 +72,19 @@ public class FileAssemblyTests
     [Fact]
     public void APageKeptTwiceHasEachOfItsAnnotationsWrittenAnewForIt()
     {
-        HandmadePdf pdf = HandmadePdf.OnePage("/Annots[5 0 R]").Object(5, "<</Type/Annot/Subtype/Square/Rect[0 0 9 9]/P 3 0 R>>");
+        HandmadePdf pdf = HandmadePdf.OnePage("/Annots[5 0 R]")
+            .Object(5, "<</Type/Annot/Subtype/Square/Rect[0 0 9 9]/P 3 0 R>>");
 
         PdfSource source = Saved(Opened(pdf).KeepPages("1, 1"));
 
-        List<PdfReference> annotations = source.Pages.Select(page => Assert.Single(source.Resolve(page.Dictionary[PdfNames.Annots]).AsArray()).AsReference()).ToList();
+        List<PdfReference> annotations = source.Pages
+            .Select(page => Assert.Single(source.Resolve(page.Dictionary[PdfNames.Annots]).AsArray()).AsReference())
+            .ToList();
 
         Assert.NotEqual(annotations[0].ObjectNumber, annotations[1].ObjectNumber);
-        Assert.Equal(source.Pages[1].ObjectNumber, Dictionary(source, annotations[1])[new PdfName("P")].AsReference().ObjectNumber);
+        Assert.Equal(
+            source.Pages[1].ObjectNumber,
+            Dictionary(source, annotations[1])[new PdfName("P")].AsReference().ObjectNumber);
     }
 
     [Theory]
@@ -85,7 +93,8 @@ public class FileAssemblyTests
     [InlineData("/Contents[4 0 R 5 0 R]", "q\n|0 0 m|9 9 l S|\nQ\nq\n/Layer0 Do\nQ\n")]
     public void APageLaidOnKeepsEachOfItsContentStreamsBetweenWhatIsLaid(string contents, string expected)
     {
-        HandmadePdf page = HandmadePdf.OnePage("/MediaBox[0 0 200 200]" + contents).Stream(4, "<<>>", "0 0 m").Stream(5, "<<>>", "9 9 l S");
+        HandmadePdf page = HandmadePdf.OnePage("/MediaBox[0 0 200 200]" + contents)
+            .Stream(4, "<<>>", "0 0 m").Stream(5, "<<>>", "9 9 l S");
 
         PdfSource source = Saved(Opened(page).Overlay(Stamp()));
 
@@ -100,14 +109,19 @@ public class FileAssemblyTests
     [InlineData("/Resources<</XObject<</Own 4 0 R>>/ProcSet[/PDF]>>", "ProcSet XObject")]
     public void APageLaidOnKeepsTheResourcesItCanReadBesideWhatIsLaid(string resources, string kept)
     {
-        HandmadePdf page = HandmadePdf.OnePage("/MediaBox[0 0 200 200]" + resources).Stream(4, "<</Type/XObject/Subtype/Form/BBox[0 0 1 1]>>", "");
+        HandmadePdf page = HandmadePdf.OnePage("/MediaBox[0 0 200 200]" + resources)
+            .Stream(4, "<</Type/XObject/Subtype/Form/BBox[0 0 1 1]>>", "");
 
         PdfSource source = Saved(Opened(page).Overlay(Stamp()));
         PdfDictionary written = Dictionary(source, source.Pages[0].Dictionary[PdfNames.Resources]);
         PdfDictionary forms = Dictionary(source, written[PdfNames.XObject]);
 
-        Assert.Equal(kept, string.Join(" ", written.Select(entry => entry.Key.Value).OrderBy(key => key, StringComparer.Ordinal)));
-        Assert.Equal(resources.Contains("/Own") ? "Layer0 Own" : "Layer0", string.Join(" ", forms.Select(entry => entry.Key.Value).OrderBy(key => key, StringComparer.Ordinal)));
+        Assert.Equal(
+            kept,
+            string.Join(" ", written.Select(entry => entry.Key.Value).OrderBy(key => key, StringComparer.Ordinal)));
+        Assert.Equal(
+            resources.Contains("/Own") ? "Layer0 Own" : "Layer0",
+            string.Join(" ", forms.Select(entry => entry.Key.Value).OrderBy(key => key, StringComparer.Ordinal)));
     }
 
     [Theory]
@@ -115,13 +129,19 @@ public class FileAssemblyTests
     [InlineData("/Resources<</ProcSet[/PDF]>>", "ProcSet")]
     public void APageLaidAsAFormBringsAllItsContentAndTheResourcesItHas(string resources, string kept)
     {
-        PdfFile stamp = Opened(HandmadePdf.OnePage("/MediaBox[0 0 200 200]/Contents[4 0 R 5 0 R]" + resources).Stream(4, "<<>>", "0 0 m").Stream(5, "<<>>", "9 9 l S"));
+        PdfFile stamp = Opened(HandmadePdf.OnePage("/MediaBox[0 0 200 200]/Contents[4 0 R 5 0 R]" + resources)
+            .Stream(4, "<<>>", "0 0 m").Stream(5, "<<>>", "9 9 l S"));
 
         PdfSource source = Saved(Opened(HandmadePdf.OnePage("/MediaBox[0 0 200 200]")).Overlay(stamp));
-        PdfValue form = Dictionary(source, Dictionary(source, source.Pages[0].Dictionary[PdfNames.Resources])[PdfNames.XObject])[new PdfName("Layer0")];
+        PdfValue form = Dictionary(
+            source,
+            Dictionary(
+                source,
+                source.Pages[0].Dictionary[PdfNames.Resources])[PdfNames.XObject])[new PdfName("Layer0")];
 
         Assert.Equal("0 0 m\n9 9 l S\n", Encoding.Latin1.GetString(source.Decode(source.Stream(form)!)));
-        Assert.Equal(kept, string.Join(" ", Dictionary(source, source.Stream(form)!.Dictionary[PdfNames.Resources]).Select(entry => entry.Key.Value)));
+        Assert.Equal(kept, string.Join(" ", Dictionary(source, source.Stream(form)!.Dictionary[PdfNames.Resources])
+            .Select(entry => entry.Key.Value)));
     }
 
     [Theory]
@@ -134,9 +154,11 @@ public class FileAssemblyTests
     [InlineData("/CropBox[0 0 200 0]", "")]
     [InlineData("/CropBox[0 0 0 200]", "")]
     [InlineData("/CropBox[0 0 /Wide 200]", "")]
-    public void APageIsTurnedOnlyByARotationOfWholeDegreesAndPlacedOnlyByABoxEnclosingSomething(string stamp, string placement)
+    public void APageIsTurnedOnlyByARotationOfWholeDegreesAndPlacedOnlyByABoxEnclosingSomething(
+        string stamp, string placement)
     {
-        PdfSource source = Saved(Opened(HandmadePdf.OnePage("/MediaBox[0 0 200 300]")).Overlay(Stamp("/MediaBox[0 0 200 200]" + stamp)));
+        PdfSource source = Saved(
+            Opened(HandmadePdf.OnePage("/MediaBox[0 0 200 300]")).Overlay(Stamp("/MediaBox[0 0 200 200]" + stamp)));
 
         Assert.Equal($"\nQ\nq\n{placement}/Layer0 Do\nQ\n", Contents(source, 0).Last());
     }
@@ -171,7 +193,8 @@ public class FileAssemblyTests
     /// <summary>The names of the fields of the form <paramref name="source"/> holds, each as hex.</summary>
     private static List<string> FieldNames(PdfSource source) =>
         source.Resolve(Dictionary(source, source.Catalog[AcroForm])[Fields]).AsArray()
-            .Select(field => string.Concat(Dictionary(source, field)[T].AsString().Bytes.ToArray().Select(value => value.ToString("X2", CultureInfo.InvariantCulture))))
+            .Select(field => string.Concat(Dictionary(source, field)[T].AsString().Bytes.ToArray()
+                .Select(value => value.ToString("X2", CultureInfo.InvariantCulture))))
             .ToList();
 
     [Theory]
@@ -256,9 +279,13 @@ public class FileAssemblyTests
     [Fact]
     public void TheFilesAssociatedWithTheDocumentAndItsInformationAreKept()
     {
-        PdfSource source = Saved(Opened(Catalogued("/AF[4 0 R]").Object(4, "<</Type/Filespec/F(a.txt)>>").Object(5, "<</Title(Kept)>>"), "/Root 1 0 R/Info 5 0 R"));
+        PdfSource source = Saved(
+            Opened(
+                Catalogued("/AF[4 0 R]").Object(4, "<</Type/Filespec/F(a.txt)>>").Object(5, "<</Title(Kept)>>"),
+                "/Root 1 0 R/Info 5 0 R"));
 
-        PdfDictionary specification = Dictionary(source, Assert.Single(source.Resolve(source.Catalog[new PdfName("AF")]).AsArray()));
+        PdfDictionary specification = Dictionary(
+            source, Assert.Single(source.Resolve(source.Catalog[new PdfName("AF")]).AsArray()));
         PdfDictionary information = Dictionary(source, source.Trailer[new PdfName("Info")]);
 
         Assert.Equal("a.txt", Encoding.ASCII.GetString(specification[new PdfName("F")].AsString().Bytes.ToArray()));
@@ -270,13 +297,18 @@ public class FileAssemblyTests
     [InlineData(true)]
     public void MetadataIsAddedToThePacketThereOrToANewOneWhenThereIsNone(bool packet)
     {
-        string existing = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">"
+        string existing =
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">"
             + "<rdf:Description rdf:about=\"\" xmlns:o=\"urn:old\"><o:Old>there</o:Old></rdf:Description></rdf:RDF></x:xmpmeta>";
         HandmadePdf pdf = Catalogued("/Metadata 4 0 R");
-        pdf = packet ? pdf.Stream(4, "<</Type/Metadata/Subtype/XML>>", existing) : pdf.Object(4, "<</Type/Metadata/Subtype/XML>>");
+        pdf = packet
+            ? pdf.Stream(4, "<</Type/Metadata/Subtype/XML>>", existing)
+            : pdf.Object(4, "<</Type/Metadata/Subtype/XML>>");
 
-        PdfSource source = Saved(Opened(pdf).AddMetadata("<rdf:Description rdf:about=\"\" xmlns:k=\"urn:kind\"><k:Kind>added</k:Kind></rdf:Description>"));
-        string metadata = Encoding.UTF8.GetString(source.Decode(source.Stream(source.Catalog[new PdfName("Metadata")])!));
+        PdfSource source = Saved(Opened(pdf).AddMetadata(
+            "<rdf:Description rdf:about=\"\" xmlns:k=\"urn:kind\"><k:Kind>added</k:Kind></rdf:Description>"));
+        string metadata = Encoding.UTF8.GetString(
+            source.Decode(source.Stream(source.Catalog[new PdfName("Metadata")])!));
 
         Assert.Contains("adobe:ns:meta/", metadata, StringComparison.Ordinal);
         Assert.Contains("<k:Kind>added</k:Kind>", metadata, StringComparison.Ordinal);
@@ -293,7 +325,8 @@ public class FileAssemblyTests
             .Object(4, "<</Type/Page/Parent 2 0 R>>");
 
         PdfSource source = Saved(Opened(pdf).KeepPages("1"));
-        PdfArray destination = Dictionary(source, source.Resolve(source.Pages[0].Dictionary[PdfNames.Annots]).AsArray()[0])[Dest].AsArray();
+        PdfArray destination = Dictionary(
+            source, source.Resolve(source.Pages[0].Dictionary[PdfNames.Annots]).AsArray()[0])[Dest].AsArray();
 
         Assert.Equal(PdfValueKind.Null, destination[0].Kind);
         Assert.Equal("Fit", destination[1].AsName().Value);
@@ -319,7 +352,9 @@ public class FileAssemblyTests
         Assert.False(actions[1].ContainsKey(PdfNames.D));
         Assert.Equal("there", actions[2][PdfNames.D].AsName().Value);
         Assert.Equal("elsewhere", actions[3][PdfNames.D].AsName().Value);
-        Assert.Equal(source.Pages[2].ObjectNumber, source.Resolve(actions[4][PdfNames.D]).AsArray()[0].AsReference().ObjectNumber);
+        Assert.Equal(
+            source.Pages[2].ObjectNumber,
+            source.Resolve(actions[4][PdfNames.D]).AsArray()[0].AsReference().ObjectNumber);
     }
 
     [Fact]
@@ -332,7 +367,8 @@ public class FileAssemblyTests
 
         PdfSource source = Saved(Opened(pdf));
         PdfDictionary page = source.Pages[0].Dictionary;
-        PdfValue font = Dictionary(source, Dictionary(source, page[PdfNames.Resources])[PdfNames.Font])[new PdfName("F1")];
+        PdfValue font = Dictionary(
+            source, Dictionary(source, page[PdfNames.Resources])[PdfNames.Font])[new PdfName("F1")];
         PdfValue written = (PdfValue)source.GetObject(font.AsReference().ObjectNumber);
         PdfValue box = (PdfValue)source.GetObject(page[PdfNames.MediaBox].AsReference().ObjectNumber);
 
@@ -418,13 +454,17 @@ public class FileAssemblyTests
     [InlineData("text/plain")]
     public void AnAttachmentIsGivenASubtypeOnlyByAMediaTypeThatSaysSomething(string? mediaType)
     {
-        PdfFile file = Opened(HandmadePdf.OnePage()).Attach(new FileAttachment("a.txt", "a"u8.ToArray()) { MediaType = mediaType });
+        PdfFile file = Opened(HandmadePdf.OnePage())
+            .Attach(new FileAttachment("a.txt", "a"u8.ToArray()) { MediaType = mediaType });
 
         PdfSource source = Saved(file);
         SourceStream attached = source.ObjectNumbers.Select(source.GetObject).OfType<SourceStream>()
-            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.AsName().Value == "EmbeddedFile");
+            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type)
+                && type.AsName().Value == "EmbeddedFile");
 
-        Assert.Equal(string.IsNullOrEmpty(mediaType) ? null : mediaType, attached.Dictionary.TryGetValue(PdfNames.Subtype, out PdfValue subtype) ? subtype.AsName().Value : null);
+        Assert.Equal(
+            string.IsNullOrEmpty(mediaType) ? null : mediaType,
+            attached.Dictionary.TryGetValue(PdfNames.Subtype, out PdfValue subtype) ? subtype.AsName().Value : null);
     }
 
     [Fact]
