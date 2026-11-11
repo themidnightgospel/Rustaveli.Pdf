@@ -119,7 +119,8 @@ internal sealed class PdfSyntaxParser(byte[] data, int position = 0)
         _ => throw new FormatException($"'{(char)value}' is not a hexadecimal digit."),
     };
 
-    private byte Peek() => Position < data.Length ? data[Position] : throw new FormatException("Unexpected end of data.");
+    private byte Peek() =>
+        Position < data.Length ? data[Position] : throw new FormatException("Unexpected end of data.");
 
     private int PeekAt(int offset) => Position + offset < data.Length ? data[Position + offset] : -1;
 

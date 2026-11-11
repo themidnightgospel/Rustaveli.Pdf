@@ -80,7 +80,9 @@ public class PdfDictionaryTests
     {
         PdfDictionary dictionary = new PdfDictionary { [A] = 1, [B] = 2 };
 
-        List<string> generic = ((IEnumerable<KeyValuePair<PdfName, PdfValue>>)dictionary).Select(entry => entry.Key.Value).ToList();
+        List<string> generic = ((IEnumerable<KeyValuePair<PdfName, PdfValue>>)dictionary)
+            .Select(entry => entry.Key.Value)
+            .ToList();
         List<string> plain = new List<string>();
         foreach (object entry in (IEnumerable)dictionary)
             plain.Add(((KeyValuePair<PdfName, PdfValue>)entry).Key.Value);

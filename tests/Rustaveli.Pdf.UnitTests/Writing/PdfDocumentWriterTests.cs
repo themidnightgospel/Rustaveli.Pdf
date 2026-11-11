@@ -249,7 +249,9 @@ public class PdfDocumentWriterTests
         });
 
         Assert.Equal(["EmbeddedFiles"], alone.Dictionary(alone.Catalog()["Names"]).Keys);
-        Assert.Equal(["Dests", "EmbeddedFiles"], together.Dictionary(together.Catalog()["Names"]).Keys.OrderBy(key => key, StringComparer.Ordinal));
+        Assert.Equal(
+            ["Dests", "EmbeddedFiles"],
+            together.Dictionary(together.Catalog()["Names"]).Keys.OrderBy(key => key, StringComparer.Ordinal));
     }
 
     [Fact]
@@ -514,7 +516,9 @@ public class PdfDocumentWriterTests
         Assert.Equal("The document has been finished.", Refusal(() => document.Finish()));
         Assert.Equal("The document has been finished.", Refusal(() => document.BeginPage(10, 10)));
         Assert.Equal("The document has been finished.", Refusal(() => document.EndPage(page)));
-        Assert.Equal("The document has been finished.", Refusal(() => document.AddNamedDestination("x", page.Reference, 0, 0)));
+        Assert.Equal(
+            "The document has been finished.",
+            Refusal(() => document.AddNamedDestination("x", page.Reference, 0, 0)));
         Assert.Equal("The document has been finished.", Refusal(() => document.GetOpacityState(1, 1)));
     }
 
@@ -522,7 +526,8 @@ public class PdfDocumentWriterTests
     [InlineData(EncryptionLevel.AesWith256Bits, false, 8L)]
     [InlineData(EncryptionLevel.AesWith128Bits, false, null)]
     [InlineData(EncryptionLevel.AesWith256Bits, true, 3L)]
-    public void Aes256IsDeclaredAsAdobesExtensionLevel8UnlessTheCatalogDeclaresItsOwn(EncryptionLevel level, bool declared, long? expected)
+    public void Aes256IsDeclaredAsAdobesExtensionLevel8UnlessTheCatalogDeclaresItsOwn(
+        EncryptionLevel level, bool declared, long? expected)
     {
         // Outside an object stream the catalog is read as it is: only strings and streams are encrypted.
         PdfFileReader reader = Write(
@@ -552,7 +557,8 @@ public class PdfDocumentWriterTests
             return;
         }
 
-        Dictionary<string, object?> adobe = (Dictionary<string, object?>)((Dictionary<string, object?>)catalog["Extensions"]!)["ADBE"]!;
+        Dictionary<string, object?> adobe =
+            (Dictionary<string, object?>)((Dictionary<string, object?>)catalog["Extensions"]!)["ADBE"]!;
         Assert.Equal(new ParsedName("1.7"), adobe["BaseVersion"]);
         Assert.Equal(expected, adobe["ExtensionLevel"]);
     }

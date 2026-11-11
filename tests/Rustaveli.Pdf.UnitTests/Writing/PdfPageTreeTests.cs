@@ -17,11 +17,14 @@ public class PdfPageTreeTests
             {
                 PdfReference page = writer.Reserve();
                 PdfReference parent = tree.Add(page);
-                writer.Write(page, new PdfDictionary { [PdfNames.Type] = PdfNames.Page, [PdfNames.Parent] = parent, [Index] = index });
+                writer.Write(
+                    page,
+                    new PdfDictionary { [PdfNames.Type] = PdfNames.Page, [PdfNames.Parent] = parent, [Index] = index });
             }
 
             PdfReference root = tree.Write();
-            writer.Finish(writer.Write(new PdfDictionary { [PdfNames.Type] = PdfNames.Catalog, [PdfNames.Pages] = root }));
+            writer.Finish(
+                writer.Write(new PdfDictionary { [PdfNames.Type] = PdfNames.Catalog, [PdfNames.Pages] = root }));
         }
 
         return new PdfFileReader(output.ToArray());

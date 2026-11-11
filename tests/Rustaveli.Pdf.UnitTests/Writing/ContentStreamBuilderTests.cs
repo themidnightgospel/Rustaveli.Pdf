@@ -51,7 +51,9 @@ public class ContentStreamBuilderTests
     [InlineData(nameof(PdfLineJoin.Round), "1 j\n")]
     public void WritesLineJoinsAsTheirCodes(string join, string expected)
     {
-        Assert.Equal(expected, Build(content => content.SetLineJoin((PdfLineJoin)Enum.Parse(typeof(PdfLineJoin), join))));
+        Assert.Equal(
+            expected,
+            Build(content => content.SetLineJoin((PdfLineJoin)Enum.Parse(typeof(PdfLineJoin), join))));
     }
 
     [Fact]
@@ -110,7 +112,9 @@ public class ContentStreamBuilderTests
             content.SetStrokeColorN(new[] { 0.1, 0.2 }, pattern);
         });
 
-        Assert.Equal("/CS1 cs\n/DeviceRGB CS\n0.25 sc\n1 0 0 SC\n0.75 scn\n0.5 SCN\n/P1 scn\n0.1 0.2/P1 SCN\n", written);
+        Assert.Equal(
+            "/CS1 cs\n/DeviceRGB CS\n0.25 sc\n1 0 0 SC\n0.75 scn\n0.5 SCN\n/P1 scn\n0.1 0.2/P1 SCN\n",
+            written);
     }
 
     [Fact]
@@ -141,10 +145,12 @@ public class ContentStreamBuilderTests
     {
         using ContentStreamBuilder content = new ContentStreamBuilder();
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => content.SetDashPattern(new[] { 0.0, 0 }, 0));
+        ArgumentException exception = Assert.Throws<ArgumentException>(
+            () => content.SetDashPattern(new[] { 0.0, 0 }, 0));
 
         Assert.Equal("dashes", exception.ParamName);
-        Assert.StartsWith("A dash pattern needs at least one non-zero length.", exception.Message, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "A dash pattern needs at least one non-zero length.", exception.Message, StringComparison.Ordinal);
         Assert.Equal(0, content.Length);
     }
 
@@ -279,11 +285,21 @@ public class ContentStreamBuilderTests
 
         static string Refusal(Action action) => Assert.Throws<InvalidOperationException>(action).Message;
 
-        Assert.Equal("Tj is only valid inside a text object; call BeginText first.", Refusal(() => content.ShowText("a"u8)));
-        Assert.Equal("Td is only valid inside a text object; call BeginText first.", Refusal(() => content.MoveTextPosition(1, 2)));
-        Assert.Equal("Tm is only valid inside a text object; call BeginText first.", Refusal(() => content.SetTextMatrix(1, 0, 0, 1, 0, 0)));
-        Assert.Equal("TJ is only valid inside a text object; call BeginText first.", Refusal(() => content.BeginTextArray()));
-        Assert.Equal("ET is only valid inside a text object; call BeginText first.", Refusal(() => content.EndText()));
+        Assert.Equal(
+            "Tj is only valid inside a text object; call BeginText first.",
+            Refusal(() => content.ShowText("a"u8)));
+        Assert.Equal(
+            "Td is only valid inside a text object; call BeginText first.",
+            Refusal(() => content.MoveTextPosition(1, 2)));
+        Assert.Equal(
+            "Tm is only valid inside a text object; call BeginText first.",
+            Refusal(() => content.SetTextMatrix(1, 0, 0, 1, 0, 0)));
+        Assert.Equal(
+            "TJ is only valid inside a text object; call BeginText first.",
+            Refusal(() => content.BeginTextArray()));
+        Assert.Equal(
+            "ET is only valid inside a text object; call BeginText first.",
+            Refusal(() => content.EndText()));
         Assert.Equal(0, content.Length);
     }
 

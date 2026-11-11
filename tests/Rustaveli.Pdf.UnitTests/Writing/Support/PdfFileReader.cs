@@ -11,7 +11,8 @@ namespace Rustaveli.Pdf.UnitTests.Writing;
 internal sealed class PdfFileReader
 {
     private readonly byte[] _file;
-    private readonly Dictionary<int, (int Type, long Field2, int Field3)> _entries = new Dictionary<int, (int, long, int)>();
+    private readonly Dictionary<int, (int Type, long Field2, int Field3)> _entries =
+        new Dictionary<int, (int, long, int)>();
 
     public PdfFileReader(byte[] file)
     {
@@ -91,7 +92,8 @@ internal sealed class PdfFileReader
         throw new FormatException($"Object {number} is free.");
     }
 
-    public object? Resolve(object? value) => value is ParsedReference reference ? GetObject(reference.ObjectNumber) : value;
+    public object? Resolve(object? value) =>
+        value is ParsedReference reference ? GetObject(reference.ObjectNumber) : value;
 
     public Dictionary<string, object?> Dictionary(object? value) =>
         Resolve(value) switch
@@ -151,7 +153,8 @@ internal sealed class PdfFileReader
         return Unpredict(inflated, checked((int)(long)decode["Columns"]!));
     }
 
-    private int WalkPages(ParsedReference reference, ParsedReference? parent, int depth, List<(int Number, int Depth)> pages)
+    private int WalkPages(
+        ParsedReference reference, ParsedReference? parent, int depth, List<(int Number, int Depth)> pages)
     {
         Dictionary<string, object?> node = Dictionary(reference);
         if (parent == null ? node.ContainsKey("Parent") : !Equals(node["Parent"], parent))

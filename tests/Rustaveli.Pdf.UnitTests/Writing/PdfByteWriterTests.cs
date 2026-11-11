@@ -46,7 +46,9 @@ public class PdfByteWriterTests
     [InlineData(0xFF)]
     public void WritesPrintableAndHighBytesAsThemselves(int value)
     {
-        Assert.Equal("(" + (char)value + ")", Latin1.Written(writer => writer.WriteLiteralString(new[] { (byte)value })));
+        Assert.Equal(
+            "(" + (char)value + ")",
+            Latin1.Written(writer => writer.WriteLiteralString(new[] { (byte)value })));
     }
 
     [Fact]
@@ -63,7 +65,9 @@ public class PdfByteWriterTests
     [Fact]
     public void WritesHexStringsInUppercaseWithTwoDigitsPerByte()
     {
-        Assert.Equal("<0009ABFF1F>", Latin1.Written(writer => writer.WriteHexString(new byte[] { 0x00, 0x09, 0xAB, 0xFF, 0x1F })));
+        Assert.Equal(
+            "<0009ABFF1F>",
+            Latin1.Written(writer => writer.WriteHexString(new byte[] { 0x00, 0x09, 0xAB, 0xFF, 0x1F })));
         Assert.Equal("<>", Latin1.Written(writer => writer.WriteHexString(ReadOnlySpan<byte>.Empty)));
         Assert.Equal("()", Latin1.Written(writer => writer.WriteLiteralString(ReadOnlySpan<byte>.Empty)));
     }
@@ -161,7 +165,10 @@ public class PdfByteWriterTests
             [new PdfName("Flags")] = new PdfArray { true, false, PdfValue.Null, new PdfName("N"), 7 },
             [new PdfName("Text")] = new PdfString(Latin1.Bytes("a")),
             [new PdfName("After")] = 1,
-            [new PdfName("Inner")] = new PdfDictionary { [new PdfName("A")] = new PdfString(Latin1.Bytes("b"), PdfStringForm.Hex) },
+            [new PdfName("Inner")] = new PdfDictionary
+            {
+                [new PdfName("A")] = new PdfString(Latin1.Bytes("b"), PdfStringForm.Hex)
+            },
         };
 
         string written = Latin1.Written(writer => writer.WriteDictionary(dictionary));
@@ -197,7 +204,19 @@ public class PdfByteWriterTests
     {
         PdfName empty = new PdfName(string.Empty);
         ParsedName parsedEmpty = new ParsedName(string.Empty);
-        PdfArray array = new PdfArray { empty, new PdfReference(21), empty, 2.5, empty, true, empty, empty, empty, new PdfName("A") };
+        PdfArray array = new PdfArray
+        {
+            empty,
+            new PdfReference(21),
+            empty,
+            2.5,
+            empty,
+            true,
+            empty,
+            empty,
+            empty,
+            new PdfName("A")
+        };
         PdfDictionary dictionary = new PdfDictionary { [empty] = 5 };
 
         string written = Latin1.Written(writer =>
@@ -219,7 +238,11 @@ public class PdfByteWriterTests
     [Fact]
     public void WritesDictionaryEntriesWithoutTheBrackets()
     {
-        PdfDictionary dictionary = new PdfDictionary { [new PdfName("A")] = 1, [new PdfName("B")] = new PdfArray { 2 } };
+        PdfDictionary dictionary = new PdfDictionary
+        {
+            [new PdfName("A")] = 1,
+            [new PdfName("B")] = new PdfArray { 2 }
+        };
 
         Assert.Equal("/A 1/B[2]", Latin1.Written(writer => writer.WriteDictionaryEntries(dictionary)));
     }
@@ -250,7 +273,9 @@ public class PdfByteWriterTests
     {
         string written = Latin1.Written(writer => writer.WriteValue(Nested(PdfByteWriter.MaxNestingDepth)));
 
-        Assert.Equal(new string('[', PdfByteWriter.MaxNestingDepth) + new string(']', PdfByteWriter.MaxNestingDepth), written);
+        Assert.Equal(
+            new string('[', PdfByteWriter.MaxNestingDepth) + new string(']', PdfByteWriter.MaxNestingDepth),
+            written);
     }
 
     [Fact]
@@ -319,7 +344,9 @@ public class PdfByteWriterTests
             string separated = fill > 0 ? prefix + " " : prefix;
 
             Assert.Equal(prefix + "!", Written(fill, writer => writer.WriteByte((byte)'!')));
-            Assert.Equal(separated + "-9223372036854775808", Written(fill, writer => writer.WriteInteger(long.MinValue)));
+            Assert.Equal(
+                separated + "-9223372036854775808",
+                Written(fill, writer => writer.WriteInteger(long.MinValue)));
             Assert.Equal(separated + "-999999999999999", Written(fill, writer => writer.WriteReal(-999999999999999)));
             Assert.Equal(separated + "endstream", Written(fill, writer => writer.WriteKeyword("endstream"u8)));
             Assert.Equal(prefix + "0123456789", Written(fill, writer =>

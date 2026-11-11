@@ -82,7 +82,9 @@ public class PdfFileWriterTests
     [Fact]
     public void WritesAMinimalTableFileExactly()
     {
-        byte[] file = Write(Options(PdfCrossReferenceFormat.Table, id: FixedId), writer => writer.Write(CatalogDictionary()));
+        byte[] file = Write(
+            Options(PdfCrossReferenceFormat.Table, id: FixedId),
+            writer => writer.Write(CatalogDictionary()));
 
         string id = "<000102030405060708090A0B0C0D0E0F>";
         Assert.Equal(
@@ -142,7 +144,9 @@ public class PdfFileWriterTests
             new List<object?> { 1L, 2.5, new ParsedName("X"), new ParsedReference(late.ObjectNumber, 0) },
             reader.GetObject(array.ObjectNumber));
         Assert.Equal(Latin1.Bytes("hello (world)"), reader.GetObject(text.ObjectNumber));
-        Assert.Equal(new ParsedReference(array.ObjectNumber, 0), reader.Dictionary(new ParsedReference(late.ObjectNumber, 0))["Back"]);
+        Assert.Equal(
+            new ParsedReference(array.ObjectNumber, 0),
+            reader.Dictionary(new ParsedReference(late.ObjectNumber, 0))["Back"]);
 
         ParsedStream deflatedStream = (ParsedStream)reader.GetObject(deflated.ObjectNumber)!;
         Assert.Equal(new ParsedName("FlateDecode"), deflatedStream.Dictionary["Filter"]);
@@ -334,7 +338,8 @@ public class PdfFileWriterTests
         using PdfFileWriter writer = new PdfFileWriter(new MemoryStream());
 
         ArgumentException exception = Assert.Throws<ArgumentException>(
-            () => writer.WriteStream(new PdfDictionary { [new PdfName("Length")] = 3 }, new byte[3], PdfStreamCompression.None));
+            () => writer.WriteStream(
+                new PdfDictionary { [new PdfName("Length")] = 3 }, new byte[3], PdfStreamCompression.None));
 
         Assert.Equal("dictionary", exception.ParamName);
         Assert.StartsWith("The writer sets /Length itself.", exception.Message, StringComparison.Ordinal);
@@ -346,7 +351,8 @@ public class PdfFileWriterTests
         using PdfFileWriter writer = new PdfFileWriter(new MemoryStream());
 
         ArgumentException exception = Assert.Throws<ArgumentException>(
-            () => writer.WriteStream(new PdfDictionary { [new PdfName("Filter")] = new PdfName("DCTDecode") }, new byte[3]));
+            () => writer.WriteStream(
+                new PdfDictionary { [new PdfName("Filter")] = new PdfName("DCTDecode") }, new byte[3]));
 
         Assert.Equal("dictionary", exception.ParamName);
         Assert.StartsWith(
@@ -446,20 +452,27 @@ public class PdfFileWriterTests
     [Fact]
     public void AnEncryptedFileCarriesEncryptedAndReadableStreamsIntact()
     {
-        Rustaveli.Pdf.Security.PdfEncryption encryption = Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { EncryptMetadata = false });
+        Rustaveli.Pdf.Security.PdfEncryption encryption =
+            Rustaveli.Pdf.Security.PdfEncryption.Create(new Protection { EncryptMetadata = false });
         byte[] data = Random(100_000, 3);
         PdfReference covered = default;
         PdfReference readable = default;
 
-        byte[] file = Write(new PdfWriterOptions { CrossReferenceFormat = PdfCrossReferenceFormat.Table, Encryption = encryption }, writer =>
-        {
-            covered = writer.WriteStream(new PdfDictionary(), data, PdfStreamCompression.None);
-            readable = writer.WriteStream(new PdfDictionary { [Type] = new PdfName("Metadata") }, data, PdfStreamCompression.None);
-            return writer.Write(CatalogDictionary());
-        });
+        byte[] file = Write(
+            new PdfWriterOptions { CrossReferenceFormat = PdfCrossReferenceFormat.Table, Encryption = encryption },
+            writer =>
+            {
+                covered = writer.WriteStream(new PdfDictionary(), data, PdfStreamCompression.None);
+                readable = writer.WriteStream(
+                    new PdfDictionary { [Type] = new PdfName("Metadata") }, data, PdfStreamCompression.None);
+                return writer.Write(CatalogDictionary());
+            });
 
         PdfFileReader reader = new PdfFileReader(file);
-        Assert.Equal(data, encryption.DecryptStream(covered.ObjectNumber, ((ParsedStream)reader.GetObject(covered.ObjectNumber)!).Data));
+        Assert.Equal(
+            data,
+            encryption.DecryptStream(
+                covered.ObjectNumber, ((ParsedStream)reader.GetObject(covered.ObjectNumber)!).Data));
         Assert.Equal(data, ((ParsedStream)reader.GetObject(readable.ObjectNumber)!).Data);
     }
 
@@ -508,7 +521,8 @@ public class PdfFileWriterTests
         byte[] file = Write(
             Options(format, id: FixedId),
             writer => writer.Write(CatalogDictionary()),
-            writer => info = writer.Write(new PdfDictionary { [new PdfName("Title")] = new PdfString(Latin1.Bytes("T")) }));
+            writer => info = writer.Write(
+                new PdfDictionary { [new PdfName("Title")] = new PdfString(Latin1.Bytes("T")) }));
 
         PdfFileReader reader = new PdfFileReader(file);
         Assert.Equal(new ParsedReference(info.ObjectNumber, 0), reader.Trailer["Info"]);
@@ -692,7 +706,8 @@ public class PdfFileWriterTests
         using PdfFileWriter writer = new PdfFileWriter(new MemoryStream(), Options(PdfCrossReferenceFormat.Table));
         PdfReference reference = writer.Write(new PdfArray());
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => writer.Write(reference, 1));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => writer.Write(reference, 1));
         Assert.Equal($"Object {reference.ObjectNumber} has already been written.", exception.Message);
         Assert.Throws<InvalidOperationException>(() => writer.WriteStream(reference, new PdfDictionary(), new byte[1]));
     }
@@ -718,7 +733,8 @@ public class PdfFileWriterTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() => writer.Write(reference, 1));
 
         Assert.Equal("reference", exception.ParamName);
-        Assert.StartsWith($"Object {number} was not reserved by this writer.", exception.Message, StringComparison.Ordinal);
+        Assert.StartsWith(
+            $"Object {number} was not reserved by this writer.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -740,7 +756,9 @@ public class PdfFileWriterTests
         PdfReference root = writer.Write(CatalogDictionary());
 
         Assert.Equal("reference", Assert.Throws<ArgumentException>(() => writer.Finish(default)).ParamName);
-        Assert.Equal("reference", Assert.Throws<ArgumentException>(() => writer.Finish(root, new PdfReference(99))).ParamName);
+        Assert.Equal(
+            "reference",
+            Assert.Throws<ArgumentException>(() => writer.Finish(root, new PdfReference(99))).ParamName);
     }
 
     [Fact]
@@ -755,6 +773,8 @@ public class PdfFileWriterTests
         Assert.Equal("The file has been finished.", Refusal(() => writer.Finish(root)));
         Assert.Equal("The file has been finished.", Refusal(() => writer.Reserve()));
         Assert.Equal("The file has been finished.", Refusal(() => writer.Write(root, 1)));
-        Assert.Equal("The file has been finished.", Refusal(() => writer.WriteStream(root, new PdfDictionary(), new byte[1])));
+        Assert.Equal(
+            "The file has been finished.",
+            Refusal(() => writer.WriteStream(root, new PdfDictionary(), new byte[1])));
     }
 }

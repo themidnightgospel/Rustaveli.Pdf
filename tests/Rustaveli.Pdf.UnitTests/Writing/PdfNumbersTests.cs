@@ -89,7 +89,8 @@ public class PdfNumbersTests
     {
         // Most of a page's operands are whole: sizes, many positions, the matrices of text and images. Each must come
         // out as the integer it is, at every magnitude and sign, however it is reached.
-        List<long> wholes = [0, 1, -1, 9, 10, 99, 100, -100, 999, 1_000, 99_999, 100_000, 999_999, 1_000_000, -1_000_000];
+        List<long> wholes =
+            [0, 1, -1, 9, 10, 99, 100, -100, 999, 1_000, 99_999, 100_000, 999_999, 1_000_000, -1_000_000];
         wholes.AddRange([123_456_789, -123_456_789, 999_999_999_999_999, -999_999_999_999_999]);
         Random random = new Random(20261006);
 

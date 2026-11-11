@@ -33,7 +33,8 @@ public class XmpPacketTests
     {
         string packet = Packet(new PdfDocumentInfo(), (2, 'B'), null);
 
-        Assert.StartsWith("<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n", packet, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "<?xpacket begin=\"﻿\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n", packet, StringComparison.Ordinal);
         Assert.EndsWith("<?xpacket end=\"r\"?>", packet, StringComparison.Ordinal);
     }
 
@@ -87,7 +88,10 @@ public class XmpPacketTests
         XElement description = Description(Packet(info, (2, 'U'), null));
 
         Assert.Equal("Ledger <2026> & more", description.Element(Dc + "title")!.Descendants(Rdf + "li").Single().Value);
-        Assert.Equal("x-default", description.Element(Dc + "title")!.Descendants(Rdf + "li").Single().Attribute(XNamespace.Xml + "lang")!.Value);
+        Assert.Equal(
+            "x-default",
+            description.Element(Dc + "title")!.Descendants(Rdf + "li").Single()
+                .Attribute(XNamespace.Xml + "lang")!.Value);
         Assert.Equal("Accounts", description.Element(Dc + "creator")!.Element(Rdf + "Seq")!.Element(Rdf + "li")!.Value);
         Assert.Equal("Year end", description.Element(Dc + "description")!.Descendants(Rdf + "li").Single().Value);
         Assert.Equal("ledger, audit", description.Element(Pdf + "Keywords")!.Value);
@@ -113,7 +117,9 @@ public class XmpPacketTests
 
         Assert.Equal("Q3\r\nReport", description.Element(Dc + "title")!.Descendants(Rdf + "li").Single().Value);
         Assert.Equal("O'Brien \"Books\"", description.Element(Dc + "creator")!.Descendants(Rdf + "li").Single().Value);
-        Assert.Equal("Tab\there, line\nthere, return\ronly", description.Element(Dc + "description")!.Descendants(Rdf + "li").Single().Value);
+        Assert.Equal(
+            "Tab\there, line\nthere, return\ronly",
+            description.Element(Dc + "description")!.Descendants(Rdf + "li").Single().Value);
         Assert.Equal("emoji \U0001F600, �, ", description.Element(Pdf + "Keywords")!.Value);
     }
 
@@ -124,7 +130,8 @@ public class XmpPacketTests
         // listed here rather than as theory data, which would not carry a lone surrogate through intact.
         foreach (string value in new[] { "A\u0001B", "A\u001FB", "A￾B", "A￿", "A\uD800B", "A\uD800", "A\uDC00B" })
         {
-            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Packet(new PdfDocumentInfo { Producer = value }, (2, 'B'), null));
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(
+                () => Packet(new PdfDocumentInfo { Producer = value }, (2, 'B'), null));
 
             Assert.Contains("Producer", error.Message, StringComparison.Ordinal);
         }
