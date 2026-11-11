@@ -110,7 +110,8 @@ public class RasterImageTests
     [Fact]
     public void RejectsDataInNoRecognisedFormat()
     {
-        ArgumentException error = Assert.Throws<ArgumentException>(() => RasterImage.FromBytes("certainly not an image"u8.ToArray()));
+        ArgumentException error = Assert.Throws<ArgumentException>(
+            () => RasterImage.FromBytes("certainly not an image"u8.ToArray()));
 
         Assert.Equal("data", error.ParamName);
         Assert.IsType<ImageFormatException>(error.InnerException);
@@ -120,8 +121,10 @@ public class RasterImageTests
     [Fact]
     public void RejectsEmptyData()
     {
-        Assert.IsType<ImageFormatException>(Assert.Throws<ArgumentException>(() => RasterImage.FromBytes([])).InnerException);
-        Assert.IsType<ImageFormatException>(Assert.Throws<ArgumentException>(() => RasterImage.FromStream(new MemoryStream())).InnerException);
+        Assert.IsType<ImageFormatException>(
+            Assert.Throws<ArgumentException>(() => RasterImage.FromBytes([])).InnerException);
+        Assert.IsType<ImageFormatException>(
+            Assert.Throws<ArgumentException>(() => RasterImage.FromStream(new MemoryStream())).InnerException);
     }
 
     [Fact]
@@ -149,7 +152,9 @@ public class RasterImageTests
     [InlineData("II*\u0000\u0008\u0000\u0000\u0000", (int)ImageFormat.Tiff)]
     [InlineData("\u0000\u0000\u0000\u0018ftypheic\u0000\u0000\u0000\u0000mif1heic", (int)ImageFormat.Heic)]
     [InlineData("\u0000\u0000\u0000\u0018ftypavif\u0000\u0000\u0000\u0000mif1avif", (int)ImageFormat.Avif)]
-    [InlineData("BM\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000(\u0000\u0000\u0000", (int)ImageFormat.Bmp)]
+    [InlineData(
+        "BM\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000(\u0000\u0000\u0000",
+        (int)ImageFormat.Bmp)]
     public void ReportsARecognisedFormatItCannotEmbed(string header, int format)
     {
         byte[] data = header.Select(character => (byte)character).ToArray();
@@ -261,7 +266,9 @@ public class RasterImageTests
     [Fact]
     public void HasSameContentRejectsNull()
     {
-        Assert.Equal("other", Assert.Throws<ArgumentNullException>(() => TestImageFiles.Load(Png).HasSameContent(null!)).ParamName);
+        Assert.Equal(
+            "other",
+            Assert.Throws<ArgumentNullException>(() => TestImageFiles.Load(Png).HasSameContent(null!)).ParamName);
     }
 
     [Fact]
@@ -290,7 +297,9 @@ public class RasterImageTests
     {
         using MemoryStream stream = new MemoryStream(new byte[101]);
 
-        Assert.Contains("larger than the 100 bytes supported", Assert.Throws<ImageFormatException>(() => ImageSourceReader.ReadAll(stream, 100)).Message);
+        Assert.Contains(
+            "larger than the 100 bytes supported",
+            Assert.Throws<ImageFormatException>(() => ImageSourceReader.ReadAll(stream, 100)).Message);
 
         stream.Position = 1;
         Assert.Equal(100, ImageSourceReader.ReadAll(stream, 100).Length);
@@ -300,7 +309,8 @@ public class RasterImageTests
     public void RefusesASequentialStreamLongerThanTheLimit()
     {
         Assert.Throws<ImageFormatException>(() => ImageSourceReader.ReadAll(new SequentialStream(new byte[101]), 100));
-        Assert.Throws<ImageFormatException>(() => ImageSourceReader.ReadAll(new SequentialStream(new byte[200000]), 100000));
+        Assert.Throws<ImageFormatException>(
+            () => ImageSourceReader.ReadAll(new SequentialStream(new byte[200000]), 100000));
         Assert.Equal(100, ImageSourceReader.ReadAll(new SequentialStream(new byte[100], maxRead: 30), 100).Length);
     }
 

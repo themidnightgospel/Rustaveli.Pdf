@@ -35,7 +35,8 @@ internal static class TestJpeg
     public static byte[] Frame(int width, int height, int components, byte marker = Baseline, int precision = 8) =>
         Frame(width, height, Enumerable.Range(1, components).Select(id => (byte)id).ToArray(), marker, precision);
 
-    public static byte[] Scan() => [0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x12, 0x34, 0xFF, 0x00, 0x56, 0xFF, 0xD9];
+    public static byte[] Scan() =>
+        [0xFF, 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x12, 0x34, 0xFF, 0x00, 0x56, 0xFF, 0xD9];
 
     public static byte[] Jfif() => Segment(0xE0, [.. "JFIF\0"u8, 0x01, 0x02, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]);
 
@@ -74,7 +75,9 @@ internal static class TestJpeg
 
     public static byte[] Orientation(int value, bool bigEndian = false) => Tiff(bigEndian, (0x0112, 3, 1, (uint)value));
 
-    /// <summary>A structurally valid ICC profile header followed by filler, declaring <paramref name="size"/> bytes.</summary>
+    /// <summary>
+    /// A structurally valid ICC profile header followed by filler, declaring <paramref name="size"/> bytes.
+    /// </summary>
     public static byte[] Profile(string colorSpace, int size = 200, int? declaredSize = null)
     {
         byte[] profile = new byte[size];

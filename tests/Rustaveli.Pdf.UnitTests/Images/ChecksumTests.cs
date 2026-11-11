@@ -14,7 +14,8 @@ public class ChecksumTests
 
     private static byte[] Counting(int length) => Enumerable.Range(0, length).Select(index => (byte)index).ToArray();
 
-    private static byte[] Sevens(int length) => Enumerable.Range(0, length).Select(index => (byte)(index * 7)).ToArray();
+    private static byte[] Sevens(int length) =>
+        Enumerable.Range(0, length).Select(index => (byte)(index * 7)).ToArray();
 
     [Theory]
     [InlineData("", 0x00000000u)]
@@ -78,7 +79,9 @@ public class ChecksumTests
         uint whole = Adler32.Append(Adler32.Initial, data);
 
         foreach (int split in new[] { 0, 1, 5551, 5552, 5553, 11104, 12000 })
-            Assert.Equal(whole, Adler32.Append(Adler32.Append(Adler32.Initial, data.AsSpan(0, split)), data.AsSpan(split)));
+            Assert.Equal(
+                whole,
+                Adler32.Append(Adler32.Append(Adler32.Initial, data.AsSpan(0, split)), data.AsSpan(split)));
     }
 
     [Fact]

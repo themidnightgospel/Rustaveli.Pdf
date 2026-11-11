@@ -14,7 +14,8 @@ public class ImageColorSpaceTests
         Assert.Equal(ImageColorSpaceKind.DeviceCmyk, ImageColorSpace.DeviceCmyk.Kind);
         Assert.Equal(4, ImageColorSpace.DeviceCmyk.ComponentCount);
 
-        foreach (ImageColorSpace space in new[] { ImageColorSpace.DeviceGray, ImageColorSpace.DeviceRgb, ImageColorSpace.DeviceCmyk })
+        foreach (ImageColorSpace space in
+            new[] { ImageColorSpace.DeviceGray, ImageColorSpace.DeviceRgb, ImageColorSpace.DeviceCmyk })
         {
             Assert.Null(space.Base);
             Assert.Null(space.Profile);
@@ -94,7 +95,8 @@ public class ImageColorSpaceTests
         FlateDecodeParameters parameters = new FlateDecodeParameters(1, 8, 2);
 
         EncodedImage image = new EncodedImage(
-            2, 1, ImageColorSpace.DeviceRgb, 8, ImageFilter.Flate, new byte[] { 7, 8 }, parameters, 0, [1d, 0d], [3, 3], mask);
+            2, 1, ImageColorSpace.DeviceRgb, 8, ImageFilter.Flate, new byte[] { 7, 8 }, parameters, 0,
+            [1d, 0d], [3, 3], mask);
 
         Assert.Equal(2, image.Width);
         Assert.Equal(1, image.Height);
