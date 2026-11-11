@@ -27,7 +27,8 @@ public class PdfSourceTests
     private static byte[] Written(PdfCrossReferenceFormat format, int pages = 2, PdfEncryption? encryption = null)
     {
         using MemoryStream output = new MemoryStream();
-        using (PdfDocumentWriter writer = new PdfDocumentWriter(output, new PdfWriterOptions { CrossReferenceFormat = format, Encryption = encryption }))
+        using (PdfDocumentWriter writer = new PdfDocumentWriter(
+            output, new PdfWriterOptions { CrossReferenceFormat = format, Encryption = encryption }))
         {
             for (int page = 1; page <= pages; page++)
             {
@@ -49,11 +50,14 @@ public class PdfSourceTests
     [InlineData(true)]
     public void ReadsWhatTheWriterWritesInEitherForm(bool streamed)
     {
-        PdfSource source = PdfSource.Open(Written(streamed ? PdfCrossReferenceFormat.Stream : PdfCrossReferenceFormat.Table, pages: 3));
+        PdfSource source = PdfSource.Open(
+            Written(streamed ? PdfCrossReferenceFormat.Stream : PdfCrossReferenceFormat.Table, pages: 3));
 
         Assert.False(source.WasRepaired);
         Assert.Equal(3, source.Pages.Count);
-        Assert.Equal([100L, 200L, 300L], source.Pages.Select(page => source.Resolve(page.Dictionary[PdfNames.MediaBox]).AsArray()[2].AsInteger()));
+        Assert.Equal(
+            [100L, 200L, 300L],
+            source.Pages.Select(page => source.Resolve(page.Dictionary[PdfNames.MediaBox]).AsArray()[2].AsInteger()));
 
         PdfDictionary marked = source.Resolve(source.Catalog[Marker]).AsDictionary();
         Assert.Equal("found", Encoding.ASCII.GetString(marked[Marker].AsString().Bytes.ToArray()));
@@ -62,7 +66,8 @@ public class PdfSourceTests
         Assert.Contains("0 0 2 2 re", Encoding.ASCII.GetString(source.Decode(content)), StringComparison.Ordinal);
     }
 
-    private static string Hex(byte[] bytes) => string.Concat(bytes.Select(value => value.ToString("X2", CultureInfo.InvariantCulture)));
+    private static string Hex(byte[] bytes) =>
+        string.Concat(bytes.Select(value => value.ToString("X2", CultureInfo.InvariantCulture)));
 
     /// <summary>
     /// <paramref name="text"/> encrypted as the standard handler encrypts a string of object <paramref name="number"/>,
@@ -74,7 +79,11 @@ public class PdfSourceTests
     private static byte[] Encrypted(byte[] fileKey, int number, int generation, byte[] data, bool aes)
     {
         byte[] salt = aes ? "sAlT"u8.ToArray() : [];
-        byte[] input = [.. fileKey, (byte)number, (byte)(number >> 8), (byte)(number >> 16), (byte)generation, (byte)(generation >> 8), .. salt];
+        byte[] input =
+        [
+            .. fileKey, (byte)number, (byte)(number >> 8), (byte)(number >> 16),
+            (byte)generation, (byte)(generation >> 8), .. salt
+        ];
         byte[] key;
 
         using (MD5 md5 = MD5.Create())
@@ -93,14 +102,23 @@ public class PdfSourceTests
     public void AnObjectOfALaterGenerationIsDecryptedWithItsOwnKey(bool aes)
     {
         byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
-        PdfDictionary written = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = aes ? EncryptionLevel.AesWith128Bits : EncryptionLevel.Rc4With128Bits }, id).Dictionary;
+        PdfDictionary written = PdfEncryption.Create(
+            new Protection
+            {
+                OwnerPassword = "owner",
+                Encryption = aes ? EncryptionLevel.AesWith128Bits : EncryptionLevel.Rc4With128Bits
+            },
+            id).Dictionary;
         long version = written[new PdfName("V")].AsInteger();
         int revision = (int)written[new PdfName("R")].AsInteger();
         int permissions = (int)written[new PdfName("P")].AsInteger();
         byte[] owner = written[new PdfName("O")].AsString().Bytes.ToArray();
         byte[] user = written[new PdfName("U")].AsString().Bytes.ToArray();
-        byte[] fileKey = StandardSecurity.FileKey(StandardSecurity.Pad(string.Empty), owner, permissions, id, revision, 16, encryptMetadata: true);
-        string filters = aes ? "/CF<</StdCF<</CFM/AESV2/AuthEvent/DocOpen/Length 16>>>>/StmF/StdCF/StrF/StdCF" : string.Empty;
+        byte[] fileKey = StandardSecurity.FileKey(
+            StandardSecurity.Pad(string.Empty), owner, permissions, id, revision, 16, encryptMetadata: true);
+        string filters = aes
+            ? "/CF<</StdCF<</CFM/AESV2/AuthEvent/DocOpen/Length 16>>>>/StmF/StdCF/StrF/StdCF"
+            : string.Empty;
 
         HandmadePdf pdf = HandmadePdf.OnePage()
             .Object(4, $"<{Hex(Encrypted(fileKey, 4, 0, "generation zero", aes))}>")
@@ -121,26 +139,32 @@ public class PdfSourceTests
 
     /// <summary>
     /// A file encrypted as Acrobat's "encrypt only file attachments" encrypts it: strings and streams left plain, the
-    /// attached file (object 6) encrypted with AES under a filter opened by the password "att" only when an attachment is,
-    /// and two streams that name that filter themselves, one plain beneath it (object 8) and one deflated (object 9).
+    /// attached file (object 6) encrypted with AES under a filter opened by the password "att"
+    /// only when an attachment is, and two streams that name that filter themselves, one plain beneath it (object 8)
+    /// and one deflated (object 9).
     /// The encryption dictionary gives the key's <paramref name="length"/>.
     /// </summary>
     private static HandmadePdf AttachmentsOnly(
         string filters = AttachmentFilters, string attachment = "attached", string length = "/Length 128")
     {
         byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
-        PdfDictionary written = PdfEncryption.Create(new Protection { UserPassword = "att", OwnerPassword = "own", Encryption = EncryptionLevel.AesWith128Bits }, id).Dictionary;
+        PdfDictionary written = PdfEncryption.Create(
+            new Protection { UserPassword = "att", OwnerPassword = "own", Encryption = EncryptionLevel.AesWith128Bits },
+            id).Dictionary;
         int permissions = (int)written[new PdfName("P")].AsInteger();
         byte[] owner = written[new PdfName("O")].AsString().Bytes.ToArray();
         byte[] user = written[new PdfName("U")].AsString().Bytes.ToArray();
-        byte[] fileKey = StandardSecurity.FileKey(StandardSecurity.Pad("att"), owner, permissions, id, 4, 16, encryptMetadata: true);
+        byte[] fileKey = StandardSecurity.FileKey(
+            StandardSecurity.Pad("att"), owner, permissions, id, 4, 16, encryptMetadata: true);
 
-        string Stream(int number, string text) => Encoding.Latin1.GetString(Encrypted(fileKey, number, 0, text, aes: true));
+        string Stream(int number, string text) =>
+            Encoding.Latin1.GetString(Encrypted(fileKey, number, 0, text, aes: true));
 
         byte[] deflated;
         using (MemoryStream compressed = new MemoryStream())
         {
-            using (System.IO.Compression.DeflateStream deflater = new System.IO.Compression.DeflateStream(compressed, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+            using (System.IO.Compression.DeflateStream deflater = new System.IO.Compression.DeflateStream(
+                compressed, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
                 deflater.Write("deflated beneath"u8.ToArray(), 0, 16);
 
             deflated = compressed.ToArray();
@@ -154,8 +178,12 @@ public class PdfSourceTests
             .Object(5, "<</Type/Filespec/F(a.txt)/EF<</F 6 0 R>>>>")
             .Stream(6, "<</Type/EmbeddedFile>>", Stream(6, attachment))
             .Object(7, $"<</Filter/Standard/V 4/R 4{length}{filters}/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>")
-            .Stream(8, "<</DecodeParms<</Type/CryptFilterDecodeParms/Name/StdCF>>/Filter/Crypt>>", Stream(8, "own filter"))
-            .Stream(9, "<</Filter[/Crypt/FlateDecode]/DecodeParms[<</Name/StdCF>> null]>>", Encoding.Latin1.GetString(Encrypted(fileKey, 9, 0, deflated, aes: true)))
+            .Stream(
+                8, "<</DecodeParms<</Type/CryptFilterDecodeParms/Name/StdCF>>/Filter/Crypt>>", Stream(8, "own filter"))
+            .Stream(
+                9,
+                "<</Filter[/Crypt/FlateDecode]/DecodeParms[<</Name/StdCF>> null]>>",
+                Encoding.Latin1.GetString(Encrypted(fileKey, 9, 0, deflated, aes: true)))
             .Stream(10, "<</Filter/Crypt>>", "identity")
             .Stream(11, "<</DecodeParms<</Name/Unknown>>/Filter[/Crypt]>>", "unknown");
         pdf.Section($"/Root 1 0 R/Encrypt 7 0 R/ID[<{Hex(id)}><{Hex(id)}>]");
@@ -168,7 +196,9 @@ public class PdfSourceTests
         PdfSource source = Open(AttachmentsOnly());
 
         Assert.NotNull(source.Encryption);
-        Assert.Equal("0 0 m 9 9 l S", Encoding.ASCII.GetString(source.Decode(source.Stream(source.Pages[0].Dictionary[PdfNames.Contents])!)));
+        Assert.Equal(
+            "0 0 m 9 9 l S",
+            Encoding.ASCII.GetString(source.Decode(source.Stream(source.Pages[0].Dictionary[PdfNames.Contents])!)));
 
         // Without the password the attachment stays as it is, and says so.
         SourceStream attached = (SourceStream)source.GetObject(6);
@@ -179,13 +209,18 @@ public class PdfSourceTests
     /// <summary>The text of the one embedded file in <paramref name="source"/>, decoded.</summary>
     private static string Attachment(PdfSource source) =>
         Encoding.ASCII.GetString(source.Decode(source.ObjectNumbers.Select(source.GetObject).OfType<SourceStream>()
-            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.AsName().Value == "EmbeddedFile")));
+            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type)
+                && type.AsName().Value == "EmbeddedFile")));
 
-    /// <summary>A file whose attachment alone is encrypted, with 256-bit AES, whose keys do not depend on object numbers.</summary>
+    /// <summary>
+    /// A file whose attachment alone is encrypted, with 256-bit AES, whose keys do not depend on object numbers.
+    /// </summary>
     private static byte[] AttachmentsOnlyAes256()
     {
         byte[] id = Enumerable.Range(1, 16).Select(value => (byte)value).ToArray();
-        PdfEncryption created = PdfEncryption.Create(new Protection { UserPassword = "att", OwnerPassword = "own", Encryption = EncryptionLevel.AesWith256Bits }, id);
+        PdfEncryption created = PdfEncryption.Create(
+            new Protection { UserPassword = "att", OwnerPassword = "own", Encryption = EncryptionLevel.AesWith256Bits },
+            id);
         PdfDictionary written = created.Dictionary;
         string Entry(string key) => Hex(written[new PdfName(key)].AsString().Bytes.ToArray());
 
@@ -195,7 +230,10 @@ public class PdfSourceTests
             .Object(3, "<</Type/Page/Parent 2 0 R/Contents 4 0 R>>")
             .Stream(4, "<<>>", "0 0 m 9 9 l S")
             .Object(5, "<</Type/Filespec/F(a.txt)/EF<</F 6 0 R>>>>")
-            .Stream(6, "<</Type/EmbeddedFile>>", Encoding.Latin1.GetString(created.EncryptStream(6, new PdfDictionary(), "attached"u8)))
+            .Stream(
+                6,
+                "<</Type/EmbeddedFile>>",
+                Encoding.Latin1.GetString(created.EncryptStream(6, new PdfDictionary(), "attached"u8)))
             .Object(7, "<</Filter/Standard/V 5/R 6/Length 256/CF<</StdCF<</CFM/AESV3/AuthEvent/EFOpen/Length 32>>>>/StmF/Identity/StrF/Identity/EFF/StdCF"
                 + $"/O<{Entry("O")}>/U<{Entry("U")}>/OE<{Entry("OE")}>/UE<{Entry("UE")}>/Perms<{Entry("Perms")}>/P {written[new PdfName("P")].AsInteger()}>>");
         pdf.Section($"/Root 1 0 R/Encrypt 7 0 R/ID[<{Hex(id)}><{Hex(id)}>]");
@@ -229,7 +267,8 @@ public class PdfSourceTests
     {
         // Under 128-bit AES an object's key holds its number, which saving changes: without the password the
         // attachment can be neither decrypted nor encrypted again, so saving would write it unreadable.
-        InvalidOperationException kept = Assert.Throws<InvalidOperationException>(() => PdfFile.Open(AttachmentsOnly().ToArray()).ToArray());
+        InvalidOperationException kept = Assert.Throws<InvalidOperationException>(
+            () => PdfFile.Open(AttachmentsOnly().ToArray()).ToArray());
         Assert.Throws<InvalidOperationException>(() => PdfFile.Open(AttachmentsOnly().ToArray()).Unprotect().ToArray());
 
         Assert.Contains("password", kept.Message, StringComparison.Ordinal);
@@ -250,13 +289,15 @@ public class PdfSourceTests
     [Fact]
     public void AttachmentsUnderACryptFilterThatEncryptsNothingAreCarriedAsTheyAreWithoutThePassword()
     {
-        PdfSource opened = Open(AttachmentsOnly("/CF<</StdCF<</CFM/None/AuthEvent/EFOpen/Length 16>>>>/StmF/Identity/StrF/Identity/EFF/StdCF"));
+        PdfSource opened = Open(AttachmentsOnly(
+            "/CF<</StdCF<</CFM/None/AuthEvent/EFOpen/Length 16>>>>/StmF/Identity/StrF/Identity/EFF/StdCF"));
         byte[] attached = ((SourceStream)opened.GetObject(6)).Data;
 
         PdfFile file = PdfFile.Open(opened.Data);
         PdfSource saved = PdfSource.Open(file.ToArray());
         SourceStream carried = saved.ObjectNumbers.Select(saved.GetObject).OfType<SourceStream>()
-            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type) && type.AsName().Value == "EmbeddedFile");
+            .Single(stream => stream.Dictionary.TryGetValue(PdfNames.Type, out PdfValue type)
+                && type.AsName().Value == "EmbeddedFile");
 
         Assert.True(file.WasProtected);
         Assert.NotNull(saved.Encryption);
@@ -287,7 +328,8 @@ public class PdfSourceTests
         Assert.Null(plain.Encryption);
         Assert.Equal("attached", Attachment(plain));
 
-        // A crypt filter named by no name is the identity; one the file does not define is taken as its streams' filter.
+        // A crypt filter named by no name is the identity;
+        // one the file does not define is taken as its streams' filter.
         foreach ((int number, string text) in new[] { (10, "identity"), (11, "unknown") })
         {
             SourceStream stream = (SourceStream)source.GetObject(number);
@@ -311,7 +353,8 @@ public class PdfSourceTests
     [Fact]
     public void RefusesWhatIsNotAPdf()
     {
-        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(() => PdfSource.Open(Encoding.ASCII.GetBytes("GIF89a")));
+        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(
+            () => PdfSource.Open(Encoding.ASCII.GetBytes("GIF89a")));
 
         Assert.Contains("header", exception.Message, StringComparison.Ordinal);
     }
@@ -332,7 +375,10 @@ public class PdfSourceTests
         // The update lists object 4 anew and marks object 6 free.
         int table = file.Length;
         string update = file
-            + "xref\n0 1\n0000000000 65535 f\r\n4 1\n" + file.LastIndexOf("4 0 obj", StringComparison.Ordinal).ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n\r\n"
+            + "xref\n0 1\n0000000000 65535 f\r\n4 1\n"
+            + file.LastIndexOf("4 0 obj", StringComparison.Ordinal)
+                .ToString("D10", System.Globalization.CultureInfo.InvariantCulture)
+            + " 00000 n\r\n"
             + "6 1\n0000000000 00001 f\r\n"
             + $"trailer\n<</Root 1 0 R/Size 7/Prev {file.IndexOf("xref", StringComparison.Ordinal)}>>\nstartxref\n{table}\n%%EOF\n";
 
@@ -375,7 +421,11 @@ public class PdfSourceTests
     {
         HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(value)");
         string file = pdf.ToString();
-        pdf.Section("/Root 1 0 R", misplace: number => number == 4 ? file.IndexOf("3 0 obj", StringComparison.Ordinal) : file.IndexOf($"{number} 0 obj", StringComparison.Ordinal));
+        pdf.Section(
+            "/Root 1 0 R",
+            misplace: number => number == 4
+                ? file.IndexOf("3 0 obj", StringComparison.Ordinal)
+                : file.IndexOf($"{number} 0 obj", StringComparison.Ordinal));
 
         PdfSource source = Open(pdf);
 
@@ -388,7 +438,8 @@ public class PdfSourceTests
     [Fact]
     public void AFileWithNoCrossReferenceSectionIsReadByScanning()
     {
-        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(old)").Object(4, "(newer)").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n");
+        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(old)").Object(4, "(newer)")
+            .Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n");
 
         PdfSource source = Open(pdf);
 
@@ -449,7 +500,8 @@ public class PdfSourceTests
     [InlineData("5 0 R")]
     public void AStreamWhoseLengthIsWrongEndsAtEndstream(string length)
     {
-        HandmadePdf pdf = HandmadePdf.OnePage("/Contents 4 0 R").Stream(4, "<<>>", "0 0 m 10 10 l S", length).Object(5, "7");
+        HandmadePdf pdf = HandmadePdf.OnePage("/Contents 4 0 R").Stream(4, "<<>>", "0 0 m 10 10 l S", length)
+            .Object(5, "7");
         pdf.Section("/Root 1 0 R");
 
         PdfSource source = Open(pdf);
@@ -527,7 +579,8 @@ public class PdfSourceTests
     {
         HandmadePdf pdf = new HandmadePdf()
             .Object(1, "<</Type/Catalog/Pages 2 0 R>>")
-            .Object(2, "<</Type/Pages/Kids[3 0 R 4 0 R]/Count 3/Resources<</Font<<>>>>/MediaBox[0 0 500 500]/Rotate 90>>")
+            .Object(
+                2, "<</Type/Pages/Kids[3 0 R 4 0 R]/Count 3/Resources<</Font<<>>>>/MediaBox[0 0 500 500]/Rotate 90>>")
             .Object(3, "<</Type/Page/Parent 2 0 R/Rotate 0>>")
             .Object(4, "<</Type/Pages/Parent 2 0 R/Kids[5 0 R 6 0 R]/Count 2/CropBox[1 1 2 2]>>")
             .Object(5, "<</Type/Page/Parent 4 0 R/MediaBox[0 0 10 10]>>")
@@ -581,7 +634,12 @@ public class PdfSourceTests
     [Fact]
     public void ReferencesAreFollowedAndStreamsGiveTheirDictionaries()
     {
-        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "5 0 R").Object(5, "6 0 R").Stream(6, "<</Kind/Data>>", "x").Object(7, "8 0 R").Object(8, "7 0 R");
+        HandmadePdf pdf = HandmadePdf.OnePage()
+            .Object(4, "5 0 R")
+            .Object(5, "6 0 R")
+            .Stream(6, "<</Kind/Data>>", "x")
+            .Object(7, "8 0 R")
+            .Object(8, "7 0 R");
         pdf.Section("/Root 1 0 R");
         PdfSource source = Open(pdf);
 
@@ -612,7 +670,8 @@ public class PdfSourceTests
 
         // Replaced in place, the same length, so that the file is otherwise sound and only the section fails.
         Assert.True(found.Success && replacement.Length <= found.Length);
-        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes(text.Remove(found.Index, found.Length).Insert(found.Index, replacement.PadRight(found.Length))));
+        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes(
+            text.Remove(found.Index, found.Length).Insert(found.Index, replacement.PadRight(found.Length))));
 
         Assert.True(source.WasRepaired);
         Assert.Equal(2, source.Pages.Count);
@@ -625,13 +684,16 @@ public class PdfSourceTests
         string text = Encoding.Latin1.GetString(file);
 
         // Losing the cross-reference stream leaves the objects kept in object streams to be found through them.
-        byte[] damaged = Encoding.Latin1.GetBytes(text.Substring(0, text.LastIndexOf("startxref", StringComparison.Ordinal)).Replace("/Type/XRef", "/Type/Gone"));
+        byte[] damaged = Encoding.Latin1.GetBytes(
+            text.Substring(0, text.LastIndexOf("startxref", StringComparison.Ordinal))
+                .Replace("/Type/XRef", "/Type/Gone"));
 
         PdfSource source = PdfSource.Open(damaged);
 
         Assert.True(source.WasRepaired);
         Assert.Equal(2, source.Pages.Count);
-        Assert.Equal("found", Encoding.ASCII.GetString(source.Resolve(source.Catalog[Marker]).AsDictionary()[Marker].AsString().Bytes.ToArray()));
+        Assert.Equal("found", Encoding.ASCII.GetString(
+            source.Resolve(source.Catalog[Marker]).AsDictionary()[Marker].AsString().Bytes.ToArray()));
     }
 
     [Theory]
@@ -640,19 +702,24 @@ public class PdfSourceTests
     [InlineData(EncryptionLevel.AesWith256Bits)]
     public void AnEncryptedFileWhoseSectionIsLostIsRebuiltAndDecrypted(EncryptionLevel level)
     {
-        byte[] file = Written(PdfCrossReferenceFormat.Stream, encryption: PdfEncryption.Create(new Protection { UserPassword = "user", Encryption = level }));
+        byte[] file = Written(
+            PdfCrossReferenceFormat.Stream,
+            encryption: PdfEncryption.Create(new Protection { UserPassword = "user", Encryption = level }));
         string text = Encoding.Latin1.GetString(file);
         int keyword = text.LastIndexOf("startxref", StringComparison.Ordinal);
 
         // Pointed at the header, the section is not found, and the file is read by scanning.
-        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes(text.Substring(0, keyword) + "startxref\n1\n%%EOF\n"), "user");
+        PdfSource source = PdfSource.Open(
+            Encoding.Latin1.GetBytes(text.Substring(0, keyword) + "startxref\n1\n%%EOF\n"), "user");
 
         Assert.True(source.WasRepaired);
         Assert.NotNull(source.Encryption);
         Assert.True(source.Trailer.ContainsKey(PdfNames.ID));
         Assert.Equal(2, source.Pages.Count);
-        Assert.Equal("found", Encoding.ASCII.GetString(source.Resolve(source.Catalog[Marker]).AsDictionary()[Marker].AsString().Bytes.ToArray()));
-        Assert.Throws<IncorrectPasswordException>(() => PdfSource.Open(Encoding.Latin1.GetBytes(text.Substring(0, keyword) + "startxref\n1\n%%EOF\n")));
+        Assert.Equal("found", Encoding.ASCII.GetString(
+            source.Resolve(source.Catalog[Marker]).AsDictionary()[Marker].AsString().Bytes.ToArray()));
+        Assert.Throws<IncorrectPasswordException>(
+            () => PdfSource.Open(Encoding.Latin1.GetBytes(text.Substring(0, keyword) + "startxref\n1\n%%EOF\n")));
     }
 
     [Fact]
@@ -713,7 +780,9 @@ public class PdfSourceTests
     {
         byte[] streamed = Written(PdfCrossReferenceFormat.Stream);
         string text = Encoding.Latin1.GetString(streamed);
-        int stream = int.Parse(text.Substring(text.LastIndexOf("startxref", StringComparison.Ordinal) + 10).Split('\n')[0], System.Globalization.CultureInfo.InvariantCulture);
+        int stream = int.Parse(
+            text.Substring(text.LastIndexOf("startxref", StringComparison.Ordinal) + 10).Split('\n')[0],
+            System.Globalization.CultureInfo.InvariantCulture);
         string root = System.Text.RegularExpressions.Regex.Match(text.Substring(stream), @"/Root \d+ 0 R").Value;
 
         string hybrid = text.Substring(0, text.LastIndexOf("startxref", StringComparison.Ordinal))
@@ -725,9 +794,12 @@ public class PdfSourceTests
         Assert.Equal(2, source.Pages.Count);
     }
 
-    private static string Text(PdfSource source, int number) => Encoding.ASCII.GetString(Value(source, number).AsString().Bytes.ToArray());
+    private static string Text(PdfSource source, int number) =>
+        Encoding.ASCII.GetString(Value(source, number).AsString().Bytes.ToArray());
 
-    /// <summary>A row of a cross-reference stream placing object <paramref name="number"/> where it was written.</summary>
+    /// <summary>
+    /// A row of a cross-reference stream placing object <paramref name="number"/> where it was written.
+    /// </summary>
     private static long[] InUse(HandmadePdf pdf, int number) => [1, pdf.OffsetOf(number), 0];
 
     /// <summary>
@@ -736,15 +808,19 @@ public class PdfSourceTests
     /// </summary>
     private static (string Dictionary, byte[] FileKey) Rc4Encryption(byte[] id)
     {
-        PdfDictionary written = PdfEncryption.Create(new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.Rc4With128Bits }, id).Dictionary;
+        PdfDictionary written = PdfEncryption.Create(
+            new Protection { OwnerPassword = "owner", Encryption = EncryptionLevel.Rc4With128Bits }, id).Dictionary;
         long version = written[new PdfName("V")].AsInteger();
         int revision = (int)written[new PdfName("R")].AsInteger();
         int permissions = (int)written[new PdfName("P")].AsInteger();
         byte[] owner = written[new PdfName("O")].AsString().Bytes.ToArray();
         byte[] user = written[new PdfName("U")].AsString().Bytes.ToArray();
-        byte[] fileKey = StandardSecurity.FileKey(StandardSecurity.Pad(string.Empty), owner, permissions, id, revision, 16, encryptMetadata: true);
+        byte[] fileKey = StandardSecurity.FileKey(
+            StandardSecurity.Pad(string.Empty), owner, permissions, id, revision, 16, encryptMetadata: true);
 
-        return ($"<</Filter/Standard/V {version}/R {revision}/Length 128/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>", fileKey);
+        return (
+            $"<</Filter/Standard/V {version}/R {revision}/Length 128/O<{Hex(owner)}>/U<{Hex(user)}>/P {permissions}>>",
+            fileKey);
     }
 
     [Fact]
@@ -791,7 +867,9 @@ public class PdfSourceTests
     public void AFileWithoutAnIdentifierStringIsDecryptedWithAnEmptyOne(string identifier)
     {
         (string encrypt, byte[] fileKey) = Rc4Encryption([]);
-        HandmadePdf pdf = HandmadePdf.OnePage().Object(4, $"<{Hex(Encrypted(fileKey, 4, 0, "secret", aes: false))}>").Object(5, encrypt);
+        HandmadePdf pdf = HandmadePdf.OnePage()
+            .Object(4, $"<{Hex(Encrypted(fileKey, 4, 0, "secret", aes: false))}>")
+            .Object(5, encrypt);
         pdf.Section($"/Root 1 0 R/Encrypt 5 0 R{identifier}");
 
         PdfSource source = Open(pdf);
@@ -1099,7 +1177,8 @@ public class PdfSourceTests
     public void AnOffsetOutsideTheFileIsRepairedByScanning(long offset)
     {
         HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(value)");
-        pdf.StreamSection(5, "/Size 5/Root 1 0 R", [1, 8, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [1, offset, 0]);
+        pdf.StreamSection(
+            5, "/Size 5/Root 1 0 R", [1, 8, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [1, offset, 0]);
 
         PdfSource source = Open(pdf);
 
@@ -1150,7 +1229,8 @@ public class PdfSourceTests
 
         string Section(int four) =>
             "xref\n0 5\n0000000000 65535 f\r\n"
-            + string.Concat(new[] { pdf.OffsetOf(1), pdf.OffsetOf(2), pdf.OffsetOf(3), four }.Select(offset => offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n\r\n"))
+            + string.Concat(new[] { pdf.OffsetOf(1), pdf.OffsetOf(2), pdf.OffsetOf(3), four }
+                .Select(offset => offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n\r\n"))
             + $"trailer\n<</Root 1 0 R/Size 5>>\nstartxref\n{file.Length}\n%%EOF\n";
 
         return Encoding.Latin1.GetBytes(file + Section(file.Length + Section(0).Length) + last);
@@ -1206,10 +1286,14 @@ public class PdfSourceTests
             .Object(3, "<</Type/Page/Parent 2 0 R>>");
         string prefix = catalogFirst ? Catalog : string.Empty;
         string file = prefix + pdf.ToString();
-        long[] offsets = [catalogFirst ? 0 : "%PDF-1.7\n".Length, prefix.Length + pdf.OffsetOf(2), prefix.Length + pdf.OffsetOf(3)];
+        long[] offsets =
+        [
+            catalogFirst ? 0 : "%PDF-1.7\n".Length, prefix.Length + pdf.OffsetOf(2), prefix.Length + pdf.OffsetOf(3)
+        ];
 
         string section = "xref\n0 1\n0000000000 65535 f\r\n1 3\n"
-            + string.Concat(offsets.Select(offset => offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n\r\n"))
+            + string.Concat(offsets.Select(offset =>
+                offset.ToString("D10", CultureInfo.InvariantCulture) + " 00000 n\r\n"))
             + $"trailer\n<</Root 1 0 R/Size 4>>\nstartxref\n{file.Length}\n%%EOF\n";
 
         PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes(file + section));
@@ -1227,7 +1311,8 @@ public class PdfSourceTests
             .Object(3, "<</Type/Page/Parent 2 0 R>>")
             .Raw("%%EOF\n");
 
-        PdfSource source = PdfSource.Open(Encoding.Latin1.GetBytes("1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n" + rest));
+        PdfSource source = PdfSource.Open(
+            Encoding.Latin1.GetBytes("1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n" + rest));
 
         Assert.True(source.WasRepaired);
         Assert.Single(source.Pages);
@@ -1295,7 +1380,11 @@ public class PdfSourceTests
     public void AnEntryOfAnUnknownTypeIsTheNullObject()
     {
         HandmadePdf pdf = HandmadePdf.OnePage().Object(4, "(listed as neither)");
-        pdf.StreamSection(5, "/Size 5/Root 1 0 R", [1, 4, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [3, pdf.OffsetOf(4), 0]);
+        pdf.StreamSection(
+            5,
+            "/Size 5/Root 1 0 R",
+            [1, 4, 2],
+            [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [3, pdf.OffsetOf(4), 0]);
 
         PdfSource source = Open(pdf);
 
@@ -1304,12 +1393,16 @@ public class PdfSourceTests
     }
 
     /// <summary>
-    /// <paramref name="pdf"/>, listed by a cross-reference stream that says object 4 is kept at <paramref name="index"/>
-    /// in object 5.
+    /// <paramref name="pdf"/>, listed by a cross-reference stream
+    /// that says object 4 is kept at <paramref name="index"/> in object 5.
     /// </summary>
     private static PdfSource InObjectStream(HandmadePdf pdf, int index)
     {
-        pdf.StreamSection(6, "/Size 6/Root 1 0 R", [1, 4, 2], [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [2, 5, index], InUse(pdf, 5));
+        pdf.StreamSection(
+            6,
+            "/Size 6/Root 1 0 R",
+            [1, 4, 2],
+            [0, 0, 0], InUse(pdf, 1), InUse(pdf, 2), InUse(pdf, 3), [2, 5, index], InUse(pdf, 5));
         return Open(pdf);
     }
 
@@ -1334,7 +1427,8 @@ public class PdfSourceTests
     public void AnObjectStreamThatDoesNotHoldWhatItsSectionSaysTriggersARepair(string dictionary, string? data)
     {
         HandmadePdf pdf = HandmadePdf.OnePage();
-        PdfSource source = InObjectStream(data is null ? pdf.Object(5, dictionary) : pdf.Stream(5, dictionary, data), 0);
+        PdfSource source = InObjectStream(
+            data is null ? pdf.Object(5, dictionary) : pdf.Stream(5, dictionary, data), 0);
 
         Assert.Equal(PdfValueKind.Null, Value(source, 4).Kind);
         Assert.True(source.WasRepaired);
@@ -1345,7 +1439,8 @@ public class PdfSourceTests
     [InlineData("<</Type/ObjStm/N 1/First/Four>>")]
     public void AnObjectStreamWithoutAFirstOffsetCountsFromTheStartOfItsData(string dictionary)
     {
-        PdfSource source = Open(HandmadePdf.OnePage().Stream(5, dictionary, "4 4 (packed)").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n"));
+        PdfSource source = Open(HandmadePdf.OnePage().Stream(5, dictionary, "4 4 (packed)")
+            .Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n"));
 
         Assert.True(source.WasRepaired);
         Assert.Equal("packed", Text(source, 4));
@@ -1356,8 +1451,10 @@ public class PdfSourceTests
     [InlineData("<</Type/ObjStm/N 1/First 4/Filter[7]>>")]
     public void AnObjectStreamThatCannotBeDecodedHoldsNothingWhenRebuilt(string dictionary)
     {
-        // A filter that is not a name is damage: it once escaped as an InvalidOperationException and failed the whole file.
-        PdfSource source = Open(HandmadePdf.OnePage().Stream(5, dictionary, "4 0 (packed)").Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n"));
+        // A filter that is not a name is damage:
+        // it once escaped as an InvalidOperationException and failed the whole file.
+        PdfSource source = Open(HandmadePdf.OnePage().Stream(5, dictionary, "4 0 (packed)")
+            .Raw("trailer\n<</Root 1 0 R>>\n%%EOF\n"));
 
         Assert.True(source.WasRepaired);
         Assert.Single(source.Pages);

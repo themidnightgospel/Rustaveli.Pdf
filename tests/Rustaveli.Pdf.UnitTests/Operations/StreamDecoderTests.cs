@@ -72,7 +72,8 @@ public class StreamDecoderTests
             bomb = compressed.ToArray();
         }
 
-        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(() => Decode(new PdfName("FlateDecode"), bomb));
+        UnreadableFileException exception = Assert.Throws<UnreadableFileException>(
+            () => Decode(new PdfName("FlateDecode"), bomb));
 
         Assert.Contains("inflates", exception.Message, StringComparison.Ordinal);
     }
@@ -239,9 +240,18 @@ public class StreamDecoderTests
         byte[] data = Text("clear");
 
         Assert.Equal(data, Decode(new PdfName("Crypt"), data));
-        Assert.Equal(data, Decode(new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = new PdfName("Identity") }));
-        Assert.Equal(data, Decode(new PdfName("Crypt"), data, new PdfDictionary { [PdfNames.Type] = new PdfName("CryptFilterDecodeParms") }));
-        Assert.Throws<NotSupportedException>(() => Decode(new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = new PdfName("StdCF") }));
+        Assert.Equal(
+            data,
+            Decode(new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = new PdfName("Identity") }));
+        Assert.Equal(
+            data,
+            Decode(
+                new PdfName("Crypt"),
+                data,
+                new PdfDictionary { [PdfNames.Type] = new PdfName("CryptFilterDecodeParms") }));
+        Assert.Throws<NotSupportedException>(
+            () => Decode(
+                new PdfName("Crypt"), data, new PdfDictionary { [new PdfName("Name")] = new PdfName("StdCF") }));
     }
 
     [Fact]
@@ -255,7 +265,9 @@ public class StreamDecoderTests
         Assert.Contains("crypt filter", exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary><paramref name="text"/> encoded with the filter named <paramref name="filter"/>, in full or abbreviated.</summary>
+    /// <summary>
+    /// <paramref name="text"/> encoded with the filter named <paramref name="filter"/>, in full or abbreviated.
+    /// </summary>
     private static byte[] Encoded(string filter, string text) => filter switch
     {
         "FlateDecode" or "Fl" => Zlib(Text(text)),
@@ -305,7 +317,8 @@ public class StreamDecoderTests
     [Fact]
     public void RawDeflateWhoseFirstBytesOnlyLookLikeAZlibHeaderIsInflatedWhole()
     {
-        // A stored block that is not the last, then an empty last one. 0x08 has the low nibble of zlib's deflate method,
+        // A stored block that is not the last, then an empty last one.
+        // 0x08 has the low nibble of zlib's deflate method,
         // but 0x0805 is no multiple of 31, so neither byte is taken for a header.
         byte[] raw = [0x08, 0x05, 0x00, 0xFA, 0xFF, .. Text("hello"), 0x01, 0x00, 0x00, 0xFF, 0xFF];
 

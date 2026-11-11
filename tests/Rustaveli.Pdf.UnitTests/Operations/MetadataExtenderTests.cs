@@ -14,21 +14,27 @@ public class MetadataExtenderTests
     private static XDocument Extended(byte[]? existing, params string[] additions) =>
         XDocument.Parse(Encoding.UTF8.GetString(MetadataExtender.Extend(existing, additions)));
 
-    /// <summary>A description of the <c>urn:kind</c> namespace, <paramref name="rest"/> completing its start tag and content.</summary>
-    private static string Described(string rest) => "<rdf:Description rdf:about=\"\" xmlns:k=\"urn:kind\" " + rest + "</rdf:Description>";
+    /// <summary>
+    /// A description of the <c>urn:kind</c> namespace, <paramref name="rest"/> completing its start tag and content.
+    /// </summary>
+    private static string Described(string rest) =>
+        "<rdf:Description rdf:about=\"\" xmlns:k=\"urn:kind\" " + rest + "</rdf:Description>";
 
     [Fact]
     public void MetadataWithoutAnRdfElementCannotBeAddedTo()
     {
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-            () => MetadataExtender.Extend(Encoding.UTF8.GetBytes("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"/>"), [Described(">")]));
+            () => MetadataExtender.Extend(
+                Encoding.UTF8.GetBytes("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"/>"),
+                [Described(">")]));
 
         Assert.Contains("rdf:RDF", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void MetadataThatIsNotXmlIsUnreadable() =>
-        Assert.Throws<UnreadableFileException>(() => MetadataExtender.Extend(Encoding.UTF8.GetBytes("<x:xmpmeta"), [Described(">")]));
+        Assert.Throws<UnreadableFileException>(
+            () => MetadataExtender.Extend(Encoding.UTF8.GetBytes("<x:xmpmeta"), [Described(">")]));
 
     [Fact]
     public void WhatIsAddedBesideADescriptionJoinsTheRdfAsItIs()
@@ -62,7 +68,8 @@ public class MetadataExtenderTests
             + "<pdfaSchema:namespaceURI xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\">urn:kind</pdfaSchema:namespaceURI>"
             + "</rdf:li></rdf:Bag></pdfaExtension:schemas>";
         string declarations = "xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\" ";
-        byte[] existing = MetadataExtender.Extend(null, ["<rdf:Description rdf:about=\"\" " + declarations + ">" + schemas + "</rdf:Description>"]);
+        byte[] existing = MetadataExtender.Extend(
+            null, ["<rdf:Description rdf:about=\"\" " + declarations + ">" + schemas + "</rdf:Description>"]);
 
         string addition = rest.StartsWith(">", StringComparison.Ordinal)
             ? Described(declarations + ">" + schemas + rest.Substring(1))

@@ -90,7 +90,8 @@ public class LinearizerTests
     [Fact]
     public void TheOutlineOfAFileThatOpensShowingItIsLaidOutWithTheFirstPage()
     {
-        byte[] file = Linearize(TwoPages("/PageMode/UseOutlines/Outlines 8 0 R").Object(8, Outline).Object(9, OutlineItem));
+        byte[] file = Linearize(
+            TwoPages("/PageMode/UseOutlines/Outlines 8 0 R").Object(8, Outline).Object(9, OutlineItem));
         PdfSource source = PdfSource.Open(file);
         PdfValue outline = source.Catalog[Outlines];
         PdfValue item = source.Resolve(outline).AsDictionary()[First];
@@ -128,15 +129,17 @@ public class LinearizerTests
     public void WhatTheFileNeedsToOpenIsLaidOutBeforeTheFirstPageOnceAndWithoutWhatThePageHas()
     {
         // The threads repeat the viewer preferences; the form's resources name the first page's font.
-        HandmadePdf handmade = TwoPages("/OpenAction 8 0 R/ViewerPreferences 9 0 R/Threads[9 0 R]/AcroForm<</DR<</Font<</F1 5 0 R>>>>>>")
-            .Object(8, "<</S/Named/N/NextPage>>")
-            .Object(9, "<</HideToolbar true>>");
+        HandmadePdf handmade =
+            TwoPages("/OpenAction 8 0 R/ViewerPreferences 9 0 R/Threads[9 0 R]/AcroForm<</DR<</Font<</F1 5 0 R>>>>>>")
+                .Object(8, "<</S/Named/N/NextPage>>")
+                .Object(9, "<</HideToolbar true>>");
 
         byte[] file = Linearize(handmade);
         PdfDictionary catalog = PdfSource.Open(file).Catalog;
         int action = Number(catalog[OpenAction]);
         int preferences = Number(catalog[ViewerPreferences]);
-        int font = Number(catalog[AcroForm].AsDictionary()[DR].AsDictionary()[PdfNames.Font].AsDictionary()[new PdfName("F1")]);
+        int font = Number(catalog[AcroForm].AsDictionary()[DR].AsDictionary()[PdfNames.Font]
+            .AsDictionary()[new PdfName("F1")]);
 
         Assert.True(OffsetOf(file, action) < HintStreamAt(file));
         Assert.True(OffsetOf(file, preferences) < HintStreamAt(file));
@@ -173,10 +176,13 @@ public class LinearizerTests
     [Fact]
     public void AFileKeepsThePermanentHalfOfItsIdentifier()
     {
-        byte[] file = Linearize(TwoPages(), "/Root 1 0 R/ID[<00112233445566778899AABBCCDDEEFF><FFEEDDCCBBAA99887766554433221100>]");
+        byte[] file = Linearize(
+            TwoPages(), "/Root 1 0 R/ID[<00112233445566778899AABBCCDDEEFF><FFEEDDCCBBAA99887766554433221100>]");
         (byte[] permanent, byte[] changing) = Identifier(file);
 
-        Assert.Equal<byte>([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], permanent);
+        Assert.Equal<byte>(
+            [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF],
+            permanent);
         Assert.Equal(permanent, changing);
     }
 
@@ -209,10 +215,12 @@ public class LinearizerTests
 
         byte[] file = Linearize(handmade);
         PdfSource source = PdfSource.Open(file);
-        int shared = Number(source.Pages[1].Dictionary[PdfNames.Resources].AsDictionary()[PdfNames.Font].AsDictionary()[new PdfName("F2")]);
+        int shared = Number(source.Pages[1].Dictionary[PdfNames.Resources].AsDictionary()[PdfNames.Font]
+            .AsDictionary()[new PdfName("F2")]);
 
         Assert.Equal(3L, Parameters(file)[N].AsInteger());
-        Assert.Equal(shared, Number(source.Pages[2].Dictionary[PdfNames.Resources].AsDictionary()[PdfNames.Font].AsDictionary()[new PdfName("F2")]));
+        Assert.Equal(shared, Number(source.Pages[2].Dictionary[PdfNames.Resources].AsDictionary()[PdfNames.Font]
+            .AsDictionary()[new PdfName("F2")]));
 
         foreach (SourcePage page in source.Pages.Skip(1))
         {
@@ -225,7 +233,10 @@ public class LinearizerTests
     public void AProtectedFileIsEncryptedAsItIsLaidOutUnderTheIdentifierItsKeyWasMadeFor()
     {
         PdfEncryption encryption = PdfEncryption.Create(new Protection { UserPassword = "web" });
-        byte[] file = Linearize(TwoPages(), "/Root 1 0 R/ID[<00112233445566778899AABBCCDDEEFF><00112233445566778899AABBCCDDEEFF>]", encryption);
+        byte[] file = Linearize(
+            TwoPages(),
+            "/Root 1 0 R/ID[<00112233445566778899AABBCCDDEEFF><00112233445566778899AABBCCDDEEFF>]",
+            encryption);
 
         Assert.DoesNotContain("(One) Tj", Text(file), StringComparison.Ordinal);
         Assert.Throws<IncorrectPasswordException>(() => PdfSource.Open(file));
@@ -251,7 +262,8 @@ public class LinearizerTests
     [Fact]
     public void CrossReferenceAndObjectStreamsAreLeftOutAndEveryOtherStreamKept()
     {
-        // Laid out anew, a file has cross-reference tables of its own; a stream typed by anything but a name is no such stream.
+        // Laid out anew, a file has cross-reference tables of its own;
+        // a stream typed by anything but a name is no such stream.
         HandmadePdf handmade = TwoPages()
             .Stream(8, "<</Type/XRef/Size 1/W[1 1 1]>>", "xref")
             .Stream(9, "<</Type/ObjStm/N 0/First 0>>", "objstm")
