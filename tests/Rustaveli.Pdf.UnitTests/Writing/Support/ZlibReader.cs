@@ -14,7 +14,8 @@ internal static class ZlibReader
             throw new FormatException("Too short to be a zlib stream.");
 
         if ((zlib[0] & 0x0F) != 8 || (zlib[0] >> 4) > 7)
-            throw new FormatException($"Header byte 0x{zlib[0]:X2} does not declare deflate with a window of at most 32 KiB.");
+            throw new FormatException(
+                $"Header byte 0x{zlib[0]:X2} does not declare deflate with a window of at most 32 KiB.");
 
         if (((zlib[0] << 8) | zlib[1]) % 31 != 0)
             throw new FormatException("The header check bits are wrong.");
