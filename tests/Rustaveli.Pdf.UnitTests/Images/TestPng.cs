@@ -119,7 +119,9 @@ internal static class TestPng
         return ~crc;
     }
 
-    /// <summary>Rewrites the CRC of every chunk, so that damage inside a chunk reaches the code behind the check.</summary>
+    /// <summary>
+    /// Rewrites the CRC of every chunk, so that damage inside a chunk reaches the code behind the check.
+    /// </summary>
     public static byte[] RepairCrcs(byte[] png)
     {
         byte[] copy = (byte[])png.Clone();

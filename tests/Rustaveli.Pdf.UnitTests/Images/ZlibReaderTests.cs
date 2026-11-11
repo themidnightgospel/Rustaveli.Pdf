@@ -6,7 +6,8 @@ namespace Rustaveli.Pdf.UnitTests.Images;
 
 public class ZlibReaderTests
 {
-    private static readonly byte[] Text = Enumerable.Range(0, 5000).Select(index => (byte)((index * 31) % 251)).ToArray();
+    private static readonly byte[] Text =
+        Enumerable.Range(0, 5000).Select(index => (byte)((index * 31) % 251)).ToArray();
 
     private static string Fails(byte[] zlib) =>
         Assert.Throws<ImageFormatException>(() => ZlibReader.InflateAll(zlib, int.MaxValue)).Message;
@@ -31,7 +32,9 @@ public class ZlibReaderTests
     {
         byte[] zlib = TestZlib.Compress(Text);
 
-        Assert.Contains("expands beyond 4999 bytes", Assert.Throws<ImageFormatException>(() => ZlibReader.InflateAll(zlib, 4999)).Message);
+        Assert.Contains(
+            "expands beyond 4999 bytes",
+            Assert.Throws<ImageFormatException>(() => ZlibReader.InflateAll(zlib, 4999)).Message);
         Assert.Equal(5000, ZlibReader.InflateAll(zlib, 5000).Length);
     }
 
@@ -86,7 +89,8 @@ public class ZlibReaderTests
         // Block type 3 is reserved: no deflate decoder accepts it.
         byte[] zlib = [0x78, 0x9C, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x01];
 
-        ImageFormatException error = Assert.Throws<ImageFormatException>(() => ZlibReader.InflateAll(zlib, int.MaxValue));
+        ImageFormatException error = Assert.Throws<ImageFormatException>(
+            () => ZlibReader.InflateAll(zlib, int.MaxValue));
 
         Assert.Contains("compressed data is corrupt", error.Message);
         Assert.IsType<InvalidDataException>(error.InnerException);
@@ -128,7 +132,9 @@ public class ZlibReaderTests
         zlib[zlib.Length - 1] ^= 0x80;
         using ZlibReader damaged = new ZlibReader(zlib);
         damaged.ReadExactly(new byte[100], 0, 100);
-        Assert.Contains("Adler-32", Assert.Throws<ImageFormatException>(() => damaged.Finish(maxTrailing: 4900)).Message);
+        Assert.Contains(
+            "Adler-32",
+            Assert.Throws<ImageFormatException>(() => damaged.Finish(maxTrailing: 4900)).Message);
     }
 
     [Fact]

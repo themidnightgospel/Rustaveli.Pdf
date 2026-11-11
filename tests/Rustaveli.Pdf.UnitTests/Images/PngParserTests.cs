@@ -13,10 +13,12 @@ public class PngParserTests
 
     private static string Fails(byte[] data) => Assert.Throws<ImageFormatException>(() => Parse(data)).Message;
 
-    private static byte[] Header(int colorType = 0, int bitDepth = 8, int width = 2, int height = 2, int interlace = 0) =>
+    private static byte[] Header(
+        int colorType = 0, int bitDepth = 8, int width = 2, int height = 2, int interlace = 0) =>
         TestPng.Header(width, height, bitDepth, colorType, interlace);
 
-    private static byte[] Palette(int entries) => TestPng.Chunk("PLTE", Enumerable.Range(0, entries * 3).Select(i => (byte)i).ToArray());
+    private static byte[] Palette(int entries) =>
+        TestPng.Chunk("PLTE", Enumerable.Range(0, entries * 3).Select(i => (byte)i).ToArray());
 
     /// <summary>A 2 × 2 image of the given type: IHDR, <paramref name="chunks"/>, IDAT, IEND.</summary>
     private static byte[] Image(byte[] header, params byte[][] chunks) =>
@@ -118,7 +120,8 @@ public class PngParserTests
         byte[] second = [3, 4, 5];
         byte[] third = [6];
 
-        PngFile png = Parse(TestPng.Build(Header(), TestPng.Data(first), TestPng.Data(second), TestPng.Data(third), TestPng.End()));
+        PngFile png = Parse(TestPng.Build(
+            Header(), TestPng.Data(first), TestPng.Data(second), TestPng.Data(third), TestPng.End()));
 
         Assert.Equal(new byte[] { 0x78, 0x9C, 1, 2, 3, 4, 5, 6 }, png.ConcatenateImageData().ToArray());
         byte[] copy = new byte[10];
@@ -143,7 +146,8 @@ public class PngParserTests
     [Fact]
     public void SkipsEmptyIdatChunks()
     {
-        PngFile png = Parse(TestPng.Build(Header(), TestPng.Data([]), TestPng.Data(Pixels), TestPng.Data([]), TestPng.End()));
+        PngFile png = Parse(TestPng.Build(
+            Header(), TestPng.Data([]), TestPng.Data(Pixels), TestPng.Data([]), TestPng.End()));
 
         PngSegment segment = Assert.Single(png.ImageData);
         Assert.Equal(Pixels.Length, segment.Length);
@@ -164,7 +168,8 @@ public class PngParserTests
     [Fact]
     public void RejectsIdatChunksThatAreNotConsecutive()
     {
-        byte[] file = TestPng.Build(Header(), TestPng.Data(Pixels), Chunk("tEXt", 0x41, 0, 0x42), TestPng.Data([]), TestPng.End());
+        byte[] file = TestPng.Build(
+            Header(), TestPng.Data(Pixels), Chunk("tEXt", 0x41, 0, 0x42), TestPng.Data([]), TestPng.End());
 
         Assert.Contains("not consecutive", Fails(file));
     }
@@ -302,7 +307,9 @@ public class PngParserTests
     [Fact]
     public void RejectsTheTallestImageTheFormatAllowsByItsPixelCount()
     {
-        Assert.StartsWith("The PNG image is 1 × 2147483647 pixels", Fails(Image(Header(width: 1, height: int.MaxValue))));
+        Assert.StartsWith(
+            "The PNG image is 1 × 2147483647 pixels",
+            Fails(Image(Header(width: 1, height: int.MaxValue))));
     }
 
     [Fact]
@@ -357,7 +364,9 @@ public class PngParserTests
     [InlineData(8, 8)]
     public void RejectsIllegalColourTypesAndBitDepths(int colorType, int bitDepth)
     {
-        Assert.Contains($"combines colour type {colorType} with bit depth {bitDepth}", Fails(Image(Header(colorType, bitDepth))));
+        Assert.Contains(
+            $"combines colour type {colorType} with bit depth {bitDepth}",
+            Fails(Image(Header(colorType, bitDepth))));
     }
 
     [Theory]
@@ -394,7 +403,9 @@ public class PngParserTests
     {
         PngFile png = TestImageFiles.Png("basn3p02.png");
 
-        Assert.Equal(new byte[] { 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0xFF }, png.Palette.ToArray());
+        Assert.Equal(
+            new byte[] { 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0xFF },
+            png.Palette.ToArray());
     }
 
     [Fact]
@@ -623,7 +634,9 @@ public class PngParserTests
         byte[] second = Fixed(9, 9, 9, 9, 9, 9, 9, 9);
 
         Assert.Equal(0.00001, Parse(Gray(Chunk("cHRM", first), Chunk("cHRM", second))).Metadata.Chromaticities!.WhiteX);
-        Assert.Equal(0.00009, Parse(Gray(Chunk("cHRM", new byte[31]), Chunk("cHRM", second))).Metadata.Chromaticities!.BlueY);
+        Assert.Equal(
+            0.00009,
+            Parse(Gray(Chunk("cHRM", new byte[31]), Chunk("cHRM", second))).Metadata.Chromaticities!.BlueY);
         Assert.Null(Parse(Gray(Chunk("cHRM", new byte[33]))).Metadata.Chromaticities);
     }
 
@@ -643,8 +656,12 @@ public class PngParserTests
         Assert.Null(Parse(Gray(Chunk("sRGB", 4))).Metadata.RenderingIntent);
         Assert.Null(Parse(Gray(Chunk("sRGB", 0, 0))).Metadata.RenderingIntent);
         Assert.Null(Parse(Gray(Chunk("sRGB"))).Metadata.RenderingIntent);
-        Assert.Equal(RenderingIntent.Saturation, Parse(Gray(Chunk("sRGB", 9), Chunk("sRGB", 2))).Metadata.RenderingIntent);
-        Assert.Equal(RenderingIntent.Perceptual, Parse(Gray(Chunk("sRGB", 0), Chunk("sRGB", 2))).Metadata.RenderingIntent);
+        Assert.Equal(
+            RenderingIntent.Saturation,
+            Parse(Gray(Chunk("sRGB", 9), Chunk("sRGB", 2))).Metadata.RenderingIntent);
+        Assert.Equal(
+            RenderingIntent.Perceptual,
+            Parse(Gray(Chunk("sRGB", 0), Chunk("sRGB", 2))).Metadata.RenderingIntent);
         Assert.Null(TestImageFiles.Png("basn2c08.png").Metadata.RenderingIntent);
     }
 
@@ -652,7 +669,9 @@ public class PngParserTests
     public void ReadsTheOrientationFromAnExifChunk()
     {
         Assert.Equal(ExifOrientation.Normal, TestImageFiles.Png("exif2c08.png").Metadata.Orientation);
-        Assert.Equal(ExifOrientation.Rotate270, Parse(Gray(Chunk("eXIf", TestJpeg.Orientation(8, true)))).Metadata.Orientation);
+        Assert.Equal(
+            ExifOrientation.Rotate270,
+            Parse(Gray(Chunk("eXIf", TestJpeg.Orientation(8, true)))).Metadata.Orientation);
         Assert.Equal(ExifOrientation.Transverse, Parse(Gray(
             Chunk("eXIf", TestJpeg.Orientation(7)),
             Chunk("eXIf", TestJpeg.Orientation(2)))).Metadata.Orientation);
@@ -660,7 +679,8 @@ public class PngParserTests
     }
 
     // iCCP: name, terminator, compression method 0, zlib-compressed profile.
-    private static byte[] ColorProfile(byte[] profile, string name = "ICC profile", byte method = 0, byte[]? compressed = null) =>
+    private static byte[] ColorProfile(
+        byte[] profile, string name = "ICC profile", byte method = 0, byte[]? compressed = null) =>
         Chunk("iCCP", [.. Encoding.ASCII.GetBytes(name), 0, method, .. compressed ?? TestZlib.Compress(profile)]);
 
     [Fact]

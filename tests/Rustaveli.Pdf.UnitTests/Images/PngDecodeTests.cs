@@ -131,7 +131,9 @@ public class PngDecodeTests
     [InlineData("s09", "3p02")]
     public void DeinterlacesImagesTooSmallToReachEveryPass(string size, string kind)
     {
-        Assert.Equal(Decode(TestImageFiles.Bytes($"{size}n{kind}.png")), Decode(TestImageFiles.Bytes($"{size}i{kind}.png")));
+        Assert.Equal(
+            Decode(TestImageFiles.Bytes($"{size}n{kind}.png")),
+            Decode(TestImageFiles.Bytes($"{size}i{kind}.png")));
     }
 
     public static TheoryData<int, int, int> Layouts => new TheoryData<int, int, int>
@@ -153,7 +155,9 @@ public class PngDecodeTests
 
     private static byte[][] Pattern(int rows, int rowBytes, int seed) =>
         Enumerable.Range(0, rows)
-            .Select(row => Enumerable.Range(0, rowBytes).Select(column => (byte)((((row + 1) * (column + seed)) * 37) + (row * 11))).ToArray())
+            .Select(row => Enumerable.Range(0, rowBytes)
+                .Select(column => (byte)((((row + 1) * (column + seed)) * 37) + (row * 11)))
+                .ToArray())
             .ToArray();
 
     [Theory]
@@ -218,7 +222,9 @@ public class PngDecodeTests
             for (int above = 0; above < 256; above += 15)
             {
                 for (int upperLeft = 0; upperLeft < 256; upperLeft += 15)
-                    Assert.Equal((byte)TestPng.Paeth(left, above, upperLeft), PngFilters.Predict((byte)left, (byte)above, (byte)upperLeft));
+                    Assert.Equal(
+                        (byte)TestPng.Paeth(left, above, upperLeft),
+                        PngFilters.Predict((byte)left, (byte)above, (byte)upperLeft));
             }
         }
     }
@@ -382,7 +388,9 @@ public class PngDecodeTests
     [InlineData(5, 5, true, 36)]
     public void ComputesTheInflatedLengthOfEveryPass(int width, int height, bool interlaced, long expected)
     {
-        Assert.Equal(expected, PngScanlineDecoder.ExpectedLength(new PngHeader(width, height, 8, PngColorType.Gray, interlaced)));
+        Assert.Equal(
+            expected,
+            PngScanlineDecoder.ExpectedLength(new PngHeader(width, height, 8, PngColorType.Gray, interlaced)));
     }
 
     [Fact]
@@ -441,7 +449,12 @@ public class PngDecodeTests
     {
         for (int size = 16; size <= 1 << 16; size *= 2)
         {
-            byte[][] rented = [ArrayPool<byte>.Shared.Rent(size), ArrayPool<byte>.Shared.Rent(size), ArrayPool<byte>.Shared.Rent(size)];
+            byte[][] rented =
+            [
+                ArrayPool<byte>.Shared.Rent(size),
+                ArrayPool<byte>.Shared.Rent(size),
+                ArrayPool<byte>.Shared.Rent(size)
+            ];
             foreach (byte[] buffer in rented)
             {
                 buffer.AsSpan().Fill(0xFF);

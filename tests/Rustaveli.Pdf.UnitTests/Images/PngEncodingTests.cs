@@ -19,7 +19,8 @@ public class PngEncodingTests
     private static byte[][] Rows(EncodedImage image)
     {
         FlateDecodeParameters parameters = image.DecodeParameters!;
-        return TestZlib.Unpredict(TestZlib.Decompress(image.Data), parameters.Colors, parameters.BitsPerComponent, parameters.Columns);
+        return TestZlib.Unpredict(
+            TestZlib.Decompress(image.Data), parameters.Colors, parameters.BitsPerComponent, parameters.Columns);
     }
 
     private static byte[] FilterTypes(EncodedImage image)
@@ -37,7 +38,8 @@ public class PngEncodingTests
         while (position < file.Length)
         {
             int length = (int)TestPng.ReadUInt32(file, position);
-            if (file[position + 4] == 'I' && file[position + 5] == 'D' && file[position + 6] == 'A' && file[position + 7] == 'T')
+            if (file[position + 4] == 'I' && file[position + 5] == 'D' &&
+                file[position + 6] == 'A' && file[position + 7] == 'T')
                 data.AddRange(file.AsSpan(position + 8, length).ToArray());
             position += length + 12;
         }
@@ -115,7 +117,8 @@ public class PngEncodingTests
         byte[] first = Enumerable.Range(0, 100).Select(index => (byte)(index * 3)).ToArray();
         byte[] second = Enumerable.Range(0, 50).Select(index => (byte)(index * 5)).ToArray();
         byte[] palette = TestPng.Chunk("PLTE", new byte[12]);
-        byte[] file = TestPng.Build(TestPng.Header(40, 30, 2, 3), palette, TestPng.Data(first), TestPng.Data(second), TestPng.End());
+        byte[] file = TestPng.Build(
+            TestPng.Header(40, 30, 2, 3), palette, TestPng.Data(first), TestPng.Data(second), TestPng.End());
 
         EncodedImage image = Encode(file);
 
@@ -127,7 +130,8 @@ public class PngEncodingTests
     {
         // The same garbage, interlaced: this image has to be decoded, and the decoder rejects it.
         byte[] garbage = Enumerable.Range(0, 300).Select(index => (byte)((index * 97) + 13)).ToArray();
-        byte[] interlaced = TestPng.Build(TestPng.Header(40, 30, 8, 2, interlace: 1), TestPng.Data(garbage), TestPng.End());
+        byte[] interlaced = TestPng.Build(
+            TestPng.Header(40, 30, 8, 2, interlace: 1), TestPng.Data(garbage), TestPng.End());
 
         Assert.Throws<ImageFormatException>(() => Encode(interlaced));
     }
@@ -161,7 +165,9 @@ public class PngEncodingTests
 
         Assert.Equal(ImageColorSpaceKind.Indexed, image.ColorSpace.Kind);
         Assert.Same(ImageColorSpace.DeviceRgb, image.ColorSpace.Base);
-        Assert.Equal(new byte[] { 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0xFF }, image.ColorSpace.Palette.ToArray());
+        Assert.Equal(
+            new byte[] { 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0xFF },
+            image.ColorSpace.Palette.ToArray());
         Assert.Equal(3, image.ColorSpace.HighValue);
         Assert.Equal(1, image.DecodeParameters!.Colors);
     }
@@ -472,7 +478,8 @@ public class PngEncodingTests
         int sampleBytes = bitDepth / 8;
         int pixelBytes = header.Channels * sampleBytes;
         byte[][] rows = Enumerable.Range(0, 2).Select(row => Enumerable.Range(0, 3 * pixelBytes)
-            .Select(index => index % pixelBytes >= pixelBytes - sampleBytes ? (byte)0xFF : (byte)(index + row)).ToArray()).ToArray();
+            .Select(index => index % pixelBytes >= pixelBytes - sampleBytes ? (byte)0xFF : (byte)(index + row))
+            .ToArray()).ToArray();
 
         EncodedImage image = Encode(TestPng.Image(3, 2, bitDepth, colorType, TestPng.Filter(rows, pixelBytes, 1)));
 
@@ -490,7 +497,9 @@ public class PngEncodingTests
 
         EncodedImage image = Encode(TestPng.Image(2, 2, 16, 4, TestPng.Filter(rows, 4, 0)));
 
-        Assert.Equal(new[] { new byte[] { 0xFF, 0xFF, high, low }, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF } }, Rows(image.SoftMask!));
+        Assert.Equal(
+            new[] { new byte[] { 0xFF, 0xFF, high, low }, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF } },
+            Rows(image.SoftMask!));
     }
 
     [Fact]
@@ -500,7 +509,9 @@ public class PngEncodingTests
 
         EncodedImage image = Encode(TestPng.Image(2, 3, 8, 4, TestPng.Filter(rows, 2, 0)));
 
-        Assert.Equal(new[] { new byte[] { 255, 255 }, new byte[] { 255, 255 }, new byte[] { 255, 254 } }, Rows(image.SoftMask!));
+        Assert.Equal(
+            new[] { new byte[] { 255, 255 }, new byte[] { 255, 255 }, new byte[] { 255, 254 } },
+            Rows(image.SoftMask!));
         Assert.Equal(new[] { new byte[] { 1, 2 }, new byte[] { 3, 4 }, new byte[] { 5, 6 } }, Rows(image));
     }
 

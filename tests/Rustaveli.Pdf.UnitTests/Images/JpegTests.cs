@@ -220,7 +220,10 @@ public class JpegTests
     [Fact]
     public void ReportsAnEmptyExifSegmentAsNormal()
     {
-        JpegFile jpeg = Parse(TestJpeg.Build(TestJpeg.Exif([]), TestJpeg.Exif(TestJpeg.Orientation(6)), TestJpeg.Frame(10, 20, 3)));
+        JpegFile jpeg = Parse(TestJpeg.Build(
+            TestJpeg.Exif([]),
+            TestJpeg.Exif(TestJpeg.Orientation(6)),
+            TestJpeg.Frame(10, 20, 3)));
 
         Assert.Equal(ExifOrientation.Normal, jpeg.Orientation);
     }
@@ -315,7 +318,11 @@ public class JpegTests
         byte[] empty = TestJpeg.Segment(0xE2, [.. "ICC_PROFILE\0"u8, 1, 1]);
         byte[] other = TestJpeg.Segment(0xE2, [.. "FPXR\0"u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-        JpegFile jpeg = Parse(TestJpeg.Build(empty, other, TestJpeg.Icc(1, 1, TestJpeg.Profile("RGB ")), TestJpeg.Frame(10, 20, 3)));
+        JpegFile jpeg = Parse(TestJpeg.Build(
+            empty,
+            other,
+            TestJpeg.Icc(1, 1, TestJpeg.Profile("RGB ")),
+            TestJpeg.Frame(10, 20, 3)));
 
         Assert.NotNull(jpeg.IccProfile);
     }
@@ -393,7 +400,8 @@ public class JpegTests
     [Fact]
     public void RejectsAZeroWidthAsMalformed()
     {
-        ImageFormatException error = Assert.Throws<ImageFormatException>(() => Parse(TestJpeg.Build(TestJpeg.Frame(0, 20, 3))));
+        ImageFormatException error = Assert.Throws<ImageFormatException>(
+            () => Parse(TestJpeg.Build(TestJpeg.Frame(0, 20, 3))));
 
         Assert.IsNotType<UnsupportedImageFormatException>(error);
     }
@@ -401,7 +409,8 @@ public class JpegTests
     [Fact]
     public void RejectsMoreThanTheMaximumPixelCount()
     {
-        ImageFormatException error = Assert.Throws<ImageFormatException>(() => Parse(TestJpeg.Build(TestJpeg.Frame(65535, 65535, 3))));
+        ImageFormatException error = Assert.Throws<ImageFormatException>(
+            () => Parse(TestJpeg.Build(TestJpeg.Frame(65535, 65535, 3))));
 
         Assert.StartsWith("The JPEG image is 65535 × 65535 pixels", error.Message);
     }
@@ -418,8 +427,12 @@ public class JpegTests
         byte[] shortHeader = TestJpeg.Segment(0xC0, [8, 0, 20, 0, 10]);
         byte[] missingComponent = TestJpeg.Segment(0xC0, [8, 0, 20, 0, 10, 3, 1, 0x11, 0, 2, 0x11, 0, 3, 0x11]);
 
-        Assert.Contains("frame header is truncated", Assert.Throws<ImageFormatException>(() => Parse(TestJpeg.Build(shortHeader))).Message);
-        Assert.Contains("frame header is truncated", Assert.Throws<ImageFormatException>(() => Parse(TestJpeg.Build(missingComponent))).Message);
+        Assert.Contains(
+            "frame header is truncated",
+            Assert.Throws<ImageFormatException>(() => Parse(TestJpeg.Build(shortHeader))).Message);
+        Assert.Contains(
+            "frame header is truncated",
+            Assert.Throws<ImageFormatException>(() => Parse(TestJpeg.Build(missingComponent))).Message);
     }
 
     [Fact]
@@ -481,7 +494,9 @@ public class JpegTests
     [Fact]
     public void SkipsFillBytesAndMarkersWithoutALength()
     {
-        JpegFile jpeg = Parse(TestJpeg.Build([0xFF, 0xFF, 0xFF, 0xD0, 0xFF, 0x01, 0xFF, 0xD7], TestJpeg.Frame(10, 20, 3)));
+        JpegFile jpeg = Parse(TestJpeg.Build(
+            [0xFF, 0xFF, 0xFF, 0xD0, 0xFF, 0x01, 0xFF, 0xD7],
+            TestJpeg.Frame(10, 20, 3)));
 
         Assert.Equal(10, jpeg.Width);
     }
@@ -497,7 +512,8 @@ public class JpegTests
         byte[] huffman = TestJpeg.Segment(0xC4, new byte[17]);
         byte[] conditioning = TestJpeg.Segment(0xCC, [0x00, 0x10]);
 
-        JpegFile jpeg = Parse(TestJpeg.Build(comment, quantisation, reserved, huffman, conditioning, TestJpeg.Frame(10, 20, 3)));
+        JpegFile jpeg = Parse(TestJpeg.Build(
+            comment, quantisation, reserved, huffman, conditioning, TestJpeg.Frame(10, 20, 3)));
 
         Assert.Equal(20, jpeg.Height);
     }

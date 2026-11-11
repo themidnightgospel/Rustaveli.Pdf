@@ -24,7 +24,8 @@ internal sealed class SequentialStream(byte[] data, int maxRead = int.MaxValue) 
         set => throw new NotSupportedException();
     }
 
-    public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, Math.Min(count, maxRead));
+    public override int Read(byte[] buffer, int offset, int count) =>
+        _inner.Read(buffer, offset, Math.Min(count, maxRead));
 
     public override void Flush()
     {

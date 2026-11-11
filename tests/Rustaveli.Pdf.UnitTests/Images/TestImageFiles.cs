@@ -18,7 +18,8 @@ internal static class TestImageFiles
         Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "assets", "images"))
             .Select(Path.GetFileName)
             .Select(name => name!)
-            .Where(name => (name.EndsWith(".png", StringComparison.Ordinal) || name.EndsWith(".jpg", StringComparison.Ordinal)) &&
+            .Where(name => (name.EndsWith(".png", StringComparison.Ordinal) ||
+                            name.EndsWith(".jpg", StringComparison.Ordinal)) &&
                            !name.StartsWith("x", StringComparison.Ordinal))
             .OrderBy(name => name, StringComparer.Ordinal);
 }
