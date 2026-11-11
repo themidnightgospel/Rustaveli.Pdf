@@ -85,7 +85,8 @@ public class PdfValueTests
     {
         ArgumentException exception = Assert.Throws<ArgumentException>(() => (PdfValue)default(PdfReference));
 
-        Assert.StartsWith("The reference was never assigned an object number.", exception.Message, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "The reference was never assigned an object number.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

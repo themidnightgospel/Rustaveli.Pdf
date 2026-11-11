@@ -41,8 +41,12 @@ public class PdfNameTreeTests
         List<(byte[] Key, object? Value, int Depth)> entries = reader.NameTree(root);
 
         Assert.Equal(count, tree.Count);
-        Assert.Equal(Enumerable.Range(0, count).Select(index => $"k{index:D5}"), entries.Select(entry => Latin1.Text(entry.Key)));
-        Assert.Equal(Enumerable.Range(0, count).Select(index => (object?)(long)index), entries.Select(entry => entry.Value));
+        Assert.Equal(
+            Enumerable.Range(0, count).Select(index => $"k{index:D5}"),
+            entries.Select(entry => Latin1.Text(entry.Key)));
+        Assert.Equal(
+            Enumerable.Range(0, count).Select(index => (object?)(long)index),
+            entries.Select(entry => entry.Value));
         Assert.All(entries, entry => Assert.Equal(depth, entry.Depth));
     }
 

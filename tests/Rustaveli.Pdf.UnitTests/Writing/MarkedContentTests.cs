@@ -22,7 +22,9 @@ public class MarkedContentTests
         content.EndMarkedContent();
 
         Assert.Equal(0, content.MarkedDepth);
-        Assert.Equal("/Artifact BMC\nEMC\n/P<</MCID 12>>BDC\n/Span<</MCID 0>>BDC\nEMC\nEMC\n", Latin1.Text(content.Content));
+        Assert.Equal(
+            "/Artifact BMC\nEMC\n/P<</MCID 12>>BDC\n/Span<</MCID 0>>BDC\nEMC\nEMC\n",
+            Latin1.Text(content.Content));
         content.EnsureComplete();
     }
 
