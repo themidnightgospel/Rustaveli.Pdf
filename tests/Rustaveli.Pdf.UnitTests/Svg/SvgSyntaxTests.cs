@@ -78,7 +78,8 @@ public class SvgSyntaxTests
         foreach (PathVerb verb in path.Verbs)
         {
             int count = verb switch { PathVerb.Cubic => 3, PathVerb.Close => 0, _ => 1 };
-            parts.Add(verb.ToString()[0] + string.Concat(Enumerable.Range(point, count).Select(index => $" {path.Points[index].X:0.##},{path.Points[index].Y:0.##}")));
+            parts.Add(verb.ToString()[0] + string.Concat(Enumerable.Range(point, count)
+                .Select(index => $" {path.Points[index].X:0.##},{path.Points[index].Y:0.##}")));
             point += count;
         }
 
@@ -288,7 +289,9 @@ public class SvgSyntaxTests
         Ink ink = SvgColour.Read(text)!.Value;
         (float r, float g, float b) = ink.ToRgb();
 
-        Assert.Equal((red, green, blue), ((int)Math.Round(r * 255), (int)Math.Round(g * 255), (int)Math.Round(b * 255)));
+        Assert.Equal(
+            (red, green, blue),
+            ((int)Math.Round(r * 255), (int)Math.Round(g * 255), (int)Math.Round(b * 255)));
         Assert.Equal(opacity, ink.Opacity, 2);
     }
 
@@ -338,7 +341,13 @@ public class SvgSyntaxTests
         const string Css = "rect { fill: red } .a { stroke: blue } #b { opacity: 0.5 } * { color: green }";
 
         Assert.Equal(
-            new Dictionary<string, string> { ["fill"] = "red", ["stroke"] = "blue", ["opacity"] = "0.5", ["color"] = "green" },
+            new Dictionary<string, string>
+            {
+                ["fill"] = "red",
+                ["stroke"] = "blue",
+                ["opacity"] = "0.5",
+                ["color"] = "green"
+            },
             Styled(Css, "<rect class='a other' id='b'/>"));
         Assert.Equal(new Dictionary<string, string> { ["color"] = "green" }, Styled(Css, "<circle/>"));
     }
@@ -346,7 +355,9 @@ public class SvgSyntaxTests
     [Fact]
     public void AMoreSpecificRuleWinsWhateverItsOrder()
     {
-        Dictionary<string, string> styled = Styled("#b { fill: red } rect.a { fill: blue } .a { fill: green } rect { fill: grey }", "<rect class='a' id='b'/>");
+        Dictionary<string, string> styled = Styled(
+            "#b { fill: red } rect.a { fill: blue } .a { fill: green } rect { fill: grey }",
+            "<rect class='a' id='b'/>");
 
         Assert.Equal("red", styled["fill"]);
     }
@@ -358,14 +369,18 @@ public class SvgSyntaxTests
     [Fact]
     public void ListsCommentsAndImportanceAreRead()
     {
-        Dictionary<string, string> styled = Styled("/* note */ circle, .x { fill: red !important; ; bad; }", "<circle/>");
+        Dictionary<string, string> styled = Styled(
+            "/* note */ circle, .x { fill: red !important; ; bad; }",
+            "<circle/>");
 
         Assert.Equal(new Dictionary<string, string> { ["fill"] = "red" }, styled);
     }
 
     [Fact]
     public void RulesWithSelectorsBeyondTheseAreLeftOut() =>
-        Assert.Empty(Styled("g rect { fill: red } rect:hover { fill: blue } rect > x { fill: green } [a] { fill: grey }", "<rect/>"));
+        Assert.Empty(Styled(
+            "g rect { fill: red } rect:hover { fill: blue } rect > x { fill: green } [a] { fill: grey }",
+            "<rect/>"));
 
     [Fact]
     public void AnUnfinishedRuleIsLeftOut()
@@ -377,7 +392,9 @@ public class SvgSyntaxTests
 
     [Fact]
     public void AnEmptySelectorMatchesNothing() =>
-        Assert.Equal(new Dictionary<string, string> { ["stroke"] = "blue" }, Styled("{ fill: red } rect, { stroke: blue }", "<rect/>"));
+        Assert.Equal(
+            new Dictionary<string, string> { ["stroke"] = "blue" },
+            Styled("{ fill: red } rect, { stroke: blue }", "<rect/>"));
 
     [Fact]
     public void AClassRuleNeedsEveryClass() =>

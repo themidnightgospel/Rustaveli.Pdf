@@ -81,7 +81,8 @@ public class SvgReaderTests
             "<!DOCTYPE svg [<!ENTITY red 'red'>]>" +
             $"<svg {Namespaces} width='10' height='10'><rect width='10' height='10' fill='&red;'/></svg>");
 
-        Assert.Equal(Red, LayoutHarness.Render(frame => frame.Artwork(artwork), artwork.Size).Operations.OfType<PathOperation>().Single().Ink);
+        Assert.Equal(Red, LayoutHarness.Render(frame => frame.Artwork(artwork), artwork.Size).Operations
+            .OfType<PathOperation>().Single().Ink);
     }
 
     // ---- View boxes ------------------------------------------------------------------------------------------
@@ -103,12 +104,16 @@ public class SvgReaderTests
 
     [Fact]
     public void AViewBoxMayStartAnywhere() =>
-        Approximately.Equal(Pixels(0, 0, 50, 50), Painted("<rect x='10' y='10' width='5' height='5'/>", "width='100' height='100' viewBox='10 10 10 10'").Single().Bounds);
+        Approximately.Equal(
+            Pixels(0, 0, 50, 50),
+            Painted("<rect x='10' y='10' width='5' height='5'/>", "width='100' height='100' viewBox='10 10 10 10'")
+                .Single().Bounds);
 
     [Fact]
     public void ANestedViewportIsPlacedAndClipped()
     {
-        List<PathOperation> paths = Paths("<svg x='20' y='30' width='40' height='20' viewBox='0 0 4 2'><rect width='4' height='2'/></svg>");
+        List<PathOperation> paths = Paths(
+            "<svg x='20' y='30' width='40' height='20' viewBox='0 0 4 2'><rect width='4' height='2'/></svg>");
 
         Assert.Equal(PathPainting.Clip, paths[0].Painting);
         Approximately.Equal(Pixels(20, 30, 60, 50), paths[1].Bounds);
@@ -117,7 +122,9 @@ public class SvgReaderTests
     [Fact]
     public void PercentagesAreTakenOfTheViewport()
     {
-        PathOperation background = Painted("<rect width='100%' height='100%' fill='#eee'/>", "viewBox='0 0 800 600'").Single();
+        PathOperation background = Painted(
+            "<rect width='100%' height='100%' fill='#eee'/>",
+            "viewBox='0 0 800 600'").Single();
 
         Approximately.Equal(Pixels(0, 0, 800, 600), background.Bounds);
     }
@@ -157,7 +164,9 @@ public class SvgReaderTests
     [Fact]
     public void ANestedViewportWithoutASizeFillsTheViewportItIsIn()
     {
-        List<PathOperation> paths = Paths("<svg viewBox='0 0 4 2'><rect width='4' height='2'/></svg>", "width='400' height='200'");
+        List<PathOperation> paths = Paths(
+            "<svg viewBox='0 0 4 2'><rect width='4' height='2'/></svg>",
+            "width='400' height='200'");
 
         Approximately.Equal(Pixels(0, 0, 400, 200), paths[0].Bounds);
         Approximately.Equal(Pixels(0, 0, 400, 200), paths[1].Bounds);
@@ -166,7 +175,9 @@ public class SvgReaderTests
     [Fact]
     public void ANestedViewportsPercentagesAreTakenOfItsOwnSize()
     {
-        List<PathOperation> paths = Paths("<svg width='50%' height='50%'><rect width='100%' height='100%'/></svg>", "width='400' height='200'");
+        List<PathOperation> paths = Paths(
+            "<svg width='50%' height='50%'><rect width='100%' height='100%'/></svg>",
+            "width='400' height='200'");
 
         Approximately.Equal(Pixels(0, 0, 200, 100), paths[1].Bounds);
     }
@@ -174,7 +185,9 @@ public class SvgReaderTests
     [Fact]
     public void AUsedSymbolWithoutASizeFillsTheViewport()
     {
-        PathOperation square = Painted("<symbol id='s' viewBox='0 0 10 10'><rect width='10' height='10'/></symbol><use href='#s'/>", "width='300' height='300'").Single();
+        PathOperation square = Painted(
+            "<symbol id='s' viewBox='0 0 10 10'><rect width='10' height='10'/></symbol><use href='#s'/>",
+            "width='300' height='300'").Single();
 
         Approximately.Equal(Pixels(0, 0, 300, 300), square.Bounds);
     }
@@ -233,7 +246,9 @@ public class SvgReaderTests
     {
         PathOperation square = Painted("<rect width='5' height='5'/>").Single();
 
-        Assert.Equal((PathPainting.Fill, Ink.Rgb(0, 0, 0), FillRule.NonZero), (square.Painting, square.Ink, square.Rule));
+        Assert.Equal(
+            (PathPainting.Fill, Ink.Rgb(0, 0, 0), FillRule.NonZero),
+            (square.Painting, square.Ink, square.Rule));
     }
 
     [Fact]
@@ -246,7 +261,9 @@ public class SvgReaderTests
         Assert.Equal((Red.WithOpacity(0.5f), FillRule.EvenOdd), (painted[0].Ink, painted[0].Rule));
         Assert.Equal(Blue.WithOpacity(0.25f), painted[1].Ink);
         LineStyle style = painted[1].Style!.Value;
-        Assert.Equal((3f, LineCap.Round, LineJoin.Bevel, 7f, 1f), (style.Weight, style.Cap, style.Join, style.MiterLimit, style.DashOffset));
+        Assert.Equal(
+            (3f, LineCap.Round, LineJoin.Bevel, 7f, 1f),
+            (style.Weight, style.Cap, style.Join, style.MiterLimit, style.DashOffset));
         Assert.Equal([4f, 2f], style.Dashes!);
     }
 
@@ -278,7 +295,8 @@ public class SvgReaderTests
     [Fact]
     public void OpacityIsCarriedDownToEveryFillAndStroke()
     {
-        PathOperation square = Painted("<g opacity='0.5'><rect width='5' height='5' opacity='0.5' fill='red'/></g>").Single();
+        PathOperation square = Painted("<g opacity='0.5'><rect width='5' height='5' opacity='0.5' fill='red'/></g>")
+            .Single();
 
         Assert.Equal(0.25f, square.Ink.Opacity, 3);
     }
@@ -290,7 +308,9 @@ public class SvgReaderTests
     [InlineData("fill='url(#g)'")]
     public void AnOpacityBeyondOneIsOpaque(string attributes)
     {
-        PathOperation square = Painted($"<linearGradient id='g'><stop stop-color='red' stop-opacity='5.7'/></linearGradient><rect width='5' height='5' {attributes}/>").Single();
+        PathOperation square = Painted(
+            $"<linearGradient id='g'><stop stop-color='red' stop-opacity='5.7'/></linearGradient><rect width='5' height='5' {attributes}/>")
+            .Single();
 
         Assert.Equal(1f, square.Ink.Opacity);
     }
@@ -309,7 +329,8 @@ public class SvgReaderTests
         Assert.Empty(Painted("<g visibility='hidden'><rect width='5' height='5'/></g>"));
         Assert.Empty(Painted("<g visibility='collapse'><rect width='5' height='5'/></g>"));
         Assert.Single(Painted("<g visibility='hidden'><rect width='5' height='5' visibility='visible'/></g>"));
-        Assert.Empty(Painted("<defs><rect width='5' height='5'/></defs><title>x</title><symbol><rect width='5' height='5'/></symbol>"));
+        Assert.Empty(Painted(
+            "<defs><rect width='5' height='5'/></defs><title>x</title><symbol><rect width='5' height='5'/></symbol>"));
     }
 
     // ---- Styles ----------------------------------------------------------------------------------------------
@@ -339,7 +360,8 @@ public class SvgReaderTests
 
     [Fact]
     public void ASwitchDrawsOnlyItsFirstChild() =>
-        Assert.Equal(Red, Assert.Single(Painted("<switch><rect width='5' height='5' fill='red'/><rect width='5' height='5' fill='blue'/></switch>")).Ink);
+        Assert.Equal(Red, Assert.Single(Painted(
+            "<switch><rect width='5' height='5' fill='red'/><rect width='5' height='5' fill='blue'/></switch>")).Ink);
 
     [Fact]
     public void ASwitchDrawsTheFirstChildWhoseConditionsHold()
@@ -459,7 +481,8 @@ public class SvgReaderTests
 
     [Fact]
     public void AGradientOfOneStopIsItsInk() =>
-        Assert.Equal(Red, Gradient("<linearGradient id='g'><stop stop-color='red'/></linearGradient>").OfType<PathOperation>().Single().Ink);
+        Assert.Equal(Red, Gradient("<linearGradient id='g'><stop stop-color='red'/></linearGradient>")
+            .OfType<PathOperation>().Single().Ink);
 
     [Theory]
     [InlineData("<linearGradient id='g'/>", "url(#g)")]
@@ -480,7 +503,8 @@ public class SvgReaderTests
     [Fact]
     public void ARadialGradientIsTheMeanOfItsColours()
     {
-        PathOperation painted = Gradient("<radialGradient id='g'><stop stop-color='red'/><stop offset='1' stop-color='blue' stop-opacity='0'/></radialGradient>")
+        PathOperation painted = Gradient(
+            "<radialGradient id='g'><stop stop-color='red'/><stop offset='1' stop-color='blue' stop-opacity='0'/></radialGradient>")
             .OfType<PathOperation>().Single();
 
         Assert.Equal(Ink.Rgb(128, 0, 128).WithOpacity(0.5f), painted.Ink);
@@ -517,7 +541,9 @@ public class SvgReaderTests
     [Fact]
     public void AUsedSymbolIsFittedToTheUse()
     {
-        PathOperation star = Painted("<symbol id='s' viewBox='0 0 10 10'><rect width='10' height='10'/></symbol><use href='#s' width='40' height='40'/>").Single();
+        PathOperation star = Painted(
+            "<symbol id='s' viewBox='0 0 10 10'><rect width='10' height='10'/></symbol><use href='#s' width='40' height='40'/>")
+            .Single();
 
         Approximately.Equal(Pixels(0, 0, 40, 40), star.Bounds);
     }
@@ -540,14 +566,19 @@ public class SvgReaderTests
 
         Assert.Equal("Hello there", text.Text);
         Assert.Equal(new Offset(7.5f, 15), text.Position);
-        Assert.Equal(("Noto Sans", 12f, TypeWeight.Bold, true), (text.Style.Typeface, text.Style.PointSize, text.Style.Weight, text.Style.IsItalic));
+        Assert.Equal(
+            ("Noto Sans", 12f, TypeWeight.Bold, true),
+            (text.Style.Typeface, text.Style.PointSize, text.Style.Weight, text.Style.IsItalic));
         Assert.Equal(Red, text.Style.Ink);
     }
 
     /// <summary>The runs of text drawn, each with its point in pixels.</summary>
     private static List<(string Text, float X, float Y)> Runs(string body) =>
         Draw(body, "width='200' height='100'").OfType<TextOperation>()
-            .Select(text => (text.Text, (float)Math.Round(text.Position.X / 0.75f, 2), (float)Math.Round(text.Position.Y / 0.75f, 2)))
+            .Select(text => (
+                text.Text,
+                (float)Math.Round(text.Position.X / 0.75f, 2),
+                (float)Math.Round(text.Position.Y / 0.75f, 2)))
             .ToList();
 
     [Fact]
@@ -564,7 +595,9 @@ public class SvgReaderTests
     [Fact]
     public void ASpanIsSetInItsOwnStyleAfterTheTextBeforeIt()
     {
-        List<TextOperation> texts = Draw("<text x='10' y='20' font-size='10'>Total: <tspan font-weight='bold' fill='red'>42</tspan></text>").OfType<TextOperation>().ToList();
+        List<TextOperation> texts = Draw(
+            "<text x='10' y='20' font-size='10'>Total: <tspan font-weight='bold' fill='red'>42</tspan></text>")
+            .OfType<TextOperation>().ToList();
 
         Assert.Equal(["Total: ", "42"], texts.Select(text => text.Text));
         Assert.Equal((TypeWeight.Normal, Ink.Rgb(0, 0, 0)), (texts[0].Style.Weight, texts[0].Style.Ink));
@@ -582,28 +615,41 @@ public class SvgReaderTests
 
     [Fact]
     public void ASpanGivenOnlyALineGoesOnAcross() =>
-        Assert.Equal([("ab", 0f, 10f), ("c", 10f, 30f)], Runs("<text x='0' y='10' font-size='10'>ab<tspan y='30'>c</tspan></text>"));
+        Assert.Equal(
+            [("ab", 0f, 10f), ("c", 10f, 30f)],
+            Runs("<text x='0' y='10' font-size='10'>ab<tspan y='30'>c</tspan></text>"));
 
     [Fact]
     public void AnUndisplayedSpanIsLeftOutAndAHiddenOneKeepsItsRoom()
     {
-        Assert.Equal([("ac", 0f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan display='none'>b</tspan>c</text>"));
-        Assert.Equal([("a", 0f, 10f), ("c", 10f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan visibility='hidden'>b</tspan>c</text>"));
-        Assert.Equal([("a", 0f, 10f), ("c", 10f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan fill='none'>b</tspan>c</text>"));
+        Assert.Equal(
+            [("ac", 0f, 10f)],
+            Runs("<text x='0' y='10' font-size='10'>a<tspan display='none'>b</tspan>c</text>"));
+        Assert.Equal(
+            [("a", 0f, 10f), ("c", 10f, 10f)],
+            Runs("<text x='0' y='10' font-size='10'>a<tspan visibility='hidden'>b</tspan>c</text>"));
+        Assert.Equal(
+            [("a", 0f, 10f), ("c", 10f, 10f)],
+            Runs("<text x='0' y='10' font-size='10'>a<tspan fill='none'>b</tspan>c</text>"));
     }
 
     [Fact]
     public void AnAnchorPlacesTheWholeRunOfSpans() =>
-        Assert.Equal([("ab", 40f, 10f), ("cd", 50f, 10f)], Runs("<text x='50' y='10' font-size='10' text-anchor='middle'>ab<tspan fill='red'>cd</tspan></text>"));
+        Assert.Equal(
+            [("ab", 40f, 10f), ("cd", 50f, 10f)],
+            Runs("<text x='50' y='10' font-size='10' text-anchor='middle'>ab<tspan fill='red'>cd</tspan></text>"));
 
     [Fact]
     public void AnAnchorAtTheEndEndsTheWholeRunOfSpansThere() =>
-        Assert.Equal([("ab", 30f, 10f), ("cd", 40f, 10f)], Runs("<text x='50' y='10' font-size='10' text-anchor='end'>ab<tspan fill='red'>cd</tspan></text>"));
+        Assert.Equal(
+            [("ab", 30f, 10f), ("cd", 40f, 10f)],
+            Runs("<text x='50' y='10' font-size='10' text-anchor='end'>ab<tspan fill='red'>cd</tspan></text>"));
 
     [Fact]
     public void SpansAreFollowedOnlySoDeep()
     {
-        string deep = string.Concat(Enumerable.Repeat("<tspan>", 80)) + "deep" + string.Concat(Enumerable.Repeat("</tspan>", 80));
+        string deep = string.Concat(Enumerable.Repeat("<tspan>", 80)) + "deep" +
+            string.Concat(Enumerable.Repeat("</tspan>", 80));
 
         Assert.Equal([("shallow", 0f, 10f)], Runs($"<text x='0' y='10'>shallow{deep}</text>"));
     }
@@ -612,12 +658,16 @@ public class SvgReaderTests
     public void TextPlacedBeyondAPdfIsLeftOut()
     {
         Assert.Empty(Runs("<text x='9e14' y='10' font-size='1e14'>abc</text>"));
-        Assert.Equal(["a"], Runs("<text x='0' y='9e14' font-size='10'>a<tspan dy='9e14'>b</tspan></text>").Select(run => run.Text));
+        Assert.Equal(
+            ["a"],
+            Runs("<text x='0' y='9e14' font-size='10'>a<tspan dy='9e14'>b</tspan></text>").Select(run => run.Text));
     }
 
     [Fact]
     public void ASpanWithNothingInItMovesNothing() =>
-        Assert.Equal([("ab", 0f, 10f)], Runs("<text x='0' y='10' font-size='10'>a<tspan x='50'></tspan>b</text>"));
+        Assert.Equal(
+            [("ab", 0f, 10f)],
+            Runs("<text x='0' y='10' font-size='10'>a<tspan x='50'></tspan>b</text>"));
 
     [Fact]
     public void ANestedSpansPositionIsTakenOverTheOneAroundIt() =>
@@ -627,13 +677,17 @@ public class SvgReaderTests
 
     [Fact]
     public void ALinkInTextIsSetAsASpan() =>
-        Assert.Equal([("see ", 0f, 10f), ("here", 20f, 10f)], Runs("<text x='0' y='10' font-size='10'>see <a href='#x' fill='red'>here</a><title>Tip</title></text>"));
+        Assert.Equal(
+            [("see ", 0f, 10f), ("here", 20f, 10f)],
+            Runs("<text x='0' y='10' font-size='10'>see <a href='#x' fill='red'>here</a><title>Tip</title></text>"));
 
     [Theory]
     [InlineData("-5", 16f)]
     [InlineData("0", 0f)]
     public void ANegativeFontSizeIsIgnored(string size, float points) =>
-        Assert.Equal(points, Draw($"<text font-size='{size}'>Hello</text>").OfType<TextOperation>().Single().Style.PointSize);
+        Assert.Equal(
+            points,
+            Draw($"<text font-size='{size}'>Hello</text>").OfType<TextOperation>().Single().Style.PointSize);
 
     [Theory]
     [InlineData("start", 10f)]
@@ -642,7 +696,8 @@ public class SvgReaderTests
     public void TextIsAnchoredAsItSays(string anchor, float x)
     {
         // The measurer used for tests gives every character half a point of width per point of size.
-        TextOperation text = Draw($"<text x='10' y='20' font-size='1' text-anchor='{anchor}'>abcdef</text>").OfType<TextOperation>().Single();
+        TextOperation text = Draw($"<text x='10' y='20' font-size='1' text-anchor='{anchor}'>abcdef</text>")
+            .OfType<TextOperation>().Single();
 
         Assert.Equal(x * 0.75f, text.Position.X, 2);
     }
@@ -698,7 +753,8 @@ public class SvgReaderTests
     [InlineData("bold", "nonsense", TypeWeight.Bold)]
     public void ARelativeWeightIsTakenFromTheWeightInherited(string inherited, string weight, TypeWeight expected)
     {
-        TextOperation text = Draw($"<g font-weight='{inherited}'><text font-weight='{weight}'>x</text></g>").OfType<TextOperation>().Single();
+        TextOperation text = Draw($"<g font-weight='{inherited}'><text font-weight='{weight}'>x</text></g>")
+            .OfType<TextOperation>().Single();
 
         Assert.Equal(expected, text.Style.Weight);
     }
@@ -706,7 +762,9 @@ public class SvgReaderTests
     [Fact]
     public void TextIsSetInSansSerifByDefault()
     {
-        TextOperation text = Draw("<text font-family=' , '>x</text><text font-weight='bolder'>y</text><text font-weight='300'>z</text>").OfType<TextOperation>().First();
+        TextOperation text = Draw(
+            "<text font-family=' , '>x</text><text font-weight='bolder'>y</text><text font-weight='300'>z</text>")
+            .OfType<TextOperation>().First();
 
         Assert.Equal("sans-serif", text.Style.Typeface);
     }
@@ -717,7 +775,9 @@ public class SvgReaderTests
     public void AnImageCarriedInTheDocumentIsDrawn()
     {
         string png = Convert.ToBase64String(Rustaveli.Pdf.Images.PngWriter.Rgb(1, 1, [255, 0, 0]));
-        ImageOperation image = Draw($"<image x='10' y='20' width='30' height='40' href='data:image/png;base64,{png}'/>").OfType<ImageOperation>().Single();
+        ImageOperation image = Draw(
+            $"<image x='10' y='20' width='30' height='40' href='data:image/png;base64,{png}'/>")
+            .OfType<ImageOperation>().Single();
 
         Approximately.Equal(Pixels(10, 20, 40, 60), image.Bounds);
     }
@@ -757,8 +817,12 @@ public class SvgReaderTests
     [InlineData("0 0 1e-10 1e10", "xMidYMid slice")]
     public void AViewBoxTooSmallToScaleDrawsNothing(string viewBox, string aspect)
     {
-        Assert.Empty(Painted("<rect width='5' height='5'/>", $"width='100' height='100' viewBox='{viewBox}' preserveAspectRatio='{aspect}'"));
-        Assert.Single(Painted("<rect width='5' height='5'/>", $"width='100' height='100' viewBox='0 0 10 10' preserveAspectRatio='{aspect}'"));
+        Assert.Empty(Painted(
+            "<rect width='5' height='5'/>",
+            $"width='100' height='100' viewBox='{viewBox}' preserveAspectRatio='{aspect}'"));
+        Assert.Single(Painted(
+            "<rect width='5' height='5'/>",
+            $"width='100' height='100' viewBox='0 0 10 10' preserveAspectRatio='{aspect}'"));
     }
 
     // ---- Depth -----------------------------------------------------------------------------------------------
@@ -766,7 +830,8 @@ public class SvgReaderTests
     [Fact]
     public void NestingIsFollowedOnlySoDeep()
     {
-        string deep = string.Concat(Enumerable.Repeat("<g>", 80)) + "<rect width='5' height='5'/>" + string.Concat(Enumerable.Repeat("</g>", 80));
+        string deep = string.Concat(Enumerable.Repeat("<g>", 80)) + "<rect width='5' height='5'/>" +
+            string.Concat(Enumerable.Repeat("</g>", 80));
 
         Assert.Empty(Painted(deep));
         Assert.Single(Painted("<g><g><rect width='5' height='5'/></g></g>"));
