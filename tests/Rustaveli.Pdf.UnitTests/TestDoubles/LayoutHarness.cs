@@ -46,7 +46,9 @@ internal static class LayoutHarness
         // back, or saves without restoring, shifts every sibling drawn after it — invisible to a test that draws
         // one block and asserts one position, but wrong on every real page.
         Assert.True(surface.IsAtIdentity, $"{block.GetType().Name}.Render left the transform displaced.");
-        Assert.True(surface.PendingSaves == 0, $"{block.GetType().Name}.Render left {surface.PendingSaves} unmatched Save call(s).");
+        Assert.True(
+            surface.PendingSaves == 0,
+            $"{block.GetType().Name}.Render left {surface.PendingSaves} unmatched Save call(s).");
 
         surface.EndPage();
 
@@ -57,10 +59,11 @@ internal static class LayoutHarness
         Render(Build(compose), availableSpace);
 
     /// <summary>
-    /// Draws composed content tagged, on as many pages as it takes, and returns the document element it was drawn in and
-    /// the pages.
+    /// Draws composed content tagged, on as many pages as it takes, and returns the document element it was drawn in
+    /// and the pages.
     /// </summary>
-    public static (StructureElement Root, RecordingSurface Pages) RenderTagged(Action<IFrame> compose, Extent availableSpace, int pages = 1)
+    public static (StructureElement Root, RecordingSurface Pages) RenderTagged(
+        Action<IFrame> compose, Extent availableSpace, int pages = 1)
     {
         Block block = Build(compose);
         RecordingSurface surface = new RecordingSurface();
