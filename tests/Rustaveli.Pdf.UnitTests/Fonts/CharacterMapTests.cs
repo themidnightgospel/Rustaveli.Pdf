@@ -198,7 +198,8 @@ public class CharacterMapTests
     {
         byte[] full = SyntheticTables.Format12(false, ('A', 'A', 3));
         // The full-repertoire subtable is last, so the table ends inside it.
-        CharacterMap truncated = Map((3, 1, SyntheticTables.Format4(('A', 9))), (3, 10, full.Take(full.Length - 3).ToArray()));
+        CharacterMap truncated =
+            Map((3, 1, SyntheticTables.Format4(('A', 9))), (3, 10, full.Take(full.Length - 3).ToArray()));
 
         // The full-repertoire record points past the end of the table.
         byte[] table = SyntheticTables.Cmap((3, 10, full), (3, 1, SyntheticTables.Format4(('A', 9))));

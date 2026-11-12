@@ -115,7 +115,8 @@ public class FontDiscoveryTests
         using TemporaryFolder folder = new TemporaryFolder();
         string font = folder.Write("a.ttf", [1]);
 
-        IReadOnlyList<string> files = FontFileEnumerator.Enumerate([folder.Path, folder.Path + Path.DirectorySeparatorChar]);
+        IReadOnlyList<string> files =
+            FontFileEnumerator.Enumerate([folder.Path, folder.Path + Path.DirectorySeparatorChar]);
 
         Assert.Equal(new[] { font }, files);
     }
@@ -157,7 +158,8 @@ public class FontDiscoveryTests
         folder.Write("last.ttf", SyntheticFont.Named(family).Build());
         folder.Write("real.ttf", SyntheticFont.Named("Real").Build());
 
-        FontFaceInfo? face = new SystemFontIndex([folder.Path]).FindCovering('A', new FaceStyle(400, 5, FontSlant.Upright));
+        FontFaceInfo? face =
+            new SystemFontIndex([folder.Path]).FindCovering('A', new FaceStyle(400, 5, FontSlant.Upright));
 
         Assert.Equal("Real", face?.Names.PreferredFamily);
     }

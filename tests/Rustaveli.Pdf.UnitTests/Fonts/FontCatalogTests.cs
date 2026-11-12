@@ -31,15 +31,16 @@ public class FontCatalogTests
 
                 // The corpus folder inside it, read after the folder's own files: a kern-table font, a collection, and
                 // the CFF2 and TrueType builds of a variable font.
-                "KernTableTest-Regular", "NotoSans-Regular", "NotoSans-Bold", "SourceSans3VF-ExtraLight", "SourceSans3VF-ExtraLight"
+                "KernTableTest-Regular", "NotoSans-Regular", "NotoSans-Bold",
+                "SourceSans3VF-ExtraLight", "SourceSans3VF-ExtraLight"
             },
             index.Faces.Select(face => face.Names.PostScriptName));
         Assert.All(index.Faces, face => Assert.False(face.IsLoaded));
         Assert.Equal(
             new[]
             {
-                "Kern Table Test", "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Georgian", "SourceSans3VF",
-                "Specimen Cff", "Specimen Cjk", "Specimen Layout", "Specimen Sans", "Specimen Subrs"
+                "Kern Table Test", "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Georgian",
+                "SourceSans3VF", "Specimen Cff", "Specimen Cjk", "Specimen Layout", "Specimen Sans", "Specimen Subrs"
             },
             index.Families.Families);
         Assert.Equal(new[] { TestFonts.Directory }, index.Directories);
@@ -264,7 +265,8 @@ public class FontCatalogTests
     {
         FontCatalog catalog = Catalog();
 
-        // A Hangul syllable: the committed fonts have Latin, Georgian, Arabic, Devanagari and some Chinese, but no Korean.
+        // A Hangul syllable: the committed fonts have Latin, Georgian, Arabic, Devanagari and some Chinese, but no
+        // Korean.
         Assert.Null(catalog.FindFallbackFace(0xAC00, new FontRequest("Noto Sans")));
 
         // Remembered, and answered the same way again.

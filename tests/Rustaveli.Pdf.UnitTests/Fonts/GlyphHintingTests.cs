@@ -143,7 +143,8 @@ public class GlyphHintingTests
         }
 
         Assert.Contains(asked, glyph => GlyphTable.IsComposite(font.Glyphs!.GetGlyphData(glyph).Span));
-        Assert.True(subset.FontData.Length < TrueTypeSubsetter.Subset(font, asked, keepHinting: true).FontData.Length / 2);
+        Assert.True(
+            subset.FontData.Length < TrueTypeSubsetter.Subset(font, asked, keepHinting: true).FontData.Length / 2);
     }
 
     [Theory]
@@ -152,8 +153,11 @@ public class GlyphHintingTests
     [InlineData("Something", "DFKai-SB", true)]
     [InlineData("Noto Sans", null, false)]
     [InlineData("Noto Sans", "Noto Sans Display", false)]
-    public void FontsWhoseGlyphsTheirInstructionsAssembleAreKnownByName(string family, string? typographicFamily, bool needed) =>
-        Assert.Equal(needed, GlyphHinting.IsNeededBy(new FontNames(family, "Regular", family, null, typographicFamily, null, [], [])));
+    public void FontsWhoseGlyphsTheirInstructionsAssembleAreKnownByName(
+        string family, string? typographicFamily, bool needed) =>
+        Assert.Equal(
+            needed,
+            GlyphHinting.IsNeededBy(new FontNames(family, "Regular", family, null, typographicFamily, null, [], [])));
 
     [Fact]
     public void AFontThatNeedsItsHintingKeepsIt()

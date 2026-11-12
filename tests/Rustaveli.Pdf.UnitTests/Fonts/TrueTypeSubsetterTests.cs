@@ -251,7 +251,8 @@ public class TrueTypeSubsetterTests
     public void WritesAPostWithAnEmptyHeaderForAFontWhosePostIsCutShort()
     {
         // The version and italic angle alone: a header cut short is not copied a part at a time.
-        OpenTypeFont font = SyntheticFont.Minimal().With("post", SyntheticTables.Post(italicAngle: -12).Take(8).ToArray()).Load();
+        OpenTypeFont font =
+            SyntheticFont.Minimal().With("post", SyntheticTables.Post(italicAngle: -12).Take(8).ToArray()).Load();
         OpenTypeFont result = Reparse(TrueTypeSubsetter.Subset(font, [2]));
 
         Assert.Equal(0f, result.Post!.ItalicAngle);
@@ -560,7 +561,8 @@ public class TrueTypeSubsetterTests
 
         Assert.Equal(2 * (GlyphSubset.FirstSharedCode + sharedCount), map.Length);
         Assert.Equal([0x7F, 0xFF], map.Skip(2 * (GlyphSubset.FirstSharedCode - 1)).Take(2));
-        Assert.Equal(shared.SelectMany(code => new byte[] { 0, (byte)code.Glyph }), map.Skip(2 * GlyphSubset.FirstSharedCode));
+        Assert.Equal(
+            shared.SelectMany(code => new byte[] { 0, (byte)code.Glyph }), map.Skip(2 * GlyphSubset.FirstSharedCode));
     }
 
     [Fact]

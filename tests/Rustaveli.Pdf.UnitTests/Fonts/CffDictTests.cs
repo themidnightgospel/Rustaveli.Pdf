@@ -2,7 +2,9 @@ using Rustaveli.Pdf.Fonts;
 
 namespace Rustaveli.Pdf.UnitTests.Fonts;
 
-/// <summary>CFF DICTs read as entries: every operand encoding, real numbers, and where each entry's bytes lie.</summary>
+/// <summary>
+/// CFF DICTs read as entries: every operand encoding, real numbers, and where each entry's bytes lie.
+/// </summary>
 public class CffDictTests
 {
     [Fact]
