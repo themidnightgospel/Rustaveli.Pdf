@@ -57,7 +57,8 @@ public class EncryptionTests
     [MemberData(nameof(Levels))]
     public void EitherPasswordOpensWhatWasProtectedAndDecryptsIt(EncryptionLevel level)
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = level });
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = level });
 
         foreach (string password in new[] { "user", "owner" })
         {
@@ -87,7 +88,8 @@ public class EncryptionTests
         Assert.Equal(Text, encryption.DecryptString(1, first));
 
         // Below 256-bit AES each object has its own key; at 256 bits the file key serves every object.
-        Assert.Equal(level == EncryptionLevel.AesWith256Bits, Text.AsSpan().SequenceEqual(encryption.DecryptString(2, first)));
+        Assert.Equal(
+            level == EncryptionLevel.AesWith256Bits, Text.AsSpan().SequenceEqual(encryption.DecryptString(2, first)));
     }
 
     [Fact]
@@ -104,7 +106,8 @@ public class EncryptionTests
     [InlineData(EncryptionLevel.Rc4With128Bits, 2, 3, 128)]
     [InlineData(EncryptionLevel.AesWith128Bits, 4, 4, 128)]
     [InlineData(EncryptionLevel.AesWith256Bits, 5, 6, 256)]
-    public void TheDictionaryNamesTheHandlerVersionRevisionAndKeyLength(EncryptionLevel level, int version, int revision, int bits)
+    public void TheDictionaryNamesTheHandlerVersionRevisionAndKeyLength(
+        EncryptionLevel level, int version, int revision, int bits)
     {
         PdfDictionary dictionary = PdfEncryption.Create(new Protection { Encryption = level }).Dictionary;
 
@@ -131,8 +134,11 @@ public class EncryptionTests
         Assert.True(encrypted.Covers(metadata));
 
         // RC4 below revision 4 cannot leave the metadata readable.
-        Assert.Equal(level is EncryptionLevel.Rc4With40Bits or EncryptionLevel.Rc4With128Bits, readable.Covers(metadata));
-        Assert.Equal(level is EncryptionLevel.AesWith128Bits or EncryptionLevel.AesWith256Bits, readable.Dictionary.ContainsKey(new PdfName("EncryptMetadata")));
+        Assert.Equal(
+            level is EncryptionLevel.Rc4With40Bits or EncryptionLevel.Rc4With128Bits, readable.Covers(metadata));
+        Assert.Equal(
+            level is EncryptionLevel.AesWith128Bits or EncryptionLevel.AesWith256Bits,
+            readable.Dictionary.ContainsKey(new PdfName("EncryptMetadata")));
     }
 
     [Fact]
@@ -158,7 +164,8 @@ public class EncryptionTests
         Assert.Equal(1 << 8, new Protection().Permissions & ~new Protection { AllowFillingForms = false }.Permissions);
         Assert.Equal(1 << 9, new Protection().Permissions & ~new Protection { AllowAccessibility = false }.Permissions);
         Assert.Equal(1 << 10, new Protection().Permissions & ~new Protection { AllowAssembling = false }.Permissions);
-        Assert.Equal(1 << 11, new Protection().Permissions & ~new Protection { AllowHighQualityPrinting = false }.Permissions);
+        Assert.Equal(
+            1 << 11, new Protection().Permissions & ~new Protection { AllowHighQualityPrinting = false }.Permissions);
     }
 
     [Fact]
@@ -177,7 +184,13 @@ public class EncryptionTests
     [InlineData("")]
     public void WithoutAnOwnerPasswordTheRestrictionsCannotBeLifted(string? owner)
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = owner, Encryption = EncryptionLevel.AesWith128Bits });
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection
+            {
+                UserPassword = "user",
+                OwnerPassword = owner,
+                Encryption = EncryptionLevel.AesWith128Bits
+            });
 
         Assert.NotNull(Reopen(written, "user"));
         Assert.Null(Reopen(written, string.Empty));
@@ -189,7 +202,8 @@ public class EncryptionTests
     [InlineData(EncryptionLevel.AesWith128Bits)]
     public void AUserEntryTooShortToCheckOpensToNeitherPassword(EncryptionLevel level)
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = level });
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = level });
         written.Dictionary[new PdfName("U")] = new PdfString(new byte[8], PdfStringForm.Hex);
 
         Assert.Null(Reopen(written, "user"));
@@ -202,8 +216,15 @@ public class EncryptionTests
     [InlineData("O", 8)]
     public void AKeyLengthOrOwnerEntryNoPasswordCanBeCheckedWithIsDamage(string entry, int value)
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = EncryptionLevel.Rc4With128Bits });
-        written.Dictionary[new PdfName(entry)] = entry == "O" ? new PdfString(new byte[value], PdfStringForm.Hex) : value;
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection
+            {
+                UserPassword = "user",
+                OwnerPassword = "owner",
+                Encryption = EncryptionLevel.Rc4With128Bits
+            });
+        written.Dictionary[new PdfName(entry)] =
+            entry == "O" ? new PdfString(new byte[value], PdfStringForm.Hex) : value;
 
         Assert.Throws<InvalidDataException>(() => Reopen(written, "user"));
     }
@@ -213,7 +234,13 @@ public class EncryptionTests
     [InlineData("UE", "user")]
     public void AKeyWrappedInTheWrongLengthIsDamage(string entry, string password)
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", OwnerPassword = "owner", Encryption = EncryptionLevel.AesWith256Bits });
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection
+            {
+                UserPassword = "user",
+                OwnerPassword = "owner",
+                Encryption = EncryptionLevel.AesWith256Bits
+            });
         written.Dictionary[new PdfName(entry)] = new PdfString(new byte[31], PdfStringForm.Hex);
 
         Assert.Throws<InvalidDataException>(() => Reopen(written, password));
@@ -222,7 +249,8 @@ public class EncryptionTests
     [Fact]
     public void AVersion4FileWithoutItsStandardCryptFilterTakesTheKeyLengthFromItsDictionary()
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "user", Encryption = EncryptionLevel.AesWith128Bits });
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "user", Encryption = EncryptionLevel.AesWith128Bits });
         written.Dictionary[new PdfName("CF")] = new PdfDictionary();
 
         PdfEncryption opened = Reopen(written, "user")!;
@@ -301,7 +329,8 @@ public class EncryptionTests
 
         Assert.Throws<NotSupportedException>(() => PdfEncryption.Open(other, [], string.Empty, value => value));
         Assert.Throws<NotSupportedException>(() => PdfEncryption.Open(spelled, [], string.Empty, value => value));
-        Assert.Throws<NotSupportedException>(() => PdfEncryption.Open(new PdfDictionary(), [], string.Empty, value => value));
+        Assert.Throws<NotSupportedException>(
+            () => PdfEncryption.Open(new PdfDictionary(), [], string.Empty, value => value));
     }
 
     [Fact]
@@ -337,15 +366,18 @@ public class EncryptionTests
     {
         // Below revision 5 a password is PDFDocEncoding, and every character outside it would become the same '?', so
         // "пароль" would open a file protected with "секрет".
-        ArgumentException user = Assert.Throws<ArgumentException>(() => PdfEncryption.Create(new Protection { UserPassword = "секрет", Encryption = level }));
-        ArgumentException owner = Assert.Throws<ArgumentException>(() => PdfEncryption.Create(new Protection { OwnerPassword = "секрет", Encryption = level }));
+        ArgumentException user = Assert.Throws<ArgumentException>(
+            () => PdfEncryption.Create(new Protection { UserPassword = "секрет", Encryption = level }));
+        ArgumentException owner = Assert.Throws<ArgumentException>(
+            () => PdfEncryption.Create(new Protection { OwnerPassword = "секрет", Encryption = level }));
 
         Assert.Contains(nameof(EncryptionLevel.AesWith256Bits), user.Message);
         Assert.Contains("user", user.Message);
         Assert.Contains("owner", owner.Message);
 
         // Latin-1 letters are in PDFDocEncoding, and are kept.
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "café", OwnerPassword = "naïve", Encryption = level });
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "café", OwnerPassword = "naïve", Encryption = level });
         Assert.NotNull(Reopen(written, "café"));
         Assert.NotNull(Reopen(written, "naïve"));
         Assert.Null(Reopen(written, "cafe"));
@@ -354,7 +386,8 @@ public class EncryptionTests
     [Fact]
     public void Aes256KeepsAPasswordInAnyScript()
     {
-        PdfEncryption written = PdfEncryption.Create(new Protection { UserPassword = "секрет", OwnerPassword = "ქართული" });
+        PdfEncryption written = PdfEncryption.Create(
+            new Protection { UserPassword = "секрет", OwnerPassword = "ქართული" });
 
         Assert.NotNull(Reopen(written, "секрет"));
         Assert.NotNull(Reopen(written, "ქართული"));
