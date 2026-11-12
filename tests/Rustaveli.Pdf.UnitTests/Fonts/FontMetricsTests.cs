@@ -66,7 +66,8 @@ public class FontMetricsTests
     public void IgnoresVersionTwoFieldsInAnOlderOrTruncatedTable(int version, int? length)
     {
         // The second: a version 2 table that ends where version 1 does, before the fields version 2 added.
-        OpenTypeFont font = WithOs2(SyntheticTables.Os2(version: version, xHeight: 500, capHeight: 700, length: length));
+        OpenTypeFont font =
+            WithOs2(SyntheticTables.Os2(version: version, xHeight: 500, capHeight: 700, length: length));
 
         Assert.Equal(0, font.Os2!.XHeight);
         Assert.Equal(0, font.Os2.CapHeight);

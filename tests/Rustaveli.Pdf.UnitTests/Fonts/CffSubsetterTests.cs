@@ -21,7 +21,9 @@ public class CffSubsetterTests
         return table;
     }
 
-    /// <summary>The codes a document shows <paramref name="text"/> by: CIDs in a CID-keyed font, glyph indices otherwise.</summary>
+    /// <summary>
+    /// The codes a document shows <paramref name="text"/> by: CIDs in a CID-keyed font, glyph indices otherwise.
+    /// </summary>
     private static List<(ushort Cid, ushort Glyph)> Shown(OpenTypeFont font, string text) =>
         text.Select(character => font.GetGlyphId(character))
             .Select(glyph => (font.Cff!.GetCid(glyph), glyph))
@@ -39,7 +41,9 @@ public class CffSubsetterTests
         Assert.True(read.IsCidKeyed);
         Assert.Equal(font.Cff!.FontName, read.FontName);
         Assert.Equal(shown.Distinct().Count() + 1, read.GlyphCount);
-        Assert.Equal([0, .. shown.Select(glyph => glyph.Cid).Distinct().Order()], Enumerable.Range(0, read.GlyphCount).Select(glyph => read.GetCid((ushort)glyph)));
+        Assert.Equal(
+            [0, .. shown.Select(glyph => glyph.Cid).Distinct().Order()],
+            Enumerable.Range(0, read.GlyphCount).Select(glyph => read.GetCid((ushort)glyph)));
         Assert.True(subset.Length < CffOf(font).Length / 3);
         AssertNoSubroutines(subset);
     }
@@ -54,7 +58,9 @@ public class CffSubsetterTests
         CompactFontTable read = new CompactFontTable(subset);
 
         Assert.True(read.IsCidKeyed);
-        Assert.Equal([0, .. shown.Select(glyph => glyph.Cid).Distinct().Order()], Enumerable.Range(0, read.GlyphCount).Select(glyph => read.GetCid((ushort)glyph)));
+        Assert.Equal(
+            [0, .. shown.Select(glyph => glyph.Cid).Distinct().Order()],
+            Enumerable.Range(0, read.GlyphCount).Select(glyph => read.GetCid((ushort)glyph)));
         Assert.Equal(FontDictCount(CffOf(font).ToArray()), FontDictCount(subset));
         Assert.True(subset.Length < CffOf(font).Length / 5);
         AssertNoSubroutines(subset);
@@ -149,7 +155,8 @@ public class CffSubsetterTests
         OpenTypeFont font = Subrs;
         ushort a = font.GetGlyphId('A');
 
-        CompactFontTable read = new CompactFontTable(CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm, [(a, a), (a, a), (0, 0)])!);
+        CompactFontTable read =
+            new CompactFontTable(CffSubsetter.TrySubset(CffOf(font), font.UnitsPerEm, [(a, a), (a, a), (0, 0)])!);
 
         Assert.Equal(2, read.GlyphCount);
         Assert.Equal([0, a], new[] { read.GetCid(0), read.GetCid(1) });
@@ -347,7 +354,9 @@ public class CffSubsetterTests
         for (int glyph = 0; glyph < charStrings.Count; glyph++)
         {
             (int glyphStart, int glyphLength) = charStrings.GetItem(cff, glyph);
-            Assert.Equal(cff.AsSpan(glyphStart, glyphLength).ToArray(), CharStringFlattener.Flatten(cff, glyphStart, glyphLength, default, default));
+            Assert.Equal(
+                cff.AsSpan(glyphStart, glyphLength).ToArray(),
+                CharStringFlattener.Flatten(cff, glyphStart, glyphLength, default, default));
         }
     }
 }

@@ -32,7 +32,8 @@ public class CharStringFlattenerTests
         WriteIndex(data, global ?? []);
         byte[] cff = data.ToArray();
 
-        return CharStringFlattener.Flatten(cff, 0, charString.Length, CffIndex.Read(cff, globalAt), CffIndex.Read(cff, localAt));
+        return CharStringFlattener.Flatten(
+            cff, 0, charString.Length, CffIndex.Read(cff, globalAt), CffIndex.Read(cff, localAt));
     }
 
     private static void WriteIndex(FontDataWriter data, byte[][] items)
@@ -62,12 +63,17 @@ public class CharStringFlattenerTests
     [InlineData(1240, 1131)]
     [InlineData(33899, 1131)]
     [InlineData(33900, 32768)]
-    public void TheSubroutineBiasGrowsWithTheirNumber(int count, int bias) => Assert.Equal(bias, CharStringFlattener.Bias(count));
+    public void TheSubroutineBiasGrowsWithTheirNumber(int count, int bias) =>
+        Assert.Equal(bias, CharStringFlattener.Bias(count));
 
     [Fact]
     public void AGlyphWithoutCallsIsUnchanged()
     {
-        byte[] glyph = [N(10), N(20), RLineTo, 28, 0x01, 0x00, N(0), RLineTo, 255, 0, 1, 0, 0, N(3), RLineTo, 247, 0, N(-5), RLineTo, EndChar];
+        byte[] glyph =
+        [
+            N(10), N(20), RLineTo, 28, 0x01, 0x00, N(0), RLineTo, 255, 0, 1, 0, 0, N(3), RLineTo,
+            247, 0, N(-5), RLineTo, EndChar
+        ];
 
         Assert.Equal(glyph, Flatten(glyph));
     }
@@ -112,7 +118,10 @@ public class CharStringFlattenerTests
         byte[][] local = [[N(10), N(11), N(12), N(13), N(14), N(15), N(16), N(17), HStem, Return]];
 
         Assert.Equal(
-            [.. stems, N(10), N(11), N(12), N(13), N(14), N(15), N(16), N(17), HStem, HintMask, 0xFF, 0x80, N(1), N(1), RLineTo, EndChar],
+            [
+                .. stems, N(10), N(11), N(12), N(13), N(14), N(15), N(16), N(17), HStem,
+                HintMask, 0xFF, 0x80, N(1), N(1), RLineTo, EndChar
+            ],
             Flatten(glyph, local));
     }
 
@@ -171,7 +180,8 @@ public class CharStringFlattenerTests
     public void CallsNestedTooDeepAreRefused()
     {
         // Subroutine 0 calls itself for ever.
-        Assert.Throws<NotSupportedException>(() => Flatten([N(-107), CallSubr, EndChar], [[N(-107), CallSubr, Return]]));
+        Assert.Throws<NotSupportedException>(
+            () => Flatten([N(-107), CallSubr, EndChar], [[N(-107), CallSubr, Return]]));
     }
 
     [Theory]
@@ -195,7 +205,8 @@ public class CharStringFlattenerTests
     {
         // The subroutine INDEX the test writes after the glyph has bytes enough to finish the operand; they are not
         // the glyph's to read.
-        FontFormatException refused = Assert.Throws<FontFormatException>(() => Flatten(glyph, [[Return], [Return], [Return]]));
+        FontFormatException refused =
+            Assert.Throws<FontFormatException>(() => Flatten(glyph, [[Return], [Return], [Return]]));
 
         Assert.Equal(FontFormatException.Truncated().Message, refused.Message);
     }
